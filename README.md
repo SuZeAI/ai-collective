@@ -307,6 +307,90 @@ npm run dev
 
 ---
 
+# 🧩 Backend (FastAPI + Clean Architecture + LangChain)
+
+Backend được đặt trong thư mục `backend/` theo Clean Architecture:
+
+- `backend/domain`: entity + enum + errors (thuần business)
+- `backend/application`: ports (interfaces) + use-case services
+- `backend/infrastructure`: adapters (in-memory repo, LangChain Gemini)
+- `backend/api`: FastAPI routers + schemas
+
+## Cài deps Python
+
+Tối thiểu cần Python `>= 3.11`.
+
+Nếu bạn dùng `pip`:
+
+```bash
+pip install -e .
+```
+
+## Chạy API server
+
+```bash
+uvicorn backend.api.main:app --reload --port 8000
+```
+
+Mở docs:
+
+- Swagger: `http://localhost:8000/docs`
+- OpenAPI: `http://localhost:8000/openapi.json`
+
+## Env (Gemini)
+
+Backend đọc các biến sau (server-side):
+
+- `GEMINI_API_KEY` (bắt buộc nếu muốn dùng LLM)
+- `GEMINI_API_MODEL` (mặc định: `gemini-flash-latest`)
+
+Lưu ý: không đặt key dưới dạng `VITE_...` để tránh frontend vô tình bundle.
+
+## API endpoints chính
+
+Base prefix: `/api/v1`
+
+- `GET /health`
+- `GET/POST /agents`
+- `GET/POST /teams`
+- `GET/POST /tasks`
+- `GET/POST /conversations`
+- `GET /analytics`
+- `GET /activity-feed`
+- `POST /simulations/plan` (frontend Dashboard/Playground dùng để lấy “kịch bản” mô phỏng)
+- `POST /llm/chat` (chat trực tiếp với LLM; trả `503` nếu thiếu key)
+
+## Lưu dữ liệu tạm (JSON)
+
+Hiện tại backend đang lưu dữ liệu “thật” (tạm thời) vào thư mục `storage/` dưới dạng JSON:
+
+- `storage/agents.json`
+- `storage/teams.json`
+- `storage/tasks.json`
+- `storage/conversations.json`
+- `storage/analytics.json`
+- `storage/activity_feed.json`
+
+Bạn có thể chỉnh trực tiếp các file này để thấy frontend cập nhật khi reload.
+
+---
+
+# 🔌 Kết nối Frontend → Backend
+
+Hook mô phỏng trong frontend đã được chỉnh để ưu tiên gọi backend tại:
+
+- `POST {VITE_API_BASE_URL}/simulations/plan`
+
+Bạn có thể cấu hình base URL bằng biến môi trường Vite:
+
+```bash
+export VITE_API_BASE_URL="http://localhost:8000/api/v1"
+```
+
+Nếu không cấu hình hoặc backend chưa chạy, frontend tự fallback về mô phỏng local.
+
+---
+
 # 💡 Inspiration
 
 This project explores the idea of **AI Workforce Platforms**, where teams of AI agents collaborate autonomously to solve complex problems.

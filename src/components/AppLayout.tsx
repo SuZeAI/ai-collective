@@ -1,11 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, Layout, Users, MessageSquare, CheckCircle2, BarChart3, Cpu, Play } from "lucide-react";
+import { Activity, Layout, Users, MessageSquare, CheckCircle2, BarChart3, Cpu, Play, Wrench } from "lucide-react";
 import { SidebarProvider, SidebarTrigger, Sidebar, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: Layout },
   { title: "Agents", url: "/agents", icon: Cpu },
+  { title: "Skills", url: "/skills", icon: Wrench },
   { title: "Teams", url: "/teams", icon: Users },
   { title: "Tasks", url: "/tasks", icon: CheckCircle2 },
   { title: "Conversations", url: "/conversations", icon: MessageSquare },

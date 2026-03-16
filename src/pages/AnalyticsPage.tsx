@@ -1,7 +1,43 @@
 import { motion } from "framer-motion";
-import { analyticsData, agents, tasks, teams, getAgent } from "@/data/mock-data";
+import { useEffect, useMemo, useState } from "react";
+import { api, type Agent, type Analytics, type Task, type Team } from "@/lib/api";
 
 export default function AnalyticsPage() {
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [an, ags, tks, tms] = await Promise.all([
+          api.getAnalytics(),
+          api.listAgents(),
+          api.listTasks(),
+          api.listTeams(),
+        ]);
+        if (cancelled) return;
+        setAnalytics(an);
+        setAgents(ags);
+        setTasks(tks);
+        setTeams(tms);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const agentById = useMemo(() => {
+    const map = new Map<string, Agent>();
+    agents.forEach((a) => map.set(a.id, a));
+    return map;
+  }, [agents]);
+
   const completedTasks = tasks.filter((t) => t.status === "completed").length;
   const inProgressTasks = tasks.filter((t) => t.status === "in-progress").length;
 
@@ -15,9 +51,9 @@ export default function AnalyticsPage() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
-          { label: "Tasks Completed", value: String(analyticsData.tasksCompleted) },
-          { label: "Avg. Completion", value: analyticsData.avgCompletionTime },
-          { label: "Team Efficiency", value: `${analyticsData.teamEfficiency}%` },
+          { label: "Tasks Completed", value: String(analytics?.tasksCompleted ?? 0) },
+          { label: "Avg. Completion", value: analytics?.avgCompletionTime ?? "" },
+          { label: "Team Efficiency", value: `${analytics?.teamEfficiency ?? 0}%` },
           { label: "Active Teams", value: String(teams.length) },
         ].map((card, i) => (
           <motion.div
@@ -37,8 +73,8 @@ export default function AnalyticsPage() {
       <div className="glass-card p-6 mb-6">
         <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-6">Agent Productivity</h3>
         <div className="space-y-5">
-          {Object.entries(analyticsData.agentProductivity).map(([agentId, value]) => {
-            const agent = getAgent(agentId);
+          {Object.entries(analytics?.agentProductivity ?? {}).map(([agentId, value]) => {
+            const agent = agentById.get(agentId);
             if (!agent) return null;
             return (
               <div key={agentId} className="space-y-2">

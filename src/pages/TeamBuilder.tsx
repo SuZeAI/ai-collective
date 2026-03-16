@@ -1,34 +1,64 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { teams as initialTeams, agents, getAgent, Team } from "@/data/mock-data";
+import { api, type Agent, type Team } from "@/lib/api";
 
 export default function TeamBuilder() {
-  const [teamList, setTeamList] = useState<Team[]>(initialTeams);
+  const [teamList, setTeamList] = useState<Team[]>([]);
+  const [agentList, setAgentList] = useState<Agent[]>([]);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [teams, agents] = await Promise.all([api.listTeams(), api.listAgents()]);
+        if (cancelled) return;
+        setTeamList(teams);
+        setAgentList(agents);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const agentById = useMemo(() => {
+    const map = new Map<string, Agent>();
+    agentList.forEach((a) => map.set(a.id, a));
+    return map;
+  }, [agentList]);
+
   const toggleAgent = (id: string) => {
     setSelectedAgents((prev) => prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]);
   };
 
-  const addTeam = () => {
+  const addTeam = async () => {
     if (!name || selectedAgents.length === 0) return;
-    const newTeam: Team = {
-      id: `t${Date.now()}`,
-      name,
-      description: desc || "Custom team",
-      agents: selectedAgents,
-      activeTasks: 0,
-    };
-    setTeamList((prev) => [...prev, newTeam]);
-    setName(""); setDesc(""); setSelectedAgents([]); setOpen(false);
+    try {
+      const saved = await api.upsertTeam({
+        name,
+        description: desc,
+        agents: selectedAgents,
+        activeTasks: 0,
+      });
+      setTeamList((prev) => [...prev, saved]);
+      setName("");
+      setDesc("");
+      setSelectedAgents([]);
+      setOpen(false);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -49,11 +79,14 @@ export default function TeamBuilder() {
               <Input placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
               <div className="space-y-2">
                 <label className="text-sm font-medium">Select Agents</label>
-                {agents.map((a) => (
+                {agentList.map((a) => (
                   <label key={a.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer">
                     <Checkbox checked={selectedAgents.includes(a.id)} onCheckedChange={() => toggleAgent(a.id)} />
                     <span className="text-sm font-medium">{a.name}</span>
                     <span className="text-xs text-muted-foreground">({a.role})</span>
+                    {a.skills?.length ? (
+                      <span className="text-xs text-muted-foreground">• {a.skills.length} skills</span>
+                    ) : null}
                   </label>
                 ))}
               </div>
@@ -83,7 +116,7 @@ export default function TeamBuilder() {
             </div>
             <div className="flex flex-wrap gap-2 mb-4">
               {team.agents.map((agentId) => {
-                const agent = getAgent(agentId);
+                const agent = agentById.get(agentId);
                 if (!agent) return null;
                 return (
                   <span key={agentId} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">

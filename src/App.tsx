@@ -7,6 +7,7 @@ import { AppLayout } from "@/components/AppLayout";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import AgentBuilder from "@/pages/AgentBuilder";
+import Skills from "./pages/Skills";
 import TeamBuilder from "@/pages/TeamBuilder";
 import TaskManager from "@/pages/TaskManager";
 import Conversations from "@/pages/Conversations";
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/" element={<Landing />} />
           <Route path="/dashboard" element={<WithLayout><Dashboard /></WithLayout>} />
           <Route path="/agents" element={<WithLayout><AgentBuilder /></WithLayout>} />
+          <Route path="/skills" element={<WithLayout><Skills /></WithLayout>} />
           <Route path="/teams" element={<WithLayout><TeamBuilder /></WithLayout>} />
           <Route path="/tasks" element={<WithLayout><TaskManager /></WithLayout>} />
           <Route path="/conversations" element={<WithLayout><Conversations /></WithLayout>} />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, CheckCircle2, Clock, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { tasks as initialTasks, teams, getAgent, Task } from "@/data/mock-data";
+import { api, type Agent, type Team, type Task } from "@/lib/api";
 
 const statusIcons = {
   "pending": Circle,
@@ -21,26 +21,58 @@ const statusColors: Record<string, string> = {
 };
 
 export default function TaskManager() {
-  const [taskList, setTaskList] = useState<Task[]>(initialTasks);
+  const [taskList, setTaskList] = useState<Task[]>([]);
+  const [teamList, setTeamList] = useState<Team[]>([]);
+  const [agentList, setAgentList] = useState<Agent[]>([]);
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [teamId, setTeamId] = useState("");
   const [open, setOpen] = useState(false);
 
-  const addTask = () => {
-    if (!title || !teamId) return;
-    const team = teams.find((t) => t.id === teamId);
-    const newTask: Task = {
-      id: `task${Date.now()}`,
-      title,
-      description: desc,
-      teamId,
-      status: "pending",
-      progress: 0,
-      assignedAgents: team?.agents || [],
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [tasks, teams, agents] = await Promise.all([api.listTasks(), api.listTeams(), api.listAgents()]);
+        if (cancelled) return;
+        setTaskList(tasks);
+        setTeamList(teams);
+        setAgentList(agents);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
     };
-    setTaskList((prev) => [...prev, newTask]);
-    setTitle(""); setDesc(""); setTeamId(""); setOpen(false);
+  }, []);
+
+  const agentById = useMemo(() => {
+    const map = new Map<string, Agent>();
+    agentList.forEach((a) => map.set(a.id, a));
+    return map;
+  }, [agentList]);
+
+  const addTask = async () => {
+    if (!title || !teamId) return;
+    const team = teamList.find((t) => t.id === teamId);
+    try {
+      const saved = await api.upsertTask({
+        title,
+        description: desc,
+        teamId,
+        status: "pending",
+        progress: 0,
+        assignedAgents: team?.agents || [],
+      });
+      setTaskList((prev) => [...prev, saved]);
+      setTitle("");
+      setDesc("");
+      setTeamId("");
+      setOpen(false);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -62,7 +94,7 @@ export default function TaskManager() {
               <Select value={teamId} onValueChange={setTeamId}>
                 <SelectTrigger><SelectValue placeholder="Assign to team" /></SelectTrigger>
                 <SelectContent>
-                  {teams.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  {teamList.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Button onClick={addTask} className="w-full" disabled={!title || !teamId}>Create Task</Button>
@@ -74,7 +106,7 @@ export default function TaskManager() {
       <div className="space-y-4">
         {taskList.map((task, i) => {
           const Icon = statusIcons[task.status];
-          const team = teams.find((t) => t.id === task.teamId);
+          const team = teamList.find((t) => t.id === task.teamId);
           return (
             <motion.div
               key={task.id}
@@ -93,7 +125,7 @@ export default function TaskManager() {
                       <span className="text-xs text-muted-foreground font-mono">{team?.name}</span>
                       <div className="flex -space-x-1">
                         {task.assignedAgents.slice(0, 4).map((aid) => {
-                          const agent = getAgent(aid);
+                          const agent = agentById.get(aid);
                           return agent ? (
                             <div key={aid} className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[9px] font-bold border-2 border-card">
                               {agent.avatar}

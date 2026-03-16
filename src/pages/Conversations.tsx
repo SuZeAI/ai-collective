@@ -1,7 +1,38 @@
 import { motion } from "framer-motion";
-import { conversations, getAgent, getAgentRoleColor } from "@/data/mock-data";
+import { useEffect, useMemo, useState } from "react";
+import { api, type Agent, type Message } from "@/lib/api";
+import { getAgentRoleColor } from "@/lib/agent-role-ui";
 
 export default function Conversations() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [msgs, ags] = await Promise.all([
+          api.listConversations("task1"),
+          api.listAgents(),
+        ]);
+        if (cancelled) return;
+        setMessages(msgs);
+        setAgents(ags);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const agentById = useMemo(() => {
+    const map = new Map<string, Agent>();
+    agents.forEach((a) => map.set(a.id, a));
+    return map;
+  }, [agents]);
+
   return (
     <div>
       <header className="mb-8">
@@ -15,8 +46,8 @@ export default function Conversations() {
           <span className="text-sm font-medium text-muted-foreground">Task: Create landing page for AI startup</span>
         </div>
         <div className="p-6 space-y-5">
-          {conversations.map((msg, i) => {
-            const agent = getAgent(msg.agentId);
+          {messages.map((msg, i) => {
+            const agent = agentById.get(msg.agentId);
             if (!agent) return null;
             return (
               <motion.div
@@ -33,13 +64,23 @@ export default function Conversations() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold">{agent.name}</span>
                     <span className="text-[10px] text-muted-foreground">{agent.role}</span>
-                    <span className="text-[10px] text-muted-foreground font-mono">{msg.timestamp}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {(() => {
+                        const d = new Date(msg.timestamp);
+                        return isNaN(d.getTime())
+                          ? msg.timestamp
+                          : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+                      })()}
+                    </span>
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed mt-1">{msg.content}</p>
                 </div>
               </motion.div>
             );
           })}
+          {messages.length === 0 && (
+            <div className="text-sm text-muted-foreground">No messages yet.</div>
+          )}
         </div>
       </div>
     </div>

@@ -4,7 +4,7 @@ import { Play, RotateCcw, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAgentSimulation } from "@/hooks/use-agent-simulation";
-import { getAgentRoleColor } from "@/data/mock-data";
+import { getAgentRoleColor } from "@/lib/agent-role-ui";
 
 const workflowSteps = ["Planning", "Execution", "Review", "Complete"];
 const exampleTasks = [

@@ -1,17 +1,56 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAgentSimulation } from "@/hooks/use-agent-simulation";
-import { getAgentRoleColor } from "@/data/mock-data";
-import { agents as defaultAgents, teams, tasks, activityFeed, getAgent, analyticsData } from "@/data/mock-data";
+import { getAgentRoleColor } from "@/lib/agent-role-ui";
+import { api, type Agent, type Team, type Analytics, type ActivityFeedItem } from "@/lib/api";
 
 const workflowSteps = ["Planning", "Execution", "Review", "Complete"];
 
 export default function Dashboard() {
   const { isSimulating, messages, currentStep, runSimulation } = useAgentSimulation();
   const [input, setInput] = useState("");
+
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [a, t, an, feed] = await Promise.all([
+          api.listAgents(),
+          api.listTeams(),
+          api.getAnalytics(),
+          api.listActivityFeed(),
+        ]);
+        if (cancelled) return;
+        setAgents(a);
+        setTeams(t);
+        setAnalytics(an);
+        setActivityFeed(feed);
+      } catch (e) {
+        // Keep UI; data will remain empty if backend is down.
+        console.error(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const agentById = useMemo(() => {
+    const map = new Map<string, Agent>();
+    agents.forEach((a) => map.set(a.id, a));
+    return map;
+  }, [agents]);
+
+  const activeTeam = teams[0];
+  const activeAgentsCount = agents.filter((a) => a.status === "active").length;
 
   const handleSubmit = () => {
     if (input.trim() && !isSimulating) {
@@ -28,9 +67,9 @@ export default function Dashboard() {
           <p className="text-muted-foreground mt-1">Overview of your multi-agent workspace.</p>
         </div>
         <div className="flex gap-6">
-          <StatCard label="Tasks Done" value={String(analyticsData.tasksCompleted)} />
-          <StatCard label="Efficiency" value={`${analyticsData.teamEfficiency}%`} />
-          <StatCard label="Active Agents" value={String(defaultAgents.filter(a => a.status === "active").length)} />
+          <StatCard label="Tasks Done" value={String(analytics?.tasksCompleted ?? 0)} />
+          <StatCard label="Efficiency" value={`${analytics?.teamEfficiency ?? 0}%`} />
+          <StatCard label="Active Agents" value={String(activeAgentsCount)} />
         </div>
       </header>
 
@@ -120,10 +159,10 @@ export default function Dashboard() {
         <div className="space-y-6">
           <div className="glass-card bg-foreground text-background p-6">
             <h3 className="text-xs font-bold uppercase tracking-widest text-primary mb-4">Active Team</h3>
-            <h2 className="text-xl font-bold mb-5">{teams[0].name}</h2>
+            <h2 className="text-xl font-bold mb-5">{activeTeam?.name ?? ""}</h2>
             <div className="space-y-3">
-              {teams[0].agents.map((agentId) => {
-                const agent = getAgent(agentId);
+              {(activeTeam?.agents ?? []).map((agentId) => {
+                const agent = agentById.get(agentId);
                 if (!agent) return null;
                 return (
                   <div key={agentId} className="flex items-center justify-between p-3 rounded-xl bg-background/5 border border-background/10">
@@ -147,7 +186,7 @@ export default function Dashboard() {
             <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">Recent Activity</h3>
             <div className="space-y-3">
               {activityFeed.map((item) => {
-                const agent = getAgent(item.agentId);
+                const agent = agentById.get(item.agentId);
                 return (
                   <div key={item.id} className="flex items-start gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
