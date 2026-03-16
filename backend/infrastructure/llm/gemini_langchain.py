@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from typing import Any
-
+from backend.log import get_logger
 from backend.application.ports.llm import LLMProvider
 
 
@@ -34,7 +34,7 @@ class GeminiLangChainProvider(LLMProvider):
 
         result = await self._llm.ainvoke([SystemMessage(content=system), HumanMessage(content=user)])
         content = getattr(result, "content", result)
-
+        get_logger().debug(f"Raw LLM response content: {content}")
         # Gemini can return structured content blocks; keep only user-facing text.
         if isinstance(content, str):
             return content
