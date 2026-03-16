@@ -8,6 +8,15 @@ from backend.domain.models import Agent, Skill, Team, Task, Message, Analytics, 
 from backend.infrastructure.repositories.json_store import JsonFileStore
 
 
+def _default_agent_system_prompt(*, name: str, role: str, description: str) -> str:
+    return (
+        f"You are {name}, working as a {role}. "
+        f"Your mission: {description.strip() or f'perform the responsibilities of a {role}'}. "
+        "Provide concise, practical, and high-quality outputs. "
+        "When information is missing, ask targeted follow-up questions before acting."
+    )
+
+
 class JsonAgentRepository:
     def __init__(self, store: JsonFileStore, seed: list[Agent]):
         self._store = store
@@ -33,6 +42,8 @@ class JsonAgentRepository:
                     ],
                     "status": a.status.value,
                     "avatar": a.avatar,
+                    "system_prompt": a.system_prompt
+                    or _default_agent_system_prompt(name=a.name, role=a.role, description=a.description),
                 }
                 for a in seed
             ]
@@ -66,6 +77,14 @@ class JsonAgentRepository:
                     skills=skills,
                     status=AgentStatus(str(item.get("status", "idle"))),
                     avatar=str(item.get("avatar", "A")),
+                    system_prompt=(
+                        str(item.get("system_prompt", "")).strip()
+                        or _default_agent_system_prompt(
+                            name=str(item.get("name", "")),
+                            role=str(item.get("role", "")),
+                            description=str(item.get("description", "")),
+                        )
+                    ),
                 )
                 self._items[agent.id] = agent
             except Exception:
@@ -93,6 +112,8 @@ class JsonAgentRepository:
                     ],
                     "status": a.status.value,
                     "avatar": a.avatar,
+                    "system_prompt": a.system_prompt
+                    or _default_agent_system_prompt(name=a.name, role=a.role, description=a.description),
                 }
                 for a in self._items.values()
             ]

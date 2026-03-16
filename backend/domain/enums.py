@@ -12,4 +12,6 @@ class AgentStatus(str, Enum):
 class TaskStatus(str, Enum):
     pending = "pending"
     in_progress = "in-progress"
+    paused = "paused"
+    stopped = "stopped"
     completed = "completed"

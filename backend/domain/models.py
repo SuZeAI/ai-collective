@@ -27,6 +27,7 @@ class Agent:
     skills: list[Skill]
     status: AgentStatus
     avatar: str
+    system_prompt: str = ""
 
 
 @dataclass(frozen=True, slots=True)

@@ -14,6 +14,15 @@ from backend.domain.models import Agent, Skill
 router = APIRouter(prefix="/agents", tags=["agents"])
 
 
+def _build_agent_system_prompt(*, name: str, role: str, description: str) -> str:
+    return (
+        f"You are {name}, working as a {role}. "
+        f"Your mission: {description.strip() or f'perform the responsibilities of a {role}'}. "
+        "Provide concise, practical, and high-quality outputs. "
+        "When information is missing, ask targeted follow-up questions before acting."
+    )
+
+
 @router.get("", response_model=list[AgentSchema])
 def list_agents(service: AgentService = Depends(get_agent_service)) -> list[AgentSchema]:
     return [AgentSchema.from_domain(a) for a in service.list_agents()]
@@ -47,6 +56,15 @@ def upsert_agent(req: UpsertAgentRequest, service: AgentService = Depends(get_ag
         skills=skills,
         status=AgentStatus(req.status),
         avatar=avatar,
+        system_prompt=(
+            req.system_prompt.strip()
+            if isinstance(req.system_prompt, str) and req.system_prompt.strip()
+            else _build_agent_system_prompt(
+                name=req.name,
+                role=req.role,
+                description=req.description or f"{req.role} agent",
+            )
+        ),
     )
     saved = service.upsert_agent(agent)
     return AgentSchema.from_domain(saved)

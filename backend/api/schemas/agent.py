@@ -33,6 +33,7 @@ class AgentSchema(BaseModel):
     skills: list[SkillSchema] = Field(default_factory=list)
     status: str
     avatar: str
+    system_prompt: str = ""
 
     @staticmethod
     def from_domain(a) -> "AgentSchema":
@@ -44,6 +45,7 @@ class AgentSchema(BaseModel):
             skills=[SkillSchema.from_domain(s) for s in (getattr(a, "skills", None) or [])],
             status=a.status.value if hasattr(a.status, "value") else str(a.status),
             avatar=a.avatar,
+            system_prompt=getattr(a, "system_prompt", "") or "",
         )
 
 
@@ -65,3 +67,4 @@ class UpsertAgentRequest(BaseModel):
     skills: list[UpsertSkillRequest] = Field(default_factory=list)
     status: str = "idle"
     avatar: str | None = None
+    system_prompt: str | None = None

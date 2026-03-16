@@ -33,7 +33,25 @@ class GeminiLangChainProvider(LLMProvider):
         from langchain_core.messages import HumanMessage, SystemMessage
 
         result = await self._llm.ainvoke([SystemMessage(content=system), HumanMessage(content=user)])
-        return str(getattr(result, "content", result))
+        content = getattr(result, "content", result)
+
+        # Gemini can return structured content blocks; keep only user-facing text.
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            text_parts: list[str] = []
+            for block in content:
+                if isinstance(block, str):
+                    text_parts.append(block)
+                    continue
+                if isinstance(block, dict):
+                    text = block.get("text")
+                    if isinstance(text, str) and text.strip():
+                        text_parts.append(text)
+            if text_parts:
+                return "\n".join(text_parts).strip()
+
+        return str(content)
 
     async def generate_json(self, *, system: str, user: str) -> dict:
         text = await self.chat(system=system, user=user)
