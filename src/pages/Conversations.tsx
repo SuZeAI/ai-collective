@@ -19,7 +19,7 @@ export default function Conversations() {
     (async () => {
       try {
         const [msgs, ags] = await Promise.all([
-          api.listConversations("task1"),
+          api.listConversations(),
           api.listAgents(),
         ]);
         if (cancelled) return;
@@ -70,13 +70,13 @@ export default function Conversations() {
     <div>
       <header className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Conversations</h1>
-        <p className="text-muted-foreground mt-1">Agent communication logs across tasks.</p>
+        <p className="text-muted-foreground mt-1">Agent communication logs across active teams and tasks.</p>
       </header>
 
       <div className="glass-card overflow-hidden">
         <div className="p-4 border-b border-border flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-agent-dev animate-pulse" />
-          <span className="text-sm font-medium text-muted-foreground">Task: Create landing page for AI startup</span>
+          <span className="text-sm font-medium text-muted-foreground">Live agent conversations</span>
         </div>
         <div className="p-4 border-b border-border">
           <div className="grid gap-2 md:grid-cols-[220px_1fr_auto]">

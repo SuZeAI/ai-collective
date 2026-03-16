@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { api, type Agent, type Team, type Task } from "@/lib/api";
+import { api, type Agent, type Message, type Team, type Task } from "@/lib/api";
+import { getAgentRoleColor } from "@/lib/agent-role-ui";
 
 const statusIcons = {
   "pending": Circle,
@@ -33,7 +34,49 @@ export default function TaskManager() {
   const [teamId, setTeamId] = useState("");
   const [updatingTaskIds, setUpdatingTaskIds] = useState<Set<string>>(new Set());
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [taskConversations, setTaskConversations] = useState<Record<string, Message[]>>({});
+  const [loadingConversationTaskIds, setLoadingConversationTaskIds] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
+
+  const loadTaskConversation = async (taskId: string) => {
+    setLoadingConversationTaskIds((prev) => {
+      const next = new Set(prev);
+      next.add(taskId);
+      return next;
+    });
+    try {
+      const messages = await api.listConversations(taskId);
+      setTaskConversations((prev) => ({ ...prev, [taskId]: messages }));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingConversationTaskIds((prev) => {
+        const next = new Set(prev);
+        next.delete(taskId);
+        return next;
+      });
+    }
+  };
+
+  const loadTaskConversations = async (taskIds: string[]) => {
+    if (taskIds.length === 0) return;
+    try {
+      const results = await Promise.all(
+        taskIds.map(async (id) => ({ id, messages: await api.listConversations(id) }))
+      );
+      setTaskConversations((prev) => {
+        const next = { ...prev };
+        for (const item of results) {
+          if (item.messages.length > 0) {
+            next[item.id] = item.messages;
+          }
+        }
+        return next;
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -44,6 +87,7 @@ export default function TaskManager() {
         setTaskList(tasks);
         setTeamList(teams);
         setAgentList(agents);
+        await loadTaskConversations(tasks.map((t) => t.id));
       } catch (e) {
         console.error(e);
       }
@@ -52,6 +96,50 @@ export default function TaskManager() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const streamTaskIds = taskList.filter((t) => t.status === "in-progress").map((t) => t.id);
+    if (streamTaskIds.length === 0) return;
+
+    let cancelled = false;
+    const loadConversations = async () => {
+      setLoadingConversationTaskIds((prev) => {
+        const next = new Set(prev);
+        streamTaskIds.forEach((id) => next.add(id));
+        return next;
+      });
+      try {
+        const results = await Promise.all(
+          streamTaskIds.map(async (id) => ({ id, messages: await api.listConversations(id) }))
+        );
+        if (cancelled) return;
+        setTaskConversations((prev) => {
+          const next = { ...prev };
+          for (const item of results) {
+            next[item.id] = item.messages;
+          }
+          return next;
+        });
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (!cancelled) {
+          setLoadingConversationTaskIds((prev) => {
+            const next = new Set(prev);
+            streamTaskIds.forEach((id) => next.delete(id));
+            return next;
+          });
+        }
+      }
+    };
+
+    loadConversations();
+    const interval = setInterval(loadConversations, 2000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [taskList]);
 
   const agentById = useMemo(() => {
     const map = new Map<string, Agent>();
@@ -116,6 +204,7 @@ export default function TaskManager() {
         status,
       });
       setTaskList((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+      await loadTaskConversation(updated.id);
     } catch (e) {
       console.error(e);
     } finally {
@@ -133,6 +222,11 @@ export default function TaskManager() {
     try {
       await api.deleteTask(id);
       setTaskList((prev) => prev.filter((t) => t.id !== id));
+      setTaskConversations((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       if (editingTaskId === id) {
         resetForm();
         setOpen(false);
@@ -183,9 +277,13 @@ export default function TaskManager() {
           const Icon = statusIcons[task.status] ?? Circle;
           const team = teamList.find((t) => t.id === task.teamId);
           const isUpdating = updatingTaskIds.has(task.id);
-          const canStart = task.status === "pending" || task.status === "paused" || task.status === "stopped";
+          const canStart = task.status === "pending" || task.status === "paused" || task.status === "stopped" || task.status === "completed";
           const canPause = task.status === "in-progress";
           const canStop = task.status === "in-progress" || task.status === "paused";
+          const messages = taskConversations[task.id] ?? [];
+          const isConversationLoading = loadingConversationTaskIds.has(task.id);
+          const visibleMessages = messages.slice(-8);
+          const isRestart = task.status === "completed";
           return (
             <motion.div
               key={task.id}
@@ -231,7 +329,7 @@ export default function TaskManager() {
                         disabled={!canStart || isUpdating}
                       >
                         <Play className="w-3.5 h-3.5 mr-1" />
-                        Start
+                        {isRestart ? "Restart" : "Start"}
                       </Button>
                       <Button
                         size="sm"
@@ -262,6 +360,49 @@ export default function TaskManager() {
                   <Progress value={task.progress} className="h-1.5" />
                 </div>
               </div>
+
+              {(task.status === "in-progress" || messages.length > 0) && (
+                <div className="mt-4 border-t border-border pt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Conversation Stream
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                      {task.status === "in-progress" && <span className="w-1.5 h-1.5 rounded-full bg-agent-dev animate-pulse" />}
+                      <span>{task.status === "in-progress" ? "Live" : "Recent"}</span>
+                    </div>
+                  </div>
+
+                  {isConversationLoading && messages.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Loading conversation...</p>
+                  ) : visibleMessages.length > 0 ? (
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {visibleMessages.map((msg) => {
+                        const agent = agentById.get(msg.agentId);
+                        const ts = new Date(msg.timestamp);
+                        return (
+                          <div key={msg.id} className="rounded-md border border-border/60 p-2.5">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div
+                                className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold ${getAgentRoleColor(agent?.role || "")}`}
+                              >
+                                {agent?.avatar ?? "?"}
+                              </div>
+                              <span className="text-xs font-semibold">{agent?.name ?? msg.agentId}</span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground leading-relaxed">{msg.content}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No conversation yet for this task.</p>
+                  )}
+                </div>
+              )}
             </motion.div>
           );
         })}
