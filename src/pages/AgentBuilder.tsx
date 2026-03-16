@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, X } from "lucide-react";
+import { FlaskConical, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -31,10 +32,16 @@ export default function AgentBuilder() {
   const [skillCatalog, setSkillCatalog] = useState<Skill[]>([]);
 
   const [open, setOpen] = useState(false);
+  const [testOpen, setTestOpen] = useState(false);
+  const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [role, setRole] = useState<Role | "">("");
   const [desc, setDesc] = useState("");
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
+  const [testingAgent, setTestingAgent] = useState<Agent | null>(null);
+  const [testPrompt, setTestPrompt] = useState("");
+  const [testOutput, setTestOutput] = useState("");
+  const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,10 +73,33 @@ export default function AgentBuilder() {
     setSelectedSkillIds((prev) => prev.filter((x) => x !== id));
   };
 
-  const addAgent = async () => {
+  const resetForm = () => {
+    setEditingAgentId(null);
+    setName("");
+    setRole("");
+    setDesc("");
+    setSelectedSkillIds([]);
+  };
+
+  const openCreateDialog = () => {
+    resetForm();
+    setOpen(true);
+  };
+
+  const openEditDialog = (agent: Agent) => {
+    setEditingAgentId(agent.id);
+    setName(agent.name);
+    setRole(agent.role as Role);
+    setDesc(agent.description ?? "");
+    setSelectedSkillIds((agent.skills || []).map((s) => s.id));
+    setOpen(true);
+  };
+
+  const saveAgent = async () => {
     if (!name.trim() || !role) return;
     try {
       const saved = await api.upsertAgent({
+        id: editingAgentId ?? undefined,
         name: name.trim(),
         role,
         description: desc,
@@ -77,14 +107,54 @@ export default function AgentBuilder() {
         status: "idle",
         avatar: name.trim()[0]?.toUpperCase(),
       });
-      setAgentList((prev) => [...prev, saved]);
-      setName("");
-      setRole("");
-      setDesc("");
-      setSelectedSkillIds([]);
+      setAgentList((prev) => {
+        const idx = prev.findIndex((a) => a.id === saved.id);
+        if (idx === -1) return [...prev, saved];
+        const next = [...prev];
+        next[idx] = saved;
+        return next;
+      });
+      resetForm();
       setOpen(false);
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const deleteAgent = async (id: string) => {
+    try {
+      await api.deleteAgent(id);
+      setAgentList((prev) => prev.filter((a) => a.id !== id));
+      if (editingAgentId === id) {
+        resetForm();
+        setOpen(false);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const openTestDialog = (agent: Agent) => {
+    setTestingAgent(agent);
+    setTestPrompt("");
+    setTestOutput("");
+    setTestOpen(true);
+  };
+
+  const runAgentTest = async () => {
+    if (!testingAgent || !testPrompt.trim() || isTesting) return;
+    setIsTesting(true);
+    setTestOutput("");
+    try {
+      const result = await api.chat({
+        prompt: testPrompt.trim(),
+        agentId: testingAgent.id,
+      });
+      setTestOutput(result.response || "(No response)");
+    } catch (e) {
+      setTestOutput(e instanceof Error ? `Error: ${e.message}` : "Error: Failed to call test endpoint");
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -98,13 +168,13 @@ export default function AgentBuilder() {
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={openCreateDialog}>
               <Plus className="w-4 h-4 mr-2" /> New Agent
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create Agent</DialogTitle>
+              <DialogTitle>{editingAgentId ? "Edit Agent" : "Create Agent"}</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4 pt-2">
@@ -176,13 +246,47 @@ export default function AgentBuilder() {
                 )}
               </div>
 
-              <Button onClick={addAgent} className="w-full" disabled={!name.trim() || !role}>
-                Create Agent
+              <Button onClick={saveAgent} className="w-full" disabled={!name.trim() || !role}>
+                {editingAgentId ? "Save Changes" : "Create Agent"}
               </Button>
             </div>
           </DialogContent>
         </Dialog>
       </header>
+
+      <Dialog
+        open={testOpen}
+        onOpenChange={(next) => {
+          setTestOpen(next);
+          if (!next) {
+            setIsTesting(false);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Test Agent Output{testingAgent ? `: ${testingAgent.name}` : ""}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <Textarea
+              value={testPrompt}
+              onChange={(e) => setTestPrompt(e.target.value)}
+              placeholder="Enter test prompt for this agent"
+              className="min-h-[110px]"
+            />
+            <Button onClick={runAgentTest} disabled={!testingAgent || !testPrompt.trim() || isTesting}>
+              <FlaskConical className="w-4 h-4 mr-2" />
+              {isTesting ? "Testing..." : "Run Test"}
+            </Button>
+            <Textarea
+              value={testOutput}
+              readOnly
+              placeholder="Output will appear here"
+              className="min-h-[160px] font-mono"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {agentList.map((agent, i) => (
@@ -204,19 +308,34 @@ export default function AgentBuilder() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold truncate">{agent.name}</h3>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(agent)} aria-label={`Edit ${agent.name}`}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => deleteAgent(agent.id)} aria-label={`Delete ${agent.name}`}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                    <div className="flex items-center gap-1.5">
                     <span
                       className={`w-2 h-2 rounded-full ${
                         agent.status === "active" ? "bg-agent-dev animate-pulse" : "bg-muted-foreground/30"
                       }`}
                     />
                     <span className="text-[10px] font-mono text-muted-foreground capitalize">{agent.status}</span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 mt-1">
                   <span className={`w-1.5 h-1.5 rounded-full ${getAgentDotColor(agent.role)}`} />
                   <span className="text-xs text-muted-foreground">{agent.role}</span>
+                </div>
+
+                <div className="mt-2">
+                  <Button variant="outline" size="sm" onClick={() => openTestDialog(agent)}>
+                    <FlaskConical className="w-3.5 h-3.5 mr-1.5" />
+                    Test
+                  </Button>
                 </div>
 
                 {agent.skills?.length ? (

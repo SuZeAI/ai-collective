@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Users } from "lucide-react";
+import { Pencil, Plus, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -13,6 +13,7 @@ export default function TeamBuilder() {
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
+  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -42,20 +43,59 @@ export default function TeamBuilder() {
     setSelectedAgents((prev) => prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]);
   };
 
-  const addTeam = async () => {
-    if (!name || selectedAgents.length === 0) return;
+  const resetForm = () => {
+    setEditingTeamId(null);
+    setName("");
+    setDesc("");
+    setSelectedAgents([]);
+  };
+
+  const openCreateDialog = () => {
+    resetForm();
+    setOpen(true);
+  };
+
+  const openEditDialog = (team: Team) => {
+    setEditingTeamId(team.id);
+    setName(team.name);
+    setDesc(team.description ?? "");
+    setSelectedAgents(team.agents || []);
+    setOpen(true);
+  };
+
+  const saveTeam = async () => {
+    if (!name.trim() || selectedAgents.length === 0) return;
+    const existing = editingTeamId ? teamList.find((t) => t.id === editingTeamId) : undefined;
     try {
       const saved = await api.upsertTeam({
-        name,
+        id: editingTeamId ?? undefined,
+        name: name.trim(),
         description: desc,
         agents: selectedAgents,
-        activeTasks: 0,
+        activeTasks: existing?.activeTasks ?? 0,
       });
-      setTeamList((prev) => [...prev, saved]);
-      setName("");
-      setDesc("");
-      setSelectedAgents([]);
+      setTeamList((prev) => {
+        const idx = prev.findIndex((t) => t.id === saved.id);
+        if (idx === -1) return [...prev, saved];
+        const next = [...prev];
+        next[idx] = saved;
+        return next;
+      });
+      resetForm();
       setOpen(false);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const deleteTeam = async (id: string) => {
+    try {
+      await api.deleteTeam(id);
+      setTeamList((prev) => prev.filter((t) => t.id !== id));
+      if (editingTeamId === id) {
+        resetForm();
+        setOpen(false);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -70,10 +110,10 @@ export default function TeamBuilder() {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button><Plus className="w-4 h-4 mr-2" /> New Team</Button>
+            <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> New Team</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Create Team</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingTeamId ? "Edit Team" : "Create Team"}</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-2">
               <Input placeholder="Team name" value={name} onChange={(e) => setName(e.target.value)} />
               <Input placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
@@ -90,7 +130,9 @@ export default function TeamBuilder() {
                   </label>
                 ))}
               </div>
-              <Button onClick={addTeam} className="w-full" disabled={!name || selectedAgents.length === 0}>Create Team</Button>
+              <Button onClick={saveTeam} className="w-full" disabled={!name.trim() || selectedAgents.length === 0}>
+                {editingTeamId ? "Save Changes" : "Create Team"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -109,9 +151,17 @@ export default function TeamBuilder() {
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Users className="w-5 h-5 text-primary" />
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <h3 className="font-bold">{team.name}</h3>
                 <p className="text-xs text-muted-foreground">{team.description}</p>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" onClick={() => openEditDialog(team)} aria-label={`Edit ${team.name}`}>
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => deleteTeam(team.id)} aria-label={`Delete ${team.name}`}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
             </div>
             <div className="flex flex-wrap gap-2 mb-4">

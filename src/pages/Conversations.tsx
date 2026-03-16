@@ -1,11 +1,18 @@
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
+import { Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, type Agent, type Message } from "@/lib/api";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
 
 export default function Conversations() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState("");
+  const [prompt, setPrompt] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -18,6 +25,9 @@ export default function Conversations() {
         if (cancelled) return;
         setMessages(msgs);
         setAgents(ags);
+        if (ags.length > 0) {
+          setSelectedAgentId((prev) => prev || ags[0].id);
+        }
       } catch (e) {
         console.error(e);
       }
@@ -33,6 +43,29 @@ export default function Conversations() {
     return map;
   }, [agents]);
 
+  const sendPrompt = async () => {
+    const value = prompt.trim();
+    if (!value || !selectedAgentId || isSending) return;
+    setIsSending(true);
+    try {
+      const reply = await api.chat({
+        prompt: value,
+        agentId: selectedAgentId,
+      });
+      const saved = await api.addConversation({
+        agentId: selectedAgentId,
+        content: reply.response,
+        taskId: "task1",
+      });
+      setMessages((prev) => [...prev, saved]);
+      setPrompt("");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   return (
     <div>
       <header className="mb-8">
@@ -44,6 +77,33 @@ export default function Conversations() {
         <div className="p-4 border-b border-border flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-agent-dev animate-pulse" />
           <span className="text-sm font-medium text-muted-foreground">Task: Create landing page for AI startup</span>
+        </div>
+        <div className="p-4 border-b border-border">
+          <div className="grid gap-2 md:grid-cols-[220px_1fr_auto]">
+            <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select agent" />
+              </SelectTrigger>
+              <SelectContent>
+                {agents.map((agent) => (
+                  <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") sendPrompt();
+              }}
+              placeholder="Enter prompt to chat with selected agent"
+              disabled={isSending || !selectedAgentId}
+            />
+            <Button onClick={sendPrompt} disabled={isSending || !selectedAgentId || !prompt.trim()}>
+              <Send className="w-4 h-4 mr-2" />
+              {isSending ? "Sending..." : "Send"}
+            </Button>
+          </div>
         </div>
         <div className="p-6 space-y-5">
           {messages.map((msg, i) => {

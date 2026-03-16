@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,30 +9,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { api, type Skill } from "@/lib/api";
 
-type SkillKind = "integration" | "custom-js";
 type AuthType = "service-account" | "oauth" | "api-key";
-type WebSearchProvider = "Tavily" | "SerpAPI";
 
 const presets = [
-  { label: "Google Sheets", thirdParty: "Google Sheets", kind: "integration" as const },
-  { label: "Google Docs", thirdParty: "Google Docs", kind: "integration" as const },
-  { label: "Web Search", thirdParty: "Web", kind: "integration" as const },
-  { label: "Custom JS", thirdParty: "Custom", kind: "custom-js" as const },
-  { label: "Custom Integration", thirdParty: "", kind: "integration" as const },
+  { label: "Google Sheets", thirdParty: "Google Sheets" },
+  { label: "Google Docs", thirdParty: "Google Docs" },
+  { label: "Web Search", thirdParty: "Web" },
+  { label: "Custom Integration", thirdParty: "" },
 ];
 
 export default function Skills() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [open, setOpen] = useState(false);
+  const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
 
   const [preset, setPreset] = useState(presets[0]?.label ?? "Google Sheets");
   const selectedPreset = useMemo(() => presets.find((p) => p.label === preset) ?? presets[0], [preset]);
 
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [thirdParty, setThirdParty] = useState("");
-  const [kind, setKind] = useState<SkillKind>("integration");
-  const [code, setCode] = useState("// Write custom JS here\n");
 
   // auth fields saved under config.auth
   const [authType, setAuthType] = useState<AuthType>("service-account");
@@ -40,7 +34,6 @@ export default function Skills() {
   const [oauthClientId, setOauthClientId] = useState("");
   const [oauthClientSecret, setOauthClientSecret] = useState("");
   const [oauthRefreshToken, setOauthRefreshToken] = useState("");
-  const [webSearchProvider, setWebSearchProvider] = useState<WebSearchProvider>("Tavily");
   const [apiKey, setApiKey] = useState("");
 
   useEffect(() => {
@@ -59,16 +52,13 @@ export default function Skills() {
   }, []);
 
   useEffect(() => {
+    if (editingSkillId) return;
     const sp = selectedPreset;
-    setKind(sp?.kind ?? "integration");
-    setThirdParty(sp?.thirdParty ?? "");
     setName(sp?.label === "Custom Integration" ? "" : (sp?.label ?? ""));
 
     // reset auth defaults by preset
     if (sp?.label === "Web Search") {
       setAuthType("api-key");
-    } else if (sp?.label === "Custom JS") {
-      setAuthType("service-account");
     } else {
       setAuthType("service-account");
     }
@@ -77,15 +67,46 @@ export default function Skills() {
     setOauthClientId("");
     setOauthClientSecret("");
     setOauthRefreshToken("");
-    setWebSearchProvider("Tavily");
     setApiKey("");
-  }, [selectedPreset]);
+  }, [selectedPreset, editingSkillId]);
+
+  const resetForm = () => {
+    setEditingSkillId(null);
+    setPreset(presets[0]?.label ?? "Google Sheets");
+    setName("");
+    setAuthType("service-account");
+    setServiceAccountJson("");
+    setOauthClientId("");
+    setOauthClientSecret("");
+    setOauthRefreshToken("");
+    setApiKey("");
+  };
+
+  const openCreateDialog = () => {
+    resetForm();
+    setOpen(true);
+  };
+
+  const openEditDialog = (skill: Skill) => {
+    setEditingSkillId(skill.id);
+    const matchedPreset = presets.find((p) => p.thirdParty === skill.third_party) ?? presets[presets.length - 1];
+    setPreset(matchedPreset?.label ?? "Custom Integration");
+    setName(skill.name ?? "");
+
+    const auth = (skill.config?.auth as Record<string, unknown> | undefined) ?? {};
+    const authKind = String(auth.type ?? "service-account") as AuthType;
+    setAuthType(authKind);
+    setServiceAccountJson(String(auth.service_account_json ?? ""));
+    setOauthClientId(String(auth.client_id ?? ""));
+    setOauthClientSecret(String(auth.client_secret ?? ""));
+    setOauthRefreshToken(String(auth.refresh_token ?? ""));
+    setApiKey(String(auth.api_key ?? ""));
+    setOpen(true);
+  };
 
   const buildAuth = (): Record<string, unknown> | null => {
-    if (kind !== "integration") return null;
-
     if (selectedPreset?.label === "Web Search") {
-      return { type: "api-key", provider: webSearchProvider, api_key: apiKey.trim() };
+      return { type: "api-key", provider: "Tavily", api_key: apiKey.trim() };
     }
 
     if (authType === "service-account") {
@@ -110,14 +131,11 @@ export default function Skills() {
 
   const isValid = (): boolean => {
     if (!name.trim()) return false;
-    if (kind === "custom-js" && !code.trim()) return false;
 
-    if (kind === "integration") {
-      if (selectedPreset?.label === "Web Search") return !!apiKey.trim();
-      if (authType === "service-account") return !!serviceAccountJson.trim();
-      if (authType === "oauth") return !!oauthClientId.trim() && !!oauthClientSecret.trim() && !!oauthRefreshToken.trim();
-      if (authType === "api-key") return !!apiKey.trim();
-    }
+    if (selectedPreset?.label === "Web Search") return !!apiKey.trim();
+    if (authType === "service-account") return !!serviceAccountJson.trim();
+    if (authType === "oauth") return !!oauthClientId.trim() && !!oauthClientSecret.trim() && !!oauthRefreshToken.trim();
+    if (authType === "api-key") return !!apiKey.trim();
 
     return true;
   };
@@ -131,26 +149,22 @@ export default function Skills() {
 
     try {
       const saved = await api.upsertSkill({
+        id: editingSkillId ?? undefined,
         name: name.trim(),
-        description: description.trim(),
-        third_party: thirdParty.trim(),
-        kind,
+        kind: "integration",
+        third_party: selectedPreset?.thirdParty ?? "",
         config,
-        code: kind === "custom-js" ? code : null,
+        code: null,
       });
-      setSkills((prev) => [...prev, saved]);
+      setSkills((prev) => {
+        const idx = prev.findIndex((s) => s.id === saved.id);
+        if (idx === -1) return [...prev, saved];
+        const next = [...prev];
+        next[idx] = saved;
+        return next;
+      });
       setOpen(false);
-      setPreset(presets[0]?.label ?? "Google Sheets");
-      setName("");
-      setDescription("");
-      setThirdParty("");
-      setKind("integration");
-      setCode("// Write custom JS here\n");
-      setServiceAccountJson("");
-      setOauthClientId("");
-      setOauthClientSecret("");
-      setOauthRefreshToken("");
-      setApiKey("");
+      resetForm();
     } catch (e) {
       console.error(e);
     }
@@ -174,10 +188,10 @@ export default function Skills() {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button><Plus className="w-4 h-4 mr-2" /> New Skill</Button>
+            <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> New Skill</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Create Skill</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingSkillId ? "Edit Skill" : "Create Skill"}</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
               <Select value={preset} onValueChange={setPreset}>
                 <SelectTrigger><SelectValue placeholder="Preset" /></SelectTrigger>
@@ -189,70 +203,50 @@ export default function Skills() {
               </Select>
 
               <Input placeholder="Skill name" value={name} onChange={(e) => setName(e.target.value)} />
-              <Input placeholder="Third party (optional)" value={thirdParty} onChange={(e) => setThirdParty(e.target.value)} />
-              <Input placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
 
-              {kind === "integration" ? (
-                <div className="rounded-md border p-3 space-y-2">
-                  <div className="text-xs font-medium text-muted-foreground">Authentication</div>
+              <div className="rounded-md border p-3 space-y-2">
+                <div className="text-xs font-medium text-muted-foreground">Authentication</div>
 
-                  {selectedPreset?.label === "Web Search" ? (
-                    <>
-                      <Select value={webSearchProvider} onValueChange={(v) => setWebSearchProvider(v as WebSearchProvider)}>
-                        <SelectTrigger><SelectValue placeholder="Provider" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Tavily">Tavily</SelectItem>
-                          <SelectItem value="SerpAPI">SerpAPI</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Input placeholder={`${webSearchProvider} API Key`} type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
-                    </>
-                  ) : (
-                    <>
-                      <Select value={authType} onValueChange={(v) => setAuthType(v as AuthType)}>
-                        <SelectTrigger><SelectValue placeholder="Auth type" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="service-account">Service Account JSON</SelectItem>
-                          <SelectItem value="oauth">OAuth (Client + Refresh Token)</SelectItem>
-                          <SelectItem value="api-key">API Key</SelectItem>
-                        </SelectContent>
-                      </Select>
+                {selectedPreset?.label === "Web Search" ? (
+                  <Input placeholder="API Key" type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
+                ) : (
+                  <>
+                    <Select value={authType} onValueChange={(v) => setAuthType(v as AuthType)}>
+                      <SelectTrigger><SelectValue placeholder="Auth type" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="service-account">Service Account JSON</SelectItem>
+                        <SelectItem value="oauth">OAuth (Client + Refresh Token)</SelectItem>
+                        <SelectItem value="api-key">API Key</SelectItem>
+                      </SelectContent>
+                    </Select>
 
-                      {authType === "service-account" ? (
-                        <Textarea
-                          placeholder="Service Account JSON"
-                          value={serviceAccountJson}
-                          onChange={(e) => setServiceAccountJson(e.target.value)}
-                          className="min-h-[110px] font-mono"
-                        />
-                      ) : null}
+                    {authType === "service-account" ? (
+                      <Textarea
+                        placeholder="Service Account JSON"
+                        value={serviceAccountJson}
+                        onChange={(e) => setServiceAccountJson(e.target.value)}
+                        className="min-h-[110px] font-mono"
+                      />
+                    ) : null}
 
-                      {authType === "oauth" ? (
-                        <div className="grid grid-cols-1 gap-2">
-                          <Input placeholder="OAuth Client ID" value={oauthClientId} onChange={(e) => setOauthClientId(e.target.value)} />
-                          <Input placeholder="OAuth Client Secret" type="password" value={oauthClientSecret} onChange={(e) => setOauthClientSecret(e.target.value)} />
-                          <Input placeholder="OAuth Refresh Token" type="password" value={oauthRefreshToken} onChange={(e) => setOauthRefreshToken(e.target.value)} />
-                        </div>
-                      ) : null}
+                    {authType === "oauth" ? (
+                      <div className="grid grid-cols-1 gap-2">
+                        <Input placeholder="OAuth Client ID" value={oauthClientId} onChange={(e) => setOauthClientId(e.target.value)} />
+                        <Input placeholder="OAuth Client Secret" type="password" value={oauthClientSecret} onChange={(e) => setOauthClientSecret(e.target.value)} />
+                        <Input placeholder="OAuth Refresh Token" type="password" value={oauthRefreshToken} onChange={(e) => setOauthRefreshToken(e.target.value)} />
+                      </div>
+                    ) : null}
 
-                      {authType === "api-key" ? (
-                        <Input placeholder="API Key" type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
-                      ) : null}
-                    </>
-                  )}
-                </div>
-              ) : null}
+                    {authType === "api-key" ? (
+                      <Input placeholder="API Key" type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
+                    ) : null}
+                  </>
+                )}
+              </div>
 
-              {kind === "custom-js" ? (
-                <Textarea
-                  placeholder="Custom JS code"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="min-h-[140px] font-mono"
-                />
-              ) : null}
-
-              <Button className="w-full" onClick={saveSkill} disabled={!isValid()}>Create Skill</Button>
+              <Button className="w-full" onClick={saveSkill} disabled={!isValid()}>
+                {editingSkillId ? "Save Changes" : "Create Skill"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -282,9 +276,14 @@ export default function Skills() {
                   {s.kind === "custom-js" ? <Badge variant="secondary" className="text-[10px]">code</Badge> : null}
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => deleteSkill(s.id)} aria-label={`Delete ${s.name}`}>
-                <Trash2 className="w-4 h-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" onClick={() => openEditDialog(s)} aria-label={`Edit ${s.name}`}>
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => deleteSkill(s.id)} aria-label={`Delete ${s.name}`}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </motion.div>
         ))}
