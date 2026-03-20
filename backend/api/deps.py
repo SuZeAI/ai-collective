@@ -5,6 +5,7 @@ from pathlib import Path
 
 from backend.api.settings import settings
 from backend.application.service.agent_service import AgentService
+from backend.application.service.agent_graph_service import AgentGraphService
 from backend.application.service.activity_feed_service import ActivityFeedService
 from backend.application.service.analytics_service import AnalyticsService
 from backend.application.service.conversation_service import ConversationService
@@ -14,6 +15,7 @@ from backend.application.service.task_service import TaskService
 from backend.application.service.team_service import TeamService
 from backend.application.service.skill_service import SkillService
 from backend.infrastructure.llm.gemini_langchain import GeminiLangChainProvider
+from backend.infrastructure.llm.langgraph_orchestrator import LangGraphAgentOrchestrator
 from backend.infrastructure.repositories.json_files import (
     JsonActivityFeedRepository,
     JsonAgentRepository,
@@ -113,3 +115,10 @@ def get_llm_service() -> LLMService | None:
     if not provider:
         return None
     return LLMService(provider)
+
+
+def get_agent_graph_service() -> AgentGraphService | None:
+    provider = _llm_provider()
+    if not provider:
+        return None
+    return AgentGraphService(provider, LangGraphAgentOrchestrator())

@@ -64,3 +64,6 @@ class GeminiLangChainProvider(LLMProvider):
             if start != -1 and end != -1 and end > start:
                 return json.loads(text[start : end + 1])
             raise
+
+    def get_chat_model(self) -> Any:
+        return self._llm
