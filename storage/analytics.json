@@ -1,0 +1,12 @@
+{
+  "tasksCompleted": 42,
+  "avgCompletionTime": "3.8 min",
+  "teamEfficiency": 92,
+  "agentProductivity": {
+    "a1": 95,
+    "a2": 88,
+    "a3": 91,
+    "a4": 85,
+    "a5": 98
+  }
+}

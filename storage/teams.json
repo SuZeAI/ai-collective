@@ -1,0 +1,146 @@
+[
+  {
+    "id": "t1",
+    "name": "Launch Squad Alpha",
+    "description": "Full-stack product launch team for rapid MVPs.",
+    "agents": [
+      "a1",
+      "a2",
+      "a3",
+      "a4",
+      "a5",
+      "a8",
+      "a9"
+    ],
+    "activeTasks": 0
+  },
+  {
+    "id": "t2",
+    "name": "Content Ops",
+    "description": "Content strategy and production pipeline.",
+    "agents": [
+      "a1",
+      "a2",
+      "a4"
+    ],
+    "activeTasks": 0
+  },
+  {
+    "id": "t3",
+    "name": "Code Review Cell",
+    "description": "Automated code quality and architecture review.",
+    "agents": [
+      "a3",
+      "a5"
+    ],
+    "activeTasks": 0
+  },
+  {
+    "id": "t4",
+    "name": "Customer Support Desk",
+    "description": "Triage tickets, draft replies, and escalate bugs with context.",
+    "agents": [
+      "a1",
+      "a2",
+      "a5"
+    ],
+    "activeTasks": 0
+  },
+  {
+    "id": "t5",
+    "name": "Community Moderation Guild",
+    "description": "Moderate community channels, enforce rules, and summarize incidents.",
+    "agents": [
+      "a1",
+      "a4",
+      "a5"
+    ],
+    "activeTasks": 0
+  },
+  {
+    "id": "t6",
+    "name": "Sales Outreach Pod",
+    "description": "Prospect research, personalized outreach, and follow-up sequences.",
+    "agents": [
+      "a2",
+      "a4",
+      "a5"
+    ],
+    "activeTasks": 0
+  },
+  {
+    "id": "t7",
+    "name": "HR & Recruiting Cell",
+    "description": "Job posts, candidate screening summaries, and interview coordination.",
+    "agents": [
+      "a1",
+      "a2",
+      "a5"
+    ],
+    "activeTasks": 0
+  },
+  {
+    "id": "t8",
+    "name": "SRE / DevOps Rotation",
+    "description": "Incident response support, runbooks, and postmortem drafts.",
+    "agents": [
+      "a1",
+      "a3",
+      "a5"
+    ],
+    "activeTasks": 0
+  },
+  {
+    "id": "t9",
+    "name": "Finance Ops",
+    "description": "Invoice parsing, spend summaries, and monthly reporting packets.",
+    "agents": [
+      "a1",
+      "a2",
+      "a5"
+    ],
+    "activeTasks": 0
+  },
+  {
+    "id": "t10",
+    "name": "Legal & Compliance Desk",
+    "description": "Policy drafts, vendor/security questionnaires, and compliance checklists.",
+    "agents": [
+      "a1",
+      "a2",
+      "a5"
+    ],
+    "activeTasks": 0
+  },
+  {
+    "id": "t11",
+    "name": "Education & Training Studio",
+    "description": "Create onboarding docs, tutorials, quizzes, and internal playbooks.",
+    "agents": [
+      "a1",
+      "a4",
+      "a5"
+    ],
+    "activeTasks": 0
+  },
+  {
+    "id": "t12",
+    "name": "Research Lab",
+    "description": "Deep research, experiment notes, and decision memos for leaders.",
+    "agents": [
+      "a2",
+      "a3",
+      "a5"
+    ],
+    "activeTasks": 0
+  },
+  {
+    "id": "t1773677767766",
+    "name": "content",
+    "description": "create content AI",
+    "agents": [
+      "a6"
+    ],
+    "activeTasks": 0
+  }
+]
