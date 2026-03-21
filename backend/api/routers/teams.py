@@ -87,6 +87,7 @@ def upsert_team(
         description=req.description or "Custom team",
         agents=list(req.agents),
         active_tasks=active_tasks,
+        mode=req.mode or "sequential",
     )
     saved = service.upsert_team(team)
 

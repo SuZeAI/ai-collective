@@ -11,6 +11,7 @@ class GraphAgentDefinition:
     name: str
     role: str
     system_prompt: str
+    routing_guidance: str = ""
 
 
 @dataclass(frozen=True, slots=True)

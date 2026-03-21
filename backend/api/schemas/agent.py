@@ -30,33 +30,25 @@ class AgentSchema(BaseModel):
     name: str
     role: str
     description: str
+    skill_ids: list[str] = Field(default_factory=list)
     skills: list[SkillSchema] = Field(default_factory=list)
     status: str
     avatar: str
     system_prompt: str = ""
 
     @staticmethod
-    def from_domain(a) -> "AgentSchema":
+    def from_domain(a, skills: list = None) -> "AgentSchema":
         return AgentSchema(
             id=a.id,
             name=a.name,
             role=a.role,
             description=a.description,
-            skills=[SkillSchema.from_domain(s) for s in (getattr(a, "skills", None) or [])],
+            skill_ids=list(getattr(a, "skill_ids", [])),
+            skills=[SkillSchema.from_domain(s) for s in (skills or [])],
             status=a.status.value if hasattr(a.status, "value") else str(a.status),
             avatar=a.avatar,
             system_prompt=getattr(a, "system_prompt", "") or "",
         )
-
-
-class UpsertSkillRequest(BaseModel):
-    id: str | None = None
-    name: str
-    description: str = ""
-    third_party: str = ""
-    kind: str = "integration"
-    config: dict = Field(default_factory=dict)
-    code: str | None = None
 
 
 class UpsertAgentRequest(BaseModel):
@@ -64,7 +56,7 @@ class UpsertAgentRequest(BaseModel):
     name: str
     role: str
     description: str = ""
-    skills: list[UpsertSkillRequest] = Field(default_factory=list)
+    skill_ids: list[str] = Field(default_factory=list)
     status: str = "idle"
     avatar: str | None = None
     system_prompt: str | None = None

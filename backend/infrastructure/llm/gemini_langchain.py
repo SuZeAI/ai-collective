@@ -50,7 +50,8 @@ class GeminiLangChainProvider(LLMProvider):
                         text_parts.append(text)
             if text_parts:
                 return "\n".join(text_parts).strip()
-
+        import asyncio
+        await asyncio.sleep(1)  # sleep for not request too fast in case of malformed response
         return str(content)
 
     async def generate_json(self, *, system: str, user: str) -> dict:

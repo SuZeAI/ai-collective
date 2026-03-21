@@ -24,7 +24,7 @@ class Agent:
     name: str
     role: str
     description: str
-    skills: list[Skill]
+    skill_ids: list[str]
     status: AgentStatus
     avatar: str
     system_prompt: str = ""
@@ -37,6 +37,7 @@ class Team:
     description: str
     agents: list[str]
     active_tasks: int
+    mode: str = "sequential"  # "sequential" or "mesh"
 
 
 @dataclass(frozen=True, slots=True)

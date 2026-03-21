@@ -15,7 +15,8 @@ from backend.application.service.task_service import TaskService
 from backend.application.service.team_service import TeamService
 from backend.application.service.skill_service import SkillService
 from backend.infrastructure.llm.gemini_langchain import GeminiLangChainProvider
-from backend.infrastructure.llm.langgraph_orchestrator import LangGraphAgentOrchestrator
+from backend.application.logic.langgraph_orchestrator import LangGraphAgentOrchestrator
+from backend.application.logic.langgraph_mesh import MultiAgentMeshOrchestrator
 from backend.infrastructure.repositories.json_files import (
     JsonActivityFeedRepository,
     JsonAgentRepository,
@@ -26,15 +27,7 @@ from backend.infrastructure.repositories.json_files import (
     JsonTeamRepository,
 )
 from backend.infrastructure.repositories.json_store import JsonFileStore
-from backend.infrastructure.seed import (
-    seed_agents,
-    seed_analytics,
-    seed_activity_feed,
-    seed_conversations,
-    seed_skills,
-    seed_tasks,
-    seed_teams,
-)
+from backend.log import get_logger
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -43,19 +36,19 @@ STORAGE_DIR = PROJECT_ROOT / "storage"
 
 @lru_cache
 def _repos():
-    agents = JsonAgentRepository(JsonFileStore(STORAGE_DIR / "agents.json"), seed_agents())
-    skills = JsonSkillRepository(JsonFileStore(STORAGE_DIR / "skills.json"), seed_skills())
-    teams = JsonTeamRepository(JsonFileStore(STORAGE_DIR / "teams.json"), seed_teams())
-    tasks = JsonTaskRepository(JsonFileStore(STORAGE_DIR / "tasks.json"), seed_tasks())
-    conversations = JsonConversationRepository(JsonFileStore(STORAGE_DIR / "conversations.json"), seed_conversations())
-    analytics = JsonAnalyticsRepository(JsonFileStore(STORAGE_DIR / "analytics.json"), seed_analytics())
-    activity_feed = JsonActivityFeedRepository(JsonFileStore(STORAGE_DIR / "activity_feed.json"), seed_activity_feed())
+    agents = JsonAgentRepository(JsonFileStore(STORAGE_DIR / "agents.json"))
+    skills = JsonSkillRepository(JsonFileStore(STORAGE_DIR / "skills.json"))
+    teams = JsonTeamRepository(JsonFileStore(STORAGE_DIR / "teams.json"))
+    tasks = JsonTaskRepository(JsonFileStore(STORAGE_DIR / "tasks.json"))
+    conversations = JsonConversationRepository(JsonFileStore(STORAGE_DIR / "conversations.json"))
+    analytics = JsonAnalyticsRepository(JsonFileStore(STORAGE_DIR / "analytics.json"))
+    activity_feed = JsonActivityFeedRepository(JsonFileStore(STORAGE_DIR / "activity_feed.json"))
     return agents, skills, teams, tasks, conversations, analytics, activity_feed
 
 
 def get_agent_service() -> AgentService:
-    agents, _, _, _, _, _, _ = _repos()
-    return AgentService(agents)
+    agents, skills, _, _, _, _, _ = _repos()
+    return AgentService(agents, skills)
 
 
 def get_skill_service() -> SkillService:
@@ -117,8 +110,13 @@ def get_llm_service() -> LLMService | None:
     return LLMService(provider)
 
 
-def get_agent_graph_service() -> AgentGraphService | None:
+def get_agent_graph_service(mode: str = "sequential") -> AgentGraphService | None:
     provider = _llm_provider()
     if not provider:
         return None
-    return AgentGraphService(provider, LangGraphAgentOrchestrator())
+    orchestrator = (
+        MultiAgentMeshOrchestrator() if mode == "mesh"
+        else LangGraphAgentOrchestrator()
+    )
+    get_logger().info(f"{orchestrator.__class__.__name__} selected for mode='{mode}'")
+    return AgentGraphService(provider, orchestrator)

@@ -50,9 +50,9 @@ async def chat(
 @router.post("/agent-graph/run", response_model=GraphRunResponse)
 async def run_agent_graph(
     req: GraphRunRequest,
-    service: AgentGraphService | None = Depends(get_agent_graph_service),
     agent_service: AgentService = Depends(get_agent_service),
 ) -> GraphRunResponse:
+    service = get_agent_graph_service(mode=req.mode)
     if not service:
         raise HTTPException(status_code=503, detail="LLM not configured (missing GEMINI_API_KEY)")
 
@@ -85,10 +85,10 @@ async def run_agent_graph(
 @router.post("/agent-graph/run-stream")
 async def run_agent_graph_stream(
     req: GraphRunRequest,
-    service: AgentGraphService | None = Depends(get_agent_graph_service),
     agent_service: AgentService = Depends(get_agent_service),
 ):
     """Stream agent responses in real-time using Server-Sent Events"""
+    service = get_agent_graph_service(mode=req.mode)
     if not service:
         raise HTTPException(status_code=503, detail="LLM not configured (missing GEMINI_API_KEY)")
 

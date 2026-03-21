@@ -18,63 +18,20 @@ def _default_agent_system_prompt(*, name: str, role: str, description: str) -> s
 
 
 class JsonAgentRepository:
-    def __init__(self, store: JsonFileStore, seed: list[Agent]):
+    def __init__(self, store: JsonFileStore):
         self._store = store
         data = store.read()
         if not isinstance(data, list):
-            data = [
-                {
-                    "id": a.id,
-                    "name": a.name,
-                    "role": a.role,
-                    "description": a.description,
-                    "skills": [
-                        {
-                            "id": s.id,
-                            "name": s.name,
-                            "description": s.description,
-                            "third_party": s.third_party,
-                            "kind": s.kind,
-                            "config": dict(s.config or {}),
-                            "code": s.code,
-                        }
-                        for s in (getattr(a, "skills", None) or [])
-                    ],
-                    "status": a.status.value,
-                    "avatar": a.avatar,
-                    "system_prompt": a.system_prompt
-                    or _default_agent_system_prompt(name=a.name, role=a.role, description=a.description),
-                }
-                for a in seed
-            ]
-            store.write(data)
+            data = []
         self._items: dict[str, Agent] = {}
         for item in data:
             try:
-                raw_skills = item.get("skills") or []
-                skills: list[Skill] = []
-                if isinstance(raw_skills, list):
-                    for i, s in enumerate(raw_skills):
-                        if not isinstance(s, dict):
-                            continue
-                        skill_id = str(s.get("id") or f"{item.get('id', 'a')}-s{i+1}")
-                        skills.append(
-                            Skill(
-                                id=skill_id,
-                                name=str(s.get("name", "")),
-                                description=str(s.get("description", "")),
-                                third_party=str(s.get("third_party", "")),
-                                kind=str(s.get("kind", "integration")),
-                                config=dict(s.get("config") or {}),
-                                code=(str(s.get("code")) if s.get("code") is not None else None),
-                            )
-                        )
                 agent = Agent(
                     id=str(item["id"]),
                     name=str(item.get("name", "")),
                     role=str(item.get("role", "")),
                     description=str(item.get("description", "")),
-                    skills=skills,
+                    skill_ids=[str(x) for x in (item.get("skillIds") or [])],
                     status=AgentStatus(str(item.get("status", "idle"))),
                     avatar=str(item.get("avatar", "A")),
                     system_prompt=(
@@ -98,18 +55,7 @@ class JsonAgentRepository:
                     "name": a.name,
                     "role": a.role,
                     "description": a.description,
-                    "skills": [
-                        {
-                            "id": s.id,
-                            "name": s.name,
-                            "description": s.description,
-                            "third_party": s.third_party,
-                            "kind": s.kind,
-                            "config": dict(s.config or {}),
-                            "code": s.code,
-                        }
-                        for s in (getattr(a, "skills", None) or [])
-                    ],
+                    "skillIds": list(a.skill_ids),
                     "status": a.status.value,
                     "avatar": a.avatar,
                     "system_prompt": a.system_prompt
@@ -136,24 +82,11 @@ class JsonAgentRepository:
 
 
 class JsonSkillRepository:
-    def __init__(self, store: JsonFileStore, seed: list[Skill]):
+    def __init__(self, store: JsonFileStore):
         self._store = store
         data = store.read()
         if not isinstance(data, list):
-            data = [
-                {
-                    "id": s.id,
-                    "name": s.name,
-                    "description": s.description,
-                    "third_party": s.third_party,
-                    "kind": s.kind,
-                    "config": dict(s.config or {}),
-                    "code": s.code,
-                }
-                for s in seed
-            ]
-            store.write(data)
-
+            data = []
         self._items: dict[str, Skill] = {}
         for item in data:
             try:
@@ -203,21 +136,11 @@ class JsonSkillRepository:
 
 
 class JsonTeamRepository:
-    def __init__(self, store: JsonFileStore, seed: list[Team]):
+    def __init__(self, store: JsonFileStore):
         self._store = store
         data = store.read()
         if not isinstance(data, list):
-            data = [
-                {
-                    "id": t.id,
-                    "name": t.name,
-                    "description": t.description,
-                    "agents": list(t.agents),
-                    "activeTasks": t.active_tasks,
-                }
-                for t in seed
-            ]
-            store.write(data)
+            data = []
         self._items: dict[str, Team] = {}
         for item in data:
             try:
@@ -227,6 +150,7 @@ class JsonTeamRepository:
                     description=str(item.get("description", "")),
                     agents=[str(x) for x in (item.get("agents") or [])],
                     active_tasks=int(item.get("activeTasks", 0)),
+                    mode=str(item.get("mode", "sequential")),
                 )
                 self._items[team.id] = team
             except Exception:
@@ -241,6 +165,7 @@ class JsonTeamRepository:
                     "description": t.description,
                     "agents": list(t.agents),
                     "activeTasks": t.active_tasks,
+                    "mode": t.mode,
                 }
                 for t in self._items.values()
             ]
@@ -263,23 +188,11 @@ class JsonTeamRepository:
 
 
 class JsonTaskRepository:
-    def __init__(self, store: JsonFileStore, seed: list[Task]):
+    def __init__(self, store: JsonFileStore):
         self._store = store
         data = store.read()
         if not isinstance(data, list):
-            data = [
-                {
-                    "id": t.id,
-                    "title": t.title,
-                    "description": t.description,
-                    "teamId": t.team_id,
-                    "status": t.status.value,
-                    "progress": t.progress,
-                    "assignedAgents": list(t.assigned_agents),
-                }
-                for t in seed
-            ]
-            store.write(data)
+            data = []
         self._items: dict[str, Task] = {}
         for item in data:
             try:
@@ -329,21 +242,11 @@ class JsonTaskRepository:
 
 
 class JsonConversationRepository:
-    def __init__(self, store: JsonFileStore, seed: list[Message]):
+    def __init__(self, store: JsonFileStore):
         self._store = store
         data = store.read()
         if not isinstance(data, list):
-            data = [
-                {
-                    "id": m.id,
-                    "agentId": m.agent_id,
-                    "content": m.content,
-                    "timestamp": m.timestamp.isoformat(),
-                    "taskId": m.task_id,
-                }
-                for m in seed
-            ]
-            store.write(data)
+            data = []
         self._items: list[Message] = []
         for item in data:
             try:
@@ -387,17 +290,11 @@ class JsonConversationRepository:
 
 
 class JsonAnalyticsRepository:
-    def __init__(self, store: JsonFileStore, seed: Analytics):
+    def __init__(self, store: JsonFileStore):
         self._store = store
         data = store.read()
         if not isinstance(data, dict):
-            data = {
-                "tasksCompleted": seed.tasks_completed,
-                "avgCompletionTime": seed.avg_completion_time,
-                "teamEfficiency": seed.team_efficiency,
-                "agentProductivity": dict(seed.agent_productivity),
-            }
-            store.write(data)
+            data = {}
         self._analytics = Analytics(
             tasks_completed=int(data.get("tasksCompleted", 0)),
             avg_completion_time=str(data.get("avgCompletionTime", "")),
@@ -425,15 +322,11 @@ class JsonAnalyticsRepository:
 
 
 class JsonActivityFeedRepository:
-    def __init__(self, store: JsonFileStore, seed: list[ActivityFeedItem]):
+    def __init__(self, store: JsonFileStore):
         self._store = store
         data = store.read()
         if not isinstance(data, list):
-            data = [
-                {"id": i.id, "agentId": i.agent_id, "action": i.action, "time": i.time}
-                for i in seed
-            ]
-            store.write(data)
+            data = []
         self._items: list[ActivityFeedItem] = []
         for item in data:
             try:
