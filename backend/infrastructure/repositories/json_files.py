@@ -288,6 +288,10 @@ class JsonConversationRepository:
         self._persist()
         return message
 
+    def delete_by_task(self, task_id: str) -> None:
+        self._items = [m for m in self._items if m.task_id != task_id]
+        self._persist()
+
 
 class JsonAnalyticsRepository:
     def __init__(self, store: JsonFileStore):

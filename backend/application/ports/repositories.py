@@ -68,6 +68,9 @@ class ConversationRepository(Protocol):
     def add(self, message: Message) -> Message:
         ...
 
+    def delete_by_task(self, task_id: str) -> None:
+        ...
+
 
 class AnalyticsRepository(Protocol):
     def get(self) -> Analytics:

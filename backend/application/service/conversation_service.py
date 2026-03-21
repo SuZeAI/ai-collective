@@ -13,3 +13,6 @@ class ConversationService:
 
     def add_message(self, message: Message) -> Message:
         return self._repo.add(message)
+
+    def delete_messages_by_task(self, task_id: str) -> None:
+        return self._repo.delete_by_task(task_id)

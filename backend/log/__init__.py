@@ -21,7 +21,7 @@ def get_logger(
         level = getattr(logging, os.getenv("LOG_LEVEL").upper(), level)
         
     if name is None:
-        name = "auto_quotation"
+        name = "ai_collective"
     
     logger = logging.getLogger(name)
     logger.setLevel(level)
@@ -44,7 +44,7 @@ def get_logger(
         if log_file is None:
             log_dir = Path(__file__).parent.parent.parent / "logs"
             log_dir.mkdir(exist_ok=True)
-            log_file = log_dir / "auto_quotation.log"
+            log_file = log_dir / "ai_collective.log"
         
         file_handler = logging.FileHandler(log_file, encoding='utf-8')
         file_handler.setLevel(level)

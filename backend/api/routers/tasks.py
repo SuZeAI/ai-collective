@@ -149,9 +149,10 @@ def upsert_task(
             previous_status = None
 
     progress = req.progress
-    # Restart behavior: moving from completed -> in-progress should start from 0.
+    # Restart behavior: moving from completed -> in-progress should start from 0 and clear old conversations.
     if previous_status == TaskStatus.completed and req.status == TaskStatus.in_progress.value:
         progress = 0
+        conv_service.delete_messages_by_task(task_id)
 
     task = Task(
         id=task_id,
@@ -164,9 +165,6 @@ def upsert_task(
     )
     saved = service.upsert_task(task)
 
-    if saved.status == TaskStatus.in_progress and previous_status != TaskStatus.in_progress:
-        saved = _run_team_conversation_loop(saved, service, team_service, agent_service, conv_service)
-
     _sync_runtime_state(service, team_service, agent_service)
     return TaskSchema.from_domain(saved)
 
@@ -177,7 +175,9 @@ def delete_task(
     service: TaskService = Depends(get_task_service),
     team_service: TeamService = Depends(get_team_service),
     agent_service: AgentService = Depends(get_agent_service),
+    conv_service: ConversationService = Depends(get_conversation_service),
 ) -> dict:
     service.delete_task(task_id)
+    conv_service.delete_messages_by_task(task_id)
     _sync_runtime_state(service, team_service, agent_service)
     return {"deleted": True}
