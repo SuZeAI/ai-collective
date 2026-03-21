@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { FlaskConical, Pencil, Plus, Trash2, X } from "lucide-react";
+import { FlaskConical, Pencil, Plus, Trash2, X, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,6 +42,8 @@ export default function AgentBuilder() {
   const [testPrompt, setTestPrompt] = useState("");
   const [testOutput, setTestOutput] = useState("");
   const [isTesting, setIsTesting] = useState(false);
+  const [testError, setTestError] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,7 +93,7 @@ export default function AgentBuilder() {
     setName(agent.name);
     setRole(agent.role as Role);
     setDesc(agent.description ?? "");
-    setSelectedSkillIds((agent.skills || []).map((s) => s.id));
+    setSelectedSkillIds(agent.skill_ids || []);
     setOpen(true);
   };
 
@@ -145,6 +147,8 @@ export default function AgentBuilder() {
     if (!testingAgent || !testPrompt.trim() || isTesting) return;
     setIsTesting(true);
     setTestOutput("");
+    setTestError("");
+    setCopied(false);
     try {
       const result = await api.chat({
         prompt: testPrompt.trim(),
@@ -152,10 +156,18 @@ export default function AgentBuilder() {
       });
       setTestOutput(result.response || "(No response)");
     } catch (e) {
-      setTestOutput(e instanceof Error ? `Error: ${e.message}` : "Error: Failed to call test endpoint");
+      const errorMsg = e instanceof Error ? e.message : "Failed to call test endpoint";
+      setTestError(errorMsg);
+      setTestOutput("");
     } finally {
       setIsTesting(false);
     }
+  };
+
+  const copyOutput = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -260,30 +272,90 @@ export default function AgentBuilder() {
           setTestOpen(next);
           if (!next) {
             setIsTesting(false);
+            setTestError("");
           }
         }}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Test Agent Output{testingAgent ? `: ${testingAgent.name}` : ""}</DialogTitle>
+        <DialogContent className="max-w-3xl max-h-[92vh] flex flex-col">
+          <DialogHeader className="border-b pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl">Test Agent</DialogTitle>
+                {testingAgent && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {testingAgent.name} • {testingAgent.role}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {testOutput && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyOutput(testOutput)}
+                    className="h-8 w-8 p-0"
+                  >
+                    {copied ? (
+                      <Check className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
           </DialogHeader>
-          <div className="space-y-3 pt-2">
-            <Textarea
-              value={testPrompt}
-              onChange={(e) => setTestPrompt(e.target.value)}
-              placeholder="Enter test prompt for this agent"
-              className="min-h-[110px]"
-            />
-            <Button onClick={runAgentTest} disabled={!testingAgent || !testPrompt.trim() || isTesting}>
-              <FlaskConical className="w-4 h-4 mr-2" />
-              {isTesting ? "Testing..." : "Run Test"}
-            </Button>
-            <Textarea
-              value={testOutput}
-              readOnly
-              placeholder="Output will appear here"
-              className="min-h-[160px] font-mono"
-            />
+
+          <div className="flex-1 overflow-hidden flex flex-col gap-4 py-4 px-6">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold flex items-center gap-2">
+                <FlaskConical className="w-4 h-4" /> Test Prompt
+              </label>
+              <Textarea
+                value={testPrompt}
+                onChange={(e) => setTestPrompt(e.target.value)}
+                placeholder="Enter a prompt to test this agent..."
+                className="min-h-[90px] text-sm resize-none border-2 border-slate-200 dark:border-slate-700 focus:border-blue-500"
+                disabled={isTesting}
+              />
+              <Button
+                onClick={runAgentTest}
+                disabled={!testingAgent || !testPrompt.trim() || isTesting}
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 h-9"
+              >
+                <FlaskConical className="w-4 h-4 mr-2" />
+                {isTesting ? (
+                  <>
+                    <div className="animate-spin w-3 h-3 mr-2 border-2 border-white border-t-transparent rounded-full" />
+                    Testing...
+                  </>
+                ) : (
+                  "Run Test"
+                )}
+              </Button>
+            </div>
+
+            <div className="flex flex-col gap-2 flex-1 overflow-hidden">
+              <label className="text-sm font-semibold">Output</label>
+              {testError ? (
+                <div className="flex-1 rounded-lg border border-red-300 bg-red-50 dark:bg-red-950/20 dark:border-red-700 p-4 overflow-y-auto">
+                  <p className="text-sm text-red-700 dark:text-red-400 font-mono font-semibold mb-2">🚨 Error</p>
+                  <p className="text-sm text-red-600 dark:text-red-300 whitespace-pre-wrap break-words">
+                    {testError}
+                  </p>
+                </div>
+              ) : testOutput ? (
+                <div className="flex-1 rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-4 overflow-y-auto">
+                  <pre className="text-sm font-mono text-slate-800 dark:text-slate-100 whitespace-pre-wrap break-words leading-relaxed">
+                    {testOutput}
+                  </pre>
+                </div>
+              ) : (
+                <div className="flex-1 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/30 p-4 flex items-center justify-center">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Output will appear here after running test...</p>
+                </div>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -338,15 +410,15 @@ export default function AgentBuilder() {
                   </Button>
                 </div>
 
-                {agent.skills?.length ? (
+                {agent.skill_ids?.length ? (
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {agent.skills.slice(0, 3).map((s) => (
+                    {agent.skills?.slice(0, 3).map((s) => (
                       <Badge key={s.id} variant="secondary" className="text-[10px]">
                         {s.name}
                       </Badge>
                     ))}
-                    {agent.skills.length > 3 ? (
-                      <span className="text-[10px] text-muted-foreground">+{agent.skills.length - 3}</span>
+                    {agent.skill_ids.length > 3 ? (
+                      <span className="text-[10px] text-muted-foreground">+{agent.skill_ids.length - 3}</span>
                     ) : null}
                   </div>
                 ) : null}
