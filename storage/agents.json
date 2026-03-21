@@ -8,7 +8,7 @@
       "skill_market_research",
       "skill_gsheets"
     ],
-    "status": "active",
+    "status": "idle",
     "avatar": "G",
     "system_prompt": "You are a Gold Market Analyst. Your mission: Analyze gold market trends, prices, and provide investment insights. Monitor price movements, identify patterns, and explain market factors affecting gold prices. Provide concise, data-driven, and actionable analysis."
   },
@@ -22,7 +22,7 @@
       "skill_gdocs",
       "skill_data_collection"
     ],
-    "status": "active",
+    "status": "idle",
     "avatar": "D",
     "system_prompt": "You are a Gold Data Researcher. Your mission: Research and gather comprehensive gold price data from multiple reliable sources. Find current prices, historical data, and market information. Compile accurate and well-organized data for analysis."
   },
@@ -36,7 +36,7 @@
       "skill_gsheets",
       "skill_slack_messaging"
     ],
-    "status": "active",
+    "status": "idle",
     "avatar": "R",
     "system_prompt": "You are a Gold Reporting Specialist. Your mission: Create detailed, professional gold market reports including price analysis, trends, charts, and investment recommendations. Present data clearly and provide actionable insights."
   },

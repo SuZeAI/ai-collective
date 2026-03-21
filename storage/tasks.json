@@ -1,13 +1,15 @@
 [
   {
-    "id": "task1773677825336",
-    "title": "Content",
-    "description": "tell me about story of a AI engineer",
-    "teamId": "t1773677767766",
+    "id": "task1774112614446",
+    "title": "Analyze the golden price market and provide insights",
+    "description": "Analyze the golden price market and provide insights",
+    "teamId": "t1774110075739",
     "status": "completed",
     "progress": 100,
     "assignedAgents": [
-      "a6"
+      "a1",
+      "a2",
+      "a3"
     ]
   }
 ]
