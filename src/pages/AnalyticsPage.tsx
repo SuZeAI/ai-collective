@@ -43,6 +43,25 @@ export default function AnalyticsPage() {
 
   return (
     <div>
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="glass-card p-12 max-w-md text-center">
+          <div className="mb-6">
+            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+              <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold mb-3">Coming Soon</h2>
+          <p className="text-muted-foreground mb-4">
+            This feature will be available soon. Please check back later! 🚀
+          </p>
+          <p className="text-xs text-muted-foreground">
+            We're working hard to bring you the best experience.
+          </p>
+        </div>
+      </div>
+
+      {/* Previous Content (Hidden) */}
+      <div style={{ display: "none" }}>
       <header className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
         <p className="text-muted-foreground mt-1">Team performance metrics and insights.</p>
@@ -114,6 +133,7 @@ export default function AnalyticsPage() {
             </div>
           </div>
         ))}
+      </div>
       </div>
     </div>
   );

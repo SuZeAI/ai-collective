@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,45 +40,7 @@ export default function TaskManager() {
   const [loadingConversationTaskIds, setLoadingConversationTaskIds] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
 
-  const loadTaskConversation = async (taskId: string) => {
-    setLoadingConversationTaskIds((prev) => {
-      const next = new Set(prev);
-      next.add(taskId);
-      return next;
-    });
-    try {
-      const messages = await api.listConversations(taskId);
-      setTaskConversations((prev) => ({ ...prev, [taskId]: messages }));
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoadingConversationTaskIds((prev) => {
-        const next = new Set(prev);
-        next.delete(taskId);
-        return next;
-      });
-    }
-  };
 
-  const loadTaskConversations = async (taskIds: string[]) => {
-    if (taskIds.length === 0) return;
-    try {
-      const results = await Promise.all(
-        taskIds.map(async (id) => ({ id, messages: await api.listConversations(id) }))
-      );
-      setTaskConversations((prev) => {
-        const next = { ...prev };
-        for (const item of results) {
-          if (item.messages.length > 0) {
-            next[item.id] = item.messages;
-          }
-        }
-        return next;
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -87,7 +51,28 @@ export default function TaskManager() {
         setTaskList(tasks);
         setTeamList(teams);
         setAgentList(agents);
-        await loadTaskConversations(tasks.map((t) => t.id));
+
+        // Load conversations for all tasks
+        if (tasks.length > 0) {
+          try {
+            const results = await Promise.all(
+              tasks.map(async (task) => ({ id: task.id, messages: await api.listConversations(task.id) }))
+            );
+            if (!cancelled) {
+              setTaskConversations((prev) => {
+                const next = { ...prev };
+                for (const item of results) {
+                  if (item.messages.length > 0) {
+                    next[item.id] = item.messages;
+                  }
+                }
+                return next;
+              });
+            }
+          } catch (e) {
+            console.error("Failed to load conversations:", e);
+          }
+        }
       } catch (e) {
         console.error(e);
       }
@@ -96,50 +81,6 @@ export default function TaskManager() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    const streamTaskIds = taskList.filter((t) => t.status === "in-progress").map((t) => t.id);
-    if (streamTaskIds.length === 0) return;
-
-    let cancelled = false;
-    const loadConversations = async () => {
-      setLoadingConversationTaskIds((prev) => {
-        const next = new Set(prev);
-        streamTaskIds.forEach((id) => next.add(id));
-        return next;
-      });
-      try {
-        const results = await Promise.all(
-          streamTaskIds.map(async (id) => ({ id, messages: await api.listConversations(id) }))
-        );
-        if (cancelled) return;
-        setTaskConversations((prev) => {
-          const next = { ...prev };
-          for (const item of results) {
-            next[item.id] = item.messages;
-          }
-          return next;
-        });
-      } catch (e) {
-        console.error(e);
-      } finally {
-        if (!cancelled) {
-          setLoadingConversationTaskIds((prev) => {
-            const next = new Set(prev);
-            streamTaskIds.forEach((id) => next.delete(id));
-            return next;
-          });
-        }
-      }
-    };
-
-    loadConversations();
-    const interval = setInterval(loadConversations, 2000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [taskList]);
 
   const agentById = useMemo(() => {
     const map = new Map<string, Agent>();
@@ -204,7 +145,82 @@ export default function TaskManager() {
         status,
       });
       setTaskList((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
-      await loadTaskConversation(updated.id);
+
+      // If starting the task, stream agent responses
+      if (status === "in-progress" && updated.assignedAgents.length > 0) {
+        // Clear old conversations if restarting from completed/stopped
+        if (task.status === "completed" || task.status === "stopped") {
+          setTaskConversations((prev) => {
+            const next = { ...prev };
+            delete next[updated.id];
+            return next;
+          });
+        }
+
+        setLoadingConversationTaskIds((prev) => {
+          const next = new Set(prev);
+          next.add(updated.id);
+          return next;
+        });
+
+        try {
+          const messages: Message[] = [];
+          const team = teamList.find((t) => t.id === updated.teamId);
+          const teamMode = team?.mode ?? "sequential";
+          for await (const turn of api.runAgentGraphStream({
+            user_input: updated.description || "Execute this task.",
+            agents: updated.assignedAgents,
+            max_rounds: 6,
+            mode: teamMode,
+          })) {
+            if (turn.error) {
+              console.error(turn.error);
+              break;
+            }
+
+            const message: Message = {
+              id: `${Date.now()}-${turn.agent_name}-${turn.turn}`,
+              agentId: turn.agent_name,
+              content: turn.content || "",
+              timestamp: new Date().toISOString(),
+              taskId: updated.id,
+            };
+            messages.push(message);
+            setTaskConversations((prev) => ({
+              ...prev,
+              [updated.id]: [...(prev[updated.id] ?? []), message],
+            }));
+            // Save message to backend
+            try {
+              await api.addConversation({
+                agentId: message.agentId,
+                content: message.content,
+                taskId: message.taskId,
+              });
+            } catch (e) {
+              console.error("Failed to save message:", e);
+            }
+          }
+
+          // Stream completed, update task to completed with 100% progress
+          if (messages.length > 0) {
+            const completed = await api.upsertTask({
+              ...updated,
+              status: "completed",
+              progress: 100,
+            });
+            setTaskList((prev) => prev.map((item) => (item.id === completed.id ? completed : item)));
+          }
+        } catch (e) {
+          console.error("Stream error:", e);
+        } finally {
+          setLoadingConversationTaskIds((prev) => {
+            const next = new Set(prev);
+            next.delete(updated.id);
+            return next;
+          });
+        }
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -335,7 +351,7 @@ export default function TaskManager() {
                         size="sm"
                         variant={task.status === "paused" ? "default" : "outline"}
                         onClick={() => updateTaskStatus(task, "paused")}
-                        disabled={!canPause || isUpdating}
+                        disabled={!canPause}
                       >
                         <Pause className="w-3.5 h-3.5 mr-1" />
                         Pause
@@ -344,7 +360,7 @@ export default function TaskManager() {
                         size="sm"
                         variant={task.status === "stopped" ? "destructive" : "outline"}
                         onClick={() => updateTaskStatus(task, "stopped")}
-                        disabled={!canStop || isUpdating}
+                        disabled={!canStop}
                       >
                         <Square className="w-3.5 h-3.5 mr-1" />
                         Stop
@@ -374,26 +390,30 @@ export default function TaskManager() {
                   </div>
 
                   {isConversationLoading && messages.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Loading conversation...</p>
+                    <p className="text-xs text-muted-foreground animate-pulse">...</p>
                   ) : visibleMessages.length > 0 ? (
                     <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                       {visibleMessages.map((msg) => {
                         const agent = agentById.get(msg.agentId);
                         const ts = new Date(msg.timestamp);
                         return (
-                          <div key={msg.id} className="rounded-md border border-border/60 p-2.5">
-                            <div className="flex items-center gap-2 mb-1">
+                          <div key={msg.id} className="rounded-md border border-border/60 p-2.5 bg-muted/30 hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center gap-2 mb-2">
                               <div
-                                className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold ${getAgentRoleColor(agent?.role || "")}`}
+                                className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold flex-shrink-0 shadow-sm ${getAgentRoleColor(agent?.role || "")}`}
                               >
                                 {agent?.avatar ?? "?"}
                               </div>
                               <span className="text-xs font-semibold">{agent?.name ?? msg.agentId}</span>
-                              <span className="text-[10px] text-muted-foreground">
+                              <span className="text-[10px] text-muted-foreground font-mono ml-auto">
                                 {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                               </span>
                             </div>
-                            <p className="text-xs text-muted-foreground leading-relaxed">{msg.content}</p>
+                            <div className="prose prose-xs dark:prose-invert max-w-none [&>p]:text-xs [&>p]:text-muted-foreground [&>p]:leading-relaxed [&>p:last-child]:mb-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_ul]:mb-2 [&_ol]:mb-2 [&_li]:mb-1">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {msg.content}
+                              </ReactMarkdown>
+                            </div>
                           </div>
                         );
                       })}

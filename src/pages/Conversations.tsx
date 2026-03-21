@@ -1,35 +1,47 @@
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
-import { Send } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api, type Agent, type Message } from "@/lib/api";
+import { api, type Agent, type Message, type Task, type Team } from "@/lib/api";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
 
 export default function Conversations() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Filters
   const [selectedAgentId, setSelectedAgentId] = useState("");
-  const [prompt, setPrompt] = useState("");
-  const [isSending, setIsSending] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState("");
+  const [selectedTeamId, setSelectedTeamId] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [msgs, ags] = await Promise.all([
+        setLoading(true);
+        setError(null);
+        const [msgs, ags, tks, tms] = await Promise.all([
           api.listConversations(),
           api.listAgents(),
+          api.listTasks(),
+          api.listTeams(),
         ]);
         if (cancelled) return;
         setMessages(msgs);
         setAgents(ags);
-        if (ags.length > 0) {
-          setSelectedAgentId((prev) => prev || ags[0].id);
-        }
+        setTasks(tks);
+        setTeams(tms);
       } catch (e) {
-        console.error(e);
+        const errorMsg = e instanceof Error ? e.message : String(e);
+        console.error("Error loading conversations:", errorMsg);
+        setError(errorMsg);
+      } finally {
+        setLoading(false);
       }
     })();
     return () => {
@@ -43,106 +55,188 @@ export default function Conversations() {
     return map;
   }, [agents]);
 
-  const sendPrompt = async () => {
-    const value = prompt.trim();
-    if (!value || !selectedAgentId || isSending) return;
-    setIsSending(true);
-    try {
-      const reply = await api.chat({
-        prompt: value,
-        agentId: selectedAgentId,
-      });
-      const saved = await api.addConversation({
-        agentId: selectedAgentId,
-        content: reply.response,
-        taskId: "task1",
-      });
-      setMessages((prev) => [...prev, saved]);
-      setPrompt("");
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsSending(false);
-    }
-  };
+  const taskById = useMemo(() => {
+    const map = new Map<string, Task>();
+    tasks.forEach((t) => map.set(t.id, t));
+    return map;
+  }, [tasks]);
+
+  const teamById = useMemo(() => {
+    const map = new Map<string, Team>();
+    teams.forEach((tm) => map.set(tm.id, tm));
+    return map;
+  }, [teams]);
+
+  // Filter messages based on selected filters
+  const filteredMessages = useMemo(() => {
+    return messages.filter((msg) => {
+      if (selectedAgentId && msg.agentId !== selectedAgentId) return false;
+      if (selectedTaskId && msg.taskId !== selectedTaskId) return false;
+      if (selectedTeamId) {
+        const task = taskById.get(msg.taskId || "");
+        if (!task || task.teamId !== selectedTeamId) return false;
+      }
+      return true;
+    });
+  }, [messages, selectedAgentId, selectedTaskId, selectedTeamId, taskById]);
+
+  const messageCount = filteredMessages.length;
 
   return (
-    <div>
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Conversations</h1>
-        <p className="text-muted-foreground mt-1">Agent communication logs across active teams and tasks.</p>
+    <div className="h-screen w-full flex flex-col overflow-hidden">
+      <header className="flex-shrink-0 mb-4 px-1">
+        <h1 className="text-4xl font-bold tracking-tight">Conversations</h1>
+        <p className="text-muted-foreground mt-2">Browse and filter all agent communications across teams and tasks.</p>
       </header>
 
-      <div className="glass-card overflow-hidden">
-        <div className="p-4 border-b border-border flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-agent-dev animate-pulse" />
-          <span className="text-sm font-medium text-muted-foreground">Live agent conversations</span>
-        </div>
-        <div className="p-4 border-b border-border">
-          <div className="grid gap-2 md:grid-cols-[220px_1fr_auto]">
-            <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select agent" />
-              </SelectTrigger>
-              <SelectContent>
-                {agents.map((agent) => (
-                  <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") sendPrompt();
-              }}
-              placeholder="Enter prompt to chat with selected agent"
-              disabled={isSending || !selectedAgentId}
-            />
-            <Button onClick={sendPrompt} disabled={isSending || !selectedAgentId || !prompt.trim()}>
-              <Send className="w-4 h-4 mr-2" />
-              {isSending ? "Sending..." : "Send"}
-            </Button>
+      {loading && (
+        <div className="glass-card p-12 text-center flex-1 flex items-center justify-center">
+          <div>
+            <p className="text-muted-foreground text-lg">Loading conversations...</p>
           </div>
         </div>
-        <div className="p-6 space-y-5">
-          {messages.map((msg, i) => {
-            const agent = agentById.get(msg.agentId);
-            if (!agent) return null;
-            return (
-              <motion.div
-                key={msg.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.08 }}
-                className="flex gap-4 items-start"
-              >
-                <div className={`mt-0.5 w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-bold ${getAgentRoleColor(agent.role)}`}>
-                  {agent.avatar}
+      )}
+
+      {error && (
+        <div className="glass-card p-6 border-2 border-red-500 rounded-lg mb-6 bg-red-50">
+          <p className="text-red-700 font-bold text-lg">Error loading conversations</p>
+          <p className="text-red-600 text-sm mt-2">{error}</p>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <div className="glass-card overflow-hidden flex flex-col flex-1 min-h-0">
+          {/* Filters Section - Fixed, No Scroll */}
+          <div className="flex-shrink-0 p-6 border-b border-border bg-gradient-to-r from-background to-muted/20">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-foreground">Filter Conversations</p>
+                <span className="text-xs font-medium text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                  {messageCount} {messageCount === 1 ? "message" : "messages"}
+                </span>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-2 uppercase tracking-wide">Team</label>
+                  <Select value={selectedTeamId === "" ? "__all__" : selectedTeamId} onValueChange={(val) => {
+                    setSelectedTeamId(val === "__all__" ? "" : val);
+                    setSelectedTaskId("");
+                  }}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="All teams" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All teams</SelectItem>
+                      {teams.map((team) => (
+                        <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold">{agent.name}</span>
-                    <span className="text-[10px] text-muted-foreground">{agent.role}</span>
-                    <span className="text-[10px] text-muted-foreground font-mono">
-                      {(() => {
-                        const d = new Date(msg.timestamp);
-                        return isNaN(d.getTime())
-                          ? msg.timestamp
-                          : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-                      })()}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed mt-1">{msg.content}</p>
+                  <label className="text-xs font-semibold text-foreground block mb-2 uppercase tracking-wide">Task</label>
+                  <Select value={selectedTaskId === "" ? "__all__" : selectedTaskId} onValueChange={(val) => {
+                    setSelectedTaskId(val === "__all__" ? "" : val);
+                  }}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="All tasks" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All tasks</SelectItem>
+                      {tasks
+                        .filter((t) => !selectedTeamId || t.teamId === selectedTeamId)
+                        .map((task) => (
+                          <SelectItem key={task.id} value={task.id}>{task.title}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </motion.div>
-            );
-          })}
-          {messages.length === 0 && (
-            <div className="text-sm text-muted-foreground">No messages yet.</div>
-          )}
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-2 uppercase tracking-wide">Agent</label>
+                  <Select value={selectedAgentId === "" ? "__all__" : selectedAgentId} onValueChange={(val) => {
+                    setSelectedAgentId(val === "__all__" ? "" : val);
+                  }}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="All agents" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All agents</SelectItem>
+                      {agents.map((agent) => (
+                        <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Conversations Display */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {filteredMessages.length > 0 ? (
+              filteredMessages.map((msg, i) => {
+                const agent = agentById.get(msg.agentId);
+                const task = taskById.get(msg.taskId || "");
+                const team = task ? teamById.get(task.teamId) : null;
+                if (!agent) return null;
+                return (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="border border-border/50 rounded-lg p-5 bg-card/50 hover:bg-card/80 transition-all duration-200 hover:shadow-md hover:border-border"
+                  >
+                    <div className="flex gap-4 items-start mb-3">
+                      <div className={`mt-1 w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center text-sm font-bold shadow-sm ${getAgentRoleColor(agent.role)}`}>
+                        {agent.avatar}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2 flex-wrap mb-2">
+                          <span className="text-sm font-bold text-foreground">{agent.name}</span>
+                          <span className="text-xs text-muted-foreground font-medium bg-muted px-2 py-0.5 rounded">
+                            {agent.role}
+                          </span>
+                          {team && (
+                            <span className="text-xs text-muted-foreground bg-blue-500/10 text-blue-700 px-2 py-0.5 rounded border border-blue-200/50">
+                              Team: {team.name}
+                            </span>
+                          )}
+                          {task && (
+                            <span className="text-xs text-muted-foreground bg-purple-500/10 text-purple-700 px-2 py-0.5 rounded border border-purple-200/50">
+                              Task: {task.title}
+                            </span>
+                          )}
+                          <span className="text-xs text-muted-foreground font-mono ml-auto">
+                            {(() => {
+                              const d = new Date(msg.timestamp);
+                              return isNaN(d.getTime())
+                                ? msg.timestamp
+                                : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+                            })()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:text-muted-foreground [&>p]:leading-relaxed [&>p:last-child]:mb-0 [&>*:last-child]:mb-0">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
+                  </motion.div>
+                );
+              })
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center py-12">
+                  <p className="text-lg text-muted-foreground font-medium">No conversations found</p>
+                  <p className="text-sm text-muted-foreground mt-2">Try adjusting your filters to see messages</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
