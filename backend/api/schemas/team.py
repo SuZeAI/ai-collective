@@ -10,6 +10,7 @@ class TeamSchema(BaseModel):
     agents: list[str]
     activeTasks: int
     mode: str = "sequential"
+    maxSteps: int = 6
 
     @staticmethod
     def from_domain(t) -> "TeamSchema":
@@ -20,6 +21,7 @@ class TeamSchema(BaseModel):
             agents=list(t.agents),
             activeTasks=t.active_tasks,
             mode=t.mode,
+            maxSteps=t.max_steps,
         )
 
 
@@ -30,3 +32,4 @@ class UpsertTeamRequest(BaseModel):
     agents: list[str]
     activeTasks: int = 0
     mode: str = "sequential"
+    maxSteps: int = 6

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import time
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends
 
@@ -35,7 +35,7 @@ def list_agents(service: AgentService = Depends(get_agent_service)) -> list[Agen
 
 @router.post("", response_model=AgentSchema)
 def upsert_agent(req: UpsertAgentRequest, service: AgentService = Depends(get_agent_service)) -> AgentSchema:
-    agent_id = req.id or f"a{int(time.time() * 1000)}"
+    agent_id = req.id or f"agent_{uuid4().hex}"
     avatar = req.avatar or (req.name[:1].upper() if req.name else "A")
 
     agent = Agent(

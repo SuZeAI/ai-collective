@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import time
+from uuid import uuid4
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query
@@ -25,7 +25,7 @@ def list_messages(
 @router.post("", response_model=MessageSchema)
 def add_message(req: CreateMessageRequest, service: ConversationService = Depends(get_conversation_service)) -> MessageSchema:
     message = Message(
-        id=f"m{int(time.time() * 1000)}",
+        id=f"m_{uuid4().hex}",
         agent_id=req.agentId,
         content=req.content,
         timestamp=datetime.utcnow().replace(microsecond=0),

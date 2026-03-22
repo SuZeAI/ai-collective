@@ -38,6 +38,7 @@ class Team:
     agents: list[str]
     active_tasks: int
     mode: str = "sequential"  # "sequential" or "mesh"
+    max_steps: int = 6
 
 
 @dataclass(frozen=True, slots=True)

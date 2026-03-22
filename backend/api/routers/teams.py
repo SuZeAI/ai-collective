@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import time
+from uuid import uuid4
 from dataclasses import replace
 from datetime import datetime
 
@@ -74,7 +74,7 @@ def upsert_team(
     agent_service: AgentService = Depends(get_agent_service),
     conv_service: ConversationService = Depends(get_conversation_service),
 ) -> TeamSchema:
-    team_id = req.id or f"t{int(time.time() * 1000)}"
+    team_id = req.id or f"t_{uuid4().hex}"
     is_new_team = req.id is None
     active_tasks = req.activeTasks
     if is_new_team and req.agents:
@@ -88,6 +88,7 @@ def upsert_team(
         agents=list(req.agents),
         active_tasks=active_tasks,
         mode=req.mode or "sequential",
+        max_steps=req.maxSteps or 6,
     )
     saved = service.upsert_team(team)
 

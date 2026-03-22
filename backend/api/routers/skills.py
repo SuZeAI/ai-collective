@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import time
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends
 
@@ -20,7 +20,7 @@ def list_skills(service: SkillService = Depends(get_skill_service)) -> list[Skil
 
 @router.post("", response_model=SkillSchema)
 def upsert_skill(req: UpsertSkillRequest, service: SkillService = Depends(get_skill_service)) -> SkillSchema:
-    skill_id = req.id or f"skill{int(time.time() * 1000)}"
+    skill_id = req.id or f"skill_{uuid4().hex}"
     skill = Skill(
         id=skill_id,
         name=req.name,

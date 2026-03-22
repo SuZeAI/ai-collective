@@ -151,6 +151,7 @@ class JsonTeamRepository:
                     agents=[str(x) for x in (item.get("agents") or [])],
                     active_tasks=int(item.get("activeTasks", 0)),
                     mode=str(item.get("mode", "sequential")),
+                    max_steps=int(item.get("maxSteps", 6)),
                 )
                 self._items[team.id] = team
             except Exception:
@@ -166,6 +167,7 @@ class JsonTeamRepository:
                     "agents": list(t.agents),
                     "activeTasks": t.active_tasks,
                     "mode": t.mode,
+                    "maxSteps": t.max_steps,
                 }
                 for t in self._items.values()
             ]

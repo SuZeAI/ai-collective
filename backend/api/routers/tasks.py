@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import time
+from uuid import uuid4
 from dataclasses import replace
 from datetime import datetime
 
@@ -140,7 +140,7 @@ def upsert_task(
     agent_service: AgentService = Depends(get_agent_service),
     conv_service: ConversationService = Depends(get_conversation_service),
 ) -> TaskSchema:
-    task_id = req.id or f"task{int(time.time() * 1000)}"
+    task_id = req.id or f"task_{uuid4().hex}"
     previous_status: TaskStatus | None = None
     if req.id:
         try:
