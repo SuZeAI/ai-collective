@@ -23,10 +23,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <Sidebar collapsible="icon">
           <SidebarContent>
             <div className="p-4 flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-lg">
-                <Activity className="text-primary-foreground w-4 h-4" />
-              </div>
-              <span className="font-bold text-lg tracking-tight text-foreground group-data-[collapsible=icon]:hidden">AI Team</span>
+              <Link to="/" className="flex items-center gap-2 flex-1">
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-lg">
+                  <Activity className="text-primary-foreground w-4 h-4" />
+                </div>
+                <span className="font-bold text-lg tracking-tight text-foreground group-data-[collapsible=icon]:hidden">AI Team</span>
+              </Link>
             </div>
             <SidebarGroup>
               <SidebarGroupLabel>Navigation</SidebarGroupLabel>

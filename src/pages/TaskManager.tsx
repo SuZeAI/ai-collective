@@ -306,7 +306,6 @@ export default function TaskManager() {
       <div className="space-y-4">
         {taskList.map((task, i) => {
           const Icon = statusIcons[task.status] ?? Circle;
-          const team = teamList.find((t) => t.id === task.teamId);
           const isUpdating = updatingTaskIds.has(task.id);
           const canStart = task.status === "pending" || task.status === "paused" || task.status === "stopped" || task.status === "completed";
           const canPause = task.status === "in-progress";
