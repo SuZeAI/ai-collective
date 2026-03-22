@@ -22,6 +22,7 @@ class GraphRunRequest(BaseModel):
 
 class GraphTurnSchema(BaseModel):
     turn: int
+    agent_id: str
     agent_name: str
     agent_role: str
     content: str

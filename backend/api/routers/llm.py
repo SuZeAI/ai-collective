@@ -94,6 +94,7 @@ async def run_agent_graph_stream(
 
     # Fetch agents from database by ID
     definitions = []
+    agent_name_to_id: dict[str, str] = {}  # Mapping agent name to ID for stream response
     for agent_id in req.agents:
         try:
             agent = agent_service.get_agent(agent_id)
@@ -104,6 +105,7 @@ async def run_agent_graph_stream(
                     system_prompt=agent.system_prompt,
                 )
             )
+            agent_name_to_id[agent.name] = agent_id  # Store mapping
         except Exception as e:
             raise HTTPException(
                 status_code=404, 
@@ -121,6 +123,7 @@ async def run_agent_graph_stream(
                 # Convert GraphTurn to GraphTurnSchema and serialize to JSON
                 turn_schema = GraphTurnSchema(
                     turn=turn.turn,
+                    agent_id=agent_name_to_id.get(turn.agent_name, turn.agent_name),  # Look up agent ID
                     agent_name=turn.agent_name,
                     agent_role=turn.agent_role,
                     content=turn.content,
