@@ -23,6 +23,7 @@ export default function TeamBuilder() {
   const [desc, setDesc] = useState("");
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [mode, setMode] = useState<"mesh" | "sequential">("sequential");
+  const [maxSteps, setMaxSteps] = useState("6");
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [draggedAgent, setDraggedAgent] = useState<string | null>(null);
   const [testOpen, setTestOpen] = useState(false);
@@ -69,6 +70,7 @@ export default function TeamBuilder() {
     setDesc("");
     setSelectedAgents([]);
     setMode("sequential");
+    setMaxSteps("6");
   };
 
   const handleDragStart = (agentId: string) => {
@@ -115,12 +117,15 @@ export default function TeamBuilder() {
     setDesc(team.description ?? "");
     setSelectedAgents(team.agents || []);
     setMode(team.mode ?? "sequential");
+    setMaxSteps(String(team.maxSteps ?? 6));
     setOpen(true);
   };
 
   const saveTeam = async () => {
     if (!name.trim() || selectedAgents.length === 0) return;
     const existing = editingTeamId ? teamList.find((t) => t.id === editingTeamId) : undefined;
+    const parsedSteps = Number(maxSteps);
+    const finalSteps = Number.isFinite(parsedSteps) ? Math.max(1, Math.min(10, Math.floor(parsedSteps))) : 6;
     try {
       const saved = await api.upsertTeam({
         id: editingTeamId ?? undefined,
@@ -129,6 +134,7 @@ export default function TeamBuilder() {
         agents: selectedAgents,
         activeTasks: existing?.activeTasks ?? 0,
         mode: mode,
+        maxSteps: finalSteps,
       });
       setTeamList((prev) => {
         const idx = prev.findIndex((t) => t.id === saved.id);
@@ -316,6 +322,17 @@ export default function TeamBuilder() {
                   <option value="sequential">Sequential (agents take turns)</option>
                   <option value="mesh">Mesh (all agents interact simultaneously)</option>
                 </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Max Steps (for tasks)</label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={maxSteps}
+                  onChange={(e) => setMaxSteps(e.target.value)}
+                  placeholder="Default: 6"
+                />
               </div>
               <Button onClick={saveTeam} className="w-full" disabled={!name.trim() || selectedAgents.length === 0}>
                 {editingTeamId ? "Save Changes" : "Create Team"}
@@ -517,7 +534,7 @@ export default function TeamBuilder() {
             <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
               <span>{team.activeTasks} active tasks</span>
               <span className="px-2 py-1 rounded bg-muted/50">
-                {team.mode === "mesh" ? "🔗 Mesh" : "📋 Sequential"}
+                {team.mode === "mesh" ? "🔗 Mesh" : "📋 Sequential"} • {team.maxSteps || 6} steps
               </span>
             </div>
           </motion.div>

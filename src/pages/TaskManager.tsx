@@ -180,11 +180,12 @@ export default function TaskManager() {
           const messages: Message[] = [];
           const team = teamList.find((t) => t.id === updated.teamId);
           const teamMode = team?.mode ?? "sequential";
+          const teamMaxSteps = team?.maxSteps ?? 6;
           const formattedInput = `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}`;
           for await (const turn of api.runAgentGraphStream({
             user_input: formattedInput,
             agents: updated.assignedAgents,
-            max_rounds: 6,
+            max_rounds: teamMaxSteps,
             mode: teamMode,
           })) {
             if (turn.error) {
@@ -315,9 +316,10 @@ export default function TaskManager() {
           const visibleMessages = messages.slice(-8);
           const isRestart = task.status === "completed";
           const isExpanded = expandedTaskIds.has(task.id);
+          const team = teamList.find((t) => t.id === task.teamId);
+          const maxRounds = team?.maxSteps ?? 6;
           
           // Calculate progress based on messages received
-          const maxRounds = 6;
           const calculatedProgress = task.status === "completed" ? 100 : Math.min(Math.round((messages.length / maxRounds) * 100), 99);
           
           return (
