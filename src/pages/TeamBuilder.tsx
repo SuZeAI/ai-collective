@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { FlaskConical, Pencil, Plus, Square, Trash2, Users, Copy, Check, Clock } from "lucide-react";
+import { FlaskConical, Pencil, Plus, Square, Trash2, Users, Copy, Check, Clock, GripVertical, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +24,7 @@ export default function TeamBuilder() {
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [mode, setMode] = useState<"mesh" | "sequential">("sequential");
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
+  const [draggedAgent, setDraggedAgent] = useState<string | null>(null);
   const [testOpen, setTestOpen] = useState(false);
   const [testingTeam, setTestingTeam] = useState<Team | null>(null);
   const [testPrompt, setTestPrompt] = useState("Run a quick kickoff discussion and align responsibilities.");
@@ -68,6 +69,39 @@ export default function TeamBuilder() {
     setDesc("");
     setSelectedAgents([]);
     setMode("sequential");
+  };
+
+  const handleDragStart = (agentId: string) => {
+    setDraggedAgent(agentId);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (targetAgentId: string) => {
+    if (!draggedAgent || draggedAgent === targetAgentId) {
+      setDraggedAgent(null);
+      return;
+    }
+
+    const draggedIndex = selectedAgents.indexOf(draggedAgent);
+    const targetIndex = selectedAgents.indexOf(targetAgentId);
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedAgent(null);
+      return;
+    }
+
+    const newAgents = [...selectedAgents];
+    newAgents.splice(draggedIndex, 1);
+    newAgents.splice(targetIndex, 0, draggedAgent);
+    setSelectedAgents(newAgents);
+    setDraggedAgent(null);
+  };
+
+  const removeAgent = (agentId: string) => {
+    setSelectedAgents((prev) => prev.filter((a) => a !== agentId));
   };
 
   const openCreateDialog = () => {
@@ -177,8 +211,8 @@ export default function TeamBuilder() {
 
         stepCounter += 1;
         const item: TeamTestMessage = {
-          id: `${Date.now()}-${stepCounter}-${turn.agent_name}`,
-          agentId: turn.agent_name,
+          id: `${Date.now()}-${stepCounter}-${turn.agent_id}`,
+          agentId: turn.agent_id,
           content: turn.content || "(No response)",
           step: turn.turn,
           timestamp: new Date().toISOString(),
@@ -210,19 +244,68 @@ export default function TeamBuilder() {
               <Input placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
               <div className="space-y-2">
                 <label className="text-sm font-medium">Select Agents</label>
-                {agentList.map((a) => (
-                  <label key={a.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer">
-                    <Checkbox checked={selectedAgents.includes(a.id)} onCheckedChange={() => toggleAgent(a.id)} />
-                    <span className="text-sm font-medium">{a.name}</span>
-                    <span className="text-xs text-muted-foreground">({a.role})</span>
-                    {a.skill_ids?.length ? (
-                      <span className="text-xs text-muted-foreground">
-                        • {a.skills?.map(s => s.name).join(', ')}
-                      </span>
-                    ) : null}
-                  </label>
-                ))}
+                <div className="border border-input rounded-lg p-3 max-h-48 overflow-y-auto bg-muted/50">
+                  <div className="space-y-2">
+                    {agentList.map((a) => (
+                      <label key={a.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-background cursor-pointer">
+                        <Checkbox checked={selectedAgents.includes(a.id)} onCheckedChange={() => toggleAgent(a.id)} />
+                        <span className="text-sm font-medium">{a.name}</span>
+                        <span className="text-xs text-muted-foreground">({a.role})</span>
+                        {a.skill_ids?.length ? (
+                          <span className="text-xs text-muted-foreground ml-auto">
+                            • {a.skills?.map(s => s.name).join(', ')}
+                          </span>
+                        ) : null}
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
+
+              {selectedAgents.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Agent Execution Order</label>
+                  <p className="text-xs text-muted-foreground">Drag to reorder agents (order will be used in tests)</p>
+                  <div className="border border-input rounded-lg p-3 bg-muted/50 space-y-2">
+                    {selectedAgents.map((agentId, index) => {
+                      const agent = agentById.get(agentId);
+                      if (!agent) return null;
+                      return (
+                        <div
+                          key={agentId}
+                          draggable
+                          onDragStart={() => handleDragStart(agentId)}
+                          onDragOver={handleDragOver}
+                          onDrop={() => handleDrop(agentId)}
+                          className={`flex items-center gap-3 p-3 rounded-lg border-2 border-dashed transition-all cursor-move ${
+                            draggedAgent === agentId
+                              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 opacity-50"
+                              : "border-transparent bg-background hover:bg-muted/50 hover:border-slate-300"
+                          }`}
+                        >
+                          <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-xs font-bold text-primary">
+                                {index + 1}
+                              </span>
+                              <span className="text-sm font-medium">{agent.name}</span>
+                              <span className="text-xs text-muted-foreground">({agent.role})</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => removeAgent(agentId)}
+                            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                            title="Remove agent"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Execution Mode</label>
                 <select

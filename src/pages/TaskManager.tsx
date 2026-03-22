@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2 } from "lucide-react";
+import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -38,6 +38,7 @@ export default function TaskManager() {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [taskConversations, setTaskConversations] = useState<Record<string, Message[]>>({});
   const [loadingConversationTaskIds, setLoadingConversationTaskIds] = useState<Set<string>>(new Set());
+  const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
 
 
@@ -87,6 +88,18 @@ export default function TaskManager() {
     agentList.forEach((a) => map.set(a.id, a));
     return map;
   }, [agentList]);
+
+  const toggleTaskExpanded = (taskId: string) => {
+    setExpandedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) {
+        next.delete(taskId);
+      } else {
+        next.add(taskId);
+      }
+      return next;
+    });
+  };
 
   const resetForm = () => {
     setEditingTaskId(null);
@@ -167,8 +180,9 @@ export default function TaskManager() {
           const messages: Message[] = [];
           const team = teamList.find((t) => t.id === updated.teamId);
           const teamMode = team?.mode ?? "sequential";
+          const formattedInput = `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}`;
           for await (const turn of api.runAgentGraphStream({
-            user_input: updated.description || "Execute this task.",
+            user_input: formattedInput,
             agents: updated.assignedAgents,
             max_rounds: 6,
             mode: teamMode,
@@ -179,8 +193,8 @@ export default function TaskManager() {
             }
 
             const message: Message = {
-              id: `${Date.now()}-${turn.agent_name}-${turn.turn}`,
-              agentId: turn.agent_name,
+              id: `${Date.now()}-${turn.agent_id}-${turn.turn}`,
+              agentId: turn.agent_id,
               content: turn.content || "",
               timestamp: new Date().toISOString(),
               taskId: updated.id,
@@ -300,128 +314,182 @@ export default function TaskManager() {
           const isConversationLoading = loadingConversationTaskIds.has(task.id);
           const visibleMessages = messages.slice(-8);
           const isRestart = task.status === "completed";
+          const isExpanded = expandedTaskIds.has(task.id);
+          
+          // Calculate progress based on messages received
+          const maxRounds = 6;
+          const calculatedProgress = task.status === "completed" ? 100 : Math.min(Math.round((messages.length / maxRounds) * 100), 99);
+          
           return (
             <motion.div
               key={task.id}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
-              className="glass-card p-5"
+              className="glass-card overflow-hidden"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <Icon className={`w-5 h-5 mt-0.5 flex-shrink-0 ${statusColors[task.status]}`} />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold">{task.title}</h3>
-                    <p className="text-sm text-muted-foreground mt-0.5">{task.description}</p>
-                    <div className="mt-3 flex items-center gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => openEditDialog(task)} disabled={isUpdating}>
-                        <Pencil className="w-3.5 h-3.5 mr-1" />
-                        Edit
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => deleteTask(task.id)} disabled={isUpdating}>
-                        <Trash2 className="w-3.5 h-3.5 mr-1" />
-                        Delete
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-4 mt-3">
-                      <span className="text-xs text-muted-foreground font-mono">{team?.name}</span>
-                      <div className="flex -space-x-1">
-                        {task.assignedAgents.slice(0, 4).map((aid) => {
-                          const agent = agentById.get(aid);
-                          return agent ? (
-                            <div key={aid} className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[9px] font-bold border-2 border-card">
-                              {agent.avatar}
-                            </div>
-                          ) : null;
-                        })}
-                      </div>
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant={task.status === "in-progress" ? "default" : "outline"}
-                        onClick={() => updateTaskStatus(task, "in-progress")}
-                        disabled={!canStart || isUpdating}
-                      >
-                        <Play className="w-3.5 h-3.5 mr-1" />
-                        {isRestart ? "Restart" : "Start"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={task.status === "paused" ? "default" : "outline"}
-                        onClick={() => updateTaskStatus(task, "paused")}
-                        disabled={!canPause}
-                      >
-                        <Pause className="w-3.5 h-3.5 mr-1" />
-                        Pause
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={task.status === "stopped" ? "destructive" : "outline"}
-                        onClick={() => updateTaskStatus(task, "stopped")}
-                        disabled={!canStop}
-                      >
-                        <Square className="w-3.5 h-3.5 mr-1" />
-                        Stop
-                      </Button>
+              {/* Compact View */}
+              <div className="p-5">
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Icon className={`w-5 h-5 flex-shrink-0 ${statusColors[task.status]}`} />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold truncate">{task.title}</h3>
+                      <p className="text-xs text-muted-foreground truncate">{team?.name}</p>
                     </div>
                   </div>
+
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => toggleTaskExpanded(task.id)}
+                    className="p-1 h-auto flex-shrink-0"
+                  >
+                    {isExpanded ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </Button>
                 </div>
-                <div className="w-32 flex-shrink-0">
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-muted-foreground capitalize">{task.status}</span>
-                    <span className="font-bold">{task.progress}%</span>
+
+                {/* Progress Bar - Show when in-progress or has messages */}
+                {(task.status === "in-progress" || messages.length > 0) && (
+                  <div className="mb-3 space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground capitalize">{task.status}</span>
+                      <span className="font-bold">{calculatedProgress}%</span>
+                    </div>
+                    <Progress value={calculatedProgress} className="h-1.5" />
                   </div>
-                  <Progress value={task.progress} className="h-1.5" />
+                )}
+
+                {/* Control Buttons - Always Visible */}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={task.status === "in-progress" ? "default" : "outline"}
+                    onClick={() => updateTaskStatus(task, "in-progress")}
+                    disabled={!canStart || isUpdating}
+                  >
+                    <Play className="w-3.5 h-3.5 mr-1" />
+                    {isRestart ? "Restart" : "Start"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={task.status === "paused" ? "default" : "outline"}
+                    onClick={() => updateTaskStatus(task, "paused")}
+                    disabled={!canPause}
+                  >
+                    <Pause className="w-3.5 h-3.5 mr-1" />
+                    Pause
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={task.status === "stopped" ? "destructive" : "outline"}
+                    onClick={() => updateTaskStatus(task, "stopped")}
+                    disabled={!canStop}
+                  >
+                    <Square className="w-3.5 h-3.5 mr-1" />
+                    Stop
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => openEditDialog(task)} disabled={isUpdating}>
+                    <Pencil className="w-3.5 h-3.5 mr-1" />
+                    Edit
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => deleteTask(task.id)} disabled={isUpdating}>
+                    <Trash2 className="w-3.5 h-3.5 mr-1" />
+                    Delete
+                  </Button>
                 </div>
               </div>
 
-              {(task.status === "in-progress" || messages.length > 0) && (
-                <div className="mt-4 border-t border-border pt-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Conversation Stream
+              {/* Expanded Details */}
+              {isExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="border-t border-border bg-muted/30 p-5 space-y-4"
+                >
+                  {/* Progress Bar */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="font-medium capitalize">{task.status}</span>
+                      <span className="font-bold">{calculatedProgress}% ({messages.length} / {maxRounds} messages)</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                      {task.status === "in-progress" && <span className="w-1.5 h-1.5 rounded-full bg-agent-dev animate-pulse" />}
-                      <span>{task.status === "in-progress" ? "Live" : "Recent"}</span>
+                    <Progress value={calculatedProgress} className="h-1.5" />
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Description</label>
+                    <p className="text-sm text-foreground">{task.description || "(No description)"}</p>
+                  </div>
+
+                  {/* Assigned Agents */}
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Assigned Agents</label>
+                    <div className="flex flex-wrap gap-2">
+                      {task.assignedAgents.map((aid) => {
+                        const agent = agentById.get(aid);
+                        return agent ? (
+                          <span key={aid} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background text-xs font-medium border border-border">
+                            {agent.avatar} {agent.name}
+                          </span>
+                        ) : null;
+                      })}
                     </div>
                   </div>
 
-                  {isConversationLoading && messages.length === 0 ? (
-                    <p className="text-xs text-muted-foreground animate-pulse">...</p>
-                  ) : visibleMessages.length > 0 ? (
-                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                      {visibleMessages.map((msg) => {
-                        const agent = agentById.get(msg.agentId);
-                        const ts = new Date(msg.timestamp);
-                        return (
-                          <div key={msg.id} className="rounded-md border border-border/60 p-2.5 bg-muted/30 hover:bg-muted/50 transition-colors">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div
-                                className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold flex-shrink-0 shadow-sm ${getAgentRoleColor(agent?.role || "")}`}
-                              >
-                                {agent?.avatar ?? "?"}
+                  {/* Conversation Stream */}
+                  {(task.status === "in-progress" || messages.length > 0) && (
+                    <div className="border-t border-border pt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Conversation Stream
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                          {task.status === "in-progress" && <span className="w-1.5 h-1.5 rounded-full bg-agent-dev animate-pulse" />}
+                          <span>{task.status === "in-progress" ? "Live" : "Recent"}</span>
+                        </div>
+                      </div>
+
+                      {isConversationLoading && messages.length === 0 ? (
+                        <p className="text-xs text-muted-foreground animate-pulse">...</p>
+                      ) : visibleMessages.length > 0 ? (
+                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                          {visibleMessages.map((msg) => {
+                            const agent = agentById.get(msg.agentId);
+                            const ts = new Date(msg.timestamp);
+                            return (
+                              <div key={msg.id} className="rounded-md border border-border/60 p-2.5 bg-background hover:bg-muted/30 transition-colors">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div
+                                    className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold flex-shrink-0 shadow-sm ${getAgentRoleColor(agent?.role || "")}`}
+                                  >
+                                    {agent?.avatar ?? "?"}
+                                  </div>
+                                  <span className="text-xs font-semibold">{agent?.name ?? msg.agentId}</span>
+                                  <span className="text-[10px] text-muted-foreground font-mono ml-auto">
+                                    {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                                  </span>
+                                </div>
+                                <div className="prose prose-xs dark:prose-invert max-w-none [&>p]:text-xs [&>p]:text-muted-foreground [&>p]:leading-relaxed [&>p:last-child]:mb-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_ul]:mb-2 [&_ol]:mb-2 [&_li]:mb-1">
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {msg.content}
+                                  </ReactMarkdown>
+                                </div>
                               </div>
-                              <span className="text-xs font-semibold">{agent?.name ?? msg.agentId}</span>
-                              <span className="text-[10px] text-muted-foreground font-mono ml-auto">
-                                {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                              </span>
-                            </div>
-                            <div className="prose prose-xs dark:prose-invert max-w-none [&>p]:text-xs [&>p]:text-muted-foreground [&>p]:leading-relaxed [&>p:last-child]:mb-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_ul]:mb-2 [&_ol]:mb-2 [&_li]:mb-1">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {msg.content}
-                              </ReactMarkdown>
-                            </div>
-                          </div>
-                        );
-                      })}
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">No conversation yet for this task.</p>
+                      )}
                     </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">No conversation yet for this task.</p>
                   )}
-                </div>
+                </motion.div>
               )}
             </motion.div>
           );

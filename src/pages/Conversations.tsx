@@ -178,7 +178,9 @@ export default function Conversations() {
                 const agent = agentById.get(msg.agentId);
                 const task = taskById.get(msg.taskId || "");
                 const team = task ? teamById.get(task.teamId) : null;
-                if (!agent) return null;
+                const agentName = agent?.name || "Unknown Agent";
+                const agentRole = agent?.role || "unknown";
+                const agentAvatar = agent?.avatar || "?";
                 return (
                   <motion.div
                     key={msg.id}
@@ -188,14 +190,14 @@ export default function Conversations() {
                     className="border border-border/50 rounded-lg p-5 bg-card/50 hover:bg-card/80 transition-all duration-200 hover:shadow-md hover:border-border"
                   >
                     <div className="flex gap-4 items-start mb-3">
-                      <div className={`mt-1 w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center text-sm font-bold shadow-sm ${getAgentRoleColor(agent.role)}`}>
-                        {agent.avatar}
+                      <div className={`mt-1 w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center text-sm font-bold shadow-sm ${agent ? getAgentRoleColor(agentRole) : 'bg-gray-400 text-white'}`}>
+                        {agentAvatar}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-2 flex-wrap mb-2">
-                          <span className="text-sm font-bold text-foreground">{agent.name}</span>
+                          <span className="text-sm font-bold text-foreground">{agentName}</span>
                           <span className="text-xs text-muted-foreground font-medium bg-muted px-2 py-0.5 rounded">
-                            {agent.role}
+                            {agentRole}
                           </span>
                           {team && (
                             <span className="text-xs text-muted-foreground bg-blue-500/10 text-blue-700 px-2 py-0.5 rounded border border-blue-200/50">
