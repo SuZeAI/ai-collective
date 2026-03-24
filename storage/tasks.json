@@ -24,5 +24,18 @@
       "a1",
       "a3"
     ]
+  },
+  {
+    "id": "task_84a88e6c0f46411a8227cafeb91a3f54",
+    "title": "Analyze the golden price market and provide insights",
+    "description": "Analyze the golden price market and provide insights",
+    "teamId": "t1774110075739",
+    "status": "completed",
+    "progress": 100,
+    "assignedAgents": [
+      "a2",
+      "a1",
+      "a3"
+    ]
   }
 ]
