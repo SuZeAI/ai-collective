@@ -4,7 +4,7 @@ from typing import Literal, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from backend.application.logic.prompt.routing_prompt import get_routing_guidance
+from backend.domain.prompt.routing_prompt import get_routing_guidance
 from backend.application.ports.agent_graph import (
     AgentGraphOrchestrator,
     GraphAgentDefinition,

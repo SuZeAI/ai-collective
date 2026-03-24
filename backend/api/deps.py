@@ -15,8 +15,8 @@ from backend.application.service.task_service import TaskService
 from backend.application.service.team_service import TeamService
 from backend.application.service.skill_service import SkillService
 from backend.infrastructure.llm.gemini_langchain import GeminiLangChainProvider
-from backend.application.logic.langgraph_orchestrator import LangGraphAgentOrchestrator
-from backend.application.logic.langgraph_mesh import MultiAgentMeshOrchestrator
+from backend.domain.agent.langgraph_orchestrator import LangGraphAgentOrchestrator
+from backend.domain.agent.langgraph_mesh import MultiAgentMeshOrchestrator
 from backend.infrastructure.repositories.json_files import (
     JsonActivityFeedRepository,
     JsonAgentRepository,
