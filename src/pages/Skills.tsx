@@ -3,38 +3,76 @@ import { motion } from "framer-motion";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { api, type Skill } from "@/lib/api";
 
-type AuthType = "service-account" | "oauth" | "api-key";
+type ToolName = "websearch" | "browser" | "bash";
 
-const presets = [
-  { label: "Google Sheets", thirdParty: "Google Sheets" },
-  { label: "Google Docs", thirdParty: "Google Docs" },
-  { label: "Web Search", thirdParty: "Web" },
-  { label: "Custom Integration", thirdParty: "" },
+const toolPresets: Array<{ toolName: ToolName; label: string; thirdParty: string }> = [
+  { toolName: "websearch", label: "Web Search (DuckDuckGo)", thirdParty: "Web" },
+  { toolName: "browser", label: "Browser Automation", thirdParty: "Browser" },
+  { toolName: "bash", label: "Shell Automation", thirdParty: "Shell" },
 ];
+
+function isToolName(value: string | null | undefined): value is ToolName {
+  return value === "websearch" || value === "browser" || value === "bash";
+}
+
+function boolFromUnknown(value: unknown, fallback: boolean): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return fallback;
+}
 
 export default function Skills() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [open, setOpen] = useState(false);
   const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
 
-  const [preset, setPreset] = useState(presets[0]?.label ?? "Google Sheets");
-  const selectedPreset = useMemo(() => presets.find((p) => p.label === preset) ?? presets[0], [preset]);
+  const [toolName, setToolName] = useState<ToolName>("websearch");
+  const selectedPreset = useMemo(
+    () => toolPresets.find((p) => p.toolName === toolName) ?? toolPresets[0],
+    [toolName],
+  );
 
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
 
-  // auth fields saved under config.auth
-  const [authType, setAuthType] = useState<AuthType>("service-account");
-  const [serviceAccountJson, setServiceAccountJson] = useState("");
-  const [oauthClientId, setOauthClientId] = useState("");
-  const [oauthClientSecret, setOauthClientSecret] = useState("");
-  const [oauthRefreshToken, setOauthRefreshToken] = useState("");
-  const [apiKey, setApiKey] = useState("");
+  const [webProvider, setWebProvider] = useState("duckduckgo");
+  const [webRegion, setWebRegion] = useState("wt-wt");
+  const [webSafeSearch, setWebSafeSearch] = useState("moderate");
+
+  const [browserDriver, setBrowserDriver] = useState("browser_use");
+  const [browserCdpUrl, setBrowserCdpUrl] = useState("http://localhost:9222");
+  const [browserRequiresRuntime, setBrowserRequiresRuntime] = useState(true);
+
+  const [bashSandbox, setBashSandbox] = useState("default");
+  const [bashRequiresRuntime, setBashRequiresRuntime] = useState(true);
+
+  const applyDefaultConfigByTool = (value: ToolName) => {
+    if (value === "websearch") {
+      setWebProvider("duckduckgo");
+      setWebRegion("wt-wt");
+      setWebSafeSearch("moderate");
+      return;
+    }
+
+    if (value === "browser") {
+      setBrowserDriver("browser_use");
+      setBrowserCdpUrl("http://localhost:9222");
+      setBrowserRequiresRuntime(true);
+      return;
+    }
+
+    setBashSandbox("default");
+    setBashRequiresRuntime(true);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -53,33 +91,16 @@ export default function Skills() {
 
   useEffect(() => {
     if (editingSkillId) return;
-    const sp = selectedPreset;
-    setName(sp?.label === "Custom Integration" ? "" : (sp?.label ?? ""));
-
-    // reset auth defaults by preset
-    if (sp?.label === "Web Search") {
-      setAuthType("api-key");
-    } else {
-      setAuthType("service-account");
-    }
-
-    setServiceAccountJson("");
-    setOauthClientId("");
-    setOauthClientSecret("");
-    setOauthRefreshToken("");
-    setApiKey("");
-  }, [selectedPreset, editingSkillId]);
+    setName(selectedPreset?.label ?? "");
+    applyDefaultConfigByTool(toolName);
+  }, [selectedPreset, editingSkillId, toolName]);
 
   const resetForm = () => {
     setEditingSkillId(null);
-    setPreset(presets[0]?.label ?? "Google Sheets");
-    setName("");
-    setAuthType("service-account");
-    setServiceAccountJson("");
-    setOauthClientId("");
-    setOauthClientSecret("");
-    setOauthRefreshToken("");
-    setApiKey("");
+    setToolName("websearch");
+    setName(toolPresets[0]?.label ?? "");
+    setDescription("");
+    applyDefaultConfigByTool("websearch");
   };
 
   const openCreateDialog = () => {
@@ -89,70 +110,85 @@ export default function Skills() {
 
   const openEditDialog = (skill: Skill) => {
     setEditingSkillId(skill.id);
-    const matchedPreset = presets.find((p) => p.thirdParty === skill.third_party) ?? presets[presets.length - 1];
-    setPreset(matchedPreset?.label ?? "Custom Integration");
-    setName(skill.name ?? "");
+    const inferredToolName: ToolName = isToolName(skill.tool_name)
+      ? skill.tool_name
+      : skill.third_party === "Browser"
+        ? "browser"
+        : skill.third_party === "Shell"
+          ? "bash"
+          : "websearch";
 
-    const auth = (skill.config?.auth as Record<string, unknown> | undefined) ?? {};
-    const authKind = String(auth.type ?? "service-account") as AuthType;
-    setAuthType(authKind);
-    setServiceAccountJson(String(auth.service_account_json ?? ""));
-    setOauthClientId(String(auth.client_id ?? ""));
-    setOauthClientSecret(String(auth.client_secret ?? ""));
-    setOauthRefreshToken(String(auth.refresh_token ?? ""));
-    setApiKey(String(auth.api_key ?? ""));
+    setToolName(inferredToolName);
+    setName(skill.name ?? "");
+    setDescription(skill.description ?? "");
+
+    const config = (skill.config as Record<string, unknown> | undefined) ?? {};
+    if (inferredToolName === "websearch") {
+      setWebProvider(String(config.provider ?? "duckduckgo"));
+      setWebRegion(String(config.region ?? "wt-wt"));
+      setWebSafeSearch(String(config.safesearch ?? "moderate"));
+    }
+    if (inferredToolName === "browser") {
+      setBrowserDriver(String(config.driver ?? "browser_use"));
+      setBrowserCdpUrl(String(config.cdp_url ?? "http://localhost:9222"));
+      setBrowserRequiresRuntime(boolFromUnknown(config.requires_runtime, true));
+    }
+    if (inferredToolName === "bash") {
+      setBashSandbox(String(config.sandbox ?? "default"));
+      setBashRequiresRuntime(boolFromUnknown(config.requires_runtime, true));
+    }
+
     setOpen(true);
   };
 
-  const buildAuth = (): Record<string, unknown> | null => {
-    if (selectedPreset?.label === "Web Search") {
-      return { type: "api-key", provider: "Tavily", api_key: apiKey.trim() };
-    }
-
-    if (authType === "service-account") {
-      return { type: "service-account", service_account_json: serviceAccountJson.trim() };
-    }
-
-    if (authType === "oauth") {
+  const buildConfig = (): Record<string, unknown> => {
+    if (toolName === "websearch") {
       return {
-        type: "oauth",
-        client_id: oauthClientId.trim(),
-        client_secret: oauthClientSecret.trim(),
-        refresh_token: oauthRefreshToken.trim(),
+        provider: webProvider.trim(),
+        region: webRegion.trim(),
+        safesearch: webSafeSearch.trim(),
       };
     }
 
-    if (authType === "api-key") {
-      return { type: "api-key", api_key: apiKey.trim() };
+    if (toolName === "browser") {
+      return {
+        driver: browserDriver.trim(),
+        cdp_url: browserCdpUrl.trim(),
+        requires_runtime: browserRequiresRuntime,
+      };
     }
 
-    return { type: authType };
+    return {
+      sandbox: bashSandbox.trim(),
+      requires_runtime: bashRequiresRuntime,
+    };
   };
 
   const isValid = (): boolean => {
     if (!name.trim()) return false;
 
-    if (selectedPreset?.label === "Web Search") return !!apiKey.trim();
-    if (authType === "service-account") return !!serviceAccountJson.trim();
-    if (authType === "oauth") return !!oauthClientId.trim() && !!oauthClientSecret.trim() && !!oauthRefreshToken.trim();
-    if (authType === "api-key") return !!apiKey.trim();
-
-    return true;
+    if (toolName === "websearch") {
+      return !!webProvider.trim() && !!webRegion.trim() && !!webSafeSearch.trim();
+    }
+    if (toolName === "browser") {
+      return !!browserDriver.trim() && !!browserCdpUrl.trim();
+    }
+    return !!bashSandbox.trim();
   };
 
   const saveSkill = async () => {
     if (!isValid()) return;
 
-    const auth = buildAuth();
-    const config: Record<string, unknown> = {};
-    if (auth) config.auth = auth;
+    const config = buildConfig();
 
     try {
       const saved = await api.upsertSkill({
         id: editingSkillId ?? undefined,
         name: name.trim(),
+        description: description.trim(),
         kind: "integration",
         third_party: selectedPreset?.thirdParty ?? "",
+        tool_name: toolName,
         config,
         code: null,
       });
@@ -193,55 +229,64 @@ export default function Skills() {
           <DialogContent>
             <DialogHeader><DialogTitle>{editingSkillId ? "Edit Skill" : "Create Skill"}</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
-              <Select value={preset} onValueChange={setPreset}>
+              <Select value={toolName} onValueChange={(value) => setToolName(value as ToolName)}>
                 <SelectTrigger><SelectValue placeholder="Preset" /></SelectTrigger>
                 <SelectContent>
-                  {presets.map((p) => (
-                    <SelectItem key={p.label} value={p.label}>{p.label}</SelectItem>
+                  {toolPresets.map((p) => (
+                    <SelectItem key={p.toolName} value={p.toolName}>{p.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
               <Input placeholder="Skill name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Input placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
 
               <div className="rounded-md border p-3 space-y-2">
-                <div className="text-xs font-medium text-muted-foreground">Authentication</div>
+                <div className="text-xs font-medium text-muted-foreground">Tool Config</div>
 
-                {selectedPreset?.label === "Web Search" ? (
-                  <Input placeholder="API Key" type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
-                ) : (
-                  <>
-                    <Select value={authType} onValueChange={(v) => setAuthType(v as AuthType)}>
-                      <SelectTrigger><SelectValue placeholder="Auth type" /></SelectTrigger>
+                {toolName === "websearch" ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    <Input placeholder="Provider" value={webProvider} onChange={(e) => setWebProvider(e.target.value)} />
+                    <Input placeholder="Region (e.g. wt-wt, us-en)" value={webRegion} onChange={(e) => setWebRegion(e.target.value)} />
+                    <Select value={webSafeSearch} onValueChange={setWebSafeSearch}>
+                      <SelectTrigger><SelectValue placeholder="SafeSearch" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="service-account">Service Account JSON</SelectItem>
-                        <SelectItem value="oauth">OAuth (Client + Refresh Token)</SelectItem>
-                        <SelectItem value="api-key">API Key</SelectItem>
+                        <SelectItem value="off">off</SelectItem>
+                        <SelectItem value="moderate">moderate</SelectItem>
+                        <SelectItem value="strict">strict</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                ) : null}
 
-                    {authType === "service-account" ? (
-                      <Textarea
-                        placeholder="Service Account JSON"
-                        value={serviceAccountJson}
-                        onChange={(e) => setServiceAccountJson(e.target.value)}
-                        className="min-h-[110px] font-mono"
+                {toolName === "browser" ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    <Input placeholder="Driver" value={browserDriver} onChange={(e) => setBrowserDriver(e.target.value)} />
+                    <Input placeholder="CDP URL" value={browserCdpUrl} onChange={(e) => setBrowserCdpUrl(e.target.value)} />
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={browserRequiresRuntime}
+                        onChange={(e) => setBrowserRequiresRuntime(e.target.checked)}
                       />
-                    ) : null}
+                      Requires Runtime
+                    </label>
+                  </div>
+                ) : null}
 
-                    {authType === "oauth" ? (
-                      <div className="grid grid-cols-1 gap-2">
-                        <Input placeholder="OAuth Client ID" value={oauthClientId} onChange={(e) => setOauthClientId(e.target.value)} />
-                        <Input placeholder="OAuth Client Secret" type="password" value={oauthClientSecret} onChange={(e) => setOauthClientSecret(e.target.value)} />
-                        <Input placeholder="OAuth Refresh Token" type="password" value={oauthRefreshToken} onChange={(e) => setOauthRefreshToken(e.target.value)} />
-                      </div>
-                    ) : null}
-
-                    {authType === "api-key" ? (
-                      <Input placeholder="API Key" type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
-                    ) : null}
-                  </>
-                )}
+                {toolName === "bash" ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    <Input placeholder="Sandbox" value={bashSandbox} onChange={(e) => setBashSandbox(e.target.value)} />
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={bashRequiresRuntime}
+                        onChange={(e) => setBashRequiresRuntime(e.target.checked)}
+                      />
+                      Requires Runtime
+                    </label>
+                  </div>
+                ) : null}
               </div>
 
               <Button className="w-full" onClick={saveSkill} disabled={!isValid()}>
@@ -272,7 +317,7 @@ export default function Skills() {
                 ) : null}
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   <Badge variant="secondary" className="text-[10px]">{s.kind}</Badge>
-                  {s.config?.auth ? <Badge variant="secondary" className="text-[10px]">auth</Badge> : null}
+                  {s.tool_name ? <Badge variant="secondary" className="text-[10px]">{s.tool_name}</Badge> : null}
                   {s.kind === "custom-js" ? <Badge variant="secondary" className="text-[10px]">code</Badge> : null}
                 </div>
               </div>

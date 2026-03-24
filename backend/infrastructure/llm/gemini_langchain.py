@@ -18,7 +18,7 @@ class GeminiLangChainProvider(LLMProvider):
     - Reads API key from `GEMINI_API_KEY` (or `GOOGLE_API_KEY`).
     """
 
-    def __init__(self, *, model: str, max_tool_rounds: int = 3):
+    def __init__(self, *, model: str, max_tool_rounds: int = 2):
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
         except Exception as e:  # pragma: no cover
@@ -49,6 +49,7 @@ class GeminiLangChainProvider(LLMProvider):
 
         for _ in range(self._max_tool_rounds):
             result = await chat_model.ainvoke(messages)
+            get_logger().info(f"LLM response: {result}")
             messages.append(result)
 
             tool_calls = getattr(result, "tool_calls", None) or []
@@ -71,6 +72,7 @@ class GeminiLangChainProvider(LLMProvider):
 
                 try:
                     tool_result = await tool.ainvoke(tool_call)
+                    get_logger().info(f"Tool '{tool_name}' executed successfully with result: {tool_result}")
                 except Exception as e:
                     get_logger().exception("Tool '%s' execution failed", tool_name)
                     tool_result = ToolMessage(
@@ -78,6 +80,7 @@ class GeminiLangChainProvider(LLMProvider):
                         name=tool_name,
                         content=f"Tool '{tool_name}' failed: {e}",
                     )
+                    continue
 
                 tool_messages.append(tool_result)
 

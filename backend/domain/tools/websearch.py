@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from backend.domain.tools.base import BaseToolkit
 
-from langchain_community.tools import DuckDuckGoSearchResults 
+from langchain_community.tools import DuckDuckGoSearchResults, DuckDuckGoSearchRun
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper 
 
 class WebSearchItem(BaseModel):
@@ -27,54 +27,88 @@ class WebSearchToolkit(BaseToolkit):
     """Web search toolkit using DuckDuckGo."""
 
     name: str = "websearch"
+    def __init__(self, provider: str = "duckduckgo", region: str = "wt-wt", safesearch: str = "moderate", **kwargs: Any):
+        super().__init__(**kwargs)
+        self.provider = provider
+        self.region = region
+        self.safesearch = safesearch
 
     @tool(parse_docstring=True)
-    async def websearch_duckduckgo(
+    async def websearch_duckduckgo_run(
         self,
         query: str,
-        max_results: int = 5,
         region: str = "wt-wt",
         safesearch: str = "moderate",
         timelimit: Optional[str] = None,
-        backend: str = "text",
-    ) -> WebSearchResult:
-        """Search the web with DuckDuckGo and return structured results.
+    ) -> str:
+        """Search the web with DuckDuckGo and return a plain text result.
 
         Args:
             query: Search keywords in natural language.
-            max_results: Maximum number of results to return.
             region: Region code, for example wt-wt, us-en, vn-vi.
             safesearch: Safe search level, one of off, moderate, strict.
             timelimit: Optional freshness filter, one of d, w, m, y.
-            backend: Search backend, for example text or news.
         """
-        if DuckDuckGoSearchResults is None or DuckDuckGoSearchAPIWrapper is None:
+        if DuckDuckGoSearchRun is None or DuckDuckGoSearchAPIWrapper is None:
             raise RuntimeError(
-                "langchain-community is not installed. Install 'langchain-community' and 'duckduckgo-search' to use websearch_duckduckgo."
+                "langchain-community is not installed. Install 'langchain-community' and 'duckduckgo-search' to use websearch_duckduckgo_run."
             )
 
-        capped_results = max(1, min(max_results, 20))
         wrapper = DuckDuckGoSearchAPIWrapper(
             region=region,
             safesearch=safesearch,
             time=timelimit,
-            max_results=capped_results,
         )
-        search = DuckDuckGoSearchResults(
-            api_wrapper=wrapper,
-            output_format="list",
-            backend=backend,
-        )
+        search = DuckDuckGoSearchRun(api_wrapper=wrapper)
+        return search.invoke(query)
 
-        rows: list[dict[str, Any]] = search.invoke(query)
+    # @tool(parse_docstring=True)
+    # async def websearch_duckduckgo_list(
+    #     self,
+    #     query: str,
+    #     max_results: int = 5,
+    #     region: str = "wt-wt",
+    #     safesearch: str = "moderate",
+    #     timelimit: Optional[str] = None,
+    #     backend: str = "text",
+    # ) -> WebSearchResult:
+    #     """Search the web with DuckDuckGo and return structured results.
 
-        parsed = [
-            WebSearchItem(
-                title=(item.get("title") or "").strip(),
-                url=(item.get("link") or item.get("href") or "").strip(),
-                snippet=(item.get("body") or "").strip(),
-            )
-            for item in rows
-        ]
+    #     Args:
+    #         query: Search keywords in natural language.
+    #         max_results: Maximum number of results to return.
+    #         region: Region code, for example wt-wt, us-en, vn-vi.
+    #         safesearch: Safe search level, one of off, moderate, strict.
+    #         timelimit: Optional freshness filter, one of d, w, m, y.
+    #         backend: Search backend, for example text or news.
+    #     """
+    #     if DuckDuckGoSearchResults is None or DuckDuckGoSearchAPIWrapper is None:
+    #         raise RuntimeError(
+    #             "langchain-community is not installed. Install 'langchain-community' and 'duckduckgo-search' to use websearch_duckduckgo."
+    #         )
 
-        return WebSearchResult(query=query, total=len(parsed), results=parsed)
+    #     capped_results = max(1, min(max_results, 20))
+    #     wrapper = DuckDuckGoSearchAPIWrapper(
+    #         region=region,
+    #         safesearch=safesearch,
+    #         time=timelimit,
+    #         max_results=capped_results,
+    #     )
+    #     search = DuckDuckGoSearchResults(
+    #         api_wrapper=wrapper,
+    #         output_format="list",
+    #         backend=backend,
+    #     )
+
+    #     rows: list[dict[str, Any]] = search.invoke(query)
+
+    #     parsed = [
+    #         WebSearchItem(
+    #             title=(item.get("title") or "").strip(),
+    #             url=(item.get("link") or item.get("href") or "").strip(),
+    #             snippet=(item.get("body") or "").strip(),
+    #         )
+    #         for item in rows
+    #     ]
+
+    #     return WebSearchResult(query=query, total=len(parsed), results=parsed)

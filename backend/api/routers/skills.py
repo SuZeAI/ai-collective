@@ -26,6 +26,7 @@ def upsert_skill(req: UpsertSkillRequest, service: SkillService = Depends(get_sk
         name=req.name,
         description=req.description or "",
         third_party=req.third_party or "",
+        tool_name=req.tool_name,
         kind=req.kind or "integration",
         config=dict(req.config or {}),
         code=req.code,
