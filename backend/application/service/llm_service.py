@@ -9,8 +9,13 @@ class LLMService:
     def __init__(self, llm: LLMProvider):
         self._llm = llm
 
-    async def chat(self, prompt: str, system: str = "You are a helpful assistant.") -> str:
-        return await self._llm.chat(system=system, user=prompt)
+    async def chat(
+        self,
+        prompt: str,
+        system: str = "You are a helpful assistant.",
+        tools: list[Any] | None = None,
+    ) -> str:
+        return await self._llm.chat(system=system, user=prompt, tools=tools)
 
     def get_chat_model(self) -> Any:
         return self._llm.get_chat_model()

@@ -16,6 +16,8 @@ dependencies = [
 	"langchain-google-genai>=1.0.7",
 	"langgraph>=0.2.34",
 	"duckduckgo-search>=6.3.0",
+	"browser-use>=0.12.3",
+	"playwright>=1.58.0",
 ]
 
 [tool.uvicorn]

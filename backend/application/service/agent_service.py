@@ -1,14 +1,19 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from backend.application.ports.repositories import AgentRepository, SkillRepository
+from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Agent, Skill
+from backend.domain.tools.base import BaseToolkit
 
 
 class AgentService:
     def __init__(self, repo: AgentRepository, skill_repo: SkillRepository = None):
         self._repo = repo
         self._skill_repo = skill_repo
+        self._tool_manager = SkillToolManager()
 
     def list_agents(self) -> list[Agent]:
         return self._repo.list()
@@ -30,6 +35,20 @@ class AgentService:
             if skill:
                 skills.append(skill)
         return skills
+
+    def get_agent_tools(self, agent_id: str) -> dict[str, BaseToolkit]:
+        """Get bound tools for all of agent's skills.
+        
+        Returns:
+            Dict mapping skill_id to tool instance
+        """
+        skills = self.get_agent_skills(agent_id)
+        tools = {}
+        for skill in skills:
+            tool = self._tool_manager.get_tool_for_skill(skill)
+            if tool:
+                tools[skill.id] = tool
+        return tools
 
     def upsert_agent(self, agent: Agent) -> Agent:
         return self._repo.upsert(agent)

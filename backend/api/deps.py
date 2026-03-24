@@ -14,6 +14,7 @@ from backend.application.service.simulation_service import SimulationService
 from backend.application.service.task_service import TaskService
 from backend.application.service.team_service import TeamService
 from backend.application.service.skill_service import SkillService
+from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.infrastructure.llm.gemini_langchain import GeminiLangChainProvider
 from backend.domain.agent.langgraph_orchestrator import LangGraphAgentOrchestrator
 from backend.domain.agent.langgraph_mesh import MultiAgentMeshOrchestrator
@@ -79,6 +80,11 @@ def get_analytics_service() -> AnalyticsService:
 def get_activity_feed_service() -> ActivityFeedService:
     _, _, _, _, _, _, feed = _repos()
     return ActivityFeedService(feed)
+
+
+def get_skill_tool_manager() -> SkillToolManager:
+    """Get SkillToolManager for binding tools to skills during agent initialization."""
+    return SkillToolManager()
 
 
 @lru_cache

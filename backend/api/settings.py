@@ -12,6 +12,14 @@ class Settings(BaseSettings):
 
     gemini_api_key: str | None = None
     gemini_api_model: str = "gemini-flash-latest"
+    
+    # LLM configuration for browser automation
+    model_name: str = "gemini-2.0-flash"
+    model_provider: str = "google_genai"
+    temperature: float = 0.0
+    max_tokens: int = 1024
+    api_base: str | None = None
+    extra_headers: dict | None = None
 
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

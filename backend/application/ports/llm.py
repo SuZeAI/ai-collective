@@ -8,7 +8,13 @@ class LLMProvider(Protocol):
     async def generate_json(self, *, system: str, user: str) -> dict:
         """Return a JSON-like dict (already parsed)."""
 
-    async def chat(self, *, system: str, user: str) -> str:
+    async def chat(
+        self,
+        *,
+        system: str,
+        user: str,
+        tools: list[Any] | None = None,
+    ) -> str:
         ...
 
     def get_chat_model(self) -> Any:

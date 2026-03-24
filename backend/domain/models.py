@@ -15,6 +15,7 @@ class Skill:
     third_party: str
     kind: str  # e.g. "integration" | "custom-js"
     config: dict[str, Any]
+    tool_name: str | None = None  # Linked tool (e.g. "websearch", "browser", "bash")
     code: str | None = None
 
 
@@ -75,6 +76,14 @@ class ActivityFeedItem:
     agent_id: str
     action: str
     time: str
+
+
+@dataclass
+class ToolResult:
+    """Result returned from tool operations"""
+    success: bool
+    data: dict[str, Any] | None = None
+    message: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

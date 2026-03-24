@@ -114,7 +114,16 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
 
     def _make_llm_node(self, *, agent: GraphAgentDefinition, llm: LLMProvider):
         async def node(state: MultiAgentState) -> MultiAgentState:
-            output = await llm.chat(system=agent.system_prompt, user=state["input"])
+            bound_tools = []
+            if agent.tools:
+                for toolkit in agent.tools.values():
+                    bound_tools.extend(toolkit.get_tools())
+
+            output = await llm.chat(
+                system=agent.system_prompt,
+                user=state["input"],
+                tools=bound_tools or None,
+            )
 
             next_turn = GraphTurn(
                 turn=state["rounds"] + 1,

@@ -1,191 +1,42 @@
 [
   {
-    "id": "skill_gsheets",
-    "name": "Google Sheets",
-    "description": "Read/write rows, sync data, generate reports.",
-    "third_party": "Google Sheets",
-    "kind": "integration",
-    "config": {
-      "auth": {
-        "type": "service-account",
-        "service_account_json": ""
-      }
-    },
-    "code": null
-  },
-  {
-    "id": "skill_gdocs",
-    "name": "Google Docs",
-    "description": "Create/update docs, generate briefs and reports.",
-    "third_party": "Google Docs",
-    "kind": "integration",
-    "config": {
-      "auth": {
-        "type": "service-account",
-        "service_account_json": ""
-      }
-    },
-    "code": null
-  },
-  {
-    "id": "skill_websearch",
-    "name": "Web Search",
-    "description": "Search the web via a provider API.",
+    "id": "skill_websearch_ddg",
+    "name": "Web Search (DuckDuckGo)",
+    "description": "Search public web sources for research, summaries, and fact checks.",
     "third_party": "Web",
     "kind": "integration",
+    "tool_name": "websearch",
     "config": {
-      "auth": {
-        "type": "api-key",
-        "provider": "Tavily",
-        "api_key": ""
-      }
+      "provider": "duckduckgo",
+      "region": "wt-wt",
+      "safesearch": "moderate"
     },
     "code": null
   },
   {
-    "id": "skill_custom_js",
-    "name": "Custom JS",
-    "description": "Run custom JavaScript to integrate with third parties.",
-    "third_party": "Custom",
-    "kind": "custom-js",
-    "config": {},
-    "code": "// Write custom JS here\n// Example: return { ok: true }\n"
-  },
-  {
-    "id": "skill_ai_engineer_toolkit",
-    "name": "AI Engineer Toolkit",
-    "description": "Automate common AI engineering tasks: eval plans, prompt tests, dataset checks.",
-    "third_party": "Custom",
-    "kind": "custom-js",
-    "config": {},
-    "code": "// AI Engineer Toolkit (custom)\n// Input: { task: string, data?: any }\n// Output: { ok: boolean, notes?: string, result?: any }\nexport default async function run(input) {\n  return { ok: true, notes: 'Toolkit ready', result: input };\n}\n"
-  },
-  {
-    "id": "skill_startup_kpi_sheets",
-    "name": "Startup KPI Tracker (Sheets)",
-    "description": "Maintain KPIs (MRR, churn, CAC/LTV) and generate weekly snapshots.",
-    "third_party": "Google Sheets",
+    "id": "skill_browser_automation",
+    "name": "Browser Automation",
+    "description": "Navigate pages, click/input, inspect console, and extract visible content.",
+    "third_party": "Browser",
     "kind": "integration",
+    "tool_name": "browser",
     "config": {
-      "auth": {
-        "type": "service-account",
-        "service_account_json": ""
-      }
+      "driver": "browser_use",
+      "cdp_url": "http://localhost:9222",
+      "requires_runtime": true
     },
     "code": null
   },
   {
-    "id": "skill_sales_outreach_docs",
-    "name": "Sales Outreach Drafting (Docs)",
-    "description": "Draft personalized outreach, proposals, and follow-ups in docs.",
-    "third_party": "Google Docs",
+    "id": "skill_shell_automation",
+    "name": "Shell Automation",
+    "description": "Execute shell commands and control long-running terminal processes.",
+    "third_party": "Shell",
     "kind": "integration",
+    "tool_name": "bash",
     "config": {
-      "auth": {
-        "type": "service-account",
-        "service_account_json": ""
-      }
-    },
-    "code": null
-  },
-  {
-    "id": "skill_contract_drafting_docs",
-    "name": "Contract Drafting (Docs)",
-    "description": "Draft and revise contracts, policies, and clauses with tracked sections.",
-    "third_party": "Google Docs",
-    "kind": "integration",
-    "config": {
-      "auth": {
-        "type": "service-account",
-        "service_account_json": ""
-      }
-    },
-    "code": null
-  },
-  {
-    "id": "skill_market_research",
-    "name": "Market & Competitor Research",
-    "description": "Collect sources, summarize competitors, and extract actionable insights.",
-    "third_party": "Web",
-    "kind": "integration",
-    "config": {
-      "auth": {
-        "type": "api-key",
-        "provider": "Tavily",
-        "api_key": ""
-      }
-    },
-    "code": null
-  },
-  {
-    "id": "skill_github_issues",
-    "name": "GitHub Issues",
-    "description": "Create issues, triage labels, and summarize bug threads.",
-    "third_party": "GitHub",
-    "kind": "integration",
-    "config": {
-      "auth": {
-        "type": "api-key",
-        "api_key": ""
-      }
-    },
-    "code": null
-  },
-  {
-    "id": "skill_slack_messaging",
-    "name": "Slack Messaging",
-    "description": "Post updates, respond to threads, and route alerts to channels.",
-    "third_party": "Slack",
-    "kind": "integration",
-    "config": {
-      "auth": {
-        "type": "api-key",
-        "api_key": ""
-      }
-    },
-    "code": null
-  },
-  {
-    "id": "skill_telegram_bot",
-    "name": "Telegram Bot",
-    "description": "Send notifications and handle basic command interactions.",
-    "third_party": "Telegram",
-    "kind": "integration",
-    "config": {
-      "auth": {
-        "type": "api-key",
-        "api_key": ""
-      }
-    },
-    "code": null
-  },
-  {
-    "id": "skill_notion_kb",
-    "name": "Notion Knowledge Base",
-    "description": "Create/update pages, maintain playbooks, and publish SOPs.",
-    "third_party": "Notion",
-    "kind": "integration",
-    "config": {
-      "auth": {
-        "type": "api-key",
-        "api_key": ""
-      }
-    },
-    "code": null
-  },
-  {
-    "id": "skill_calendar_scheduling",
-    "name": "Calendar Scheduling",
-    "description": "Coordinate meetings, propose times, and create calendar events.",
-    "third_party": "Google Calendar",
-    "kind": "integration",
-    "config": {
-      "auth": {
-        "type": "oauth",
-        "client_id": "",
-        "client_secret": "",
-        "refresh_token": ""
-      }
+      "sandbox": "default",
+      "requires_runtime": true
     },
     "code": null
   }

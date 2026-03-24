@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Optional, Protocol
 
 from backend.application.ports.llm import LLMProvider
+from backend.domain.tools.base import BaseToolkit
 
 
 @dataclass(frozen=True, slots=True)
@@ -12,6 +13,8 @@ class GraphAgentDefinition:
     role: str
     system_prompt: str
     routing_guidance: str = ""
+    skill_ids: list[str] | None = None
+    tools: dict[str, BaseToolkit] | None = None  # Bound tools by skill_id
 
 
 @dataclass(frozen=True, slots=True)

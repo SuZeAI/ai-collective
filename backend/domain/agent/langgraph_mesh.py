@@ -252,10 +252,16 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             system_prompt_with_routing = agent.system_prompt
             if routing_guidance:
                 system_prompt_with_routing = f"{agent.system_prompt}\n\n{routing_guidance}"
+
+            bound_tools = []
+            if agent.tools:
+                for toolkit in agent.tools.values():
+                    bound_tools.extend(toolkit.get_tools())
             
             response = await llm.chat(
                 system=system_prompt_with_routing,
                 user=user_input,
+                tools=bound_tools or None,
             )
             
             turns = state["turns"]

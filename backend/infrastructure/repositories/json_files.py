@@ -97,6 +97,7 @@ class JsonSkillRepository:
                     third_party=str(item.get("third_party", "")),
                     kind=str(item.get("kind", "integration")),
                     config=dict(item.get("config") or {}),
+                    tool_name=(str(item.get("tool_name")) if item.get("tool_name") is not None else None),
                     code=(str(item.get("code")) if item.get("code") is not None else None),
                 )
                 self._items[s.id] = s
@@ -112,6 +113,7 @@ class JsonSkillRepository:
                     "description": s.description,
                     "third_party": s.third_party,
                     "kind": s.kind,
+                    "tool_name": s.tool_name,
                     "config": dict(s.config or {}),
                     "code": s.code,
                 }
