@@ -30,6 +30,11 @@ function boolFromUnknown(value: unknown, fallback: boolean): boolean {
   return fallback;
 }
 
+function getConfigVariableNames(config: Record<string, unknown> | undefined): string[] {
+  if (!config) return [];
+  return Object.keys(config).filter((key) => key.trim().length > 0);
+}
+
 export default function Skills() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [open, setOpen] = useState(false);
@@ -314,6 +319,11 @@ export default function Skills() {
                 </div>
                 {s.description ? (
                   <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{s.description}</p>
+                ) : null}
+                {getConfigVariableNames(s.config).length ? (
+                  <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                    Variables: {getConfigVariableNames(s.config).join(", ")}
+                  </p>
                 ) : null}
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   <Badge variant="secondary" className="text-[10px]">{s.kind}</Badge>

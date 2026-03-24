@@ -37,5 +37,18 @@
       "a1",
       "a3"
     ]
+  },
+  {
+    "id": "task_5b5dea02fb1e49d491c84982fd4b4422",
+    "title": "giá vàng hà nội của bảo tín Minh Châu",
+    "description": "giá vàng hà nội của bảo tín Minh Châu, hãy search trên mạng đi (search 1 lần thôi)",
+    "teamId": "t_c401148000bb4a4a9dbbfe9d339212af",
+    "status": "completed",
+    "progress": 100,
+    "assignedAgents": [
+      "a1",
+      "a2",
+      "a3"
+    ]
   }
 ]

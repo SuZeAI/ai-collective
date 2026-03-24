@@ -105,7 +105,7 @@ export default function AgentBuilder() {
         name: name.trim(),
         role,
         description: desc,
-        skills: selectedSkills,
+        skill_ids: selectedSkillIds,
         status: "idle",
         avatar: name.trim()[0]?.toUpperCase(),
       });

@@ -18,6 +18,8 @@ dependencies = [
 	"duckduckgo-search>=6.3.0",
 	"browser-use>=0.12.3",
 	"playwright>=1.58.0",
+	"ddgs>=9.11.4",
+	"rootutils>=1.0.7",
 ]
 
 [tool.uvicorn]
