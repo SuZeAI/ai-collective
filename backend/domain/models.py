@@ -15,6 +15,10 @@ class Skill:
     third_party: str
     kind: str  # e.g. "integration" | "custom-js"
     config: dict[str, Any]
+    avatar: str = ""
+    avatar_icon: str = ""
+    avatar_color: str = ""
+    avatar_url: str = ""
     tool_name: str | None = None  # Linked tool (e.g. "websearch", "browser", "bash")
     code: str | None = None
 

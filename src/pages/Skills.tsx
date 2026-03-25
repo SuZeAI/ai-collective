@@ -7,9 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { AgentAvatar, skillAvatarIconOptions } from "@/components/AgentAvatar";
 import { api, type Skill } from "@/lib/api";
 
 type ToolName = "websearch" | "browser" | "bash" | "promt_tool";
+type AvatarMode = "initial" | "icon" | "image";
 
 const toolPresets: Array<{ toolName: ToolName; label: string; thirdParty: string }> = [
   { toolName: "websearch", label: "Web Search (DuckDuckGo)", thirdParty: "Web" },
@@ -37,6 +39,10 @@ function getConfigVariableNames(config: Record<string, unknown> | undefined): st
   return Object.keys(config).filter((key) => key.trim().length > 0);
 }
 
+function isHexColor(value: string): boolean {
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
+}
+
 export default function Skills() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [open, setOpen] = useState(false);
@@ -50,6 +56,10 @@ export default function Skills() {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [avatarMode, setAvatarMode] = useState<AvatarMode>("initial");
+  const [avatarIcon, setAvatarIcon] = useState("wrench");
+  const [avatarColor, setAvatarColor] = useState("#3b82f6");
+  const [avatarUrl, setAvatarUrl] = useState("");
 
   const [webProvider, setWebProvider] = useState("duckduckgo");
   const [webRegion, setWebRegion] = useState("wt-wt");
@@ -114,6 +124,10 @@ export default function Skills() {
     setToolName("websearch");
     setName(toolPresets[0]?.label ?? "");
     setDescription("");
+    setAvatarMode("initial");
+    setAvatarIcon("wrench");
+    setAvatarColor("#3b82f6");
+    setAvatarUrl("");
     applyDefaultConfigByTool("websearch");
   };
 
@@ -137,6 +151,10 @@ export default function Skills() {
     setToolName(inferredToolName);
     setName(skill.name ?? "");
     setDescription(skill.description ?? "");
+    setAvatarMode(skill.avatar_url ? "image" : skill.avatar_icon ? "icon" : "initial");
+    setAvatarIcon(skill.avatar_icon || "wrench");
+    setAvatarColor(isHexColor(skill.avatar_color || "") ? (skill.avatar_color as string) : "#3b82f6");
+    setAvatarUrl(skill.avatar_url || "");
 
     const config = (skill.config as Record<string, unknown> | undefined) ?? {};
     if (inferredToolName === "websearch") {
@@ -218,6 +236,10 @@ export default function Skills() {
         third_party: selectedPreset?.thirdParty ?? "",
         tool_name: toolName,
         config,
+        avatar: name.trim()[0]?.toUpperCase() || "S",
+        avatar_icon: avatarMode === "icon" ? avatarIcon : "",
+        avatar_color: isHexColor(avatarColor) ? avatarColor : "",
+        avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
         code: null,
       });
       setSkills((prev) => {
@@ -268,6 +290,72 @@ export default function Skills() {
 
               <Input placeholder="Skill name" value={name} onChange={(e) => setName(e.target.value)} />
               <Input placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+
+              <div className="space-y-3">
+                <div className="text-sm font-medium">Avatar</div>
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+                  <Select value={avatarMode} onValueChange={(value) => setAvatarMode(value as AvatarMode)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Avatar style" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="initial">Initials</SelectItem>
+                      <SelectItem value="icon">Icon</SelectItem>
+                      <SelectItem value="image">Image URL</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <div className="flex items-center gap-2 justify-start sm:justify-end">
+                    <span className="text-xs text-muted-foreground">Preview</span>
+                    <AgentAvatar
+                      agent={{
+                        avatar: name.trim()[0]?.toUpperCase() || "S",
+                        avatar_icon: avatarMode === "icon" ? avatarIcon : "",
+                        avatar_color: isHexColor(avatarColor) ? avatarColor : "",
+                        avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
+                      }}
+                      className="w-10 h-10"
+                    />
+                  </div>
+                </div>
+
+                {avatarMode === "icon" ? (
+                  <Select value={avatarIcon} onValueChange={setAvatarIcon}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pick icon" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {skillAvatarIconOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : null}
+
+                {avatarMode === "image" ? (
+                  <Input
+                    placeholder="https://example.com/skill-avatar.png"
+                    value={avatarUrl}
+                    onChange={(e) => setAvatarUrl(e.target.value)}
+                  />
+                ) : null}
+
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="color"
+                    value={isHexColor(avatarColor) ? avatarColor : "#3b82f6"}
+                    onChange={(e) => setAvatarColor(e.target.value)}
+                    className="w-14 p-1 h-10"
+                  />
+                  <Input
+                    placeholder="#3b82f6"
+                    value={avatarColor}
+                    onChange={(e) => setAvatarColor(e.target.value)}
+                  />
+                </div>
+              </div>
 
               <div className="rounded-md border p-3 space-y-2">
                 <div className="text-xs font-medium text-muted-foreground">Tool Config</div>
@@ -346,7 +434,13 @@ export default function Skills() {
             className="glass-card p-5"
           >
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start gap-3">
+                  <AgentAvatar
+                    agent={{ ...s, avatar: s.avatar || s.name?.slice(0, 1).toUpperCase() || "S" }}
+                    className="w-10 h-10"
+                  />
+                  <div className="min-w-0 flex-1">
                 <div className="font-bold truncate">{s.name}</div>
                 <div className="text-xs text-muted-foreground mt-1 truncate">
                   {s.third_party ? s.third_party : s.kind}
@@ -363,6 +457,8 @@ export default function Skills() {
                   <Badge variant="secondary" className="text-[10px]">{s.kind}</Badge>
                   {s.tool_name ? <Badge variant="secondary" className="text-[10px]">{s.tool_name}</Badge> : null}
                   {s.kind === "custom-js" ? <Badge variant="secondary" className="text-[10px]">code</Badge> : null}
+                </div>
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-1">

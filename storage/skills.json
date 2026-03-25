@@ -5,6 +5,10 @@
     "description": "Search public web sources for research, summaries, and fact checks.",
     "third_party": "Web",
     "kind": "integration",
+    "avatar": "W",
+    "avatar_icon": "search",
+    "avatar_color": "#d8e85e",
+    "avatar_url": "",
     "tool_name": "websearch",
     "config": {
       "provider": "duckduckgo",
@@ -19,6 +23,10 @@
     "description": "Navigate pages, click/input, inspect console, and extract visible content.",
     "third_party": "Browser",
     "kind": "integration",
+    "avatar": "B",
+    "avatar_icon": "",
+    "avatar_color": "",
+    "avatar_url": "",
     "tool_name": "browser",
     "config": {
       "driver": "browser_use",
@@ -33,6 +41,10 @@
     "description": "Execute shell commands and control long-running terminal processes.",
     "third_party": "Shell",
     "kind": "integration",
+    "avatar": "S",
+    "avatar_icon": "",
+    "avatar_color": "",
+    "avatar_url": "",
     "tool_name": "bash",
     "config": {
       "sandbox": "default",
@@ -46,6 +58,10 @@
     "description": "Clarify requirements, assumptions, scope, and completion criteria before execution.",
     "third_party": "Prompt",
     "kind": "integration",
+    "avatar": "R",
+    "avatar_icon": "",
+    "avatar_color": "",
+    "avatar_url": "",
     "tool_name": "promt_tool",
     "config": {
       "system_prompt": "You are a requirements clarification expert. For every new task: 1) summarize the objective in 1-2 sentences, 2) list missing input data, 3) identify technical constraints, 4) propose a clear definition of done. Keep responses concise, practical, and action-oriented."
@@ -58,6 +74,10 @@
     "description": "Break large work into smaller steps with clear priorities and dependencies.",
     "third_party": "Prompt",
     "kind": "integration",
+    "avatar": "T",
+    "avatar_icon": "",
+    "avatar_color": "",
+    "avatar_url": "",
     "tool_name": "promt_tool",
     "config": {
       "system_prompt": "You are an execution planner. Split the goal into 30-90 minute steps, label priority (high/medium/low), map dependencies, identify key risks and mitigations, and finish with a checklist that can be executed immediately."
@@ -70,6 +90,10 @@
     "description": "Help classify bugs by impact, reproducibility, and urgency.",
     "third_party": "Prompt",
     "kind": "integration",
+    "avatar": "B",
+    "avatar_icon": "",
+    "avatar_color": "",
+    "avatar_url": "",
     "tool_name": "promt_tool",
     "config": {
       "system_prompt": "You are a bug triage engineer. For each bug, provide: symptom summary, reproduction steps, severity (S1-S4), user impact, root cause hypothesis, and short-term plus long-term fixes. Always prioritize safety and include a rollback plan."
@@ -82,6 +106,10 @@
     "description": "Provide a review checklist focused on bugs, security, performance, and maintainability.",
     "third_party": "Prompt",
     "kind": "integration",
+    "avatar": "C",
+    "avatar_icon": "",
+    "avatar_color": "",
+    "avatar_url": "",
     "tool_name": "promt_tool",
     "config": {
       "system_prompt": "You are a strict but constructive reviewer. Evaluate in this order: 1) correctness, 2) security, 3) performance, 4) readability, 5) test coverage. Every comment must include priority and a concrete change suggestion. Avoid generic feedback."
@@ -94,6 +122,10 @@
     "description": "Design test cases covering happy paths, edge cases, failure cases, and regressions.",
     "third_party": "Prompt",
     "kind": "integration",
+    "avatar": "T",
+    "avatar_icon": "",
+    "avatar_color": "",
+    "avatar_url": "",
     "tool_name": "promt_tool",
     "config": {
       "system_prompt": "You are a QA engineer. Create test cases in a table with: test objective, input, execution steps, expected output, priority, and test type (unit/integration/e2e). Always include edge cases for null, empty values, timeouts, permissions, and abnormal data."
@@ -106,6 +138,10 @@
     "description": "Suggest discovery questions to understand user needs and validate product assumptions.",
     "third_party": "Prompt",
     "kind": "integration",
+    "avatar": "P",
+    "avatar_icon": "",
+    "avatar_color": "",
+    "avatar_url": "",
     "tool_name": "promt_tool",
     "config": {
       "system_prompt": "You are a product discovery coach. From one idea, generate: target persona, core problem, highest-risk assumptions, user interview questions, and a small experiment to validate within one week. Prioritize approaches that save time and cost."
@@ -118,6 +154,10 @@
     "description": "Compare options using a decision matrix with criteria, weighting, and a clear recommendation.",
     "third_party": "Prompt",
     "kind": "integration",
+    "avatar": "D",
+    "avatar_icon": "",
+    "avatar_color": "",
+    "avatar_url": "",
     "tool_name": "promt_tool",
     "config": {
       "system_prompt": "You are a decision advisor. For each option, build a decision matrix using criteria: cost, timeline, risk, scalability, and goal fit. Score each criterion from 1-5, provide brief reasoning, then conclude with a recommended option and conditions that would change the decision."
@@ -130,6 +170,10 @@
     "description": "Turn data into actionable insights understandable by both technical and business audiences.",
     "third_party": "Prompt",
     "kind": "integration",
+    "avatar": "D",
+    "avatar_icon": "",
+    "avatar_color": "",
+    "avatar_url": "",
     "tool_name": "promt_tool",
     "config": {
       "system_prompt": "You are a data storytelling expert. Present results in this structure: context, key findings, data evidence, business impact, and recommended actions (short-term and long-term). Clearly state data limitations and confidence level."
@@ -142,6 +186,10 @@
     "description": "Write clear technical documentation: quick start, architecture, API, and troubleshooting.",
     "third_party": "Prompt",
     "kind": "integration",
+    "avatar": "T",
+    "avatar_icon": "",
+    "avatar_color": "",
+    "avatar_url": "",
     "tool_name": "promt_tool",
     "config": {
       "system_prompt": "You are a technical writer. Produce concise, structured documentation with: goal, prerequisites, step-by-step instructions, runnable examples, common errors, and troubleshooting steps. Use short sentences, consistent terminology, and avoid ambiguity."
@@ -154,6 +202,10 @@
     "description": "Summarize meetings into decisions, action items, owners, and clear deadlines.",
     "third_party": "Prompt",
     "kind": "integration",
+    "avatar": "M",
+    "avatar_icon": "",
+    "avatar_color": "",
+    "avatar_url": "",
     "tool_name": "promt_tool",
     "config": {
       "system_prompt": "You are a meeting synthesis assistant. Output results in 4 sections: finalized decisions, action items, owner and deadline, and open issues. If information is missing, mark clear TODO items instead of guessing."
@@ -166,6 +218,10 @@
     "description": "Build a personalized learning roadmap based on goals, time, and current skill level.",
     "third_party": "Prompt",
     "kind": "integration",
+    "avatar": "L",
+    "avatar_icon": "",
+    "avatar_color": "",
+    "avatar_url": "",
     "tool_name": "promt_tool",
     "config": {
       "system_prompt": "You are a learning coach. Design a 2-8 week roadmap with weekly goals, practice tasks, progress evaluation criteria, and review milestones. Maintain a 20 percent theory and 80 percent practice balance, with a fallback plan for limited learner time."

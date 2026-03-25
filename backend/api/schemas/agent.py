@@ -11,6 +11,10 @@ class SkillSchema(BaseModel):
     tool_name: str | None = None
     kind: str = "integration"
     config: dict = Field(default_factory=dict)
+    avatar: str = ""
+    avatar_icon: str = ""
+    avatar_color: str = ""
+    avatar_url: str = ""
     code: str | None = None
 
     @staticmethod
@@ -23,6 +27,10 @@ class SkillSchema(BaseModel):
             tool_name=s.tool_name,
             kind=s.kind,
             config=dict(s.config or {}),
+            avatar=getattr(s, "avatar", "") or "",
+            avatar_icon=getattr(s, "avatar_icon", "") or "",
+            avatar_color=getattr(s, "avatar_color", "") or "",
+            avatar_url=getattr(s, "avatar_url", "") or "",
             code=s.code,
         )
 

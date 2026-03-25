@@ -2,14 +2,20 @@ import {
   Bot,
   Brain,
   Briefcase,
+  Cpu,
   Code2,
+  Database,
+  Globe,
   Handshake,
   Headphones,
   Megaphone,
   Scale,
   Search,
+  Server,
   Settings2,
   ShieldCheck,
+  Terminal,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,6 +28,14 @@ type AgentAvatarLike = {
 };
 
 const iconRegistry: Record<string, LucideIcon> = {
+  // Generic / skill-tool icons
+  wrench: Wrench,
+  globe: Globe,
+  terminal: Terminal,
+  database: Database,
+  server: Server,
+  cpu: Cpu,
+
   bot: Bot,
   brain: Brain,
   search: Search,
@@ -47,6 +61,19 @@ export const avatarIconOptions = [
   { value: "briefcase", label: "Business" },
   { value: "settings", label: "Ops" },
   { value: "scale", label: "Finance" },
+] as const;
+
+export const skillAvatarIconOptions = [
+  { value: "wrench", label: "Tool" },
+  { value: "globe", label: "Web" },
+  { value: "terminal", label: "Terminal" },
+  { value: "database", label: "Database" },
+  { value: "server", label: "API" },
+  { value: "cpu", label: "Automation" },
+  { value: "search", label: "Search" },
+  { value: "code2", label: "Code" },
+  { value: "brain", label: "Prompt" },
+  { value: "settings", label: "System" },
 ] as const;
 
 function isValidHexColor(input?: string): input is string {
@@ -105,7 +132,7 @@ export function AgentAvatar({
       {hasImage ? (
         <img
           src={agent.avatar_url}
-          alt="agent avatar"
+          alt="avatar"
           className="h-full w-full object-cover"
           loading="lazy"
           referrerPolicy="no-referrer"
