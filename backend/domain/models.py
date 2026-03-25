@@ -45,6 +45,10 @@ class Team:
     description: str
     agents: list[str]
     active_tasks: int
+    avatar: str = ""
+    avatar_icon: str = ""
+    avatar_color: str = ""
+    avatar_url: str = ""
     mode: str = "sequential"  # "sequential" or "mesh"
     max_steps: int = 6
 

@@ -9,6 +9,10 @@ class TeamSchema(BaseModel):
     description: str
     agents: list[str]
     activeTasks: int
+    avatar: str = ""
+    avatar_icon: str = ""
+    avatar_color: str = ""
+    avatar_url: str = ""
     mode: str = "sequential"
     maxSteps: int = 6
 
@@ -20,6 +24,10 @@ class TeamSchema(BaseModel):
             description=t.description,
             agents=list(t.agents),
             activeTasks=t.active_tasks,
+            avatar=getattr(t, "avatar", "") or "",
+            avatar_icon=getattr(t, "avatar_icon", "") or "",
+            avatar_color=getattr(t, "avatar_color", "") or "",
+            avatar_url=getattr(t, "avatar_url", "") or "",
             mode=t.mode,
             maxSteps=t.max_steps,
         )
@@ -31,5 +39,9 @@ class UpsertTeamRequest(BaseModel):
     description: str = ""
     agents: list[str]
     activeTasks: int = 0
+    avatar: str | None = None
+    avatar_icon: str | None = None
+    avatar_color: str | None = None
+    avatar_url: str | None = None
     mode: str = "sequential"
     maxSteps: int = 6

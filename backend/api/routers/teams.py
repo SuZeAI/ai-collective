@@ -87,6 +87,10 @@ def upsert_team(
         description=req.description or "Custom team",
         agents=list(req.agents),
         active_tasks=active_tasks,
+        avatar=((req.avatar or "").strip() or req.name[:1].upper() or "T"),
+        avatar_icon=(req.avatar_icon or "").strip(),
+        avatar_color=(req.avatar_color or "").strip(),
+        avatar_url=(req.avatar_url or "").strip(),
         mode=req.mode or "sequential",
         max_steps=req.maxSteps or 6,
     )

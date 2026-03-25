@@ -9,6 +9,10 @@
       "a3"
     ],
     "activeTasks": 0,
+    "avatar": "E",
+    "avatar_icon": "layers",
+    "avatar_color": "#0EA5E9",
+    "avatar_url": "",
     "mode": "sequential",
     "maxSteps": 6
   },
@@ -22,6 +26,10 @@
       "a3"
     ],
     "activeTasks": 0,
+    "avatar": "R",
+    "avatar_icon": "target",
+    "avatar_color": "#F97316",
+    "avatar_url": "",
     "mode": "sequential",
     "maxSteps": 6
   },
@@ -33,6 +41,10 @@
       "a1"
     ],
     "activeTasks": 0,
+    "avatar": "C",
+    "avatar_icon": "workflow",
+    "avatar_color": "#10B981",
+    "avatar_url": "",
     "mode": "sequential",
     "maxSteps": 6
   },
@@ -46,6 +58,10 @@
       "a3"
     ],
     "activeTasks": 0,
+    "avatar": "A",
+    "avatar_icon": "network",
+    "avatar_color": "#8B5CF6",
+    "avatar_url": "",
     "mode": "mesh",
     "maxSteps": 6
   },
@@ -59,6 +75,10 @@
       "a3"
     ],
     "activeTasks": 0,
+    "avatar": "G",
+    "avatar_icon": "users",
+    "avatar_color": "#EF4444",
+    "avatar_url": "",
     "mode": "mesh",
     "maxSteps": 6
   }

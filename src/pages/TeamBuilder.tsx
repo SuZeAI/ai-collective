@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AgentAvatar } from "@/components/AgentAvatar";
+import { AgentAvatar, teamAvatarIconOptions } from "@/components/AgentAvatar";
 import { api, type Agent, type Team } from "@/lib/api";
 
 type TeamTestMessage = {
@@ -17,6 +17,12 @@ type TeamTestMessage = {
   timestamp: string;
 };
 
+type AvatarMode = "initial" | "icon" | "image";
+
+function isHexColor(value: string): boolean {
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
+}
+
 export default function TeamBuilder() {
   const [teamList, setTeamList] = useState<Team[]>([]);
   const [agentList, setAgentList] = useState<Agent[]>([]);
@@ -25,6 +31,10 @@ export default function TeamBuilder() {
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [mode, setMode] = useState<"mesh" | "sequential">("sequential");
   const [maxSteps, setMaxSteps] = useState("6");
+  const [avatarMode, setAvatarMode] = useState<AvatarMode>("initial");
+  const [avatarIcon, setAvatarIcon] = useState("users");
+  const [avatarColor, setAvatarColor] = useState("#0EA5E9");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [draggedAgent, setDraggedAgent] = useState<string | null>(null);
   const [testOpen, setTestOpen] = useState(false);
@@ -72,6 +82,10 @@ export default function TeamBuilder() {
     setSelectedAgents([]);
     setMode("sequential");
     setMaxSteps("6");
+    setAvatarMode("initial");
+    setAvatarIcon("users");
+    setAvatarColor("#0EA5E9");
+    setAvatarUrl("");
   };
 
   const handleDragStart = (agentId: string) => {
@@ -119,6 +133,10 @@ export default function TeamBuilder() {
     setSelectedAgents(team.agents || []);
     setMode(team.mode ?? "sequential");
     setMaxSteps(String(team.maxSteps ?? 6));
+    setAvatarMode(team.avatar_url ? "image" : team.avatar_icon ? "icon" : "initial");
+    setAvatarIcon(team.avatar_icon || "users");
+    setAvatarColor(isHexColor(team.avatar_color || "") ? (team.avatar_color as string) : "#0EA5E9");
+    setAvatarUrl(team.avatar_url || "");
     setOpen(true);
   };
 
@@ -134,6 +152,10 @@ export default function TeamBuilder() {
         description: desc,
         agents: selectedAgents,
         activeTasks: existing?.activeTasks ?? 0,
+        avatar: name.trim()[0]?.toUpperCase() || "T",
+        avatar_icon: avatarMode === "icon" ? avatarIcon : "",
+        avatar_color: isHexColor(avatarColor) ? avatarColor : "",
+        avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
         mode: mode,
         maxSteps: finalSteps,
       });
@@ -249,6 +271,68 @@ export default function TeamBuilder() {
             <div className="space-y-4 pt-2">
               <Input placeholder="Team name" value={name} onChange={(e) => setName(e.target.value)} />
               <Input placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
+
+              <div className="space-y-3">
+                <div className="text-sm font-medium">Team Avatar</div>
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+                  <select
+                    value={avatarMode}
+                    onChange={(e) => setAvatarMode(e.target.value as AvatarMode)}
+                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
+                  >
+                    <option value="initial">Initials</option>
+                    <option value="icon">Icon</option>
+                    <option value="image">Image URL</option>
+                  </select>
+
+                  <div className="flex items-center gap-2 justify-start sm:justify-end">
+                    <span className="text-xs text-muted-foreground">Preview</span>
+                    <AgentAvatar
+                      agent={{
+                        avatar: name.trim()[0]?.toUpperCase() || "T",
+                        avatar_icon: avatarMode === "icon" ? avatarIcon : "",
+                        avatar_color: isHexColor(avatarColor) ? avatarColor : "",
+                        avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
+                      }}
+                      className="w-10 h-10"
+                    />
+                  </div>
+                </div>
+
+                {avatarMode === "icon" ? (
+                  <select
+                    value={avatarIcon}
+                    onChange={(e) => setAvatarIcon(e.target.value)}
+                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
+                  >
+                    {teamAvatarIconOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                ) : null}
+
+                {avatarMode === "image" ? (
+                  <Input
+                    placeholder="https://example.com/team-avatar.png"
+                    value={avatarUrl}
+                    onChange={(e) => setAvatarUrl(e.target.value)}
+                  />
+                ) : null}
+
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="color"
+                    value={isHexColor(avatarColor) ? avatarColor : "#0EA5E9"}
+                    onChange={(e) => setAvatarColor(e.target.value)}
+                    className="w-14 p-1 h-10"
+                  />
+                  <Input
+                    placeholder="#0EA5E9"
+                    value={avatarColor}
+                    onChange={(e) => setAvatarColor(e.target.value)}
+                  />
+                </div>
+              </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Select Agents</label>
                 <div className="border border-input rounded-lg p-3 max-h-48 overflow-y-auto bg-muted/50">
@@ -502,9 +586,11 @@ export default function TeamBuilder() {
             className="glass-card p-6"
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Users className="w-5 h-5 text-primary" />
-              </div>
+              <AgentAvatar
+                agent={{ ...team, avatar: team.avatar || team.name?.slice(0, 1).toUpperCase() || "T" }}
+                className={`w-10 h-10 ${team.avatar_color ? "" : "bg-primary/10 text-primary"}`}
+                iconClassName="w-5 h-5"
+              />
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold">{team.name}</h3>
                 <p className="text-xs text-muted-foreground">{team.description}</p>

@@ -8,13 +8,18 @@ import {
   Globe,
   Handshake,
   Headphones,
+  Layers3,
   Megaphone,
+  Network,
   Scale,
   Search,
   Server,
   Settings2,
   ShieldCheck,
+  Target,
   Terminal,
+  Users,
+  Workflow,
   Wrench,
   type LucideIcon,
 } from "lucide-react";
@@ -47,6 +52,11 @@ const iconRegistry: Record<string, LucideIcon> = {
   briefcase: Briefcase,
   settings: Settings2,
   scale: Scale,
+  users: Users,
+  network: Network,
+  workflow: Workflow,
+  layers: Layers3,
+  target: Target,
 };
 
 export const avatarIconOptions = [
@@ -74,6 +84,16 @@ export const skillAvatarIconOptions = [
   { value: "code2", label: "Code" },
   { value: "brain", label: "Prompt" },
   { value: "settings", label: "System" },
+] as const;
+
+export const teamAvatarIconOptions = [
+  { value: "users", label: "Team" },
+  { value: "network", label: "Network" },
+  { value: "workflow", label: "Workflow" },
+  { value: "layers", label: "Squad" },
+  { value: "target", label: "Mission" },
+  { value: "briefcase", label: "Business" },
+  { value: "settings", label: "Ops" },
 ] as const;
 
 function isValidHexColor(input?: string): input is string {

@@ -166,6 +166,10 @@ class JsonTeamRepository:
                     description=str(item.get("description", "")),
                     agents=[str(x) for x in (item.get("agents") or [])],
                     active_tasks=int(item.get("activeTasks", 0)),
+                    avatar=str(item.get("avatar", "") or str(item.get("name", "") or "T")[:1].upper()),
+                    avatar_icon=str(item.get("avatar_icon", "") or ""),
+                    avatar_color=str(item.get("avatar_color", "") or ""),
+                    avatar_url=str(item.get("avatar_url", "") or ""),
                     mode=str(item.get("mode", "sequential")),
                     max_steps=int(item.get("maxSteps", 6)),
                 )
@@ -182,6 +186,10 @@ class JsonTeamRepository:
                     "description": t.description,
                     "agents": list(t.agents),
                     "activeTasks": t.active_tasks,
+                    "avatar": t.avatar,
+                    "avatar_icon": t.avatar_icon,
+                    "avatar_color": t.avatar_color,
+                    "avatar_url": t.avatar_url,
                     "mode": t.mode,
                     "maxSteps": t.max_steps,
                 }
