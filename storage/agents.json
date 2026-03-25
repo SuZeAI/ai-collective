@@ -10,8 +10,8 @@
     ],
     "status": "idle",
     "avatar": "G",
-    "avatar_icon": "brain",
-    "avatar_color": "#0bad26",
+    "avatar_icon": "megaphone",
+    "avatar_color": "#16A34A",
     "avatar_url": "",
     "system_prompt": "You are Gold Market Analyst, working as a Community Agent. Your mission: Analyzes gold market trends, prices, and provides market insights for investment decisions.. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
   },
@@ -25,8 +25,8 @@
     ],
     "status": "idle",
     "avatar": "G",
-    "avatar_icon": "",
-    "avatar_color": "",
+    "avatar_icon": "search",
+    "avatar_color": "#2563EB",
     "avatar_url": "",
     "system_prompt": "You are Gold Data Researcher, working as a Support Agent. Your mission: Researches gold prices, gathers data from multiple sources, and compiles comprehensive price reports.. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
   },
@@ -40,8 +40,8 @@
     ],
     "status": "idle",
     "avatar": "G",
-    "avatar_icon": "",
-    "avatar_color": "",
+    "avatar_icon": "briefcase",
+    "avatar_color": "#F59E0B",
     "avatar_url": "",
     "system_prompt": "You are Gold Reporting Specialist, working as a Community Agent. Your mission: Creates detailed gold market reports with analysis, charts, and investment recommendations.. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
   }
