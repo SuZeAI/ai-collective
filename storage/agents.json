@@ -5,10 +5,14 @@
     "role": "Community Agent",
     "description": "Analyzes gold market trends, prices, and provides market insights for investment decisions.",
     "skillIds": [
-      "skill_10dd89e04eb9439a9edfe704a3767c2a"
+      "skill_10dd89e04eb9439a9edfe704a3767c2a",
+      "skill_websearch_ddg"
     ],
     "status": "idle",
     "avatar": "G",
+    "avatar_icon": "brain",
+    "avatar_color": "#0bad26",
+    "avatar_url": "",
     "system_prompt": "You are Gold Market Analyst, working as a Community Agent. Your mission: Analyzes gold market trends, prices, and provides market insights for investment decisions.. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
   },
   {
@@ -21,6 +25,9 @@
     ],
     "status": "idle",
     "avatar": "G",
+    "avatar_icon": "",
+    "avatar_color": "",
+    "avatar_url": "",
     "system_prompt": "You are Gold Data Researcher, working as a Support Agent. Your mission: Researches gold prices, gathers data from multiple sources, and compiles comprehensive price reports.. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
   },
   {
@@ -33,6 +40,9 @@
     ],
     "status": "idle",
     "avatar": "G",
+    "avatar_icon": "",
+    "avatar_color": "",
+    "avatar_url": "",
     "system_prompt": "You are Gold Reporting Specialist, working as a Community Agent. Your mission: Creates detailed gold market reports with analysis, charts, and investment recommendations.. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
   }
 ]

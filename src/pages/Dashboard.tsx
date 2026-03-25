@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AgentAvatar } from "@/components/AgentAvatar";
 import { useAgentSimulation } from "@/hooks/use-agent-simulation";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
 import { api, type Agent, type Team, type Analytics, type ActivityFeedItem } from "@/lib/api";
@@ -186,9 +187,7 @@ export default function Dashboard() {
                 return (
                   <div key={agentId} className="flex items-center justify-between p-3 rounded-xl bg-background/5 border border-background/10">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary text-xs font-bold">
-                        {agent.avatar}
-                      </div>
+                      <AgentAvatar agent={agent} className={`w-8 h-8 text-xs ${agent.avatar_color ? "" : "bg-primary/20 text-primary"}`} />
                       <div>
                         <div className="text-sm font-bold">{agent.name}</div>
                         <div className="text-[10px] uppercase tracking-wide opacity-60">{agent.role}</div>

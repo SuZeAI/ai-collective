@@ -36,6 +36,9 @@ class AgentSchema(BaseModel):
     skills: list[SkillSchema] = Field(default_factory=list)
     status: str
     avatar: str
+    avatar_icon: str = ""
+    avatar_color: str = ""
+    avatar_url: str = ""
     system_prompt: str = ""
 
     @staticmethod
@@ -49,6 +52,9 @@ class AgentSchema(BaseModel):
             skills=[SkillSchema.from_domain(s) for s in (skills or [])],
             status=a.status.value if hasattr(a.status, "value") else str(a.status),
             avatar=a.avatar,
+            avatar_icon=getattr(a, "avatar_icon", "") or "",
+            avatar_color=getattr(a, "avatar_color", "") or "",
+            avatar_url=getattr(a, "avatar_url", "") or "",
             system_prompt=getattr(a, "system_prompt", "") or "",
         )
 
@@ -61,4 +67,7 @@ class UpsertAgentRequest(BaseModel):
     skill_ids: list[str] = Field(default_factory=list)
     status: str = "idle"
     avatar: str | None = None
+    avatar_icon: str | None = None
+    avatar_color: str | None = None
+    avatar_url: str | None = None
     system_prompt: str | None = None

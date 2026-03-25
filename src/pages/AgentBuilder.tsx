@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { AgentAvatar, avatarIconOptions } from "@/components/AgentAvatar";
 import { api, type Agent, type Skill } from "@/lib/api";
 import { getAgentDotColor, getAgentRoleColor } from "@/lib/agent-role-ui";
 
@@ -27,6 +28,12 @@ const roles = [
 
 type Role = (typeof roles)[number];
 
+type AvatarMode = "initial" | "icon" | "image";
+
+function isHexColor(value: string): boolean {
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
+}
+
 export default function AgentBuilder() {
   const [agentList, setAgentList] = useState<Agent[]>([]);
   const [skillCatalog, setSkillCatalog] = useState<Skill[]>([]);
@@ -37,6 +44,10 @@ export default function AgentBuilder() {
   const [name, setName] = useState("");
   const [role, setRole] = useState<Role | "">("");
   const [desc, setDesc] = useState("");
+  const [avatarMode, setAvatarMode] = useState<AvatarMode>("initial");
+  const [avatarIcon, setAvatarIcon] = useState("bot");
+  const [avatarColor, setAvatarColor] = useState("#3b82f6");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
   const [testingAgent, setTestingAgent] = useState<Agent | null>(null);
   const [testPrompt, setTestPrompt] = useState("");
@@ -80,6 +91,10 @@ export default function AgentBuilder() {
     setName("");
     setRole("");
     setDesc("");
+    setAvatarMode("initial");
+    setAvatarIcon("bot");
+    setAvatarColor("#3b82f6");
+    setAvatarUrl("");
     setSelectedSkillIds([]);
   };
 
@@ -93,6 +108,10 @@ export default function AgentBuilder() {
     setName(agent.name);
     setRole(agent.role as Role);
     setDesc(agent.description ?? "");
+    setAvatarMode(agent.avatar_url ? "image" : agent.avatar_icon ? "icon" : "initial");
+    setAvatarIcon(agent.avatar_icon || "bot");
+    setAvatarColor(isHexColor(agent.avatar_color || "") ? (agent.avatar_color as string) : "#3b82f6");
+    setAvatarUrl(agent.avatar_url || "");
     setSelectedSkillIds(agent.skill_ids || []);
     setOpen(true);
   };
@@ -108,6 +127,9 @@ export default function AgentBuilder() {
         skill_ids: selectedSkillIds,
         status: "idle",
         avatar: name.trim()[0]?.toUpperCase(),
+        avatar_icon: avatarMode === "icon" ? avatarIcon : "",
+        avatar_color: isHexColor(avatarColor) ? avatarColor : "",
+        avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
       });
       setAgentList((prev) => {
         const idx = prev.findIndex((a) => a.id === saved.id);
@@ -206,6 +228,72 @@ export default function AgentBuilder() {
               </Select>
 
               <Input placeholder="Description (optional)" value={desc} onChange={(e) => setDesc(e.target.value)} />
+
+              <div className="space-y-3">
+                <div className="text-sm font-medium">Avatar</div>
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+                  <Select value={avatarMode} onValueChange={(v) => setAvatarMode(v as AvatarMode)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Avatar style" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="initial">Initials</SelectItem>
+                      <SelectItem value="icon">Icon</SelectItem>
+                      <SelectItem value="image">Image URL</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <div className="flex items-center gap-2 justify-start sm:justify-end">
+                    <span className="text-xs text-muted-foreground">Preview</span>
+                    <AgentAvatar
+                      agent={{
+                        avatar: name.trim()[0]?.toUpperCase() || "A",
+                        avatar_icon: avatarMode === "icon" ? avatarIcon : "",
+                        avatar_color: isHexColor(avatarColor) ? avatarColor : "",
+                        avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
+                      }}
+                      className="w-10 h-10"
+                    />
+                  </div>
+                </div>
+
+                {avatarMode === "icon" ? (
+                  <Select value={avatarIcon} onValueChange={setAvatarIcon}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pick icon" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {avatarIconOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : null}
+
+                {avatarMode === "image" ? (
+                  <Input
+                    placeholder="https://example.com/avatar.png"
+                    value={avatarUrl}
+                    onChange={(e) => setAvatarUrl(e.target.value)}
+                  />
+                ) : null}
+
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="color"
+                    value={isHexColor(avatarColor) ? avatarColor : "#3b82f6"}
+                    onChange={(e) => setAvatarColor(e.target.value)}
+                    className="w-14 p-1 h-10"
+                  />
+                  <Input
+                    placeholder="#3b82f6"
+                    value={avatarColor}
+                    onChange={(e) => setAvatarColor(e.target.value)}
+                  />
+                </div>
+              </div>
 
               <div className="space-y-2">
                 <div className="text-sm font-medium">Skills</div>
@@ -370,13 +458,10 @@ export default function AgentBuilder() {
             className="glass-card p-5"
           >
             <div className="flex items-start gap-4">
-              <div
-                className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold ${getAgentRoleColor(
-                  agent.role
-                )}`}
-              >
-                {agent.avatar}
-              </div>
+              <AgentAvatar
+                agent={agent}
+                className={`w-10 h-10 ${agent.avatar_color ? "" : getAgentRoleColor(agent.role)}`}
+              />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold truncate">{agent.name}</h3>

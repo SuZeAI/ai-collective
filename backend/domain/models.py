@@ -28,6 +28,9 @@ class Agent:
     skill_ids: list[str]
     status: AgentStatus
     avatar: str
+    avatar_icon: str = ""
+    avatar_color: str = ""
+    avatar_url: str = ""
     system_prompt: str = ""
 
 

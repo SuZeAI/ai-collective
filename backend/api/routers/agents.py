@@ -46,6 +46,9 @@ def upsert_agent(req: UpsertAgentRequest, service: AgentService = Depends(get_ag
         skill_ids=req.skill_ids or [],
         status=AgentStatus(req.status),
         avatar=avatar,
+        avatar_icon=(req.avatar_icon or "").strip(),
+        avatar_color=(req.avatar_color or "").strip(),
+        avatar_url=(req.avatar_url or "").strip(),
         system_prompt=(
             req.system_prompt.strip()
             if isinstance(req.system_prompt, str) and req.system_prompt.strip()

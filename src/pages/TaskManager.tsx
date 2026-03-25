@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { AgentAvatar } from "@/components/AgentAvatar";
 import { api, type Agent, type Message, type Team, type Task } from "@/lib/api";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
 
@@ -436,7 +437,12 @@ export default function TaskManager() {
                         const agent = agentById.get(aid);
                         return agent ? (
                           <span key={aid} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background text-xs font-medium border border-border">
-                            {agent.avatar} {agent.name}
+                            <AgentAvatar
+                              agent={agent}
+                              className={`w-5 h-5 rounded-md text-[10px] ${agent.avatar_color ? "" : getAgentRoleColor(agent.role)}`}
+                              iconClassName="w-3 h-3"
+                            />
+                            {agent.name}
                           </span>
                         ) : null;
                       })}
@@ -467,9 +473,13 @@ export default function TaskManager() {
                               <div key={msg.id} className="rounded-md border border-border/60 p-2.5 bg-background hover:bg-muted/30 transition-colors">
                                 <div className="flex items-center gap-2 mb-2">
                                   <div
-                                    className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold flex-shrink-0 shadow-sm ${getAgentRoleColor(agent?.role || "")}`}
+                                      className="flex-shrink-0"
                                   >
-                                    {agent?.avatar ?? "?"}
+                                    <AgentAvatar
+                                      agent={agent || { avatar: "?" }}
+                                      className={`w-6 h-6 rounded-md text-[10px] shadow-sm ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
+                                      iconClassName="w-3 h-3"
+                                    />
                                   </div>
                                   <span className="text-xs font-semibold">{agent?.name ?? msg.agentId}</span>
                                   <span className="text-[10px] text-muted-foreground font-mono ml-auto">

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AgentAvatar } from "@/components/AgentAvatar";
 import { api, type Agent, type Message, type Task, type Team } from "@/lib/api";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
 
@@ -180,7 +181,6 @@ export default function Conversations() {
                 const team = task ? teamById.get(task.teamId) : null;
                 const agentName = agent?.name || "Unknown Agent";
                 const agentRole = agent?.role || "unknown";
-                const agentAvatar = agent?.avatar || "?";
                 return (
                   <motion.div
                     key={msg.id}
@@ -190,9 +190,10 @@ export default function Conversations() {
                     className="border border-border/50 rounded-lg p-5 bg-card/50 hover:bg-card/80 transition-all duration-200 hover:shadow-md hover:border-border"
                   >
                     <div className="flex gap-4 items-start mb-3">
-                      <div className={`mt-1 w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center text-sm font-bold shadow-sm ${agent ? getAgentRoleColor(agentRole) : 'bg-gray-400 text-white'}`}>
-                        {agentAvatar}
-                      </div>
+                      <AgentAvatar
+                        agent={agent || { avatar: "?" }}
+                        className={`mt-1 w-10 h-10 flex-shrink-0 shadow-sm ${agent ? (agent.avatar_color ? "" : getAgentRoleColor(agentRole)) : "bg-gray-400 text-white"}`}
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-2 flex-wrap mb-2">
                           <span className="text-sm font-bold text-foreground">{agentName}</span>

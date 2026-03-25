@@ -34,6 +34,9 @@ class JsonAgentRepository:
                     skill_ids=[str(x) for x in (item.get("skillIds") or [])],
                     status=AgentStatus(str(item.get("status", "idle"))),
                     avatar=str(item.get("avatar", "A")),
+                    avatar_icon=str(item.get("avatar_icon", "") or ""),
+                    avatar_color=str(item.get("avatar_color", "") or ""),
+                    avatar_url=str(item.get("avatar_url", "") or ""),
                     system_prompt=(
                         str(item.get("system_prompt", "")).strip()
                         or _default_agent_system_prompt(
@@ -58,6 +61,9 @@ class JsonAgentRepository:
                     "skillIds": list(a.skill_ids),
                     "status": a.status.value,
                     "avatar": a.avatar,
+                    "avatar_icon": a.avatar_icon,
+                    "avatar_color": a.avatar_color,
+                    "avatar_url": a.avatar_url,
                     "system_prompt": a.system_prompt
                     or _default_agent_system_prompt(name=a.name, role=a.role, description=a.description),
                 }

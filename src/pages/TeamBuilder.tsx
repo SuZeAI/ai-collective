@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AgentAvatar } from "@/components/AgentAvatar";
 import { api, type Agent, type Team } from "@/lib/api";
 
 type TeamTestMessage = {
@@ -526,7 +527,12 @@ export default function TeamBuilder() {
                 if (!agent) return null;
                 return (
                   <span key={agentId} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
-                    {agent.avatar} {agent.name}
+                    <AgentAvatar
+                      agent={agent}
+                      className="w-5 h-5 rounded-md text-[10px] bg-background/80"
+                      iconClassName="w-3 h-3"
+                    />
+                    {agent.name}
                   </span>
                 );
               })}
