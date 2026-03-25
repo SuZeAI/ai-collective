@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,55 +6,59 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    --background: 206 45% 98%;
+    --foreground: 220 43% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 220 43% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 220 43% 12%;
 
-    --primary: 226 70% 55%;
+    --primary: 214 78% 52%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 200 46% 95%;
+    --secondary-foreground: 220 43% 16%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 205 42% 95%;
+    --muted-foreground: 215 18% 43%;
 
-    --accent: 190 90% 50%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 173 72% 43%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 226 70% 55%;
+    --border: 214 30% 88%;
+    --input: 214 30% 88%;
+    --ring: 214 78% 52%;
 
     --radius: 0.75rem;
 
     /* Agent role colors */
-    --agent-pm: 262 80% 60%;
-    --agent-dev: 160 80% 40%;
-    --agent-research: 215 90% 55%;
-    --agent-marketing: 30 90% 55%;
-    --agent-reviewer: 340 75% 55%;
+    --agent-pm: 352 81% 58%;
+    --agent-dev: 168 81% 39%;
+    --agent-research: 214 84% 53%;
+    --agent-marketing: 32 94% 55%;
+    --agent-reviewer: 272 68% 57%;
 
     /* Surfaces */
     --surface-elevated: 0 0% 100%;
-    --surface-overlay: 210 40% 98%;
+    --surface-overlay: 205 48% 96%;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 226 70% 55%;
+    --sidebar-foreground: 220 43% 12%;
+    --sidebar-primary: 214 78% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 226 70% 96%;
-    --sidebar-accent-foreground: 226 70% 55%;
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 226 70% 55%;
+    --sidebar-accent: 201 58% 94%;
+    --sidebar-accent-foreground: 214 78% 42%;
+    --sidebar-border: 214 30% 88%;
+    --sidebar-ring: 214 78% 52%;
+
+    --hero-a: 205 88% 58%;
+    --hero-b: 173 74% 45%;
+    --hero-c: 22 92% 57%;
   }
 }
 
@@ -64,11 +68,20 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     letter-spacing: -0.01em;
+    background-image:
+      radial-gradient(circle at 5% 5%, hsl(var(--hero-a) / 0.16), transparent 38%),
+      radial-gradient(circle at 95% 8%, hsl(var(--hero-b) / 0.14), transparent 42%),
+      radial-gradient(circle at 50% 92%, hsl(var(--hero-c) / 0.11), transparent 45%);
+    background-attachment: fixed;
   }
   h1, h2, h3, h4 {
+    font-family: 'Space Grotesk', 'Plus Jakarta Sans', system-ui, sans-serif;
     letter-spacing: -0.02em;
+  }
+  ::selection {
+    background: hsl(var(--primary) / 0.2);
   }
   code, .font-mono {
     font-family: 'JetBrains Mono', monospace;
@@ -77,10 +90,23 @@
 
 @layer utilities {
   .glass-card {
-    @apply bg-card border border-border rounded-2xl shadow-sm;
+    @apply bg-card/85 border border-border/80 rounded-2xl shadow-sm;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 18px 46px -28px hsl(214 56% 28% / 0.55);
   }
   .glass-overlay {
     backdrop-filter: blur(12px);
     background: hsl(var(--surface-elevated) / 0.85);
+  }
+  .hero-title {
+    background: linear-gradient(130deg, hsl(var(--hero-a)), hsl(var(--hero-b)) 48%, hsl(var(--hero-c)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .soft-ring {
+    box-shadow:
+      0 0 0 1px hsl(var(--border)),
+      0 18px 36px -26px hsl(var(--primary) / 0.5);
   }
 }

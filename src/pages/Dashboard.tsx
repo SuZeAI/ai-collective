@@ -1,42 +1,70 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, CheckCircle2 } from "lucide-react";
+import {
+  TrendingUp,
+  Zap,
+  Users,
+  Clock,
+  Activity,
+  CheckCircle2,
+  ListTodo,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { AgentAvatar } from "@/components/AgentAvatar";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { useAgentSimulation } from "@/hooks/use-agent-simulation";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
-import { api, type Agent, type Team, type Analytics, type ActivityFeedItem } from "@/lib/api";
+import { api, type Agent, type Team, type Analytics, type ActivityFeedItem, type Task } from "@/lib/api";
 
-const workflowSteps = ["Planning", "Execution", "Review", "Complete"];
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.15,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4 },
+  },
+};
 
 export default function Dashboard() {
-  const { isSimulating, messages, currentStep, runSimulation } = useAgentSimulation();
-  const [input, setInput] = useState("");
+  const { isSimulating } = useAgentSimulation();
+  const [isLoading, setIsLoading] = useState(true);
 
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [a, t, an, feed] = await Promise.all([
+        setIsLoading(true);
+        const [a, an, feed, tsk] = await Promise.all([
           api.listAgents(),
-          api.listTeams(),
           api.getAnalytics(),
           api.listActivityFeed(),
+          api.listTasks(),
         ]);
         if (cancelled) return;
         setAgents(a);
-        setTeams(t);
         setAnalytics(an);
         setActivityFeed(feed);
+        setTasks(tsk);
       } catch (e) {
-        // Keep UI; data will remain empty if backend is down.
         console.error(e);
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
     })();
     return () => {
@@ -50,185 +78,242 @@ export default function Dashboard() {
     return map;
   }, [agents]);
 
-  const activeTeam = teams[0];
   const activeAgentsCount = agents.filter((a) => a.status === "active").length;
-
-  const handleSubmit = () => {
-    if (input.trim() && !isSimulating) {
-      runSimulation(input.trim());
-      setInput("");
-    }
-  };
+  const activeTasks = tasks.filter((t) => t.status === "in-progress").length;
+  const completedTasks = tasks.filter((t) => t.status === "completed").length;
 
   return (
-    <div>
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="glass-card p-12 max-w-md text-center">
-          <div className="mb-6">
-            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
-              <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-            </div>
-          </div>
-          <h2 className="text-2xl font-bold mb-3">Coming Soon</h2>
-          <p className="text-muted-foreground mb-4">
-            This feature will be available soon. Please check back later! 🚀
-          </p>
-          <p className="text-xs text-muted-foreground">
-            We're working hard to bring you the best experience.
-          </p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/80">
+      {/* Animated Background Elements */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-20 right-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl opacity-20 animate-pulse" />
+        <div className="absolute bottom-20 left-20 w-72 h-72 bg-accent/10 rounded-full blur-3xl opacity-20 animate-pulse" style={{ animationDelay: "1s" }} />
       </div>
 
-      {/* Previous Content (Hidden) */}
-      <div style={{ display: "none" }}>
-      <header className="mb-8 flex flex-col md:flex-row justify-between md:items-end gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Overview of your multi-agent workspace.</p>
-        </div>
-        <div className="flex gap-6">
-          <StatCard label="Tasks Done" value={String(analytics?.tasksCompleted ?? 0)} />
-          <StatCard label="Efficiency" value={`${analytics?.teamEfficiency ?? 0}%`} />
-          <StatCard label="Active Agents" value={String(activeAgentsCount)} />
-        </div>
-      </header>
+      <motion.div
+        className="space-y-4 py-6"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* Header Section */}
+        <motion.header className="px-6 md:px-8" variants={itemVariants}>
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              Dashboard
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Manage your multi-agent workspace
+            </p>
+          </div>
+        </motion.header>
 
-      {/* Quick Task Input */}
-      <section className="glass-card p-1 mb-8">
-        <div className="flex items-center gap-2 p-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            placeholder="Assign a task to the team..."
-            className="flex-1 border-none shadow-none text-base bg-transparent focus-visible:ring-0"
+        {/* Key Metrics Row */}
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-5 gap-3 px-6 md:px-8"
+          variants={itemVariants}
+        >
+          <MetricCard
+            icon={CheckCircle2}
+            label="Tasks Completed"
+            value={String(completedTasks)}
+            trend="+12%"
+            isLoading={isLoading}
           />
-          <Button onClick={handleSubmit} disabled={isSimulating || !input.trim()} className="shadow-lg shadow-primary/15">
-            <Play className="w-4 h-4 mr-2" fill="currentColor" />
-            {isSimulating ? "Running..." : "Execute"}
-          </Button>
-        </div>
-      </section>
+          <MetricCard
+            icon={ListTodo}
+            label="Active Tasks"
+            value={String(activeTasks)}
+            trend="in progress"
+            isLoading={isLoading}
+          />
+          <MetricCard
+            icon={Zap}
+            label="Team Efficiency"
+            value={`${analytics?.teamEfficiency ?? 0}%`}
+            trend="+5%"
+            isLoading={isLoading}
+          />
+          <MetricCard
+            icon={Users}
+            label="Active Agents"
+            value={String(activeAgentsCount)}
+            trend={`of ${agents.length}`}
+            isLoading={isLoading}
+          />
+          <MetricCard
+            icon={Clock}
+            label="Avg. Completion"
+            value={analytics?.avgCompletionTime ?? "—"}
+            trend="time"
+            isLoading={isLoading}
+          />
+        </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Workflow + Chat */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Workflow Steps */}
-          <div className="glass-card p-6">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-6">Live Workflow</h3>
-            <div className="flex justify-between relative">
-              {workflowSteps.map((label, i) => (
-                <div key={label} className="flex flex-col items-center gap-2 relative z-10">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center border-4 transition-all duration-500 ${
-                    currentStep > i ? "bg-primary border-primary/20 text-primary-foreground" : "bg-card border-border text-muted-foreground"
-                  }`}>
-                    {currentStep > i ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-2 h-2 bg-current rounded-full" />}
-                  </div>
-                  <span className={`text-xs font-bold uppercase tracking-tight ${currentStep > i ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
-                </div>
-              ))}
-              <div className="absolute top-5 left-0 w-full h-[2px] bg-border -z-0" />
-            </div>
-          </div>
-
-          {/* Agent Communication Stream */}
-          <div className="glass-card h-[420px] flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-border flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-agent-dev animate-pulse" />
-              <span className="text-sm font-medium text-muted-foreground">Agent Communication Stream</span>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              <AnimatePresence initial={false}>
-                {messages.map((m) => (
-                  <motion.div
-                    key={m.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex gap-4 items-start"
-                  >
-                    <div className={`mt-0.5 w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-bold ${getAgentRoleColor(m.role)}`}>
-                      {m.role[0]}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold">{m.role}</span>
-                        <span className="text-[10px] text-muted-foreground font-mono">{m.timestamp}</span>
+        {/* Main Content Grid */}
+        <motion.div
+          className="grid grid-cols-1 lg:grid-cols-3 gap-4 px-6 md:px-8 h-[calc(100vh-300px)]"
+          variants={itemVariants}
+        >
+          {/* Left: Tasks List with Scroll */}
+          <div className="lg:col-span-2 flex flex-col">
+            <Card className="p-4 border-0 shadow-xl bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/30 flex flex-col flex-1 overflow-hidden">
+              <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                <ListTodo className="w-5 h-5 text-primary" />
+                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                  Recent Tasks
+                </h3>
+              </div>
+              <div className="overflow-y-auto flex-1 pr-3">
+                <div className="space-y-2">
+                  {tasks.length > 0 ? (
+                    tasks.map((task, idx) => (
+                      <motion.div
+                        key={task.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.03 }}
+                        className="p-3 rounded-lg bg-background/40 hover:bg-background/60 transition-all border border-border/50 hover:border-primary/30 group"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+                              {task.title}
+                            </h4>
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">
+                              {task.description}
+                            </p>
+                          </div>
+                          <Badge
+                            variant={
+                              task.status === "completed"
+                                ? "default"
+                                : task.status === "in-progress"
+                                  ? "secondary"
+                                  : "outline"
+                            }
+                            className="flex-shrink-0 capitalize text-xs"
+                          >
+                            {task.status}
+                          </Badge>
+                        </div>
+                        {task.progress > 0 && (
+                          <div className="mt-2">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-xs text-muted-foreground">Progress</span>
+                              <span className="text-xs font-semibold">{task.progress}%</span>
+                            </div>
+                            <div className="w-full bg-muted rounded-full h-1 overflow-hidden">
+                              <motion.div
+                                className="h-full bg-gradient-to-r from-primary to-accent"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${task.progress}%` }}
+                                transition={{ duration: 0.5 }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </motion.div>
+                    ))
+                  ) : (
+                    <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+                      <div className="text-center">
+                        <ListTodo className="w-6 h-6 mx-auto mb-2 opacity-50" />
+                        No tasks yet
                       </div>
-                      <p className="text-muted-foreground text-sm leading-relaxed">{m.content}</p>
                     </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              {messages.length === 0 && !isSimulating && (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                  Submit a task above to see agents collaborate.
+                  )}
                 </div>
-              )}
-              {isSimulating && (
-                <div className="flex gap-1.5 p-2">
-                  {[0, 1, 2].map((i) => (
-                    <span key={i} className="w-1.5 h-1.5 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Team + Activity */}
-        <div className="space-y-6">
-          <div className="glass-card bg-foreground text-background p-6">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-primary mb-4">Active Team</h3>
-            <h2 className="text-xl font-bold mb-5">{activeTeam?.name ?? ""}</h2>
-            <div className="space-y-3">
-              {(activeTeam?.agents ?? []).map((agentId) => {
-                const agent = agentById.get(agentId);
-                if (!agent) return null;
-                return (
-                  <div key={agentId} className="flex items-center justify-between p-3 rounded-xl bg-background/5 border border-background/10">
-                    <div className="flex items-center gap-3">
-                      <AgentAvatar agent={agent} className={`w-8 h-8 text-xs ${agent.avatar_color ? "" : "bg-primary/20 text-primary"}`} />
-                      <div>
-                        <div className="text-sm font-bold">{agent.name}</div>
-                        <div className="text-[10px] uppercase tracking-wide opacity-60">{agent.role}</div>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-mono text-primary capitalize">{agent.status}</span>
-                  </div>
-                );
-              })}
-            </div>
+              </div>
+            </Card>
           </div>
 
-          <div className="glass-card p-6">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">Recent Activity</h3>
-            <div className="space-y-3">
-              {activityFeed.map((item) => {
-                const agent = agentById.get(item.agentId);
-                return (
-                  <div key={item.id} className="flex items-start gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm"><span className="font-semibold">{agent?.name}</span> {item.action}</p>
-                      <span className="text-[10px] text-muted-foreground font-mono">{item.time}</span>
+          {/* Right Section: Activity */}
+          <div className="flex flex-col">
+            {/* Recent Activity Card */}
+            <Card className="p-4 border-0 shadow-xl bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/30 flex flex-col flex-1 overflow-hidden">
+              <div className="flex items-center gap-2 mb-3 flex-shrink-0">
+                <Activity className="w-5 h-5 text-primary" />
+                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Activity Feed
+                </h3>
+              </div>
+              <div className="overflow-y-auto flex-1 pr-2">
+                {activityFeed.length > 0 ? (
+                  <div className="space-y-2">
+                    <AnimatePresence>
+                      {activityFeed.map((item, idx) => {
+                        const agent = agentById.get(item.agentId);
+                        return (
+                          <motion.div
+                            key={item.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.03 }}
+                            className="flex items-start gap-2 p-2 rounded-lg bg-background/40 hover:bg-background/60 transition-colors group text-xs"
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0 group-hover:scale-125 transition-transform" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs leading-snug">
+                                <span className="font-semibold text-foreground">
+                                  {agent?.name || "System"}
+                                </span>{" "}
+                                <span className="text-muted-foreground">{item.action}</span>
+                              </p>
+                              <span className="text-xs text-muted-foreground opacity-70">
+                                {item.time}
+                              </span>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground text-xs py-4">
+                    <div className="text-center">
+                      <Activity className="w-4 h-4 mx-auto mb-1 opacity-50" />
+                      No activity yet
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                )}
+              </div>
+            </Card>
           </div>
-        </div>
-      </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+interface MetricCardProps {
+  icon: any;
+  label: string;
+  value: string;
+  trend: string;
+  isLoading?: boolean;
+}
+
+function MetricCard({ icon: Icon, label, value, trend, isLoading }: MetricCardProps) {
   return (
-    <div className="text-right">
-      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{label}</div>
-      <div className="text-xl font-bold">{value}</div>
-    </div>
+    <motion.div variants={itemVariants}>
+      <Card className="p-5 border-0 shadow-lg bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/30 hover:shadow-xl hover:bg-card/60 transition-all group cursor-pointer h-full">
+        <div className="flex items-start justify-between mb-3">
+          <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+            <Icon className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+            <TrendingUp className="w-3 h-3" />
+            {trend}
+          </div>
+        </div>
+        <p className="text-xs font-medium text-muted-foreground mb-1">{label}</p>
+        {isLoading ? (
+          <div className="h-7 bg-muted rounded animate-pulse" />
+        ) : (
+          <p className="text-2xl font-bold text-foreground">{value}</p>
+        )}
+      </Card>
+    </motion.div>
   );
 }

@@ -337,7 +337,21 @@ export default function TaskManager() {
                     <Icon className={`w-5 h-5 flex-shrink-0 ${statusColors[task.status]}`} />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold truncate">{task.title}</h3>
-                      <p className="text-xs text-muted-foreground truncate">{team?.name}</p>
+                      <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
+                        <AgentAvatar
+                          agent={
+                            team
+                              ? team
+                              : {
+                                  avatar: "T",
+                                  avatar_icon: "users",
+                                }
+                          }
+                          className={`w-4 h-4 rounded-md text-[9px] ${team?.avatar_color ? "" : "bg-primary/15 text-primary"}`}
+                          iconClassName="w-2.5 h-2.5"
+                        />
+                        <p className="text-xs text-muted-foreground truncate">{team?.name || "(No team)"}</p>
+                      </div>
                     </div>
                   </div>
 
@@ -427,6 +441,26 @@ export default function TaskManager() {
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground block mb-1">Description</label>
                     <p className="text-sm text-foreground">{task.description || "(No description)"}</p>
+                  </div>
+
+                  {/* Assigned Team */}
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Assigned Team</label>
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-background text-xs font-semibold border border-border">
+                      <AgentAvatar
+                        agent={
+                          team
+                            ? team
+                            : {
+                                avatar: "T",
+                                avatar_icon: "users",
+                              }
+                        }
+                        className={`w-5 h-5 rounded-md text-[10px] ${team?.avatar_color ? "" : "bg-primary/15 text-primary"}`}
+                        iconClassName="w-3 h-3"
+                      />
+                      {team?.name || task.teamId || "(No team)"}
+                    </div>
                   </div>
 
                   {/* Assigned Agents */}

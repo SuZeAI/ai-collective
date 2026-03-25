@@ -1,6 +1,6 @@
-# 🤖 AI Team — Multi-Agent Collaboration Platform
+# 🤖 AI Collective — Multi-Agent Collaboration Platform
 
-AI Team is a modern **multi-agent AI collaboration platform** where intelligent AI agents work together like a real project team.
+AI Collective is a modern **multi-agent AI collaboration platform** where intelligent AI agents work together like a real project team.
 
 Instead of using a single AI assistant, this system allows users to create **groups of AI agents** that communicate, discuss tasks, divide responsibilities, and autonomously produce results.
 
@@ -10,7 +10,7 @@ The goal is to simulate an **AI workforce** capable of handling real business wo
 
 # 🚀 Overview
 
-AI Team enables businesses and developers to build **AI-powered teams** composed of multiple agents with different roles such as:
+AI Collective enables businesses and developers to build **AI-powered teams** composed of multiple agents with different roles such as:
 
 - Project Manager
 - Research Agent
