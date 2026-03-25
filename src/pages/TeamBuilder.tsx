@@ -266,162 +266,175 @@ export default function TeamBuilder() {
           <DialogTrigger asChild>
             <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> New Team</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-6xl w-[96vw] max-h-[90vh] overflow-y-auto overflow-x-hidden p-6">
             <DialogHeader><DialogTitle>{editingTeamId ? "Edit Team" : "Create Team"}</DialogTitle></DialogHeader>
-            <div className="space-y-4 pt-2">
-              <Input placeholder="Team name" value={name} onChange={(e) => setName(e.target.value)} />
-              <Input placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
+            <div className="pt-2 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] gap-4">
+              <div className="space-y-4 min-w-0 pr-2 pb-1">
+                <Input placeholder="Team name" value={name} onChange={(e) => setName(e.target.value)} />
+                <Input placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
 
-              <div className="space-y-3">
-                <div className="text-sm font-medium">Team Avatar</div>
-                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
-                  <select
-                    value={avatarMode}
-                    onChange={(e) => setAvatarMode(e.target.value as AvatarMode)}
-                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
-                  >
-                    <option value="initial">Initials</option>
-                    <option value="icon">Icon</option>
-                    <option value="image">Image URL</option>
-                  </select>
+                <div className="space-y-3">
+                  <div className="text-sm font-medium">Team Avatar</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+                    <select
+                      value={avatarMode}
+                      onChange={(e) => setAvatarMode(e.target.value as AvatarMode)}
+                      className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
+                    >
+                      <option value="initial">Initials</option>
+                      <option value="icon">Icon</option>
+                      <option value="image">Image URL</option>
+                    </select>
 
-                  <div className="flex items-center gap-2 justify-start sm:justify-end">
-                    <span className="text-xs text-muted-foreground">Preview</span>
-                    <AgentAvatar
-                      agent={{
-                        avatar: name.trim()[0]?.toUpperCase() || "T",
-                        avatar_icon: avatarMode === "icon" ? avatarIcon : "",
-                        avatar_color: isHexColor(avatarColor) ? avatarColor : "",
-                        avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
-                      }}
-                      className="w-10 h-10"
+                    <div className="flex items-center gap-2 justify-start sm:justify-end">
+                      <span className="text-xs text-muted-foreground">Preview</span>
+                      <AgentAvatar
+                        agent={{
+                          avatar: name.trim()[0]?.toUpperCase() || "T",
+                          avatar_icon: avatarMode === "icon" ? avatarIcon : "",
+                          avatar_color: isHexColor(avatarColor) ? avatarColor : "",
+                          avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
+                        }}
+                        className="w-10 h-10"
+                      />
+                    </div>
+                  </div>
+
+                  {avatarMode === "icon" ? (
+                    <select
+                      value={avatarIcon}
+                      onChange={(e) => setAvatarIcon(e.target.value)}
+                      className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
+                    >
+                      {teamAvatarIconOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  ) : null}
+
+                  {avatarMode === "image" ? (
+                    <Input
+                      placeholder="https://example.com/team-avatar.png"
+                      value={avatarUrl}
+                      onChange={(e) => setAvatarUrl(e.target.value)}
+                    />
+                  ) : null}
+
+                  <div className="flex items-center gap-3">
+                    <Input
+                      type="color"
+                      value={isHexColor(avatarColor) ? avatarColor : "#0EA5E9"}
+                      onChange={(e) => setAvatarColor(e.target.value)}
+                      className="w-14 p-1 h-10"
+                    />
+                    <Input
+                      placeholder="#0EA5E9"
+                      value={avatarColor}
+                      onChange={(e) => setAvatarColor(e.target.value)}
                     />
                   </div>
                 </div>
 
-                {avatarMode === "icon" ? (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Execution Mode</label>
                   <select
-                    value={avatarIcon}
-                    onChange={(e) => setAvatarIcon(e.target.value)}
+                    value={mode}
+                    onChange={(e) => setMode(e.target.value as "mesh" | "sequential")}
                     className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
                   >
-                    {teamAvatarIconOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
+                    <option value="sequential">Sequential (agents take turns)</option>
+                    <option value="mesh">Mesh (all agents interact simultaneously)</option>
                   </select>
-                ) : null}
-
-                {avatarMode === "image" ? (
-                  <Input
-                    placeholder="https://example.com/team-avatar.png"
-                    value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
-                  />
-                ) : null}
-
-                <div className="flex items-center gap-3">
-                  <Input
-                    type="color"
-                    value={isHexColor(avatarColor) ? avatarColor : "#0EA5E9"}
-                    onChange={(e) => setAvatarColor(e.target.value)}
-                    className="w-14 p-1 h-10"
-                  />
-                  <Input
-                    placeholder="#0EA5E9"
-                    value={avatarColor}
-                    onChange={(e) => setAvatarColor(e.target.value)}
-                  />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Select Agents</label>
-                <div className="border border-input rounded-lg p-3 max-h-48 overflow-y-auto bg-muted/50">
-                  <div className="space-y-2">
-                    {agentList.map((a) => (
-                      <label key={a.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-background cursor-pointer">
-                        <Checkbox checked={selectedAgents.includes(a.id)} onCheckedChange={() => toggleAgent(a.id)} />
-                        <span className="text-sm font-medium">{a.name}</span>
-                        <span className="text-xs text-muted-foreground">({a.role})</span>
-                        {a.skill_ids?.length ? (
-                          <span className="text-xs text-muted-foreground ml-auto">
-                            • {a.skills?.map(s => s.name).join(', ')}
-                          </span>
-                        ) : null}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {selectedAgents.length > 0 && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Agent Execution Order</label>
-                  <p className="text-xs text-muted-foreground">Drag to reorder agents (order will be used in tests)</p>
-                  <div className="border border-input rounded-lg p-3 bg-muted/50 space-y-2">
-                    {selectedAgents.map((agentId, index) => {
-                      const agent = agentById.get(agentId);
-                      if (!agent) return null;
-                      return (
-                        <div
-                          key={agentId}
-                          draggable
-                          onDragStart={() => handleDragStart(agentId)}
-                          onDragOver={handleDragOver}
-                          onDrop={() => handleDrop(agentId)}
-                          className={`flex items-center gap-3 p-3 rounded-lg border-2 border-dashed transition-all cursor-move ${
-                            draggedAgent === agentId
-                              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 opacity-50"
-                              : "border-transparent bg-background hover:bg-muted/50 hover:border-slate-300"
-                          }`}
-                        >
-                          <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-xs font-bold text-primary">
-                                {index + 1}
+                  <label className="text-sm font-medium">Max Steps (for tasks)</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={maxSteps}
+                    onChange={(e) => setMaxSteps(e.target.value)}
+                    placeholder="Default: 6"
+                  />
+                </div>
+                <Button onClick={saveTeam} className="w-full" disabled={!name.trim() || selectedAgents.length === 0}>
+                  {editingTeamId ? "Save Changes" : "Create Team"}
+                </Button>
+              </div>
+
+              <div className="space-y-4 min-w-0 pr-2 pb-1">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Select Agents</label>
+                    <p className="text-xs text-muted-foreground">Choose agents on the left, then reorder on the right.</p>
+                    <div className="border border-input rounded-lg p-3 h-[320px] overflow-y-auto bg-muted/50">
+                      <div className="space-y-2">
+                        {agentList.map((a) => (
+                          <label key={a.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-background cursor-pointer">
+                            <Checkbox checked={selectedAgents.includes(a.id)} onCheckedChange={() => toggleAgent(a.id)} />
+                            <span className="text-sm font-medium">{a.name}</span>
+                            <span className="text-xs text-muted-foreground">({a.role})</span>
+                            {a.skill_ids?.length ? (
+                              <span className="text-xs text-muted-foreground ml-auto">
+                                • {a.skills?.map((s) => s.name).join(", ")}
                               </span>
-                              <span className="text-sm font-medium">{agent.name}</span>
-                              <span className="text-xs text-muted-foreground">({agent.role})</span>
+                            ) : null}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Agent Execution Order</label>
+                    <p className="text-xs text-muted-foreground">Drag to reorder agents. If the list is long, scroll here.</p>
+                    <div className="border border-input rounded-lg p-3 h-[320px] overflow-y-auto bg-muted/50 space-y-2">
+                      {selectedAgents.length > 0 ? (
+                        selectedAgents.map((agentId, index) => {
+                          const agent = agentById.get(agentId);
+                          if (!agent) return null;
+                          return (
+                            <div
+                              key={agentId}
+                              draggable
+                              onDragStart={() => handleDragStart(agentId)}
+                              onDragOver={handleDragOver}
+                              onDrop={() => handleDrop(agentId)}
+                              className={`flex items-center gap-3 p-3 rounded-lg border-2 border-dashed transition-all cursor-move ${
+                                draggedAgent === agentId
+                                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 opacity-50"
+                                  : "border-transparent bg-background hover:bg-muted/50 hover:border-slate-300"
+                              }`}
+                            >
+                              <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-xs font-bold text-primary">
+                                    {index + 1}
+                                  </span>
+                                  <span className="text-sm font-medium">{agent.name}</span>
+                                  <span className="text-xs text-muted-foreground">({agent.role})</span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => removeAgent(agentId)}
+                                className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                                title="Remove agent"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
                             </div>
-                          </div>
-                          <button
-                            onClick={() => removeAgent(agentId)}
-                            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                            title="Remove agent"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                          );
+                        })
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-center text-xs text-muted-foreground px-4">
+                          Select agents from the left panel to start arranging execution order.
                         </div>
-                      );
-                    })}
+                      )}
+                    </div>
                   </div>
                 </div>
-              )}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Execution Mode</label>
-                <select
-                  value={mode}
-                  onChange={(e) => setMode(e.target.value as "mesh" | "sequential")}
-                  className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
-                >
-                  <option value="sequential">Sequential (agents take turns)</option>
-                  <option value="mesh">Mesh (all agents interact simultaneously)</option>
-                </select>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Max Steps (for tasks)</label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={maxSteps}
-                  onChange={(e) => setMaxSteps(e.target.value)}
-                  placeholder="Default: 6"
-                />
-              </div>
-              <Button onClick={saveTeam} className="w-full" disabled={!name.trim() || selectedAgents.length === 0}>
-                {editingTeamId ? "Save Changes" : "Create Team"}
-              </Button>
             </div>
           </DialogContent>
         </Dialog>

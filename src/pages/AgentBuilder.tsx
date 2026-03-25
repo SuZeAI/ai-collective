@@ -206,7 +206,7 @@ export default function AgentBuilder() {
               <Plus className="w-4 h-4 mr-2" /> New Agent
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto overflow-x-hidden p-6">
             <DialogHeader>
               <DialogTitle>{editingAgentId ? "Edit Agent" : "Create Agent"}</DialogTitle>
             </DialogHeader>
@@ -298,52 +298,59 @@ export default function AgentBuilder() {
               <div className="space-y-2">
                 <div className="text-sm font-medium">Skills</div>
 
-                {skillCatalog.length ? (
-                  <div className="rounded-md border p-3 space-y-2">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                  <div className="rounded-md border p-3 space-y-2 bg-muted/30">
                     <div className="text-xs font-medium text-muted-foreground">Select skills to assign</div>
-                    <div className="space-y-2 max-h-48 overflow-auto pr-1">
-                      {skillCatalog.map((s) => (
-                        <label
-                          key={s.id}
-                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer"
-                        >
-                          <Checkbox
-                            checked={selectedSkillIds.includes(s.id)}
-                            onCheckedChange={() => toggleSkill(s.id)}
-                          />
-                          <span className="text-sm font-medium">{s.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            ({s.kind}
-                            {s.third_party ? ` • ${s.third_party}` : ""})
-                          </span>
-                        </label>
-                      ))}
+                    {skillCatalog.length ? (
+                      <div className="space-y-2 max-h-56 overflow-auto pr-1">
+                        {skillCatalog.map((s) => (
+                          <label
+                            key={s.id}
+                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={selectedSkillIds.includes(s.id)}
+                              onCheckedChange={() => toggleSkill(s.id)}
+                            />
+                            <span className="text-sm font-medium">{s.name}</span>
+                            <span className="text-xs text-muted-foreground ml-auto">
+                              ({s.kind}
+                              {s.third_party ? ` • ${s.third_party}` : ""})
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No skills yet. Create skills in the Skills page.</p>
+                    )}
+                  </div>
+
+                  <div className="rounded-md border p-3 space-y-2 bg-muted/20">
+                    <div className="text-xs font-medium text-muted-foreground">Selected skills</div>
+                    <div className="max-h-56 overflow-auto pr-1">
+                      {selectedSkills.length ? (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedSkills.map((s) => (
+                            <Badge key={s.id} variant="secondary" className="inline-flex items-center gap-1 max-w-full">
+                              <span className="truncate max-w-[180px]">{s.name}</span>
+                              {s.third_party ? <span className="text-muted-foreground">({s.third_party})</span> : null}
+                              <button
+                                type="button"
+                                onClick={() => removeSelectedSkill(s.id)}
+                                className="ml-1 inline-flex items-center justify-center"
+                                aria-label={`Remove ${s.name}`}
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">No skills selected yet.</p>
+                      )}
                     </div>
                   </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">No skills yet. Create skills in the Skills page.</p>
-                )}
-
-                {selectedSkills.length ? (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {selectedSkills.map((s) => (
-                      <Badge key={s.id} variant="secondary" className="inline-flex items-center gap-1">
-                        <span className="truncate max-w-[180px]">{s.name}</span>
-                        {s.third_party ? <span className="text-muted-foreground">({s.third_party})</span> : null}
-                        <button
-                          type="button"
-                          onClick={() => removeSelectedSkill(s.id)}
-                          className="ml-1 inline-flex items-center justify-center"
-                          aria-label={`Remove ${s.name}`}
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">No skills selected yet.</p>
-                )}
+                </div>
               </div>
 
               <Button onClick={saveAgent} className="w-full" disabled={!name.trim() || !role}>

@@ -13,7 +13,7 @@
     "avatar_icon": "layers",
     "avatar_color": "#0EA5E9",
     "avatar_url": "",
-    "mode": "sequential",
+    "mode": "mesh",
     "maxSteps": 6
   },
   {
@@ -67,7 +67,7 @@
   },
   {
     "id": "t_c401148000bb4a4a9dbbfe9d339212af",
-    "name": "giá vàng hà nội của bảo tín Minh Châu, hãy search trên mạng đi (search 1 lần thôi)",
+    "name": "giá vàng hà nội của bảo tín Minh Châu",
     "description": "giá vàng hà nội của bảo tín Minh Châu, hãy search trên mạng đi (search 1 lần thôi)",
     "agents": [
       "a1",
