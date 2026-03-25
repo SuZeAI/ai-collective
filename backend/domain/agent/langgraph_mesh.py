@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Literal, TypedDict
+import re
+from typing import TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
@@ -37,6 +38,9 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
     Topology: 1 hub agent ↔ N spoke agents
     Flow: Hub → Agent1 → Agent2 or Hub or END
     """
+
+    _NEXT_AGENT_RE = re.compile(r"(?im)^\s*next_agent\s*:\s*(.+?)\s*$")
+    _DISCUSSION_END_RE = re.compile(r"(?im)^\s*discussion_end\s*:\s*(.+?)\s*$")
 
     async def run(
         self,
@@ -327,25 +331,10 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             return hub_agent
         
         last_turn = turns[-1]
-        last_content = last_turn.content.lower()
+        last_content = last_turn.content
         
-        end_signals = [
-            "conclusion",
-            "agree",
-            "agreed",
-            "finished",
-            "complete",
-            "done",
-            "end of discussion",
-        ]
-        
-        for signal in end_signals:
-            if signal in last_content:
-                if any(
-                    keyword in last_content
-                    for keyword in ["agree", "accept", "confirm", "acknowledge"]
-                ):
-                    return "end"
+        if self._has_discussion_end_signal(last_content):
+            return "end"
         
         next_agent = self._extract_target_agent_from_message(
             last_content, all_agent_names, current_agent_name
@@ -374,26 +363,30 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         Returns:
             Target agent name if found, else None
         """
-        message_lower = message.lower()
-        
-        for agent_name in agent_names:
-            if agent_name.lower() != current_agent_name.lower():
-                if agent_name.lower() in message_lower:
-                    return agent_name
-        
-        agent_order = {name: idx for idx, name in enumerate(agent_names)}
-        
-        if "next agent" in message_lower or "next" in message_lower:
-            current_idx = agent_order.get(current_agent_name, 0)
-            next_idx = (current_idx + 1) % len(agent_names)
-            return agent_names[next_idx] if agent_names[next_idx] != current_agent_name else None
-        
-        if "previous agent" in message_lower or "back" in message_lower:
-            current_idx = agent_order.get(current_agent_name, 0)
-            prev_idx = (current_idx - 1) % len(agent_names)
-            return agent_names[prev_idx] if agent_names[prev_idx] != current_agent_name else None
-        
-        return None
+        match = self._NEXT_AGENT_RE.search(message)
+        if not match:
+            return None
+
+        candidate = match.group(1).strip().strip("`\"'")
+        if candidate.startswith("<") and candidate.endswith(">"):
+            candidate = candidate[1:-1].strip()
+
+        if not candidate:
+            return None
+
+        normalized = {name.lower(): name for name in agent_names}
+        target = normalized.get(candidate.lower())
+        if not target:
+            return None
+
+        if target.lower() == current_agent_name.lower():
+            return None
+
+        return target
+
+    def _has_discussion_end_signal(self, message: str) -> bool:
+        """Return True when explicit `DISCUSSION_END:` control line is present."""
+        return bool(self._DISCUSSION_END_RE.search(message))
 
     def _get_next_agent_roundrobin(
         self,

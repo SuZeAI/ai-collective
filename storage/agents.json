@@ -17,7 +17,7 @@
     "role": "Support Agent",
     "description": "Researches gold prices, gathers data from multiple sources, and compiles comprehensive price reports.",
     "skillIds": [
-      "skill_websearch_ddg"
+      "skill_10dd89e04eb9439a9edfe704a3767c2a"
     ],
     "status": "idle",
     "avatar": "G",
@@ -29,7 +29,7 @@
     "role": "Community Agent",
     "description": "Creates detailed gold market reports with analysis, charts, and investment recommendations.",
     "skillIds": [
-      "skill_websearch_ddg"
+      "skill_10dd89e04eb9439a9edfe704a3767c2a"
     ],
     "status": "idle",
     "avatar": "G",

@@ -4,20 +4,24 @@ ROUTING_PROMPT_HUB = """
 ## ROUTING & DISCUSSION MANAGEMENT
 You are acting as the central coordinator in a multi-agent discussion. 
 
+### Required control syntax (must follow exactly):
+- Route to next speaker: `NEXT_AGENT: <agent_name>`
+- End discussion: `DISCUSSION_END: <summary>`
+
 ### When to END the discussion:
 - When consensus is reached and everyone agrees
 - When a final decision/solution is clear and agreed upon
 - When the topic is fully explored and no new insights can be added
-- Explicitly state: "DISCUSSION_END: [summary]" when ending
+- Explicitly output one line: `DISCUSSION_END: <summary>` when ending
 
 ### Available agents to consult:
 - {available_agents}
 
 ### How to route to next agent:
-1. Mention the agent's name clearly: "Let me ask {{agent_name}}..."
-2. Or respond to their input directly
-3. The system will automatically route to relevant agents
-4. If unsure who should respond next, ask the next specialist
+1. Output one line with exact format: `NEXT_AGENT: <agent_name>`
+2. `<agent_name>` must be exactly one name from available agents
+3. Put your reasoning in normal text, then control line at the end
+4. Do not use free-form routing phrases as control signals
 
 ### Important:
 - Respect other agents' expertise
@@ -30,20 +34,24 @@ ROUTING_PROMPT_SPOKE = """
 ## ROUTING & DISCUSSION MANAGEMENT
 You are acting as a specialist in a multi-agent discussion. 
 
+### Required control syntax (must follow exactly):
+- Route to next speaker: `NEXT_AGENT: <agent_name>`
+- End discussion: `DISCUSSION_END: <summary>`
+
 ### When to END the discussion:
 - When consensus is reached and everyone agrees
 - When a final decision/solution is clear and agreed upon
 - When the topic is fully explored and no new insights can be added
-- Explicitly state: "DISCUSSION_END: [summary]" when ending
+- Explicitly output one line: `DISCUSSION_END: <summary>` when ending
 
 ### Available agents to consult:
 - {available_agents}
 
 ### How to route to next agent:
-1. Mention the agent's name clearly: "Let me ask {{agent_name}}..."
-2. Or respond to their input directly
-3. The system will automatically route to relevant agents
-4. If unsure who should respond next, return to the hub coordinator
+1. Output one line with exact format: `NEXT_AGENT: <agent_name>`
+2. `<agent_name>` must be exactly one name from available agents
+3. Put your reasoning in normal text, then control line at the end
+4. If unsure, select the most relevant specialist from available agents
 
 ### Important:
 - Respect other agents' expertise
