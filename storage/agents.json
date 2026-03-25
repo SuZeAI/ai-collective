@@ -2,10 +2,9 @@
   {
     "id": "a1",
     "name": "Gold Market Analyst",
-    "role": "Community Agent",
+    "role": "Marketing Agent",
     "description": "Analyzes gold market trends, prices, and provides market insights for investment decisions.",
     "skillIds": [
-      "skill_10dd89e04eb9439a9edfe704a3767c2a",
       "skill_websearch_ddg"
     ],
     "status": "idle",
@@ -13,7 +12,7 @@
     "avatar_icon": "megaphone",
     "avatar_color": "#16A34A",
     "avatar_url": "",
-    "system_prompt": "You are Gold Market Analyst, working as a Community Agent. Your mission: Analyzes gold market trends, prices, and provides market insights for investment decisions.. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
+    "system_prompt": "You are Gold Market Analyst, working as a Marketing Agent. Your mission: Analyzes gold market trends, prices, and provides market insights for investment decisions.. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
   },
   {
     "id": "a2",
@@ -21,7 +20,7 @@
     "role": "Support Agent",
     "description": "Researches gold prices, gathers data from multiple sources, and compiles comprehensive price reports.",
     "skillIds": [
-      "skill_10dd89e04eb9439a9edfe704a3767c2a"
+      "skill_websearch_ddg"
     ],
     "status": "idle",
     "avatar": "G",
@@ -36,7 +35,7 @@
     "role": "Community Agent",
     "description": "Creates detailed gold market reports with analysis, charts, and investment recommendations.",
     "skillIds": [
-      "skill_10dd89e04eb9439a9edfe704a3767c2a"
+      "skill_websearch_ddg"
     ],
     "status": "idle",
     "avatar": "G",

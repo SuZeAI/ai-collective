@@ -26,8 +26,6 @@ const roles = [
   "Finance Agent",
 ] as const;
 
-type Role = (typeof roles)[number];
-
 type AvatarMode = "initial" | "icon" | "image";
 
 function isHexColor(value: string): boolean {
@@ -42,7 +40,7 @@ export default function AgentBuilder() {
   const [testOpen, setTestOpen] = useState(false);
   const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [role, setRole] = useState<Role | "">("");
+  const [role, setRole] = useState("");
   const [desc, setDesc] = useState("");
   const [avatarMode, setAvatarMode] = useState<AvatarMode>("initial");
   const [avatarIcon, setAvatarIcon] = useState("bot");
@@ -78,6 +76,17 @@ export default function AgentBuilder() {
     return selectedSkillIds.map((id) => byId.get(id)).filter(Boolean) as Skill[];
   }, [skillCatalog, selectedSkillIds]);
 
+  const validSkillIdSet = useMemo(() => new Set(skillCatalog.map((s) => s.id)), [skillCatalog]);
+
+  const sanitizeSkillIds = (ids: string[]) => {
+    const seen = new Set<string>();
+    return ids.filter((id) => {
+      if (!validSkillIdSet.has(id) || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  };
+
   const toggleSkill = (id: string) => {
     setSelectedSkillIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
@@ -106,31 +115,34 @@ export default function AgentBuilder() {
   const openEditDialog = (agent: Agent) => {
     setEditingAgentId(agent.id);
     setName(agent.name);
-    setRole(agent.role as Role);
+    setRole(agent.role || "");
     setDesc(agent.description ?? "");
     setAvatarMode(agent.avatar_url ? "image" : agent.avatar_icon ? "icon" : "initial");
     setAvatarIcon(agent.avatar_icon || "bot");
     setAvatarColor(isHexColor(agent.avatar_color || "") ? (agent.avatar_color as string) : "#3b82f6");
     setAvatarUrl(agent.avatar_url || "");
-    setSelectedSkillIds(agent.skill_ids || []);
+    setSelectedSkillIds(sanitizeSkillIds(agent.skill_ids || []));
     setOpen(true);
   };
 
   const saveAgent = async () => {
-    if (!name.trim() || !role) return;
+    const normalizedRole = role.trim();
+    if (!name.trim() || !normalizedRole) return;
+    const normalizedSkillIds = sanitizeSkillIds(selectedSkillIds);
     try {
       const saved = await api.upsertAgent({
         id: editingAgentId ?? undefined,
         name: name.trim(),
-        role,
+        role: normalizedRole,
         description: desc,
-        skill_ids: selectedSkillIds,
+        skill_ids: normalizedSkillIds,
         status: "idle",
         avatar: name.trim()[0]?.toUpperCase(),
         avatar_icon: avatarMode === "icon" ? avatarIcon : "",
         avatar_color: isHexColor(avatarColor) ? avatarColor : "",
         avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
       });
+      setSelectedSkillIds(normalizedSkillIds);
       setAgentList((prev) => {
         const idx = prev.findIndex((a) => a.id === saved.id);
         if (idx === -1) return [...prev, saved];
@@ -214,18 +226,20 @@ export default function AgentBuilder() {
             <div className="space-y-4 pt-2">
               <Input placeholder="Agent name" value={name} onChange={(e) => setName(e.target.value)} />
 
-              <Select value={role} onValueChange={(v) => setRole(v as Role)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
+              <div className="space-y-1.5">
+                <Input
+                  list="agent-role-options"
+                  placeholder="Type a role or pick from suggestions"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                />
+                <datalist id="agent-role-options">
                   {roles.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {r}
-                    </SelectItem>
+                    <option key={r} value={r} />
                   ))}
-                </SelectContent>
-              </Select>
+                </datalist>
+                <p className="text-xs text-muted-foreground">You can type a custom role or select an existing one.</p>
+              </div>
 
               <Input placeholder="Description (optional)" value={desc} onChange={(e) => setDesc(e.target.value)} />
 
