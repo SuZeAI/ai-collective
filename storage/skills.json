@@ -39,5 +39,17 @@
       "requires_runtime": true
     },
     "code": null
+  },
+  {
+    "id": "skill_10dd89e04eb9439a9edfe704a3767c2a",
+    "name": "Thinking Instruction",
+    "description": "Gold",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "giá vàng hiện tại toàn bộ là 100 triệu"
+    },
+    "code": null
   }
 ]

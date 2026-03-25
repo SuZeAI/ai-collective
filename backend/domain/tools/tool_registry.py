@@ -4,6 +4,7 @@ from enum import Enum
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools.bash import BashToolkit
 from backend.domain.tools.browser import BrowserToolkit
+from backend.domain.tools.promt_tool import PromtToolToolkit
 from backend.domain.tools.websearch import WebSearchToolkit
 
 
@@ -11,12 +12,14 @@ class ToolType(str, Enum):
     BASH = "bash"
     BROWSER = "browser"
     WEBSEARCH = "websearch"
+    PROMT_TOOL = "promt_tool"
 
 
 TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.BASH.value: BashToolkit,
     ToolType.BROWSER.value: BrowserToolkit,
     ToolType.WEBSEARCH.value: WebSearchToolkit,
+    ToolType.PROMT_TOOL.value: PromtToolToolkit,
 }
 
 
@@ -55,6 +58,19 @@ class ToolRegistry:
 
             # Keep only constructor-relevant args for BrowserToolkit.
             kwargs = {"browser": kwargs["browser"]}
+
+        if tool_name == ToolType.PROMT_TOOL.value:
+            system_prompt = kwargs.get("system_prompt")
+            if not system_prompt:
+                raise ValueError(
+                    "Failed to instantiate promt_tool. Required kwargs: "
+                    "provide 'system_prompt'."
+                )
+
+            kwargs = {
+                "system_prompt": str(system_prompt),
+                "tool_name_override": kwargs.get("skill_name"),
+            }
 
         try:
             return tool_class(**kwargs)

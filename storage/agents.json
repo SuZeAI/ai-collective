@@ -5,7 +5,7 @@
     "role": "Community Agent",
     "description": "Analyzes gold market trends, prices, and provides market insights for investment decisions.",
     "skillIds": [
-      "skill_websearch_ddg"
+      "skill_10dd89e04eb9439a9edfe704a3767c2a"
     ],
     "status": "idle",
     "avatar": "G",

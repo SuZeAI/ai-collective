@@ -3,21 +3,23 @@ import { motion } from "framer-motion";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { api, type Skill } from "@/lib/api";
 
-type ToolName = "websearch" | "browser" | "bash";
+type ToolName = "websearch" | "browser" | "bash" | "promt_tool";
 
 const toolPresets: Array<{ toolName: ToolName; label: string; thirdParty: string }> = [
   { toolName: "websearch", label: "Web Search (DuckDuckGo)", thirdParty: "Web" },
   { toolName: "browser", label: "Browser Automation", thirdParty: "Browser" },
   { toolName: "bash", label: "Shell Automation", thirdParty: "Shell" },
+  { toolName: "promt_tool", label: "Prompt Tool", thirdParty: "Prompt" },
 ];
 
 function isToolName(value: string | null | undefined): value is ToolName {
-  return value === "websearch" || value === "browser" || value === "bash";
+  return value === "websearch" || value === "browser" || value === "bash" || value === "promt_tool";
 }
 
 function boolFromUnknown(value: unknown, fallback: boolean): boolean {
@@ -60,6 +62,8 @@ export default function Skills() {
   const [bashSandbox, setBashSandbox] = useState("default");
   const [bashRequiresRuntime, setBashRequiresRuntime] = useState(true);
 
+  const [promptSystemPrompt, setPromptSystemPrompt] = useState("");
+
   const applyDefaultConfigByTool = (value: ToolName) => {
     if (value === "websearch") {
       setWebProvider("duckduckgo");
@@ -72,6 +76,11 @@ export default function Skills() {
       setBrowserDriver("browser_use");
       setBrowserCdpUrl("http://localhost:9222");
       setBrowserRequiresRuntime(true);
+      return;
+    }
+
+    if (value === "promt_tool") {
+      setPromptSystemPrompt("");
       return;
     }
 
@@ -121,6 +130,8 @@ export default function Skills() {
         ? "browser"
         : skill.third_party === "Shell"
           ? "bash"
+          : skill.third_party === "Prompt"
+            ? "promt_tool"
           : "websearch";
 
     setToolName(inferredToolName);
@@ -141,6 +152,9 @@ export default function Skills() {
     if (inferredToolName === "bash") {
       setBashSandbox(String(config.sandbox ?? "default"));
       setBashRequiresRuntime(boolFromUnknown(config.requires_runtime, true));
+    }
+    if (inferredToolName === "promt_tool") {
+      setPromptSystemPrompt(String(config.system_prompt ?? ""));
     }
 
     setOpen(true);
@@ -163,6 +177,12 @@ export default function Skills() {
       };
     }
 
+    if (toolName === "promt_tool") {
+      return {
+        system_prompt: promptSystemPrompt.trim(),
+      };
+    }
+
     return {
       sandbox: bashSandbox.trim(),
       requires_runtime: bashRequiresRuntime,
@@ -177,6 +197,9 @@ export default function Skills() {
     }
     if (toolName === "browser") {
       return !!browserDriver.trim() && !!browserCdpUrl.trim();
+    }
+    if (toolName === "promt_tool") {
+      return !!promptSystemPrompt.trim();
     }
     return !!bashSandbox.trim();
   };
@@ -290,6 +313,17 @@ export default function Skills() {
                       />
                       Requires Runtime
                     </label>
+                  </div>
+                ) : null}
+
+                {toolName === "promt_tool" ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    <Textarea
+                      placeholder="System prompt"
+                      value={promptSystemPrompt}
+                      onChange={(e) => setPromptSystemPrompt(e.target.value)}
+                      rows={6}
+                    />
                   </div>
                 ) : null}
               </div>
