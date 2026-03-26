@@ -39,8 +39,14 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
     Flow: Hub → Agent1 → Agent2 or Hub or END
     """
 
-    _NEXT_AGENT_RE = re.compile(r"(?im)^\s*next_agent\s*:\s*(.+?)\s*$")
-    _DISCUSSION_END_RE = re.compile(r"(?im)^\s*discussion_end\s*:\s*(.+?)\s*$")
+    _NEXT_AGENT_RE = re.compile(
+        r"<\s*NEXT_AGENT\s*>(.*?)<\s*/\s*NEXT_AGENT\s*>",
+        re.IGNORECASE | re.DOTALL,
+    )
+    _DISCUSSION_END_RE = re.compile(
+        r"<\s*DISCUSSION_END\s*>(.*?)<\s*/\s*DISCUSSION_END\s*>",
+        re.IGNORECASE | re.DOTALL,
+    )
 
     async def run(
         self,
@@ -385,7 +391,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         return target
 
     def _has_discussion_end_signal(self, message: str) -> bool:
-        """Return True when explicit `DISCUSSION_END:` control line is present."""
+        """Return True when explicit `<DISCUSSION_END>...</DISCUSSION_END>` tag is present."""
         return bool(self._DISCUSSION_END_RE.search(message))
 
     def _get_next_agent_roundrobin(
