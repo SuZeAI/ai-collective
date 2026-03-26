@@ -35,17 +35,17 @@
   },
   {
     "id": "t1773677767766",
-    "name": "content",
+    "name": "Content Tiktok",
     "description": "create content AI",
     "agents": [
-      "a1"
+      "agent_bccd2e8cd82f40ecb294a928eed4a89b"
     ],
     "activeTasks": 0,
     "avatar": "C",
     "avatar_icon": "workflow",
     "avatar_color": "#10B981",
     "avatar_url": "",
-    "mode": "sequential",
+    "mode": "mesh",
     "maxSteps": 6
   },
   {
@@ -67,17 +67,33 @@
   },
   {
     "id": "t_c401148000bb4a4a9dbbfe9d339212af",
-    "name": "giá vàng hà nội của bảo tín Minh Châu",
-    "description": "giá vàng hà nội của bảo tín Minh Châu, hãy search trên mạng đi (search 1 lần thôi)",
+    "name": "Search gold price",
+    "description": "Find everything related to gold",
     "agents": [
       "a1",
       "a2",
       "a3"
     ],
     "activeTasks": 0,
-    "avatar": "G",
+    "avatar": "S",
     "avatar_icon": "users",
     "avatar_color": "#EF4444",
+    "avatar_url": "",
+    "mode": "mesh",
+    "maxSteps": 6
+  },
+  {
+    "id": "t_4b94bfc530b64fc6b8534adf207acaee",
+    "name": "Github Repo",
+    "description": "everything github repo",
+    "agents": [
+      "agent_4aa2e6b617fb4375970e3a0110285993",
+      "agent_fc7267cfdc3149e3a1766805e4942b02"
+    ],
+    "activeTasks": 0,
+    "avatar": "G",
+    "avatar_icon": "network",
+    "avatar_color": "#dd76f9",
     "avatar_url": "",
     "mode": "mesh",
     "maxSteps": 6
