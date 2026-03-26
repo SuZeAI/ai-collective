@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
@@ -329,7 +330,12 @@ export default function TaskManager() {
             <DialogHeader><DialogTitle>{editingTaskId ? "Edit Task" : "Create Task"}</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-2">
               <Input placeholder="Task title" value={title} onChange={(e) => setTitle(e.target.value)} />
-              <Input placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
+              <Textarea
+                placeholder="Description"
+                value={desc}
+                onChange={(e) => setDesc(e.target.value)}
+                className="min-h-[140px] max-h-[220px] overflow-y-auto resize-none"
+              />
               <Select value={teamId} onValueChange={setTeamId}>
                 <SelectTrigger><SelectValue placeholder="Assign to team" /></SelectTrigger>
                 <SelectContent>

@@ -13,6 +13,7 @@ from backend.application.ports.agent_graph import (
     GraphTurn,
 )
 from backend.application.ports.llm import LLMProvider
+from backend.log import get_logger
 
 
 class MultiAgentMeshState(TypedDict):
@@ -69,10 +70,14 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             GraphRunResult with conversation turns and final response
         """
         if not agents:
-            raise ValueError("At least two agent definition is required")
-        
-        if len(agents) < 2:
-            raise ValueError("Multi-agent mesh mode requires at least 2 agents")
+            raise ValueError("At least one agent definition is required")
+
+        if len(agents) == 1:
+            return await self._run_single_agent(
+                user_input=user_input,
+                agent=agents[0],
+                llm=llm,
+            )
 
         builder: StateGraph = StateGraph(MultiAgentMeshState)
         
@@ -151,9 +156,15 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         """Streaming version for real-time multi-agent conversation"""
         if not agents:
             raise ValueError("At least one agent definition is required")
-        
-        if len(agents) < 2:
-            raise ValueError("Multi-agent mesh mode requires at least 2 agents")
+
+        if len(agents) == 1:
+            async for turn in self._run_single_agent_stream(
+                user_input=user_input,
+                agent=agents[0],
+                llm=llm,
+            ):
+                yield turn
+            return
 
         builder: StateGraph = StateGraph(MultiAgentMeshState)
         
@@ -214,6 +225,61 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                     if new_turns:
                         yield new_turns[-1]
 
+    async def _run_single_agent(
+        self,
+        *,
+        user_input: str,
+        agent: GraphAgentDefinition,
+        llm: LLMProvider,
+    ) -> GraphRunResult:
+        """Fallback execution path when only one agent is provided."""
+        node = self._make_mesh_llm_node(
+            agent=agent,
+            llm=llm,
+            all_agents=[agent],
+            hub_agent_name=agent.name,
+        )
+        initial: MultiAgentMeshState = {
+            "input": user_input,
+            "original_input": user_input,
+            "turns": [],
+            "conversation_history": {agent.name: []},
+            "current_agent": agent.name,
+            "hub_agent": agent.name,
+            "agent_names": [agent.name],
+            "discussion_ended": False,
+            "final_response": "",
+            "rounds": 0,
+        }
+        final_state = await node(initial)
+        turns = list(final_state.get("turns", []))
+        final_response = final_state.get("final_response") or (
+            turns[-1].content if turns else ""
+        )
+        rounds = int(final_state.get("rounds", len(turns)))
+        return GraphRunResult(
+            turns=turns,
+            final_response=final_response,
+            final_agent=turns[-1].agent_name if turns else None,
+            rounds=rounds,
+        )
+
+    async def _run_single_agent_stream(
+        self,
+        *,
+        user_input: str,
+        agent: GraphAgentDefinition,
+        llm: LLMProvider,
+    ):
+        """Streaming fallback when only one agent is provided."""
+        result = await self._run_single_agent(
+            user_input=user_input,
+            agent=agent,
+            llm=llm,
+        )
+        if result.turns:
+            yield result.turns[-1]
+
     def _make_mesh_llm_node(
         self,
         agent: GraphAgentDefinition,
@@ -258,7 +324,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             
             context_parts.extend(all_recent_messages[-5:])
             user_input = "\n".join(context_parts)
-            
+            get_logger().info(f"Agent '{agent.name}' received context:\n{user_input}")
             system_prompt_with_routing = agent.system_prompt
             if routing_guidance:
                 system_prompt_with_routing = f"{agent.system_prompt}\n\n{routing_guidance}"

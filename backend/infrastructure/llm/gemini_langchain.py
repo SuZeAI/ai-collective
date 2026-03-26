@@ -18,7 +18,7 @@ class GeminiLangChainProvider(LLMProvider):
     - Reads API key from `GEMINI_API_KEY` (or `GOOGLE_API_KEY`).
     """
 
-    def __init__(self, *, model: str, max_tool_rounds: int = 2):
+    def __init__(self, *, model: str, max_tool_rounds: int = 6):
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
         except Exception as e:  # pragma: no cover
@@ -49,13 +49,35 @@ class GeminiLangChainProvider(LLMProvider):
         messages: list[Any] = [SystemMessage(content=system), HumanMessage(content=user)]
         result: AIMessage | Any
 
-        for _ in range(self._max_tool_rounds):
-            result = await chat_model.ainvoke(messages)
+        for round_index in range(self._max_tool_rounds):
+            is_last_round = round_index == self._max_tool_rounds - 1
+
+            invoke_model = self._llm if is_last_round else chat_model
+            if is_last_round:
+                messages.append(
+                    SystemMessage(
+                        content=(
+                            "Final round: synthesize and consolidate all collected information into a "
+                            "single final answer as plain text only. Do not call any tools."
+                        )
+                    )
+                )
+                get_logger().info("Invoking LLM for final response without tool calls.")
+            else:
+                get_logger().info(f"Invoking LLM for round {round_index + 1} with tool calls allowed.")
+
+            result = await invoke_model.ainvoke(messages)
             get_logger().info(f"LLM response: {result}")
             messages.append(result)
 
             tool_calls = getattr(result, "tool_calls", None) or []
             if not tool_calls:
+                return self._extract_text_content(result)
+
+            if is_last_round:
+                get_logger().warning(
+                    "Final round returned tool calls; ignoring and returning text content instead."
+                )
                 return self._extract_text_content(result)
 
             tool_messages: list[ToolMessage] = []
