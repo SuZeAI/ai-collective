@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -71,6 +71,7 @@ export default function TaskManager() {
   const [loadingConversationTaskIds, setLoadingConversationTaskIds] = useState<Set<string>>(new Set());
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
+  const [viewTaskId, setViewTaskId] = useState<string | null>(null);
 
 
 
@@ -152,6 +153,10 @@ export default function TaskManager() {
     setOpen(true);
   };
 
+  const openTaskView = (taskId: string) => {
+    setViewTaskId(taskId);
+  };
+
   const saveTask = async () => {
     if (!title.trim() || !teamId) return;
     const existing = editingTaskId ? taskList.find((t) => t.id === editingTaskId) : undefined;
@@ -192,6 +197,8 @@ export default function TaskManager() {
 
       // If starting the task, stream agent responses
       if (status === "in-progress" && updated.assignedAgents.length > 0) {
+        openTaskView(updated.id);
+
         // Clear old conversations if restarting from completed/stopped
         if (task.status === "completed" || task.status === "stopped") {
           setTaskConversations((prev) => {
@@ -293,6 +300,9 @@ export default function TaskManager() {
         resetForm();
         setOpen(false);
       }
+      if (viewTaskId === id) {
+        setViewTaskId(null);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -333,6 +343,202 @@ export default function TaskManager() {
           </DialogContent>
         </Dialog>
       </header>
+
+      <Dialog open={!!viewTaskId} onOpenChange={(nextOpen) => !nextOpen && setViewTaskId(null)}>
+        <DialogContent showCloseButton={false} className="max-w-6xl w-[95vw] h-[88vh] p-0 gap-0 overflow-hidden">
+          {(() => {
+            const selectedTask = taskList.find((task) => task.id === viewTaskId);
+            if (!selectedTask) return null;
+
+            const team = teamList.find((t) => t.id === selectedTask.teamId);
+            const messages = taskConversations[selectedTask.id] ?? [];
+            const visibleMessages = messages.slice(-50);
+            const maxRounds = team?.maxSteps ?? 6;
+            const calculatedProgress = selectedTask.status === "completed" ? 100 : Math.min(Math.round((messages.length / maxRounds) * 100), 99);
+            const startDate = parseTaskDate(selectedTask.startTime);
+            const endDate = parseTaskDate(selectedTask.endTime);
+            const completionDuration =
+              selectedTask.status === "completed" && startDate && endDate
+                ? formatDuration(endDate.getTime() - startDate.getTime())
+                : null;
+            const completionSummary = !startDate
+              ? "(No start time yet)"
+              : completionDuration ?? "(Not completed yet)";
+            const canStart = selectedTask.status === "pending" || selectedTask.status === "paused" || selectedTask.status === "stopped" || selectedTask.status === "completed";
+            const canPause = selectedTask.status === "in-progress";
+            const canStop = selectedTask.status === "in-progress" || selectedTask.status === "paused";
+            const isUpdating = updatingTaskIds.has(selectedTask.id);
+            const isConversationLoading = loadingConversationTaskIds.has(selectedTask.id);
+            const isRestart = selectedTask.status === "completed";
+            const Icon = statusIcons[selectedTask.status] ?? Circle;
+
+            return (
+              <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-[360px_1fr]">
+                <div className="h-full min-h-0 border-r border-border bg-muted/25 overflow-y-auto p-5 space-y-5">
+                  <DialogHeader className="space-y-2 text-left">
+                    <div className="flex items-center justify-between gap-3">
+                      <DialogTitle className="text-xl leading-tight pr-2">{selectedTask.title}</DialogTitle>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setViewTaskId(null)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Icon className={`w-4 h-4 ${statusColors[selectedTask.status]}`} />
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{selectedTask.status}</span>
+                    </div>
+                  </DialogHeader>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Progress</span>
+                      <span className="font-semibold">{calculatedProgress}% ({messages.length} / {maxRounds})</span>
+                    </div>
+                    <Progress value={calculatedProgress} className="h-2" />
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant={selectedTask.status === "in-progress" ? "default" : "outline"}
+                      onClick={() => updateTaskStatus(selectedTask, "in-progress")}
+                      disabled={!canStart || isUpdating}
+                    >
+                      <Play className="w-3.5 h-3.5 mr-1" />
+                      {isRestart ? "Restart" : "Start"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={selectedTask.status === "paused" ? "default" : "outline"}
+                      onClick={() => updateTaskStatus(selectedTask, "paused")}
+                      disabled={!canPause}
+                    >
+                      <Pause className="w-3.5 h-3.5 mr-1" />
+                      Pause
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={selectedTask.status === "stopped" ? "destructive" : "outline"}
+                      onClick={() => updateTaskStatus(selectedTask, "stopped")}
+                      disabled={!canStop}
+                    >
+                      <Square className="w-3.5 h-3.5 mr-1" />
+                      Stop
+                    </Button>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Description</label>
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{selectedTask.description || "(No description)"}</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Completion Time</label>
+                    <p className={`text-xs ${completionDuration ? "text-agent-dev font-semibold" : "text-muted-foreground"}`}>
+                      {completionSummary}
+                    </p>
+                    {startDate && (
+                      <div className="text-xs mt-2 space-y-1 text-foreground/85">
+                        <p>Start (UTC+7): {formatTaskDateTime(startDate)}</p>
+                        <p>End (UTC+7): {endDate ? formatTaskDateTime(endDate) : "(Not completed yet)"}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Assigned Team</label>
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-background text-xs font-semibold border border-border">
+                      <AgentAvatar
+                        agent={
+                          team
+                            ? team
+                            : {
+                                avatar: "T",
+                                avatar_icon: "users",
+                              }
+                        }
+                        className={`w-5 h-5 rounded-md text-[10px] ${team?.avatar_color ? "" : "bg-primary/15 text-primary"}`}
+                        iconClassName="w-3 h-3"
+                      />
+                      {team?.name || selectedTask.teamId || "(No team)"}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Assigned Agents</label>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedTask.assignedAgents.map((aid) => {
+                        const agent = agentById.get(aid);
+                        return agent ? (
+                          <span key={aid} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background text-xs font-medium border border-border">
+                            <AgentAvatar
+                              agent={agent}
+                              className={`w-5 h-5 rounded-md text-[10px] ${agent.avatar_color ? "" : getAgentRoleColor(agent.role)}`}
+                              iconClassName="w-3 h-3"
+                            />
+                            {agent.name}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-full min-h-0 p-5 flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                      Live Conversation
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      {selectedTask.status === "in-progress" && <span className="w-2 h-2 rounded-full bg-agent-dev animate-pulse" />}
+                      <span>{selectedTask.status === "in-progress" ? "Live" : "Recent"}</span>
+                    </div>
+                  </div>
+
+                  <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                    {isConversationLoading && messages.length === 0 ? (
+                      <p className="text-sm text-muted-foreground animate-pulse">Loading conversation...</p>
+                    ) : visibleMessages.length > 0 ? (
+                      <div className="space-y-3">
+                        {visibleMessages.map((msg) => {
+                          const agent = agentById.get(msg.agentId);
+                          const ts = new Date(msg.timestamp);
+                          return (
+                            <div key={msg.id} className="rounded-lg border border-border/70 p-3 bg-background hover:bg-muted/20 transition-colors">
+                              <div className="flex items-center gap-2 mb-2">
+                                <AgentAvatar
+                                  agent={agent || { avatar: "?" }}
+                                  className={`w-7 h-7 rounded-md text-[10px] shadow-sm ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
+                                  iconClassName="w-3.5 h-3.5"
+                                />
+                                <span className="text-sm font-semibold">{agent?.name ?? msg.agentId}</span>
+                                <span className="text-[11px] text-muted-foreground font-mono ml-auto">
+                                  {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                                </span>
+                              </div>
+                              <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:text-sm [&>p]:text-muted-foreground [&>p]:leading-relaxed [&>p:last-child]:mb-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_ul]:mb-2 [&_ol]:mb-2 [&_li]:mb-1">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                  {msg.content}
+                                </ReactMarkdown>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No conversation yet for this task.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       <div className="space-y-4">
         {taskList.map((task, i) => {
@@ -450,6 +656,10 @@ export default function TaskManager() {
                   >
                     <Square className="w-3.5 h-3.5 mr-1" />
                     Stop
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => openTaskView(task.id)}>
+                    <Eye className="w-3.5 h-3.5 mr-1" />
+                    View
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => openEditDialog(task)} disabled={isUpdating}>
                     <Pencil className="w-3.5 h-3.5 mr-1" />
