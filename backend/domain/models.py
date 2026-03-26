@@ -62,6 +62,8 @@ class Task:
     status: TaskStatus
     progress: int
     assigned_agents: list[str]
+    start_time: datetime | None = None
+    end_time: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)

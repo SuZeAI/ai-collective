@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 from dataclasses import replace
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
 
@@ -19,6 +19,19 @@ from backend.domain.models import Message, Task
 
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
+
+
+def _parse_iso_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        normalized = value.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(normalized)
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except ValueError:
+        return None
 
 
 def _sync_runtime_state(task_service: TaskService, team_service: TeamService, agent_service: AgentService) -> None:
@@ -141,27 +154,56 @@ def upsert_task(
     conv_service: ConversationService = Depends(get_conversation_service),
 ) -> TaskSchema:
     task_id = req.id or f"task_{uuid4().hex}"
+    previous_task: Task | None = None
     previous_status: TaskStatus | None = None
     if req.id:
         try:
-            previous_status = service.get_task(task_id).status
+            previous_task = service.get_task(task_id)
+            previous_status = previous_task.status
         except NotFoundError:
+            previous_task = None
             previous_status = None
 
+    next_status = TaskStatus(req.status)
+    now = datetime.now(timezone.utc).replace(microsecond=0)
     progress = req.progress
+    start_time = _parse_iso_datetime(req.startTime)
+    end_time = _parse_iso_datetime(req.endTime)
+
+    # Preserve previous timestamps unless explicitly overridden.
+    if start_time is None and previous_task is not None:
+        start_time = previous_task.start_time
+    if end_time is None and previous_task is not None:
+        end_time = previous_task.end_time
+
     # Restart behavior: moving from completed -> in-progress should start from 0 and clear old conversations.
-    if previous_status == TaskStatus.completed and req.status == TaskStatus.in_progress.value:
+    if previous_status == TaskStatus.completed and next_status == TaskStatus.in_progress:
         progress = 0
+        start_time = now
+        end_time = None
         conv_service.delete_messages_by_task(task_id)
+
+    if next_status == TaskStatus.in_progress and start_time is None:
+        start_time = now
+
+    if next_status == TaskStatus.completed:
+        if start_time is None:
+            start_time = now
+        if end_time is None:
+            end_time = now
+    elif next_status in {TaskStatus.pending, TaskStatus.paused, TaskStatus.stopped, TaskStatus.in_progress}:
+        end_time = None
 
     task = Task(
         id=task_id,
         title=req.title,
         description=req.description,
         team_id=req.teamId,
-        status=TaskStatus(req.status),
+        status=next_status,
         progress=progress,
         assigned_agents=list(req.assignedAgents),
+        start_time=start_time,
+        end_time=end_time,
     )
     saved = service.upsert_task(task)
 

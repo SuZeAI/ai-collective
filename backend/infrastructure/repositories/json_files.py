@@ -1,11 +1,23 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from backend.domain.enums import AgentStatus, TaskStatus
 from backend.domain.models import Agent, Skill, Team, Task, Message, Analytics, ActivityFeedItem
 from backend.infrastructure.repositories.json_store import JsonFileStore
+
+
+def _parse_iso_utc(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 def _default_agent_system_prompt(*, name: str, role: str, description: str) -> str:
@@ -222,6 +234,8 @@ class JsonTaskRepository:
         self._items: dict[str, Task] = {}
         for item in data:
             try:
+                start_time_raw = item.get("startTime")
+                end_time_raw = item.get("endTime")
                 task = Task(
                     id=str(item["id"]),
                     title=str(item.get("title", "")),
@@ -230,6 +244,8 @@ class JsonTaskRepository:
                     status=TaskStatus(str(item.get("status", "pending"))),
                     progress=int(item.get("progress", 0)),
                     assigned_agents=[str(x) for x in (item.get("assignedAgents") or [])],
+                    start_time=_parse_iso_utc(str(start_time_raw)) if start_time_raw else None,
+                    end_time=_parse_iso_utc(str(end_time_raw)) if end_time_raw else None,
                 )
                 self._items[task.id] = task
             except Exception:
@@ -246,6 +262,8 @@ class JsonTaskRepository:
                     "status": t.status.value,
                     "progress": t.progress,
                     "assignedAgents": list(t.assigned_agents),
+                    "startTime": t.start_time.isoformat() if t.start_time else None,
+                    "endTime": t.end_time.isoformat() if t.end_time else None,
                 }
                 for t in self._items.values()
             ]
@@ -277,7 +295,7 @@ class JsonConversationRepository:
         for item in data:
             try:
                 ts = str(item.get("timestamp") or "")
-                dt = datetime.fromisoformat(ts) if ts else datetime.utcnow().replace(microsecond=0)
+                dt = _parse_iso_utc(ts) if ts else datetime.now(timezone.utc).replace(microsecond=0)
                 self._items.append(
                     Message(
                         id=str(item["id"]),

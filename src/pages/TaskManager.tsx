@@ -28,6 +28,36 @@ const statusColors: Record<string, string> = {
   "completed": "text-agent-dev",
 };
 
+const parseTaskDate = (value?: string | null) => {
+  if (!value) return null;
+  const dt = new Date(value);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+};
+
+const formatDuration = (ms: number) => {
+  if (ms <= 0) return "0s";
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
+};
+
+const formatTaskDateTime = (date: Date) => {
+  return date.toLocaleString("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+};
+
 export default function TaskManager() {
   const [taskList, setTaskList] = useState<Task[]>([]);
   const [teamList, setTeamList] = useState<Team[]>([]);
@@ -318,6 +348,15 @@ export default function TaskManager() {
           const isExpanded = expandedTaskIds.has(task.id);
           const team = teamList.find((t) => t.id === task.teamId);
           const maxRounds = team?.maxSteps ?? 6;
+          const startDate = parseTaskDate(task.startTime);
+          const endDate = parseTaskDate(task.endTime);
+          const completionDuration =
+            task.status === "completed" && startDate && endDate
+              ? formatDuration(endDate.getTime() - startDate.getTime())
+              : null;
+          const completionSummary = !startDate
+            ? "(No start time yet)"
+            : completionDuration ?? "(Not completed yet)";
           
           // Calculate progress based on messages received
           const calculatedProgress = task.status === "completed" ? 100 : Math.min(Math.round((messages.length / maxRounds) * 100), 99);
@@ -352,6 +391,9 @@ export default function TaskManager() {
                         />
                         <p className="text-xs text-muted-foreground truncate">{team?.name || "(No team)"}</p>
                       </div>
+                      <p className={`text-[11px] mt-1 ${completionDuration ? "text-agent-dev" : "text-muted-foreground"}`}>
+                        Completion time: {completionSummary}
+                      </p>
                     </div>
                   </div>
 
@@ -441,6 +483,20 @@ export default function TaskManager() {
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground block mb-1">Description</label>
                     <p className="text-sm text-foreground">{task.description || "(No description)"}</p>
+                  </div>
+
+                  {/* Completion Time */}
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Completion Time (UTC+7)</label>
+                    {startDate ? (
+                      <div className="text-xs space-y-1 text-foreground/90">
+                        <p>Start (UTC+7): {formatTaskDateTime(startDate)}</p>
+                        <p>End (UTC+7): {endDate ? formatTaskDateTime(endDate) : "(Not completed yet)"}</p>
+                        {completionDuration && <p className="font-semibold text-agent-dev">Duration: {completionDuration}</p>}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">(No start time yet)</p>
+                    )}
                   </div>
 
                   {/* Assigned Team */}
