@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from backend.application.ports.repositories import SkillRepository
 from backend.domain.models import Skill
+from backend.domain.tools.tool_registry import ToolRegistry
 
 
 class SkillService:
@@ -16,3 +17,6 @@ class SkillService:
 
     def delete_skill(self, skill_id: str) -> None:
         self._repo.delete(skill_id)
+
+    def list_available_tool_names(self) -> list[str]:
+        return ToolRegistry.get_available_tools()

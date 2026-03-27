@@ -18,6 +18,11 @@ def list_skills(service: SkillService = Depends(get_skill_service)) -> list[Skil
     return [SkillSchema.from_domain(s) for s in service.list_skills()]
 
 
+@router.get("/tools", response_model=list[str])
+def list_available_tools(service: SkillService = Depends(get_skill_service)) -> list[str]:
+    return service.list_available_tool_names()
+
+
 @router.post("", response_model=SkillSchema)
 def upsert_skill(req: UpsertSkillRequest, service: SkillService = Depends(get_skill_service)) -> SkillSchema:
     skill_id = req.id or f"skill_{uuid4().hex}"
