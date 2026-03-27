@@ -164,6 +164,11 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 			},
 		],
 	},
+	"ui": {
+		"label": "UI Helper",
+		"third_party": "UI",
+		"config_fields": [],
+	},
 }
 
 

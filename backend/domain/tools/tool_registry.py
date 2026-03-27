@@ -6,6 +6,7 @@ from backend.domain.tools.bash import BashToolkit
 from backend.domain.tools.browser import BrowserToolkit
 from backend.domain.tools.dedupe_search import DedupeSearchToolkit
 from backend.domain.tools.promt_tool import PromtToolToolkit
+from backend.domain.tools.ui import UIToolkit
 from backend.domain.tools.websearch import WebSearchToolkit
 from backend.domain.tools.xai import XAIToolkit
 from backend.domain.tools.xiaohongshu import XiaohongshuToolkit
@@ -21,6 +22,7 @@ class ToolType(str, Enum):
     XIAOHONGSHU = "xiaohongshu"
     YOUTUBE = "youtube"
     PROMT_TOOL = "promt_tool"
+    UI = "ui"
 
 
 TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
@@ -32,6 +34,7 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.XIAOHONGSHU.value: XiaohongshuToolkit,
     ToolType.YOUTUBE.value: YouTubeToolkit,
     ToolType.PROMT_TOOL.value: PromtToolToolkit,
+    ToolType.UI.value: UIToolkit,
 }
 
 

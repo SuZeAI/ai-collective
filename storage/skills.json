@@ -308,5 +308,19 @@
       "depth": "default"
     },
     "code": null
+  },
+  {
+    "id": "skill_b9da4830e3f44dc59585b7b4f6651602",
+    "name": "UI Helper",
+    "description": "UI Helper",
+    "third_party": "UI",
+    "kind": "integration",
+    "avatar": "U",
+    "avatar_icon": "",
+    "avatar_color": "#489d71",
+    "avatar_url": "",
+    "tool_name": "ui",
+    "config": {},
+    "code": null
   }
 ]
