@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from typing import Any
+
 from backend.application.ports.repositories import SkillRepository
 from backend.domain.models import Skill
+from backend.domain.tools.default_config import build_tool_presets
 from backend.domain.tools.tool_registry import ToolRegistry
 
 
@@ -20,3 +23,7 @@ class SkillService:
 
     def list_available_tool_names(self) -> list[str]:
         return ToolRegistry.get_available_tools()
+
+    def list_tool_presets(self) -> list[dict[str, Any]]:
+        tool_names = self.list_available_tool_names()
+        return build_tool_presets(tool_names)

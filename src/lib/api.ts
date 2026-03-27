@@ -32,6 +32,25 @@ export type SkillToolOption = {
   tool_name: string;
 };
 
+export type SkillToolConfigField = {
+  key: string;
+  label: string;
+  input: "text" | "textarea" | "select" | "boolean";
+  required?: boolean;
+  default?: unknown;
+  placeholder?: string;
+  options?: string[];
+  rows?: number | null;
+  description?: string;
+};
+
+export type SkillToolPreset = {
+  tool_name: string;
+  label: string;
+  third_party: string;
+  config_fields: SkillToolConfigField[];
+};
+
 export type Team = {
   id: string;
   name: string;
@@ -141,6 +160,7 @@ export const api = {
 
   listSkills: () => apiFetch<Skill[]>("/skills"),
   listSkillTools: () => apiFetch<string[]>("/skills/tools"),
+  listSkillToolPresets: () => apiFetch<SkillToolPreset[]>("/skills/tool-presets"),
   upsertSkill: (payload: Partial<Skill> & Pick<Skill, "name" | "kind">) =>
     apiFetch<Skill>("/skills", { method: "POST", body: JSON.stringify(payload) }),
   deleteSkill: (id: string) => apiFetch<{ deleted: boolean }>(`/skills/${id}`, { method: "DELETE" }),

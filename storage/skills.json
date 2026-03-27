@@ -246,7 +246,7 @@
   },
   {
     "id": "skill_eb2b06e4808247b88fe84b42c58aa05a",
-    "name": "YouTube Search Tuyen",
+    "name": "YouTube Search",
     "description": "Skill for search information in Youtube",
     "third_party": "YouTube",
     "kind": "integration",
@@ -256,6 +256,23 @@
     "avatar_url": "",
     "tool_name": "youtube",
     "config": {
+      "depth": "default"
+    },
+    "code": null
+  },
+  {
+    "id": "skill_ef1f5d3c6fad41bab4080e4c671e5003",
+    "name": "Xiaohongshu Search",
+    "description": "search as youtube",
+    "third_party": "Xiaohongshu",
+    "kind": "integration",
+    "avatar": "X",
+    "avatar_icon": "",
+    "avatar_color": "#3b82f6",
+    "avatar_url": "",
+    "tool_name": "xiaohongshu",
+    "config": {
+      "base_url": "",
       "depth": "default"
     },
     "code": null

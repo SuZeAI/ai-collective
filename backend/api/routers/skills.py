@@ -5,7 +5,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends
 
 from backend.api.deps import get_skill_service
-from backend.api.schemas.skill import SkillSchema, UpsertSkillRequest
+from backend.api.schemas.skill import SkillSchema, SkillToolPresetSchema, UpsertSkillRequest
 from backend.application.service.skill_service import SkillService
 from backend.domain.models import Skill
 
@@ -21,6 +21,12 @@ def list_skills(service: SkillService = Depends(get_skill_service)) -> list[Skil
 @router.get("/tools", response_model=list[str])
 def list_available_tools(service: SkillService = Depends(get_skill_service)) -> list[str]:
     return service.list_available_tool_names()
+
+
+@router.get("/tool-presets", response_model=list[SkillToolPresetSchema])
+def list_tool_presets(service: SkillService = Depends(get_skill_service)) -> list[SkillToolPresetSchema]:
+    presets = service.list_tool_presets()
+    return [SkillToolPresetSchema.model_validate(p) for p in presets]
 
 
 @router.post("", response_model=SkillSchema)

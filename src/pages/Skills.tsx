@@ -8,20 +8,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { AgentAvatar, skillAvatarIconOptions } from "@/components/AgentAvatar";
-import { api, type Skill } from "@/lib/api";
+import { api, type Skill, type SkillToolConfigField, type SkillToolPreset } from "@/lib/api";
 
 type ToolName = string;
 type AvatarMode = "initial" | "icon" | "image";
-type ToolPreset = { toolName: ToolName; label: string; thirdParty: string };
-
-const fallbackToolPresets: ToolPreset[] = [
-  { toolName: "websearch", label: "Web Search (DuckDuckGo)", thirdParty: "Web" },
-  { toolName: "browser", label: "Browser Automation", thirdParty: "Browser" },
-  { toolName: "bash", label: "Shell Automation", thirdParty: "Shell" },
-  { toolName: "youtube", label: "YouTube Search (yt-dlp)", thirdParty: "YouTube" },
-  { toolName: "xiaohongshu", label: "Xiaohongshu Search", thirdParty: "Xiaohongshu" },
-  { toolName: "promt_tool", label: "Prompt Tool", thirdParty: "Prompt" },
-];
+type ToolConfigValue = string | boolean;
 
 function toTitleCaseFromToolName(value: string): string {
   return value
@@ -31,15 +22,13 @@ function toTitleCaseFromToolName(value: string): string {
     .join(" ");
 }
 
-function toToolPreset(toolName: string): ToolPreset {
-  const fromFallback = fallbackToolPresets.find((preset) => preset.toolName === toolName);
-  if (fromFallback) return fromFallback;
-
+function toToolPreset(toolName: string): SkillToolPreset {
   const title = toTitleCaseFromToolName(toolName);
   return {
-    toolName,
+    tool_name: toolName,
     label: title,
-    thirdParty: title,
+    third_party: title,
+    config_fields: [],
   };
 }
 
@@ -62,77 +51,108 @@ function isHexColor(value: string): boolean {
   return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
 }
 
+function buildDefaultConfigValues(preset: SkillToolPreset | undefined): Record<string, ToolConfigValue> {
+  if (!preset) return {};
+  const next: Record<string, ToolConfigValue> = {};
+
+  for (const field of preset.config_fields || []) {
+    if (field.input === "boolean") {
+      next[field.key] = boolFromUnknown(field.default, false);
+      continue;
+    }
+    next[field.key] = String(field.default ?? "");
+  }
+
+  return next;
+}
+
+function buildConfigValuesForEdit(
+  preset: SkillToolPreset | undefined,
+  config: Record<string, unknown> | undefined,
+): Record<string, ToolConfigValue> {
+  const defaults = buildDefaultConfigValues(preset);
+  if (!preset || !config) return defaults;
+
+  const next = { ...defaults };
+  for (const field of preset.config_fields || []) {
+    const current = config[field.key];
+    if (current === undefined || current === null) continue;
+    if (field.input === "boolean") {
+      next[field.key] = boolFromUnknown(current, boolFromUnknown(field.default, false));
+      continue;
+    }
+    next[field.key] = String(current);
+  }
+  return next;
+}
+
+function buildConfigFromValues(
+  preset: SkillToolPreset | undefined,
+  values: Record<string, ToolConfigValue>,
+): Record<string, unknown> {
+  if (!preset) return {};
+  const config: Record<string, unknown> = {};
+
+  for (const field of preset.config_fields || []) {
+    const value = values[field.key];
+    if (field.input === "boolean") {
+      config[field.key] = Boolean(value);
+      continue;
+    }
+    config[field.key] = String(value ?? "").trim();
+  }
+
+  return config;
+}
+
+function validateRequiredConfig(
+  preset: SkillToolPreset | undefined,
+  values: Record<string, ToolConfigValue>,
+): boolean {
+  if (!preset) return true;
+
+  for (const field of preset.config_fields || []) {
+    if (!field.required) continue;
+
+    const value = values[field.key];
+    if (field.input === "boolean") continue;
+    if (!String(value ?? "").trim()) return false;
+  }
+
+  return true;
+}
+
 export default function Skills() {
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [toolPresets, setToolPresets] = useState<ToolPreset[]>(fallbackToolPresets);
+  const [toolPresets, setToolPresets] = useState<SkillToolPreset[]>([]);
   const [open, setOpen] = useState(false);
   const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
 
-  const [toolName, setToolName] = useState<ToolName>(fallbackToolPresets[0]?.toolName ?? "websearch");
-  const selectedPreset = useMemo(
-    () => toolPresets.find((p) => p.toolName === toolName) ?? toToolPreset(toolName),
-    [toolName],
-  );
-
+  const [toolName, setToolName] = useState<ToolName>("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [configValues, setConfigValues] = useState<Record<string, ToolConfigValue>>({});
+
   const [avatarMode, setAvatarMode] = useState<AvatarMode>("initial");
   const [avatarIcon, setAvatarIcon] = useState("wrench");
   const [avatarColor, setAvatarColor] = useState("#3b82f6");
   const [avatarUrl, setAvatarUrl] = useState("");
 
-  const [webProvider, setWebProvider] = useState("duckduckgo");
-  const [webRegion, setWebRegion] = useState("wt-wt");
-  const [webSafeSearch, setWebSafeSearch] = useState("moderate");
+  const presetByTool = useMemo(() => {
+    return new Map(toolPresets.map((preset) => [preset.tool_name, preset]));
+  }, [toolPresets]);
 
-  const [browserDriver, setBrowserDriver] = useState("browser_use");
-  const [browserCdpUrl, setBrowserCdpUrl] = useState("http://localhost:9222");
-  const [browserRequiresRuntime, setBrowserRequiresRuntime] = useState(true);
+  const selectedPreset = useMemo(() => {
+    if (!toolName) return null;
+    return presetByTool.get(toolName) ?? toToolPreset(toolName);
+  }, [presetByTool, toolName]);
 
-  const [bashSandbox, setBashSandbox] = useState("default");
-  const [bashRequiresRuntime, setBashRequiresRuntime] = useState(true);
-
-  const [youtubeDepth, setYoutubeDepth] = useState("default");
-
-  const [xiaohongshuBaseUrl, setXiaohongshuBaseUrl] = useState("");
-  const [xiaohongshuDepth, setXiaohongshuDepth] = useState("default");
-
-  const [promptSystemPrompt, setPromptSystemPrompt] = useState("");
-
-  const applyDefaultConfigByTool = (value: ToolName) => {
-    if (value === "websearch") {
-      setWebProvider("duckduckgo");
-      setWebRegion("wt-wt");
-      setWebSafeSearch("moderate");
-      return;
-    }
-
-    if (value === "browser") {
-      setBrowserDriver("browser_use");
-      setBrowserCdpUrl("http://localhost:9222");
-      setBrowserRequiresRuntime(true);
-      return;
-    }
-
-    if (value === "youtube") {
-      setYoutubeDepth("default");
-      return;
-    }
-
-    if (value === "xiaohongshu") {
-      setXiaohongshuBaseUrl("");
-      setXiaohongshuDepth("default");
-      return;
-    }
-
-    if (value === "promt_tool") {
-      setPromptSystemPrompt("");
-      return;
-    }
-
-    if (value === "bash") {
-      setBashSandbox("default");
-      setBashRequiresRuntime(true);
+  const handleToolChange = (nextToolName: ToolName) => {
+    setToolName(nextToolName);
+    const nextPreset = presetByTool.get(nextToolName) ?? toToolPreset(nextToolName);
+    setConfigValues(buildDefaultConfigValues(nextPreset));
+    if (!editingSkillId) {
+      setName(nextPreset.label || "");
     }
   };
 
@@ -140,26 +160,31 @@ export default function Skills() {
     let cancelled = false;
     (async () => {
       try {
-        const [list, backendTools] = await Promise.all([
+        const [list, backendPresets] = await Promise.all([
           api.listSkills(),
-          api.listSkillTools(),
+          api.listSkillToolPresets().catch(async () => {
+            const tools = await api.listSkillTools();
+            return tools.map(toToolPreset);
+          }),
         ]);
         if (cancelled) return;
 
-        setSkills(list);
-
-        const normalizedTools = Array.from(
-          new Set(
-            backendTools
-              .map((tool) => String(tool || "").trim())
-              .filter((tool) => tool.length > 0),
-          ),
+        const uniquePresets = Array.from(
+          new Map(
+            backendPresets
+              .filter((preset) => String(preset.tool_name || "").trim().length > 0)
+              .map((preset) => [preset.tool_name, preset]),
+          ).values(),
         );
 
-        if (normalizedTools.length > 0) {
-          const backendPresets = normalizedTools.map(toToolPreset);
-          setToolPresets(backendPresets);
-          setToolName((current) => (normalizedTools.includes(current) ? current : normalizedTools[0]));
+        setSkills(list);
+        setToolPresets(uniquePresets);
+
+        if (uniquePresets.length > 0) {
+          const firstTool = uniquePresets[0].tool_name;
+          setToolName((current) => (current && uniquePresets.some((preset) => preset.tool_name === current) ? current : firstTool));
+          setConfigValues((current) => (Object.keys(current).length > 0 ? current : buildDefaultConfigValues(uniquePresets[0])));
+          setName((current) => current || uniquePresets[0].label || "");
         }
       } catch (e) {
         console.error(e);
@@ -172,21 +197,22 @@ export default function Skills() {
 
   useEffect(() => {
     if (editingSkillId) return;
-    setName(selectedPreset?.label ?? "");
-    applyDefaultConfigByTool(toolName);
-  }, [selectedPreset, editingSkillId, toolName]);
+    if (!selectedPreset) return;
+    setName(selectedPreset.label || "");
+    setConfigValues(buildDefaultConfigValues(selectedPreset));
+  }, [selectedPreset, editingSkillId]);
 
   const resetForm = () => {
-    const defaultPreset = toolPresets[0] ?? fallbackToolPresets[0];
+    const defaultPreset = toolPresets[0];
     setEditingSkillId(null);
-    setToolName(defaultPreset?.toolName ?? "websearch");
+    setToolName(defaultPreset?.tool_name ?? "");
     setName(defaultPreset?.label ?? "");
     setDescription("");
+    setConfigValues(buildDefaultConfigValues(defaultPreset));
     setAvatarMode("initial");
     setAvatarIcon("wrench");
     setAvatarColor("#3b82f6");
     setAvatarUrl("");
-    applyDefaultConfigByTool(defaultPreset?.toolName ?? "websearch");
   };
 
   const openCreateDialog = () => {
@@ -195,132 +221,38 @@ export default function Skills() {
   };
 
   const openEditDialog = (skill: Skill) => {
-    setEditingSkillId(skill.id);
-    const inferredToolName: ToolName = (skill.tool_name || "").trim()
-      ? String(skill.tool_name)
-      : skill.third_party === "Browser"
-        ? "browser"
-        : skill.third_party === "Shell"
-          ? "bash"
-          : skill.third_party === "YouTube"
-            ? "youtube"
-            : skill.third_party === "Xiaohongshu"
-              ? "xiaohongshu"
-          : skill.third_party === "Prompt"
-            ? "promt_tool"
-          : "websearch";
+    const skillToolName = String(skill.tool_name || "").trim();
+    const inferredByThirdParty = toolPresets.find(
+      (preset) => preset.third_party.trim().toLowerCase() === String(skill.third_party || "").trim().toLowerCase(),
+    )?.tool_name;
+    const inferredToolName: ToolName = skillToolName || inferredByThirdParty || toolPresets[0]?.tool_name || "";
 
+    const preset = presetByTool.get(inferredToolName) ?? toToolPreset(inferredToolName);
+
+    setEditingSkillId(skill.id);
     setToolName(inferredToolName);
     setName(skill.name ?? "");
     setDescription(skill.description ?? "");
+    setConfigValues(buildConfigValuesForEdit(preset, (skill.config as Record<string, unknown> | undefined) ?? {}));
+
     setAvatarMode(skill.avatar_url ? "image" : skill.avatar_icon ? "icon" : "initial");
     setAvatarIcon(skill.avatar_icon || "wrench");
     setAvatarColor(isHexColor(skill.avatar_color || "") ? (skill.avatar_color as string) : "#3b82f6");
     setAvatarUrl(skill.avatar_url || "");
 
-    const config = (skill.config as Record<string, unknown> | undefined) ?? {};
-    if (inferredToolName === "websearch") {
-      setWebProvider(String(config.provider ?? "duckduckgo"));
-      setWebRegion(String(config.region ?? "wt-wt"));
-      setWebSafeSearch(String(config.safesearch ?? "moderate"));
-    }
-    if (inferredToolName === "browser") {
-      setBrowserDriver(String(config.driver ?? "browser_use"));
-      setBrowserCdpUrl(String(config.cdp_url ?? "http://localhost:9222"));
-      setBrowserRequiresRuntime(boolFromUnknown(config.requires_runtime, true));
-    }
-    if (inferredToolName === "bash") {
-      setBashSandbox(String(config.sandbox ?? "default"));
-      setBashRequiresRuntime(boolFromUnknown(config.requires_runtime, true));
-    }
-    if (inferredToolName === "youtube") {
-      setYoutubeDepth(String(config.depth ?? "default"));
-    }
-    if (inferredToolName === "xiaohongshu") {
-      setXiaohongshuBaseUrl(String(config.base_url ?? ""));
-      setXiaohongshuDepth(String(config.depth ?? "default"));
-    }
-    if (inferredToolName === "promt_tool") {
-      setPromptSystemPrompt(String(config.system_prompt ?? ""));
-    }
-
     setOpen(true);
-  };
-
-  const buildConfig = (): Record<string, unknown> => {
-    if (toolName === "websearch") {
-      return {
-        provider: webProvider.trim(),
-        region: webRegion.trim(),
-        safesearch: webSafeSearch.trim(),
-      };
-    }
-
-    if (toolName === "browser") {
-      return {
-        driver: browserDriver.trim(),
-        cdp_url: browserCdpUrl.trim(),
-        requires_runtime: browserRequiresRuntime,
-      };
-    }
-
-    if (toolName === "promt_tool") {
-      return {
-        system_prompt: promptSystemPrompt.trim(),
-      };
-    }
-
-    if (toolName === "youtube") {
-      return {
-        depth: youtubeDepth.trim(),
-      };
-    }
-    if (toolName === "xiaohongshu") {
-      return {
-        base_url: xiaohongshuBaseUrl.trim(),
-        depth: xiaohongshuDepth.trim(),
-      };
-    }
-    if (toolName === "bash") {
-      return {
-        sandbox: bashSandbox.trim(),
-        requires_runtime: bashRequiresRuntime,
-      };
-    }
-
-    return {};
   };
 
   const isValid = (): boolean => {
     if (!name.trim()) return false;
     if (!toolName.trim()) return false;
-
-    if (toolName === "websearch") {
-      return !!webProvider.trim() && !!webRegion.trim() && !!webSafeSearch.trim();
-    }
-    if (toolName === "browser") {
-      return !!browserDriver.trim() && !!browserCdpUrl.trim();
-    }
-    if (toolName === "promt_tool") {
-      return !!promptSystemPrompt.trim();
-    }
-    if (toolName === "youtube") {
-      return !!youtubeDepth.trim();
-    }
-    if (toolName === "xiaohongshu") {
-      return !!xiaohongshuDepth.trim();
-    }
-    if (toolName === "bash") {
-      return !!bashSandbox.trim();
-    }
-
-    return true;
+    return validateRequiredConfig(selectedPreset ?? undefined, configValues);
   };
 
   const saveSkill = async () => {
     if (!isValid()) return;
 
-    const config = buildConfig();
+    const config = buildConfigFromValues(selectedPreset ?? undefined, configValues);
 
     try {
       const saved = await api.upsertSkill({
@@ -328,7 +260,7 @@ export default function Skills() {
         name: name.trim(),
         description: description.trim(),
         kind: "integration",
-        third_party: selectedPreset?.thirdParty ?? toTitleCaseFromToolName(toolName),
+        third_party: selectedPreset?.third_party ?? toTitleCaseFromToolName(toolName),
         tool_name: toolName,
         config,
         avatar: name.trim()[0]?.toUpperCase() || "S",
@@ -360,6 +292,10 @@ export default function Skills() {
     }
   };
 
+  const updateConfigValue = (field: SkillToolConfigField, value: ToolConfigValue) => {
+    setConfigValues((prev) => ({ ...prev, [field.key]: value }));
+  };
+
   return (
     <div>
       <header className="mb-8 flex justify-between items-end">
@@ -374,11 +310,11 @@ export default function Skills() {
           <DialogContent>
             <DialogHeader><DialogTitle>{editingSkillId ? "Edit Skill" : "Create Skill"}</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
-              <Select value={toolName} onValueChange={setToolName}>
+              <Select value={toolName} onValueChange={handleToolChange}>
                 <SelectTrigger><SelectValue placeholder="Preset" /></SelectTrigger>
                 <SelectContent>
                   {toolPresets.map((p) => (
-                    <SelectItem key={p.toolName} value={p.toolName}>{p.label}</SelectItem>
+                    <SelectItem key={p.tool_name} value={p.tool_name}>{p.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -454,92 +390,73 @@ export default function Skills() {
 
               <div className="rounded-md border p-3 space-y-2">
                 <div className="text-xs font-medium text-muted-foreground">Tool Config</div>
-
-                {toolName === "websearch" ? (
+                {selectedPreset && selectedPreset.config_fields.length > 0 ? (
                   <div className="grid grid-cols-1 gap-2">
-                    <Input placeholder="Provider" value={webProvider} onChange={(e) => setWebProvider(e.target.value)} />
-                    <Input placeholder="Region (e.g. wt-wt, us-en)" value={webRegion} onChange={(e) => setWebRegion(e.target.value)} />
-                    <Select value={webSafeSearch} onValueChange={setWebSafeSearch}>
-                      <SelectTrigger><SelectValue placeholder="SafeSearch" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="off">off</SelectItem>
-                        <SelectItem value="moderate">moderate</SelectItem>
-                        <SelectItem value="strict">strict</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : null}
+                    {selectedPreset.config_fields.map((field) => {
+                      const fieldValue = configValues[field.key];
 
-                {toolName === "browser" ? (
-                  <div className="grid grid-cols-1 gap-2">
-                    <Input placeholder="Driver" value={browserDriver} onChange={(e) => setBrowserDriver(e.target.value)} />
-                    <Input placeholder="CDP URL" value={browserCdpUrl} onChange={(e) => setBrowserCdpUrl(e.target.value)} />
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={browserRequiresRuntime}
-                        onChange={(e) => setBrowserRequiresRuntime(e.target.checked)}
-                      />
-                      Requires Runtime
-                    </label>
-                  </div>
-                ) : null}
+                      if (field.input === "select") {
+                        const current = String(fieldValue ?? field.default ?? "");
+                        return (
+                          <div key={field.key} className="space-y-1">
+                            <div className="text-sm">{field.label}</div>
+                            <Select value={current} onValueChange={(value) => updateConfigValue(field, value)}>
+                              <SelectTrigger><SelectValue placeholder={field.placeholder || field.label} /></SelectTrigger>
+                              <SelectContent>
+                                {(field.options || []).map((option) => (
+                                  <SelectItem key={option} value={option}>{option}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {field.description ? <p className="text-xs text-muted-foreground">{field.description}</p> : null}
+                          </div>
+                        );
+                      }
 
-                {toolName === "bash" ? (
-                  <div className="grid grid-cols-1 gap-2">
-                    <Input placeholder="Sandbox" value={bashSandbox} onChange={(e) => setBashSandbox(e.target.value)} />
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={bashRequiresRuntime}
-                        onChange={(e) => setBashRequiresRuntime(e.target.checked)}
-                      />
-                      Requires Runtime
-                    </label>
-                  </div>
-                ) : null}
+                      if (field.input === "boolean") {
+                        return (
+                          <label key={field.key} className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(fieldValue)}
+                              onChange={(e) => updateConfigValue(field, e.target.checked)}
+                            />
+                            {field.label}
+                          </label>
+                        );
+                      }
 
-                {toolName === "youtube" ? (
-                  <div className="grid grid-cols-1 gap-2">
-                    <Select value={youtubeDepth} onValueChange={setYoutubeDepth}>
-                      <SelectTrigger><SelectValue placeholder="Search depth" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="quick">quick</SelectItem>
-                        <SelectItem value="default">default</SelectItem>
-                        <SelectItem value="deep">deep</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : null}
+                      if (field.input === "textarea") {
+                        return (
+                          <div key={field.key} className="space-y-1">
+                            <div className="text-sm">{field.label}</div>
+                            <Textarea
+                              placeholder={field.placeholder || field.label}
+                              value={String(fieldValue ?? "")}
+                              onChange={(e) => updateConfigValue(field, e.target.value)}
+                              rows={field.rows || 4}
+                            />
+                            {field.description ? <p className="text-xs text-muted-foreground">{field.description}</p> : null}
+                          </div>
+                        );
+                      }
 
-                {toolName === "xiaohongshu" ? (
-                  <div className="grid grid-cols-1 gap-2">
-                    <Input
-                      placeholder="API Base URL (optional, fallback to XIAOHONGSHU_API_BASE_URL)"
-                      value={xiaohongshuBaseUrl}
-                      onChange={(e) => setXiaohongshuBaseUrl(e.target.value)}
-                    />
-                    <Select value={xiaohongshuDepth} onValueChange={setXiaohongshuDepth}>
-                      <SelectTrigger><SelectValue placeholder="Search depth" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="quick">quick</SelectItem>
-                        <SelectItem value="default">default</SelectItem>
-                        <SelectItem value="deep">deep</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      return (
+                        <div key={field.key} className="space-y-1">
+                          <div className="text-sm">{field.label}</div>
+                          <Input
+                            placeholder={field.placeholder || field.label}
+                            value={String(fieldValue ?? "")}
+                            onChange={(e) => updateConfigValue(field, e.target.value)}
+                          />
+                          {field.description ? <p className="text-xs text-muted-foreground">{field.description}</p> : null}
+                        </div>
+                      );
+                    })}
                   </div>
-                ) : null}
-
-                {toolName === "promt_tool" ? (
-                  <div className="grid grid-cols-1 gap-2">
-                    <Textarea
-                      placeholder="System prompt"
-                      value={promptSystemPrompt}
-                      onChange={(e) => setPromptSystemPrompt(e.target.value)}
-                      rows={6}
-                    />
-                  </div>
-                ) : null}
+                ) : (
+                  <p className="text-xs text-muted-foreground">This tool has no configurable fields.</p>
+                )}
               </div>
 
               <Button className="w-full" onClick={saveSkill} disabled={!isValid()}>
@@ -567,23 +484,23 @@ export default function Skills() {
                     className="w-10 h-10"
                   />
                   <div className="min-w-0 flex-1">
-                <div className="font-bold truncate">{s.name}</div>
-                <div className="text-xs text-muted-foreground mt-1 truncate">
-                  {s.third_party ? s.third_party : s.kind}
-                </div>
-                {s.description ? (
-                  <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{s.description}</p>
-                ) : null}
-                {getConfigVariableNames(s.config).length ? (
-                  <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-                    Variables: {getConfigVariableNames(s.config).join(", ")}
-                  </p>
-                ) : null}
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                  <Badge variant="secondary" className="text-[10px]">{s.kind}</Badge>
-                  {s.tool_name ? <Badge variant="secondary" className="text-[10px]">{s.tool_name}</Badge> : null}
-                  {s.kind === "custom-js" ? <Badge variant="secondary" className="text-[10px]">code</Badge> : null}
-                </div>
+                    <div className="font-bold truncate">{s.name}</div>
+                    <div className="text-xs text-muted-foreground mt-1 truncate">
+                      {s.third_party ? s.third_party : s.kind}
+                    </div>
+                    {s.description ? (
+                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{s.description}</p>
+                    ) : null}
+                    {getConfigVariableNames(s.config).length ? (
+                      <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                        Variables: {getConfigVariableNames(s.config).join(", ")}
+                      </p>
+                    ) : null}
+                    <div className="flex flex-wrap gap-1.5 mt-3">
+                      <Badge variant="secondary" className="text-[10px]">{s.kind}</Badge>
+                      {s.tool_name ? <Badge variant="secondary" className="text-[10px]">{s.tool_name}</Badge> : null}
+                      {s.kind === "custom-js" ? <Badge variant="secondary" className="text-[10px]">code</Badge> : null}
+                    </div>
                   </div>
                 </div>
               </div>

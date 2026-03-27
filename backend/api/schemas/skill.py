@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -49,3 +51,22 @@ class UpsertSkillRequest(BaseModel):
     avatar_color: str | None = None
     avatar_url: str | None = None
     code: str | None = None
+
+
+class SkillToolConfigFieldSchema(BaseModel):
+    key: str
+    label: str
+    input: Literal["text", "textarea", "select", "boolean"] = "text"
+    required: bool = False
+    default: Any = None
+    placeholder: str = ""
+    options: list[str] = Field(default_factory=list)
+    rows: int | None = None
+    description: str = ""
+
+
+class SkillToolPresetSchema(BaseModel):
+    tool_name: str
+    label: str
+    third_party: str
+    config_fields: list[SkillToolConfigFieldSchema] = Field(default_factory=list)
