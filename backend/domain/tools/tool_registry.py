@@ -47,7 +47,7 @@ class ToolRegistry:
 
         if tool_name == ToolType.BROWSER.value:
             browser = kwargs.get("driver")
-            if browser is None:
+            if browser is not None:
                 cdp_url = kwargs.get("cdp_url")
                 if not cdp_url:
                     raise ValueError(
@@ -58,6 +58,11 @@ class ToolRegistry:
                 from backend.infrastructure.browser.browser_use_browser import BrowserUseBrowser
 
                 kwargs = {**kwargs, "browser": BrowserUseBrowser(cdp_url=cdp_url)}
+            else:
+                raise ValueError(
+                    "Failed to instantiate browser. Required kwargs: "
+                    "provide 'driver' or 'cdp_url'."
+                )
         try:
             return tool_class(**kwargs)
         except TypeError as e:
