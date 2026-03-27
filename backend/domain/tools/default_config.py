@@ -99,6 +99,35 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 			},
 		],
 	},
+	"xai": {
+		"label": "xAI X Search",
+		"third_party": "X (xAI)",
+		"config_fields": [
+			{
+				"key": "api_key",
+				"label": "xAI API Key",
+				"input": "text",
+				"required": False,
+				"default": "",
+				"placeholder": "Optional, fallback to XAI_API_KEY",
+			},
+			{
+				"key": "model",
+				"label": "Model",
+				"input": "text",
+				"required": False,
+				"default": "grok-4-fast",
+			},
+			{
+				"key": "depth",
+				"label": "Search Depth",
+				"input": "select",
+				"required": True,
+				"default": "default",
+				"options": ["quick", "default", "deep"],
+			},
+		],
+	},
 	"xiaohongshu": {
 		"label": "Xiaohongshu Search",
 		"third_party": "Xiaohongshu",

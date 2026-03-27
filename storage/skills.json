@@ -290,5 +290,23 @@
     "tool_name": "dedupe_search",
     "config": {},
     "code": null
+  },
+  {
+    "id": "skill_5fb1c009d12a40feafb2273449d5aea6",
+    "name": "xAI X Search",
+    "description": "xAIX Search",
+    "third_party": "X (xAI)",
+    "kind": "integration",
+    "avatar": "X",
+    "avatar_icon": "search",
+    "avatar_color": "#a1e75a",
+    "avatar_url": "",
+    "tool_name": "xai",
+    "config": {
+      "api_key": "sdafasfsdgfshfs5edacfwfadsgadfg",
+      "model": "grok-4-fast",
+      "depth": "default"
+    },
+    "code": null
   }
 ]
