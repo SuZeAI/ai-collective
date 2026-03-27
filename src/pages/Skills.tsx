@@ -19,6 +19,7 @@ const fallbackToolPresets: ToolPreset[] = [
   { toolName: "browser", label: "Browser Automation", thirdParty: "Browser" },
   { toolName: "bash", label: "Shell Automation", thirdParty: "Shell" },
   { toolName: "youtube", label: "YouTube Search (yt-dlp)", thirdParty: "YouTube" },
+  { toolName: "xiaohongshu", label: "Xiaohongshu Search", thirdParty: "Xiaohongshu" },
   { toolName: "promt_tool", label: "Prompt Tool", thirdParty: "Prompt" },
 ];
 
@@ -93,6 +94,9 @@ export default function Skills() {
 
   const [youtubeDepth, setYoutubeDepth] = useState("default");
 
+  const [xiaohongshuBaseUrl, setXiaohongshuBaseUrl] = useState("");
+  const [xiaohongshuDepth, setXiaohongshuDepth] = useState("default");
+
   const [promptSystemPrompt, setPromptSystemPrompt] = useState("");
 
   const applyDefaultConfigByTool = (value: ToolName) => {
@@ -112,6 +116,12 @@ export default function Skills() {
 
     if (value === "youtube") {
       setYoutubeDepth("default");
+      return;
+    }
+
+    if (value === "xiaohongshu") {
+      setXiaohongshuBaseUrl("");
+      setXiaohongshuDepth("default");
       return;
     }
 
@@ -194,6 +204,8 @@ export default function Skills() {
           ? "bash"
           : skill.third_party === "YouTube"
             ? "youtube"
+            : skill.third_party === "Xiaohongshu"
+              ? "xiaohongshu"
           : skill.third_party === "Prompt"
             ? "promt_tool"
           : "websearch";
@@ -223,6 +235,10 @@ export default function Skills() {
     }
     if (inferredToolName === "youtube") {
       setYoutubeDepth(String(config.depth ?? "default"));
+    }
+    if (inferredToolName === "xiaohongshu") {
+      setXiaohongshuBaseUrl(String(config.base_url ?? ""));
+      setXiaohongshuDepth(String(config.depth ?? "default"));
     }
     if (inferredToolName === "promt_tool") {
       setPromptSystemPrompt(String(config.system_prompt ?? ""));
@@ -259,6 +275,12 @@ export default function Skills() {
         depth: youtubeDepth.trim(),
       };
     }
+    if (toolName === "xiaohongshu") {
+      return {
+        base_url: xiaohongshuBaseUrl.trim(),
+        depth: xiaohongshuDepth.trim(),
+      };
+    }
     if (toolName === "bash") {
       return {
         sandbox: bashSandbox.trim(),
@@ -284,6 +306,9 @@ export default function Skills() {
     }
     if (toolName === "youtube") {
       return !!youtubeDepth.trim();
+    }
+    if (toolName === "xiaohongshu") {
+      return !!xiaohongshuDepth.trim();
     }
     if (toolName === "bash") {
       return !!bashSandbox.trim();
@@ -477,6 +502,24 @@ export default function Skills() {
                 {toolName === "youtube" ? (
                   <div className="grid grid-cols-1 gap-2">
                     <Select value={youtubeDepth} onValueChange={setYoutubeDepth}>
+                      <SelectTrigger><SelectValue placeholder="Search depth" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="quick">quick</SelectItem>
+                        <SelectItem value="default">default</SelectItem>
+                        <SelectItem value="deep">deep</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+
+                {toolName === "xiaohongshu" ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    <Input
+                      placeholder="API Base URL (optional, fallback to XIAOHONGSHU_API_BASE_URL)"
+                      value={xiaohongshuBaseUrl}
+                      onChange={(e) => setXiaohongshuBaseUrl(e.target.value)}
+                    />
+                    <Select value={xiaohongshuDepth} onValueChange={setXiaohongshuDepth}>
                       <SelectTrigger><SelectValue placeholder="Search depth" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="quick">quick</SelectItem>

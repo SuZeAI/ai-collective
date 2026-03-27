@@ -6,6 +6,7 @@ from backend.domain.tools.bash import BashToolkit
 from backend.domain.tools.browser import BrowserToolkit
 from backend.domain.tools.promt_tool import PromtToolToolkit
 from backend.domain.tools.websearch import WebSearchToolkit
+from backend.domain.tools.xiaohongshu import XiaohongshuToolkit
 from backend.domain.tools.youtube import YouTubeToolkit
 
 
@@ -13,6 +14,7 @@ class ToolType(str, Enum):
     BASH = "bash"
     BROWSER = "browser"
     WEBSEARCH = "websearch"
+    XIAOHONGSHU = "xiaohongshu"
     YOUTUBE = "youtube"
     PROMT_TOOL = "promt_tool"
 
@@ -21,6 +23,7 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.BASH.value: BashToolkit,
     ToolType.BROWSER.value: BrowserToolkit,
     ToolType.WEBSEARCH.value: WebSearchToolkit,
+    ToolType.XIAOHONGSHU.value: XiaohongshuToolkit,
     ToolType.YOUTUBE.value: YouTubeToolkit,
     ToolType.PROMT_TOOL.value: PromtToolToolkit,
 }
