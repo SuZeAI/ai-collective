@@ -66,7 +66,7 @@ class BaseToolkit(LangchainBaseToolkit):
             wrapped_tool = Tool(tool, toolkit=self)
             # Apply tool name sanitization and override if provided
             if tool_name_override:
-                wrapped_tool.name = self._sanitize_tool_name(tool_name_override)
+                wrapped_tool.name = wrapped_tool.name + "_" + self._sanitize_tool_name(tool_name_override)
             self.tools.append(wrapped_tool)
 
     @staticmethod

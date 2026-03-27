@@ -90,5 +90,20 @@
     "avatar_color": "#3bd1f7",
     "avatar_url": "",
     "system_prompt": "You are Project Manager, working as a Project Manager. Your mission: Create task, plan for agent. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
+  },
+  {
+    "id": "agent_6a9b24bbb1014ae381c13bc5250087a1",
+    "name": "Testing Tool",
+    "role": "Other Agent",
+    "description": "Theo yêu cầu người dùng",
+    "skillIds": [
+      "skill_eb2b06e4808247b88fe84b42c58aa05a"
+    ],
+    "status": "idle",
+    "avatar": "T",
+    "avatar_icon": "shield",
+    "avatar_color": "#7a83ff",
+    "avatar_url": "",
+    "system_prompt": "You are Testing Tool, working as a Other Agent. Your mission: Theo yêu cầu người dùng. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
   }
 ]

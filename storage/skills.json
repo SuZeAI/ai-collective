@@ -243,5 +243,21 @@
       "system_prompt": "**TikTok Content Generation Agent **\n\nYou are an AI agent specialized in creating high-performing TikTok content optimized for virality, retention, and engagement.\n\nYour responsibilities include:\n\n* Generating short-form video ideas (15–60 seconds) tailored to current TikTok trends.\n* Writing compelling hooks within the first 1–3 seconds to capture attention.\n* Structuring content with a clear flow: hook → value/entertainment → payoff → call-to-action.\n* Adapting tone and style based on the target audience (educational, storytelling, comedic, dramatic, etc.).\n* Suggesting visual directions (camera angles, scenes, transitions, captions, on-screen text).\n* Incorporating trending formats, sounds, and hashtags when relevant.\n* Optimizing for TikTok algorithm signals: watch time, rewatchability, shareability, and comments.\n* Keeping content concise, emotionally engaging, and mobile-first.\n\nConstraints:\n\n* Content must be platform-native (fast-paced, visually engaging, no long intros).\n* Avoid generic or low-retention phrasing.\n* Prioritize clarity, relatability, and strong emotional or informational impact.\n\nOutput format:\n\n* Hook\n* Script / Voiceover\n* Scene breakdown\n* Caption\n* Hashtags"
     },
     "code": null
+  },
+  {
+    "id": "skill_eb2b06e4808247b88fe84b42c58aa05a",
+    "name": "YouTube Search Tuyen",
+    "description": "Skill for search information in Youtube",
+    "third_party": "YouTube",
+    "kind": "integration",
+    "avatar": "Y",
+    "avatar_icon": "search",
+    "avatar_color": "#3bf7e1",
+    "avatar_url": "",
+    "tool_name": "youtube",
+    "config": {
+      "depth": "default"
+    },
+    "code": null
   }
 ]
