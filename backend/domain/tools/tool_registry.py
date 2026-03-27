@@ -10,6 +10,7 @@ from backend.domain.tools.ui import UIToolkit
 from backend.domain.tools.websearch import WebSearchToolkit
 from backend.domain.tools.xai import XAIToolkit
 from backend.domain.tools.xiaohongshu import XiaohongshuToolkit
+from backend.domain.tools.truthsocial import TruthSocialToolkit
 from backend.domain.tools.youtube import YouTubeToolkit
 
 
@@ -20,6 +21,7 @@ class ToolType(str, Enum):
     DEDUPE_SEARCH = "dedupe_search"
     XAI = "xai"
     XIAOHONGSHU = "xiaohongshu"
+    TRUTHSOCIAL = "truthsocial"
     YOUTUBE = "youtube"
     PROMT_TOOL = "promt_tool"
     UI = "ui"
@@ -32,6 +34,7 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.DEDUPE_SEARCH.value: DedupeSearchToolkit,
     ToolType.XAI.value: XAIToolkit,
     ToolType.XIAOHONGSHU.value: XiaohongshuToolkit,
+    ToolType.TRUTHSOCIAL.value: TruthSocialToolkit,
     ToolType.YOUTUBE.value: YouTubeToolkit,
     ToolType.PROMT_TOOL.value: PromtToolToolkit,
     ToolType.UI.value: UIToolkit,

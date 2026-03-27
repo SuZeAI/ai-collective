@@ -150,6 +150,28 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 			},
 		],
 	},
+	"truthsocial": {
+		"label": "Truth Social Search",
+		"third_party": "Truth Social",
+		"config_fields": [
+			{
+				"key": "token",
+				"label": "Truth Social Token",
+				"input": "text",
+				"required": False,
+				"default": "",
+				"placeholder": "Optional, fallback to TRUTHSOCIAL_TOKEN",
+			},
+			{
+				"key": "depth",
+				"label": "Search Depth",
+				"input": "select",
+				"required": True,
+				"default": "default",
+				"options": ["quick", "default", "deep"],
+			},
+		],
+	},
 	"promt_tool": {
 		"label": "Prompt Tool",
 		"third_party": "Prompt",
