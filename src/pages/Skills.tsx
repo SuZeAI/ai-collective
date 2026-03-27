@@ -10,18 +10,36 @@ import { Badge } from "@/components/ui/badge";
 import { AgentAvatar, skillAvatarIconOptions } from "@/components/AgentAvatar";
 import { api, type Skill } from "@/lib/api";
 
-type ToolName = "websearch" | "browser" | "bash" | "promt_tool";
+type ToolName = string;
 type AvatarMode = "initial" | "icon" | "image";
+type ToolPreset = { toolName: ToolName; label: string; thirdParty: string };
 
-const toolPresets: Array<{ toolName: ToolName; label: string; thirdParty: string }> = [
+const fallbackToolPresets: ToolPreset[] = [
   { toolName: "websearch", label: "Web Search (DuckDuckGo)", thirdParty: "Web" },
   { toolName: "browser", label: "Browser Automation", thirdParty: "Browser" },
   { toolName: "bash", label: "Shell Automation", thirdParty: "Shell" },
+  { toolName: "youtube", label: "YouTube Search (yt-dlp)", thirdParty: "YouTube" },
   { toolName: "promt_tool", label: "Prompt Tool", thirdParty: "Prompt" },
 ];
 
-function isToolName(value: string | null | undefined): value is ToolName {
-  return value === "websearch" || value === "browser" || value === "bash" || value === "promt_tool";
+function toTitleCaseFromToolName(value: string): string {
+  return value
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`)
+    .join(" ");
+}
+
+function toToolPreset(toolName: string): ToolPreset {
+  const fromFallback = fallbackToolPresets.find((preset) => preset.toolName === toolName);
+  if (fromFallback) return fromFallback;
+
+  const title = toTitleCaseFromToolName(toolName);
+  return {
+    toolName,
+    label: title,
+    thirdParty: title,
+  };
 }
 
 function boolFromUnknown(value: unknown, fallback: boolean): boolean {
@@ -45,12 +63,13 @@ function isHexColor(value: string): boolean {
 
 export default function Skills() {
   const [skills, setSkills] = useState<Skill[]>([]);
+  const [toolPresets, setToolPresets] = useState<ToolPreset[]>(fallbackToolPresets);
   const [open, setOpen] = useState(false);
   const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
 
-  const [toolName, setToolName] = useState<ToolName>("websearch");
+  const [toolName, setToolName] = useState<ToolName>(fallbackToolPresets[0]?.toolName ?? "websearch");
   const selectedPreset = useMemo(
-    () => toolPresets.find((p) => p.toolName === toolName) ?? toolPresets[0],
+    () => toolPresets.find((p) => p.toolName === toolName) ?? toToolPreset(toolName),
     [toolName],
   );
 
@@ -72,6 +91,8 @@ export default function Skills() {
   const [bashSandbox, setBashSandbox] = useState("default");
   const [bashRequiresRuntime, setBashRequiresRuntime] = useState(true);
 
+  const [youtubeDepth, setYoutubeDepth] = useState("default");
+
   const [promptSystemPrompt, setPromptSystemPrompt] = useState("");
 
   const applyDefaultConfigByTool = (value: ToolName) => {
@@ -89,21 +110,47 @@ export default function Skills() {
       return;
     }
 
+    if (value === "youtube") {
+      setYoutubeDepth("default");
+      return;
+    }
+
     if (value === "promt_tool") {
       setPromptSystemPrompt("");
       return;
     }
 
-    setBashSandbox("default");
-    setBashRequiresRuntime(true);
+    if (value === "bash") {
+      setBashSandbox("default");
+      setBashRequiresRuntime(true);
+    }
   };
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const list = await api.listSkills();
-        if (!cancelled) setSkills(list);
+        const [list, backendTools] = await Promise.all([
+          api.listSkills(),
+          api.listSkillTools(),
+        ]);
+        if (cancelled) return;
+
+        setSkills(list);
+
+        const normalizedTools = Array.from(
+          new Set(
+            backendTools
+              .map((tool) => String(tool || "").trim())
+              .filter((tool) => tool.length > 0),
+          ),
+        );
+
+        if (normalizedTools.length > 0) {
+          const backendPresets = normalizedTools.map(toToolPreset);
+          setToolPresets(backendPresets);
+          setToolName((current) => (normalizedTools.includes(current) ? current : normalizedTools[0]));
+        }
       } catch (e) {
         console.error(e);
       }
@@ -120,15 +167,16 @@ export default function Skills() {
   }, [selectedPreset, editingSkillId, toolName]);
 
   const resetForm = () => {
+    const defaultPreset = toolPresets[0] ?? fallbackToolPresets[0];
     setEditingSkillId(null);
-    setToolName("websearch");
-    setName(toolPresets[0]?.label ?? "");
+    setToolName(defaultPreset?.toolName ?? "websearch");
+    setName(defaultPreset?.label ?? "");
     setDescription("");
     setAvatarMode("initial");
     setAvatarIcon("wrench");
     setAvatarColor("#3b82f6");
     setAvatarUrl("");
-    applyDefaultConfigByTool("websearch");
+    applyDefaultConfigByTool(defaultPreset?.toolName ?? "websearch");
   };
 
   const openCreateDialog = () => {
@@ -138,12 +186,14 @@ export default function Skills() {
 
   const openEditDialog = (skill: Skill) => {
     setEditingSkillId(skill.id);
-    const inferredToolName: ToolName = isToolName(skill.tool_name)
-      ? skill.tool_name
+    const inferredToolName: ToolName = (skill.tool_name || "").trim()
+      ? String(skill.tool_name)
       : skill.third_party === "Browser"
         ? "browser"
         : skill.third_party === "Shell"
           ? "bash"
+          : skill.third_party === "YouTube"
+            ? "youtube"
           : skill.third_party === "Prompt"
             ? "promt_tool"
           : "websearch";
@@ -170,6 +220,9 @@ export default function Skills() {
     if (inferredToolName === "bash") {
       setBashSandbox(String(config.sandbox ?? "default"));
       setBashRequiresRuntime(boolFromUnknown(config.requires_runtime, true));
+    }
+    if (inferredToolName === "youtube") {
+      setYoutubeDepth(String(config.depth ?? "default"));
     }
     if (inferredToolName === "promt_tool") {
       setPromptSystemPrompt(String(config.system_prompt ?? ""));
@@ -201,14 +254,24 @@ export default function Skills() {
       };
     }
 
-    return {
-      sandbox: bashSandbox.trim(),
-      requires_runtime: bashRequiresRuntime,
-    };
+    if (toolName === "youtube") {
+      return {
+        depth: youtubeDepth.trim(),
+      };
+    }
+    if (toolName === "bash") {
+      return {
+        sandbox: bashSandbox.trim(),
+        requires_runtime: bashRequiresRuntime,
+      };
+    }
+
+    return {};
   };
 
   const isValid = (): boolean => {
     if (!name.trim()) return false;
+    if (!toolName.trim()) return false;
 
     if (toolName === "websearch") {
       return !!webProvider.trim() && !!webRegion.trim() && !!webSafeSearch.trim();
@@ -219,7 +282,14 @@ export default function Skills() {
     if (toolName === "promt_tool") {
       return !!promptSystemPrompt.trim();
     }
-    return !!bashSandbox.trim();
+    if (toolName === "youtube") {
+      return !!youtubeDepth.trim();
+    }
+    if (toolName === "bash") {
+      return !!bashSandbox.trim();
+    }
+
+    return true;
   };
 
   const saveSkill = async () => {
@@ -233,7 +303,7 @@ export default function Skills() {
         name: name.trim(),
         description: description.trim(),
         kind: "integration",
-        third_party: selectedPreset?.thirdParty ?? "",
+        third_party: selectedPreset?.thirdParty ?? toTitleCaseFromToolName(toolName),
         tool_name: toolName,
         config,
         avatar: name.trim()[0]?.toUpperCase() || "S",
@@ -279,7 +349,7 @@ export default function Skills() {
           <DialogContent>
             <DialogHeader><DialogTitle>{editingSkillId ? "Edit Skill" : "Create Skill"}</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
-              <Select value={toolName} onValueChange={(value) => setToolName(value as ToolName)}>
+              <Select value={toolName} onValueChange={setToolName}>
                 <SelectTrigger><SelectValue placeholder="Preset" /></SelectTrigger>
                 <SelectContent>
                   {toolPresets.map((p) => (
@@ -401,6 +471,19 @@ export default function Skills() {
                       />
                       Requires Runtime
                     </label>
+                  </div>
+                ) : null}
+
+                {toolName === "youtube" ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    <Select value={youtubeDepth} onValueChange={setYoutubeDepth}>
+                      <SelectTrigger><SelectValue placeholder="Search depth" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="quick">quick</SelectItem>
+                        <SelectItem value="default">default</SelectItem>
+                        <SelectItem value="deep">deep</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 ) : null}
 

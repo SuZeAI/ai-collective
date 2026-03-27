@@ -3,6 +3,7 @@ from backend.domain.tools.bash import BashToolkit, SandboxPort
 from backend.domain.tools.browser import BrowserPort, BrowserToolkit
 from backend.domain.tools.promt_tool import PromtToolToolkit
 from backend.domain.tools.websearch import WebSearchItem, WebSearchResult, WebSearchToolkit
+from backend.domain.tools.youtube import YouTubeToolkit
 
 __all__ = [
     "BaseToolkit",
@@ -15,4 +16,5 @@ __all__ = [
     "WebSearchToolkit",
     "WebSearchResult",
     "WebSearchItem",
+    "YouTubeToolkit",
 ]
