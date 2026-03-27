@@ -46,23 +46,23 @@ class ToolRegistry:
             return None
 
         if tool_name == ToolType.BROWSER.value:
-            browser = kwargs.get("driver")
-            if browser is not None:
-                cdp_url = kwargs.get("cdp_url")
-                if not cdp_url:
-                    raise ValueError(
-                        "Failed to instantiate browser. Required kwargs: "
-                        "provide either 'driver' or 'cdp_url'."
-                    )
-
-                from backend.infrastructure.browser.browser_use_browser import BrowserUseBrowser
-
-                kwargs = {**kwargs, "browser": BrowserUseBrowser(cdp_url=cdp_url)}
-            else:
+            cdp_url = kwargs.get("cdp_url")
+            if not cdp_url:
                 raise ValueError(
                     "Failed to instantiate browser. Required kwargs: "
-                    "provide 'driver' or 'cdp_url'."
+                    "provide 'cdp_url'."
                 )
+
+            driver = kwargs.get("driver")
+            if driver not in (None, "browser_use"):
+                raise ValueError(
+                    f"Unsupported browser driver '{driver}'. "
+                    "Only 'browser_use' is currently supported."
+                )
+
+            from backend.infrastructure.browser.browser_use_browser import BrowserUseBrowser
+
+            kwargs = {**kwargs, "browser": BrowserUseBrowser(cdp_url=cdp_url)}
         try:
             return tool_class(**kwargs)
         except TypeError as e:

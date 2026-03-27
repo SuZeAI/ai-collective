@@ -82,17 +82,92 @@ class BrowserUseBrowser:
     # ------------------------------------------------------------------
 
     async def _get_current_page(self):
-        """Return the actor Page for the currently focused tab."""
+        """Return the actor Page for the current visible tab and keep focus in sync."""
         session = await self._ensure_session()
-        page = await session.get_current_page()
+        page = await self._select_visible_page()
         if page is None:
             page = await session.new_page()
+            await self._focus_page(page)
         return page
 
     async def _get_cdp_session(self) -> CDPSession:
-        """Return the CDPSession for the currently focused tab."""
+        """Return the CDPSession for the current visible tab."""
         session = await self._ensure_session()
-        return await session.get_or_create_cdp_session()
+        page = await self._select_visible_page()
+        if page is not None:
+            target_id = await self._get_target_id(page)
+            if target_id:
+                return await session.get_or_create_cdp_session(target_id=target_id, focus=True)
+        return await session.get_or_create_cdp_session(focus=True)
+
+    async def _get_target_id(self, page: Any) -> Optional[str]:
+        """Return CDP targetId for a browser_use Page actor."""
+        try:
+            target_info = await page.get_target_info()
+            target_id = target_info.get("targetId")
+            return target_id if isinstance(target_id, str) and target_id else None
+        except Exception:
+            return None
+
+    async def _focus_page(self, page: Any) -> None:
+        """Force BrowserSession focus to the given page target."""
+        target_id = await self._get_target_id(page)
+        if not target_id:
+            return
+        session = await self._ensure_session()
+        await session.get_or_create_cdp_session(target_id=target_id, focus=True)
+
+    @staticmethod
+    def _is_blank_or_internal_url(url: str) -> bool:
+        value = (url or "").strip().lower()
+        return (
+            not value
+            or value == "about:blank"
+            or value == "chrome://newtab/"
+            or value == "chrome://new-tab-page/"
+            or value.startswith("chrome-extension://")
+            or value.startswith("devtools://")
+        )
+
+    async def _select_visible_page(self):
+        """Pick the best tab for user-visible interactions and keep session focus aligned."""
+        session = await self._ensure_session()
+        current_page = await session.get_current_page()
+        pages = await session.get_pages()
+
+        # Keep order stable while deduplicating by target id.
+        unique_pages: List[Any] = []
+        seen_target_ids: set[str] = set()
+        for candidate in [current_page, *pages]:
+            if candidate is None:
+                continue
+            target_id = await self._get_target_id(candidate)
+            if target_id and target_id in seen_target_ids:
+                continue
+            if target_id:
+                seen_target_ids.add(target_id)
+            unique_pages.append(candidate)
+
+        if not unique_pages:
+            return None
+
+        # Prefer the most recently created non-blank page.
+        chosen_page = None
+        for candidate in reversed(unique_pages):
+            try:
+                info = await candidate.get_target_info()
+                url = str(info.get("url") or "")
+                if not self._is_blank_or_internal_url(url):
+                    chosen_page = candidate
+                    break
+            except Exception:
+                continue
+
+        if chosen_page is None:
+            chosen_page = current_page or unique_pages[-1]
+
+        await self._focus_page(chosen_page)
+        return chosen_page
 
     async def _get_interactive_elements(self) -> List[str]:
         """Return a formatted list of interactive elements from the DOM selector map."""
