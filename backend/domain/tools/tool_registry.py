@@ -52,29 +52,12 @@ class ToolRegistry:
                 if not cdp_url:
                     raise ValueError(
                         "Failed to instantiate browser. Required kwargs: "
-                        "provide either 'browser' or 'cdp_url'."
+                        "provide either 'driver' or 'cdp_url'."
                     )
 
                 from backend.infrastructure.browser.browser_use_browser import BrowserUseBrowser
 
                 kwargs = {**kwargs, "browser": BrowserUseBrowser(cdp_url=cdp_url)}
-
-            # Keep only constructor-relevant args for BrowserToolkit.
-            kwargs = {"browser": kwargs["browser"]}
-
-        if tool_name == ToolType.PROMT_TOOL.value:
-            system_prompt = kwargs.get("system_prompt")
-            if not system_prompt:
-                raise ValueError(
-                    "Failed to instantiate promt_tool. Required kwargs: "
-                    "provide 'system_prompt'."
-                )
-
-            kwargs = {
-                "system_prompt": str(system_prompt),
-                "tool_name_override": kwargs.get("skill_name"),
-            }
-
         try:
             return tool_class(**kwargs)
         except TypeError as e:

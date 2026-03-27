@@ -2,7 +2,7 @@ from typing import Optional, Dict, Any
 
 from backend.domain.models import Skill
 from backend.domain.tools.base import BaseToolkit
-from backend.domain.tools.tool_registry import ToolRegistry, ToolType
+from backend.domain.tools.tool_registry import ToolRegistry
 
 
 class SkillToolBinder:
@@ -19,8 +19,8 @@ class SkillToolBinder:
         **kwargs: Any,
     ) -> Dict[str, Any]:
         skill_config = dict(skill.config or {})
-        if "skill_name" not in kwargs and skill.tool_name == ToolType.PROMT_TOOL.value:
-            kwargs = {**kwargs, "skill_name": skill.name}
+        if "tool_name_override" not in kwargs:
+            kwargs = {**kwargs, "tool_name_override": skill.name}
         # Caller-provided kwargs should take precedence over persisted skill config.
         return {**skill_config, **kwargs}
 

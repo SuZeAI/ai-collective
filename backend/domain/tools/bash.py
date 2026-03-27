@@ -24,8 +24,8 @@ class BashToolkit(BaseToolkit):
 
     name: str = "bash"
 
-    def __init__(self, sandbox: SandboxPort):
-        super().__init__()
+    def __init__(self, sandbox: SandboxPort, **kwargs):
+        super().__init__(**kwargs)
         self.sandbox = sandbox
 
     @tool(parse_docstring=True)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import re
 from typing import Any, List, Optional
 
 from langchain.messages import ToolMessage
@@ -56,12 +57,25 @@ class BaseToolkit(LangchainBaseToolkit):
     tools: List[Tool] = []
     model_config = ConfigDict(ignored_types=(BaseTool,), extra="allow")
 
-    def __init__(self):
+    def __init__(self, **kwargs: Any):
         super().__init__()
         self.tools = []
+        tool_name_override = kwargs.get("tool_name_override")
 
         for _, tool in inspect.getmembers(self, lambda x: isinstance(x, BaseTool)):
-            self.tools.append(Tool(tool, toolkit=self))
+            wrapped_tool = Tool(tool, toolkit=self)
+            # Apply tool name sanitization and override if provided
+            if tool_name_override:
+                wrapped_tool.name = self._sanitize_tool_name(tool_name_override)
+            self.tools.append(wrapped_tool)
+
+    @staticmethod
+    def _sanitize_tool_name(raw_name: str) -> str:
+        """Sanitize tool names to be lowercase with underscores, no special chars."""
+        normalized = raw_name.strip().lower().replace(" ", "_")
+        normalized = re.sub(r"[^a-z0-9_\-]", "_", normalized)
+        normalized = re.sub(r"_+", "_", normalized).strip("_")
+        return (normalized or "tool")[0:64]
 
     def get_tools(self) -> List[Tool]:
         return self.tools

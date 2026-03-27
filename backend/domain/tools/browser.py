@@ -50,8 +50,8 @@ class BrowserToolkit(BaseToolkit):
 
     name: str = "browser"
 
-    def __init__(self, browser: BrowserPort):
-        super().__init__()
+    def __init__(self, browser: BrowserPort, **kwargs):
+        super().__init__(**kwargs)
         self.browser = browser
 
     @tool(parse_docstring=True)
