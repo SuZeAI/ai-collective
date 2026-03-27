@@ -276,5 +276,19 @@
       "depth": "default"
     },
     "code": null
+  },
+  {
+    "id": "skill_fa3fc958d341461781901adab370a50c",
+    "name": "Dedupe Search Results",
+    "description": "Dedupe search results",
+    "third_party": "Search Utils",
+    "kind": "integration",
+    "avatar": "D",
+    "avatar_icon": "cpu",
+    "avatar_color": "#42f5c8",
+    "avatar_url": "",
+    "tool_name": "dedupe_search",
+    "config": {},
+    "code": null
   }
 ]

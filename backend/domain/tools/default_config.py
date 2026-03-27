@@ -33,6 +33,11 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 			},
 		],
 	},
+	"dedupe_search": {
+		"label": "Dedupe Search Results",
+		"third_party": "Search Utils",
+		"config_fields": [],
+	},
 	"browser": {
 		"label": "Browser Automation",
 		"third_party": "Browser",
