@@ -356,5 +356,22 @@
       "depth": "default"
     },
     "code": null
+  },
+  {
+    "id": "skill_323ab24d9fe84653b0dbf6836c715498",
+    "name": "X Search (ScrapeCreators)",
+    "description": "X Search (ScrapeCreators)",
+    "third_party": "X (ScrapeCreators)",
+    "kind": "integration",
+    "avatar": "X",
+    "avatar_icon": "",
+    "avatar_color": "#99ec55",
+    "avatar_url": "",
+    "tool_name": "scrapecreators_x",
+    "config": {
+      "token": "",
+      "depth": "default"
+    },
+    "code": null
   }
 ]
