@@ -339,5 +339,22 @@
       "depth": "default"
     },
     "code": null
+  },
+  {
+    "id": "skill_5db7f5fb0ea0427fadc5ebeb9dd983f8",
+    "name": "TikTok Search (ScrapeCreators)",
+    "description": "TikTok Search (ScrapeCreators)",
+    "third_party": "TikTok",
+    "kind": "integration",
+    "avatar": "T",
+    "avatar_icon": "",
+    "avatar_color": "#3b82f6",
+    "avatar_url": "",
+    "tool_name": "tiktok",
+    "config": {
+      "token": "",
+      "depth": "default"
+    },
+    "code": null
   }
 ]

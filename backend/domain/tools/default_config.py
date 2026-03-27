@@ -172,6 +172,28 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 			},
 		],
 	},
+	"tiktok": {
+		"label": "TikTok Search (ScrapeCreators)",
+		"third_party": "TikTok",
+		"config_fields": [
+			{
+				"key": "token",
+				"label": "ScrapeCreators API Key",
+				"input": "text",
+				"required": False,
+				"default": "",
+				"placeholder": "Optional, fallback to SCRAPECREATORS_API_KEY",
+			},
+			{
+				"key": "depth",
+				"label": "Search Depth",
+				"input": "select",
+				"required": True,
+				"default": "default",
+				"options": ["quick", "default", "deep"],
+			},
+		],
+	},
 	"promt_tool": {
 		"label": "Prompt Tool",
 		"third_party": "Prompt",

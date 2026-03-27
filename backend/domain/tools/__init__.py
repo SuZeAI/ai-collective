@@ -8,6 +8,7 @@ from backend.domain.tools.websearch import WebSearchItem, WebSearchResult, WebSe
 from backend.domain.tools.xai import XAIToolkit
 from backend.domain.tools.xiaohongshu import XiaohongshuToolkit
 from backend.domain.tools.truthsocial import TruthSocialToolkit
+from backend.domain.tools.tiktok import TikTokToolkit
 from backend.domain.tools.youtube import YouTubeToolkit
 
 __all__ = [
@@ -27,5 +28,6 @@ __all__ = [
     "XAIToolkit",
     "XiaohongshuToolkit",
     "TruthSocialToolkit",
+    "TikTokToolkit",
     "YouTubeToolkit",
 ]

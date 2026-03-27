@@ -11,6 +11,7 @@ from backend.domain.tools.websearch import WebSearchToolkit
 from backend.domain.tools.xai import XAIToolkit
 from backend.domain.tools.xiaohongshu import XiaohongshuToolkit
 from backend.domain.tools.truthsocial import TruthSocialToolkit
+from backend.domain.tools.tiktok import TikTokToolkit
 from backend.domain.tools.youtube import YouTubeToolkit
 
 
@@ -22,6 +23,7 @@ class ToolType(str, Enum):
     XAI = "xai"
     XIAOHONGSHU = "xiaohongshu"
     TRUTHSOCIAL = "truthsocial"
+    TIKTOK = "tiktok"
     YOUTUBE = "youtube"
     PROMT_TOOL = "promt_tool"
     UI = "ui"
@@ -35,6 +37,7 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.XAI.value: XAIToolkit,
     ToolType.XIAOHONGSHU.value: XiaohongshuToolkit,
     ToolType.TRUTHSOCIAL.value: TruthSocialToolkit,
+    ToolType.TIKTOK.value: TikTokToolkit,
     ToolType.YOUTUBE.value: YouTubeToolkit,
     ToolType.PROMT_TOOL.value: PromtToolToolkit,
     ToolType.UI.value: UIToolkit,
