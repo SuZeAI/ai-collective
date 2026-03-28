@@ -21,6 +21,7 @@ from backend.domain.tools.reddit_enrich import RedditEnrichToolkit
 from backend.domain.tools.polymarket import PolymarketToolkit
 from backend.domain.tools.parallel_search import ParallelSearchToolkit
 from backend.domain.tools.openrouter_search import OpenRouterSearchToolkit
+from backend.domain.tools.hackernews import HackerNewsToolkit
 
 
 class ToolType(str, Enum):
@@ -41,6 +42,7 @@ class ToolType(str, Enum):
     POLYMARKET = "polymarket"
     PARALLEL_SEARCH = "parallel_search"
     OPENROUTER_SEARCH = "openrouter_search"
+    HACKERNEWS = "hackernews"
     PROMT_TOOL = "promt_tool"
     UI = "ui"
 
@@ -63,6 +65,7 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.POLYMARKET.value: PolymarketToolkit,
     ToolType.PARALLEL_SEARCH.value: ParallelSearchToolkit,
     ToolType.OPENROUTER_SEARCH.value: OpenRouterSearchToolkit,
+    ToolType.HACKERNEWS.value: HackerNewsToolkit,
     ToolType.PROMT_TOOL.value: PromtToolToolkit,
     ToolType.UI.value: UIToolkit,
 }

@@ -353,6 +353,20 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 			},
 		],
 	},
+	"hackernews": {
+		"label": "Hacker News Search (Algolia)",
+		"third_party": "Hacker News",
+		"config_fields": [
+			{
+				"key": "depth",
+				"label": "Search Depth",
+				"input": "select",
+				"required": True,
+				"default": "default",
+				"options": ["quick", "default", "deep"],
+			},
+		],
+	},
 	"polymarket": {
 		"label": "Polymarket Search (Gamma API)",
 		"third_party": "Polymarket",

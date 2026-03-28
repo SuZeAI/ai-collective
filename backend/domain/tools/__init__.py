@@ -18,6 +18,7 @@ from backend.domain.tools.reddit_enrich import RedditEnrichToolkit
 from backend.domain.tools.polymarket import PolymarketToolkit
 from backend.domain.tools.parallel_search import ParallelSearchToolkit
 from backend.domain.tools.openrouter_search import OpenRouterSearchToolkit
+from backend.domain.tools.hackernews import HackerNewsToolkit
 
 __all__ = [
     "BaseToolkit",
@@ -46,4 +47,5 @@ __all__ = [
     "PolymarketToolkit",
     "ParallelSearchToolkit",
     "OpenRouterSearchToolkit",
+    "HackerNewsToolkit",
 ]

@@ -492,5 +492,21 @@
       "user_agent": "ai-collective/http-tool"
     },
     "code": null
+  },
+  {
+    "id": "skill_6d9d12dc61a047b3b00c2c7d0b7b934c",
+    "name": "Hacker News Search (Algolia)",
+    "description": "Hacker News Search (Algolia)",
+    "third_party": "Hacker News",
+    "kind": "integration",
+    "avatar": "H",
+    "avatar_icon": "cpu",
+    "avatar_color": "#176d45",
+    "avatar_url": "",
+    "tool_name": "hackernews",
+    "config": {
+      "depth": "default"
+    },
+    "code": null
   }
 ]
