@@ -407,5 +407,38 @@
       "backend": "auto"
     },
     "code": null
+  },
+  {
+    "id": "skill_b30d83bd4f04454496a7ea3dd00b4c6e",
+    "name": "Polymarket Search (Gamma API)",
+    "description": "Polymarket Search (Gamma API)",
+    "third_party": "Polymarket",
+    "kind": "integration",
+    "avatar": "P",
+    "avatar_icon": "search",
+    "avatar_color": "#7ad71d",
+    "avatar_url": "",
+    "tool_name": "polymarket",
+    "config": {
+      "depth": "default"
+    },
+    "code": null
+  },
+  {
+    "id": "skill_cf411d90d3b04fd68ab1799f114cdd4e",
+    "name": "Web Search (Parallel AI)",
+    "description": "Web Search (Parallel AI)",
+    "third_party": "Web",
+    "kind": "integration",
+    "avatar": "W",
+    "avatar_icon": "wrench",
+    "avatar_color": "#74a0e7",
+    "avatar_url": "",
+    "tool_name": "parallel_search",
+    "config": {
+      "api_key": "",
+      "beta_header": "search-extract-2025-10-10"
+    },
+    "code": null
   }
 ]

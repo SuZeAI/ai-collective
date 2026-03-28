@@ -33,6 +33,27 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 			},
 		],
 	},
+	"parallel_search": {
+		"label": "Web Search (Parallel AI)",
+		"third_party": "Web",
+		"config_fields": [
+			{
+				"key": "api_key",
+				"label": "Parallel API Key",
+				"input": "text",
+				"required": False,
+				"default": "",
+				"placeholder": "Optional, fallback to PARALLEL_API_KEY",
+			},
+			{
+				"key": "beta_header",
+				"label": "Beta Header",
+				"input": "text",
+				"required": False,
+				"default": "search-extract-2025-10-10",
+			},
+		],
+	},
 	"dedupe_search": {
 		"label": "Dedupe Search Results",
 		"third_party": "Search Utils",
@@ -257,6 +278,20 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 				"required": True,
 				"default": "auto",
 				"options": ["auto", "scrapecreators", "reddit_json"],
+			},
+		],
+	},
+	"polymarket": {
+		"label": "Polymarket Search (Gamma API)",
+		"third_party": "Polymarket",
+		"config_fields": [
+			{
+				"key": "depth",
+				"label": "Search Depth",
+				"input": "select",
+				"required": True,
+				"default": "default",
+				"options": ["quick", "default", "deep"],
 			},
 		],
 	},

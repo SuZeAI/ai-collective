@@ -13,6 +13,8 @@ from backend.domain.tools.youtube import YouTubeToolkit
 from backend.domain.tools.scrapecreators_x import ScrapeCreatorsXToolkit
 from backend.domain.tools.reddit import RedditToolkit
 from backend.domain.tools.reddit_enrich import RedditEnrichToolkit
+from backend.domain.tools.polymarket import PolymarketToolkit
+from backend.domain.tools.parallel_search import ParallelSearchToolkit
 
 __all__ = [
     "BaseToolkit",
@@ -36,4 +38,6 @@ __all__ = [
     "ScrapeCreatorsXToolkit",
     "RedditToolkit",
     "RedditEnrichToolkit",
+    "PolymarketToolkit",
+    "ParallelSearchToolkit",
 ]

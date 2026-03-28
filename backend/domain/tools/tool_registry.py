@@ -16,6 +16,8 @@ from backend.domain.tools.youtube import YouTubeToolkit
 from backend.domain.tools.scrapecreators_x import ScrapeCreatorsXToolkit
 from backend.domain.tools.reddit import RedditToolkit
 from backend.domain.tools.reddit_enrich import RedditEnrichToolkit
+from backend.domain.tools.polymarket import PolymarketToolkit
+from backend.domain.tools.parallel_search import ParallelSearchToolkit
 
 
 class ToolType(str, Enum):
@@ -31,6 +33,8 @@ class ToolType(str, Enum):
     SCRAPECREATORS_X = "scrapecreators_x"
     REDDIT = "reddit"
     REDDIT_ENRICH = "reddit_enrich"
+    POLYMARKET = "polymarket"
+    PARALLEL_SEARCH = "parallel_search"
     PROMT_TOOL = "promt_tool"
     UI = "ui"
 
@@ -48,6 +52,8 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.SCRAPECREATORS_X.value: ScrapeCreatorsXToolkit,
     ToolType.REDDIT.value: RedditToolkit,
     ToolType.REDDIT_ENRICH.value: RedditEnrichToolkit,
+    ToolType.POLYMARKET.value: PolymarketToolkit,
+    ToolType.PARALLEL_SEARCH.value: ParallelSearchToolkit,
     ToolType.PROMT_TOOL.value: PromtToolToolkit,
     ToolType.UI.value: UIToolkit,
 }
