@@ -21,6 +21,7 @@ from backend.domain.tools.parallel_search import ParallelSearchToolkit
 from backend.domain.tools.openrouter_search import OpenRouterSearchToolkit
 from backend.domain.tools.hackernews import HackerNewsToolkit
 from backend.domain.tools.bluesky import BlueskyToolkit
+from backend.domain.tools.bird_x import BirdXToolkit
 
 __all__ = [
     "BaseToolkit",
@@ -52,4 +53,5 @@ __all__ = [
     "OpenRouterSearchToolkit",
     "HackerNewsToolkit",
     "BlueskyToolkit",
+    "BirdXToolkit",
 ]

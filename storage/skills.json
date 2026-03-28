@@ -543,5 +543,24 @@
       "depth": "default"
     },
     "code": null
+  },
+  {
+    "id": "skill_5e843c13a58d440cae29a9d19553d2ed",
+    "name": "X Search (Bird GraphQL)",
+    "description": "X Search (Bird GraphQL)",
+    "third_party": "X (Bird)",
+    "kind": "integration",
+    "avatar": "X",
+    "avatar_icon": "cpu",
+    "avatar_color": "#516d9a",
+    "avatar_url": "",
+    "tool_name": "bird_x",
+    "config": {
+      "auth_token": "",
+      "ct0": "",
+      "bird_search_mjs": "",
+      "depth": "default"
+    },
+    "code": null
   }
 ]

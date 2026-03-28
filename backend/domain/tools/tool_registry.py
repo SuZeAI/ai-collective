@@ -24,6 +24,7 @@ from backend.domain.tools.parallel_search import ParallelSearchToolkit
 from backend.domain.tools.openrouter_search import OpenRouterSearchToolkit
 from backend.domain.tools.hackernews import HackerNewsToolkit
 from backend.domain.tools.bluesky import BlueskyToolkit
+from backend.domain.tools.bird_x import BirdXToolkit
 
 
 class ToolType(str, Enum):
@@ -47,6 +48,7 @@ class ToolType(str, Enum):
     OPENROUTER_SEARCH = "openrouter_search"
     HACKERNEWS = "hackernews"
     BLUESKY = "bluesky"
+    BIRD_X = "bird_x"
     PROMT_TOOL = "promt_tool"
     UI = "ui"
 
@@ -72,6 +74,7 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.OPENROUTER_SEARCH.value: OpenRouterSearchToolkit,
     ToolType.HACKERNEWS.value: HackerNewsToolkit,
     ToolType.BLUESKY.value: BlueskyToolkit,
+    ToolType.BIRD_X.value: BirdXToolkit,
     ToolType.PROMT_TOOL.value: PromtToolToolkit,
     ToolType.UI.value: UIToolkit,
 }
