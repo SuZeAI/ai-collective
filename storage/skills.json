@@ -390,5 +390,22 @@
       "depth": "default"
     },
     "code": null
+  },
+  {
+    "id": "skill_fb6152d791f4447dbd28338325e15efe",
+    "name": "Reddit Enrich (Thread Metrics)",
+    "description": "Reddit Enrich (Thread Metrics)",
+    "third_party": "Reddit",
+    "kind": "integration",
+    "avatar": "R",
+    "avatar_icon": "",
+    "avatar_color": "#42b844",
+    "avatar_url": "",
+    "tool_name": "reddit_enrich",
+    "config": {
+      "token": "",
+      "backend": "auto"
+    },
+    "code": null
   }
 ]

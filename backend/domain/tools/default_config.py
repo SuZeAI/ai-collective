@@ -238,6 +238,28 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 			},
 		],
 	},
+	"reddit_enrich": {
+		"label": "Reddit Enrich (Thread Metrics)",
+		"third_party": "Reddit",
+		"config_fields": [
+			{
+				"key": "token",
+				"label": "ScrapeCreators API Key",
+				"input": "text",
+				"required": False,
+				"default": "",
+				"placeholder": "Optional, fallback to SCRAPECREATORS_API_KEY",
+			},
+			{
+				"key": "backend",
+				"label": "Backend",
+				"input": "select",
+				"required": True,
+				"default": "auto",
+				"options": ["auto", "scrapecreators", "reddit_json"],
+			},
+		],
+	},
 	"promt_tool": {
 		"label": "Prompt Tool",
 		"third_party": "Prompt",

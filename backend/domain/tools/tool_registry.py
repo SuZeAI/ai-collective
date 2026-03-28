@@ -15,6 +15,7 @@ from backend.domain.tools.tiktok import TikTokToolkit
 from backend.domain.tools.youtube import YouTubeToolkit
 from backend.domain.tools.scrapecreators_x import ScrapeCreatorsXToolkit
 from backend.domain.tools.reddit import RedditToolkit
+from backend.domain.tools.reddit_enrich import RedditEnrichToolkit
 
 
 class ToolType(str, Enum):
@@ -29,6 +30,7 @@ class ToolType(str, Enum):
     YOUTUBE = "youtube"
     SCRAPECREATORS_X = "scrapecreators_x"
     REDDIT = "reddit"
+    REDDIT_ENRICH = "reddit_enrich"
     PROMT_TOOL = "promt_tool"
     UI = "ui"
 
@@ -45,6 +47,7 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.YOUTUBE.value: YouTubeToolkit,
     ToolType.SCRAPECREATORS_X.value: ScrapeCreatorsXToolkit,
     ToolType.REDDIT.value: RedditToolkit,
+    ToolType.REDDIT_ENRICH.value: RedditEnrichToolkit,
     ToolType.PROMT_TOOL.value: PromtToolToolkit,
     ToolType.UI.value: UIToolkit,
 }
