@@ -11,6 +11,7 @@ from backend.domain.tools.truthsocial import TruthSocialToolkit
 from backend.domain.tools.tiktok import TikTokToolkit
 from backend.domain.tools.youtube import YouTubeToolkit
 from backend.domain.tools.scrapecreators_x import ScrapeCreatorsXToolkit
+from backend.domain.tools.reddit import RedditToolkit
 
 __all__ = [
     "BaseToolkit",
@@ -32,4 +33,5 @@ __all__ = [
     "TikTokToolkit",
     "YouTubeToolkit",
     "ScrapeCreatorsXToolkit",
+    "RedditToolkit",
 ]

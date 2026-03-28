@@ -373,5 +373,22 @@
       "depth": "default"
     },
     "code": null
+  },
+  {
+    "id": "skill_143a294c61ff4d1f85c44ff2163a60b0",
+    "name": "Reddit Search (ScrapeCreators)",
+    "description": "Reddit Search (ScrapeCreators)",
+    "third_party": "Reddit",
+    "kind": "integration",
+    "avatar": "R",
+    "avatar_icon": "server",
+    "avatar_color": "#29f1ff",
+    "avatar_url": "",
+    "tool_name": "reddit",
+    "config": {
+      "token": "",
+      "depth": "default"
+    },
+    "code": null
   }
 ]

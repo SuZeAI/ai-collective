@@ -14,6 +14,7 @@ from backend.domain.tools.truthsocial import TruthSocialToolkit
 from backend.domain.tools.tiktok import TikTokToolkit
 from backend.domain.tools.youtube import YouTubeToolkit
 from backend.domain.tools.scrapecreators_x import ScrapeCreatorsXToolkit
+from backend.domain.tools.reddit import RedditToolkit
 
 
 class ToolType(str, Enum):
@@ -27,6 +28,7 @@ class ToolType(str, Enum):
     TIKTOK = "tiktok"
     YOUTUBE = "youtube"
     SCRAPECREATORS_X = "scrapecreators_x"
+    REDDIT = "reddit"
     PROMT_TOOL = "promt_tool"
     UI = "ui"
 
@@ -42,6 +44,7 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.TIKTOK.value: TikTokToolkit,
     ToolType.YOUTUBE.value: YouTubeToolkit,
     ToolType.SCRAPECREATORS_X.value: ScrapeCreatorsXToolkit,
+    ToolType.REDDIT.value: RedditToolkit,
     ToolType.PROMT_TOOL.value: PromtToolToolkit,
     ToolType.UI.value: UIToolkit,
 }
