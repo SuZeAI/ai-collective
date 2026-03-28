@@ -525,5 +525,23 @@
       "use_llm_context": false
     },
     "code": null
+  },
+  {
+    "id": "skill_0137b6075c51484aaab2c5d56215ec34",
+    "name": "Bluesky Search",
+    "description": "Bluesky Search",
+    "third_party": "Bluesky",
+    "kind": "integration",
+    "avatar": "B",
+    "avatar_icon": "server",
+    "avatar_color": "#bc73f7",
+    "avatar_url": "",
+    "tool_name": "bluesky",
+    "config": {
+      "handle": "",
+      "app_password": "",
+      "depth": "default"
+    },
+    "code": null
   }
 ]

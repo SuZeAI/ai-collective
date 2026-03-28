@@ -264,6 +264,36 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 			},
 		],
 	},
+	"bluesky": {
+		"label": "Bluesky Search",
+		"third_party": "Bluesky",
+		"config_fields": [
+			{
+				"key": "handle",
+				"label": "Bluesky Handle",
+				"input": "text",
+				"required": False,
+				"default": "",
+				"placeholder": "Optional, fallback to BSKY_HANDLE",
+			},
+			{
+				"key": "app_password",
+				"label": "Bluesky App Password",
+				"input": "text",
+				"required": False,
+				"default": "",
+				"placeholder": "Optional, fallback to BSKY_APP_PASSWORD",
+			},
+			{
+				"key": "depth",
+				"label": "Search Depth",
+				"input": "select",
+				"required": True,
+				"default": "default",
+				"options": ["quick", "default", "deep"],
+			},
+		],
+	},
 	"tiktok": {
 		"label": "TikTok Search (ScrapeCreators)",
 		"third_party": "TikTok",
