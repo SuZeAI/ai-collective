@@ -14,10 +14,12 @@ from backend.domain.tools.truthsocial import TruthSocialToolkit
 from backend.domain.tools.tiktok import TikTokToolkit
 from backend.domain.tools.youtube import YouTubeToolkit
 from backend.domain.tools.scrapecreators_x import ScrapeCreatorsXToolkit
+from backend.domain.tools.instagram import InstagramToolkit
 from backend.domain.tools.reddit import RedditToolkit
 from backend.domain.tools.reddit_enrich import RedditEnrichToolkit
 from backend.domain.tools.polymarket import PolymarketToolkit
 from backend.domain.tools.parallel_search import ParallelSearchToolkit
+from backend.domain.tools.openrouter_search import OpenRouterSearchToolkit
 
 
 class ToolType(str, Enum):
@@ -31,10 +33,12 @@ class ToolType(str, Enum):
     TIKTOK = "tiktok"
     YOUTUBE = "youtube"
     SCRAPECREATORS_X = "scrapecreators_x"
+    INSTAGRAM = "instagram"
     REDDIT = "reddit"
     REDDIT_ENRICH = "reddit_enrich"
     POLYMARKET = "polymarket"
     PARALLEL_SEARCH = "parallel_search"
+    OPENROUTER_SEARCH = "openrouter_search"
     PROMT_TOOL = "promt_tool"
     UI = "ui"
 
@@ -49,11 +53,13 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.TRUTHSOCIAL.value: TruthSocialToolkit,
     ToolType.TIKTOK.value: TikTokToolkit,
     ToolType.YOUTUBE.value: YouTubeToolkit,
+    ToolType.INSTAGRAM.value: InstagramToolkit,
     ToolType.SCRAPECREATORS_X.value: ScrapeCreatorsXToolkit,
     ToolType.REDDIT.value: RedditToolkit,
     ToolType.REDDIT_ENRICH.value: RedditEnrichToolkit,
     ToolType.POLYMARKET.value: PolymarketToolkit,
     ToolType.PARALLEL_SEARCH.value: ParallelSearchToolkit,
+    ToolType.OPENROUTER_SEARCH.value: OpenRouterSearchToolkit,
     ToolType.PROMT_TOOL.value: PromtToolToolkit,
     ToolType.UI.value: UIToolkit,
 }

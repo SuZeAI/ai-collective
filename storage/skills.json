@@ -440,5 +440,39 @@
       "beta_header": "search-extract-2025-10-10"
     },
     "code": null
+  },
+  {
+    "id": "skill_7c4b26f9b2b2427597a1f5928f1603a6",
+    "name": "Web Search (OpenRouter Sonar)",
+    "description": "Web Search (OpenRouter Sonar)",
+    "third_party": "Web",
+    "kind": "integration",
+    "avatar": "W",
+    "avatar_icon": "search",
+    "avatar_color": "#68f392",
+    "avatar_url": "",
+    "tool_name": "openrouter_search",
+    "config": {
+      "api_key": "",
+      "model": "perplexity/sonar-pro"
+    },
+    "code": null
+  },
+  {
+    "id": "skill_1763c25b94634541b6bb9b4c8aa5242f",
+    "name": "Instagram Reels Search (ScrapeCreators)",
+    "description": "Instagram Reels Search (ScrapeCreators)",
+    "third_party": "Instagram",
+    "kind": "integration",
+    "avatar": "I",
+    "avatar_icon": "wrench",
+    "avatar_color": "#1ec867",
+    "avatar_url": "",
+    "tool_name": "instagram",
+    "config": {
+      "token": "",
+      "depth": "default"
+    },
+    "code": null
   }
 ]

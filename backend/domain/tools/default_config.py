@@ -54,6 +54,27 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 			},
 		],
 	},
+	"openrouter_search": {
+		"label": "Web Search (OpenRouter Sonar)",
+		"third_party": "Web",
+		"config_fields": [
+			{
+				"key": "api_key",
+				"label": "OpenRouter API Key",
+				"input": "text",
+				"required": False,
+				"default": "",
+				"placeholder": "Optional, fallback to OPENROUTER_API_KEY",
+			},
+			{
+				"key": "model",
+				"label": "Model",
+				"input": "text",
+				"required": False,
+				"default": "perplexity/sonar-pro",
+			},
+		],
+	},
 	"dedupe_search": {
 		"label": "Dedupe Search Results",
 		"third_party": "Search Utils",
@@ -218,6 +239,28 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 	"scrapecreators_x": {
 		"label": "X Search (ScrapeCreators)",
 		"third_party": "X (ScrapeCreators)",
+		"config_fields": [
+			{
+				"key": "token",
+				"label": "ScrapeCreators API Key",
+				"input": "text",
+				"required": False,
+				"default": "",
+				"placeholder": "Optional, fallback to SCRAPECREATORS_API_KEY",
+			},
+			{
+				"key": "depth",
+				"label": "Search Depth",
+				"input": "select",
+				"required": True,
+				"default": "default",
+				"options": ["quick", "default", "deep"],
+			},
+		],
+	},
+	"instagram": {
+		"label": "Instagram Reels Search (ScrapeCreators)",
+		"third_party": "Instagram",
 		"config_fields": [
 			{
 				"key": "token",
