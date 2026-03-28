@@ -5,6 +5,7 @@ from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools.bash import BashToolkit
 from backend.domain.tools.browser import BrowserToolkit
 from backend.domain.tools.dedupe_search import DedupeSearchToolkit
+from backend.domain.tools.http import HTTPToolkit
 from backend.domain.tools.promt_tool import PromtToolToolkit
 from backend.domain.tools.ui import UIToolkit
 from backend.domain.tools.websearch import WebSearchToolkit
@@ -27,6 +28,7 @@ class ToolType(str, Enum):
     BROWSER = "browser"
     WEBSEARCH = "websearch"
     DEDUPE_SEARCH = "dedupe_search"
+    HTTP = "http"
     XAI = "xai"
     XIAOHONGSHU = "xiaohongshu"
     TRUTHSOCIAL = "truthsocial"
@@ -48,6 +50,7 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.BROWSER.value: BrowserToolkit,
     ToolType.WEBSEARCH.value: WebSearchToolkit,
     ToolType.DEDUPE_SEARCH.value: DedupeSearchToolkit,
+    ToolType.HTTP.value: HTTPToolkit,
     ToolType.XAI.value: XAIToolkit,
     ToolType.XIAOHONGSHU.value: XiaohongshuToolkit,
     ToolType.TRUTHSOCIAL.value: TruthSocialToolkit,

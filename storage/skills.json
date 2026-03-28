@@ -474,5 +474,23 @@
       "depth": "default"
     },
     "code": null
+  },
+  {
+    "id": "skill_aa21bdc1e4f141e2af5d58fb47e7290d",
+    "name": "HTTP Client",
+    "description": "HTTP Client",
+    "third_party": "Network",
+    "kind": "integration",
+    "avatar": "H",
+    "avatar_icon": "wrench",
+    "avatar_color": "#d1e66b",
+    "avatar_url": "",
+    "tool_name": "http",
+    "config": {
+      "timeout": "30",
+      "retries": "5",
+      "user_agent": "ai-collective/http-tool"
+    },
+    "code": null
   }
 ]

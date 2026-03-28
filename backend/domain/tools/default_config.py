@@ -80,6 +80,35 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 		"third_party": "Search Utils",
 		"config_fields": [],
 	},
+	"http": {
+		"label": "HTTP Client",
+		"third_party": "Network",
+		"config_fields": [
+			{
+				"key": "timeout",
+				"label": "Timeout (seconds)",
+				"input": "text",
+				"required": False,
+				"default": "30",
+				"placeholder": "30",
+			},
+			{
+				"key": "retries",
+				"label": "Retries",
+				"input": "text",
+				"required": False,
+				"default": "5",
+				"placeholder": "5",
+			},
+			{
+				"key": "user_agent",
+				"label": "User Agent",
+				"input": "text",
+				"required": False,
+				"default": "ai-collective/http-tool",
+			},
+		],
+	},
 	"browser": {
 		"label": "Browser Automation",
 		"third_party": "Browser",
