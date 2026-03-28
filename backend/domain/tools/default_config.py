@@ -54,6 +54,27 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 			},
 		],
 	},
+	"brave_search": {
+		"label": "Web Search (Brave Search)",
+		"third_party": "Web",
+		"config_fields": [
+			{
+				"key": "api_key",
+				"label": "Brave Search API Key",
+				"input": "text",
+				"required": False,
+				"default": "",
+				"placeholder": "Optional, fallback to BRAVE_SEARCH_API_KEY",
+			},
+			{
+				"key": "use_llm_context",
+				"label": "Use LLM Context",
+				"input": "boolean",
+				"required": False,
+				"default": False,
+			},
+		],
+	},
 	"openrouter_search": {
 		"label": "Web Search (OpenRouter Sonar)",
 		"third_party": "Web",

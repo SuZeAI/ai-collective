@@ -3,6 +3,7 @@ from enum import Enum
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools.bash import BashToolkit
+from backend.domain.tools.brave_search import BraveSearchToolkit
 from backend.domain.tools.browser import BrowserToolkit
 from backend.domain.tools.dedupe_search import DedupeSearchToolkit
 from backend.domain.tools.http import HTTPToolkit
@@ -26,6 +27,7 @@ from backend.domain.tools.hackernews import HackerNewsToolkit
 
 class ToolType(str, Enum):
     BASH = "bash"
+    BRAVE_SEARCH = "brave_search"
     BROWSER = "browser"
     WEBSEARCH = "websearch"
     DEDUPE_SEARCH = "dedupe_search"
@@ -49,6 +51,7 @@ class ToolType(str, Enum):
 
 TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.BASH.value: BashToolkit,
+    ToolType.BRAVE_SEARCH.value: BraveSearchToolkit,
     ToolType.BROWSER.value: BrowserToolkit,
     ToolType.WEBSEARCH.value: WebSearchToolkit,
     ToolType.DEDUPE_SEARCH.value: DedupeSearchToolkit,

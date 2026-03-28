@@ -1,5 +1,6 @@
 from backend.domain.tools.base import BaseToolkit, Tool
 from backend.domain.tools.bash import BashToolkit, SandboxPort
+from backend.domain.tools.brave_search import BraveSearchToolkit
 from backend.domain.tools.browser import BrowserPort, BrowserToolkit
 from backend.domain.tools.dedupe_search import DedupeSearchResult, DedupeSearchToolkit
 from backend.domain.tools.http import HTTPToolkit
@@ -25,6 +26,7 @@ __all__ = [
     "Tool",
     "BashToolkit",
     "SandboxPort",
+    "BraveSearchToolkit",
     "BrowserToolkit",
     "BrowserPort",
     "DedupeSearchToolkit",

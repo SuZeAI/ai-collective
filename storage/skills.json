@@ -508,5 +508,22 @@
       "depth": "default"
     },
     "code": null
+  },
+  {
+    "id": "skill_3fc577ebcb614f0ba54ba686a647b3ef",
+    "name": "Web Search (Brave Search)",
+    "description": "Web Search (Brave Search)",
+    "third_party": "Web",
+    "kind": "integration",
+    "avatar": "W",
+    "avatar_icon": "wrench",
+    "avatar_color": "#113b7e",
+    "avatar_url": "",
+    "tool_name": "brave_search",
+    "config": {
+      "api_key": "",
+      "use_llm_context": false
+    },
+    "code": null
   }
 ]
