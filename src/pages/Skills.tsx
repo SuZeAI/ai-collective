@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ExternalLink, Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -138,6 +138,13 @@ export default function Skills() {
   const [avatarColor, setAvatarColor] = useState("#3b82f6");
   const [avatarUrl, setAvatarUrl] = useState("");
 
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [oauthUrl, setOauthUrl] = useState("");
+  const [oauthState, setOauthState] = useState("");
+  const [oauthStatus, setOauthStatus] = useState<"idle" | "pending" | "authorized" | "error">("idle");
+  const [oauthMessage, setOauthMessage] = useState("");
+  const pollRef = useRef<number | null>(null);
+
   const presetByTool = useMemo(() => {
     return new Map(toolPresets.map((preset) => [preset.tool_name, preset]));
   }, [toolPresets]);
@@ -213,6 +220,90 @@ export default function Skills() {
     setAvatarIcon("wrench");
     setAvatarColor("#3b82f6");
     setAvatarUrl("");
+    setOauthUrl("");
+    setOauthState("");
+    setOauthStatus("idle");
+    setOauthMessage("");
+  };
+
+  useEffect(() => {
+    return () => {
+      if (pollRef.current !== null) {
+        window.clearInterval(pollRef.current);
+      }
+    };
+  }, []);
+
+  const startOAuthPolling = (state: string) => {
+    if (pollRef.current !== null) {
+      window.clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+
+    const startedAt = Date.now();
+    pollRef.current = window.setInterval(async () => {
+      try {
+        const status = await api.getSheetOAuthStatus(state);
+        if (status.status === "authorized") {
+          setOauthStatus("authorized");
+          setOauthMessage(
+            status.email
+              ? `Authorized: ${status.email}. Token saved at ${status.token_path}.`
+              : `Authorization successful. Token saved at ${status.token_path}.`,
+          );
+          if (pollRef.current !== null) {
+            window.clearInterval(pollRef.current);
+            pollRef.current = null;
+          }
+          // Close dialog after 1.5 seconds to show success message
+          setTimeout(() => setAuthDialogOpen(false), 1500);
+          return;
+        }
+
+        if (status.status === "error") {
+          setOauthStatus("error");
+          setOauthMessage(status.error || "Google authorization failed.");
+          if (pollRef.current !== null) {
+            window.clearInterval(pollRef.current);
+            pollRef.current = null;
+          }
+          return;
+        }
+
+        if (Date.now() - startedAt > 10 * 60 * 1000) {
+          setOauthStatus("error");
+          setOauthMessage("Authorization expired. Please click Authenticate Google again.");
+          if (pollRef.current !== null) {
+            window.clearInterval(pollRef.current);
+            pollRef.current = null;
+          }
+        }
+      } catch {
+        // Keep polling because callback may not have completed yet.
+      }
+    }, 1500);
+  };
+
+  const startGoogleSheetAuth = async () => {
+    setAuthDialogOpen(true);
+    setOauthStatus("pending");
+    setOauthMessage("Generating authorization URL...");
+
+    try {
+      const response = await api.startSheetOAuth({});
+      setOauthUrl(response.authorize_url);
+      setOauthState(response.state);
+      setOauthStatus("pending");
+      setOauthMessage(
+        `Browser authorization opened. Complete login in the popup window. Redirect URI: ${response.redirect_uri || "(not returned)"}`,
+      );
+
+      window.open(response.authorize_url, "google_sheet_oauth", "popup,width=540,height=760");
+      startOAuthPolling(response.state);
+    } catch (error) {
+      setOauthStatus("error");
+      setOauthMessage(error instanceof Error ? error.message : "Cannot start Google authorization.");
+    }
   };
 
   const openCreateDialog = () => {
@@ -457,6 +548,21 @@ export default function Skills() {
                 ) : (
                   <p className="text-xs text-muted-foreground">This tool has no configurable fields.</p>
                 )}
+
+                {toolName === "sheet" ? (
+                  <div className="pt-2 border-t">
+                    <Button type="button" variant="secondary" className="w-full" onClick={startGoogleSheetAuth}>
+                      <ShieldCheck className="w-4 h-4 mr-2" />
+                      Authenticate Google
+                    </Button>
+                    {oauthStatus === "authorized" ? (
+                      <p className="text-xs text-emerald-600 mt-2">{oauthMessage}</p>
+                    ) : null}
+                    {oauthStatus === "error" ? (
+                      <p className="text-xs text-red-600 mt-2">{oauthMessage}</p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
 
               <Button className="w-full" onClick={saveSkill} disabled={!isValid()}>
@@ -516,6 +622,37 @@ export default function Skills() {
           </motion.div>
         ))}
       </div>
+
+      <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Google Sheets Authorization</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              Click the button below to open Google authorize page. After approving access, this dialog will auto-update.
+            </p>
+            <Button
+              type="button"
+              onClick={() => {
+                if (oauthUrl) {
+                  window.open(oauthUrl, "google_sheet_oauth", "popup,width=540,height=760");
+                }
+              }}
+              disabled={!oauthUrl}
+              className="w-full"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Open Google Authorize
+            </Button>
+            <div className="rounded-md bg-muted p-3 text-xs">
+              <div>Status: {oauthStatus}</div>
+              {oauthState ? <div className="mt-1 break-all">State: {oauthState}</div> : null}
+              {oauthMessage ? <div className="mt-1">{oauthMessage}</div> : null}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

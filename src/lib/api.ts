@@ -51,6 +51,22 @@ export type SkillToolPreset = {
   config_fields: SkillToolConfigField[];
 };
 
+export type GoogleSheetOAuthStartResponse = {
+  authorize_url: string;
+  state: string;
+  expires_in_seconds: number;
+  redirect_uri?: string;
+};
+
+export type GoogleSheetOAuthStatusResponse = {
+  state: string;
+  status: "pending" | "authorized" | "error";
+  authorized: boolean;
+  email: string;
+  token_path: string;
+  error: string;
+};
+
 export type Team = {
   id: string;
   name: string;
@@ -161,6 +177,13 @@ export const api = {
   listSkills: () => apiFetch<Skill[]>("/skills"),
   listSkillTools: () => apiFetch<string[]>("/skills/tools"),
   listSkillToolPresets: () => apiFetch<SkillToolPreset[]>("/skills/tool-presets"),
+  startSheetOAuth: (payload: { email_hint?: string }) =>
+    apiFetch<GoogleSheetOAuthStartResponse>("/auth/oauth/start", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  getSheetOAuthStatus: (state: string) =>
+    apiFetch<GoogleSheetOAuthStatusResponse>(`/auth/oauth/status?state=${encodeURIComponent(state)}`),
   upsertSkill: (payload: Partial<Skill> & Pick<Skill, "name" | "kind">) =>
     apiFetch<Skill>("/skills", { method: "POST", body: JSON.stringify(payload) }),
   deleteSkill: (id: string) => apiFetch<{ deleted: boolean }>(`/skills/${id}`, { method: "DELETE" }),

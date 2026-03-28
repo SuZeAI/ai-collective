@@ -1,5 +1,12 @@
 from __future__ import annotations
+import os
+import dotenv
 
+# Allow OAuth 2 on http://localhost for development (must be set before importing google_auth_oauthlib)
+if os.environ.get("ENVIRONMENT", "development") == "development":
+    os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
+
+dotenv.load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -10,6 +17,7 @@ from backend.api.routers import (
     activity_feed,
     agents,
     analytics,
+    auth,
     conversations,
     health,
     llm,
@@ -49,6 +57,7 @@ def create_app() -> FastAPI:
     app.include_router(analytics.router, prefix=settings.api_prefix)
     app.include_router(simulations.router, prefix=settings.api_prefix)
     app.include_router(llm.router, prefix=settings.api_prefix)
+    app.include_router(auth.router, prefix=settings.api_prefix)
     return app
 
 

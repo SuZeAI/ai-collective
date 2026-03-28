@@ -562,5 +562,19 @@
       "depth": "default"
     },
     "code": null
+  },
+  {
+    "id": "skill_8aa319b75ab34b69b0fb2696c0f077c6",
+    "name": "Google Sheets",
+    "description": "Google Sheets",
+    "third_party": "Google",
+    "kind": "integration",
+    "avatar": "G",
+    "avatar_icon": "",
+    "avatar_color": "#3b82f6",
+    "avatar_url": "",
+    "tool_name": "sheet",
+    "config": {},
+    "code": null
   }
 ]

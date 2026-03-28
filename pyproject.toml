@@ -21,6 +21,9 @@ dependencies = [
 	"ddgs>=9.11.4",
 	"rootutils>=1.0.7",
 	"yt-dlp>=2026.3.17",
+	"google-auth>=2.40.3",
+	"google-auth-oauthlib>=1.2.2",
+	"google-api-python-client>=2.181.0",
 ]
 
 [tool.uvicorn]

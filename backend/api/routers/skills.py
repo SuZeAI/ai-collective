@@ -5,7 +5,11 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends
 
 from backend.api.deps import get_skill_service
-from backend.api.schemas.skill import SkillSchema, SkillToolPresetSchema, UpsertSkillRequest
+from backend.api.schemas.skill import (
+    SkillSchema,
+    SkillToolPresetSchema,
+    UpsertSkillRequest,
+)
 from backend.application.service.skill_service import SkillService
 from backend.domain.models import Skill
 

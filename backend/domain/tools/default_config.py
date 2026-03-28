@@ -489,6 +489,11 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 		"third_party": "UI",
 		"config_fields": [],
 	},
+	"sheet": {
+		"label": "Google Sheets",
+		"third_party": "Google",
+		"config_fields": [],
+	},
 }
 
 

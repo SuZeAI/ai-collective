@@ -70,3 +70,23 @@ class SkillToolPresetSchema(BaseModel):
     label: str
     third_party: str
     config_fields: list[SkillToolConfigFieldSchema] = Field(default_factory=list)
+
+
+class GoogleSheetOAuthStartRequest(BaseModel):
+    email_hint: str | None = None
+
+
+class GoogleSheetOAuthStartResponse(BaseModel):
+    authorize_url: str
+    state: str
+    expires_in_seconds: int = 600
+    redirect_uri: str = ""
+
+
+class GoogleSheetOAuthStatusResponse(BaseModel):
+    state: str
+    status: Literal["pending", "authorized", "error"]
+    authorized: bool
+    email: str = ""
+    token_path: str = ""
+    error: str = ""

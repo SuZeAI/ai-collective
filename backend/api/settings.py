@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     max_tokens: int = 1024
     api_base: str | None = None
     extra_headers: dict | None = None
+    google_oauth_redirect_uri: str = "http://127.0.0.1:8000/api/v1/auth/oauth/callback"
 
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
