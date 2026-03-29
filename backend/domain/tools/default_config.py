@@ -509,6 +509,11 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 		"third_party": "Google",
 		"config_fields": [],
 	},
+	"calendar": {
+		"label": "Google Calendar",
+		"third_party": "Google",
+		"config_fields": [],
+	},
 }
 
 

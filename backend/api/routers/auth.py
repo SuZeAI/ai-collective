@@ -21,6 +21,7 @@ _GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/documents",
     "https://www.googleapis.com/auth/presentations",
+    "https://www.googleapis.com/auth/calendar",
 ]
 _OAUTH_STATE_TTL_SECONDS = 600
 _OAUTH_PENDING_STATES: dict[str, dict[str, str]] = {}

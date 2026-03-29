@@ -549,7 +549,7 @@ export default function Skills() {
                   <p className="text-xs text-muted-foreground">This tool has no configurable fields.</p>
                 )}
 
-                {(toolName === "sheet" || toolName === "drive" || toolName === "docs" || toolName === "slides") ? (
+                {(toolName === "sheet" || toolName === "drive" || toolName === "docs" || toolName === "slides" || toolName === "calendar") ? (
                   <div className="pt-2 border-t">
                     <Button type="button" variant="secondary" className="w-full" onClick={startGoogleSheetAuth}>
                       <ShieldCheck className="w-4 h-4 mr-2" />

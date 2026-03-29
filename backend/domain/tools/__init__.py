@@ -26,6 +26,7 @@ from backend.domain.tools.sheet import SheetToolkit
 from backend.domain.tools.drive import DriveToolkit
 from backend.domain.tools.docs import DocsToolkit
 from backend.domain.tools.slides import SlidesToolkit
+from backend.domain.tools.calendar import CalendarToolkit
 
 __all__ = [
     "BaseToolkit",
@@ -62,4 +63,5 @@ __all__ = [
     "DriveToolkit",
     "DocsToolkit",
     "SlidesToolkit",
+    "CalendarToolkit",
 ]
