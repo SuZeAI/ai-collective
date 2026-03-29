@@ -590,5 +590,33 @@
     "tool_name": "drive",
     "config": {},
     "code": null
+  },
+  {
+    "id": "skill_5f0170b96a7948b3a3d2ffa920c4c681",
+    "name": "Google Docs",
+    "description": "Google Docs",
+    "third_party": "Google",
+    "kind": "integration",
+    "avatar": "G",
+    "avatar_icon": "wrench",
+    "avatar_color": "#17386d",
+    "avatar_url": "",
+    "tool_name": "docs",
+    "config": {},
+    "code": null
+  },
+  {
+    "id": "skill_f18c6bd411ff4277962af9f413448b42",
+    "name": "Google Slides",
+    "description": "Google Slides",
+    "third_party": "Google",
+    "kind": "integration",
+    "avatar": "G",
+    "avatar_icon": "",
+    "avatar_color": "#29ae62",
+    "avatar_url": "",
+    "tool_name": "slides",
+    "config": {},
+    "code": null
   }
 ]

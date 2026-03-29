@@ -19,6 +19,8 @@ from backend.api.schemas.skill import (
 _GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/documents",
+    "https://www.googleapis.com/auth/presentations",
 ]
 _OAUTH_STATE_TTL_SECONDS = 600
 _OAUTH_PENDING_STATES: dict[str, dict[str, str]] = {}

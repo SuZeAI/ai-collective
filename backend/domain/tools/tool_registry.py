@@ -27,6 +27,8 @@ from backend.domain.tools.bluesky import BlueskyToolkit
 from backend.domain.tools.bird_x import BirdXToolkit
 from backend.domain.tools.sheet import SheetToolkit
 from backend.domain.tools.drive import DriveToolkit
+from backend.domain.tools.docs import DocsToolkit
+from backend.domain.tools.slides import SlidesToolkit
 
 
 class ToolType(str, Enum):
@@ -55,6 +57,8 @@ class ToolType(str, Enum):
     UI = "ui"
     SHEET = "sheet"
     DRIVE = "drive"
+    DOCS = "docs"
+    SLIDES = "slides"
 
 
 TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
@@ -83,6 +87,8 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.UI.value: UIToolkit,
     ToolType.SHEET.value: SheetToolkit,
     ToolType.DRIVE.value: DriveToolkit,
+    ToolType.DOCS.value: DocsToolkit,
+    ToolType.SLIDES.value: SlidesToolkit,
 }
 
 

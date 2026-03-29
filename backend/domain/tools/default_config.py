@@ -499,6 +499,16 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 		"third_party": "Google",
 		"config_fields": [],
 	},
+	"docs": {
+		"label": "Google Docs",
+		"third_party": "Google",
+		"config_fields": [],
+	},
+	"slides": {
+		"label": "Google Slides",
+		"third_party": "Google",
+		"config_fields": [],
+	},
 }
 
 
