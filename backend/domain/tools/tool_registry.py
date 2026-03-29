@@ -26,6 +26,7 @@ from backend.domain.tools.hackernews import HackerNewsToolkit
 from backend.domain.tools.bluesky import BlueskyToolkit
 from backend.domain.tools.bird_x import BirdXToolkit
 from backend.domain.tools.sheet import SheetToolkit
+from backend.domain.tools.drive import DriveToolkit
 
 
 class ToolType(str, Enum):
@@ -53,6 +54,7 @@ class ToolType(str, Enum):
     PROMT_TOOL = "promt_tool"
     UI = "ui"
     SHEET = "sheet"
+    DRIVE = "drive"
 
 
 TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
@@ -80,6 +82,7 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.PROMT_TOOL.value: PromtToolToolkit,
     ToolType.UI.value: UIToolkit,
     ToolType.SHEET.value: SheetToolkit,
+    ToolType.DRIVE.value: DriveToolkit,
 }
 
 

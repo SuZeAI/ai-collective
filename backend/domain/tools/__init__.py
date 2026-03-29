@@ -23,6 +23,7 @@ from backend.domain.tools.hackernews import HackerNewsToolkit
 from backend.domain.tools.bluesky import BlueskyToolkit
 from backend.domain.tools.bird_x import BirdXToolkit
 from backend.domain.tools.sheet import SheetToolkit
+from backend.domain.tools.drive import DriveToolkit
 
 __all__ = [
     "BaseToolkit",
@@ -56,4 +57,5 @@ __all__ = [
     "BlueskyToolkit",
     "BirdXToolkit",
     "SheetToolkit",
+    "DriveToolkit",
 ]

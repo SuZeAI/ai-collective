@@ -494,6 +494,11 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 		"third_party": "Google",
 		"config_fields": [],
 	},
+	"drive": {
+		"label": "Google Drive",
+		"third_party": "Google",
+		"config_fields": [],
+	},
 }
 
 

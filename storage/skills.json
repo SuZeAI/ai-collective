@@ -576,5 +576,19 @@
     "tool_name": "sheet",
     "config": {},
     "code": null
+  },
+  {
+    "id": "skill_e901042144154de5984e93166aaa63c7",
+    "name": "Google Drive",
+    "description": "Create, upload, download, search, and manage files and folders in Google Drive.",
+    "third_party": "Google",
+    "kind": "integration",
+    "avatar": "G",
+    "avatar_icon": "wrench",
+    "avatar_color": "#92b3e8",
+    "avatar_url": "",
+    "tool_name": "drive",
+    "config": {},
+    "code": null
   }
 ]
