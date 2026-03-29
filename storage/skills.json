@@ -588,7 +588,12 @@
     "avatar_color": "#92b3e8",
     "avatar_url": "",
     "tool_name": "drive",
-    "config": {},
+    "config": {
+      "auth_email": "",
+      "token_path": "secrets/google/token_default.json",
+      "credentials_path": "",
+      "service_account_path": ""
+    },
     "code": null
   },
   {
@@ -616,7 +621,12 @@
     "avatar_color": "#29ae62",
     "avatar_url": "",
     "tool_name": "slides",
-    "config": {},
+    "config": {
+      "auth_email": "",
+      "token_path": "secrets/google/token_default.json",
+      "credentials_path": "",
+      "service_account_path": ""
+    },
     "code": null
   },
   {

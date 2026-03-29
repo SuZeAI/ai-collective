@@ -34,11 +34,11 @@ class CalendarToolkit(BaseToolkit):
         service_account_path: str = "",
         **kwargs: Any,
     ):
+        super().__init__(**kwargs)
         self.auth_email = (auth_email or "").strip()
         self.token_path = (token_path or "").strip()
         self.credentials_path = (credentials_path or "").strip()
         self.service_account_path = (service_account_path or "").strip()
-        super().__init__(**kwargs)
 
     def _resolve_paths(self) -> tuple[Optional[str], Optional[str], Optional[str]]:
         default_storage_dir = Path("secrets") / "google"

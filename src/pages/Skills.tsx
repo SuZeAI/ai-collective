@@ -14,6 +14,15 @@ type ToolName = string;
 type AvatarMode = "initial" | "icon" | "image";
 type ToolConfigValue = string | boolean;
 
+const GOOGLE_TOOL_NAMES = new Set(["sheet", "drive", "docs", "slides", "calendar"]);
+
+type GoogleAuthConfig = {
+  auth_email: string;
+  token_path: string;
+  credentials_path: string;
+  service_account_path: string;
+};
+
 function toTitleCaseFromToolName(value: string): string {
   return value
     .split(/[_\s-]+/)
@@ -49,6 +58,43 @@ function getConfigVariableNames(config: Record<string, unknown> | undefined): st
 
 function isHexColor(value: string): boolean {
   return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
+}
+
+function sanitizeEmailForTokenPath(email: string): string {
+  const normalized = String(email || "").trim().toLowerCase();
+  const safe = normalized.replace(/[^a-zA-Z0-9._-]/g, "_");
+  return safe || "default";
+}
+
+function ensureGoogleAuthConfig(
+  config: Record<string, unknown>,
+  toolName: string,
+  oauthAuthEmail: string,
+  oauthTokenPath: string,
+  oauthCredentialsPath: string,
+  oauthServiceAccountPath: string,
+): Record<string, unknown> {
+  if (!GOOGLE_TOOL_NAMES.has(toolName)) {
+    return config;
+  }
+
+  const authEmail = String(oauthAuthEmail || config.auth_email || "").trim();
+  const fallbackTokenPath = `secrets/google/token_${sanitizeEmailForTokenPath(authEmail)}.json`;
+  const tokenPath = String(oauthTokenPath || config.token_path || fallbackTokenPath).trim();
+  const credentialsPath = String(oauthCredentialsPath || config.credentials_path || "").trim();
+  const serviceAccountPath = String(oauthServiceAccountPath || config.service_account_path || "").trim();
+
+  const googleAuthConfig: GoogleAuthConfig = {
+    auth_email: authEmail,
+    token_path: tokenPath,
+    credentials_path: credentialsPath,
+    service_account_path: serviceAccountPath,
+  };
+
+  return {
+    ...config,
+    ...googleAuthConfig,
+  };
 }
 
 function buildDefaultConfigValues(preset: SkillToolPreset | undefined): Record<string, ToolConfigValue> {
@@ -143,6 +189,10 @@ export default function Skills() {
   const [oauthState, setOauthState] = useState("");
   const [oauthStatus, setOauthStatus] = useState<"idle" | "pending" | "authorized" | "error">("idle");
   const [oauthMessage, setOauthMessage] = useState("");
+  const [oauthAuthEmail, setOauthAuthEmail] = useState("");
+  const [oauthTokenPath, setOauthTokenPath] = useState("");
+  const [oauthCredentialsPath, setOauthCredentialsPath] = useState("");
+  const [oauthServiceAccountPath, setOauthServiceAccountPath] = useState("");
   const pollRef = useRef<number | null>(null);
 
   const presetByTool = useMemo(() => {
@@ -224,6 +274,10 @@ export default function Skills() {
     setOauthState("");
     setOauthStatus("idle");
     setOauthMessage("");
+    setOauthAuthEmail("");
+    setOauthTokenPath("");
+    setOauthCredentialsPath("");
+    setOauthServiceAccountPath("");
   };
 
   useEffect(() => {
@@ -246,6 +300,8 @@ export default function Skills() {
         const status = await api.getSheetOAuthStatus(state);
         if (status.status === "authorized") {
           setOauthStatus("authorized");
+          setOauthAuthEmail(status.email || "");
+          setOauthTokenPath(status.token_path || "");
           setOauthMessage(
             status.email
               ? `Authorized: ${status.email}. Token saved at ${status.token_path}.`
@@ -331,6 +387,12 @@ export default function Skills() {
     setAvatarColor(isHexColor(skill.avatar_color || "") ? (skill.avatar_color as string) : "#3b82f6");
     setAvatarUrl(skill.avatar_url || "");
 
+    const existingConfig = (skill.config as Record<string, unknown> | undefined) ?? {};
+    setOauthAuthEmail(String(existingConfig.auth_email ?? ""));
+    setOauthTokenPath(String(existingConfig.token_path ?? ""));
+    setOauthCredentialsPath(String(existingConfig.credentials_path ?? ""));
+    setOauthServiceAccountPath(String(existingConfig.service_account_path ?? ""));
+
     setOpen(true);
   };
 
@@ -343,7 +405,15 @@ export default function Skills() {
   const saveSkill = async () => {
     if (!isValid()) return;
 
-    const config = buildConfigFromValues(selectedPreset ?? undefined, configValues);
+    const baseConfig = buildConfigFromValues(selectedPreset ?? undefined, configValues);
+    const config = ensureGoogleAuthConfig(
+      baseConfig,
+      toolName,
+      oauthAuthEmail,
+      oauthTokenPath,
+      oauthCredentialsPath,
+      oauthServiceAccountPath,
+    );
 
     try {
       const saved = await api.upsertSkill({
@@ -549,7 +619,7 @@ export default function Skills() {
                   <p className="text-xs text-muted-foreground">This tool has no configurable fields.</p>
                 )}
 
-                {(toolName === "sheet" || toolName === "drive" || toolName === "docs" || toolName === "slides" || toolName === "calendar") ? (
+                {GOOGLE_TOOL_NAMES.has(toolName) ? (
                   <div className="pt-2 border-t">
                     <Button type="button" variant="secondary" className="w-full" onClick={startGoogleSheetAuth}>
                       <ShieldCheck className="w-4 h-4 mr-2" />
