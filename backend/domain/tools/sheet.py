@@ -16,6 +16,8 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive",
 ]
 
+CellValue = str | int | float | bool | None
+
 
 def _sanitize_email(email: str) -> str:
     value = re.sub(r"[^a-zA-Z0-9._-]", "_", email.strip().lower())
@@ -42,7 +44,7 @@ class SheetToolkit(BaseToolkit):
         self.service_account_path = (service_account_path or "").strip()
 
     def _resolve_paths(self) -> tuple[Optional[str], Optional[str], Optional[str]]:
-        default_storage_dir = Path("secrets") / "google"
+        default_storage_dir = Path("secrets") / "google" / self.get_canonical_name()
         default_storage_dir.mkdir(parents=True, exist_ok=True)
 
         resolved_credentials = (
@@ -186,7 +188,7 @@ class SheetToolkit(BaseToolkit):
         spreadsheet_id: str,
         sheet: str,
         cell_range: str,
-        values: list[list[Any]],
+        values: list[list[CellValue]],
     ) -> dict[str, Any]:
         """Update values to a specific sheet range.
 

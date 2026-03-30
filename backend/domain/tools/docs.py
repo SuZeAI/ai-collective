@@ -42,7 +42,7 @@ class DocsToolkit(BaseToolkit):
         self.service_account_path = (service_account_path or "").strip()
 
     def _resolve_paths(self) -> tuple[Optional[str], Optional[str], Optional[str]]:
-        default_storage_dir = Path("secrets") / "google"
+        default_storage_dir = Path("secrets") / "google" / self.get_canonical_name()
         default_storage_dir.mkdir(parents=True, exist_ok=True)
 
         resolved_credentials = (

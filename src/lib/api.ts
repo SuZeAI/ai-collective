@@ -177,7 +177,7 @@ export const api = {
   listSkills: () => apiFetch<Skill[]>("/skills"),
   listSkillTools: () => apiFetch<string[]>("/skills/tools"),
   listSkillToolPresets: () => apiFetch<SkillToolPreset[]>("/skills/tool-presets"),
-  startSheetOAuth: (payload: { email_hint?: string }) =>
+  startSheetOAuth: (payload: { email_hint?: string; tool_name?: string }) =>
     apiFetch<GoogleSheetOAuthStartResponse>("/auth/oauth/start", {
       method: "POST",
       body: JSON.stringify(payload),

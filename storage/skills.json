@@ -574,7 +574,12 @@
     "avatar_color": "#3b82f6",
     "avatar_url": "",
     "tool_name": "sheet",
-    "config": {},
+    "config": {
+      "auth_email": "",
+      "token_path": "secrets/google/sheet/token_default.json",
+      "credentials_path": "",
+      "service_account_path": ""
+    },
     "code": null
   },
   {
@@ -590,7 +595,7 @@
     "tool_name": "drive",
     "config": {
       "auth_email": "",
-      "token_path": "secrets/google/token_default.json",
+      "token_path": "secrets/google/drive/token_default.json",
       "credentials_path": "",
       "service_account_path": ""
     },
@@ -607,7 +612,12 @@
     "avatar_color": "#17386d",
     "avatar_url": "",
     "tool_name": "docs",
-    "config": {},
+    "config": {
+      "auth_email": "",
+      "token_path": "secrets/google/docs/token_default.json",
+      "credentials_path": "",
+      "service_account_path": ""
+    },
     "code": null
   },
   {
@@ -623,7 +633,7 @@
     "tool_name": "slides",
     "config": {
       "auth_email": "",
-      "token_path": "secrets/google/token_default.json",
+      "token_path": "secrets/google/slides/token_default.json",
       "credentials_path": "",
       "service_account_path": ""
     },
@@ -640,7 +650,12 @@
     "avatar_color": "#fffb8a",
     "avatar_url": "",
     "tool_name": "calendar",
-    "config": {},
+    "config": {
+      "auth_email": "",
+      "token_path": "secrets/google/calendar/token_default.json",
+      "credentials_path": "",
+      "service_account_path": ""
+    },
     "code": null
   }
 ]

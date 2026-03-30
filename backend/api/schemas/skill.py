@@ -74,6 +74,7 @@ class SkillToolPresetSchema(BaseModel):
 
 class GoogleSheetOAuthStartRequest(BaseModel):
     email_hint: str | None = None
+    tool_name: str | None = None
 
 
 class GoogleSheetOAuthStartResponse(BaseModel):

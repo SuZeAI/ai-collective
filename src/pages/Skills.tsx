@@ -79,7 +79,7 @@ function ensureGoogleAuthConfig(
   }
 
   const authEmail = String(oauthAuthEmail || config.auth_email || "").trim();
-  const fallbackTokenPath = `secrets/google/token_${sanitizeEmailForTokenPath(authEmail)}.json`;
+  const fallbackTokenPath = `secrets/google/${toolName}/token_${sanitizeEmailForTokenPath(authEmail)}.json`;
   const tokenPath = String(oauthTokenPath || config.token_path || fallbackTokenPath).trim();
   const credentialsPath = String(oauthCredentialsPath || config.credentials_path || "").trim();
   const serviceAccountPath = String(oauthServiceAccountPath || config.service_account_path || "").trim();
@@ -346,7 +346,10 @@ export default function Skills() {
     setOauthMessage("Generating authorization URL...");
 
     try {
-      const response = await api.startSheetOAuth({});
+      const response = await api.startSheetOAuth({
+        email_hint: oauthAuthEmail.trim() || undefined,
+        tool_name: toolName,
+      });
       setOauthUrl(response.authorize_url);
       setOauthState(response.state);
       setOauthStatus("pending");

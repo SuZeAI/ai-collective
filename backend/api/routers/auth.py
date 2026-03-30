@@ -23,6 +23,7 @@ _GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/presentations",
     "https://www.googleapis.com/auth/calendar",
 ]
+_GOOGLE_TOOL_NAMES = {"sheet", "drive", "docs", "slides", "calendar"}
 _OAUTH_STATE_TTL_SECONDS = 600
 _OAUTH_PENDING_STATES: dict[str, dict[str, str]] = {}
 _DEFAULT_GOOGLE_REDIRECT_URI = "http://127.0.0.1:8000/api/v1/auth/oauth/callback"
@@ -47,9 +48,22 @@ def _cleanup_expired_oauth_states() -> None:
         _OAUTH_PENDING_STATES.pop(state, None)
 
 
-def _get_token_path_for_email(email: str) -> str:
+def _normalize_google_tool_name(tool_name: str | None) -> str:
+    normalized = (tool_name or "").strip().lower()
+    if normalized not in _GOOGLE_TOOL_NAMES:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Unsupported Google tool_name. "
+                "Expected one of: sheet, drive, docs, slides, calendar."
+            ),
+        )
+    return normalized
+
+
+def _get_token_path_for_email(email: str, tool_name: str) -> str:
     """Generate token file path for given email."""
-    storage_dir = Path("secrets") / "google"
+    storage_dir = Path("secrets") / "google" / tool_name
     storage_dir.mkdir(parents=True, exist_ok=True)
     safe_email = re.sub(r"[^a-zA-Z0-9._-]", "_", email.strip().lower()) or "default"
     return str(storage_dir / f"token_{safe_email}.json")
@@ -139,7 +153,8 @@ def _google_sheet_oauth_callback_impl(
         flow.fetch_token(authorization_response=str(request.url))
         credentials = flow.credentials
         email = payload.get("email", "")
-        token_path = payload.get("token_path") or _get_token_path_for_email(email or "default")
+        tool_name = payload.get("tool_name", "sheet")
+        token_path = payload.get("token_path") or _get_token_path_for_email(email or "default", tool_name)
         Path(token_path).write_text(credentials.to_json(), encoding="utf-8")
         payload["status"] = "authorized"
         payload["token_path"] = token_path
@@ -176,6 +191,7 @@ def start_oauth(
 
     flow = _create_google_oauth_flow()
     login_hint = (payload.email_hint or "").strip()
+    tool_name = _normalize_google_tool_name(payload.tool_name or "sheet")
 
     authorization_url, state = flow.authorization_url(
         access_type="offline",
@@ -190,7 +206,8 @@ def start_oauth(
     _OAUTH_PENDING_STATES[state] = {
         "status": "pending",
         "email": login_hint,
-        "token_path": _get_token_path_for_email(login_hint or "default"),
+        "tool_name": tool_name,
+        "token_path": _get_token_path_for_email(login_hint or "default", tool_name),
         "redirect_uri": effective_redirect_uri or _resolve_redirect_uri(),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "error": "",

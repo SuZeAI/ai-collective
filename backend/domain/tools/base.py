@@ -54,12 +54,14 @@ class BaseToolkit(LangchainBaseToolkit):
     """Base class for toolkit groups in the domain layer."""
 
     name: str = ""
+    base_name: str = ""
     tools: List[Tool] = []
     model_config = ConfigDict(ignored_types=(BaseTool,), extra="allow")
 
     def __init__(self, **kwargs: Any):
         super().__init__()
         self.tools = []
+        self.base_name = (getattr(type(self), "name", "") or getattr(self, "name", "")).strip()
         tool_name_override = kwargs.get("tool_name_override")
 
         for _, tool in inspect.getmembers(self, lambda x: isinstance(x, BaseTool)):
@@ -79,6 +81,10 @@ class BaseToolkit(LangchainBaseToolkit):
 
     def get_tools(self) -> List[Tool]:
         return self.tools
+
+    def get_canonical_name(self) -> str:
+        raw_name = (self.base_name or self.name or "tool").strip()
+        return self._sanitize_tool_name(raw_name)
 
     def get_tool(self, tool_name: str) -> Optional[Tool]:
         for tool in self.tools:
