@@ -1,27 +1,28 @@
-websearch duckduckgo: done
-prompt: done
-youtube: done
-browser use: done
-xiaohongshu: done (cần api)
-drive: done 
-sheet: done
-docs: done
-slide: done
-calendar: done
-Dedupe Search Results: done
-xAIX Search: done (cần api)
-UI Helper: done
-Truth Social Search: done (cần api)
-TikTok Search (ScrapeCreators): done (cần api) (link https://app.scrapecreators.com)
-<!-- link https://serpapi.com/ -->
-X Search (ScrapeCreators): done
-Reddit Search (ScrapeCreators): done
-Reddit Enrich (Thread Metrics): done
-Polymarket Search (Gamma API): done
-Web Search (Parallel AI): done
-Web Search (OpenRouter Sonar): done
-Instagram Reels Search (ScrapeCreators): done
-Bluesky Search: done
-Web Search (Brave Search): done
-Hacker News Search (Algolia): done
-HTTP Client: done
+# Completed Tools
+
+- [x] DuckDuckGo Web Search
+- [x] Prompt
+- [x] YouTube
+- [x] Browser Use
+- [x] Xiaohongshu (API required)
+- [x] Google Drive
+- [x] Google Sheets
+- [x] Google Docs
+- [x] Google Slides
+- [x] Google Calendar
+- [x] Dedupe Search Results
+- [x] xAIX Search (API required)
+- [x] UI Helper
+- [x] Truth Social Search (API required)
+- [x] TikTok Search (ScrapeCreators) (API required) - https://app.scrapecreators.com
+- [x] X Search (ScrapeCreators)
+- [x] Reddit Search (ScrapeCreators)
+- [x] Reddit Enrich (Thread Metrics)
+- [x] Polymarket Search (Gamma API)
+- [x] Web Search (Parallel AI)
+- [x] Web Search (OpenRouter Sonar)
+- [x] Instagram Reels Search (ScrapeCreators)
+- [x] Bluesky Search
+- [x] Web Search (Brave Search)
+- [x] Hacker News Search (Algolia)
+- [x] HTTP Client
