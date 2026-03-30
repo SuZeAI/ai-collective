@@ -25,6 +25,8 @@ DEPTH_CONFIG = {
     "deep": {"results_per_page": 40},
 }
 
+HANDLE_REGEX = re.compile(r"(?:from:)?@?([A-Za-z0-9_]{1,15})")
+
 
 class ScrapeCreatorsXAPIError(RuntimeError):
     pass
@@ -154,6 +156,52 @@ def _request_json(
         raise ScrapeCreatorsXAPIError(str(exc)) from exc
 
 
+def _call_sc_x_endpoint(
+    endpoint: str,
+    *,
+    token: str,
+    params: Optional[Dict[str, Any]] = None,
+    timeout: int = 30,
+) -> Dict[str, Any]:
+    return _request_json(
+        f"{SCRAPECREATORS_BASE}/{endpoint}",
+        token=token,
+        params=params,
+        timeout=timeout,
+    )
+
+
+def _extract_handle(topic: str) -> str:
+    text = (topic or "").strip()
+    if not text:
+        return ""
+
+    # Prefer an explicit @handle/from:handle marker when present.
+    explicit = re.search(r"(?:from:|@)([A-Za-z0-9_]{1,15})", text, flags=re.IGNORECASE)
+    if explicit:
+        return explicit.group(1)
+
+    match = HANDLE_REGEX.search(text)
+    return match.group(1) if match else ""
+
+
+def _extract_tweet_id(text: str) -> str:
+    if not text:
+        return ""
+    m = re.search(r"status/(\d+)", text)
+    if m:
+        return m.group(1)
+    m = re.search(r"\b(\d{8,})\b", text)
+    return m.group(1) if m else ""
+
+
+def _to_int(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
 def search_x(
     topic: str,
     from_date: str,
@@ -165,12 +213,35 @@ def search_x(
     config = DEPTH_CONFIG.get(depth, DEPTH_CONFIG["default"])
     core_topic = _extract_core_subject(topic)
 
-    data = _request_json(
-        f"{SCRAPECREATORS_BASE}/search/tweets",
-        token=token,
-        params={"query": core_topic, "sort_by": "relevance"},
-        timeout=30,
-    )
+    handle = _extract_handle(topic)
+    if not handle:
+        raise ValueError(
+            "ScrapeCreators does not provide a general Twitter search endpoint in this integration. "
+            "Use an explicit handle in topic, e.g. '@openai AI updates' or 'from:openai'."
+        )
+
+    data: Dict[str, Any] = {}
+    last_error: Optional[Exception] = None
+
+    # ScrapeCreators docs show /user-tweets, while parameter naming can vary by backend version.
+    for params in (
+        {"username": handle},
+        {"screen_name": handle},
+        {"handle": handle},
+        {"user": handle},
+    ):
+        try:
+            data = _call_sc_x_endpoint("user-tweets", token=token, params=params, timeout=30)
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+            continue
+
+        raw_items = data.get("tweets") or data.get("data") or data.get("results") or []
+        if isinstance(raw_items, list) and raw_items:
+            break
+
+    if not data and last_error is not None:
+        raise ScrapeCreatorsXAPIError(str(last_error)) from last_error
 
     raw_items = data.get("tweets") or data.get("data") or data.get("results") or []
     raw_items = raw_items[: config["results_per_page"]]
@@ -188,10 +259,10 @@ def search_x(
             user = {}
         author_handle = str(user.get("screen_name") or user.get("username") or "")
 
-        likes = int(raw.get("favorite_count") or raw.get("likes") or 0)
-        retweets = int(raw.get("retweet_count") or raw.get("retweets") or 0)
-        replies = int(raw.get("reply_count") or raw.get("replies") or 0)
-        quotes = int(raw.get("quote_count") or raw.get("quotes") or 0)
+        likes = _to_int(raw.get("favorite_count") or raw.get("likes"))
+        retweets = _to_int(raw.get("retweet_count") or raw.get("retweets"))
+        replies = _to_int(raw.get("reply_count") or raw.get("replies"))
+        quotes = _to_int(raw.get("quote_count") or raw.get("quotes"))
 
         date_str = _parse_date(raw)
         relevance = _compute_relevance(core_topic, text)
@@ -244,6 +315,158 @@ class ScrapeCreatorsXToolkit(BaseToolkit):
         super().__init__(**kwargs)
         self.token = token or os.getenv("SCRAPECREATORS_API_KEY", "")
 
+    def _require_token(self, token: Optional[str]) -> str:
+        selected_token = (token or self.token or "").strip()
+        if not selected_token:
+            raise ValueError(
+                "Missing ScrapeCreators API key. Set SCRAPECREATORS_API_KEY or pass token in tool config."
+            )
+        return selected_token
+
+    @tool(parse_docstring=True)
+    async def scrapecreators_x_profile(
+        self,
+        username: str,
+        token: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get Twitter profile information from ScrapeCreators.
+
+        Args:
+            username: X handle without @.
+            token: Optional ScrapeCreators API key override.
+        """
+        selected_token = self._require_token(token)
+        return await asyncio.to_thread(
+            _call_sc_x_endpoint,
+            "profile",
+            token=selected_token,
+            params={"username": username.lstrip("@")},
+            timeout=30,
+        )
+
+    @tool(parse_docstring=True)
+    async def scrapecreators_x_user_tweets(
+        self,
+        username: str,
+        depth: str = "default",
+        token: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get tweets from a specific user profile via ScrapeCreators.
+
+        Args:
+            username: X handle without @.
+            depth: Number of results to keep, one of quick, default, deep.
+            token: Optional ScrapeCreators API key override.
+        """
+        selected_token = self._require_token(token)
+        data = await asyncio.to_thread(
+            _call_sc_x_endpoint,
+            "user-tweets",
+            token=selected_token,
+            params={"username": username.lstrip("@")},
+            timeout=30,
+        )
+        limit = DEPTH_CONFIG.get(depth, DEPTH_CONFIG["default"])["results_per_page"]
+        tweets = data.get("tweets") or data.get("data") or data.get("results") or []
+        if isinstance(tweets, list):
+            data["tweets"] = tweets[:limit]
+        return data
+
+    @tool(parse_docstring=True)
+    async def scrapecreators_x_tweet(
+        self,
+        tweet_id_or_url: str,
+        token: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get detailed information for a single tweet.
+
+        Args:
+            tweet_id_or_url: Tweet numeric ID or a full tweet URL.
+            token: Optional ScrapeCreators API key override.
+        """
+        selected_token = self._require_token(token)
+        tweet_id = _extract_tweet_id(tweet_id_or_url)
+        params = {"tweet_id": tweet_id} if tweet_id else {"url": tweet_id_or_url}
+        return await asyncio.to_thread(
+            _call_sc_x_endpoint,
+            "tweet",
+            token=selected_token,
+            params=params,
+            timeout=30,
+        )
+
+    @tool(parse_docstring=True)
+    async def scrapecreators_x_tweet_transcript(
+        self,
+        tweet_id_or_url: str,
+        token: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get transcript for a video tweet.
+
+        Args:
+            tweet_id_or_url: Tweet numeric ID or a full tweet URL.
+            token: Optional ScrapeCreators API key override.
+        """
+        selected_token = self._require_token(token)
+        tweet_id = _extract_tweet_id(tweet_id_or_url)
+        params = {"tweet_id": tweet_id} if tweet_id else {"url": tweet_id_or_url}
+        return await asyncio.to_thread(
+            _call_sc_x_endpoint,
+            "tweet/transcript",
+            token=selected_token,
+            params=params,
+            timeout=60,
+        )
+
+    @tool(parse_docstring=True)
+    async def scrapecreators_x_community(
+        self,
+        community_id: str,
+        token: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get details for an X community.
+
+        Args:
+            community_id: X community identifier.
+            token: Optional ScrapeCreators API key override.
+        """
+        selected_token = self._require_token(token)
+        return await asyncio.to_thread(
+            _call_sc_x_endpoint,
+            "community",
+            token=selected_token,
+            params={"community_id": community_id},
+            timeout=30,
+        )
+
+    @tool(parse_docstring=True)
+    async def scrapecreators_x_community_tweets(
+        self,
+        community_id: str,
+        depth: str = "default",
+        token: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get tweets from an X community.
+
+        Args:
+            community_id: X community identifier.
+            depth: Number of results to keep, one of quick, default, deep.
+            token: Optional ScrapeCreators API key override.
+        """
+        selected_token = self._require_token(token)
+        data = await asyncio.to_thread(
+            _call_sc_x_endpoint,
+            "community/tweets",
+            token=selected_token,
+            params={"community_id": community_id},
+            timeout=30,
+        )
+        limit = DEPTH_CONFIG.get(depth, DEPTH_CONFIG["default"])["results_per_page"]
+        tweets = data.get("tweets") or data.get("data") or data.get("results") or []
+        if isinstance(tweets, list):
+            data["tweets"] = tweets[:limit]
+        return data
+
     @tool(parse_docstring=True)
     async def scrapecreators_x_search(
         self,
@@ -256,17 +479,13 @@ class ScrapeCreatorsXToolkit(BaseToolkit):
         """Search X (Twitter) posts via ScrapeCreators and return normalized items.
 
         Args:
-            topic: Search query in natural language.
+            topic: Include an explicit X handle, e.g. '@openai AI updates' or 'from:openai'.
             from_date: Start date in YYYY-MM-DD format.
             to_date: End date in YYYY-MM-DD format.
             depth: Search depth, one of quick, default, deep.
             token: Optional ScrapeCreators API key override.
         """
-        selected_token = (token or self.token or "").strip()
-        if not selected_token:
-            raise ValueError(
-                "Missing ScrapeCreators API key. Set SCRAPECREATORS_API_KEY or pass token in tool config."
-            )
+        selected_token = self._require_token(token)
 
         raw = await asyncio.to_thread(
             search_x,

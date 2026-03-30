@@ -41,6 +41,45 @@ class HTTPError(Exception):
         self.body = body
 
 
+def _coerce_positive_int(value: Any, *, default: int, field_name: str) -> int:
+    """Convert runtime values (including numeric strings) into positive integers."""
+
+    if value is None:
+        return default
+
+    if isinstance(value, bool):
+        raise HTTPError(f"Invalid {field_name}: {value!r}; expected a positive integer")
+
+    if isinstance(value, str):
+        value = value.strip()
+        if not value:
+            return default
+
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise HTTPError(f"Invalid {field_name}: {value!r}; expected a positive integer") from exc
+
+    if parsed <= 0:
+        raise HTTPError(f"Invalid {field_name}: {parsed}; expected a positive integer")
+
+    return parsed
+
+
+def _looks_like_json(content_type: Optional[str], body: str) -> bool:
+    """Best-effort check to decide whether response body should be JSON-decoded."""
+
+    normalized_content_type = (content_type or "").lower()
+    if "application/json" in normalized_content_type or "+json" in normalized_content_type:
+        return True
+
+    stripped = body.lstrip()
+    if not stripped:
+        return True
+
+    return stripped[0] in ("{", "[")
+
+
 def request(
     method: str,
     url: str,
@@ -54,6 +93,9 @@ def request(
     raw: bool = False,
 ) -> Any:
     """Make an HTTP request and return parsed JSON or raw text."""
+
+    timeout = _coerce_positive_int(timeout, default=DEFAULT_TIMEOUT, field_name="timeout")
+    retries = _coerce_positive_int(retries, default=MAX_RETRIES, field_name="retries")
 
     request_headers = dict(headers or {})
     request_headers.setdefault("User-Agent", USER_AGENT)
@@ -82,10 +124,13 @@ def request(
         try:
             with urllib.request.urlopen(req, timeout=timeout) as response:
                 body = response.read().decode("utf-8")
+                content_type = response.headers.get("Content-Type") if response.headers else None
                 log(f"Response: {response.status} ({len(body)} bytes)")
                 if raw:
                     return body
-                return json.loads(body) if body else {}
+                if _looks_like_json(content_type, body):
+                    return json.loads(body) if body else {}
+                return body
         except urllib.error.HTTPError as exc:
             body = None
             try:
@@ -188,10 +233,10 @@ class HTTPToolkit(BaseToolkit):
         user_agent: str = USER_AGENT,
         **kwargs: Any,
     ):
+        super().__init__(**kwargs)
         self.timeout = timeout
         self.retries = retries
         self.user_agent = user_agent or USER_AGENT
-        super().__init__(**kwargs)
 
     def _merged_headers(self, headers: Optional[Dict[str, str]] = None) -> Dict[str, str]:
         merged = dict(headers or {})
