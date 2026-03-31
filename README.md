@@ -1,6 +1,6 @@
 # <img src="./assets/spider.png" height="25" alt="spider" /> AI – Collective
 <p align="center">
-<img src="./assets/logo.png" width="550" alt="AI Collective Logo">
+<img src="./assets/logo_1.png" width="550" alt="AI Collective Logo">
 </p>
 
 <p align="center">
