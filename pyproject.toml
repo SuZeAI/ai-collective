@@ -24,6 +24,7 @@ dependencies = [
 	"google-auth>=2.40.3",
 	"google-auth-oauthlib>=1.2.2",
 	"google-api-python-client>=2.181.0",
+	"rembg[cpu]>=2.0.74",
 ]
 
 [tool.uvicorn]
