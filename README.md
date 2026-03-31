@@ -1,46 +1,76 @@
-# AI Collective
+# AI – Collective
 
-AI Collective is a multi-agent collaboration platform designed to model how high-performing teams operate in real production environments. Rather than treating AI as a single assistant, the platform enables organizations to assemble specialized agents, orchestrate them as coordinated teams, and execute structured workflows that move from planning to delivery with measurable outcomes.
+<p align="center">
+<img src="https://raw.githubusercontent.com/SuzeNith/ai-collective/main/assets/logo.png" width="150" alt="AI Collective Logo">
+</p>
 
-## 🚀 Introduction
+<p align="center">
+<strong>A high-performance multi-agent orchestration platform for programmable AI workforces.</strong>
+</p>
 
-This project is built for product teams, AI engineers, and researchers who want to develop and validate AI workforce patterns in a practical system. Each agent can be configured with a dedicated role, behavior prompt, and connected toolset, allowing teams to distribute responsibilities across planning, research, execution, and review. The result is a transparent collaboration model where progress is visible through tasks, conversations, activity streams, and analytics.
+<p align="center">
+<a href="#-key-features">Features</a> •
+<a href="#-architecture">Architecture</a> •
+<a href="#-quick-start">Quick Start</a> •
+<a href="#-use-cases">Use Cases</a>
+</p>
 
-## ✨ Core Capabilities
+-----
 
-AI Collective provides end-to-end lifecycle management for agents, skills, teams, tasks, and communication flows. Teams can be run with sequential coordination for deterministic execution or mesh-style collaboration for parallel reasoning and iteration. Inference is supported through direct LLM chat as well as agent-graph orchestration, with streaming responses available through server-sent events for real-time interaction.
+## 🤖 What is AI – Collective?
 
-The skill ecosystem is intentionally extensible and integration-friendly. Through reusable tool presets and configurable skill presets, agents can access web search, browser automation, social intelligence pipelines, HTTP workflows, and Google Workspace capabilities. OAuth-based authorization is available for Google services, including Sheets, Drive, Docs, Slides, and Calendar, which enables secure access to third-party workflows during local and staged development.
+**AI – Collective** is an open-source framework designed to model, orchestrate, and execute complex workflows through **Customizable Multi-Agent Teams**. Unlike standard chatbots, it enables the creation of an "AI Workforce" where agents possess specific skills, follow organizational hierarchies (Peer-to-Peer, Hierarchical, or Self-Organizing), and collaborate to solve high-level objectives.
+
+## ✨ Key Features
+
+| Feature | Description |
+| :--- | :--- |
+| **Atomic Skill System** | Define granular capabilities (Market Analysis, Web Search, API Integration) and inject them into agents. |
+| **Agent Personas** | Create agents with unique identities, roles, and behavioral constraints. |
+| **Dynamic Team Structures** | Model real-world organizations: Flat teams for brainstorming or Hierarchical for production. |
+| **Multi-Agent Discussion** | Real-time message exchange, critique, and consensus-building between agents. |
+| **Human-in-the-Loop** | Seamlessly intervene in agent discussions to provide feedback or steer the workflow. |
+| **Real-time Monitoring** | Comprehensive dashboard to track task progress, agent logs, and system performance. |
 
 ## 🏗️ Architecture
 
-The frontend stack combines React, TypeScript, and Vite with Tailwind CSS, Radix UI, Framer Motion, and React Query to deliver a responsive, state-driven interface for complex agent interactions. The backend is implemented in FastAPI and follows Clean Architecture principles, where domain models remain independent, application services define use-case boundaries, infrastructure adapts external systems, and API layers expose stable contracts. Local persistence currently uses JSON-based storage, giving teams a lightweight development setup without sacrificing inspectability.
+AI – Collective is built with a focus on **Clean Architecture** and **Asynchronous Execution**.
 
-## ⚙️ Installation
-
-To get started, prepare an environment with Node.js 18+, Python 3.11+, and npm. Clone the repository and move into the project root.
-
-```bash
-git clone https://github.com/your-org/ai-collective.git
-cd ai-collective
+```mermaid
+graph TD
+    A[User/Task] --> B[Team Orchestrator]
+    B --> C{Organization Type}
+    C -->|Hierarchical| D[Leader -> Workers]
+    C -->|Peer-to-Peer| E[Collaborative Mesh]
+    D & E --> F[Skill Execution]
+    F --> G[Google Workspace/Search/API]
+    G --> H[Final Result & Monitoring]
 ```
 
-Install frontend dependencies with npm, then resolve backend dependencies with uv.
+  * **Frontend**: React + TypeScript + Vite + Tailwind CSS + Framer Motion.
+  * **Backend**: FastAPI (Python 3.11+) with Clean Architecture boundaries.
+  * **Intelligence**: LLM-agnostic (optimized for Gemini-2.0-Flash) via agent-graph orchestration.
+  * **Storage**: Lightweight JSON-based persistence for rapid development.
+
+## 🚀 Quick Start
+
+### 1\. Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/SuZeAI/ai-collective.git
+cd ai-collective
+
+# Install Frontend dependencies
 npm install
+
+# Setup Backend with 'uv'
 uv sync
 ```
 
-If you are using a virtual environment, activate it before running backend commands.
+### 2\. Configuration
 
-```bash
-source .venv/bin/activate
-```
-
-## 🔐 Environment Configuration
-
-Create a `.env` file in the project root and define runtime variables for both backend and frontend integration. LLM features require a valid Gemini API key, while frontend-to-backend routing is controlled through a configurable base URL.
+Create a `.env` file in the root directory:
 
 ```env
 GEMINI_API_KEY=<YOUR_GEMINI_API_KEY_HERE>
@@ -54,36 +84,38 @@ LOG_LEVEL=DEBUG
 GOOGLE_OAUTH_CLIENT_SECRET_PATH=<PATH_TO_YOUR_GOOGLE_OAUTH_CLIENT_SECRET_JSON_FILE_HERE>
 ```
 
-Keep backend credentials outside variables prefixed with `VITE_`, since Vite-prefixed values are exposed to frontend bundles. When `VITE_API_BASE_URL` is not explicitly set, the frontend defaults to `http://localhost:8000/api/v1`.
-
-## ▶️ Running The Project
-
-Start the frontend development server with Vite.
+### 3\. Execution
 
 ```bash
+# Start Frontend
 npm run dev
-```
 
-Then launch the backend API service in a separate terminal.
-
-```bash
+# Start Backend (Separate terminal)
 uvicorn backend.api.main:app --reload --port 8000
 ```
 
-By default, the frontend is available at `http://localhost:8080`. Backend documentation is available at `http://localhost:8000/docs`.
+## 🛠️ System Components
 
-## 🔌 API Overview
+  * **Skill System**: The DNA of agents. Supports both cognitive (logic) and tool-based (API) skills.
+  * **Communication Layer**: Manages message passing, state synchronization, and streaming (SSE).
+  * **Monitoring**: A transparent log system to "watch your team work" in real-time.
 
-All API routes are exposed under the `/api/v1` prefix. The service includes endpoints for health checks, agents, skills, teams, tasks, conversations, analytics, activity feeds, simulation planning, LLM chat, agent-graph execution in both streaming and non-streaming modes, and OAuth authorization state management. This surface is designed to support both UI-first interaction patterns and external orchestration clients.
+## 🧪 Use Cases
 
-## 👨‍💻 Author
-
-AI Collective is created by SuZeAI (SuzeNith), an AI Research Engineer focused on autonomous agent systems and practical multi-agent product architecture.
+  * **Financial Analysis**: Team of analysts debating market trends based on real-time news.
+  * **Content Pipeline**: Strategy -\> Drafting -\> Critiquing -\> Final Polish.
+  * **Software Research**: Automated vulnerability detection and documentation generation.
 
 ## 🤝 Contributing
 
-Contributions are welcome and highly appreciated. The recommended workflow is to fork the repository, create a focused branch for your feature or fix, keep commits concise and descriptive, run linting and tests before submission, and open a pull request that clearly explains implementation scope and validation results. Please avoid committing credentials or secret material, and keep architectural consistency with the existing backend Clean Architecture boundaries.
+We welcome contributions\! Please follow the Clean Architecture patterns established in the backend and ensure all frontend components are modular.
 
-## 📄 License
+## 👨‍💻 Author
 
-This project is released under the MIT License.
+**SuZeAI (SuzeNith)** - AI Research Engineer focused on autonomous multi-agent systems.
+
+-----
+
+<p align="center">
+Released under the <a href="LICENSE">MIT License</a>.
+</p>
