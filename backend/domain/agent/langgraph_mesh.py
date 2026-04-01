@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import TypedDict
+from uuid import uuid4
 
 from langgraph.graph import END, START, StateGraph
 
@@ -9,10 +10,12 @@ from backend.domain.prompt.routing_prompt import get_routing_guidance
 from backend.application.ports.agent_graph import (
     AgentGraphOrchestrator,
     GraphAgentDefinition,
+    GraphContextProvider,
     GraphRunResult,
     GraphTurn,
 )
 from backend.application.ports.llm import LLMProvider
+from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.log import get_logger
 
 
@@ -56,6 +59,9 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         agents: list[GraphAgentDefinition],
         llm: LLMProvider,
         max_rounds: int,
+        conversation_id: str | None = None,
+        graph_context_provider: GraphContextProvider | None = None,
+        graph_config: GraphContextConfig | None = None,
     ) -> GraphRunResult:
         """
         Execute multi-agent mesh graph where all agents can connect to each other.
@@ -77,6 +83,18 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 user_input=user_input,
                 agent=agents[0],
                 llm=llm,
+                conversation_id=conversation_id,
+                graph_context_provider=graph_context_provider,
+                graph_config=graph_config,
+            )
+
+        if graph_context_provider and conversation_id:
+            graph_context_provider.ingest_message(
+                conversation_id=conversation_id,
+                message_id=f"user-{uuid4().hex}",
+                speaker="user",
+                content=user_input,
+                config=graph_config,
             )
 
         builder: StateGraph = StateGraph(MultiAgentMeshState)
@@ -92,6 +110,9 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                     llm=llm,
                     all_agents=agents,
                     hub_agent_name=hub_agent.name,
+                    conversation_id=conversation_id,
+                    graph_context_provider=graph_context_provider,
+                    graph_config=graph_config,
                 ),
             )
         
@@ -152,6 +173,9 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         agents: list[GraphAgentDefinition],
         llm: LLMProvider,
         max_rounds: int,
+        conversation_id: str | None = None,
+        graph_context_provider: GraphContextProvider | None = None,
+        graph_config: GraphContextConfig | None = None,
     ):
         """Streaming version for real-time multi-agent conversation"""
         if not agents:
@@ -162,9 +186,21 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 user_input=user_input,
                 agent=agents[0],
                 llm=llm,
+                conversation_id=conversation_id,
+                graph_context_provider=graph_context_provider,
+                graph_config=graph_config,
             ):
                 yield turn
             return
+
+        if graph_context_provider and conversation_id:
+            graph_context_provider.ingest_message(
+                conversation_id=conversation_id,
+                message_id=f"user-{uuid4().hex}",
+                speaker="user",
+                content=user_input,
+                config=graph_config,
+            )
 
         builder: StateGraph = StateGraph(MultiAgentMeshState)
         
@@ -179,6 +215,9 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                     llm=llm,
                     all_agents=agents,
                     hub_agent_name=hub_agent.name,
+                    conversation_id=conversation_id,
+                    graph_context_provider=graph_context_provider,
+                    graph_config=graph_config,
                 ),
             )
         
@@ -231,6 +270,9 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         user_input: str,
         agent: GraphAgentDefinition,
         llm: LLMProvider,
+        conversation_id: str | None,
+        graph_context_provider: GraphContextProvider | None,
+        graph_config: GraphContextConfig | None,
     ) -> GraphRunResult:
         """Fallback execution path when only one agent is provided."""
         node = self._make_mesh_llm_node(
@@ -238,7 +280,18 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             llm=llm,
             all_agents=[agent],
             hub_agent_name=agent.name,
+            conversation_id=conversation_id,
+            graph_context_provider=graph_context_provider,
+            graph_config=graph_config,
         )
+        if graph_context_provider and conversation_id:
+            graph_context_provider.ingest_message(
+                conversation_id=conversation_id,
+                message_id=f"user-{uuid4().hex}",
+                speaker="user",
+                content=user_input,
+                config=graph_config,
+            )
         initial: MultiAgentMeshState = {
             "input": user_input,
             "original_input": user_input,
@@ -270,12 +323,18 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         user_input: str,
         agent: GraphAgentDefinition,
         llm: LLMProvider,
+        conversation_id: str | None,
+        graph_context_provider: GraphContextProvider | None,
+        graph_config: GraphContextConfig | None,
     ):
         """Streaming fallback when only one agent is provided."""
         result = await self._run_single_agent(
             user_input=user_input,
             agent=agent,
             llm=llm,
+            conversation_id=conversation_id,
+            graph_context_provider=graph_context_provider,
+            graph_config=graph_config,
         )
         if result.turns:
             yield result.turns[-1]
@@ -286,6 +345,9 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         llm: LLMProvider,
         all_agents: list[GraphAgentDefinition] = None,
         hub_agent_name: str = None,
+        conversation_id: str | None = None,
+        graph_context_provider: GraphContextProvider | None = None,
+        graph_config: GraphContextConfig | None = None,
     ):
         """
         Create an LLM node function for multi-agent mesh communication.
@@ -323,6 +385,16 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                     all_recent_messages.append(f"{agent.name}: {msg}")
             
             context_parts.extend(all_recent_messages[-5:])
+
+            if graph_context_provider and conversation_id:
+                pack = graph_context_provider.build_graph_context(
+                    conversation_id=conversation_id,
+                    query=state["input"],
+                    config=graph_config,
+                )
+                if pack.text:
+                    context_parts.append(pack.text)
+
             user_input = "\n".join(context_parts)
             get_logger().info(f"Agent '{agent.name}' received context:\n{user_input}")
             system_prompt_with_routing = agent.system_prompt
@@ -339,6 +411,15 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 user=user_input,
                 tools=bound_tools or None,
             )
+
+            if graph_context_provider and conversation_id:
+                graph_context_provider.ingest_message(
+                    conversation_id=conversation_id,
+                    message_id=f"agent-{agent.name}-{uuid4().hex}",
+                    speaker=agent.name,
+                    content=response,
+                    config=graph_config,
+                )
             
             turns = state["turns"]
             new_turn = GraphTurn(

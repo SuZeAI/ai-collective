@@ -12,6 +12,8 @@ class GraphRunRequest(BaseModel):
     max_rounds: int = Field(default=6, ge=1, le=20)
     agents: list[str] = Field(min_length=1)
     mode: Literal["mesh", "sequential"] = Field(default="sequential")
+    conversation_id: str | None = Field(default=None, min_length=1)
+    graph_config: "GraphConfigSchema | None" = None
 
     @model_validator(mode="after")
     def validate_unique_agent_ids(self) -> "GraphRunRequest":
@@ -43,6 +45,7 @@ class GraphRunResponse(BaseModel):
             turns=[
                 GraphTurnSchema(
                     turn=t.turn,
+                    agent_id=t.agent_name,
                     agent_name=t.agent_name,
                     agent_role=t.agent_role,
                     content=t.content,
@@ -50,3 +53,21 @@ class GraphRunResponse(BaseModel):
                 for t in result.turns
             ],
         )
+
+
+class GraphConfigSchema(BaseModel):
+    build_method: Literal["rule", "embedding", "ie"] = "rule"
+    entity_method: Literal["keyword", "capitalized", "hybrid"] = "hybrid"
+    relation_method: Literal["pattern", "cooccurrence", "dependency"] = "pattern"
+    retrieve_method: Literal["lexical", "embedding", "hybrid"] = "hybrid"
+    expand_hops: int = Field(default=1, ge=1, le=3)
+    top_k_nodes: int = Field(default=10, ge=3, le=30)
+    top_k_edges: int = Field(default=12, ge=3, le=50)
+    min_score_threshold: float = Field(default=0.05, ge=0.0, le=1.0)
+    recency_weight: float = Field(default=0.2, ge=0.0, le=1.0)
+    similarity_weight: float = Field(default=0.6, ge=0.0, le=1.0)
+    edge_weight: float = Field(default=0.2, ge=0.0, le=1.0)
+    persist_mode: Literal["snapshot", "snapshot_plus_log"] = "snapshot_plus_log"
+
+
+GraphRunRequest.model_rebuild()

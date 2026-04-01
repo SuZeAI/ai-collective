@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from backend.domain.memory.knowledge_graph import ConversationKnowledgeGraph
 from backend.domain.models import Agent, Skill, Team, Task, Message, Analytics, ActivityFeedItem
 
 
@@ -85,4 +86,15 @@ class ActivityFeedRepository(Protocol):
         ...
 
     def add(self, item: ActivityFeedItem) -> ActivityFeedItem:
+        ...
+
+
+class GraphKnowledgeRepository(Protocol):
+    def get(self, conversation_id: str) -> ConversationKnowledgeGraph | None:
+        ...
+
+    def upsert(self, graph: ConversationKnowledgeGraph) -> ConversationKnowledgeGraph:
+        ...
+
+    def append_event(self, conversation_id: str, event: dict[str, object]) -> None:
         ...

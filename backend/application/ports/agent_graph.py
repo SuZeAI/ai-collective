@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, Protocol
 
+from backend.domain.memory.knowledge_graph import GraphContextConfig, GraphContextPack
 from backend.application.ports.llm import LLMProvider
 from backend.domain.tools.base import BaseToolkit
 
@@ -33,6 +34,28 @@ class GraphRunResult:
     rounds: int
 
 
+class GraphContextProvider(Protocol):
+    def ingest_message(
+        self,
+        *,
+        conversation_id: str,
+        message_id: str,
+        speaker: str,
+        content: str,
+        config: GraphContextConfig | None = None,
+    ) -> None:
+        ...
+
+    def build_graph_context(
+        self,
+        *,
+        conversation_id: str,
+        query: str,
+        config: GraphContextConfig | None = None,
+    ) -> GraphContextPack:
+        ...
+
+
 class AgentGraphOrchestrator(Protocol):
     async def run(
         self,
@@ -41,6 +64,9 @@ class AgentGraphOrchestrator(Protocol):
         agents: list[GraphAgentDefinition],
         llm: LLMProvider,
         max_rounds: int,
+        conversation_id: str | None = None,
+        graph_context_provider: GraphContextProvider | None = None,
+        graph_config: GraphContextConfig | None = None,
     ) -> GraphRunResult:
         ...
 
@@ -51,6 +77,9 @@ class AgentGraphOrchestrator(Protocol):
         agents: list[GraphAgentDefinition],
         llm: LLMProvider,
         max_rounds: int,
+        conversation_id: str | None = None,
+        graph_context_provider: GraphContextProvider | None = None,
+        graph_config: GraphContextConfig | None = None,
     ):
         """Streaming version that yields GraphTurn events as agents process"""
         ...

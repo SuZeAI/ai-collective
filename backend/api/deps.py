@@ -9,6 +9,7 @@ from backend.application.service.agent_graph_service import AgentGraphService
 from backend.application.service.activity_feed_service import ActivityFeedService
 from backend.application.service.analytics_service import AnalyticsService
 from backend.application.service.conversation_service import ConversationService
+from backend.application.service.graph_context_service import GraphContextService
 from backend.application.service.llm_service import LLMService
 from backend.application.service.simulation_service import SimulationService
 from backend.application.service.task_service import TaskService
@@ -27,6 +28,7 @@ from backend.infrastructure.repositories.json_files import (
     JsonTaskRepository,
     JsonTeamRepository,
 )
+from backend.infrastructure.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
 from backend.infrastructure.repositories.json_store import JsonFileStore
 from backend.log import get_logger
 
@@ -44,42 +46,51 @@ def _repos():
     conversations = JsonConversationRepository(JsonFileStore(STORAGE_DIR / "conversations.json"))
     analytics = JsonAnalyticsRepository(JsonFileStore(STORAGE_DIR / "analytics.json"))
     activity_feed = JsonActivityFeedRepository(JsonFileStore(STORAGE_DIR / "activity_feed.json"))
-    return agents, skills, teams, tasks, conversations, analytics, activity_feed
+    graph_knowledge = JsonGraphKnowledgeRepository(
+        JsonFileStore(STORAGE_DIR / "graph_knowledge.json"),
+        JsonFileStore(STORAGE_DIR / "graph_knowledge_events.json"),
+    )
+    return agents, skills, teams, tasks, conversations, analytics, activity_feed, graph_knowledge
 
 
 def get_agent_service() -> AgentService:
-    agents, skills, _, _, _, _, _ = _repos()
+    agents, skills, _, _, _, _, _, _ = _repos()
     return AgentService(agents, skills)
 
 
 def get_skill_service() -> SkillService:
-    _, skills, _, _, _, _, _ = _repos()
+    _, skills, _, _, _, _, _, _ = _repos()
     return SkillService(skills)
 
 
 def get_team_service() -> TeamService:
-    _, _, teams, _, _, _, _ = _repos()
+    _, _, teams, _, _, _, _, _ = _repos()
     return TeamService(teams)
 
 
 def get_task_service() -> TaskService:
-    _, _, _, tasks, _, _, _ = _repos()
+    _, _, _, tasks, _, _, _, _ = _repos()
     return TaskService(tasks)
 
 
 def get_conversation_service() -> ConversationService:
-    _, _, _, _, conversations, _, _ = _repos()
-    return ConversationService(conversations)
+    _, _, _, _, conversations, _, _, graph_knowledge = _repos()
+    return ConversationService(conversations, GraphContextService(graph_knowledge))
 
 
 def get_analytics_service() -> AnalyticsService:
-    _, _, _, tasks, _, analytics, _ = _repos()
+    _, _, _, tasks, _, analytics, _, _ = _repos()
     return AnalyticsService(analytics, tasks)
 
 
 def get_activity_feed_service() -> ActivityFeedService:
-    _, _, _, _, _, _, feed = _repos()
+    _, _, _, _, _, _, feed, _ = _repos()
     return ActivityFeedService(feed)
+
+
+def get_graph_context_service() -> GraphContextService:
+    _, _, _, _, _, _, _, graph_knowledge = _repos()
+    return GraphContextService(graph_knowledge)
 
 
 def get_skill_tool_manager() -> SkillToolManager:

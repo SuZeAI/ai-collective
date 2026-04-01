@@ -3,8 +3,10 @@ from __future__ import annotations
 from backend.application.ports.agent_graph import (
     AgentGraphOrchestrator,
     GraphAgentDefinition,
+    GraphContextProvider,
     GraphRunResult,
 )
+from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.application.ports.llm import LLMProvider
 
 
@@ -19,6 +21,9 @@ class AgentGraphService:
         user_input: str,
         definitions: list[GraphAgentDefinition],
         max_rounds: int = 6,
+        conversation_id: str | None = None,
+        graph_context_provider: GraphContextProvider | None = None,
+        graph_config: GraphContextConfig | None = None,
     ) -> GraphRunResult:
         if not user_input.strip():
             raise ValueError("user_input must not be empty")
@@ -29,6 +34,9 @@ class AgentGraphService:
             agents=definitions,
             llm=self._llm,
             max_rounds=max(1, max_rounds),
+            conversation_id=conversation_id,
+            graph_context_provider=graph_context_provider,
+            graph_config=graph_config,
         )
 
     async def run_stream_with_definitions(
@@ -37,6 +45,9 @@ class AgentGraphService:
         user_input: str,
         definitions: list[GraphAgentDefinition],
         max_rounds: int = 6,
+        conversation_id: str | None = None,
+        graph_context_provider: GraphContextProvider | None = None,
+        graph_config: GraphContextConfig | None = None,
     ):
         """Stream agent responses as they are generated"""
         if not user_input.strip():
@@ -48,5 +59,8 @@ class AgentGraphService:
             agents=definitions,
             llm=self._llm,
             max_rounds=max(1, max_rounds),
+            conversation_id=conversation_id,
+            graph_context_provider=graph_context_provider,
+            graph_config=graph_config,
         ):
             yield turn

@@ -216,6 +216,21 @@ export const api = {
     agents: string[];
     max_rounds?: number;
     mode?: "mesh" | "sequential";
+    conversation_id?: string;
+    graph_config?: {
+      build_method?: "rule" | "embedding" | "ie";
+      entity_method?: "keyword" | "capitalized" | "hybrid";
+      relation_method?: "pattern" | "cooccurrence" | "dependency";
+      retrieve_method?: "lexical" | "embedding" | "hybrid";
+      expand_hops?: number;
+      top_k_nodes?: number;
+      top_k_edges?: number;
+      min_score_threshold?: number;
+      recency_weight?: number;
+      similarity_weight?: number;
+      edge_weight?: number;
+      persist_mode?: "snapshot" | "snapshot_plus_log";
+    };
   }) {
     const base = getApiBase().replace(/\/$/, "");
     const url = `${base}/llm/agent-graph/run-stream`;
@@ -224,6 +239,8 @@ export const api = {
       agents: payload.agents,
       max_rounds: payload.max_rounds ?? 6,
       mode: payload.mode ?? "sequential",
+      conversation_id: payload.conversation_id,
+      graph_config: payload.graph_config,
     });
 
     const res = await fetch(url, {

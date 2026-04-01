@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import asdict
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -9,6 +10,7 @@ from pydantic import BaseModel, Field
 from backend.api.deps import (
     get_agent_graph_service,
     get_agent_service,
+    get_graph_context_service,
     get_llm_service,
     get_skill_tool_manager,
 )
@@ -16,7 +18,9 @@ from backend.api.schemas.agent_graph import GraphRunRequest, GraphRunResponse, G
 from backend.application.ports.agent_graph import GraphAgentDefinition
 from backend.application.service.agent_service import AgentService
 from backend.application.service.agent_graph_service import AgentGraphService
+from backend.application.service.graph_context_service import GraphContextService
 from backend.application.service.llm_service import LLMService
+from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.log import get_logger
 
@@ -74,6 +78,7 @@ async def run_agent_graph(
     req: GraphRunRequest,
     agent_service: AgentService = Depends(get_agent_service),
     tool_manager: SkillToolManager = Depends(get_skill_tool_manager),
+    graph_context_service: GraphContextService = Depends(get_graph_context_service),
 ) -> GraphRunResponse:
     service = get_agent_graph_service(mode=req.mode)
     if not service:
@@ -111,10 +116,16 @@ async def run_agent_graph(
                 detail=f"Agent '{agent_id}' not found: {str(e)}"
             )
 
+    graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
+    conversation_id = req.conversation_id
+
     result = await service.run_with_definitions(
         user_input=req.user_input,
         definitions=definitions,
         max_rounds=req.max_rounds,
+        conversation_id=conversation_id,
+        graph_context_provider=graph_context_service,
+        graph_config=graph_config,
     )
     return GraphRunResponse.from_result(result)
 
@@ -124,6 +135,7 @@ async def run_agent_graph_stream(
     req: GraphRunRequest,
     agent_service: AgentService = Depends(get_agent_service),
     tool_manager: SkillToolManager = Depends(get_skill_tool_manager),
+    graph_context_service: GraphContextService = Depends(get_graph_context_service),
 ):
     """Stream agent responses in real-time using Server-Sent Events"""
     service = get_agent_graph_service(mode=req.mode)
@@ -164,6 +176,9 @@ async def run_agent_graph_stream(
                 detail=f"Agent '{agent_id}' not found: {str(e)}"
             )
 
+    graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
+    conversation_id = req.conversation_id
+
     async def event_generator():
         """Generate Server-Sent Events for each agent turn"""
         try:
@@ -171,6 +186,9 @@ async def run_agent_graph_stream(
                 user_input=req.user_input,
                 definitions=definitions,
                 max_rounds=req.max_rounds,
+                conversation_id=conversation_id,
+                graph_context_provider=graph_context_service,
+                graph_config=graph_config,
             ):
                 # Convert GraphTurn to GraphTurnSchema and serialize to JSON
                 turn_schema = GraphTurnSchema(
@@ -182,6 +200,14 @@ async def run_agent_graph_stream(
                 )
                 # Yield as SSE format: data: {json}\n\n
                 yield f"data: {json.dumps(turn_schema.model_dump())}\n\n"
+            if conversation_id:
+                pack = graph_context_service.build_graph_context(
+                    conversation_id=conversation_id,
+                    query=req.user_input,
+                    config=graph_config,
+                )
+                if pack.text:
+                    yield f"data: {json.dumps({'graph_context': asdict(pack)})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 

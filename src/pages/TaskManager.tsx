@@ -226,6 +226,7 @@ export default function TaskManager() {
             agents: updated.assignedAgents,
             max_rounds: teamMaxSteps,
             mode: teamMode,
+            conversation_id: updated.id,
           })) {
             if (turn.error) {
               console.error(turn.error);

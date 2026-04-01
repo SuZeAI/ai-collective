@@ -230,6 +230,7 @@ export default function TeamBuilder() {
         agents: testingTeam.agents,
         max_rounds: stepLimit,
         mode: testingTeam.mode ?? "sequential",
+        conversation_id: testingTeam.id,
       })) {
         if (stopTestRef.current) break;
 
