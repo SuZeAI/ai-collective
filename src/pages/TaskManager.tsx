@@ -71,6 +71,7 @@ export default function TaskManager() {
   const [taskConversations, setTaskConversations] = useState<Record<string, Message[]>>({});
   const [loadingConversationTaskIds, setLoadingConversationTaskIds] = useState<Set<string>>(new Set());
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
+  const [thinkingAgents, setThinkingAgents] = useState<Record<string, Set<string>>>({});
   const [open, setOpen] = useState(false);
   const [viewTaskId, setViewTaskId] = useState<string | null>(null);
 
@@ -200,6 +201,13 @@ export default function TaskManager() {
       if (status === "in-progress" && updated.assignedAgents.length > 0) {
         openTaskView(updated.id);
 
+        // Reset thinking state for a fresh start/restart.
+        setThinkingAgents((prev) => {
+          const next = { ...prev };
+          delete next[updated.id];
+          return next;
+        });
+
         // Clear old conversations if restarting from completed/stopped
         if (task.status === "completed" || task.status === "stopped") {
           setTaskConversations((prev) => {
@@ -221,39 +229,110 @@ export default function TaskManager() {
           const teamMode = team?.mode ?? "sequential";
           const teamMaxSteps = team?.maxSteps ?? 6;
           const formattedInput = `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}`;
-          for await (const turn of api.runAgentGraphStream({
+          
+          for await (const event of api.runAgentGraphStream({
             user_input: formattedInput,
             agents: updated.assignedAgents,
             max_rounds: teamMaxSteps,
             mode: teamMode,
             conversation_id: updated.id,
           })) {
-            if (turn.error) {
-              console.error(turn.error);
+            if (event.error) {
+              console.error(event.error);
               break;
             }
 
-            const message: Message = {
-              id: `${Date.now()}-${turn.agent_id}-${turn.turn}`,
-              agentId: turn.agent_id,
-              content: turn.content || "",
-              timestamp: new Date().toISOString(),
-              taskId: updated.id,
-            };
-            messages.push(message);
-            setTaskConversations((prev) => ({
-              ...prev,
-              [updated.id]: [...(prev[updated.id] ?? []), message],
-            }));
-            // Save message to backend
-            try {
-              await api.addConversation({
-                agentId: message.agentId,
-                content: message.content,
-                taskId: message.taskId,
+            // Handle different event types
+            const eventType = event.type;
+            const agentId = event.agent_id || event.agentId || event.agent_name || event.agentName;
+            
+            // Handle thinking state (LLM request start)
+            if (eventType === "llm_request_start") {
+              if (!agentId) continue;
+              setThinkingAgents((prev) => ({
+                ...prev,
+                [updated.id]: new Set([...(prev[updated.id] ?? []), agentId]),
+              }));
+            }
+            // Remove thinking state (LLM response complete)
+            else if (eventType === "llm_response_complete") {
+              if (!agentId) continue;
+              setThinkingAgents((prev) => {
+                const next = { ...prev };
+                if (next[updated.id]) {
+                  const newSet = new Set(next[updated.id]);
+                  newSet.delete(agentId);
+                  if (newSet.size > 0) {
+                    next[updated.id] = newSet;
+                  } else {
+                    delete next[updated.id];
+                  }
+                }
+                return next;
               });
-            } catch (e) {
-              console.error("Failed to save message:", e);
+            }
+            // Only add message when turn is complete
+            else if (eventType === "turn_complete" && event.turn) {
+              const turn = event.turn;
+              const turnAgentId = turn.agent_id || turn.agentId || turn.agent_name || turn.agentName;
+              if (!turnAgentId) continue;
+              const message: Message = {
+                id: `${Date.now()}-${turnAgentId}-${turn.turn}`,
+                agentId: turnAgentId,
+                content: turn.content || "",
+                timestamp: new Date().toISOString(),
+                taskId: updated.id,
+              };
+              setThinkingAgents((prev) => {
+                const next = { ...prev };
+                if (next[updated.id]) {
+                  const newSet = new Set(next[updated.id]);
+                  newSet.delete(turnAgentId);
+                  if (newSet.size > 0) next[updated.id] = newSet;
+                  else delete next[updated.id];
+                }
+                return next;
+              });
+              messages.push(message);
+              setTaskConversations((prev) => ({
+                ...prev,
+                [updated.id]: [...(prev[updated.id] ?? []), message],
+              }));
+              // Save message to backend
+              try {
+                await api.addConversation({
+                  agentId: message.agentId,
+                  content: message.content,
+                  taskId: message.taskId,
+                });
+              } catch (e) {
+                console.error("Failed to save message:", e);
+              }
+            }
+            // Fallback for old-style turn objects (if not wrapped in turn_complete event)
+            else if (event.content && !eventType) {
+              if (!agentId) continue;
+              const message: Message = {
+                id: `${Date.now()}-${agentId}-${event.turn}`,
+                agentId: agentId,
+                content: event.content || "",
+                timestamp: new Date().toISOString(),
+                taskId: updated.id,
+              };
+              messages.push(message);
+              setTaskConversations((prev) => ({
+                ...prev,
+                [updated.id]: [...(prev[updated.id] ?? []), message],
+              }));
+              try {
+                await api.addConversation({
+                  agentId: message.agentId,
+                  content: message.content,
+                  taskId: message.taskId,
+                });
+              } catch (e) {
+                console.error("Failed to save message:", e);
+              }
             }
           }
 
@@ -269,6 +348,11 @@ export default function TaskManager() {
         } catch (e) {
           console.error("Stream error:", e);
         } finally {
+          setThinkingAgents((prev) => {
+            const next = { ...prev };
+            delete next[updated.id];
+            return next;
+          });
           setLoadingConversationTaskIds((prev) => {
             const next = new Set(prev);
             next.delete(updated.id);
@@ -507,9 +591,9 @@ export default function TaskManager() {
                   </div>
 
                   <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                    {isConversationLoading && messages.length === 0 ? (
+                    {isConversationLoading && messages.length === 0 && (thinkingAgents[selectedTask.id]?.size ?? 0) === 0 ? (
                       <p className="text-sm text-muted-foreground animate-pulse">Loading conversation...</p>
-                    ) : visibleMessages.length > 0 ? (
+                    ) : visibleMessages.length > 0 || (thinkingAgents[selectedTask.id]?.size ?? 0) > 0 ? (
                       <div className="space-y-3">
                         {visibleMessages.map((msg) => {
                           const agent = agentById.get(msg.agentId);
@@ -535,6 +619,27 @@ export default function TaskManager() {
                             </div>
                           );
                         })}
+                        
+                        {/* Thinking indicators */}
+                        {(thinkingAgents[selectedTask.id]?.size ?? 0) > 0 && (
+                          Array.from(thinkingAgents[selectedTask.id] ?? []).map((agentId) => {
+                            const agent = agentById.get(agentId);
+                            return (
+                              <div key={`thinking-${agentId}`} className="rounded-lg border border-blue-200 dark:border-blue-700 p-3 bg-blue-50 dark:bg-blue-900/20">
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: "0.2s" }} />
+                                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: "0.4s" }} />
+                                  </div>
+                                  <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                                    {agent?.name ?? agentId} is thinking...
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground">No conversation yet for this task.</p>
@@ -769,9 +874,9 @@ export default function TaskManager() {
                         </div>
                       </div>
 
-                      {isConversationLoading && messages.length === 0 ? (
+                      {isConversationLoading && messages.length === 0 && (thinkingAgents[task.id]?.size ?? 0) === 0 ? (
                         <p className="text-xs text-muted-foreground animate-pulse">...</p>
-                      ) : visibleMessages.length > 0 ? (
+                      ) : visibleMessages.length > 0 || (thinkingAgents[task.id]?.size ?? 0) > 0 ? (
                         <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                           {visibleMessages.map((msg) => {
                             const agent = agentById.get(msg.agentId);
@@ -801,6 +906,27 @@ export default function TaskManager() {
                               </div>
                             );
                           })}
+                          
+                          {/* Thinking indicators - compact view */}
+                          {(thinkingAgents[task.id]?.size ?? 0) > 0 && (
+                            Array.from(thinkingAgents[task.id] ?? []).map((agentId) => {
+                              const agent = agentById.get(agentId);
+                              return (
+                                <div key={`thinking-${agentId}`} className="rounded-md border border-blue-300/50 dark:border-blue-600/50 p-2 bg-blue-50 dark:bg-blue-900/20">
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-0.5">
+                                      <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" />
+                                      <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: "0.2s" }} />
+                                      <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: "0.4s" }} />
+                                    </div>
+                                    <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">
+                                      {agent?.name ?? agentId} thinking...
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
                         </div>
                       ) : (
                         <p className="text-xs text-muted-foreground">No conversation yet for this task.</p>

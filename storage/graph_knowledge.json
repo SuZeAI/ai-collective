@@ -3,7 +3,7 @@
     "conversation_id": "task_5b5dea02fb1e49d491c84982fd4b4422",
     "version": 1,
     "schema_version": 1,
-    "last_message_index": 7,
+    "last_message_index": 1,
     "config": {
       "build_method": "rule",
       "entity_method": "hybrid",
@@ -20,48 +20,20 @@
     },
     "nodes": [
       {
-        "id": "event:user:user-7658aa42d388404a85edfe4ea644a8ea",
+        "id": "event:user:user-eaea49465c324666804ba2d16d7b3692",
         "type": "event",
         "value": "user: Task title: Bao Tin Minh Chau gold price in Hanoi today; description: Bao Tin Minh Chau gold price in Hanoi today",
         "aliases": [],
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.242854+00:00",
-        "updated_at": "2026-04-04T07:01:13.242854+00:00",
+        "created_at": "2026-04-04T09:05:33.811754+00:00",
+        "updated_at": "2026-04-04T09:05:33.811754+00:00",
         "confidence": 1.0,
         "salience_score": 0.7
-      },
-      {
-        "id": "entity:bao",
-        "type": "entity",
-        "value": "bao",
-        "aliases": [],
-        "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea",
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43",
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8",
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0",
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0",
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0",
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:13.252156+00:00",
-        "updated_at": "2026-04-04T07:01:28.397130+00:00",
-        "confidence": 0.7,
-        "salience_score": 0.7700000000000002
       },
       {
         "id": "entity:minh",
@@ -69,27 +41,15 @@
         "value": "minh",
         "aliases": [],
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea",
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43",
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8",
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0",
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0",
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0",
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.252186+00:00",
-        "updated_at": "2026-04-04T07:01:28.397163+00:00",
-        "confidence": 0.7,
-        "salience_score": 0.8000000000000003
+        "created_at": "2026-04-04T09:05:33.812018+00:00",
+        "updated_at": "2026-04-04T09:05:33.812425+00:00",
+        "confidence": 0.65,
+        "salience_score": 0.6200000000000001
       },
       {
         "id": "entity:price",
@@ -97,47 +57,47 @@
         "value": "price",
         "aliases": [],
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea",
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0",
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.252202+00:00",
-        "updated_at": "2026-04-04T07:01:28.397022+00:00",
+        "created_at": "2026-04-04T09:05:33.812037+00:00",
+        "updated_at": "2026-04-04T09:05:33.812491+00:00",
         "confidence": 0.65,
-        "salience_score": 0.6800000000000002
+        "salience_score": 0.6200000000000001
       },
       {
-        "id": "entity:tin",
+        "id": "entity:bao",
         "type": "entity",
-        "value": "tin",
+        "value": "bao",
         "aliases": [],
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea",
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43",
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8",
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0",
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0",
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0",
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.252217+00:00",
-        "updated_at": "2026-04-04T07:01:28.397146+00:00",
-        "confidence": 0.7,
-        "salience_score": 0.8000000000000003
+        "created_at": "2026-04-04T09:05:33.812052+00:00",
+        "updated_at": "2026-04-04T09:05:33.812376+00:00",
+        "confidence": 0.65,
+        "salience_score": 0.5900000000000001
+      },
+      {
+        "id": "entity:hanoi",
+        "type": "entity",
+        "value": "hanoi",
+        "aliases": [],
+        "source_message_ids": [
+          "user-eaea49465c324666804ba2d16d7b3692"
+        ],
+        "chunk_ids": [
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
+        ],
+        "created_at": "2026-04-04T09:05:33.812067+00:00",
+        "updated_at": "2026-04-04T09:05:33.812497+00:00",
+        "confidence": 0.65,
+        "salience_score": 0.5900000000000001
       },
       {
         "id": "entity:today",
@@ -145,43 +105,31 @@
         "value": "today",
         "aliases": [],
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.252232+00:00",
-        "updated_at": "2026-04-04T07:01:13.252232+00:00",
+        "created_at": "2026-04-04T09:05:33.812081+00:00",
+        "updated_at": "2026-04-04T09:05:33.812081+00:00",
         "confidence": 0.65,
         "salience_score": 0.56
       },
       {
-        "id": "entity:gold",
+        "id": "entity:chau",
         "type": "entity",
-        "value": "gold",
+        "value": "chau",
         "aliases": [],
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea",
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43",
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8",
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0",
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0",
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0",
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.252246+00:00",
-        "updated_at": "2026-04-04T07:01:28.400969+00:00",
-        "confidence": 0.95,
-        "salience_score": 1.0
+        "created_at": "2026-04-04T09:05:33.812096+00:00",
+        "updated_at": "2026-04-04T09:05:33.812447+00:00",
+        "confidence": 0.65,
+        "salience_score": 0.6200000000000001
       },
       {
         "id": "entity:bao tin minh chau",
@@ -189,875 +137,169 @@
         "value": "Bao Tin Minh Chau",
         "aliases": [],
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea",
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43",
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8",
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0",
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0",
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0",
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.252272+00:00",
-        "updated_at": "2026-04-04T07:01:28.397081+00:00",
+        "created_at": "2026-04-04T09:05:33.812112+00:00",
+        "updated_at": "2026-04-04T09:05:33.812112+00:00",
         "confidence": 0.76,
-        "salience_score": 0.8800000000000001
-      },
-      {
-        "id": "entity:chau",
-        "type": "entity",
-        "value": "Chau",
-        "aliases": [],
-        "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea",
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43",
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8",
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0",
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0",
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0",
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:13.252289+00:00",
-        "updated_at": "2026-04-04T07:01:28.397179+00:00",
-        "confidence": 0.7,
-        "salience_score": 0.8900000000000002
-      },
-      {
-        "id": "entity:hanoi",
-        "type": "entity",
-        "value": "Hanoi",
-        "aliases": [],
-        "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea",
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43",
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8",
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0",
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0",
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0",
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:13.252304+00:00",
-        "updated_at": "2026-04-04T07:01:28.397196+00:00",
-        "confidence": 0.7,
-        "salience_score": 0.8600000000000002
-      },
-      {
-        "id": "event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4",
-        "type": "event",
-        "value": "Gold Market Analyst: I need to extract the most current and specific gold prices for Bao Tin Minh Chau in Hanoi. The provided search results are not precise enough or are outdated.",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624140+00:00",
-        "updated_at": "2026-04-04T07:01:19.624140+00:00",
-        "confidence": 1.0,
         "salience_score": 0.7
       },
       {
-        "id": "entity:extract",
+        "id": "entity:tin",
         "type": "entity",
-        "value": "extract",
+        "value": "Tin",
         "aliases": [],
         "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:19.624561+00:00",
-        "updated_at": "2026-04-04T07:01:19.648764+00:00",
-        "confidence": 0.6,
-        "salience_score": 0.6300000000000001
-      },
-      {
-        "id": "entity:outdated",
-        "type": "entity",
-        "value": "outdated",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624579+00:00",
-        "updated_at": "2026-04-04T07:01:19.647439+00:00",
-        "confidence": 0.55,
-        "salience_score": 0.51
-      },
-      {
-        "id": "entity:precise",
-        "type": "entity",
-        "value": "precise",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624610+00:00",
-        "updated_at": "2026-04-04T07:01:19.647470+00:00",
-        "confidence": 0.55,
-        "salience_score": 0.51
-      },
-      {
-        "id": "entity:enough",
-        "type": "entity",
-        "value": "enough",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624624+00:00",
-        "updated_at": "2026-04-04T07:01:19.647499+00:00",
-        "confidence": 0.55,
-        "salience_score": 0.51
-      },
-      {
-        "id": "entity:the",
-        "type": "entity",
-        "value": "The",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43",
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8",
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0",
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0",
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624738+00:00",
-        "updated_at": "2026-04-04T07:01:28.397211+00:00",
+        "created_at": "2026-04-04T09:05:33.812126+00:00",
+        "updated_at": "2026-04-04T09:05:33.812401+00:00",
         "confidence": 0.7,
-        "salience_score": 0.8000000000000002
+        "salience_score": 0.7100000000000001
       },
       {
-        "id": "entity:need",
+        "id": "entity:gold",
         "type": "entity",
-        "value": "need",
+        "value": "gold",
         "aliases": [],
         "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:19.625415+00:00",
-        "updated_at": "2026-04-04T07:01:19.648726+00:00",
+        "created_at": "2026-04-04T09:05:33.812454+00:00",
+        "updated_at": "2026-04-04T09:05:33.812469+00:00",
         "confidence": 0.6,
         "salience_score": 0.63
-      },
-      {
-        "id": "entity:most",
-        "type": "entity",
-        "value": "most",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.625443+00:00",
-        "updated_at": "2026-04-04T07:01:19.648791+00:00",
-        "confidence": 0.6,
-        "salience_score": 0.6900000000000001
-      },
-      {
-        "id": "entity:current",
-        "type": "entity",
-        "value": "current",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43",
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.625465+00:00",
-        "updated_at": "2026-04-04T07:01:28.396995+00:00",
-        "confidence": 0.75,
-        "salience_score": 0.7500000000000001
-      },
-      {
-        "id": "entity:specific",
-        "type": "entity",
-        "value": "specific",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43",
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0",
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.625485+00:00",
-        "updated_at": "2026-04-04T07:01:28.401030+00:00",
-        "confidence": 0.6,
-        "salience_score": 0.7500000000000001
-      },
-      {
-        "id": "entity:prices",
-        "type": "entity",
-        "value": "prices",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43",
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8",
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0",
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0",
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.625525+00:00",
-        "updated_at": "2026-04-04T07:01:28.396895+00:00",
-        "confidence": 0.8500000000000001,
-        "salience_score": 0.7500000000000001
-      },
-      {
-        "id": "event:a1:m_9f08b124bd7046298e6558747750db43",
-        "type": "event",
-        "value": "a1: I need to extract the most current and specific gold prices for Bao Tin Minh Chau in Hanoi. The provided search results are not precise enough or are outdated.",
-        "aliases": [],
-        "source_message_ids": [
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.646960+00:00",
-        "updated_at": "2026-04-04T07:01:19.646960+00:00",
-        "confidence": 1.0,
-        "salience_score": 0.7
-      },
-      {
-        "id": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "type": "event",
-        "value": "Gold Data Researcher: I have performed a web search and found relevant information regarding Bao Tin Minh Chau gold prices in Hanoi today. The search results indicate that Bao Tin Mi",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022113+00:00",
-        "updated_at": "2026-04-04T07:01:25.022113+00:00",
-        "confidence": 1.0,
-        "salience_score": 0.7
-      },
-      {
-        "id": "entity:results",
-        "type": "entity",
-        "value": "results",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022782+00:00",
-        "updated_at": "2026-04-04T07:01:25.051544+00:00",
-        "confidence": 0.65,
-        "salience_score": 0.5900000000000001
-      },
-      {
-        "id": "entity:search",
-        "type": "entity",
-        "value": "search",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022811+00:00",
-        "updated_at": "2026-04-04T07:01:25.054702+00:00",
-        "confidence": 0.65,
-        "salience_score": 0.7100000000000002
-      },
-      {
-        "id": "entity:thang long dragon",
-        "type": "entity",
-        "value": "Thang Long Dragon",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022841+00:00",
-        "updated_at": "2026-04-04T07:01:25.051658+00:00",
-        "confidence": 0.76,
-        "salience_score": 0.73
-      },
-      {
-        "id": "entity:thang",
-        "type": "entity",
-        "value": "Thang",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022914+00:00",
-        "updated_at": "2026-04-04T07:01:25.051810+00:00",
-        "confidence": 0.7,
-        "salience_score": 0.68
-      },
-      {
-        "id": "entity:long",
-        "type": "entity",
-        "value": "Long",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022926+00:00",
-        "updated_at": "2026-04-04T07:01:25.051834+00:00",
-        "confidence": 0.7,
-        "salience_score": 0.68
-      },
-      {
-        "id": "entity:dragon",
-        "type": "entity",
-        "value": "Dragon",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022938+00:00",
-        "updated_at": "2026-04-04T07:01:25.051860+00:00",
-        "confidence": 0.7,
-        "salience_score": 0.68
-      },
-      {
-        "id": "entity:however",
-        "type": "entity",
-        "value": "However",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022950+00:00",
-        "updated_at": "2026-04-04T07:01:25.051887+00:00",
-        "confidence": 0.7,
-        "salience_score": 0.68
-      },
-      {
-        "id": "entity:btmc",
-        "type": "entity",
-        "value": "BTMC",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8",
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0",
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022962+00:00",
-        "updated_at": "2026-04-04T07:01:28.397228+00:00",
-        "confidence": 0.7,
-        "salience_score": 0.7400000000000001
-      },
-      {
-        "id": "entity:have",
-        "type": "entity",
-        "value": "have",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [],
-        "created_at": "2026-04-04T07:01:25.025459+00:00",
-        "updated_at": "2026-04-04T07:01:25.054606+00:00",
-        "confidence": 0.6,
-        "salience_score": 0.63
-      },
-      {
-        "id": "entity:performed",
-        "type": "entity",
-        "value": "performed",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [],
-        "created_at": "2026-04-04T07:01:25.025465+00:00",
-        "updated_at": "2026-04-04T07:01:25.054644+00:00",
-        "confidence": 0.6,
-        "salience_score": 0.6900000000000001
-      },
-      {
-        "id": "entity:web",
-        "type": "entity",
-        "value": "web",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.025486+00:00",
-        "updated_at": "2026-04-04T07:01:25.054674+00:00",
-        "confidence": 0.6,
-        "salience_score": 0.6900000000000001
-      },
-      {
-        "id": "entity:found",
-        "type": "entity",
-        "value": "found",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.025527+00:00",
-        "updated_at": "2026-04-04T07:01:25.054732+00:00",
-        "confidence": 0.6,
-        "salience_score": 0.6900000000000001
-      },
-      {
-        "id": "entity:relevant",
-        "type": "entity",
-        "value": "relevant",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [],
-        "created_at": "2026-04-04T07:01:25.025547+00:00",
-        "updated_at": "2026-04-04T07:01:25.054755+00:00",
-        "confidence": 0.6,
-        "salience_score": 0.6900000000000001
-      },
-      {
-        "id": "entity:information",
-        "type": "entity",
-        "value": "information",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8",
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.025566+00:00",
-        "updated_at": "2026-04-04T07:01:28.400910+00:00",
-        "confidence": 0.6,
-        "salience_score": 0.7500000000000001
-      },
-      {
-        "id": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "type": "event",
-        "value": "a2: I have performed a web search and found relevant information regarding Bao Tin Minh Chau gold prices in Hanoi today. The search results indicate that Bao Tin Mi",
-        "aliases": [],
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.050483+00:00",
-        "updated_at": "2026-04-04T07:01:25.050483+00:00",
-        "confidence": 1.0,
-        "salience_score": 0.7
-      },
-      {
-        "id": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "type": "event",
-        "value": "Gold Market Analyst: Based on the information provided by the Gold Data Researcher, specific current gold prices for Bao Tin Minh Chau in Hanoi cannot be inferred or are explicitly ",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.234927+00:00",
-        "updated_at": "2026-04-04T07:01:28.234927+00:00",
-        "confidence": 1.0,
-        "salience_score": 0.7
-      },
-      {
-        "id": "entity:official",
-        "type": "entity",
-        "value": "official",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235427+00:00",
-        "updated_at": "2026-04-04T07:01:28.396974+00:00",
-        "confidence": 0.75,
-        "salience_score": 0.67
-      },
-      {
-        "id": "entity:researcher",
-        "type": "entity",
-        "value": "researcher",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235479+00:00",
-        "updated_at": "2026-04-04T07:01:28.401023+00:00",
-        "confidence": 0.65,
-        "salience_score": 0.7100000000000002
-      },
-      {
-        "id": "entity:gold data researcher",
-        "type": "entity",
-        "value": "Gold Data Researcher",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235495+00:00",
-        "updated_at": "2026-04-04T07:01:28.397062+00:00",
-        "confidence": 0.76,
-        "salience_score": 0.73
-      },
-      {
-        "id": "entity:based",
-        "type": "entity",
-        "value": "Based",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235526+00:00",
-        "updated_at": "2026-04-04T07:01:28.400863+00:00",
-        "confidence": 0.7,
-        "salience_score": 0.7400000000000001
-      },
-      {
-        "id": "entity:data",
-        "type": "entity",
-        "value": "Data",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235543+00:00",
-        "updated_at": "2026-04-04T07:01:28.400996+00:00",
-        "confidence": 0.7,
-        "salience_score": 0.8000000000000002
-      },
-      {
-        "id": "entity:provided",
-        "type": "entity",
-        "value": "provided",
-        "aliases": [],
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.238996+00:00",
-        "updated_at": "2026-04-04T07:01:28.400938+00:00",
-        "confidence": 0.6,
-        "salience_score": 0.6900000000000001
-      },
-      {
-        "id": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "type": "event",
-        "value": "a1: Based on the information provided by the Gold Data Researcher, specific current gold prices for Bao Tin Minh Chau in Hanoi cannot be inferred or are explicitly ",
-        "aliases": [],
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.396413+00:00",
-        "updated_at": "2026-04-04T07:01:28.396413+00:00",
-        "confidence": 1.0,
-        "salience_score": 0.7
       }
     ],
     "edges": [
       {
-        "id": "mentions:event:user:user-7658aa42d388404a85edfe4ea644a8ea->entity:bao",
-        "src": "event:user:user-7658aa42d388404a85edfe4ea644a8ea",
-        "dst": "entity:bao",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
-        ],
-        "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
-        ],
-        "created_at": "2026-04-04T07:01:13.252171+00:00",
-        "updated_at": "2026-04-04T07:01:13.252171+00:00"
-      },
-      {
-        "id": "mentions:event:user:user-7658aa42d388404a85edfe4ea644a8ea->entity:minh",
-        "src": "event:user:user-7658aa42d388404a85edfe4ea644a8ea",
+        "id": "mentions:event:user:user-eaea49465c324666804ba2d16d7b3692->entity:minh",
+        "src": "event:user:user-eaea49465c324666804ba2d16d7b3692",
         "dst": "entity:minh",
         "relation": "mentions",
         "weight": 0.55,
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.252194+00:00",
-        "updated_at": "2026-04-04T07:01:13.252194+00:00"
+        "created_at": "2026-04-04T09:05:33.812028+00:00",
+        "updated_at": "2026-04-04T09:05:33.812028+00:00"
       },
       {
-        "id": "mentions:event:user:user-7658aa42d388404a85edfe4ea644a8ea->entity:price",
-        "src": "event:user:user-7658aa42d388404a85edfe4ea644a8ea",
+        "id": "mentions:event:user:user-eaea49465c324666804ba2d16d7b3692->entity:price",
+        "src": "event:user:user-eaea49465c324666804ba2d16d7b3692",
         "dst": "entity:price",
         "relation": "mentions",
         "weight": 0.55,
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.252209+00:00",
-        "updated_at": "2026-04-04T07:01:13.252209+00:00"
+        "created_at": "2026-04-04T09:05:33.812044+00:00",
+        "updated_at": "2026-04-04T09:05:33.812044+00:00"
       },
       {
-        "id": "mentions:event:user:user-7658aa42d388404a85edfe4ea644a8ea->entity:tin",
-        "src": "event:user:user-7658aa42d388404a85edfe4ea644a8ea",
-        "dst": "entity:tin",
+        "id": "mentions:event:user:user-eaea49465c324666804ba2d16d7b3692->entity:bao",
+        "src": "event:user:user-eaea49465c324666804ba2d16d7b3692",
+        "dst": "entity:bao",
         "relation": "mentions",
         "weight": 0.55,
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.252223+00:00",
-        "updated_at": "2026-04-04T07:01:13.252223+00:00"
+        "created_at": "2026-04-04T09:05:33.812059+00:00",
+        "updated_at": "2026-04-04T09:05:33.812059+00:00"
       },
       {
-        "id": "mentions:event:user:user-7658aa42d388404a85edfe4ea644a8ea->entity:today",
-        "src": "event:user:user-7658aa42d388404a85edfe4ea644a8ea",
-        "dst": "entity:today",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
-        ],
-        "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
-        ],
-        "created_at": "2026-04-04T07:01:13.252239+00:00",
-        "updated_at": "2026-04-04T07:01:13.252239+00:00"
-      },
-      {
-        "id": "mentions:event:user:user-7658aa42d388404a85edfe4ea644a8ea->entity:gold",
-        "src": "event:user:user-7658aa42d388404a85edfe4ea644a8ea",
-        "dst": "entity:gold",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
-        ],
-        "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
-        ],
-        "created_at": "2026-04-04T07:01:13.252254+00:00",
-        "updated_at": "2026-04-04T07:01:13.252254+00:00"
-      },
-      {
-        "id": "mentions:event:user:user-7658aa42d388404a85edfe4ea644a8ea->entity:bao tin minh chau",
-        "src": "event:user:user-7658aa42d388404a85edfe4ea644a8ea",
-        "dst": "entity:bao tin minh chau",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
-        ],
-        "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
-        ],
-        "created_at": "2026-04-04T07:01:13.252280+00:00",
-        "updated_at": "2026-04-04T07:01:13.252280+00:00"
-      },
-      {
-        "id": "mentions:event:user:user-7658aa42d388404a85edfe4ea644a8ea->entity:chau",
-        "src": "event:user:user-7658aa42d388404a85edfe4ea644a8ea",
-        "dst": "entity:chau",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
-        ],
-        "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
-        ],
-        "created_at": "2026-04-04T07:01:13.252296+00:00",
-        "updated_at": "2026-04-04T07:01:13.252296+00:00"
-      },
-      {
-        "id": "mentions:event:user:user-7658aa42d388404a85edfe4ea644a8ea->entity:hanoi",
-        "src": "event:user:user-7658aa42d388404a85edfe4ea644a8ea",
+        "id": "mentions:event:user:user-eaea49465c324666804ba2d16d7b3692->entity:hanoi",
+        "src": "event:user:user-eaea49465c324666804ba2d16d7b3692",
         "dst": "entity:hanoi",
         "relation": "mentions",
         "weight": 0.55,
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.252310+00:00",
-        "updated_at": "2026-04-04T07:01:13.252310+00:00"
+        "created_at": "2026-04-04T09:05:33.812074+00:00",
+        "updated_at": "2026-04-04T09:05:33.812074+00:00"
+      },
+      {
+        "id": "mentions:event:user:user-eaea49465c324666804ba2d16d7b3692->entity:today",
+        "src": "event:user:user-eaea49465c324666804ba2d16d7b3692",
+        "dst": "entity:today",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "user-eaea49465c324666804ba2d16d7b3692"
+        ],
+        "chunk_ids": [
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
+        ],
+        "created_at": "2026-04-04T09:05:33.812088+00:00",
+        "updated_at": "2026-04-04T09:05:33.812088+00:00"
+      },
+      {
+        "id": "mentions:event:user:user-eaea49465c324666804ba2d16d7b3692->entity:chau",
+        "src": "event:user:user-eaea49465c324666804ba2d16d7b3692",
+        "dst": "entity:chau",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "user-eaea49465c324666804ba2d16d7b3692"
+        ],
+        "chunk_ids": [
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
+        ],
+        "created_at": "2026-04-04T09:05:33.812103+00:00",
+        "updated_at": "2026-04-04T09:05:33.812103+00:00"
+      },
+      {
+        "id": "mentions:event:user:user-eaea49465c324666804ba2d16d7b3692->entity:bao tin minh chau",
+        "src": "event:user:user-eaea49465c324666804ba2d16d7b3692",
+        "dst": "entity:bao tin minh chau",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "user-eaea49465c324666804ba2d16d7b3692"
+        ],
+        "chunk_ids": [
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
+        ],
+        "created_at": "2026-04-04T09:05:33.812119+00:00",
+        "updated_at": "2026-04-04T09:05:33.812119+00:00"
+      },
+      {
+        "id": "mentions:event:user:user-eaea49465c324666804ba2d16d7b3692->entity:tin",
+        "src": "event:user:user-eaea49465c324666804ba2d16d7b3692",
+        "dst": "entity:tin",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "user-eaea49465c324666804ba2d16d7b3692"
+        ],
+        "chunk_ids": [
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
+        ],
+        "created_at": "2026-04-04T09:05:33.812132+00:00",
+        "updated_at": "2026-04-04T09:05:33.812132+00:00"
       },
       {
         "id": "unknown:entity:bao->entity:tin",
@@ -1066,13 +308,13 @@
         "relation": "unknown",
         "weight": 0.7,
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.256767+00:00",
-        "updated_at": "2026-04-04T07:01:13.256767+00:00"
+        "created_at": "2026-04-04T09:05:33.812392+00:00",
+        "updated_at": "2026-04-04T09:05:33.812392+00:00"
       },
       {
         "id": "unknown:entity:tin->entity:minh",
@@ -1081,13 +323,13 @@
         "relation": "unknown",
         "weight": 0.7,
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.256791+00:00",
-        "updated_at": "2026-04-04T07:01:13.256791+00:00"
+        "created_at": "2026-04-04T09:05:33.812414+00:00",
+        "updated_at": "2026-04-04T09:05:33.812414+00:00"
       },
       {
         "id": "unknown:entity:minh->entity:chau",
@@ -1096,13 +338,13 @@
         "relation": "unknown",
         "weight": 0.7,
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.256814+00:00",
-        "updated_at": "2026-04-04T07:01:13.256814+00:00"
+        "created_at": "2026-04-04T09:05:33.812437+00:00",
+        "updated_at": "2026-04-04T09:05:33.812437+00:00"
       },
       {
         "id": "unknown:entity:chau->entity:gold",
@@ -1111,13 +353,13 @@
         "relation": "unknown",
         "weight": 0.7,
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.256835+00:00",
-        "updated_at": "2026-04-04T07:01:13.256835+00:00"
+        "created_at": "2026-04-04T09:05:33.812460+00:00",
+        "updated_at": "2026-04-04T09:05:33.812460+00:00"
       },
       {
         "id": "unknown:entity:gold->entity:price",
@@ -1126,13 +368,13 @@
         "relation": "unknown",
         "weight": 0.7,
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.256857+00:00",
-        "updated_at": "2026-04-04T07:01:13.256857+00:00"
+        "created_at": "2026-04-04T09:05:33.812482+00:00",
+        "updated_at": "2026-04-04T09:05:33.812482+00:00"
       },
       {
         "id": "unknown:entity:price->entity:hanoi",
@@ -1141,1698 +383,21 @@
         "relation": "unknown",
         "weight": 0.7,
         "source_message_ids": [
-          "user-7658aa42d388404a85edfe4ea644a8ea"
+          "user-eaea49465c324666804ba2d16d7b3692"
         ],
         "chunk_ids": [
-          "msg_user-7658aa42d388404a85edfe4ea644a8ea_0"
+          "msg_user-eaea49465c324666804ba2d16d7b3692_0"
         ],
-        "created_at": "2026-04-04T07:01:13.256879+00:00",
-        "updated_at": "2026-04-04T07:01:13.256879+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4->entity:gold",
-        "src": "event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4",
-        "dst": "entity:gold",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624550+00:00",
-        "updated_at": "2026-04-04T07:01:19.624550+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4->entity:extract",
-        "src": "event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4",
-        "dst": "entity:extract",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624569+00:00",
-        "updated_at": "2026-04-04T07:01:19.624569+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4->entity:outdated",
-        "src": "event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4",
-        "dst": "entity:outdated",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624598+00:00",
-        "updated_at": "2026-04-04T07:01:19.624598+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4->entity:precise",
-        "src": "event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4",
-        "dst": "entity:precise",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624616+00:00",
-        "updated_at": "2026-04-04T07:01:19.624616+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4->entity:enough",
-        "src": "event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4",
-        "dst": "entity:enough",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624631+00:00",
-        "updated_at": "2026-04-04T07:01:19.624631+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4->entity:minh",
-        "src": "event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4",
-        "dst": "entity:minh",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624649+00:00",
-        "updated_at": "2026-04-04T07:01:19.624649+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4->entity:bao tin minh chau",
-        "src": "event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4",
-        "dst": "entity:bao tin minh chau",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624669+00:00",
-        "updated_at": "2026-04-04T07:01:19.624669+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4->entity:bao",
-        "src": "event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4",
-        "dst": "entity:bao",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624684+00:00",
-        "updated_at": "2026-04-04T07:01:19.624684+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4->entity:tin",
-        "src": "event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4",
-        "dst": "entity:tin",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624700+00:00",
-        "updated_at": "2026-04-04T07:01:19.624700+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4->entity:chau",
-        "src": "event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4",
-        "dst": "entity:chau",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624715+00:00",
-        "updated_at": "2026-04-04T07:01:19.624715+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4->entity:hanoi",
-        "src": "event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4",
-        "dst": "entity:hanoi",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624730+00:00",
-        "updated_at": "2026-04-04T07:01:19.624730+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4->entity:the",
-        "src": "event:gold market analyst:agent-gold market analyst-29c400b66b1b4508b00c1ef7432b48e4",
-        "dst": "entity:the",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.624744+00:00",
-        "updated_at": "2026-04-04T07:01:19.624744+00:00"
-      },
-      {
-        "id": "unknown:entity:need->entity:extract",
-        "src": "entity:need",
-        "dst": "entity:extract",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.625428+00:00",
-        "updated_at": "2026-04-04T07:01:19.648749+00:00"
-      },
-      {
-        "id": "unknown:entity:extract->entity:most",
-        "src": "entity:extract",
-        "dst": "entity:most",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.625448+00:00",
-        "updated_at": "2026-04-04T07:01:19.648780+00:00"
-      },
-      {
-        "id": "unknown:entity:most->entity:current",
-        "src": "entity:most",
-        "dst": "entity:current",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [],
-        "created_at": "2026-04-04T07:01:19.625470+00:00",
-        "updated_at": "2026-04-04T07:01:19.648806+00:00"
-      },
-      {
-        "id": "unknown:entity:current->entity:specific",
-        "src": "entity:current",
-        "dst": "entity:specific",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [],
-        "created_at": "2026-04-04T07:01:19.625490+00:00",
-        "updated_at": "2026-04-04T07:01:19.648832+00:00"
-      },
-      {
-        "id": "unknown:entity:specific->entity:gold",
-        "src": "entity:specific",
-        "dst": "entity:gold",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.625511+00:00",
-        "updated_at": "2026-04-04T07:01:19.648858+00:00"
-      },
-      {
-        "id": "unknown:entity:gold->entity:prices",
-        "src": "entity:gold",
-        "dst": "entity:prices",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0",
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.625531+00:00",
-        "updated_at": "2026-04-04T07:01:19.648884+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_9f08b124bd7046298e6558747750db43->entity:gold",
-        "src": "event:a1:m_9f08b124bd7046298e6558747750db43",
-        "dst": "entity:gold",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.647401+00:00",
-        "updated_at": "2026-04-04T07:01:19.647401+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_9f08b124bd7046298e6558747750db43->entity:extract",
-        "src": "event:a1:m_9f08b124bd7046298e6558747750db43",
-        "dst": "entity:extract",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.647426+00:00",
-        "updated_at": "2026-04-04T07:01:19.647426+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_9f08b124bd7046298e6558747750db43->entity:outdated",
-        "src": "event:a1:m_9f08b124bd7046298e6558747750db43",
-        "dst": "entity:outdated",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.647455+00:00",
-        "updated_at": "2026-04-04T07:01:19.647455+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_9f08b124bd7046298e6558747750db43->entity:precise",
-        "src": "event:a1:m_9f08b124bd7046298e6558747750db43",
-        "dst": "entity:precise",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.647484+00:00",
-        "updated_at": "2026-04-04T07:01:19.647484+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_9f08b124bd7046298e6558747750db43->entity:enough",
-        "src": "event:a1:m_9f08b124bd7046298e6558747750db43",
-        "dst": "entity:enough",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.647513+00:00",
-        "updated_at": "2026-04-04T07:01:19.647513+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_9f08b124bd7046298e6558747750db43->entity:minh",
-        "src": "event:a1:m_9f08b124bd7046298e6558747750db43",
-        "dst": "entity:minh",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.647544+00:00",
-        "updated_at": "2026-04-04T07:01:19.647544+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_9f08b124bd7046298e6558747750db43->entity:bao tin minh chau",
-        "src": "event:a1:m_9f08b124bd7046298e6558747750db43",
-        "dst": "entity:bao tin minh chau",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.647576+00:00",
-        "updated_at": "2026-04-04T07:01:19.647576+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_9f08b124bd7046298e6558747750db43->entity:bao",
-        "src": "event:a1:m_9f08b124bd7046298e6558747750db43",
-        "dst": "entity:bao",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.647616+00:00",
-        "updated_at": "2026-04-04T07:01:19.647616+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_9f08b124bd7046298e6558747750db43->entity:tin",
-        "src": "event:a1:m_9f08b124bd7046298e6558747750db43",
-        "dst": "entity:tin",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.647659+00:00",
-        "updated_at": "2026-04-04T07:01:19.647659+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_9f08b124bd7046298e6558747750db43->entity:chau",
-        "src": "event:a1:m_9f08b124bd7046298e6558747750db43",
-        "dst": "entity:chau",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.647687+00:00",
-        "updated_at": "2026-04-04T07:01:19.647687+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_9f08b124bd7046298e6558747750db43->entity:hanoi",
-        "src": "event:a1:m_9f08b124bd7046298e6558747750db43",
-        "dst": "entity:hanoi",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.647714+00:00",
-        "updated_at": "2026-04-04T07:01:19.647714+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_9f08b124bd7046298e6558747750db43->entity:the",
-        "src": "event:a1:m_9f08b124bd7046298e6558747750db43",
-        "dst": "entity:the",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_9f08b124bd7046298e6558747750db43"
-        ],
-        "chunk_ids": [
-          "msg_m_9f08b124bd7046298e6558747750db43_0"
-        ],
-        "created_at": "2026-04-04T07:01:19.647740+00:00",
-        "updated_at": "2026-04-04T07:01:19.647740+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:gold",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:gold",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022742+00:00",
-        "updated_at": "2026-04-04T07:01:25.022742+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:prices",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:prices",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022759+00:00",
-        "updated_at": "2026-04-04T07:01:25.022759+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:minh",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:minh",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022775+00:00",
-        "updated_at": "2026-04-04T07:01:25.022775+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:results",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:results",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022788+00:00",
-        "updated_at": "2026-04-04T07:01:25.022788+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:chau",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:chau",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022804+00:00",
-        "updated_at": "2026-04-04T07:01:25.022804+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:search",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:search",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022817+00:00",
-        "updated_at": "2026-04-04T07:01:25.022817+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:bao tin minh chau",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:bao tin minh chau",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022834+00:00",
-        "updated_at": "2026-04-04T07:01:25.022834+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:thang long dragon",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:thang long dragon",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022847+00:00",
-        "updated_at": "2026-04-04T07:01:25.022847+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:bao",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:bao",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022862+00:00",
-        "updated_at": "2026-04-04T07:01:25.022862+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:tin",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:tin",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022880+00:00",
-        "updated_at": "2026-04-04T07:01:25.022880+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:hanoi",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:hanoi",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022893+00:00",
-        "updated_at": "2026-04-04T07:01:25.022893+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:the",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:the",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022907+00:00",
-        "updated_at": "2026-04-04T07:01:25.022907+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:thang",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:thang",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022919+00:00",
-        "updated_at": "2026-04-04T07:01:25.022919+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:long",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:long",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022931+00:00",
-        "updated_at": "2026-04-04T07:01:25.022931+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:dragon",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:dragon",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022944+00:00",
-        "updated_at": "2026-04-04T07:01:25.022944+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:however",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:however",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022956+00:00",
-        "updated_at": "2026-04-04T07:01:25.022956+00:00"
-      },
-      {
-        "id": "mentions:event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add->entity:btmc",
-        "src": "event:gold data researcher:agent-gold data researcher-80d87eff00fe4721bcce48b7427f0add",
-        "dst": "entity:btmc",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.022968+00:00",
-        "updated_at": "2026-04-04T07:01:25.022968+00:00"
-      },
-      {
-        "id": "unknown:entity:have->entity:performed",
-        "src": "entity:have",
-        "dst": "entity:performed",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [],
-        "created_at": "2026-04-04T07:01:25.025471+00:00",
-        "updated_at": "2026-04-04T07:01:25.054632+00:00"
-      },
-      {
-        "id": "unknown:entity:performed->entity:web",
-        "src": "entity:performed",
-        "dst": "entity:web",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [],
-        "created_at": "2026-04-04T07:01:25.025492+00:00",
-        "updated_at": "2026-04-04T07:01:25.054663+00:00"
-      },
-      {
-        "id": "unknown:entity:web->entity:search",
-        "src": "entity:web",
-        "dst": "entity:search",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.025513+00:00",
-        "updated_at": "2026-04-04T07:01:25.054690+00:00"
-      },
-      {
-        "id": "unknown:entity:search->entity:found",
-        "src": "entity:search",
-        "dst": "entity:found",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0",
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.025533+00:00",
-        "updated_at": "2026-04-04T07:01:25.054718+00:00"
-      },
-      {
-        "id": "unknown:entity:found->entity:relevant",
-        "src": "entity:found",
-        "dst": "entity:relevant",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [],
-        "created_at": "2026-04-04T07:01:25.025552+00:00",
-        "updated_at": "2026-04-04T07:01:25.054745+00:00"
-      },
-      {
-        "id": "unknown:entity:relevant->entity:information",
-        "src": "entity:relevant",
-        "dst": "entity:information",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [],
-        "created_at": "2026-04-04T07:01:25.025571+00:00",
-        "updated_at": "2026-04-04T07:01:25.054767+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:gold",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:gold",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051475+00:00",
-        "updated_at": "2026-04-04T07:01:25.051475+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:prices",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:prices",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051507+00:00",
-        "updated_at": "2026-04-04T07:01:25.051507+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:minh",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:minh",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051531+00:00",
-        "updated_at": "2026-04-04T07:01:25.051531+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:results",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:results",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051558+00:00",
-        "updated_at": "2026-04-04T07:01:25.051558+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:chau",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:chau",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051587+00:00",
-        "updated_at": "2026-04-04T07:01:25.051587+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:search",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:search",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051613+00:00",
-        "updated_at": "2026-04-04T07:01:25.051613+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:bao tin minh chau",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:bao tin minh chau",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051644+00:00",
-        "updated_at": "2026-04-04T07:01:25.051644+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:thang long dragon",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:thang long dragon",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051670+00:00",
-        "updated_at": "2026-04-04T07:01:25.051670+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:bao",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:bao",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051700+00:00",
-        "updated_at": "2026-04-04T07:01:25.051700+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:tin",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:tin",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051723+00:00",
-        "updated_at": "2026-04-04T07:01:25.051723+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:hanoi",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:hanoi",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051749+00:00",
-        "updated_at": "2026-04-04T07:01:25.051749+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:the",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:the",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051796+00:00",
-        "updated_at": "2026-04-04T07:01:25.051796+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:thang",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:thang",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051821+00:00",
-        "updated_at": "2026-04-04T07:01:25.051821+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:long",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:long",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051847+00:00",
-        "updated_at": "2026-04-04T07:01:25.051847+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:dragon",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:dragon",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051873+00:00",
-        "updated_at": "2026-04-04T07:01:25.051873+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:however",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:however",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051900+00:00",
-        "updated_at": "2026-04-04T07:01:25.051900+00:00"
-      },
-      {
-        "id": "mentions:event:a2:m_cc86d634e872454692599bfbaa25b8c8->entity:btmc",
-        "src": "event:a2:m_cc86d634e872454692599bfbaa25b8c8",
-        "dst": "entity:btmc",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_cc86d634e872454692599bfbaa25b8c8"
-        ],
-        "chunk_ids": [
-          "msg_m_cc86d634e872454692599bfbaa25b8c8_0"
-        ],
-        "created_at": "2026-04-04T07:01:25.051925+00:00",
-        "updated_at": "2026-04-04T07:01:25.051925+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:prices",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:prices",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235394+00:00",
-        "updated_at": "2026-04-04T07:01:28.235394+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:gold",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:gold",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235419+00:00",
-        "updated_at": "2026-04-04T07:01:28.235419+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:official",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:official",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235436+00:00",
-        "updated_at": "2026-04-04T07:01:28.235436+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:current",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:current",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235453+00:00",
-        "updated_at": "2026-04-04T07:01:28.235453+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:price",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:price",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235472+00:00",
-        "updated_at": "2026-04-04T07:01:28.235472+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:researcher",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:researcher",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235486+00:00",
-        "updated_at": "2026-04-04T07:01:28.235486+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:gold data researcher",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:gold data researcher",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235501+00:00",
-        "updated_at": "2026-04-04T07:01:28.235501+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:bao tin minh chau",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:bao tin minh chau",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235518+00:00",
-        "updated_at": "2026-04-04T07:01:28.235518+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:based",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:based",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235535+00:00",
-        "updated_at": "2026-04-04T07:01:28.235535+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:data",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:data",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235549+00:00",
-        "updated_at": "2026-04-04T07:01:28.235549+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:bao",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:bao",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235565+00:00",
-        "updated_at": "2026-04-04T07:01:28.235565+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:tin",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:tin",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235581+00:00",
-        "updated_at": "2026-04-04T07:01:28.235581+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:minh",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:minh",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235596+00:00",
-        "updated_at": "2026-04-04T07:01:28.235596+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:chau",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:chau",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235613+00:00",
-        "updated_at": "2026-04-04T07:01:28.235613+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:hanoi",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:hanoi",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235630+00:00",
-        "updated_at": "2026-04-04T07:01:28.235630+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:the",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:the",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235646+00:00",
-        "updated_at": "2026-04-04T07:01:28.235646+00:00"
-      },
-      {
-        "id": "mentions:event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0->entity:btmc",
-        "src": "event:gold market analyst:agent-gold market analyst-bec76d39da824e99809887a74c66fbf0",
-        "dst": "entity:btmc",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.235660+00:00",
-        "updated_at": "2026-04-04T07:01:28.235660+00:00"
-      },
-      {
-        "id": "unknown:entity:based->entity:information",
-        "src": "entity:based",
-        "dst": "entity:information",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.238978+00:00",
-        "updated_at": "2026-04-04T07:01:28.400898+00:00"
-      },
-      {
-        "id": "unknown:entity:information->entity:provided",
-        "src": "entity:information",
-        "dst": "entity:provided",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [],
-        "created_at": "2026-04-04T07:01:28.239003+00:00",
-        "updated_at": "2026-04-04T07:01:28.400926+00:00"
-      },
-      {
-        "id": "unknown:entity:provided->entity:gold",
-        "src": "entity:provided",
-        "dst": "entity:gold",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.239027+00:00",
-        "updated_at": "2026-04-04T07:01:28.400956+00:00"
-      },
-      {
-        "id": "unknown:entity:gold->entity:data",
-        "src": "entity:gold",
-        "dst": "entity:data",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.239048+00:00",
-        "updated_at": "2026-04-04T07:01:28.400984+00:00"
-      },
-      {
-        "id": "unknown:entity:data->entity:researcher",
-        "src": "entity:data",
-        "dst": "entity:researcher",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.239069+00:00",
-        "updated_at": "2026-04-04T07:01:28.401011+00:00"
-      },
-      {
-        "id": "unknown:entity:researcher->entity:specific",
-        "src": "entity:researcher",
-        "dst": "entity:specific",
-        "relation": "unknown",
-        "weight": 0.75,
-        "source_message_ids": [
-          "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0",
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.239092+00:00",
-        "updated_at": "2026-04-04T07:01:28.401038+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:prices",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:prices",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.396927+00:00",
-        "updated_at": "2026-04-04T07:01:28.396927+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:gold",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:gold",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.396959+00:00",
-        "updated_at": "2026-04-04T07:01:28.396959+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:official",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:official",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.396984+00:00",
-        "updated_at": "2026-04-04T07:01:28.396984+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:current",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:current",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.397010+00:00",
-        "updated_at": "2026-04-04T07:01:28.397010+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:price",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:price",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.397032+00:00",
-        "updated_at": "2026-04-04T07:01:28.397032+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:researcher",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:researcher",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.397052+00:00",
-        "updated_at": "2026-04-04T07:01:28.397052+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:gold data researcher",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:gold data researcher",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.397072+00:00",
-        "updated_at": "2026-04-04T07:01:28.397072+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:bao tin minh chau",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:bao tin minh chau",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.397091+00:00",
-        "updated_at": "2026-04-04T07:01:28.397091+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:based",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:based",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.397107+00:00",
-        "updated_at": "2026-04-04T07:01:28.397107+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:data",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:data",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.397122+00:00",
-        "updated_at": "2026-04-04T07:01:28.397122+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:bao",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:bao",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.397138+00:00",
-        "updated_at": "2026-04-04T07:01:28.397138+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:tin",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:tin",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.397155+00:00",
-        "updated_at": "2026-04-04T07:01:28.397155+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:minh",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:minh",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.397172+00:00",
-        "updated_at": "2026-04-04T07:01:28.397172+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:chau",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:chau",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.397188+00:00",
-        "updated_at": "2026-04-04T07:01:28.397188+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:hanoi",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:hanoi",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.397204+00:00",
-        "updated_at": "2026-04-04T07:01:28.397204+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:the",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:the",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.397220+00:00",
-        "updated_at": "2026-04-04T07:01:28.397220+00:00"
-      },
-      {
-        "id": "mentions:event:a1:m_4cc8d21adcd14df180f1762fc10ea830->entity:btmc",
-        "src": "event:a1:m_4cc8d21adcd14df180f1762fc10ea830",
-        "dst": "entity:btmc",
-        "relation": "mentions",
-        "weight": 0.55,
-        "source_message_ids": [
-          "m_4cc8d21adcd14df180f1762fc10ea830"
-        ],
-        "chunk_ids": [
-          "msg_m_4cc8d21adcd14df180f1762fc10ea830_0"
-        ],
-        "created_at": "2026-04-04T07:01:28.397236+00:00",
-        "updated_at": "2026-04-04T07:01:28.397236+00:00"
+        "created_at": "2026-04-04T09:05:33.812503+00:00",
+        "updated_at": "2026-04-04T09:05:33.812503+00:00"
       }
     ],
     "chunks": {
-      "msg_user-7658aa42d388404a85edfe4ea644a8ea_0": "Task title: Bao Tin Minh Chau gold price in Hanoi today; description: Bao Tin Minh Chau gold price in Hanoi today",
-      "msg_agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4_0": "I need to extract the most current and specific gold prices for Bao Tin Minh Chau in Hanoi. The provided search results are not precise enough or are outdated.",
-      "msg_m_9f08b124bd7046298e6558747750db43_0": "I need to extract the most current and specific gold prices for Bao Tin Minh Chau in Hanoi. The provided search results are not precise enough or are outdated.",
-      "msg_agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add_0": "I have performed a web search and found relevant information regarding Bao Tin Minh Chau gold prices in Hanoi today. The search results indicate that Bao Tin Minh Chau provides updated gold prices, including various products like gold bars, Thang Long Dragon gold, and 24K, 18K, and 14K jewelry gold. It also mentions the buy-sell difference for different gold types.\n\nHowever, the exact current prices are not directly extractable from the text. The results recommend checking the official BTMC price chart for the most accurate and up-to-date information due to potential daily fluctuations.",
-      "msg_m_cc86d634e872454692599bfbaa25b8c8_0": "I have performed a web search and found relevant information regarding Bao Tin Minh Chau gold prices in Hanoi today. The search results indicate that Bao Tin Minh Chau provides updated gold prices, including various products like gold bars, Thang Long Dragon gold, and 24K, 18K, and 14K jewelry gold. It also mentions the buy-sell difference for different gold types.\n\nHowever, the exact current prices are not directly extractable from the text. The results recommend checking the official BTMC price chart for the most accurate and up-to-date information due to potential daily fluctuations.",
-      "msg_agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0_0": "Based on the information provided by the Gold Data Researcher, specific current gold prices for Bao Tin Minh Chau in Hanoi cannot be inferred or are explicitly mentioned in the initial search results. The researcher has already indicated that the exact current prices are not directly extractable and recommends checking the official BTMC price chart.\n\nTo obtain these specific current prices, I recommend a new web search focused on directly accessing the official Bao Tin Minh Chau price chart or their official website for real-time gold prices.",
-      "msg_m_4cc8d21adcd14df180f1762fc10ea830_0": "Based on the information provided by the Gold Data Researcher, specific current gold prices for Bao Tin Minh Chau in Hanoi cannot be inferred or are explicitly mentioned in the initial search results. The researcher has already indicated that the exact current prices are not directly extractable and recommends checking the official BTMC price chart.\n\nTo obtain these specific current prices, I recommend a new web search focused on directly accessing the official Bao Tin Minh Chau price chart or their official website for real-time gold prices."
+      "msg_user-eaea49465c324666804ba2d16d7b3692_0": "Task title: Bao Tin Minh Chau gold price in Hanoi today; description: Bao Tin Minh Chau gold price in Hanoi today"
     },
     "message_ids": [
-      "user-7658aa42d388404a85edfe4ea644a8ea",
-      "agent-Gold Market Analyst-29c400b66b1b4508b00c1ef7432b48e4",
-      "m_9f08b124bd7046298e6558747750db43",
-      "agent-Gold Data Researcher-80d87eff00fe4721bcce48b7427f0add",
-      "m_cc86d634e872454692599bfbaa25b8c8",
-      "agent-Gold Market Analyst-bec76d39da824e99809887a74c66fbf0",
-      "m_4cc8d21adcd14df180f1762fc10ea830"
+      "user-eaea49465c324666804ba2d16d7b3692"
     ],
-    "updated_at": "2026-04-04T07:01:28.401042+00:00"
+    "updated_at": "2026-04-04T09:05:33.812505+00:00"
   }
 }

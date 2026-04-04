@@ -180,9 +180,9 @@ async def run_agent_graph_stream(
     conversation_id = req.conversation_id
 
     async def event_generator():
-        """Generate Server-Sent Events for each agent turn"""
+        """Generate Server-Sent Events for agent turns and intermediate events"""
         try:
-            async for turn in service.run_stream_with_definitions(
+            async for event in service.run_stream_with_definitions(
                 user_input=req.user_input,
                 definitions=definitions,
                 max_rounds=req.max_rounds,
@@ -190,16 +190,35 @@ async def run_agent_graph_stream(
                 graph_context_provider=graph_context_service,
                 graph_config=graph_config,
             ):
-                # Convert GraphTurn to GraphTurnSchema and serialize to JSON
-                turn_schema = GraphTurnSchema(
-                    turn=turn.turn,
-                    agent_id=agent_name_to_id.get(turn.agent_name, turn.agent_name),  # Look up agent ID
-                    agent_name=turn.agent_name,
-                    agent_role=turn.agent_role,
-                    content=turn.content,
-                )
-                # Yield as SSE format: data: {json}\n\n
-                yield f"data: {json.dumps(turn_schema.model_dump())}\n\n"
+                # Handle both custom events (dicts) and GraphTurn objects
+                if isinstance(event, dict):
+                    # Custom event from get_stream_writer()
+                    event_data = event.copy()
+                    # Ensure dataclass payloads (e.g. GraphTurn in turn_complete) are JSON-serializable
+                    turn_payload = event_data.get("turn")
+                    if turn_payload is not None and hasattr(turn_payload, "__dataclass_fields__"):
+                        event_data["turn"] = asdict(turn_payload)
+                    # Map agent_name to agent_id if needed
+                    if "agent_name" in event_data and "agent_id" not in event_data:
+                        event_data["agent_id"] = agent_name_to_id.get(event_data["agent_name"], event_data["agent_name"])
+                    if isinstance(event_data.get("turn"), dict):
+                        turn_agent_name = event_data["turn"].get("agent_name")
+                        if turn_agent_name and "agent_id" not in event_data["turn"]:
+                            event_data["turn"]["agent_id"] = agent_name_to_id.get(turn_agent_name, turn_agent_name)
+                    # Emit custom event as-is
+                    yield f"data: {json.dumps(event_data)}\n\n"
+                else:
+                    # GraphTurn object from turn_complete event
+                    turn = event
+                    turn_schema = GraphTurnSchema(
+                        turn=turn.turn,
+                        agent_id=agent_name_to_id.get(turn.agent_name, turn.agent_name),
+                        agent_name=turn.agent_name,
+                        agent_role=turn.agent_role,
+                        content=turn.content,
+                    )
+                    yield f"data: {json.dumps(turn_schema.model_dump())}\n\n"
+            
             if conversation_id:
                 pack = graph_context_service.build_graph_context(
                     conversation_id=conversation_id,

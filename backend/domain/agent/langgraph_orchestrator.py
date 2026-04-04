@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TypedDict
 from uuid import uuid4
 
+from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 
 from backend.application.ports.agent_graph import (
@@ -13,6 +14,7 @@ from backend.application.ports.agent_graph import (
     GraphTurn,
 )
 from backend.application.ports.llm import LLMProvider
+from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 
 
@@ -102,7 +104,7 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
     ):
-        """Streaming version that yields GraphTurn events as agents process"""
+        """Streaming version using get_stream_writer for real-time custom events"""
         if not agents:
             raise ValueError("At least one agent definition is required")
 
@@ -145,17 +147,11 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                 config=graph_config,
             )
 
-        # Stream events from the graph
-        async for event in graph.astream(initial):
-            # event is a dict like {node_name: state_update}
-            state_update = next(iter(event.values())) if event else {}
-            
-            # Yield new turns as they're added
-            if "turns" in state_update:
-                new_turns = state_update["turns"]
-                # Only yield the last turn (the one that was just added)
-                if new_turns:
-                    yield new_turns[-1]
+        # Stream custom events from nodes using stream_mode="custom"
+        async for event in graph.astream(initial, stream_mode="custom"):
+            # Custom events sent via get_stream_writer() from nodes
+            if isinstance(event, dict):
+                yield event
 
     def _make_llm_node(
         self,
@@ -167,12 +163,29 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
         graph_config: GraphContextConfig | None,
     ):
         async def node(state: MultiAgentState) -> MultiAgentState:
+            stream_writer = get_stream_writer()
+            
+            # Stream: Agent starting
+            stream_writer({
+                "type": EventType.AGENT_START.value,
+                "agent_name": agent.name,
+                "agent_role": agent.role,
+                "turn": state["rounds"] + 1,
+            })
+            
             bound_tools = []
             if agent.tools:
                 for toolkit in agent.tools.values():
                     bound_tools.extend(toolkit.get_tools())
 
             user_input = state["input"]
+            
+            # Stream: Building context
+            stream_writer({
+                "type": EventType.CONTEXT_BUILDING.value,
+                "agent_name": agent.name,
+            })
+            
             if graph_context_provider and conversation_id:
                 pack = graph_context_provider.build_graph_context(
                     conversation_id=conversation_id,
@@ -181,12 +194,34 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                 )
                 if pack.text:
                     user_input = f"{pack.text}\n\nIncoming request:\n{state['input']}"
+                    # Stream: Context retrieved
+                    stream_writer({
+                        "type": EventType.CONTEXT_RETRIEVED.value,
+                        "agent_name": agent.name,
+                        "node_ids": pack.node_ids,
+                        "edge_ids": pack.edge_ids,
+                        "chunk_ids": pack.chunk_ids,
+                    })
 
+            # Stream: LLM processing started
+            stream_writer({
+                "type": EventType.LLM_REQUEST_START.value,
+                "agent_name": agent.name,
+                "context_length": len(user_input),
+            })
+            
             output = await llm.chat(
                 system=agent.system_prompt,
                 user=user_input,
                 tools=bound_tools or None,
             )
+
+            # Stream: LLM response received
+            stream_writer({
+                "type": EventType.LLM_RESPONSE_COMPLETE.value,
+                "agent_name": agent.name,
+                "response_length": len(output),
+            })
 
             next_turn = GraphTurn(
                 turn=state["rounds"] + 1,
@@ -203,6 +238,17 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                     content=output,
                     config=graph_config,
                 )
+                # Stream: Message ingested
+                stream_writer({
+                    "type": EventType.MESSAGE_INGESTED.value,
+                    "agent_name": agent.name,
+                })
+
+            # Stream: Turn completed
+            stream_writer({
+                "type": EventType.TURN_COMPLETE.value,
+                "turn": next_turn,
+            })
 
             return {
                 **state,

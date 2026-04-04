@@ -4,15 +4,15 @@
     "title": "Bao Tin Minh Chau gold price in Hanoi today",
     "description": "Bao Tin Minh Chau gold price in Hanoi today",
     "teamId": "t_c401148000bb4a4a9dbbfe9d339212af",
-    "status": "completed",
-    "progress": 100,
+    "status": "in-progress",
+    "progress": 0,
     "assignedAgents": [
       "a1",
       "a2",
       "a3"
     ],
-    "startTime": "2026-04-04T07:01:12+00:00",
-    "endTime": "2026-04-04T07:02:08+00:00"
+    "startTime": "2026-04-04T09:05:33+00:00",
+    "endTime": null
   },
   {
     "id": "task_9b6c8ee04d664b1d916d07960a616bda",

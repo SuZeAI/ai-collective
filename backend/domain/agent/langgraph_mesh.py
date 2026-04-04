@@ -4,6 +4,7 @@ import re
 from typing import TypedDict
 from uuid import uuid4
 
+from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 
 from backend.domain.prompt.routing_prompt import get_routing_guidance
@@ -15,6 +16,7 @@ from backend.application.ports.agent_graph import (
     GraphTurn,
 )
 from backend.application.ports.llm import LLMProvider
+from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.log import get_logger
 
@@ -187,7 +189,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
     ):
-        """Streaming version for real-time multi-agent conversation"""
+        """Streaming version using get_stream_writer for real-time custom events"""
         if not agents:
             raise ValueError("At least one agent definition is required")
 
@@ -268,12 +270,10 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             "rounds": 0,
         }
         
-        async for event in graph.astream(initial):
-            for node_name, node_state in event.items():
-                if "turns" in node_state:
-                    new_turns = node_state.get("turns", [])
-                    if new_turns:
-                        yield new_turns[-1]
+        # Stream custom events using stream_mode="custom"
+        async for event in graph.astream(initial, stream_mode="custom"):
+            if isinstance(event, dict):
+                yield event
 
     async def _run_single_agent(
         self,
@@ -362,7 +362,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         graph_config: GraphContextConfig | None = None,
     ):
         """
-        Create an LLM node function for multi-agent mesh communication.
+        Create an LLM node function for multi-agent mesh communication with streaming support.
         
         Args:
             agent: The agent for this node
@@ -371,7 +371,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             hub_agent_name: Name of hub agent (for routing guidance)
             
         Returns:
-            Async function that processes the agent's turn
+            Async function that processes the agent's turn with stream_writer support
         """
         
         routing_guidance = agent.routing_guidance
@@ -382,8 +382,25 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             )
 
         async def mesh_node(state: MultiAgentMeshState) -> dict:
+            stream_writer = get_stream_writer()
+            
+            # Stream: Agent turn starting
+            stream_writer({
+                "type": EventType.AGENT_TURN_START.value,
+                "agent_name": agent.name,
+                "agent_role": agent.role,
+                "turn": len(state.get("turns", [])) + 1,
+                "round": state.get("rounds", 0) + 1,
+            })
+            
             conversation_history = state.get("conversation_history", {})
             context_parts: list[str] = []
+            
+            # Stream: Building context
+            stream_writer({
+                "type": EventType.CONTEXT_BUILDING.value,
+                "agent_name": agent.name,
+            })
             
             all_recent_messages = []
             for other_agent_name in state["agent_names"]:
@@ -399,6 +416,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             history_text = "\n".join(all_recent_messages[-5:]).strip() or "(empty)"
 
             graph_context_text = ""
+            context_chunks = []
             if graph_context_provider and conversation_id:
                 pack = graph_context_provider.build_graph_context(
                     conversation_id=conversation_id,
@@ -406,6 +424,16 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                     config=graph_config,
                 )
                 graph_context_text = pack.text
+                context_chunks = pack.chunk_ids
+                
+                # Stream: Context retrieved
+                stream_writer({
+                    "type": EventType.CONTEXT_RETRIEVED.value,
+                    "agent_name": agent.name,
+                    "node_ids": pack.node_ids,
+                    "edge_ids": pack.edge_ids,
+                    "chunk_ids": pack.chunk_ids,
+                })
 
             if state.get("rounds", 0) == 0:
                 context_parts.append(f"user input: {state['original_input']}")
@@ -424,6 +452,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
 
             user_input = "\n".join(context_parts)
             get_logger().info(f"Agent '{agent.name}' received context:\n{user_input}")
+            
             system_prompt_with_routing = agent.system_prompt
             if routing_guidance:
                 system_prompt_with_routing = f"{agent.system_prompt}\n\n{routing_guidance}"
@@ -433,11 +462,27 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 for toolkit in agent.tools.values():
                     bound_tools.extend(toolkit.get_tools())
             
+            # Stream: LLM request starting
+            stream_writer({
+                "type": EventType.LLM_REQUEST_START.value,
+                "agent_name": agent.name,
+                "context_length": len(user_input),
+                "has_tools": len(bound_tools) > 0,
+            })
+            
             response = await llm.chat(
                 system=system_prompt_with_routing,
                 user=user_input,
                 tools=bound_tools or None,
             )
+            
+            # Stream: LLM response received
+            stream_writer({
+                "type": EventType.LLM_RESPONSE_COMPLETE.value,
+                "agent_name": agent.name,
+                "response_length": len(response),
+            })
+            
             reasoning, action_payload = self._split_reasoning_and_action(response)
 
             if graph_context_provider and conversation_id:
@@ -448,6 +493,11 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                     content=reasoning,
                     config=graph_config,
                 )
+                # Stream: Message ingested to knowledge graph
+                stream_writer({
+                    "type": EventType.MESSAGE_INGESTED.value,
+                    "agent_name": agent.name,
+                })
             
             turns = state["turns"]
             new_turn = GraphTurn(
@@ -476,6 +526,14 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                         "Please continue with the highest-priority next analysis and include concrete evidence."
                     ]
                 next_input = self._format_question_payload(questions)
+            
+            # Stream: Turn completed with turn object
+            stream_writer({
+                "type": EventType.TURN_COMPLETE.value,
+                "turn": new_turn,
+                "next_agent": next_agent,
+                "discussion_ended": discussion_ended,
+            })
             
             return {
                 "turns": [*turns, new_turn],

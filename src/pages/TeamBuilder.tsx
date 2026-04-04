@@ -44,6 +44,7 @@ export default function TeamBuilder() {
   const [isTesting, setIsTesting] = useState(false);
   const [testError, setTestError] = useState("");
   const [testMessages, setTestMessages] = useState<TeamTestMessage[]>([]);
+  const [testThinkingAgents, setTestThinkingAgents] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
   const stopTestRef = useRef(false);
   const [copied, setCopied] = useState(false);
@@ -222,10 +223,11 @@ export default function TeamBuilder() {
     setIsTesting(true);
     setTestError("");
     setTestMessages([]);
+    setTestThinkingAgents(new Set());
 
     try {
       let stepCounter = 0;
-      for await (const turn of api.runAgentGraphStream({
+      for await (const event of api.runAgentGraphStream({
         user_input: testPrompt.trim() || "Coordinate a team execution plan.",
         agents: testingTeam.agents,
         max_rounds: stepLimit,
@@ -234,25 +236,68 @@ export default function TeamBuilder() {
       })) {
         if (stopTestRef.current) break;
 
-        if (turn.error) {
-          setTestError(turn.error);
+        if (event.error) {
+          setTestError(event.error);
           break;
         }
 
-        stepCounter += 1;
-        const item: TeamTestMessage = {
-          id: `${Date.now()}-${stepCounter}-${turn.agent_id}`,
-          agentId: turn.agent_id,
-          content: turn.content || "(No response)",
-          step: turn.turn,
-          timestamp: new Date().toISOString(),
-        };
-        setTestMessages((prev) => [...prev, item]);
+        // Handle different event types
+        const eventType = event.type;
+        const agentId = event.agent_id || event.agentId || event.agent_name || event.agentName;
+        
+        // Handle thinking state (LLM request start)
+        if (eventType === "llm_request_start") {
+          if (!agentId) continue;
+          setTestThinkingAgents((prev) => new Set([...prev, agentId]));
+        }
+        // Remove thinking state (LLM response complete)
+        else if (eventType === "llm_response_complete") {
+          if (!agentId) continue;
+          setTestThinkingAgents((prev) => {
+            const next = new Set(prev);
+            next.delete(agentId);
+            return next;
+          });
+        }
+        // Only add message when turn is complete
+        else if (eventType === "turn_complete" && event.turn) {
+          stepCounter += 1;
+          const turn = event.turn;
+          const turnAgentId = turn.agent_id || turn.agentId || turn.agent_name || turn.agentName;
+          if (!turnAgentId) continue;
+          const item: TeamTestMessage = {
+            id: `${Date.now()}-${stepCounter}-${turnAgentId}`,
+            agentId: turnAgentId,
+            content: turn.content || "(No response)",
+            step: turn.turn,
+            timestamp: new Date().toISOString(),
+          };
+          setTestThinkingAgents((prev) => {
+            const next = new Set(prev);
+            next.delete(turnAgentId);
+            return next;
+          });
+          setTestMessages((prev) => [...prev, item]);
+        }
+        // Fallback for old-style turn objects (if not wrapped in turn_complete event)
+        else if (event.content && !eventType) {
+          stepCounter += 1;
+          if (!agentId) continue;
+          const item: TeamTestMessage = {
+            id: `${Date.now()}-${stepCounter}-${agentId}`,
+            agentId: agentId,
+            content: event.content || "(No response)",
+            step: event.turn,
+            timestamp: new Date().toISOString(),
+          };
+          setTestMessages((prev) => [...prev, item]);
+        }
       }
     } catch (e) {
       setTestError(e instanceof Error ? e.message : "Failed to run team test discussion.");
     } finally {
       setIsTesting(false);
+      setTestThinkingAgents(new Set());
     }
   };
 
@@ -530,41 +575,69 @@ export default function TeamBuilder() {
                 </span>
               </div>
               <div className="flex-1 rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-3 overflow-y-auto space-y-2">
-                {testMessages.length > 0 ? (
-                  testMessages.map((m) => {
-                    const agent = agentById.get(m.agentId);
-                    const ts = new Date(m.timestamp);
-                    return (
-                      <motion.div
-                        key={m.id}
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 shadow-sm hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-100 to-blue-50 dark:from-blue-900/40 dark:to-blue-900/20">
-                            <span className="text-xs font-bold text-blue-700 dark:text-blue-300">#{m.step}</span>
-                          </span>
-                          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                            {agent?.name ?? m.agentId}
-                          </span>
-                          <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {isNaN(ts.getTime())
-                              ? m.timestamp
-                              : ts.toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  second: "2-digit",
-                                })}
-                          </span>
-                        </div>
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700 dark:text-slate-300">
-                          {m.content}
-                        </p>
-                      </motion.div>
-                    );
-                  })
+                {testMessages.length > 0 || testThinkingAgents.size > 0 ? (
+                  <>
+                    {testMessages.map((m) => {
+                      const agent = agentById.get(m.agentId);
+                      const ts = new Date(m.timestamp);
+                      return (
+                        <motion.div
+                          key={m.id}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-100 to-blue-50 dark:from-blue-900/40 dark:to-blue-900/20">
+                              <span className="text-xs font-bold text-blue-700 dark:text-blue-300">#{m.step}</span>
+                            </span>
+                            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                              {agent?.name ?? m.agentId}
+                            </span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {isNaN(ts.getTime())
+                                ? m.timestamp
+                                : ts.toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    second: "2-digit",
+                                  })}
+                            </span>
+                          </div>
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700 dark:text-slate-300">
+                            {m.content}
+                          </p>
+                        </motion.div>
+                      );
+                    })}
+                    
+                    {/* Thinking indicators for test */}
+                    {testThinkingAgents.size > 0 && (
+                      Array.from(testThinkingAgents).map((agentId) => {
+                        const agent = agentById.get(agentId);
+                        return (
+                          <motion.div
+                            key={`thinking-${agentId}`}
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="rounded-lg border border-blue-300 dark:border-blue-600 bg-blue-100/50 dark:bg-blue-900/40 p-3"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse" />
+                                <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse" style={{ animationDelay: "0.2s" }} />
+                                <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse" style={{ animationDelay: "0.4s" }} />
+                              </div>
+                              <span className="text-sm font-semibold text-blue-800 dark:text-blue-200">
+                                {agent?.name ?? agentId} is thinking...
+                              </span>
+                            </div>
+                          </motion.div>
+                        );
+                      })
+                    )}
+                  </>
                 ) : isTesting ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
