@@ -815,7 +815,7 @@ export default function TaskManager() {
           }
         }}
       >
-        <DialogContent showCloseButton={false} className="max-w-6xl w-[95vw] h-[88vh] p-0 gap-0 overflow-hidden">
+        <DialogContent showCloseButton={false} className="max-w-[1600px] w-[98vw] h-[90vh] p-0 gap-0 overflow-hidden">
           {(() => {
             const selectedTask = taskList.find((task) => task.id === viewTaskId);
             if (!selectedTask) return null;
@@ -866,7 +866,7 @@ export default function TaskManager() {
             const viewport = taskGraphViewports[selectedTask.id] ?? createDefaultViewport();
 
             return (
-              <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)]">
+              <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,3fr)]">
                 <div className="h-full min-h-0 border-r border-border bg-muted/25 overflow-y-auto p-5 space-y-5">
                   <DialogHeader className="space-y-2 text-left">
                     <div className="flex items-center justify-between gap-3">
@@ -981,216 +981,214 @@ export default function TaskManager() {
                   </div>
                 </div>
 
-                <div className="h-full min-h-0 p-5 grid grid-rows-[minmax(300px,0.95fr)_minmax(0,1.05fr)] gap-4">
-                  <div className="min-h-0 overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100 shadow-sm">
-                    <div className="flex items-start justify-between gap-4 border-b border-white/10 px-4 py-3">
-                      <div>
-                        <div className="text-[11px] uppercase tracking-[0.28em] text-slate-400">Graph context</div>
-                        <div className="mt-1 text-sm font-semibold text-white">Knowledge graph activity</div>
-                      </div>
-                      <div className="text-right text-[11px] text-slate-300">
-                        <div className="font-medium text-slate-100">
-                          {graphHighlight?.agentName ?? (selectedTask.status === "in-progress" ? "Waiting for context" : "Idle")}
-                        </div>
-                        <div>{graphNodes.length} nodes · {graphEdges.length} edges</div>
-                      </div>
+                <div className="h-full min-h-0 p-5 flex flex-col border-r border-border bg-background/80 overflow-hidden">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                      Live Conversation
                     </div>
-
-                    <div className="min-h-0 flex-1 p-3">
-                      {graphLoading && !graphSnapshot ? (
-                        <div className="flex h-full items-center justify-center rounded-xl border border-white/10 bg-white/5 text-sm text-slate-300 animate-pulse">
-                          Loading graph context...
-                        </div>
-                      ) : graphNodes.length > 0 ? (
-                        <div className="flex h-full min-h-0 flex-col gap-3">
-                          <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-white/10 bg-black/20">
-                            <svg
-                              ref={graphSvgRef}
-                              viewBox={`0 0 ${GRAPH_VIEWBOX_WIDTH} ${GRAPH_VIEWBOX_HEIGHT}`}
-                              className="h-full w-full touch-none cursor-grab active:cursor-grabbing"
-                              preserveAspectRatio="xMidYMid meet"
-                              onWheel={(event) => wheelGraph(selectedTask.id, event)}
-                              onPointerDown={(event) => startGraphDrag(selectedTask.id, event)}
-                              onPointerMove={(event) => moveGraphDrag(selectedTask.id, event)}
-                              onPointerUp={(event) => endGraphDrag(selectedTask.id, event)}
-                              onPointerCancel={(event) => endGraphDrag(selectedTask.id, event)}
-                            >
-                              <defs>
-                                <filter id="graphGlow" x="-40%" y="-40%" width="180%" height="180%">
-                                  <feGaussianBlur stdDeviation="6" result="blur" />
-                                  <feColorMatrix
-                                    in="blur"
-                                    type="matrix"
-                                    values="1 0 0 0 0.2 0 1 0 0 0.55 0 0 1 0 0.95 0 0 0 0.85 0"
-                                  />
-                                  <feMerge>
-                                    <feMergeNode />
-                                    <feMergeNode in="SourceGraphic" />
-                                  </feMerge>
-                                </filter>
-                              </defs>
-
-                              <g transform={`translate(${viewport.panX} ${viewport.panY}) scale(${viewport.scale})`} transformOrigin="280 150">
-                                {graphEdges.map((edge) => {
-                                  const source = graphPositions[edge.src] ?? graphLayoutById.get(edge.src);
-                                  const target = graphPositions[edge.dst] ?? graphLayoutById.get(edge.dst);
-                                  if (!source || !target) return null;
-                                  const isActive = activeEdgeIds.has(edge.id) || (activeNodeIds.has(edge.src) && activeNodeIds.has(edge.dst));
-                                  return (
-                                    <line
-                                      key={edge.id}
-                                      x1={source.x}
-                                      y1={source.y}
-                                      x2={target.x}
-                                      y2={target.y}
-                                      stroke={isActive ? "rgba(96, 165, 250, 0.92)" : "rgba(148, 163, 184, 0.22)"}
-                                      strokeWidth={isActive ? 2.4 : 1.25}
-                                      strokeLinecap="round"
-                                    />
-                                  );
-                                })}
-
-                                {graphLayout.map((entry) => {
-                                  const isActive = activeNodeIds.has(entry.node.id);
-                                  const position = graphPositions[entry.node.id] ?? entry;
-                                  const nodeFill = isActive ? "rgba(96, 165, 250, 0.95)" : "rgba(15, 23, 42, 0.88)";
-                                  const stroke = isActive ? "rgba(191, 219, 254, 0.98)" : "rgba(148, 163, 184, 0.4)";
-                                  return (
-                                    <g
-                                      key={entry.node.id}
-                                      filter={isActive ? "url(#graphGlow)" : undefined}
-                                      style={{ cursor: "grab" }}
-                                      onPointerDown={(event) => startNodeDrag(selectedTask.id, entry.node.id, event)}
-                                      onPointerMove={(event) => moveNodeDrag(selectedTask.id, event)}
-                                      onPointerUp={(event) => endNodeDrag(selectedTask.id, event)}
-                                      onPointerCancel={(event) => endNodeDrag(selectedTask.id, event)}
-                                    >
-                                      <circle cx={position.x} cy={position.y} r={isActive ? 16 : 12} fill={nodeFill} stroke={stroke} strokeWidth={isActive ? 3 : 1.5} />
-                                      <circle cx={position.x} cy={position.y} r={isActive ? 24 : 18} fill={isActive ? "rgba(59, 130, 246, 0.12)" : "rgba(148, 163, 184, 0.08)"} />
-                                      <text
-                                        x={position.x}
-                                        y={position.y + 34}
-                                        textAnchor="middle"
-                                        className="fill-slate-200"
-                                        fontSize="10"
-                                        fontWeight={600}
-                                      >
-                                        {ellipsis(entry.node.value, 18)}
-                                      </text>
-                                      <text
-                                        x={position.x}
-                                        y={position.y + 47}
-                                        textAnchor="middle"
-                                        className="fill-slate-400"
-                                        fontSize="8"
-                                        letterSpacing="0.08em"
-                                      >
-                                        {entry.node.type}
-                                      </text>
-                                    </g>
-                                  );
-                                })}
-                              </g>
-                            </svg>
-                          </div>
-                          <div className="grid gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-slate-200 sm:grid-cols-2">
-                            <div>
-                              <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Active nodes</div>
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                {activeNodeLabels.length > 0 ? (
-                                  activeNodeLabels.map((label) => (
-                                    <span key={label} className="inline-flex items-center rounded-full border border-blue-300/40 bg-blue-400/15 px-2.5 py-1 text-[11px] text-blue-100">
-                                      {ellipsis(label, 20)}
-                                    </span>
-                                  ))
-                                ) : (
-                                  <span className="text-slate-400">No active highlight yet.</span>
-                                )}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Current update</div>
-                              <div className="mt-2 space-y-1 text-slate-300">
-                                <div>{graphHighlight?.agentName ? `${graphHighlight.agentName} is loading context` : "Waiting for the next turn"}</div>
-                                <div>{activeChunkIds.size} chunk(s) highlighted</div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/5 px-4 text-center text-sm text-slate-300">
-                          No graph context yet. Start or restart the task to populate the knowledge graph.
-                        </div>
-                      )}
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      {selectedTask.status === "in-progress" && <span className="w-2 h-2 rounded-full bg-agent-dev animate-pulse" />}
+                      <span>{selectedTask.status === "in-progress" ? "Live" : "Recent"}</span>
                     </div>
                   </div>
 
-                  <div className="min-h-0 rounded-2xl border border-border/70 bg-background/95 p-4 flex flex-col">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                        Live Conversation
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        {selectedTask.status === "in-progress" && <span className="w-2 h-2 rounded-full bg-agent-dev animate-pulse" />}
-                        <span>{selectedTask.status === "in-progress" ? "Live" : "Recent"}</span>
-                      </div>
-                    </div>
-
-                    <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                      {isConversationLoading && messages.length === 0 && (thinkingAgents[selectedTask.id]?.size ?? 0) === 0 ? (
-                        <p className="text-sm text-muted-foreground animate-pulse">Loading conversation...</p>
-                      ) : visibleMessages.length > 0 || (thinkingAgents[selectedTask.id]?.size ?? 0) > 0 ? (
-                        <div className="space-y-3">
-                          {visibleMessages.map((msg) => {
-                            const agent = agentById.get(msg.agentId);
-                            const ts = new Date(msg.timestamp);
+                  <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                    {isConversationLoading && messages.length === 0 && (thinkingAgents[selectedTask.id]?.size ?? 0) === 0 ? (
+                      <p className="text-sm text-muted-foreground animate-pulse">Loading conversation...</p>
+                    ) : visibleMessages.length > 0 || (thinkingAgents[selectedTask.id]?.size ?? 0) > 0 ? (
+                      <div className="space-y-3">
+                        {visibleMessages.map((msg) => {
+                          const agent = agentById.get(msg.agentId);
+                          const ts = new Date(msg.timestamp);
+                          return (
+                            <div key={msg.id} className="rounded-lg border border-border/70 p-3 bg-background hover:bg-muted/20 transition-colors">
+                              <div className="flex items-center gap-2 mb-2">
+                                <AgentAvatar
+                                  agent={agent || { avatar: "?" }}
+                                  className={`w-7 h-7 rounded-md text-[10px] shadow-sm ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
+                                  iconClassName="w-3.5 h-3.5"
+                                />
+                                <span className="text-sm font-semibold">{agent?.name ?? msg.agentId}</span>
+                                <span className="text-[11px] text-muted-foreground font-mono ml-auto">
+                                  {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                                </span>
+                              </div>
+                              <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:text-sm [&>p]:text-muted-foreground [&>p]:leading-relaxed [&>p:last-child]:mb-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_ul]:mb-2 [&_ol]:mb-2 [&_li]:mb-1">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                  {msg.content}
+                                </ReactMarkdown>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        
+                        {/* Thinking indicators */}
+                        {(thinkingAgents[selectedTask.id]?.size ?? 0) > 0 && (
+                          Array.from(thinkingAgents[selectedTask.id] ?? []).map((agentId) => {
+                            const agent = agentById.get(agentId);
                             return (
-                              <div key={msg.id} className="rounded-lg border border-border/70 p-3 bg-background hover:bg-muted/20 transition-colors">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <AgentAvatar
-                                    agent={agent || { avatar: "?" }}
-                                    className={`w-7 h-7 rounded-md text-[10px] shadow-sm ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
-                                    iconClassName="w-3.5 h-3.5"
-                                  />
-                                  <span className="text-sm font-semibold">{agent?.name ?? msg.agentId}</span>
-                                  <span className="text-[11px] text-muted-foreground font-mono ml-auto">
-                                    {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                              <div key={`thinking-${agentId}`} className="rounded-lg border border-blue-200 dark:border-blue-700 p-3 bg-blue-50 dark:bg-blue-900/20">
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: "0.2s" }} />
+                                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: "0.4s" }} />
+                                  </div>
+                                  <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                                    {agent?.name ?? agentId} is thinking...
                                   </span>
-                                </div>
-                                <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:text-sm [&>p]:text-muted-foreground [&>p]:leading-relaxed [&>p:last-child]:mb-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_ul]:mb-2 [&_ol]:mb-2 [&_li]:mb-1">
-                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                    {msg.content}
-                                  </ReactMarkdown>
                                 </div>
                               </div>
                             );
-                          })}
-                          
-                          {/* Thinking indicators */}
-                          {(thinkingAgents[selectedTask.id]?.size ?? 0) > 0 && (
-                            Array.from(thinkingAgents[selectedTask.id] ?? []).map((agentId) => {
-                              const agent = agentById.get(agentId);
-                              return (
-                                <div key={`thinking-${agentId}`} className="rounded-lg border border-blue-200 dark:border-blue-700 p-3 bg-blue-50 dark:bg-blue-900/20">
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex items-center gap-1">
-                                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: "0.2s" }} />
-                                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: "0.4s" }} />
-                                    </div>
-                                    <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
-                                      {agent?.name ?? agentId} is thinking...
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">No conversation yet for this task.</p>
-                      )}
+                          })
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No conversation yet for this task.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="h-full min-h-0 p-5 flex flex-col overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100">
+                  <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3 mb-3">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.28em] text-slate-400">Graph context</div>
+                      <div className="mt-1 text-sm font-semibold text-white">Knowledge graph activity</div>
                     </div>
+                    <div className="text-right text-[11px] text-slate-300">
+                      <div className="font-medium text-slate-100">
+                        {graphHighlight?.agentName ?? (selectedTask.status === "in-progress" ? "Waiting for context" : "Idle")}
+                      </div>
+                      <div>{graphNodes.length} nodes · {graphEdges.length} edges</div>
+                    </div>
+                  </div>
+
+                  <div className="min-h-0 flex-1 p-0">
+                    {graphLoading && !graphSnapshot ? (
+                      <div className="flex h-full items-center justify-center rounded-xl border border-white/10 bg-white/5 text-sm text-slate-300 animate-pulse">
+                        Loading graph context...
+                      </div>
+                    ) : graphNodes.length > 0 ? (
+                      <div className="flex h-full min-h-0 flex-col gap-3">
+                        <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-white/10 bg-black/20">
+                          <svg
+                            ref={graphSvgRef}
+                            viewBox={`0 0 ${GRAPH_VIEWBOX_WIDTH} ${GRAPH_VIEWBOX_HEIGHT}`}
+                            className="h-full w-full touch-none cursor-grab active:cursor-grabbing"
+                            preserveAspectRatio="xMidYMid meet"
+                            onWheel={(event) => wheelGraph(selectedTask.id, event)}
+                            onPointerDown={(event) => startGraphDrag(selectedTask.id, event)}
+                            onPointerMove={(event) => moveGraphDrag(selectedTask.id, event)}
+                            onPointerUp={(event) => endGraphDrag(selectedTask.id, event)}
+                            onPointerCancel={(event) => endGraphDrag(selectedTask.id, event)}
+                          >
+                            <defs>
+                              <filter id="graphGlow" x="-40%" y="-40%" width="180%" height="180%">
+                                <feGaussianBlur stdDeviation="6" result="blur" />
+                                <feColorMatrix
+                                  in="blur"
+                                  type="matrix"
+                                  values="1 0 0 0 0.2 0 1 0 0 0.55 0 0 1 0 0.95 0 0 0 0.85 0"
+                                />
+                                <feMerge>
+                                  <feMergeNode />
+                                  <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                              </filter>
+                            </defs>
+
+                            <g transform={`translate(${viewport.panX} ${viewport.panY}) scale(${viewport.scale})`} transformOrigin="280 150">
+                              {graphEdges.map((edge) => {
+                                const source = graphPositions[edge.src] ?? graphLayoutById.get(edge.src);
+                                const target = graphPositions[edge.dst] ?? graphLayoutById.get(edge.dst);
+                                if (!source || !target) return null;
+                                const isActive = activeEdgeIds.has(edge.id) || (activeNodeIds.has(edge.src) && activeNodeIds.has(edge.dst));
+                                return (
+                                  <line
+                                    key={edge.id}
+                                    x1={source.x}
+                                    y1={source.y}
+                                    x2={target.x}
+                                    y2={target.y}
+                                    stroke={isActive ? "rgba(96, 165, 250, 0.92)" : "rgba(148, 163, 184, 0.22)"}
+                                    strokeWidth={isActive ? 2.4 : 1.25}
+                                    strokeLinecap="round"
+                                  />
+                                );
+                              })}
+
+                              {graphLayout.map((entry) => {
+                                const isActive = activeNodeIds.has(entry.node.id);
+                                const position = graphPositions[entry.node.id] ?? entry;
+                                const nodeFill = isActive ? "rgba(96, 165, 250, 0.95)" : "rgba(15, 23, 42, 0.88)";
+                                const stroke = isActive ? "rgba(191, 219, 254, 0.98)" : "rgba(148, 163, 184, 0.4)";
+                                return (
+                                  <g
+                                    key={entry.node.id}
+                                    filter={isActive ? "url(#graphGlow)" : undefined}
+                                    style={{ cursor: "grab" }}
+                                    onPointerDown={(event) => startNodeDrag(selectedTask.id, entry.node.id, event)}
+                                    onPointerMove={(event) => moveNodeDrag(selectedTask.id, event)}
+                                    onPointerUp={(event) => endNodeDrag(selectedTask.id, event)}
+                                    onPointerCancel={(event) => endNodeDrag(selectedTask.id, event)}
+                                  >
+                                    <circle cx={position.x} cy={position.y} r={isActive ? 16 : 12} fill={nodeFill} stroke={stroke} strokeWidth={isActive ? 3 : 1.5} />
+                                    <circle cx={position.x} cy={position.y} r={isActive ? 24 : 18} fill={isActive ? "rgba(59, 130, 246, 0.12)" : "rgba(148, 163, 184, 0.08)"} />
+                                    <text
+                                      x={position.x}
+                                      y={position.y + 34}
+                                      textAnchor="middle"
+                                      className="fill-slate-200"
+                                      fontSize="10"
+                                      fontWeight={600}
+                                    >
+                                      {ellipsis(entry.node.value, 18)}
+                                    </text>
+                                    <text
+                                      x={position.x}
+                                      y={position.y + 47}
+                                      textAnchor="middle"
+                                      className="fill-slate-400"
+                                      fontSize="8"
+                                      letterSpacing="0.08em"
+                                    >
+                                      {entry.node.type}
+                                    </text>
+                                  </g>
+                                );
+                              })}
+                            </g>
+                          </svg>
+                        </div>
+                        <div className="grid gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-slate-200 sm:grid-cols-2">
+                          <div>
+                            <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Active nodes</div>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {activeNodeLabels.length > 0 ? (
+                                activeNodeLabels.map((label) => (
+                                  <span key={label} className="inline-flex items-center rounded-full border border-blue-300/40 bg-blue-400/15 px-2.5 py-1 text-[11px] text-blue-100">
+                                    {ellipsis(label, 20)}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-slate-400">No active highlight yet.</span>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Current update</div>
+                            <div className="mt-2 space-y-1 text-slate-300">
+                              <div>{graphHighlight?.agentName ? `${graphHighlight.agentName} is loading context` : "Waiting for the next turn"}</div>
+                              <div>{activeChunkIds.size} chunk(s) highlighted</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/5 px-4 text-center text-sm text-slate-300">
+                        No graph context yet. Start or restart the task to populate the knowledge graph.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
