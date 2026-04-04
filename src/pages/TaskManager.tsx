@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -10,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { AgentAvatar } from "@/components/AgentAvatar";
-import { api, type Agent, type Message, type Team, type Task } from "@/lib/api";
+import { api, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
 
 const statusIcons = {
@@ -59,6 +60,117 @@ const formatTaskDateTime = (date: Date) => {
   });
 };
 
+type GraphHighlight = {
+  nodeIds: string[];
+  edgeIds: string[];
+  chunkIds: string[];
+  agentId?: string;
+  agentName?: string;
+  updatedAt: string;
+};
+
+type GraphViewport = {
+  scale: number;
+  panX: number;
+  panY: number;
+};
+
+type GraphNodePosition = {
+  x: number;
+  y: number;
+};
+
+const GRAPH_VIEWBOX_WIDTH = 560;
+const GRAPH_VIEWBOX_HEIGHT = 300;
+const GRAPH_MIN_SCALE = 0.6;
+const GRAPH_MAX_SCALE = 2.5;
+
+const ellipsis = (value: string, maxLength: number) => {
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, Math.max(0, maxLength - 3))}...`;
+};
+
+const uniqueById = <T extends { id: string }>(items: T[]) => {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const item of items) {
+    if (seen.has(item.id)) continue;
+    seen.add(item.id);
+    out.push(item);
+  }
+  return out;
+};
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const getSvgPoint = (event: { clientX: number; clientY: number }, element: SVGSVGElement | null) => {
+  if (!element) return { x: 0, y: 0 };
+  const rect = element.getBoundingClientRect();
+  const viewBox = element.viewBox.baseVal;
+  const vbWidth = viewBox?.width || GRAPH_VIEWBOX_WIDTH;
+  const vbHeight = viewBox?.height || GRAPH_VIEWBOX_HEIGHT;
+  const viewAspect = vbWidth / vbHeight;
+  const rectAspect = rect.width / rect.height;
+
+  let renderedWidth = rect.width;
+  let renderedHeight = rect.height;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  if (rectAspect > viewAspect) {
+    renderedWidth = rect.height * viewAspect;
+    offsetX = (rect.width - renderedWidth) / 2;
+  } else {
+    renderedHeight = rect.width / viewAspect;
+    offsetY = (rect.height - renderedHeight) / 2;
+  }
+
+  return {
+    x: ((event.clientX - rect.left - offsetX) / renderedWidth) * vbWidth,
+    y: ((event.clientY - rect.top - offsetY) / renderedHeight) * vbHeight,
+  };
+};
+
+const createDefaultViewport = (): GraphViewport => ({
+  scale: 1,
+  panX: 0,
+  panY: 0,
+});
+
+const createNodePositionMap = (nodes: GraphContextSnapshot["nodes"], width: number, height: number) => {
+  const layout = getGraphLayout(nodes, width, height);
+  return Object.fromEntries(layout.map((entry) => [entry.node.id, { x: entry.x, y: entry.y }])) as Record<string, GraphNodePosition>;
+};
+
+const getGraphDisplayNodes = (
+  snapshot: GraphContextSnapshot | undefined,
+  highlight: GraphHighlight | undefined,
+  maxNodes = 18,
+) => {
+  if (!snapshot) return [];
+  const activeIds = new Set(highlight?.nodeIds ?? []);
+  const prioritized = [
+    ...snapshot.nodes.filter((node) => activeIds.has(node.id)).sort((a, b) => b.salience_score - a.salience_score),
+    ...snapshot.nodes
+      .filter((node) => !activeIds.has(node.id))
+      .sort((a, b) => b.salience_score - a.salience_score || b.updated_at.localeCompare(a.updated_at)),
+  ];
+  return uniqueById(prioritized).slice(0, maxNodes);
+};
+
+const getGraphLayout = (nodes: GraphContextSnapshot["nodes"], width: number, height: number) => {
+  if (nodes.length === 0) return [];
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const radius = Math.max(80, Math.min(width, height) * 0.36);
+  return nodes.map((node, index) => {
+    const angle = nodes.length === 1 ? -Math.PI / 2 : (index / nodes.length) * Math.PI * 2 - Math.PI / 2;
+    const x = centerX + Math.cos(angle) * radius;
+    const y = centerY + Math.sin(angle) * radius;
+    return { node, x, y };
+  });
+};
+
 export default function TaskManager() {
   const [taskList, setTaskList] = useState<Task[]>([]);
   const [teamList, setTeamList] = useState<Team[]>([]);
@@ -72,8 +184,27 @@ export default function TaskManager() {
   const [loadingConversationTaskIds, setLoadingConversationTaskIds] = useState<Set<string>>(new Set());
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
   const [thinkingAgents, setThinkingAgents] = useState<Record<string, Set<string>>>({});
+  const [taskGraphSnapshots, setTaskGraphSnapshots] = useState<Record<string, GraphContextSnapshot>>({});
+  const [taskGraphHighlights, setTaskGraphHighlights] = useState<Record<string, GraphHighlight>>({});
+  const [loadingGraphTaskIds, setLoadingGraphTaskIds] = useState<Set<string>>(new Set());
+  const [taskGraphViewports, setTaskGraphViewports] = useState<Record<string, GraphViewport>>({});
+  const [taskGraphPositions, setTaskGraphPositions] = useState<Record<string, Record<string, GraphNodePosition>>>({});
   const [open, setOpen] = useState(false);
   const [viewTaskId, setViewTaskId] = useState<string | null>(null);
+  const graphSvgRef = useRef<SVGSVGElement | null>(null);
+  const graphDragRef = useRef<{
+    taskId: string;
+    pointerId: number;
+    startPoint: { x: number; y: number };
+    startViewport: GraphViewport;
+  } | null>(null);
+  const graphNodeDragRef = useRef<{
+    taskId: string;
+    nodeId: string;
+    pointerId: number;
+    startPoint: { x: number; y: number };
+    startPositions: Record<string, GraphNodePosition>;
+  } | null>(null);
 
 
 
@@ -157,6 +288,186 @@ export default function TaskManager() {
 
   const openTaskView = (taskId: string) => {
     setViewTaskId(taskId);
+    setTaskGraphViewports((prev) => prev[taskId] ? prev : { ...prev, [taskId]: createDefaultViewport() });
+    void loadTaskGraphContext(taskId);
+  };
+
+  const syncTaskGraphPositions = (taskId: string, snapshot?: GraphContextSnapshot) => {
+    setTaskGraphPositions((prev) => {
+      const graph = snapshot ?? taskGraphSnapshots[taskId];
+      if (!graph) return prev;
+      const existing = prev[taskId] ?? {};
+      const base = createNodePositionMap(graph.nodes, GRAPH_VIEWBOX_WIDTH, GRAPH_VIEWBOX_HEIGHT);
+      const next: Record<string, GraphNodePosition> = {};
+      for (const node of graph.nodes) {
+        next[node.id] = existing[node.id] ?? base[node.id] ?? { x: GRAPH_VIEWBOX_WIDTH / 2, y: GRAPH_VIEWBOX_HEIGHT / 2 };
+      }
+      return {
+        ...prev,
+        [taskId]: next,
+      };
+    });
+  };
+
+  const loadTaskGraphContext = async (taskId: string) => {
+    setLoadingGraphTaskIds((prev) => {
+      const next = new Set(prev);
+      next.add(taskId);
+      return next;
+    });
+    try {
+      const snapshot = await api.getTaskGraphContext(taskId);
+      setTaskGraphSnapshots((prev) => ({
+        ...prev,
+        [taskId]: snapshot,
+      }));
+      syncTaskGraphPositions(taskId, snapshot);
+    } catch (e) {
+      console.error("Failed to load task graph context:", e);
+    } finally {
+      setLoadingGraphTaskIds((prev) => {
+        const next = new Set(prev);
+        next.delete(taskId);
+        return next;
+      });
+    }
+  };
+
+  const refreshTaskGraphContext = (taskId: string) => {
+    void loadTaskGraphContext(taskId);
+  };
+
+  const updateGraphViewport = (taskId: string, updater: (current: GraphViewport) => GraphViewport) => {
+    setTaskGraphViewports((prev) => {
+      const current = prev[taskId] ?? createDefaultViewport();
+      return {
+        ...prev,
+        [taskId]: updater(current),
+      };
+    });
+  };
+
+  const startGraphDrag = (taskId: string, event: ReactPointerEvent<SVGSVGElement>) => {
+    if (event.button !== 0) return;
+    const viewport = taskGraphViewports[taskId] ?? createDefaultViewport();
+    const point = getSvgPoint(event.nativeEvent, graphSvgRef.current);
+    graphDragRef.current = {
+      taskId,
+      pointerId: event.pointerId,
+      startPoint: point,
+      startViewport: viewport,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const moveGraphDrag = (taskId: string, event: ReactPointerEvent<SVGSVGElement>) => {
+    const drag = graphDragRef.current;
+    if (!drag || drag.taskId !== taskId || drag.pointerId !== event.pointerId) return;
+    const point = getSvgPoint(event.nativeEvent, graphSvgRef.current);
+    const deltaX = point.x - drag.startPoint.x;
+    const deltaY = point.y - drag.startPoint.y;
+    setTaskGraphViewports((prev) => ({
+      ...prev,
+      [taskId]: {
+        ...drag.startViewport,
+        panX: drag.startViewport.panX + deltaX,
+        panY: drag.startViewport.panY + deltaY,
+      },
+    }));
+  };
+
+  const endGraphDrag = (taskId: string, event: ReactPointerEvent<SVGSVGElement>) => {
+    const drag = graphDragRef.current;
+    if (!drag || drag.taskId !== taskId || drag.pointerId !== event.pointerId) return;
+    graphDragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const wheelGraph = (taskId: string, event: ReactWheelEvent<SVGSVGElement>) => {
+    event.preventDefault();
+    const point = getSvgPoint(event.nativeEvent, graphSvgRef.current);
+    const zoomFactor = event.deltaY < 0 ? 1.12 : 0.9;
+    updateGraphViewport(taskId, (current) => {
+      const nextScale = clamp(current.scale * zoomFactor, GRAPH_MIN_SCALE, GRAPH_MAX_SCALE);
+      const worldX = (point.x - current.panX) / current.scale;
+      const worldY = (point.y - current.panY) / current.scale;
+      return {
+        scale: nextScale,
+        panX: point.x - worldX * nextScale,
+        panY: point.y - worldY * nextScale,
+      };
+    });
+  };
+
+  const startNodeDrag = (taskId: string, nodeId: string, event: ReactPointerEvent<SVGGElement>) => {
+    if (event.button !== 0) return;
+    const snapshot = taskGraphSnapshots[taskId];
+    const currentPositions = taskGraphPositions[taskId] ?? createNodePositionMap(snapshot?.nodes ?? [], GRAPH_VIEWBOX_WIDTH, GRAPH_VIEWBOX_HEIGHT);
+    const point = getSvgPoint(event.nativeEvent, graphSvgRef.current);
+    graphNodeDragRef.current = {
+      taskId,
+      nodeId,
+      pointerId: event.pointerId,
+      startPoint: point,
+      startPositions: currentPositions,
+    };
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const moveNodeDrag = (taskId: string, event: ReactPointerEvent<SVGElement>) => {
+    const drag = graphNodeDragRef.current;
+    if (!drag || drag.taskId !== taskId || drag.pointerId !== event.pointerId) return;
+    const snapshot = taskGraphSnapshots[taskId];
+    if (!snapshot) return;
+    const point = getSvgPoint(event.nativeEvent, graphSvgRef.current);
+    const deltaX = point.x - drag.startPoint.x;
+    const deltaY = point.y - drag.startPoint.y;
+    const graph = snapshot;
+    const edgeNeighbors = new Map<string, Set<string>>();
+    for (const edge of graph.edges) {
+      if (!edgeNeighbors.has(edge.src)) edgeNeighbors.set(edge.src, new Set());
+      if (!edgeNeighbors.has(edge.dst)) edgeNeighbors.set(edge.dst, new Set());
+      edgeNeighbors.get(edge.src)?.add(edge.dst);
+      edgeNeighbors.get(edge.dst)?.add(edge.src);
+    }
+
+    setTaskGraphPositions((prev) => {
+      const basePositions = drag.startPositions;
+      const next: Record<string, GraphNodePosition> = { ...basePositions };
+      const draggedStart = basePositions[drag.nodeId] ?? { x: GRAPH_VIEWBOX_WIDTH / 2, y: GRAPH_VIEWBOX_HEIGHT / 2 };
+      next[drag.nodeId] = {
+        x: draggedStart.x + deltaX,
+        y: draggedStart.y + deltaY,
+      };
+
+      const directNeighbors = edgeNeighbors.get(drag.nodeId) ?? new Set<string>();
+      for (const neighborId of directNeighbors) {
+        if (neighborId === drag.nodeId) continue;
+        const neighborStart = basePositions[neighborId];
+        if (!neighborStart) continue;
+        next[neighborId] = {
+          x: neighborStart.x + deltaX * 0.28,
+          y: neighborStart.y + deltaY * 0.28,
+        };
+      }
+
+      return {
+        ...prev,
+        [taskId]: next,
+      };
+    });
+  };
+
+  const endNodeDrag = (taskId: string, event: ReactPointerEvent<SVGElement>) => {
+    const drag = graphNodeDragRef.current;
+    if (!drag || drag.taskId !== taskId || drag.pointerId !== event.pointerId) return;
+    graphNodeDragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
 
   const saveTask = async () => {
@@ -215,6 +526,21 @@ export default function TaskManager() {
             delete next[updated.id];
             return next;
           });
+          setTaskGraphSnapshots((prev) => {
+            const next = { ...prev };
+            delete next[updated.id];
+            return next;
+          });
+          setTaskGraphHighlights((prev) => {
+            const next = { ...prev };
+            delete next[updated.id];
+            return next;
+          });
+          setTaskGraphPositions((prev) => {
+            const next = { ...prev };
+            delete next[updated.id];
+            return next;
+          });
         }
 
         setLoadingConversationTaskIds((prev) => {
@@ -253,6 +579,36 @@ export default function TaskManager() {
                 ...prev,
                 [updated.id]: new Set([...(prev[updated.id] ?? []), agentId]),
               }));
+            }
+            // Highlight the graph context that was retrieved for this agent turn.
+            else if (eventType === "context_retrieved") {
+              setTaskGraphHighlights((prev) => ({
+                ...prev,
+                [updated.id]: {
+                  nodeIds: Array.isArray(event.node_ids) ? event.node_ids.map(String) : [],
+                  edgeIds: Array.isArray(event.edge_ids) ? event.edge_ids.map(String) : [],
+                  chunkIds: Array.isArray(event.chunk_ids) ? event.chunk_ids.map(String) : [],
+                  agentId: agentId ? String(agentId) : undefined,
+                  agentName: event.agent_name ? String(event.agent_name) : agentId ? String(agentId) : undefined,
+                  updatedAt: new Date().toISOString(),
+                },
+              }));
+            }
+            else if (eventType === "message_ingested" || eventType === "graph_context") {
+              refreshTaskGraphContext(updated.id);
+              if (eventType === "graph_context") {
+                setTaskGraphHighlights((prev) => ({
+                  ...prev,
+                  [updated.id]: {
+                    nodeIds: Array.isArray(event.node_ids) ? event.node_ids.map(String) : [],
+                    edgeIds: Array.isArray(event.edge_ids) ? event.edge_ids.map(String) : [],
+                    chunkIds: Array.isArray(event.chunk_ids) ? event.chunk_ids.map(String) : [],
+                    agentId: agentId ? String(agentId) : undefined,
+                    agentName: event.agent_name ? String(event.agent_name) : agentId ? String(agentId) : undefined,
+                    updatedAt: new Date().toISOString(),
+                  },
+                }));
+              }
             }
             // Remove thinking state (LLM response complete)
             else if (eventType === "llm_response_complete") {
@@ -298,6 +654,7 @@ export default function TaskManager() {
                 ...prev,
                 [updated.id]: [...(prev[updated.id] ?? []), message],
               }));
+              refreshTaskGraphContext(updated.id);
               // Save message to backend
               try {
                 await api.addConversation({
@@ -324,6 +681,7 @@ export default function TaskManager() {
                 ...prev,
                 [updated.id]: [...(prev[updated.id] ?? []), message],
               }));
+              refreshTaskGraphContext(updated.id);
               try {
                 await api.addConversation({
                   agentId: message.agentId,
@@ -382,12 +740,24 @@ export default function TaskManager() {
         delete next[id];
         return next;
       });
+      setTaskGraphSnapshots((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setTaskGraphHighlights((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       if (editingTaskId === id) {
         resetForm();
         setOpen(false);
       }
       if (viewTaskId === id) {
         setViewTaskId(null);
+        graphDragRef.current = null;
+        graphNodeDragRef.current = null;
       }
     } catch (e) {
       console.error(e);
@@ -435,7 +805,16 @@ export default function TaskManager() {
         </Dialog>
       </header>
 
-      <Dialog open={!!viewTaskId} onOpenChange={(nextOpen) => !nextOpen && setViewTaskId(null)}>
+      <Dialog
+        open={!!viewTaskId}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setViewTaskId(null);
+            graphDragRef.current = null;
+            graphNodeDragRef.current = null;
+          }
+        }}
+      >
         <DialogContent showCloseButton={false} className="max-w-6xl w-[95vw] h-[88vh] p-0 gap-0 overflow-hidden">
           {(() => {
             const selectedTask = taskList.find((task) => task.id === viewTaskId);
@@ -462,9 +841,32 @@ export default function TaskManager() {
             const isConversationLoading = loadingConversationTaskIds.has(selectedTask.id);
             const isRestart = selectedTask.status === "completed";
             const Icon = statusIcons[selectedTask.status] ?? Circle;
+            const graphSnapshot = taskGraphSnapshots[selectedTask.id];
+            const graphHighlight = taskGraphHighlights[selectedTask.id];
+            const graphLoading = loadingGraphTaskIds.has(selectedTask.id);
+            const graphNodes = getGraphDisplayNodes(graphSnapshot, graphHighlight);
+            const graphLayout = getGraphLayout(graphNodes, 560, 300);
+            const graphLayoutById = new Map(graphLayout.map((entry) => [entry.node.id, entry]));
+            const graphPositions = taskGraphPositions[selectedTask.id] ?? createNodePositionMap(graphNodes, GRAPH_VIEWBOX_WIDTH, GRAPH_VIEWBOX_HEIGHT);
+            const activeNodeIds = new Set(graphHighlight?.nodeIds ?? []);
+            const activeEdgeIds = new Set(graphHighlight?.edgeIds ?? []);
+            const activeChunkIds = new Set(graphHighlight?.chunkIds ?? []);
+            const graphEdges = (graphSnapshot?.edges ?? [])
+              .filter((edge) => graphLayoutById.has(edge.src) && graphLayoutById.has(edge.dst))
+              .sort((left, right) => {
+                const leftActive = activeEdgeIds.has(left.id) ? 1 : 0;
+                const rightActive = activeEdgeIds.has(right.id) ? 1 : 0;
+                return rightActive - leftActive || right.weight - left.weight;
+              })
+              .slice(0, 24);
+            const graphNodeById = new Map((graphSnapshot?.nodes ?? []).map((node) => [node.id, node]));
+            const activeNodeLabels = Array.from(activeNodeIds)
+              .map((nodeId) => graphNodeById.get(nodeId)?.value || nodeId)
+              .slice(0, 6);
+            const viewport = taskGraphViewports[selectedTask.id] ?? createDefaultViewport();
 
             return (
-              <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-[360px_1fr]">
+              <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)]">
                 <div className="h-full min-h-0 border-r border-border bg-muted/25 overflow-y-auto p-5 space-y-5">
                   <DialogHeader className="space-y-2 text-left">
                     <div className="flex items-center justify-between gap-3">
@@ -579,71 +981,216 @@ export default function TaskManager() {
                   </div>
                 </div>
 
-                <div className="h-full min-h-0 p-5 flex flex-col">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                      Live Conversation
+                <div className="h-full min-h-0 p-5 grid grid-rows-[minmax(300px,0.95fr)_minmax(0,1.05fr)] gap-4">
+                  <div className="min-h-0 overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100 shadow-sm">
+                    <div className="flex items-start justify-between gap-4 border-b border-white/10 px-4 py-3">
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.28em] text-slate-400">Graph context</div>
+                        <div className="mt-1 text-sm font-semibold text-white">Knowledge graph activity</div>
+                      </div>
+                      <div className="text-right text-[11px] text-slate-300">
+                        <div className="font-medium text-slate-100">
+                          {graphHighlight?.agentName ?? (selectedTask.status === "in-progress" ? "Waiting for context" : "Idle")}
+                        </div>
+                        <div>{graphNodes.length} nodes · {graphEdges.length} edges</div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      {selectedTask.status === "in-progress" && <span className="w-2 h-2 rounded-full bg-agent-dev animate-pulse" />}
-                      <span>{selectedTask.status === "in-progress" ? "Live" : "Recent"}</span>
+
+                    <div className="min-h-0 flex-1 p-3">
+                      {graphLoading && !graphSnapshot ? (
+                        <div className="flex h-full items-center justify-center rounded-xl border border-white/10 bg-white/5 text-sm text-slate-300 animate-pulse">
+                          Loading graph context...
+                        </div>
+                      ) : graphNodes.length > 0 ? (
+                        <div className="flex h-full min-h-0 flex-col gap-3">
+                          <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-white/10 bg-black/20">
+                            <svg
+                              ref={graphSvgRef}
+                              viewBox={`0 0 ${GRAPH_VIEWBOX_WIDTH} ${GRAPH_VIEWBOX_HEIGHT}`}
+                              className="h-full w-full touch-none cursor-grab active:cursor-grabbing"
+                              preserveAspectRatio="xMidYMid meet"
+                              onWheel={(event) => wheelGraph(selectedTask.id, event)}
+                              onPointerDown={(event) => startGraphDrag(selectedTask.id, event)}
+                              onPointerMove={(event) => moveGraphDrag(selectedTask.id, event)}
+                              onPointerUp={(event) => endGraphDrag(selectedTask.id, event)}
+                              onPointerCancel={(event) => endGraphDrag(selectedTask.id, event)}
+                            >
+                              <defs>
+                                <filter id="graphGlow" x="-40%" y="-40%" width="180%" height="180%">
+                                  <feGaussianBlur stdDeviation="6" result="blur" />
+                                  <feColorMatrix
+                                    in="blur"
+                                    type="matrix"
+                                    values="1 0 0 0 0.2 0 1 0 0 0.55 0 0 1 0 0.95 0 0 0 0.85 0"
+                                  />
+                                  <feMerge>
+                                    <feMergeNode />
+                                    <feMergeNode in="SourceGraphic" />
+                                  </feMerge>
+                                </filter>
+                              </defs>
+
+                              <g transform={`translate(${viewport.panX} ${viewport.panY}) scale(${viewport.scale})`} transformOrigin="280 150">
+                                {graphEdges.map((edge) => {
+                                  const source = graphPositions[edge.src] ?? graphLayoutById.get(edge.src);
+                                  const target = graphPositions[edge.dst] ?? graphLayoutById.get(edge.dst);
+                                  if (!source || !target) return null;
+                                  const isActive = activeEdgeIds.has(edge.id) || (activeNodeIds.has(edge.src) && activeNodeIds.has(edge.dst));
+                                  return (
+                                    <line
+                                      key={edge.id}
+                                      x1={source.x}
+                                      y1={source.y}
+                                      x2={target.x}
+                                      y2={target.y}
+                                      stroke={isActive ? "rgba(96, 165, 250, 0.92)" : "rgba(148, 163, 184, 0.22)"}
+                                      strokeWidth={isActive ? 2.4 : 1.25}
+                                      strokeLinecap="round"
+                                    />
+                                  );
+                                })}
+
+                                {graphLayout.map((entry) => {
+                                  const isActive = activeNodeIds.has(entry.node.id);
+                                  const position = graphPositions[entry.node.id] ?? entry;
+                                  const nodeFill = isActive ? "rgba(96, 165, 250, 0.95)" : "rgba(15, 23, 42, 0.88)";
+                                  const stroke = isActive ? "rgba(191, 219, 254, 0.98)" : "rgba(148, 163, 184, 0.4)";
+                                  return (
+                                    <g
+                                      key={entry.node.id}
+                                      filter={isActive ? "url(#graphGlow)" : undefined}
+                                      style={{ cursor: "grab" }}
+                                      onPointerDown={(event) => startNodeDrag(selectedTask.id, entry.node.id, event)}
+                                      onPointerMove={(event) => moveNodeDrag(selectedTask.id, event)}
+                                      onPointerUp={(event) => endNodeDrag(selectedTask.id, event)}
+                                      onPointerCancel={(event) => endNodeDrag(selectedTask.id, event)}
+                                    >
+                                      <circle cx={position.x} cy={position.y} r={isActive ? 16 : 12} fill={nodeFill} stroke={stroke} strokeWidth={isActive ? 3 : 1.5} />
+                                      <circle cx={position.x} cy={position.y} r={isActive ? 24 : 18} fill={isActive ? "rgba(59, 130, 246, 0.12)" : "rgba(148, 163, 184, 0.08)"} />
+                                      <text
+                                        x={position.x}
+                                        y={position.y + 34}
+                                        textAnchor="middle"
+                                        className="fill-slate-200"
+                                        fontSize="10"
+                                        fontWeight={600}
+                                      >
+                                        {ellipsis(entry.node.value, 18)}
+                                      </text>
+                                      <text
+                                        x={position.x}
+                                        y={position.y + 47}
+                                        textAnchor="middle"
+                                        className="fill-slate-400"
+                                        fontSize="8"
+                                        letterSpacing="0.08em"
+                                      >
+                                        {entry.node.type}
+                                      </text>
+                                    </g>
+                                  );
+                                })}
+                              </g>
+                            </svg>
+                          </div>
+                          <div className="grid gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-slate-200 sm:grid-cols-2">
+                            <div>
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Active nodes</div>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {activeNodeLabels.length > 0 ? (
+                                  activeNodeLabels.map((label) => (
+                                    <span key={label} className="inline-flex items-center rounded-full border border-blue-300/40 bg-blue-400/15 px-2.5 py-1 text-[11px] text-blue-100">
+                                      {ellipsis(label, 20)}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-slate-400">No active highlight yet.</span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Current update</div>
+                              <div className="mt-2 space-y-1 text-slate-300">
+                                <div>{graphHighlight?.agentName ? `${graphHighlight.agentName} is loading context` : "Waiting for the next turn"}</div>
+                                <div>{activeChunkIds.size} chunk(s) highlighted</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/5 px-4 text-center text-sm text-slate-300">
+                          No graph context yet. Start or restart the task to populate the knowledge graph.
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                    {isConversationLoading && messages.length === 0 && (thinkingAgents[selectedTask.id]?.size ?? 0) === 0 ? (
-                      <p className="text-sm text-muted-foreground animate-pulse">Loading conversation...</p>
-                    ) : visibleMessages.length > 0 || (thinkingAgents[selectedTask.id]?.size ?? 0) > 0 ? (
-                      <div className="space-y-3">
-                        {visibleMessages.map((msg) => {
-                          const agent = agentById.get(msg.agentId);
-                          const ts = new Date(msg.timestamp);
-                          return (
-                            <div key={msg.id} className="rounded-lg border border-border/70 p-3 bg-background hover:bg-muted/20 transition-colors">
-                              <div className="flex items-center gap-2 mb-2">
-                                <AgentAvatar
-                                  agent={agent || { avatar: "?" }}
-                                  className={`w-7 h-7 rounded-md text-[10px] shadow-sm ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
-                                  iconClassName="w-3.5 h-3.5"
-                                />
-                                <span className="text-sm font-semibold">{agent?.name ?? msg.agentId}</span>
-                                <span className="text-[11px] text-muted-foreground font-mono ml-auto">
-                                  {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                                </span>
-                              </div>
-                              <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:text-sm [&>p]:text-muted-foreground [&>p]:leading-relaxed [&>p:last-child]:mb-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_ul]:mb-2 [&_ol]:mb-2 [&_li]:mb-1">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                  {msg.content}
-                                </ReactMarkdown>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        
-                        {/* Thinking indicators */}
-                        {(thinkingAgents[selectedTask.id]?.size ?? 0) > 0 && (
-                          Array.from(thinkingAgents[selectedTask.id] ?? []).map((agentId) => {
-                            const agent = agentById.get(agentId);
+                  <div className="min-h-0 rounded-2xl border border-border/70 bg-background/95 p-4 flex flex-col">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                        Live Conversation
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        {selectedTask.status === "in-progress" && <span className="w-2 h-2 rounded-full bg-agent-dev animate-pulse" />}
+                        <span>{selectedTask.status === "in-progress" ? "Live" : "Recent"}</span>
+                      </div>
+                    </div>
+
+                    <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                      {isConversationLoading && messages.length === 0 && (thinkingAgents[selectedTask.id]?.size ?? 0) === 0 ? (
+                        <p className="text-sm text-muted-foreground animate-pulse">Loading conversation...</p>
+                      ) : visibleMessages.length > 0 || (thinkingAgents[selectedTask.id]?.size ?? 0) > 0 ? (
+                        <div className="space-y-3">
+                          {visibleMessages.map((msg) => {
+                            const agent = agentById.get(msg.agentId);
+                            const ts = new Date(msg.timestamp);
                             return (
-                              <div key={`thinking-${agentId}`} className="rounded-lg border border-blue-200 dark:border-blue-700 p-3 bg-blue-50 dark:bg-blue-900/20">
-                                <div className="flex items-center gap-2">
-                                  <div className="flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: "0.2s" }} />
-                                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: "0.4s" }} />
-                                  </div>
-                                  <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
-                                    {agent?.name ?? agentId} is thinking...
+                              <div key={msg.id} className="rounded-lg border border-border/70 p-3 bg-background hover:bg-muted/20 transition-colors">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <AgentAvatar
+                                    agent={agent || { avatar: "?" }}
+                                    className={`w-7 h-7 rounded-md text-[10px] shadow-sm ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
+                                    iconClassName="w-3.5 h-3.5"
+                                  />
+                                  <span className="text-sm font-semibold">{agent?.name ?? msg.agentId}</span>
+                                  <span className="text-[11px] text-muted-foreground font-mono ml-auto">
+                                    {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                                   </span>
+                                </div>
+                                <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:text-sm [&>p]:text-muted-foreground [&>p]:leading-relaxed [&>p:last-child]:mb-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_ul]:mb-2 [&_ol]:mb-2 [&_li]:mb-1">
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {msg.content}
+                                  </ReactMarkdown>
                                 </div>
                               </div>
                             );
-                          })
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No conversation yet for this task.</p>
-                    )}
+                          })}
+                          
+                          {/* Thinking indicators */}
+                          {(thinkingAgents[selectedTask.id]?.size ?? 0) > 0 && (
+                            Array.from(thinkingAgents[selectedTask.id] ?? []).map((agentId) => {
+                              const agent = agentById.get(agentId);
+                              return (
+                                <div key={`thinking-${agentId}`} className="rounded-lg border border-blue-200 dark:border-blue-700 p-3 bg-blue-50 dark:bg-blue-900/20">
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1">
+                                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: "0.2s" }} />
+                                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: "0.4s" }} />
+                                    </div>
+                                    <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                                      {agent?.name ?? agentId} is thinking...
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No conversation yet for this task.</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

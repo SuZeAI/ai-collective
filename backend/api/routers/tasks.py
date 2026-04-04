@@ -232,3 +232,11 @@ def delete_task(
     conv_service.delete_messages_by_task(task_id)
     _sync_runtime_state(service, team_service, agent_service)
     return {"deleted": True}
+
+
+@router.get("/{task_id}/graph-context")
+def get_task_graph_context(
+    task_id: str,
+    graph_context_service: GraphContextService = Depends(get_graph_context_service),
+) -> dict[str, object]:
+    return graph_context_service.get_graph_snapshot(conversation_id=task_id)

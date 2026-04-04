@@ -338,6 +338,35 @@ class GraphContextService:
         """Drop graph knowledge for a conversation so a restart starts from a clean context."""
         self._repo.delete(conversation_id)
 
+    def get_graph_snapshot(self, *, conversation_id: str) -> dict[str, object]:
+        graph = self._repo.get(conversation_id)
+        if not graph:
+            return {
+                "conversation_id": conversation_id,
+                "version": 1,
+                "schema_version": 1,
+                "last_message_index": 0,
+                "config": asdict(GraphContextConfig().normalized()),
+                "nodes": [],
+                "edges": [],
+                "chunks": {},
+                "message_ids": [],
+                "updated_at": None,
+            }
+
+        return {
+            "conversation_id": graph.conversation_id,
+            "version": graph.version,
+            "schema_version": graph.schema_version,
+            "last_message_index": graph.last_message_index,
+            "config": asdict(graph.config),
+            "nodes": [asdict(node) for node in graph.nodes.values()],
+            "edges": [asdict(edge) for edge in graph.edges.values()],
+            "chunks": graph.chunks,
+            "message_ids": list(graph.message_ids),
+            "updated_at": graph.updated_at,
+        }
+
     def build_graph_context(
         self,
         *,

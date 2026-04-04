@@ -7,7 +7,7 @@
     "skillIds": [
       "skill_websearch_ddg"
     ],
-    "status": "active",
+    "status": "idle",
     "avatar": "G",
     "avatar_icon": "megaphone",
     "avatar_color": "#16A34A",
@@ -22,7 +22,7 @@
     "skillIds": [
       "skill_websearch_ddg"
     ],
-    "status": "active",
+    "status": "idle",
     "avatar": "G",
     "avatar_icon": "search",
     "avatar_color": "#2563EB",
@@ -37,7 +37,7 @@
     "skillIds": [
       "skill_websearch_ddg"
     ],
-    "status": "active",
+    "status": "idle",
     "avatar": "G",
     "avatar_icon": "briefcase",
     "avatar_color": "#F59E0B",

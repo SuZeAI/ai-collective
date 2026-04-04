@@ -101,6 +101,44 @@ export type Message = {
   taskId?: string | null;
 };
 
+export type GraphContextNode = {
+  id: string;
+  type: string;
+  value: string;
+  aliases: string[];
+  source_message_ids: string[];
+  chunk_ids: string[];
+  created_at: string;
+  updated_at: string;
+  confidence: number;
+  salience_score: number;
+};
+
+export type GraphContextEdge = {
+  id: string;
+  src: string;
+  dst: string;
+  relation: string;
+  weight: number;
+  source_message_ids: string[];
+  chunk_ids: string[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type GraphContextSnapshot = {
+  conversation_id: string;
+  version: number;
+  schema_version: number;
+  last_message_index: number;
+  config: Record<string, unknown>;
+  nodes: GraphContextNode[];
+  edges: GraphContextEdge[];
+  chunks: Record<string, string>;
+  message_ids: string[];
+  updated_at: string | null;
+};
+
 export type Analytics = {
   tasksCompleted: number;
   avgCompletionTime: string;
@@ -202,6 +240,7 @@ export const api = {
     const qs = taskId ? `?task_id=${encodeURIComponent(taskId)}` : "";
     return apiFetch<Message[]>(`/conversations${qs}`);
   },
+  getTaskGraphContext: (taskId: string) => apiFetch<GraphContextSnapshot>(`/tasks/${encodeURIComponent(taskId)}/graph-context`),
   addConversation: (payload: { agentId: string; content: string; taskId?: string | null }) =>
     apiFetch<Message>("/conversations", { method: "POST", body: JSON.stringify(payload) }),
   chat: (payload: ChatRequest, options?: { timeoutMs?: number }) =>
