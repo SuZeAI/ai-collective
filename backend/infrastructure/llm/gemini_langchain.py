@@ -44,7 +44,8 @@ class GeminiLangChainProvider(LLMProvider):
         get_logger().info(f"Resolving tools for Gemini: {[tool.name for tool in resolved_tools]}")
         chat_model = self._llm.bind_tools(resolved_tools) if resolved_tools else self._llm
         tool_by_name = {tool.name: tool for tool in resolved_tools}
-        get_logger().info(f"Starting chat with system prompt: {system} and user input: {user}")
+        get_logger().info(f"Starting chat with system prompt: \n{system}\n")
+        get_logger().info(f"User input: \n{user}")
 
         messages: list[Any] = [SystemMessage(content=system), HumanMessage(content=user)]
         result: AIMessage | Any

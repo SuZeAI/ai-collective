@@ -56,6 +56,7 @@ class JsonGraphKnowledgeRepository:
                 "config": asdict(graph.config),
                 "nodes": [asdict(node) for node in graph.nodes.values()],
                 "edges": [asdict(edge) for edge in graph.edges.values()],
+                "chunks": graph.chunks,  # NEW: Persist chunks dict
                 "message_ids": list(graph.message_ids),
                 "updated_at": graph.updated_at,
             }
@@ -86,6 +87,11 @@ class JsonGraphKnowledgeRepository:
             updated_at=str(raw_graph.get("updated_at") or ""),
         )
 
+        # NEW: Deserialize chunks dict
+        raw_chunks = raw_graph.get("chunks")
+        if isinstance(raw_chunks, dict):
+            graph.chunks = {str(k): str(v) for k, v in raw_chunks.items()}
+
         raw_nodes = raw_graph.get("nodes")
         if isinstance(raw_nodes, list):
             for raw_node in raw_nodes:
@@ -97,6 +103,7 @@ class JsonGraphKnowledgeRepository:
                     value=str(raw_node.get("value") or ""),
                     aliases=[str(x) for x in (raw_node.get("aliases") or [])],
                     source_message_ids=[str(x) for x in (raw_node.get("source_message_ids") or [])],
+                    chunk_ids=[str(x) for x in (raw_node.get("chunk_ids") or [])],  # NEW: Deserialize chunk_ids
                     created_at=str(raw_node.get("created_at") or ""),
                     updated_at=str(raw_node.get("updated_at") or ""),
                     confidence=float(raw_node.get("confidence") or 0.5),
@@ -117,6 +124,7 @@ class JsonGraphKnowledgeRepository:
                     relation=str(raw_edge.get("relation") or "related"),
                     weight=float(raw_edge.get("weight") or 0.5),
                     source_message_ids=[str(x) for x in (raw_edge.get("source_message_ids") or [])],
+                    chunk_ids=[str(x) for x in (raw_edge.get("chunk_ids") or [])],  # NEW: Deserialize chunk_ids
                     created_at=str(raw_edge.get("created_at") or ""),
                     updated_at=str(raw_edge.get("updated_at") or ""),
                 )

@@ -30,6 +30,7 @@ class MultiAgentMeshState(TypedDict):
     agent_names: list[str]
     discussion_ended: bool
     final_response: str
+    last_action: str
     rounds: int
 
 
@@ -49,6 +50,14 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
     )
     _DISCUSSION_END_RE = re.compile(
         r"<\s*DISCUSSION_END\s*>(.*?)<\s*/\s*DISCUSSION_END\s*>",
+        re.IGNORECASE | re.DOTALL,
+    )
+    _ASK_NEXT_AGENT_RE = re.compile(
+        r"<\s*ASK_NEXT_AGENT\s*>(.*?)<\s*/\s*ASK_NEXT_AGENT\s*>",
+        re.IGNORECASE | re.DOTALL,
+    )
+    _CONTROL_BLOCK_RE = re.compile(
+        r"<\s*(ASK_NEXT_AGENT|NEXT_AGENT|DISCUSSION_END)\s*>.*?<\s*/\s*\1\s*>",
         re.IGNORECASE | re.DOTALL,
     )
 
@@ -149,6 +158,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             "agent_names": all_agent_names,
             "discussion_ended": False,
             "final_response": "",
+            "last_action": "",
             "rounds": 0,
         }
         
@@ -254,6 +264,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             "agent_names": all_agent_names,
             "discussion_ended": False,
             "final_response": "",
+            "last_action": "",
             "rounds": 0,
         }
         
@@ -302,6 +313,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             "agent_names": [agent.name],
             "discussion_ended": False,
             "final_response": "",
+            "last_action": "",
             "rounds": 0,
         }
         final_state = await node(initial)
@@ -371,7 +383,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
 
         async def mesh_node(state: MultiAgentMeshState) -> dict:
             conversation_history = state.get("conversation_history", {})
-            context_parts = [state["original_input"]]
+            context_parts: list[str] = []
             
             all_recent_messages = []
             for other_agent_name in state["agent_names"]:
@@ -383,17 +395,32 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             if conversation_history.get(agent.name):
                 for msg in conversation_history[agent.name][-2:]:
                     all_recent_messages.append(f"{agent.name}: {msg}")
-            
-            context_parts.extend(all_recent_messages[-5:])
 
+            history_text = "\n".join(all_recent_messages[-5:]).strip() or "(empty)"
+
+            graph_context_text = ""
             if graph_context_provider and conversation_id:
                 pack = graph_context_provider.build_graph_context(
                     conversation_id=conversation_id,
                     query=state["input"],
                     config=graph_config,
                 )
-                if pack.text:
-                    context_parts.append(pack.text)
+                graph_context_text = pack.text
+
+            if state.get("rounds", 0) == 0:
+                context_parts.append(f"user input: {state['original_input']}")
+                context_parts.append("context:")
+                context_parts.append(graph_context_text or "(empty)")
+            else:
+                previous_agent_name = state["turns"][-1].agent_name if state.get("turns") else "user"
+                question_payload = state.get("input", "").strip() or "1. Please clarify the next required step."
+                context_parts.append(f"user input: {state['original_input']}")
+                context_parts.append(f"agent {previous_agent_name} ask agent {agent.name}:")
+                context_parts.append(question_payload)
+                context_parts.append("history:")
+                context_parts.append(history_text)
+                context_parts.append("context:")
+                context_parts.append(graph_context_text or "(empty)")
 
             user_input = "\n".join(context_parts)
             get_logger().info(f"Agent '{agent.name}' received context:\n{user_input}")
@@ -411,13 +438,14 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 user=user_input,
                 tools=bound_tools or None,
             )
+            reasoning, action_payload = self._split_reasoning_and_action(response)
 
             if graph_context_provider and conversation_id:
                 graph_context_provider.ingest_message(
                     conversation_id=conversation_id,
                     message_id=f"agent-{agent.name}-{uuid4().hex}",
                     speaker=agent.name,
-                    content=response,
+                    content=reasoning,
                     config=graph_config,
                 )
             
@@ -426,20 +454,36 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 turn=len(turns) + 1,
                 agent_name=agent.name,
                 agent_role=agent.role,
-                content=response,
+                content=reasoning,
             )
             
             new_history = conversation_history.copy()
             if agent.name not in new_history:
                 new_history[agent.name] = []
-            new_history[agent.name].append(response)
+            new_history[agent.name].append(reasoning)
+
+            discussion_ended = self._has_discussion_end_signal(action_payload)
+            next_agent = self._extract_target_agent_from_message(
+                action_payload,
+                state["agent_names"],
+                agent.name,
+            )
+            next_input = ""
+            if not discussion_ended and next_agent:
+                questions = self._extract_questions_for_next_agent(action_payload)
+                if not questions:
+                    questions = [
+                        "Please continue with the highest-priority next analysis and include concrete evidence."
+                    ]
+                next_input = self._format_question_payload(questions)
             
             return {
                 "turns": [*turns, new_turn],
                 "conversation_history": new_history,
-                "input": response,
+                "input": next_input,
                 "current_agent": agent.name,
-                "final_response": response,
+                "final_response": reasoning,
+                "last_action": action_payload,
                 "final_agent": agent.name,
                 "rounds": state.get("rounds", 0) + 1,
             }
@@ -484,7 +528,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             return hub_agent
         
         last_turn = turns[-1]
-        last_content = last_turn.content
+        last_content = state.get("last_action", "") or last_turn.content
         
         if self._has_discussion_end_signal(last_content):
             return "end"
@@ -540,6 +584,45 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
     def _has_discussion_end_signal(self, message: str) -> bool:
         """Return True when explicit `<DISCUSSION_END>...</DISCUSSION_END>` tag is present."""
         return bool(self._DISCUSSION_END_RE.search(message))
+
+    def _split_reasoning_and_action(self, message: str) -> tuple[str, str]:
+        """Split model output into user-visible reasoning and machine-readable action blocks."""
+        if not message:
+            return "", ""
+
+        action_blocks = [m.group(0).strip() for m in self._CONTROL_BLOCK_RE.finditer(message)]
+        action_payload = "\n".join(block for block in action_blocks if block).strip()
+
+        reasoning = self._CONTROL_BLOCK_RE.sub("", message)
+        reasoning = re.sub(r"\n{3,}", "\n\n", reasoning).strip()
+
+        return reasoning, action_payload
+
+    def _extract_questions_for_next_agent(self, message: str) -> list[str]:
+        """Extract the handoff questions from `<ASK_NEXT_AGENT>...</ASK_NEXT_AGENT>` block."""
+        match = self._ASK_NEXT_AGENT_RE.search(message)
+        if not match:
+            return []
+
+        block = match.group(1).strip()
+        if not block:
+            return []
+
+        questions: list[str] = []
+        for line in block.splitlines():
+            normalized = line.strip()
+            if not normalized:
+                continue
+            cleaned = re.sub(r"^\d+[\.)]\s*", "", normalized).strip("- ")
+            if cleaned:
+                questions.append(cleaned)
+
+        return questions
+
+    def _format_question_payload(self, questions: list[str]) -> str:
+        """Convert questions to the compact numbered payload passed to the next agent."""
+        lines = [f"{index}. {question}" for index, question in enumerate(questions, start=1)]
+        return "\n".join(lines)
 
     def _get_next_agent_roundrobin(
         self,

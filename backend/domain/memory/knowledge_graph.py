@@ -64,6 +64,7 @@ class GraphNode:
     value: str
     aliases: list[str] = field(default_factory=list)
     source_message_ids: list[str] = field(default_factory=list)
+    chunk_ids: list[str] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     confidence: float = 0.5
@@ -78,6 +79,7 @@ class GraphEdge:
     relation: str
     weight: float = 0.5
     source_message_ids: list[str] = field(default_factory=list)
+    chunk_ids: list[str] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -91,6 +93,7 @@ class ConversationKnowledgeGraph:
     config: GraphContextConfig = field(default_factory=GraphContextConfig)
     nodes: dict[str, GraphNode] = field(default_factory=dict)
     edges: dict[str, GraphEdge] = field(default_factory=dict)
+    chunks: dict[str, str] = field(default_factory=dict)  # chunk_id -> chunk_text
     message_ids: list[str] = field(default_factory=list)
     updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -100,4 +103,5 @@ class GraphContextPack:
     text: str
     node_ids: list[str]
     edge_ids: list[str]
-    method: str
+    chunk_ids: list[str] = field(default_factory=list)
+    method: str = "hybrid"

@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from backend.application.service.graph_context_service import GraphContextService
+from backend.application.service.graph_context_service import _canonical_node_id
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.infrastructure.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
 from backend.infrastructure.repositories.json_store import JsonFileStore
@@ -42,7 +43,7 @@ def test_ingest_and_retrieve_lexical(tmp_path: Path) -> None:
         config=cfg,
     )
 
-    assert pack.method == "lexical"
+    assert pack.method == "pagerank"
     assert len(pack.node_ids) > 0
     assert "Graph knowledge context" in pack.text
 
@@ -74,6 +75,54 @@ def test_hybrid_options_do_not_crash(tmp_path: Path) -> None:
         config=cfg,
     )
 
-    assert pack.method == "hybrid"
+    assert pack.method == "pagerank"
     assert isinstance(pack.node_ids, list)
     assert isinstance(pack.edge_ids, list)
+
+
+def test_repeated_message_merges_chunk_links_without_dup_nodes_edges(tmp_path: Path) -> None:
+    service = _build_service(tmp_path)
+    conversation_id = "task-repeat"
+    cfg = GraphContextConfig(retrieve_method="lexical", build_method="rule")
+
+    content = "Bao Tin Minh Chau needs price analysis."
+
+    service.ingest_message(
+        conversation_id=conversation_id,
+        message_id="m1",
+        speaker="user",
+        content=content,
+        config=cfg,
+    )
+    service.ingest_message(
+        conversation_id=conversation_id,
+        message_id="m2",
+        speaker="user",
+        content=content,
+        config=cfg,
+    )
+
+    graph = service._repo.get(conversation_id)
+    assert graph is not None
+
+    entity_node = graph.nodes[_canonical_node_id("entity", "Bao Tin Minh Chau")]
+    relation_edges = [
+        edge
+        for edge in graph.edges.values()
+        if edge.src == _canonical_node_id("entity", "Bao Tin Minh Chau")
+        and edge.dst == _canonical_node_id("entity", "price analysis")
+        and edge.relation == "unknown"
+    ]
+    assert len(relation_edges) == 1
+    relation_edge = relation_edges[0]
+
+    assert len(entity_node.source_message_ids) == 2
+    assert len(entity_node.chunk_ids) >= 2
+    assert len(entity_node.chunk_ids) == len(set(entity_node.chunk_ids))
+
+    assert len(relation_edge.source_message_ids) == 2
+    assert len(relation_edge.chunk_ids) >= 2
+    assert len(relation_edge.chunk_ids) == len(set(relation_edge.chunk_ids))
+
+    mentions_edges = [edge for edge in graph.edges.values() if edge.relation == "mentions"]
+    assert len(mentions_edges) >= 2
