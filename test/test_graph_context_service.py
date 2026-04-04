@@ -126,3 +126,28 @@ def test_repeated_message_merges_chunk_links_without_dup_nodes_edges(tmp_path: P
 
     mentions_edges = [edge for edge in graph.edges.values() if edge.relation == "mentions"]
     assert len(mentions_edges) >= 2
+
+
+def test_reset_conversation_clears_only_target_graph(tmp_path: Path) -> None:
+    service = _build_service(tmp_path)
+
+    service.ingest_message(
+        conversation_id="task-a",
+        message_id="m1",
+        speaker="user",
+        content="AI engineer la chu cong ty Suzenith.",
+    )
+    service.ingest_message(
+        conversation_id="task-b",
+        message_id="m1",
+        speaker="user",
+        content="Bao Tin Minh Chau gold price in Hanoi today.",
+    )
+
+    assert service._repo.get("task-a") is not None
+    assert service._repo.get("task-b") is not None
+
+    service.reset_conversation(conversation_id="task-a")
+
+    assert service._repo.get("task-a") is None
+    assert service._repo.get("task-b") is not None

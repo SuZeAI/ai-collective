@@ -6,10 +6,17 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
 
-from backend.api.deps import get_agent_service, get_conversation_service, get_task_service, get_team_service
+from backend.api.deps import (
+    get_agent_service,
+    get_conversation_service,
+    get_graph_context_service,
+    get_task_service,
+    get_team_service,
+)
 from backend.api.schemas.task import TaskSchema, UpsertTaskRequest
 from backend.application.service.agent_service import AgentService
 from backend.application.service.conversation_service import ConversationService
+from backend.application.service.graph_context_service import GraphContextService
 from backend.application.service.task_service import TaskService
 from backend.application.service.team_service import TeamService
 from backend.domain.errors import NotFoundError
@@ -152,6 +159,7 @@ def upsert_task(
     team_service: TeamService = Depends(get_team_service),
     agent_service: AgentService = Depends(get_agent_service),
     conv_service: ConversationService = Depends(get_conversation_service),
+    graph_context_service: GraphContextService = Depends(get_graph_context_service),
 ) -> TaskSchema:
     task_id = req.id or f"task_{uuid4().hex}"
     previous_task: Task | None = None
@@ -182,6 +190,7 @@ def upsert_task(
         start_time = now
         end_time = None
         conv_service.delete_messages_by_task(task_id)
+        graph_context_service.reset_conversation(conversation_id=task_id)
 
     if next_status == TaskStatus.in_progress and start_time is None:
         start_time = now

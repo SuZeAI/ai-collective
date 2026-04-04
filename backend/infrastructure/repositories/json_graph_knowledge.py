@@ -41,6 +41,14 @@ class JsonGraphKnowledgeRepository:
         self._persist_graphs()
         return graph
 
+    def delete(self, conversation_id: str) -> None:
+        removed_graph = self._graphs.pop(conversation_id, None)
+        removed_events = self._events.pop(conversation_id, None)
+        if removed_graph is not None:
+            self._persist_graphs()
+        if removed_events is not None:
+            self._persist_events()
+
     def append_event(self, conversation_id: str, event: dict[str, object]) -> None:
         self._events.setdefault(conversation_id, []).append(event)
         self._persist_events()

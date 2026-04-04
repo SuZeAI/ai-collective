@@ -334,6 +334,10 @@ class GraphContextService:
                 },
             )
 
+    def reset_conversation(self, *, conversation_id: str) -> None:
+        """Drop graph knowledge for a conversation so a restart starts from a clean context."""
+        self._repo.delete(conversation_id)
+
     def build_graph_context(
         self,
         *,
