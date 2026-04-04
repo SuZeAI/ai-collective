@@ -80,6 +80,42 @@ def test_hybrid_options_do_not_crash(tmp_path: Path) -> None:
     assert isinstance(pack.edge_ids, list)
 
 
+def test_build_graph_context_deduplicates_overlapping_chunk_text(tmp_path: Path) -> None:
+    service = _build_service(tmp_path)
+    conversation_id = "task-overlap"
+    cfg = GraphContextConfig(retrieve_method="lexical", build_method="rule")
+
+    service.ingest_message(
+        conversation_id=conversation_id,
+        message_id="m1",
+        speaker="user",
+        content="Bao Tin Minh Chau gold price today.",
+        config=cfg,
+    )
+
+    graph = service._repo.get(conversation_id)
+    assert graph is not None
+
+    entity_node = graph.nodes[_canonical_node_id("entity", "Bao Tin Minh Chau")]
+    duplicated_chunk_text = "Overlap sample chunk for Bao Tin Minh Chau."
+    graph.chunks["dup_a"] = duplicated_chunk_text
+    graph.chunks["dup_b"] = duplicated_chunk_text
+    entity_node.chunk_ids = ["dup_a", "dup_b"]
+    service._repo.upsert(graph)
+
+    pack = service.build_graph_context(
+        conversation_id=conversation_id,
+        query="Bao Tin Minh Chau gold price",
+        config=cfg,
+    )
+
+    assert pack.chunk_ids.count("dup_a") == 1
+    assert "dup_b" not in pack.chunk_ids
+    assert len(pack.chunk_ids) == len(set(pack.chunk_ids))
+    assert pack.text.count(duplicated_chunk_text) == 1
+    assert "Bao Tin Minh Chau: Overlap sample chunk for Bao Tin Minh Chau." in pack.text
+
+
 def test_repeated_message_merges_chunk_links_without_dup_nodes_edges(tmp_path: Path) -> None:
     service = _build_service(tmp_path)
     conversation_id = "task-repeat"

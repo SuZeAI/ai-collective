@@ -127,6 +127,14 @@ def _merge_unique(existing: list[str], new_items: list[str]) -> list[str]:
     return merged
 
 
+def _unique_preserve_order(items: list[str]) -> list[str]:
+    return _merge_unique([], items)
+
+
+def _normalize_chunk_text(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip().lower()
+
+
 def _tokenize(text: str) -> list[str]:
     words = re.findall(r"[a-zA-Z0-9_]+", text.lower())
     return [w for w in words if len(w) >= 3 and w not in _STOPWORDS]
@@ -410,11 +418,11 @@ class GraphContextService:
             for node_id, _ in sorted(pagerank_scores.items(), key=lambda item: item[1], reverse=True)
             if graph.nodes.get(node_id) and graph.nodes[node_id].type == "entity"
         ]
-        node_ids = ranked_entity_nodes[:10]
-        edge_ids = self._related_edges(graph, node_ids, 10)
+        node_ids = _unique_preserve_order(ranked_entity_nodes)[:10]
+        edge_ids = _unique_preserve_order(self._related_edges(graph, node_ids, 10))
 
         lines: list[str] = []
-        edges_added: list[str] = []
+        seen_relation_lines: set[str] = set()
         for edge_id in edge_ids:
             edge = graph.edges.get(edge_id)
             if not edge:
@@ -426,8 +434,11 @@ class GraphContextService:
             if src_node.type != "entity" or dst_node.type != "entity":
                 continue
             relation_name = (edge.relation or "unknown").strip() or "unknown"
-            lines.append(f"{src_node.value} -> {relation_name} -> {dst_node.value}")
-            edges_added.append(edge_id)
+            relation_line = f"{src_node.value} -> {relation_name} -> {dst_node.value}"
+            if relation_line in seen_relation_lines:
+                continue
+            seen_relation_lines.add(relation_line)
+            lines.append(relation_line)
 
         if not lines:
             logger.info(
@@ -444,9 +455,10 @@ class GraphContextService:
                 method="pagerank",
             )
 
-        chunk_to_nodes: dict[str, set[str]] = {}
-        chunk_ids_ordered: list[str] = []
-        seen_chunks: set[str] = set()
+        chunk_signature_to_id: dict[str, str] = {}
+        chunk_signature_to_text: dict[str, str] = {}
+        chunk_signature_to_nodes: dict[str, set[str]] = {}
+        chunk_signatures_ordered: list[str] = []
         for node_id in node_ids:
             node = graph.nodes.get(node_id)
             if not node:
@@ -455,20 +467,23 @@ class GraphContextService:
                 chunk_content = graph.chunks.get(chunk_id, "")
                 if not chunk_content.strip():
                     continue
-                if chunk_id not in seen_chunks:
-                    seen_chunks.add(chunk_id)
-                    chunk_ids_ordered.append(chunk_id)
-                chunk_to_nodes.setdefault(chunk_id, set()).add(node.value)
+                signature = _normalize_chunk_text(chunk_content)
+                if signature not in chunk_signature_to_id:
+                    chunk_signature_to_id[signature] = chunk_id
+                    chunk_signature_to_text[signature] = chunk_content.strip()
+                    chunk_signatures_ordered.append(signature)
+                chunk_signature_to_nodes.setdefault(signature, set()).add(node.value)
 
         chunk_lines: list[str] = []
         chunk_ids: list[str] = []
-        for chunk_id in chunk_ids_ordered:
+        for signature in chunk_signatures_ordered:
             if len(chunk_ids) >= 10:
                 break
-            chunk_content = graph.chunks.get(chunk_id, "").strip()
-            if not chunk_content:
+            chunk_id = chunk_signature_to_id.get(signature, "")
+            chunk_content = chunk_signature_to_text.get(signature, "")
+            if not chunk_id or not chunk_content:
                 continue
-            node_names = sorted(chunk_to_nodes.get(chunk_id, set()))
+            node_names = sorted(chunk_signature_to_nodes.get(signature, set()))
             if not node_names:
                 continue
             chunk_ids.append(chunk_id)
