@@ -106,6 +106,7 @@ async def run_agent_graph(
                     name=agent.name,
                     role=agent.role,
                     system_prompt=agent.system_prompt,
+                    description=agent.description,
                     skill_ids=list(agent.skill_ids),
                     tools=agent_tools or None,
                 )
@@ -165,6 +166,7 @@ async def run_agent_graph_stream(
                     name=agent.name,
                     role=agent.role,
                     system_prompt=agent.system_prompt,
+                    description=agent.description,
                     skill_ids=list(agent.skill_ids),
                     tools=agent_tools or None,
                 )

@@ -396,8 +396,18 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         routing_guidance = agent.routing_guidance
         if not routing_guidance and all_agents and hub_agent_name:
             other_agents = [a for a in all_agents if a.name != agent.name]
+            other_agent_profiles = [
+                {
+                    "name": a.name,
+                    "role": a.role,
+                    "description": a.description,
+                }
+                for a in other_agents
+            ]
             routing_guidance = get_routing_guidance(
-                agent.name, hub_agent_name, [a.name for a in other_agents]
+                agent.name,
+                hub_agent_name,
+                other_agent_profiles,
             )
 
         async def mesh_node(state: MultiAgentMeshState) -> dict:
