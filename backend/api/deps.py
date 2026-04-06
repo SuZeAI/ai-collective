@@ -16,9 +16,9 @@ from backend.application.service.task_service import TaskService
 from backend.application.service.team_service import TeamService
 from backend.application.service.skill_service import SkillService
 from backend.domain.service.skill_tool_service import SkillToolManager
-from backend.infrastructure.llm.gemini_langchain import GeminiLangChainProvider
 from backend.domain.agent.langgraph_orchestrator import LangGraphAgentOrchestrator
 from backend.domain.agent.langgraph_mesh import MultiAgentMeshOrchestrator
+from backend.infrastructure.llm.factory import create_llm_provider
 from backend.infrastructure.repositories.json_files import (
     JsonActivityFeedRepository,
     JsonAgentRepository,
@@ -100,20 +100,15 @@ def get_skill_tool_manager() -> SkillToolManager:
 
 @lru_cache
 def _llm_provider():
-    # Prefer dedicated GEMINI_API_KEY, but allow GOOGLE_API_KEY.
-    if settings.gemini_api_key:
-        import os
-
-        os.environ.setdefault("GEMINI_API_KEY", settings.gemini_api_key)
-    api_key = settings.gemini_api_key
-    if not api_key:
-        # May still be present in env.
-        import os
-
-        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        return None
-    return GeminiLangChainProvider(model=settings.gemini_api_model)
+    return create_llm_provider(
+        provider=settings.llm_provider,
+        model=settings.llm_model,
+        google_api_key=settings.google_api_key,
+        anthropic_api_key=settings.anthropic_api_key,
+        openai_api_key=settings.openai_api_key,
+        open_weight_api_key=settings.open_weight_api_key,
+        base_url=settings.llm_api_base,
+    )
 
 
 def get_simulation_service() -> SimulationService:

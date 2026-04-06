@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,8 +11,16 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080"
 
-    gemini_api_key: str | None = None
-    gemini_api_model: str = "gemini-flash-latest"
+    llm_provider: str = "google"
+    llm_model: str | None = None
+    llm_api_base: str | None = None
+    google_api_key: str | None = None
+    anthropic_api_key: str | None = None
+    openai_api_key: str | None = None
+    open_weight_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("OPEN_WEIGHT_API_KEY", "OPENROUTER_API_KEY"),
+    )
     
     # LLM configuration for browser automation
     model_name: str = "gemini-2.0-flash"
