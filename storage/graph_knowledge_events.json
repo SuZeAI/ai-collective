@@ -2,9 +2,9 @@
   "task_5b5dea02fb1e49d491c84982fd4b4422": [
     {
       "type": "ingest_message",
-      "message_id": "user-ea96da9928bb4a0a9bfd0ea9aa31eef4",
+      "message_id": "user-38e016aac58547a997534fddd3d448d6",
       "speaker": "user",
-      "created_at": "2026-04-05T14:17:27.789870+00:00",
+      "created_at": "2026-04-06T16:46:57.730021+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -22,9 +22,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "agent-Gold Market Analyst-4a73a3358458465098ea559796c5f8c1",
+      "message_id": "agent-Gold Market Analyst-5a5e3aa5ff884e7999b3a0af0abf4343",
       "speaker": "Gold Market Analyst",
-      "created_at": "2026-04-05T14:17:35.616879+00:00",
+      "created_at": "2026-04-06T16:47:01.580632+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -42,9 +42,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "m_9271bfaa1d204e3382be908a2bbe9d8f",
+      "message_id": "m_c56f0790c1224c51959a4b3dc893ae37",
       "speaker": "a1",
-      "created_at": "2026-04-05T14:17:35.643083+00:00",
+      "created_at": "2026-04-06T16:47:01.608612+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -62,9 +62,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "agent-Gold Data Researcher-4b49bdfcb40e4c9a93bbcd1cd19563b5",
+      "message_id": "agent-Gold Data Researcher-cae56bd69e714544a474b275b3408847",
       "speaker": "Gold Data Researcher",
-      "created_at": "2026-04-05T14:17:58.062448+00:00",
+      "created_at": "2026-04-06T16:47:24.856310+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -82,9 +82,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "m_c2cc78547a6a4b608142b948f7679cf0",
+      "message_id": "m_ca92f7d3e7624c459716204972d4df39",
       "speaker": "a2",
-      "created_at": "2026-04-05T14:17:58.216556+00:00",
+      "created_at": "2026-04-06T16:47:24.887666+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -102,9 +102,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "agent-Gold Market Analyst-7aeb6e1c2f514c85afdc92eee9d566ac",
+      "message_id": "agent-Gold Market Analyst-dbf3b4f0caa040b5b09440c826e09dec",
       "speaker": "Gold Market Analyst",
-      "created_at": "2026-04-05T14:18:01.546981+00:00",
+      "created_at": "2026-04-06T16:47:29.721315+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -122,9 +122,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "m_5fef4332991b4d9abeca8af82f46d8a4",
+      "message_id": "m_80ebaf7349bd44c6af7111c9f17712f9",
       "speaker": "a1",
-      "created_at": "2026-04-05T14:18:01.578357+00:00",
+      "created_at": "2026-04-06T16:47:29.751510+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -142,9 +142,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "agent-Gold Data Researcher-6d453168b61a4c49a9b404db5a684e9b",
+      "message_id": "agent-Gold Data Researcher-a82fc89a91c94873a3cab64fbbdacd4f",
       "speaker": "Gold Data Researcher",
-      "created_at": "2026-04-05T14:18:56.329448+00:00",
+      "created_at": "2026-04-06T16:48:34.850630+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -162,9 +162,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "m_631210a5d81143e78da777f0e2d87aa4",
+      "message_id": "m_30f9e3019765471da204f781ecf384a9",
       "speaker": "a2",
-      "created_at": "2026-04-05T14:18:56.364724+00:00",
+      "created_at": "2026-04-06T16:48:34.881650+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -182,9 +182,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "agent-Gold Market Analyst-25a284b976bd4cac9ee3305987acf12e",
+      "message_id": "agent-Gold Market Analyst-62c6e08890e849d2bf624fdefe8c7c1e",
       "speaker": "Gold Market Analyst",
-      "created_at": "2026-04-05T14:19:00.162616+00:00",
+      "created_at": "2026-04-06T16:48:38.902531+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -202,49 +202,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "m_8ab3c5eefad947c2b5e9a1960456e82b",
+      "message_id": "m_156f702ff09a42f9a07a6069540c1178",
       "speaker": "a1",
-      "created_at": "2026-04-05T14:19:00.199599+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "agent-Gold Data Researcher-29dcbb89bc914560b2a131c18fb76ce8",
-      "speaker": "Gold Data Researcher",
-      "created_at": "2026-04-05T14:19:19.271480+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "m_b767d64478ab40ab87fd314ca5323983",
-      "speaker": "a2",
-      "created_at": "2026-04-05T14:19:19.305148+00:00",
+      "created_at": "2026-04-06T16:48:38.937175+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
