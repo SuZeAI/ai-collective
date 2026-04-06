@@ -1,36 +1,18 @@
 from __future__ import annotations
 
 import json
-import os
 from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
-from backend.log import get_logger
 from backend.application.ports.llm import LLMProvider
+from backend.log import get_logger
 
 
-class GeminiLangChainProvider(LLMProvider):
-    """Gemini provider via LangChain.
-
-    Notes:
-    - Uses `langchain-google-genai` integration.
-    - Reads API key from `GEMINI_API_KEY` (or `GOOGLE_API_KEY`).
-    """
-
-    def __init__(self, *, model: str, max_tool_rounds: int = 6):
-        try:
-            from langchain_google_genai import ChatGoogleGenerativeAI
-        except Exception as e:  # pragma: no cover
-            raise RuntimeError(
-                "Missing dependency: langchain-google-genai. Install backend deps first."
-            ) from e
-
-        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        if api_key and not os.getenv("GOOGLE_API_KEY"):
-            os.environ["GOOGLE_API_KEY"] = api_key
-
-        self._llm = ChatGoogleGenerativeAI(model=model)
+class LangChainLLMProvider(LLMProvider):
+    def __init__(self, llm: Any, *, provider_name: str, max_tool_rounds: int = 6):
+        self._llm = llm
+        self._provider_name = provider_name
         self._max_tool_rounds = max(1, max_tool_rounds)
 
     async def chat(
@@ -41,7 +23,9 @@ class GeminiLangChainProvider(LLMProvider):
         tools: list[Any] | None = None,
     ) -> str:
         resolved_tools = tools or []
-        get_logger().info(f"Resolving tools for Gemini: {[tool.name for tool in resolved_tools]}")
+        get_logger().info(
+            f"Resolving tools for {self._provider_name}: {[tool.name for tool in resolved_tools]}"
+        )
         chat_model = self._llm.bind_tools(resolved_tools) if resolved_tools else self._llm
         tool_by_name = {tool.name: tool for tool in resolved_tools}
         get_logger().info(f"Starting chat with system prompt: \n{system}\n")
@@ -119,7 +103,6 @@ class GeminiLangChainProvider(LLMProvider):
     def _extract_text_content(self, result: Any) -> str:
         content = getattr(result, "content", result)
         get_logger().debug(f"Raw LLM response content: {content}")
-        # Gemini can return structured content blocks; keep only user-facing text.
         if isinstance(content, str):
             return content
         if isinstance(content, list):
@@ -138,7 +121,6 @@ class GeminiLangChainProvider(LLMProvider):
 
     async def generate_json(self, *, system: str, user: str) -> dict:
         text = await self.chat(system=system, user=user)
-        # Try to parse JSON directly; if model wrapped it in text, extract best-effort.
         try:
             return json.loads(text)
         except Exception:

@@ -1,0 +1,68 @@
+from __future__ import annotations
+
+import importlib
+
+from backend.infrastructure.llm.base_langchain import LangChainLLMProvider
+
+
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+OPENROUTER_DEFAULT_HEADERS = {
+    "HTTP-Referer": "https://github.com/SuZeAI/ai-collective",
+    "X-OpenRouter-Title": "ai-collective",
+    "X-Title": "ai-collective",
+}
+
+OPEN_WEIGHT_MODEL_ALIASES = {
+    "glm-5": "z-ai/glm-5",
+    "kimi-k2.5": "moonshotai/kimi-k2.5",
+    "minimax-m2.5": "minimax/minimax-m2.5",
+    "qwen3.5-397b-a17b": "qwen/qwen3.5-397b-a17b",
+    "devstral-2-123b": "mistralai/devstral-2-123b",
+}
+
+
+def resolve_open_weight_model(model: str) -> str:
+    normalized = model.strip()
+    if not normalized:
+        return normalized
+    if "/" in normalized:
+        return normalized
+    key = normalized.lower().replace(" ", "").replace("_", "")
+    return OPEN_WEIGHT_MODEL_ALIASES.get(key, normalized)
+
+
+class OpenWeightLangChainProvider(LangChainLLMProvider):
+    def __init__(
+        self,
+        *,
+        model: str,
+        api_key: str,
+        base_url: str | None = None,
+        default_headers: dict[str, str] | None = None,
+        max_tool_rounds: int = 6,
+    ):
+        try:
+            ChatOpenAI = importlib.import_module("langchain_openai").ChatOpenAI
+        except Exception as e:  # pragma: no cover
+            raise RuntimeError(
+                "Missing dependency: langchain-openai. Install backend deps first."
+            ) from e
+
+        resolved_base_url = (base_url or OPENROUTER_BASE_URL).rstrip("/")
+        resolved_headers = dict(OPENROUTER_DEFAULT_HEADERS)
+        if default_headers:
+            resolved_headers.update(default_headers)
+
+        kwargs: dict[str, object] = {
+            "model": resolve_open_weight_model(model),
+            "api_key": api_key,
+            "base_url": resolved_base_url,
+        }
+        if resolved_headers:
+            kwargs["default_headers"] = resolved_headers
+
+        super().__init__(
+            ChatOpenAI(**kwargs),
+            provider_name="Open-weight",
+            max_tool_rounds=max_tool_rounds,
+        )
