@@ -30,6 +30,16 @@ from backend.infrastructure.repositories.json_files import (
 )
 from backend.infrastructure.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
 from backend.infrastructure.repositories.json_store import JsonFileStore
+from backend.infrastructure.repositories.mongo_repositories import (
+    MongoActivityFeedRepository,
+    MongoAgentRepository,
+    MongoAnalyticsRepository,
+    MongoConversationRepository,
+    MongoGraphKnowledgeRepository,
+    MongoSkillRepository,
+    MongoTaskRepository,
+    MongoTeamRepository,
+)
 from backend.log import get_logger
 
 
@@ -39,17 +49,30 @@ STORAGE_DIR = PROJECT_ROOT / "storage"
 
 @lru_cache
 def _repos():
-    agents = JsonAgentRepository(JsonFileStore(STORAGE_DIR / "agents.json"))
-    skills = JsonSkillRepository(JsonFileStore(STORAGE_DIR / "skills.json"))
-    teams = JsonTeamRepository(JsonFileStore(STORAGE_DIR / "teams.json"))
-    tasks = JsonTaskRepository(JsonFileStore(STORAGE_DIR / "tasks.json"))
-    conversations = JsonConversationRepository(JsonFileStore(STORAGE_DIR / "conversations.json"))
-    analytics = JsonAnalyticsRepository(JsonFileStore(STORAGE_DIR / "analytics.json"))
-    activity_feed = JsonActivityFeedRepository(JsonFileStore(STORAGE_DIR / "activity_feed.json"))
-    graph_knowledge = JsonGraphKnowledgeRepository(
-        JsonFileStore(STORAGE_DIR / "graph_knowledge.json"),
-        JsonFileStore(STORAGE_DIR / "graph_knowledge_events.json"),
-    )
+    if settings.storage_backend == "mongo":
+        import pymongo
+        client = pymongo.MongoClient(settings.mongo_uri)
+        db = client[settings.mongo_db]
+        agents = MongoAgentRepository(db)
+        skills = MongoSkillRepository(db)
+        teams = MongoTeamRepository(db)
+        tasks = MongoTaskRepository(db)
+        conversations = MongoConversationRepository(db)
+        analytics = MongoAnalyticsRepository(db)
+        activity_feed = MongoActivityFeedRepository(db)
+        graph_knowledge = MongoGraphKnowledgeRepository(db)
+    else:
+        agents = JsonAgentRepository(JsonFileStore(STORAGE_DIR / "agents.json"))
+        skills = JsonSkillRepository(JsonFileStore(STORAGE_DIR / "skills.json"))
+        teams = JsonTeamRepository(JsonFileStore(STORAGE_DIR / "teams.json"))
+        tasks = JsonTaskRepository(JsonFileStore(STORAGE_DIR / "tasks.json"))
+        conversations = JsonConversationRepository(JsonFileStore(STORAGE_DIR / "conversations.json"))
+        analytics = JsonAnalyticsRepository(JsonFileStore(STORAGE_DIR / "analytics.json"))
+        activity_feed = JsonActivityFeedRepository(JsonFileStore(STORAGE_DIR / "activity_feed.json"))
+        graph_knowledge = JsonGraphKnowledgeRepository(
+            JsonFileStore(STORAGE_DIR / "graph_knowledge.json"),
+            JsonFileStore(STORAGE_DIR / "graph_knowledge_events.json"),
+        )
     return agents, skills, teams, tasks, conversations, analytics, activity_feed, graph_knowledge
 
 

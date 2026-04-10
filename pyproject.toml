@@ -29,6 +29,8 @@ dependencies = [
 	"spacy>=3.8.7",
 	"rembg[cpu]>=2.0.74",
 	"pytest>=9.0.2",
+	"motor>=3.4.0",
+	"pymongo>=4.7.0",
 ]
 
 [tool.uvicorn]

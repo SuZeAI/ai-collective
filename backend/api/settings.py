@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     extra_headers: dict | None = None
     google_oauth_redirect_uri: str = "http://127.0.0.1:8000/api/v1/auth/oauth/callback"
 
+    # Storage backend: "json" (default) or "mongo"
+    storage_backend: str = "json"
+    mongo_uri: str = "mongodb://admin:admin@localhost:27017/ai_collective?authSource=admin"
+    mongo_db: str = "ai_collective"
+
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
