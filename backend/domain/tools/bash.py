@@ -20,7 +20,7 @@ class SandboxPort(Protocol):
 
 
 class BashToolkit(BaseToolkit):
-    """Bash tool class for shell interaction."""
+    """Bash tool class for shell interaction inside a sandbox container."""
 
     name: str = "bash"
 
@@ -30,7 +30,7 @@ class BashToolkit(BaseToolkit):
 
     @tool(parse_docstring=True)
     async def bash_exec(self, id: str, exec_dir: str, command: str) -> Any:
-        """Execute commands in a specified shell session.
+        """Execute commands in a specified shell session inside the sandbox.
 
         Args:
             id: Unique identifier of the target shell session.
@@ -77,3 +77,27 @@ class BashToolkit(BaseToolkit):
             id: Unique identifier of the target shell session.
         """
         return await self.sandbox.kill_process(id)
+
+
+def create_bash_toolkit(session_id: str | None = None, **kwargs) -> BashToolkit:
+    """Factory function that creates a BashToolkit wired to a sandbox.
+
+    Acquires (or creates) a sandbox container via SandboxProvider and
+    returns a BashToolkit backed by that sandbox.
+
+    Args:
+        session_id: Optional session/thread identifier. Sandboxes with the
+                    same session_id share the same container instance.
+        **kwargs: Additional kwargs passed to BashToolkit.
+
+    Returns:
+        A BashToolkit instance ready to execute commands.
+    """
+    from backend.infrastructure.sandbox import AioSandbox, get_sandbox_provider
+
+    provider = get_sandbox_provider()
+    sandbox_id = provider.acquire(session_id or "default")
+    sandbox = provider.get(sandbox_id)
+    if sandbox is None:
+        raise RuntimeError(f"Failed to acquire sandbox (id={sandbox_id})")
+    return BashToolkit(sandbox=sandbox, **kwargs)

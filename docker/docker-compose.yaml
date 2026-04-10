@@ -1,0 +1,151 @@
+# AI Collective Development Environment
+# Usage: docker compose -f docker/docker-compose.yaml up --build
+#
+# Services:
+#   - backend        FastAPI backend API (port 8000)
+#   - mongodb        MongoDB 7 (port 27017)
+#   - mongo-express  MongoDB admin UI (port 8081)
+#   - provisioner    Sandbox K8s provisioner (port 8002) — optional, activate with: --profile provisioner
+#
+# Sandbox modes:
+#   1. Local Docker (default): no env vars needed. Backend uses Docker-in-Docker
+#      to start sandbox containers directly. Set SANDBOX_IMAGE env var if desired.
+#   2. Kubernetes mode: set SANDBOX_PROVISIONER_URL=http://provisioner:8002
+#      and provide ~/.kube/config. The provisioner creates K8s Pods per sandbox.
+#
+# Environment variables (set in .env at project root):
+#   SANDBOX_IMAGE            — sandbox container image
+#   SANDBOX_PROVISIONER_URL  — enables K8s mode (points to provisioner service)
+#   SANDBOX_HOST             — hostname backend uses to reach sandboxes (default: localhost)
+#   SANDBOX_IDLE_TIMEOUT     — idle timeout in seconds (default: 600)
+#   SANDBOX_REPLICAS         — max concurrent sandbox containers (default: 3)
+#
+# Prerequisites for K8s mode:
+#   ~/.kube/config must exist and point to a valid Kubernetes cluster.
+#   K8S_API_SERVER must be reachable from inside containers (use host.docker.internal).
+#
+# Access: http://localhost:8000
+
+services:
+  # ── Backend API ─────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: ai-collective-backend
+    command: >
+      sh -c "PYTHONPATH=/app uvicorn backend.api.main:app
+             --host 0.0.0.0 --port 8000 --reload"
+    volumes:
+      - ..:/app
+      # DooD: allows backend to start sandbox containers via host Docker daemon
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /app
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      # Sandbox configuration
+      - SANDBOX_IMAGE=${SANDBOX_IMAGE:-enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest}
+      - SANDBOX_PROVISIONER_URL=${SANDBOX_PROVISIONER_URL:-}
+      - SANDBOX_HOST=${SANDBOX_HOST:-host.docker.internal}
+      - SANDBOX_IDLE_TIMEOUT=${SANDBOX_IDLE_TIMEOUT:-600}
+      - SANDBOX_REPLICAS=${SANDBOX_REPLICAS:-3}
+    env_file:
+      - ../.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - ai-collective-net
+    restart: unless-stopped
+
+  # ── MongoDB ─────────────────────────────────────────────────────────────────
+  mongodb:
+    image: mongo:7
+    container_name: ai-collective-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: ai_collective
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - ai-collective-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Mongo Express (Admin UI) ─────────────────────────────────────────────────
+  mongo-express:
+    image: mongo-express:1
+    container_name: ai-collective-mongo-express
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: admin
+      ME_CONFIG_MONGODB_URL: mongodb://admin:admin@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - ai-collective-net
+
+  # ── Sandbox Provisioner (K8s mode, optional) ────────────────────────────────
+  # Manages per-sandbox Pod + Service lifecycle in a Kubernetes cluster.
+  # Activate by setting SANDBOX_PROVISIONER_URL=http://provisioner:8002 in .env
+  provisioner:
+    build:
+      context: ./provisioner
+      dockerfile: Dockerfile
+      args:
+        APT_MIRROR: ${APT_MIRROR:-}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+    container_name: ai-collective-provisioner
+    volumes:
+      - ~/.kube/config:/root/.kube/config:ro
+    environment:
+      - K8S_NAMESPACE=${K8S_NAMESPACE:-ai-collective}
+      - SANDBOX_IMAGE=${SANDBOX_IMAGE:-enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest}
+      - KUBECONFIG_PATH=/root/.kube/config
+      - NODE_HOST=${NODE_HOST:-host.docker.internal}
+      - K8S_API_SERVER=${K8S_API_SERVER:-https://host.docker.internal:26443}
+      # Host paths for K8s HostPath volumes
+      - SKILLS_HOST_PATH=${SKILLS_HOST_PATH:-/skills}
+      - THREADS_HOST_PATH=${THREADS_HOST_PATH:-/threads}
+    env_file:
+      - ../.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8002:8002"
+    networks:
+      - ai-collective-net
+    restart: unless-stopped
+    profiles:
+      - provisioner
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+networks:
+  ai-collective-net:
+    driver: bridge
+
+volumes:
+  mongo_data:
+    driver: local

@@ -2,7 +2,7 @@ from typing import Optional, Dict, Type, Any
 from enum import Enum
 
 from backend.domain.tools.base import BaseToolkit
-from backend.domain.tools.bash import BashToolkit
+from backend.domain.tools.bash import BashToolkit, create_bash_toolkit
 from backend.domain.tools.brave_search import BraveSearchToolkit
 from backend.domain.tools.browser import BrowserToolkit
 from backend.domain.tools.dedupe_search import DedupeSearchToolkit
@@ -113,6 +113,20 @@ class ToolRegistry:
         tool_class = ToolRegistry.get_tool_class(tool_name)
         if tool_class is None:
             return None
+
+        if tool_name == ToolType.BASH.value:
+            # BashToolkit requires a sandbox; use the factory to acquire/create one.
+            session_id = kwargs.pop("session_id", None)
+            tool_name_override = kwargs.pop("tool_name_override", None)
+            extra_kwargs = {}
+            if tool_name_override:
+                extra_kwargs["tool_name_override"] = tool_name_override
+            try:
+                return create_bash_toolkit(session_id=session_id, **extra_kwargs)
+            except Exception as e:
+                raise ValueError(
+                    f"Failed to instantiate bash toolkit (sandbox error): {e}"
+                )
 
         if tool_name == ToolType.BROWSER.value:
             cdp_url = kwargs.get("cdp_url")
