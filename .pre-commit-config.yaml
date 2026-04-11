@@ -1,0 +1,24 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: check-added-large-files
+
+-   repo: local
+    hooks:
+    -   id: frontend-lint
+        name: Frontend ESLint
+        entry: bun run lint
+        language: system
+        types_or: [javascript, ts, tsx]
+        pass_filenames: false
+
+    -   id: backend-pylint
+        name: Backend Pylint
+        entry: uv run pylint backend/
+        language: system
+        types: [python]
+        pass_filenames: false
