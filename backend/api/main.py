@@ -7,7 +7,10 @@ if os.environ.get("ENVIRONMENT", "development") == "development":
     os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
 
 dotenv.load_dotenv()
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from backend.infrastructure.event_bus import event_bus
+from backend.api.event_handlers import setup_event_handlers
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -28,8 +31,18 @@ from backend.api.routers import (
 )
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Connect Event Bus and subscribe to events on startup
+    await event_bus.connect()
+    await setup_event_handlers()
+    yield
+    # Disconnect gracefully on shutdown
+    await event_bus.disconnect()
+
+
 def create_app() -> FastAPI:
-    app = FastAPI(title=settings.app_name)
+    app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
     app.add_middleware(
         CORSMiddleware,

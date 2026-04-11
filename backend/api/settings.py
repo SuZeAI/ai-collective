@@ -21,7 +21,7 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("OPEN_WEIGHT_API_KEY", "OPENROUTER_API_KEY"),
     )
-    
+
     # LLM configuration for browser automation
     model_name: str = "gemini-2.0-flash"
     model_provider: str = "google_genai"
@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     storage_backend: str = "json"
     mongo_uri: str = "mongodb://admin:admin@localhost:27017/ai_collective?authSource=admin"
     mongo_db: str = "ai_collective"
+
+    # Event Bus & Concurrency
+    rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
+    rabbitmq_max_workers: int = 4
+    uvicorn_workers: int = 4
 
     # Graph knowledge extraction mode:
     # "static" - rule-based / spaCy pipeline (fast, no LLM calls)

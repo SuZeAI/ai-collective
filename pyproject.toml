@@ -33,6 +33,7 @@ dependencies = [
 	"pymongo>=4.7.0",
 	"requests>=2.31.0",
 	"kubernetes>=28.1.0",
+	"aio-pika>=9.6.2",
 ]
 
 [tool.uvicorn]
@@ -40,3 +41,7 @@ app = "backend.api.main:app"
 host = "0.0.0.0"
 port = 8000
 
+[dependency-groups]
+dev = [
+    "pylint>=4.0.5",
+]

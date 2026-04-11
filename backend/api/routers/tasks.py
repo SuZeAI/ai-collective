@@ -72,79 +72,7 @@ def _sync_runtime_state(task_service: TaskService, team_service: TeamService, ag
             agent_service.upsert_agent(replace(agent, status=AgentStatus.idle))
 
 
-def _run_team_conversation_loop(
-    task: Task,
-    task_service: TaskService,
-    team_service: TeamService,
-    agent_service: AgentService,
-    conv_service: ConversationService,
-) -> Task:
-    if task.status != TaskStatus.in_progress:
-        return task
-
-    try:
-        team = team_service.get_team(task.team_id)
-        team_agent_ids = [aid for aid in team.agents]
-    except Exception:
-        team_agent_ids = []
-
-    participants: list[str] = []
-    for aid in team_agent_ids:
-        try:
-            agent_service.get_agent(aid)
-            participants.append(aid)
-        except Exception:
-            continue
-    if not participants:
-        participants = [aid for aid in task.assigned_agents if aid]
-    if not participants:
-        return task
-
-    messages = [
-        "Starting execution for this task. Sharing plan and splitting responsibilities.",
-        "Received. I am processing my part and will report intermediate results.",
-        "Update: progress is moving. Syncing blockers and dependencies now.",
-        "Reviewing outputs and validating quality before final handoff.",
-    ]
-
-    max_steps = 10
-    progress = max(0, min(100, int(task.progress)))
-    base_ts = int(time.time() * 1000)
-
-    for step in range(max_steps):
-        if progress >= 100:
-            break
-        speaker = participants[step % len(participants)]
-        text = messages[step % len(messages)]
-        conv_service.add_message(
-            Message(
-                id=f"m{base_ts + step}",
-                agent_id=speaker,
-                content=f"[Step {step + 1}/{max_steps}] {text}",
-                timestamp=datetime.utcnow().replace(microsecond=0),
-                task_id=task.id,
-            )
-        )
-
-        remaining_steps = max_steps - step
-        increment = max(8, (100 - progress + remaining_steps - 1) // remaining_steps)
-        progress = min(100, progress + increment)
-
-    status = task.status
-    if progress >= 100:
-        status = TaskStatus.completed
-        conv_service.add_message(
-            Message(
-                id=f"m{base_ts + max_steps + 1}",
-                agent_id=participants[0],
-                content="Task completed. Team has finalized all deliverables.",
-                timestamp=datetime.utcnow().replace(microsecond=0),
-                task_id=task.id,
-            )
-        )
-
-    updated = replace(task, progress=progress, status=status)
-    return task_service.upsert_task(updated)
+# Task background processing has been moved to backend/api/event_handlers.py
 
 
 @router.get("", response_model=list[TaskSchema])
@@ -153,7 +81,7 @@ def list_tasks(service: TaskService = Depends(get_task_service)) -> list[TaskSch
 
 
 @router.post("", response_model=TaskSchema)
-def upsert_task(
+async def upsert_task(
     req: UpsertTaskRequest,
     service: TaskService = Depends(get_task_service),
     team_service: TeamService = Depends(get_team_service),
@@ -217,6 +145,12 @@ def upsert_task(
     saved = service.upsert_task(task)
 
     _sync_runtime_state(service, team_service, agent_service)
+
+    # Publish background task event if transitioning to in-progress
+    if next_status == TaskStatus.in_progress and previous_status != TaskStatus.in_progress:
+        from backend.infrastructure.event_bus import event_bus
+        await event_bus.publish("task.in_progress", {"task_id": task_id})
+
     return TaskSchema.from_domain(saved)
 
 

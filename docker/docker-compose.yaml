@@ -35,7 +35,7 @@ services:
     container_name: ai-collective-backend
     command: >
       sh -c "PYTHONPATH=/app uvicorn backend.api.main:app
-             --host 0.0.0.0 --port 8000 --reload"
+             --host 0.0.0.0 --port 8000 --workers $${UVICORN_WORKERS:-4}"
     volumes:
       - ..:/app
       # DooD: allows backend to start sandbox containers via host Docker daemon
@@ -51,12 +51,17 @@ services:
       - SANDBOX_HOST=${SANDBOX_HOST:-host.docker.internal}
       - SANDBOX_IDLE_TIMEOUT=${SANDBOX_IDLE_TIMEOUT:-600}
       - SANDBOX_REPLICAS=${SANDBOX_REPLICAS:-3}
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672/}
+      - RABBITMQ_MAX_WORKERS=${RABBITMQ_MAX_WORKERS:-4}
+      - UVICORN_WORKERS=${UVICORN_WORKERS:-4}
     env_file:
       - ../.env
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
       mongodb:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - ai-collective-net
@@ -101,6 +106,25 @@ services:
         condition: service_healthy
     networks:
       - ai-collective-net
+
+  # ── RabbitMQ ────────────────────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: ai-collective-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - ai-collective-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # ── Sandbox Provisioner (K8s mode, optional) ────────────────────────────────
   # Manages per-sandbox Pod + Service lifecycle in a Kubernetes cluster.
