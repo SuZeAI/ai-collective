@@ -2,9 +2,9 @@ name: Backend CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "**" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "**" ]
 
 jobs:
   test-and-lint:
@@ -30,7 +30,7 @@ jobs:
       run: |
         # Run pylint on backend directory
         uv run pylint backend/ || true  # Using true to avoid failing for now, but configured!
-    
+
     - name: Test with pytest
       env:
         ENVIRONMENT: test
