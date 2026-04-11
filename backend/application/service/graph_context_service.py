@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import math
 import re
 import json
 from dataclasses import asdict
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 try:
@@ -23,10 +25,53 @@ from backend.domain.memory.knowledge_graph import (
 from backend.application.service.chunking_service import get_chunking_service
 from backend.log import get_logger
 
+if TYPE_CHECKING:
+    from backend.application.ports.llm import LLMProvider
+
 
 logger = get_logger(__name__)
 _NLP = None
 _NLP_INIT_ATTEMPTED = False
+
+# ---------------------------------------------------------------------------
+# LLM extraction prompts
+# ---------------------------------------------------------------------------
+
+_LLM_ENTITY_SYSTEM = """\
+You are an expert knowledge graph builder.
+Given a conversation message, extract all meaningful **named entities** 
+(people, organizations, locations, products, concepts, technologies, events, etc.).
+
+Return ONLY a valid JSON array. Each element must have:
+- "value": the entity text (string)
+- "type": entity category ("person"|"org"|"location"|"product"|"concept"|"technology"|"event"|"entity")
+- "confidence": 0.0-1.0
+- "salience": 0.0-1.0 (how important is this entity to the message)
+
+Rules:
+- Exclude stopwords and single characters
+- Exclude generic words like "message", "task", "agent", "history"
+- Maximum 15 entities
+- If no meaningful entities, return []
+"""
+
+_LLM_RELATION_SYSTEM = """\
+You are an expert knowledge graph builder.
+Given a conversation message, identify **relationships** between entities.
+
+Return ONLY a valid JSON array. Each element must have:
+- "src": source entity text (string)
+- "src_type": entity category of source
+- "dst": destination entity text (string)  
+- "dst_type": entity category of destination
+- "relation": relationship label (e.g. "works_for", "uses", "manages", "created_by", "depends_on", "is_a", "part_of", "related_to")
+- "confidence": 0.0-1.0
+
+Rules:
+- Only extract clear, meaningful relationships
+- Maximum 10 relations
+- If no clear relations, return []
+"""
 
 _STOPWORDS = {
     "the",
@@ -193,8 +238,16 @@ def _get_nlp_pipeline():
 
 
 class GraphContextService:
-    def __init__(self, repo: GraphKnowledgeRepository):
+    def __init__(
+        self,
+        repo: GraphKnowledgeRepository,
+        *,
+        llm_provider: "LLMProvider | None" = None,
+        build_mode: str = "static",
+    ):
         self._repo = repo
+        self._llm_provider = llm_provider
+        self._build_mode = build_mode  # "static" | "llm"
         self._chunking_service = get_chunking_service(
             chunk_size=1200,
             overlap_size=100,
@@ -227,7 +280,7 @@ class GraphContextService:
             ),
         )
 
-        entities = self._extract_entities(content, effective_config)
+        entities = self._extract_entities_dispatch(content, effective_config)
 
         chunks, entity_to_chunks = self._chunking_service.chunk_and_map_entities(
             content,
@@ -273,7 +326,7 @@ class GraphContextService:
                 ),
             )
 
-        relations = self._extract_relations(content, effective_config)
+        relations = self._extract_relations_dispatch(content, effective_config)
         for rel in relations:
             src_id = _canonical_node_id(rel["src_type"], rel["src"])
             dst_id = _canonical_node_id(rel["dst_type"], rel["dst"])
@@ -507,6 +560,177 @@ class GraphContextService:
             chunk_ids=chunk_ids,
             method="pagerank",
         )
+
+    # ------------------------------------------------------------------
+    # Dispatch helpers: route to LLM or static pipeline
+    # ------------------------------------------------------------------
+
+    def _extract_entities_dispatch(
+        self, content: str, config: GraphContextConfig
+    ) -> list[dict[str, object]]:
+        """Route entity extraction to LLM or static pipeline based on build_mode."""
+        if self._build_mode == "llm" and self._llm_provider is not None:
+            try:
+                return self._extract_entities_llm(content)
+            except Exception:
+                logger.exception(
+                    "LLM entity extraction failed; falling back to static pipeline"
+                )
+        return self._extract_entities(content, config)
+
+    def _extract_relations_dispatch(
+        self, content: str, config: GraphContextConfig
+    ) -> list[dict[str, str]]:
+        """Route relation extraction to LLM or static pipeline based on build_mode."""
+        if self._build_mode == "llm" and self._llm_provider is not None:
+            try:
+                return self._extract_relations_llm(content)
+            except Exception:
+                logger.exception(
+                    "LLM relation extraction failed; falling back to static pipeline"
+                )
+        return self._extract_relations(content, config)
+
+    # ------------------------------------------------------------------
+    # LLM-based extraction
+    # ------------------------------------------------------------------
+
+    def _run_async(self, coro):
+        """Run an async coroutine from sync context safely."""
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            # We are inside an async event loop (e.g. FastAPI)
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(asyncio.run, coro)
+                return future.result()
+        else:
+            return asyncio.run(coro)
+
+    def _extract_entities_llm(self, content: str) -> list[dict[str, object]]:
+        """Use LLM to extract entities from content."""
+        sanitized = _sanitize_graph_text(content)
+        if not sanitized:
+            return []
+
+        truncated = sanitized[:3000]  # limit context to avoid token overflow
+
+        async def _call():
+            return await self._llm_provider.chat(
+                system=_LLM_ENTITY_SYSTEM,
+                user=f"Message:\n{truncated}",
+            )
+
+        raw = self._run_async(_call())
+        entities = self._parse_llm_json_list(raw, context="entity extraction")
+
+        result: list[dict[str, object]] = []
+        seen: set[str] = set()
+        for item in entities:
+            value = str(item.get("value", "")).strip()
+            if not value or len(value) < 2:
+                continue
+            if _is_generic_entity(value):
+                continue
+            key = f"{item.get('type', 'entity')}:{value.lower()}"
+            if key in seen:
+                continue
+            seen.add(key)
+            result.append(
+                {
+                    "type": str(item.get("type", "entity")),
+                    "value": value,
+                    "confidence": float(item.get("confidence", 0.8)),
+                    "salience": float(item.get("salience", 0.7)),
+                }
+            )
+        logger.info(
+            "LLM entity extraction | extracted=%d entities",
+            len(result),
+        )
+        return result
+
+    def _extract_relations_llm(self, content: str) -> list[dict[str, str]]:
+        """Use LLM to extract relations from content."""
+        sanitized = _sanitize_graph_text(content)
+        if not sanitized:
+            return []
+
+        truncated = sanitized[:3000]
+
+        async def _call():
+            return await self._llm_provider.chat(
+                system=_LLM_RELATION_SYSTEM,
+                user=f"Message:\n{truncated}",
+            )
+
+        raw = self._run_async(_call())
+        relations_raw = self._parse_llm_json_list(raw, context="relation extraction")
+
+        result: list[dict[str, str]] = []
+        seen: set[str] = set()
+        for item in relations_raw:
+            src = str(item.get("src", "")).strip()
+            dst = str(item.get("dst", "")).strip()
+            relation = str(item.get("relation", "related_to")).strip()
+            if not src or not dst or len(src) < 2 or len(dst) < 2:
+                continue
+            key = f"{src.lower()}:{relation}:{dst.lower()}"
+            if key in seen:
+                continue
+            seen.add(key)
+            result.append(
+                {
+                    "src": src,
+                    "src_type": str(item.get("src_type", "entity")),
+                    "dst": dst,
+                    "dst_type": str(item.get("dst_type", "entity")),
+                    "relation": relation,
+                }
+            )
+        logger.info(
+            "LLM relation extraction | extracted=%d relations",
+            len(result),
+        )
+        return result
+
+    def _parse_llm_json_list(self, raw: str, *, context: str = "") -> list:
+        """Parse a JSON array from LLM response, with fallback extraction."""
+        raw = raw.strip()
+        # Strip markdown code fences if present
+        raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.MULTILINE)
+        raw = re.sub(r"```\s*$", "", raw, flags=re.MULTILINE)
+        raw = raw.strip()
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                return parsed
+            if isinstance(parsed, dict) and any(isinstance(v, list) for v in parsed.values()):
+                for v in parsed.values():
+                    if isinstance(v, list):
+                        return v
+        except json.JSONDecodeError:
+            pass
+        # Try to find JSON array in the response
+        start = raw.find("[")
+        end = raw.rfind("]")
+        if start != -1 and end > start:
+            try:
+                parsed = json.loads(raw[start : end + 1])
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+        logger.warning("Could not parse JSON from LLM response for %s; got: %.200s", context, raw)
+        return []
+
+    # ------------------------------------------------------------------
+    # Static (rule-based / spaCy) extraction
+    # ------------------------------------------------------------------
 
     def _extract_entities(self, content: str, config: GraphContextConfig) -> list[dict[str, object]]:
         content = _sanitize_graph_text(content)

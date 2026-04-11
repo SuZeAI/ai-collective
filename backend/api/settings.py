@@ -36,6 +36,16 @@ class Settings(BaseSettings):
     mongo_uri: str = "mongodb://admin:admin@localhost:27017/ai_collective?authSource=admin"
     mongo_db: str = "ai_collective"
 
+    # Graph knowledge extraction mode:
+    # "static" - rule-based / spaCy pipeline (fast, no LLM calls)
+    # "llm"    - LLM-based entity & relation extraction (richer, costs tokens)
+    graph_build_mode: str = "static"
+
+    # Optional dedicated LLM config for graph extraction.
+    # Falls back to the agent LLM (llm_provider / llm_model) when not set.
+    graph_llm_provider: str | None = None
+    graph_llm_model: str | None = None
+
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
