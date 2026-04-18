@@ -13,6 +13,7 @@ import TaskManager from "@/pages/TaskManager";
 import Conversations from "@/pages/Conversations";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import Playground from "@/pages/Playground";
+import Docs from "@/pages/Docs";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
           <Route path="/conversations" element={<WithLayout><Conversations /></WithLayout>} />
           <Route path="/analytics" element={<WithLayout><AnalyticsPage /></WithLayout>} />
           <Route path="/playground" element={<WithLayout><Playground /></WithLayout>} />
+          <Route path="/docs" element={<Docs />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

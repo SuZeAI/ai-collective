@@ -129,6 +129,9 @@ export default function Landing() {
 
           {/* Nav actions */}
           <div className="flex items-center gap-2">
+            <Link to="/docs" className="hidden md:flex items-center h-8 px-3 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all">
+              Docs
+            </Link>
             {/* GitHub star button */}
             <a
               href={GITHUB_URL}
