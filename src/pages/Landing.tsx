@@ -1,504 +1,473 @@
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import {
-  ArrowRight, Users, Cpu, Zap, Shield, Sparkles, CheckCircle,
-  Star, GitFork, Eye, GitPullRequest, ExternalLink,
-} from "lucide-react";
+import { motion, useInView } from "framer-motion";
+import { ArrowRight, Star, GitFork, ExternalLink, ChevronRight } from "lucide-react";
 
+const GITHUB_URL = "https://github.com/SuZeAI/ai-collective";
+const GITHUB_REPO = "SuZeAI/ai-collective";
+
+// ─── GitHub stats ─────────────────────────────────────────────────────────────
+function useGitHubStats() {
+  const [stars, setStars] = useState<number | null>(null);
+  const [forks, setForks] = useState<number | null>(null);
+  useEffect(() => {
+    fetch(`https://api.github.com/repos/${GITHUB_REPO}`)
+      .then((r) => r.json())
+      .then((d) => { setStars(d.stargazers_count ?? null); setForks(d.forks_count ?? null); })
+      .catch(() => {});
+  }, []);
+  return { stars, forks };
+}
+function fmt(n: number | null) {
+  if (n === null) return null;
+  return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+}
+
+// ─── GH icon ─────────────────────────────────────────────────────────────────
 function GithubIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
       <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
     </svg>
   );
 }
-import { Button } from "@/components/ui/button";
 
-const GITHUB_REPO = "SuZeAI/ai-collective";
-const GITHUB_URL = "https://github.com/SuZeAI/ai-collective";
+// ─── Terminal line ────────────────────────────────────────────────────────────
+interface TermLine { agent: string; color: string; text: string; delay: number }
 
-interface GitHubStats {
-  stars: number | null;
-  forks: number | null;
-  watchers: number | null;
-  issues: number | null;
-}
+const TERM_LINES: TermLine[] = [
+  { agent: "PM Agent",       color: "#f472b6", text: 'Task received → "Research top AI frameworks 2026 and write a comparison report"', delay: 0 },
+  { agent: "PM Agent",       color: "#f472b6", text: "Analyzing task complexity · Delegating to team members",                           delay: 600 },
+  { agent: "Research Agent", color: "#34d399", text: "Starting web research · Querying 12 sources",                                      delay: 1300 },
+  { agent: "Research Agent", color: "#34d399", text: "✓ Fetched 847 relevant documents · Synthesizing findings",                         delay: 2100 },
+  { agent: "Research Agent", color: "#34d399", text: "✓ Summary ready → Passing to Developer Agent",                                     delay: 2900 },
+  { agent: "Dev Agent",      color: "#60a5fa", text: "Received research brief · Writing comparison report",                              delay: 3600 },
+  { agent: "Dev Agent",      color: "#60a5fa", text: "✓ Report complete · 2,400 words · 6 frameworks covered",                          delay: 4500 },
+  { agent: "Reviewer Agent", color: "#a78bfa", text: "Running quality checks · Verifying accuracy",                                      delay: 5200 },
+  { agent: "Reviewer Agent", color: "#a78bfa", text: "✓ Review passed · 0 issues · Confidence: 97%",                                    delay: 6000 },
+  { agent: "PM Agent",       color: "#f472b6", text: "✓ Task complete · Delivered in 47s",                                              delay: 6700 },
+];
 
-function useGitHubStats(): GitHubStats {
-  const [stats, setStats] = useState<GitHubStats>({
-    stars: null, forks: null, watchers: null, issues: null,
-  });
+function Terminal() {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-100px" });
+  const [visible, setVisible] = useState(0);
 
   useEffect(() => {
-    fetch(`https://api.github.com/repos/${GITHUB_REPO}`, {
-      headers: { Accept: "application/vnd.github.v3+json" },
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        setStats({
-          stars: data.stargazers_count ?? null,
-          forks: data.forks_count ?? null,
-          watchers: data.subscribers_count ?? null,
-          issues: data.open_issues_count ?? null,
-        });
-      })
-      .catch(() => {});
-  }, []);
-
-  return stats;
-}
-
-function fmt(n: number | null): string {
-  if (n === null) return "—";
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
-  return String(n);
-}
-
-const features = [
-  {
-    icon: Cpu,
-    title: "Specialized Agents",
-    description: "Create agents with distinct roles — PM, researcher, developer, reviewer — each with custom skills and behaviors.",
-    gradient: "from-sky-500/15 to-blue-600/10",
-    iconColor: "text-sky-500",
-    iconBg: "bg-sky-500/10",
-    border: "border-sky-500/15",
-  },
-  {
-    icon: Users,
-    title: "Team Collaboration",
-    description: "Agents communicate, divide work, and produce unified results — just like a real high-performance project team.",
-    gradient: "from-violet-500/15 to-indigo-600/10",
-    iconColor: "text-violet-500",
-    iconBg: "bg-violet-500/10",
-    border: "border-violet-500/15",
-  },
-  {
-    icon: Zap,
-    title: "Autonomous Execution",
-    description: "Submit a task and watch your AI Collective deliver without hand-holding. Full visibility throughout.",
-    gradient: "from-amber-500/15 to-orange-500/10",
-    iconColor: "text-amber-500",
-    iconBg: "bg-amber-500/10",
-    border: "border-amber-500/15",
-  },
-  {
-    icon: Shield,
-    title: "Quality Review",
-    description: "Built-in reviewer agents validate every output before delivery — ensuring production-ready results.",
-    gradient: "from-emerald-500/15 to-teal-600/10",
-    iconColor: "text-emerald-500",
-    iconBg: "bg-emerald-500/10",
-    border: "border-emerald-500/15",
-  },
-];
-
-const platformStats = [
-  { value: "4×", label: "Faster delivery" },
-  { value: "92%", label: "Workflow automation" },
-  { value: "∞", label: "Agent combinations" },
-];
-
-export default function Landing() {
-  const github = useGitHubStats();
+    if (!inView) return;
+    const timers = TERM_LINES.map((l, i) =>
+      setTimeout(() => setVisible((v) => Math.max(v, i + 1)), l.delay)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [inView]);
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Background blobs */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-32 -left-24 h-96 w-96 rounded-full blur-3xl opacity-20 bg-[hsl(var(--hero-a))]" />
-        <div className="absolute top-32 right-0 h-80 w-80 rounded-full blur-3xl opacity-15 bg-[hsl(var(--hero-b))]" />
-        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full blur-3xl opacity-15 bg-[hsl(var(--hero-c))]" />
-        <div className="absolute top-1/2 left-1/4 h-64 w-64 rounded-full blur-3xl opacity-10 bg-[hsl(272,68%,57%)]" />
+    <div ref={ref} className="rounded-xl border border-white/8 bg-zinc-950 overflow-hidden font-mono text-[13px]">
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/6 bg-black/30">
+        <span className="w-3 h-3 rounded-full bg-rose-500/70" />
+        <span className="w-3 h-3 rounded-full bg-amber-500/70" />
+        <span className="w-3 h-3 rounded-full bg-emerald-500/70" />
+        <span className="ml-3 text-zinc-500 text-[11px]">ai-collective · task execution</span>
       </div>
-
-      {/* Navbar */}
-      <nav className="border-b border-border/60 bg-background/85 backdrop-blur-xl sticky top-0 z-50 shadow-sm shadow-border/20">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
-          {/* Brand */}
-          <div className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="h-10 rounded-xl overflow-hidden flex items-center justify-center bg-gradient-to-br from-sky-500/20 to-blue-600/20 border border-border/50 p-1 shadow-md shadow-sky-200/30">
-              <img src="/spider.png" alt="AI Collective" className="h-full object-contain" />
-            </div>
-            <div>
-              <span className="font-bold text-[15px] tracking-tight text-foreground block leading-none">AI Collective</span>
-              <span className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium">Multi-Agent Platform</span>
-            </div>
+      {/* Prompt */}
+      <div className="px-5 pt-4 pb-2 text-zinc-500">
+        <span className="text-emerald-400">❯</span>{" "}
+        <span className="text-zinc-300">ai-collective run</span>{" "}
+        <span className="text-zinc-500">--team research-team --task</span>{" "}
+        <span className="text-amber-300/80">"Research top AI frameworks 2026"</span>
+      </div>
+      {/* Output lines */}
+      <div className="px-5 pb-5 space-y-1.5 min-h-[220px]">
+        {TERM_LINES.slice(0, visible).map((l, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, x: -6 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.25 }}
+            className="flex items-start gap-3"
+          >
+            <span className="mt-0.5 text-[11px] font-bold uppercase tracking-wide shrink-0 w-28 text-right" style={{ color: l.color }}>
+              {l.agent}
+            </span>
+            <span className="text-zinc-400 leading-relaxed">{l.text}</span>
+          </motion.div>
+        ))}
+        {visible < TERM_LINES.length && inView && (
+          <div className="flex items-center gap-1 text-zinc-600 mt-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-zinc-600 animate-bounce" style={{ animationDelay: "0ms" }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-zinc-600 animate-bounce" style={{ animationDelay: "150ms" }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-zinc-600 animate-bounce" style={{ animationDelay: "300ms" }} />
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
-          {/* Nav actions */}
+// ─── Feature badges (numbered like deerflow) ──────────────────────────────────
+const FEATURES = [
+  { n: "01", title: "Multi-Agent Architecture", desc: "Specialized agents with distinct roles — PM, Researcher, Developer, Reviewer — each with a focused system prompt." },
+  { n: "02", title: "Skill System",             desc: "Attach tools and integrations to any agent: web search, Google Sheets, code execution, REST APIs, browser automation." },
+  { n: "03", title: "Team Execution Modes",     desc: "Mesh mode for open collaboration or sequential mode for strict pipelines. Configure per team." },
+  { n: "04", title: "Real-time Task Graph",     desc: "SVG visualization of agent interactions with pan & zoom. Watch your agents work in real time." },
+  { n: "05", title: "LangGraph Powered",        desc: "The orchestration layer is built on LangGraph — battle-tested, composable, and production-ready." },
+  { n: "06", title: "Self-Hosted & MIT",        desc: "Full control over your data and infrastructure. No vendor lock-in. Deploy on any cloud or on-premise." },
+];
+
+// ─── File tree section ────────────────────────────────────────────────────────
+const FILE_TREE = [
+  { indent: 0, type: "dir",  name: "ai-collective/" },
+  { indent: 1, type: "dir",  name: "agents/" },
+  { indent: 2, type: "file", name: "project_manager.py",  badge: "PM" },
+  { indent: 2, type: "file", name: "research_agent.py",   badge: "Research" },
+  { indent: 2, type: "file", name: "developer_agent.py",  badge: "Dev" },
+  { indent: 2, type: "file", name: "reviewer_agent.py",   badge: "Review" },
+  { indent: 1, type: "dir",  name: "skills/" },
+  { indent: 2, type: "file", name: "web_search.py",      badge: null },
+  { indent: 2, type: "file", name: "google_sheets.py",   badge: null },
+  { indent: 2, type: "file", name: "code_executor.py",   badge: null },
+  { indent: 2, type: "file", name: "browser_use.py",     badge: null },
+  { indent: 1, type: "dir",  name: "teams/" },
+  { indent: 2, type: "file", name: "research_team.yaml", badge: null },
+  { indent: 2, type: "file", name: "dev_team.yaml",      badge: null },
+];
+
+const BADGE_COLORS: Record<string, string> = {
+  PM:       "bg-pink-500/15 text-pink-300 border-pink-500/20",
+  Research: "bg-emerald-500/15 text-emerald-300 border-emerald-500/20",
+  Dev:      "bg-blue-500/15 text-blue-300 border-blue-500/20",
+  Review:   "bg-violet-500/15 text-violet-300 border-violet-500/20",
+};
+
+// ─── Fade-in section wrapper ──────────────────────────────────────────────────
+function FadeIn({ children, className, delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-60px" });
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 20 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5, delay, ease: "easeOut" }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+export default function Landing() {
+  const { stars, forks } = useGitHubStats();
+
+  return (
+    <div className="min-h-screen bg-[#080c14] text-zinc-100 font-sans">
+      {/* Subtle grid pattern */}
+      <div
+        className="pointer-events-none fixed inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px)",
+          backgroundSize: "64px 64px",
+        }}
+      />
+
+      {/* ── Navbar ───────────────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50 border-b border-white/6 bg-[#080c14]/90 backdrop-blur-xl">
+        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+          {/* Brand */}
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <img src="/spider.png" alt="" className="h-7 w-7 object-contain opacity-90" />
+            <span className="font-bold text-[15px] tracking-tight text-white">AI Collective</span>
+          </Link>
+
+          {/* Right */}
           <div className="flex items-center gap-2">
-            <Link to="/docs" className="hidden md:flex items-center h-8 px-3 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all">
+            {/* <Link to="/docs" className="hidden sm:flex items-center h-8 px-3 text-xs font-medium text-zinc-400 hover:text-white transition-colors rounded-lg hover:bg-white/5">
               Docs
-            </Link>
+            </Link> */}
+            {/* <Link to="/dashboard" className="hidden sm:flex items-center h-8 px-3 text-xs font-medium text-zinc-400 hover:text-white transition-colors rounded-lg hover:bg-white/5">
+              Dashboard
+            </Link> */}
+
             {/* GitHub star button */}
             <a
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:flex items-center gap-0 h-8 rounded-lg overflow-hidden border border-border/70 text-xs font-semibold hover:shadow-md transition-all duration-200 hover:border-border group"
+              className="flex items-center h-8 rounded-lg overflow-hidden border border-white/10 text-xs font-semibold hover:border-white/20 transition-all group"
             >
-              <span className="flex items-center gap-1.5 px-2.5 h-full bg-muted/60 hover:bg-muted transition-colors text-foreground/80 group-hover:text-foreground border-r border-border/50">
+              <span className="flex items-center gap-1.5 px-3 h-full bg-white/5 hover:bg-white/8 transition-colors text-zinc-300 group-hover:text-white border-r border-white/8">
                 <GithubIcon className="w-3.5 h-3.5" />
                 Star
               </span>
-              <span className="flex items-center px-2.5 h-full bg-card text-foreground font-bold">
-                {github.stars === null ? (
-                  <span className="w-6 h-3 bg-muted rounded animate-pulse" />
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                    {fmt(github.stars)}
-                  </span>
-                )}
+              <span className="flex items-center gap-1 px-2.5 h-full text-zinc-200 font-bold">
+                {stars === null
+                  ? <span className="w-6 h-2.5 rounded bg-zinc-700 animate-pulse" />
+                  : <><Star className="w-3 h-3 text-amber-400 fill-amber-400" />{fmt(stars)}</>
+                }
               </span>
             </a>
 
-            <Link to="/dashboard">
-              <Button variant="outline" size="sm" className="hidden sm:flex h-8 text-xs">
-                Dashboard
-              </Button>
-            </Link>
-            <Link to="/dashboard">
-              <Button size="sm" className="h-8 text-xs shadow-md shadow-primary/20">
-                Get Started <ArrowRight className="ml-1.5 w-3 h-3" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero */}
-      <section className="pt-20 pb-16 md:pt-28 md:pb-20 px-6 relative">
-        <div className="max-w-5xl mx-auto">
-          {/* Logo */}
-          <motion.div
-            className="flex justify-center mb-8"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-          >
-            <div className="relative">
-              <div className="absolute inset-0 rounded-full blur-2xl bg-[hsl(var(--hero-a))] opacity-30 scale-150" />
-              <img src="/logo.png" alt="AI Collective" className="relative h-20 object-contain drop-shadow-xl" />
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, ease: "easeOut" }}
-            className="text-center"
-          >
-            {/* GitHub pill badge */}
-            {/* <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 border border-border/70 text-foreground/70 hover:text-foreground text-xs font-semibold mb-6 soft-ring shadow-sm transition-colors group"
+            <Link
+              to="/dashboard"
+              className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-white text-zinc-900 text-xs font-bold hover:bg-zinc-100 transition-colors"
             >
-              <GithubIcon className="w-3.5 h-3.5" />
-              <span className="text-muted-foreground">Open source on GitHub</span>
-              {github.stars !== null && (
-                <>
-                  <span className="w-px h-3 bg-border/60" />
-                  <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                  <span className="font-bold text-foreground">{fmt(github.stars)}</span>
-                </>
-              )}
-              <ArrowRight className="w-3 h-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
-            </a> */}
-
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/8 border border-primary/15 text-primary text-xs font-bold mb-8 ml-2">
-              <Sparkles className="w-3.5 h-3.5" />
-              Multi-Agent Collaboration Platform
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            </div>
-
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground leading-[1.05] mb-6">
-              Deploy a specialized
-              <br />
-              <span className="hero-title">AI workforce</span>
-              <br />
-              in seconds
-            </h1>
-
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-10">
-              Create teams of AI agents that communicate, collaborate, and complete complex tasks autonomously — like a real project team.
-            </p>
-
-            <div className="flex flex-wrap items-center justify-center gap-3 mb-14">
-              <Link to="/dashboard">
-                <Button size="lg" className="text-base px-7 h-12 shadow-lg shadow-primary/25 font-semibold">
-                  Launch Dashboard <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
-              <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="lg" className="text-base px-7 h-12 font-semibold gap-2">
-                  <GithubIcon className="w-4 h-4" />
-                  View on GitHub
-                </Button>
-              </a>
-            </div>
-
-            {/* Platform stats */}
-            <div className="flex flex-wrap items-center justify-center gap-4">
-              {platformStats.map((s) => (
-                <div key={s.label} className="glass-card px-6 py-4 text-center min-w-[120px]">
-                  <div className="text-2xl font-extrabold hero-title">{s.value}</div>
-                  <div className="text-xs text-muted-foreground font-medium mt-0.5">{s.label}</div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="py-20 px-6 border-t border-border/60">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">How it works</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              Four core capabilities that power intelligent, autonomous AI teams.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {features.map((f, i) => (
-              <motion.div
-                key={f.title}
-                initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1, duration: 0.4 }}
-                className={`glass-card card-hover p-6 border ${f.border} bg-gradient-to-br ${f.gradient}`}
-              >
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${f.iconBg} border ${f.border}`}>
-                  <f.icon className={`w-5 h-5 ${f.iconColor}`} strokeWidth={2} />
-                </div>
-                <h3 className="text-lg font-bold mb-2">{f.title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{f.description}</p>
-              </motion.div>
-            ))}
+              Get Started
+              <ArrowRight className="w-3 h-3" />
+            </Link>
           </div>
         </div>
-      </section>
+      </header>
 
-      {/* Open Source section */}
-      <section className="py-20 px-6 border-t border-border/60">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="glass-card p-8 md:p-10 relative overflow-hidden"
+      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
+      <section className="pt-24 pb-20 px-6 text-center relative">
+        {/* Radial glow */}
+        <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.12),transparent_70%)]" />
+
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="relative max-w-4xl mx-auto"
+        >
+          {/* Badge */}
+          <a
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/4 text-zinc-400 text-xs font-medium mb-8 hover:border-white/20 hover:text-zinc-300 transition-all"
           >
-            <div className="absolute inset-x-0 -top-20 h-40 bg-[radial-gradient(closest-side,hsl(222,47%,15%)/0.06,transparent)] pointer-events-none" />
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Open Source · MIT License
+            <ChevronRight className="w-3 h-3 opacity-50" />
+          </a>
 
-            <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
-              {/* Left */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-foreground flex items-center justify-center flex-shrink-0">
-                    <GithubIcon className="w-4 h-4 text-background" />
-                  </div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Open Source</span>
-                </div>
-                <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">
-                  Built in public, for everyone
-                </h2>
-                <p className="text-muted-foreground text-sm leading-relaxed mb-5">
-                  AI Collective is fully open source. Star the repo, fork it, open issues, or contribute — we build this together.
-                </p>
+          {/* Headline */}
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-6 text-white">
+            An open-source AI collective
+            <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-violet-400 to-pink-400">
+              that researches, codes,
+            </span>
+            <br />
+            and creates
+          </h1>
 
-                {/* GitHub stats row */}
-                <div className="flex flex-wrap gap-3 mb-6">
-                  <a
-                    href={GITHUB_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200/70 text-amber-700 text-xs font-bold hover:bg-amber-100 transition-colors"
-                  >
-                    <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                    {github.stars === null ? "..." : fmt(github.stars)} Stars
-                  </a>
-                  <a
-                    href={`${GITHUB_URL}/forks`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200/70 text-blue-700 text-xs font-bold hover:bg-blue-100 transition-colors"
-                  >
-                    <GitFork className="w-3.5 h-3.5" />
-                    {github.forks === null ? "..." : fmt(github.forks)} Forks
-                  </a>
-                  <a
-                    href={`${GITHUB_URL}/issues`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200/70 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-colors"
-                  >
-                    <GitPullRequest className="w-3.5 h-3.5" />
-                    {github.issues === null ? "..." : github.issues} Issues
-                  </a>
-                  {github.watchers !== null && (
-                    <a
-                      href={`${GITHUB_URL}/watchers`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200/70 text-violet-700 text-xs font-bold hover:bg-violet-100 transition-colors"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      {fmt(github.watchers)} Watchers
-                    </a>
-                  )}
-                </div>
+          <p className="text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed mb-10">
+            Build specialized agent teams — each with their own role, skills, and memory.
+            Submit a task, watch them collaborate, get production-ready results.
+          </p>
 
-                <div className="flex flex-wrap gap-3">
-                  <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
-                    <Button className="gap-2 h-9">
-                      <Star className="w-3.5 h-3.5" />
-                      Star on GitHub
-                    </Button>
-                  </a>
-                  <a href={`${GITHUB_URL}/fork`} target="_blank" rel="noopener noreferrer">
-                    <Button variant="outline" className="gap-2 h-9">
-                      <GitFork className="w-3.5 h-3.5" />
-                      Fork
-                    </Button>
-                  </a>
-                  <a href={`${GITHUB_URL}/issues/new`} target="_blank" rel="noopener noreferrer">
-                    <Button variant="ghost" className="gap-2 h-9 text-muted-foreground hover:text-foreground">
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      Open Issue
-                    </Button>
-                  </a>
-                </div>
-              </div>
-
-              {/* Right: repo card */}
-              <div className="md:w-72 flex-shrink-0">
-                <div className="rounded-xl border border-border/80 bg-muted/30 overflow-hidden text-xs font-mono">
-                  <div className="flex items-center gap-2 px-3 py-2 bg-muted/60 border-b border-border/60">
-                    <div className="flex gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                    </div>
-                    <span className="text-muted-foreground text-[11px]">terminal</span>
-                  </div>
-                  <div className="p-4 space-y-1.5 text-[12px] leading-relaxed">
-                    <div>
-                      <span className="text-muted-foreground">$ </span>
-                      <span className="text-foreground">git clone</span>
-                    </div>
-                    <div className="pl-2 text-primary/80 break-all">
-                      github.com/SuZeAI/ai-collective
-                    </div>
-                    <div className="pt-1">
-                      <span className="text-muted-foreground">$ </span>
-                      <span className="text-foreground">cd ai-collective</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">$ </span>
-                      <span className="text-foreground">pip install -e .</span>
-                    </div>
-                    <div className="pt-1 text-emerald-500 font-semibold">
-                      ✓ Ready in 12s
-                    </div>
-                  </div>
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-2.5 text-center">
-                  MIT License · Python 3.11+ · FastAPI + React
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-16 px-6 border-t border-border/60">
-        <div className="max-w-3xl mx-auto">
-          <div className="glass-card p-10 relative overflow-hidden text-center">
-            <div className="absolute inset-x-0 -top-16 h-32 bg-[radial-gradient(closest-side,hsl(var(--hero-a))/0.18,transparent)] pointer-events-none" />
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3">
-              Ready to build your AI Collective?
-            </h2>
-            <p className="text-muted-foreground text-sm mb-8 max-w-lg mx-auto leading-relaxed">
-              Start orchestrating agents in minutes. Open source, self-hostable, and fully extensible.
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <Link to="/dashboard">
-                <Button size="lg" className="shadow-lg shadow-primary/20 font-semibold h-11">
-                  Launch Dashboard <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
-              <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="lg" className="font-semibold gap-2 h-11">
-                  <GithubIcon className="w-4 h-4" />
-                  GitHub
-                  {github.stars !== null && (
-                    <span className="ml-1 flex items-center gap-1 text-amber-600 font-bold">
-                      <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                      {fmt(github.stars)}
-                    </span>
-                  )}
-                </Button>
-              </a>
-            </div>
-
-            <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-3">
-              {[
-                "Create unlimited agent roles",
-                "Assign skills and integrations",
-                "Build specialized teams",
-                "Monitor tasks in real-time",
-              ].map((item) => (
-                <div key={item} className="flex items-center gap-2 text-sm text-foreground/70">
-                  <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-border/60 py-8 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <img src="/spider.png" alt="" className="h-5 w-5 object-contain opacity-60" />
-            <span>AI Collective</span>
-            <span className="text-border">·</span>
-            <span>MIT License</span>
-          </div>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          {/* CTAs */}
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-2 h-11 px-6 rounded-lg bg-white text-zinc-900 font-bold text-sm hover:bg-zinc-100 transition-colors shadow-lg shadow-white/5"
+            >
+              Get Started
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              to="/docs"
+              className="inline-flex items-center gap-2 h-11 px-6 rounded-lg border border-white/10 bg-white/4 text-zinc-300 font-semibold text-sm hover:border-white/20 hover:text-white transition-all"
+            >
+              Read the Docs
+            </Link>
             <a
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-2 h-11 px-6 rounded-lg border border-white/10 bg-white/4 text-zinc-300 font-semibold text-sm hover:border-white/20 hover:text-white transition-all"
             >
               <GithubIcon className="w-4 h-4" />
-              SuZeAI/ai-collective
+              GitHub
+              {stars !== null && (
+                <span className="flex items-center gap-1 text-amber-400 font-bold ml-1">
+                  <Star className="w-3 h-3 fill-amber-400" />
+                  {fmt(stars)}
+                </span>
+              )}
             </a>
-            <a
-              href={`${GITHUB_URL}/issues`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors"
-            >
-              Issues
+          </div>
+        </motion.div>
+      </section>
+
+      {/* ── Terminal demo ─────────────────────────────────────────────────────── */}
+      <section className="px-6 pb-24 max-w-4xl mx-auto">
+        <FadeIn>
+          <Terminal />
+        </FadeIn>
+      </section>
+
+      {/* ── Features (numbered badges) ────────────────────────────────────────── */}
+      <section className="px-6 pb-24 max-w-5xl mx-auto">
+        <FadeIn>
+          <div className="mb-10">
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-3">What's included</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
+              Everything you need to build<br />AI-powered workflows
+            </h2>
+          </div>
+        </FadeIn>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-white/6 border border-white/6 rounded-2xl overflow-hidden">
+          {FEATURES.map((f, i) => (
+            <FadeIn key={f.n} delay={i * 0.06}>
+              <div className="bg-[#080c14] p-6 h-full hover:bg-white/[0.02] transition-colors group">
+                <div className="text-[11px] font-black text-zinc-600 mb-4 font-mono group-hover:text-blue-500/60 transition-colors">{f.n}</div>
+                <h3 className="text-sm font-bold text-white mb-2">{f.title}</h3>
+                <p className="text-sm text-zinc-500 leading-relaxed">{f.desc}</p>
+              </div>
+            </FadeIn>
+          ))}
+        </div>
+      </section>
+
+      {/* ── File tree + description ───────────────────────────────────────────── */}
+      <section className="px-6 pb-24 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <FadeIn>
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-3">Modular by design</p>
+            <h2 className="text-3xl font-bold text-white tracking-tight mb-4">
+              Compose agents,<br />skills, and teams
+            </h2>
+            <p className="text-zinc-400 leading-relaxed mb-6">
+              Every agent is a configurable unit. Assign any combination of skills — web search, code execution,
+              Google integrations, custom APIs — and compose them into teams with a single config.
+            </p>
+            <div className="space-y-2 text-sm text-zinc-400">
+              {[
+                "40+ built-in agent role templates",
+                "10+ integrations out of the box",
+                "Custom JavaScript skill support",
+                "REST API for programmatic control",
+              ].map((t) => (
+                <div key={t} className="flex items-center gap-2">
+                  <span className="w-1 h-1 rounded-full bg-blue-400 flex-shrink-0" />
+                  {t}
+                </div>
+              ))}
+            </div>
+          </FadeIn>
+
+          <FadeIn delay={0.1}>
+            <div className="rounded-xl border border-white/8 bg-zinc-950 font-mono text-[13px] overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-white/6 bg-black/30">
+                <span className="w-3 h-3 rounded-full bg-rose-500/70" />
+                <span className="w-3 h-3 rounded-full bg-amber-500/70" />
+                <span className="w-3 h-3 rounded-full bg-emerald-500/70" />
+                <span className="ml-2 text-zinc-600 text-[11px]">project structure</span>
+              </div>
+              <div className="p-5 space-y-1">
+                {FILE_TREE.map((node, i) => (
+                  <div key={i} className="flex items-center gap-2" style={{ paddingLeft: `${node.indent * 20}px` }}>
+                    <span className="text-zinc-600 select-none">
+                      {node.type === "dir" ? "📁" : "📄"}
+                    </span>
+                    <span className={node.type === "dir" ? "text-blue-400 font-medium" : "text-zinc-300"}>
+                      {node.name}
+                    </span>
+                    {node.badge && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${BADGE_COLORS[node.badge] ?? ""}`}>
+                        {node.badge}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* ── Open source CTA ──────────────────────────────────────────────────── */}
+      <section className="px-6 pb-24 max-w-5xl mx-auto">
+        <FadeIn>
+          <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-10 md:p-14 relative overflow-hidden">
+            {/* Glow */}
+            <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-96 h-48 bg-[radial-gradient(ellipse,rgba(99,102,241,0.15),transparent_70%)]" />
+
+            <div className="relative text-center max-w-2xl mx-auto">
+              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Open Source</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">
+                Originated from Open Source,<br />give back to Open Source
+              </h2>
+              <p className="text-zinc-400 mb-8 leading-relaxed">
+                AI Collective is MIT-licensed and built in public. Star the repo, fork it, open issues,
+                or contribute — this is your platform too.
+              </p>
+
+              {/* GitHub stats */}
+              <div className="flex flex-wrap justify-center gap-3 mb-8">
+                <a
+                  href={GITHUB_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/4 text-sm font-bold text-zinc-300 hover:border-white/20 hover:text-white transition-all"
+                >
+                  <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                  {stars === null ? "—" : fmt(stars)} Stars
+                </a>
+                <a
+                  href={`${GITHUB_URL}/forks`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/4 text-sm font-bold text-zinc-300 hover:border-white/20 hover:text-white transition-all"
+                >
+                  <GitFork className="w-4 h-4 text-blue-400" />
+                  {forks === null ? "—" : fmt(forks)} Forks
+                </a>
+                <a
+                  href={`${GITHUB_URL}/issues`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/4 text-sm font-bold text-zinc-300 hover:border-white/20 hover:text-white transition-all"
+                >
+                  <ExternalLink className="w-4 h-4 text-violet-400" />
+                  Open Issues
+                </a>
+              </div>
+
+              <div className="flex flex-wrap justify-center gap-3">
+                <a
+                  href={GITHUB_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 h-10 px-6 rounded-lg bg-white text-zinc-900 font-bold text-sm hover:bg-zinc-100 transition-colors"
+                >
+                  <GithubIcon className="w-4 h-4" />
+                  Star on GitHub
+                </a>
+                <Link
+                  to="/dashboard"
+                  className="inline-flex items-center gap-2 h-10 px-6 rounded-lg border border-white/10 bg-white/4 text-zinc-300 font-semibold text-sm hover:border-white/20 hover:text-white transition-all"
+                >
+                  Launch App
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </FadeIn>
+      </section>
+
+      {/* ── Footer ───────────────────────────────────────────────────────────── */}
+      <footer className="border-t border-white/6 py-8 px-6">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-zinc-600">
+          <div className="flex items-center gap-2">
+            <img src="/spider.png" alt="" className="h-5 w-5 object-contain opacity-40" />
+            <span>© 2026 AI Collective · MIT License</span>
+          </div>
+          <div className="flex items-center gap-5">
+            <Link to="/docs" className="hover:text-zinc-300 transition-colors">Docs</Link>
+            <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+              <GithubIcon className="w-3.5 h-3.5" />
+              GitHub
             </a>
-            <a
-              href={`${GITHUB_URL}/blob/main/README.md`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors"
-            >
-              Docs
-            </a>
+            <a href={`${GITHUB_URL}/issues`} target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors">Issues</a>
+            <a href={`${GITHUB_URL}/blob/main/README.md`} target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors">README</a>
           </div>
         </div>
       </footer>

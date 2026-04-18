@@ -1027,14 +1027,14 @@ export default function TaskManager() {
                           Array.from(thinkingAgents[selectedTask.id] ?? []).map((agentId) => {
                             const agent = agentById.get(agentId);
                             return (
-                              <div key={`thinking-${agentId}`} className="rounded-lg border border-blue-200 dark:border-blue-700 p-3 bg-blue-50 dark:bg-blue-900/20">
+                              <div key={`thinking-${agentId}`} className="rounded-lg border border-primary/20 p-3 bg-primary/8">
                                 <div className="flex items-center gap-2">
                                   <div className="flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: "0.2s" }} />
-                                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: "0.4s" }} />
+                                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0.2s" }} />
+                                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0.4s" }} />
                                   </div>
-                                  <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                                  <span className="text-sm font-semibold text-primary">
                                     {agent?.name ?? agentId} is thinking...
                                   </span>
                                 </div>
@@ -1049,14 +1049,14 @@ export default function TaskManager() {
                   </div>
                 </div>
 
-                <div className="h-full min-h-0 p-5 flex flex-col overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100">
-                  <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3 mb-3">
+                <div className="h-full min-h-0 p-5 flex flex-col overflow-hidden bg-card/80 text-foreground">
+                  <div className="flex items-start justify-between gap-4 border-b border-border pb-3 mb-3">
                     <div>
-                      <div className="text-[11px] uppercase tracking-[0.28em] text-slate-400">Graph context</div>
-                      <div className="mt-1 text-sm font-semibold text-white">Knowledge graph activity</div>
+                      <div className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Graph context</div>
+                      <div className="mt-1 text-sm font-semibold text-foreground">Knowledge graph activity</div>
                     </div>
-                    <div className="text-right text-[11px] text-slate-300">
-                      <div className="font-medium text-slate-100">
+                    <div className="text-right text-[11px] text-foreground/70">
+                      <div className="font-medium text-foreground">
                         {graphHighlight?.agentName ?? (selectedTask.status === "in-progress" ? "Waiting for context" : "Idle")}
                       </div>
                       <div>{graphNodes.length} nodes · {graphEdges.length} edges</div>
@@ -1065,12 +1065,12 @@ export default function TaskManager() {
 
                   <div className="min-h-0 flex-1 p-0">
                     {graphLoading && !graphSnapshot ? (
-                      <div className="flex h-full items-center justify-center rounded-xl border border-white/10 bg-white/5 text-sm text-slate-300 animate-pulse">
+                      <div className="flex h-full items-center justify-center rounded-xl border border-border bg-muted/20 text-sm text-muted-foreground animate-pulse">
                         Loading graph context...
                       </div>
                     ) : graphNodes.length > 0 ? (
                       <div className="flex h-full min-h-0 flex-col gap-3">
-                        <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-white/10 bg-black/20">
+                        <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-muted/10">
                           <svg
                             ref={graphSvgRef}
                             viewBox={`0 0 ${GRAPH_VIEWBOX_WIDTH} ${GRAPH_VIEWBOX_HEIGHT}`}
@@ -1138,7 +1138,7 @@ export default function TaskManager() {
                                       x={position.x}
                                       y={position.y + 34}
                                       textAnchor="middle"
-                                      className="fill-slate-200"
+                                      fill="hsl(var(--foreground) / 0.9)"
                                       fontSize="10"
                                       fontWeight={600}
                                     >
@@ -1148,7 +1148,7 @@ export default function TaskManager() {
                                       x={position.x}
                                       y={position.y + 47}
                                       textAnchor="middle"
-                                      className="fill-slate-400"
+                                      fill="hsl(var(--muted-foreground))"
                                       fontSize="8"
                                       letterSpacing="0.08em"
                                     >
@@ -1160,24 +1160,24 @@ export default function TaskManager() {
                             </g>
                           </svg>
                         </div>
-                        <div className="grid gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-slate-200 sm:grid-cols-2">
+                        <div className="grid gap-2 rounded-xl border border-border bg-muted/10 p-3 text-xs text-foreground/80 sm:grid-cols-2">
                           <div>
-                            <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Active nodes</div>
+                            <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Active nodes</div>
                             <div className="mt-2 flex flex-wrap gap-2">
                               {activeNodeLabels.length > 0 ? (
                                 activeNodeLabels.map((label) => (
-                                  <span key={label} className="inline-flex items-center rounded-full border border-blue-300/40 bg-blue-400/15 px-2.5 py-1 text-[11px] text-blue-100">
+                                  <span key={label} className="inline-flex items-center rounded-full border border-primary/30 bg-primary/15 px-2.5 py-1 text-[11px] text-primary">
                                     {ellipsis(label, 20)}
                                   </span>
                                 ))
                               ) : (
-                                <span className="text-slate-400">No active highlight yet.</span>
+                                <span className="text-muted-foreground">No active highlight yet.</span>
                               )}
                             </div>
                           </div>
                           <div>
-                            <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Current update</div>
-                            <div className="mt-2 space-y-1 text-slate-300">
+                            <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Current update</div>
+                            <div className="mt-2 space-y-1 text-foreground/70">
                               <div>{graphHighlight?.agentName ? `${graphHighlight.agentName} is loading context` : "Waiting for the next turn"}</div>
                               <div>{activeChunkIds.size} chunk(s) highlighted</div>
                             </div>
@@ -1185,7 +1185,7 @@ export default function TaskManager() {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/5 px-4 text-center text-sm text-slate-300">
+                      <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border bg-muted/10 px-4 text-center text-sm text-muted-foreground">
                         No graph context yet. Start or restart the task to populate the knowledge graph.
                       </div>
                     )}
@@ -1457,14 +1457,14 @@ export default function TaskManager() {
                             Array.from(thinkingAgents[task.id] ?? []).map((agentId) => {
                               const agent = agentById.get(agentId);
                               return (
-                                <div key={`thinking-${agentId}`} className="rounded-md border border-blue-300/50 dark:border-blue-600/50 p-2 bg-blue-50 dark:bg-blue-900/20">
+                                <div key={`thinking-${agentId}`} className="rounded-md border border-primary/20 p-2 bg-primary/8">
                                   <div className="flex items-center gap-1.5">
                                     <div className="flex items-center gap-0.5">
-                                      <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" />
-                                      <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: "0.2s" }} />
-                                      <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: "0.4s" }} />
+                                      <span className="w-1 h-1 rounded-full bg-primary animate-pulse" />
+                                      <span className="w-1 h-1 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0.2s" }} />
+                                      <span className="w-1 h-1 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0.4s" }} />
                                     </div>
-                                    <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">
+                                    <span className="text-xs font-semibold text-primary">
                                       {agent?.name ?? agentId} thinking...
                                     </span>
                                   </div>

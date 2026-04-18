@@ -448,8 +448,8 @@ export default function TeamBuilder() {
                               onDrop={() => handleDrop(agentId)}
                               className={`flex items-center gap-3 p-3 rounded-lg border-2 border-dashed transition-all cursor-move ${
                                 draggedAgent === agentId
-                                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 opacity-50"
-                                  : "border-transparent bg-background hover:bg-muted/50 hover:border-slate-300"
+                                  ? "border-primary bg-primary/8 opacity-50"
+                                  : "border-transparent bg-card hover:bg-muted/30 hover:border-border"
                               }`}
                             >
                               <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -530,13 +530,13 @@ export default function TeamBuilder() {
                   value={testPrompt}
                   onChange={(e) => setTestPrompt(e.target.value)}
                   placeholder="What should this team discuss?"
-                  className="min-h-[90px] text-sm resize-none border-2 border-slate-200 dark:border-slate-700 focus:border-blue-500"
+                  className="min-h-[90px] text-sm resize-none border-2 border-border focus:border-primary"
                   disabled={isTesting}
                 />
               </div>
               <div className="grid grid-cols-[120px_100px_1fr] gap-2 items-end">
                 <div>
-                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 block">Max Steps</label>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1 block">Max Steps</label>
                   <Input
                     type="number"
                     min={1}
@@ -544,7 +544,7 @@ export default function TeamBuilder() {
                     value={testStepLimit}
                     onChange={(e) => setTestStepLimit(e.target.value)}
                     disabled={isTesting}
-                    className="text-sm border-2 border-slate-200 dark:border-slate-700"
+                    className="text-sm border-2 border-border"
                   />
                 </div>
                 <Button
@@ -570,11 +570,11 @@ export default function TeamBuilder() {
             <div className="flex flex-col gap-2 flex-1 overflow-hidden">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-semibold">Discussion Output</label>
-                <span className="text-xs px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
                   {testMessages.length} messages
                 </span>
               </div>
-              <div className="flex-1 rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-3 overflow-y-auto space-y-2">
+              <div className="flex-1 rounded-lg border-2 border-border bg-muted/20 p-3 overflow-y-auto space-y-2">
                 {testMessages.length > 0 || testThinkingAgents.size > 0 ? (
                   <>
                     {testMessages.map((m) => {
@@ -585,16 +585,16 @@ export default function TeamBuilder() {
                           key={m.id}
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 shadow-sm hover:shadow-md transition-shadow"
+                          className="rounded-lg border border-border bg-card p-3 shadow-sm hover:shadow-md transition-shadow"
                         >
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-100 to-blue-50 dark:from-blue-900/40 dark:to-blue-900/20">
-                              <span className="text-xs font-bold text-blue-700 dark:text-blue-300">#{m.step}</span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10">
+                              <span className="text-xs font-bold text-primary">#{m.step}</span>
                             </span>
-                            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                            <span className="text-sm font-semibold text-foreground">
                               {agent?.name ?? m.agentId}
                             </span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1">
                               <Clock className="w-3 h-3" />
                               {isNaN(ts.getTime())
                                 ? m.timestamp
@@ -605,7 +605,7 @@ export default function TeamBuilder() {
                                   })}
                             </span>
                           </div>
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700 dark:text-slate-300">
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
                             {m.content}
                           </p>
                         </motion.div>
@@ -621,15 +621,15 @@ export default function TeamBuilder() {
                             key={`thinking-${agentId}`}
                             initial={{ opacity: 0, y: 5 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="rounded-lg border border-blue-300 dark:border-blue-600 bg-blue-100/50 dark:bg-blue-900/40 p-3"
+                            className="rounded-lg border border-primary/20 bg-primary/8 p-3"
                           >
                             <div className="flex items-center gap-2">
                               <div className="flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse" />
-                                <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse" style={{ animationDelay: "0.2s" }} />
-                                <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse" style={{ animationDelay: "0.4s" }} />
+                                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0.2s" }} />
+                                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0.4s" }} />
                               </div>
-                              <span className="text-sm font-semibold text-blue-800 dark:text-blue-200">
+                              <span className="text-sm font-semibold text-primary">
                                 {agent?.name ?? agentId} is thinking...
                               </span>
                             </div>
@@ -641,20 +641,20 @@ export default function TeamBuilder() {
                 ) : isTesting ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
-                      <div className="animate-spin w-8 h-8 border-3 border-blue-200 border-t-blue-600 rounded-full mx-auto mb-3" />
-                      <p className="text-sm text-slate-600 dark:text-slate-400">🔄 Streaming discussion...</p>
+                      <div className="animate-spin w-8 h-8 border-2 border-muted border-t-primary rounded-full mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground">Streaming discussion...</p>
                     </div>
                   </div>
                 ) : testError ? (
                   <div className="flex items-center justify-center h-full">
-                    <div className="text-center p-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700">
-                      <p className="text-sm font-semibold text-red-700 dark:text-red-400 mb-1">🚨 Error</p>
-                      <p className="text-sm text-red-600 dark:text-red-300">{testError}</p>
+                    <div className="text-center p-6 rounded-lg bg-destructive/8 border border-destructive/30">
+                      <p className="text-sm font-semibold text-destructive mb-1">Error</p>
+                      <p className="text-sm text-destructive/80">{testError}</p>
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-full">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Run test to start streaming the discussion...</p>
+                    <p className="text-sm text-muted-foreground">Run test to start streaming the discussion...</p>
                   </div>
                 )}
               </div>
