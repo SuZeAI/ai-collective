@@ -2,9 +2,9 @@
   "task_5b5dea02fb1e49d491c84982fd4b4422": [
     {
       "type": "ingest_message",
-      "message_id": "user-ea96da9928bb4a0a9bfd0ea9aa31eef4",
+      "message_id": "user-1108aeb39d0c433b9d475a6d50012a1c",
       "speaker": "user",
-      "created_at": "2026-04-05T14:17:27.789870+00:00",
+      "created_at": "2026-04-18T04:28:02.755893+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -22,9 +22,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "agent-Gold Market Analyst-4a73a3358458465098ea559796c5f8c1",
+      "message_id": "agent-Gold Market Analyst-f988eb5f32384d278cbaa313d1c74fb4",
       "speaker": "Gold Market Analyst",
-      "created_at": "2026-04-05T14:17:35.616879+00:00",
+      "created_at": "2026-04-18T04:29:07.002094+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -42,9 +42,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "m_9271bfaa1d204e3382be908a2bbe9d8f",
+      "message_id": "m_26a630ce1298433d8881d651266f380b",
       "speaker": "a1",
-      "created_at": "2026-04-05T14:17:35.643083+00:00",
+      "created_at": "2026-04-18T04:29:07.023924+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -62,9 +62,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "agent-Gold Data Researcher-4b49bdfcb40e4c9a93bbcd1cd19563b5",
+      "message_id": "agent-Gold Data Researcher-39cdf90facc94f859bbdfa588ebf2c13",
       "speaker": "Gold Data Researcher",
-      "created_at": "2026-04-05T14:17:58.062448+00:00",
+      "created_at": "2026-04-18T04:29:57.655464+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -82,9 +82,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "m_c2cc78547a6a4b608142b948f7679cf0",
+      "message_id": "m_2bfc656bdd1745e3afdacc4d69b9306e",
       "speaker": "a2",
-      "created_at": "2026-04-05T14:17:58.216556+00:00",
+      "created_at": "2026-04-18T04:29:57.687121+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -102,9 +102,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "agent-Gold Market Analyst-7aeb6e1c2f514c85afdc92eee9d566ac",
+      "message_id": "agent-Gold Market Analyst-bffd05618ddc4637a92e3838482c4ec3",
       "speaker": "Gold Market Analyst",
-      "created_at": "2026-04-05T14:18:01.546981+00:00",
+      "created_at": "2026-04-18T04:30:02.985397+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -122,9 +122,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "m_5fef4332991b4d9abeca8af82f46d8a4",
+      "message_id": "m_4e7f5b2dace1446ab5246d17495bf44b",
       "speaker": "a1",
-      "created_at": "2026-04-05T14:18:01.578357+00:00",
+      "created_at": "2026-04-18T04:30:03.029932+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -142,9 +142,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "agent-Gold Data Researcher-6d453168b61a4c49a9b404db5a684e9b",
-      "speaker": "Gold Data Researcher",
-      "created_at": "2026-04-05T14:18:56.329448+00:00",
+      "message_id": "agent-Gold Reporting Specialist-9418401c44dd4094bc198fd6c2109e28",
+      "speaker": "Gold Reporting Specialist",
+      "created_at": "2026-04-18T04:30:12.923209+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -162,9 +162,31 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "m_631210a5d81143e78da777f0e2d87aa4",
-      "speaker": "a2",
-      "created_at": "2026-04-05T14:18:56.364724+00:00",
+      "message_id": "m_359634e8c50d42259a8bb82c42d06ea2",
+      "speaker": "a3",
+      "created_at": "2026-04-18T04:30:12.968992+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    }
+  ],
+  "task_9b6c8ee04d664b1d916d07960a616bda": [
+    {
+      "type": "ingest_message",
+      "message_id": "user-71b775bf16a14abcbb1b49c05b247d38",
+      "speaker": "user",
+      "created_at": "2026-04-18T04:31:46.107460+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -182,9 +204,131 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "agent-Gold Market Analyst-25a284b976bd4cac9ee3305987acf12e",
+      "message_id": "user-7239ed7a8ae1411c8d56a7a64c0ee53d",
+      "speaker": "user",
+      "created_at": "2026-04-18T04:33:23.941261+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "user-0b8bb6d1cc584c60a4f9c9711dd9af50",
+      "speaker": "user",
+      "created_at": "2026-04-18T04:33:55.908524+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "user-1e81147ec6414167b352e4027305c423",
+      "speaker": "user",
+      "created_at": "2026-04-18T04:34:49.304702+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "user-d2aba30d819a42a6925a915e5ba7f710",
+      "speaker": "user",
+      "created_at": "2026-04-18T05:59:00.919961+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "user-a17ed6b5ebe943adb0fe417f9e4b67ab",
+      "speaker": "user",
+      "created_at": "2026-04-18T05:59:04.303397+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    }
+  ],
+  "task_45d05c0be33f47bdb86071fd6a8f7d6f": [
+    {
+      "type": "ingest_message",
+      "message_id": "user-128e32433103433593985ef45252e251",
+      "speaker": "user",
+      "created_at": "2026-04-18T05:59:11.397429+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "agent-Gold Market Analyst-5d8e454a53be42adb39af6f56da4cc1d",
       "speaker": "Gold Market Analyst",
-      "created_at": "2026-04-05T14:19:00.162616+00:00",
+      "created_at": "2026-04-18T05:59:14.438879+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -202,9 +346,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "m_8ab3c5eefad947c2b5e9a1960456e82b",
+      "message_id": "m_4f0da48462764d75a3af90346235d37b",
       "speaker": "a1",
-      "created_at": "2026-04-05T14:19:00.199599+00:00",
+      "created_at": "2026-04-18T05:59:14.493699+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -222,9 +366,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "agent-Gold Data Researcher-29dcbb89bc914560b2a131c18fb76ce8",
+      "message_id": "agent-Gold Data Researcher-06ffe63c72d445fab768ba22da808c83",
       "speaker": "Gold Data Researcher",
-      "created_at": "2026-04-05T14:19:19.271480+00:00",
+      "created_at": "2026-04-18T06:00:01.848201+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -242,9 +386,169 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "m_b767d64478ab40ab87fd314ca5323983",
+      "message_id": "m_9c5a695776a44f999d49c3ea79fad42b",
       "speaker": "a2",
-      "created_at": "2026-04-05T14:19:19.305148+00:00",
+      "created_at": "2026-04-18T06:00:01.894219+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "agent-Gold Market Analyst-b531be9979234498a23eb656c5827f53",
+      "speaker": "Gold Market Analyst",
+      "created_at": "2026-04-18T06:00:05.943726+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "m_66098412e4df4ce48caa00ea7e7548b0",
+      "speaker": "a1",
+      "created_at": "2026-04-18T06:00:05.991248+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "agent-Gold Data Researcher-3ba69f14735f41b6a803e3ed852667b3",
+      "speaker": "Gold Data Researcher",
+      "created_at": "2026-04-18T06:01:10.117334+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "m_ec4c68671fdd47d4b0cc45f558ed1df2",
+      "speaker": "a2",
+      "created_at": "2026-04-18T06:01:10.163069+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "agent-Gold Market Analyst-c4d62f0059474fbbbd7f8bbf754448bb",
+      "speaker": "Gold Market Analyst",
+      "created_at": "2026-04-18T06:01:14.201156+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "m_0027c584bc134ff58153d1d5270263fe",
+      "speaker": "a1",
+      "created_at": "2026-04-18T06:01:14.249852+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "agent-Gold Data Researcher-f3f1c73b574f497583c2dc032be87ec2",
+      "speaker": "Gold Data Researcher",
+      "created_at": "2026-04-18T06:02:14.222687+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "m_ae8895675ae24e69a716f18c3061749a",
+      "speaker": "a2",
+      "created_at": "2026-04-18T06:02:14.264286+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",

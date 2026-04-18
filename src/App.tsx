@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +14,7 @@ import TaskManager from "@/pages/TaskManager";
 import Conversations from "@/pages/Conversations";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import Playground from "@/pages/Playground";
+import Docs from "@/pages/Docs";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +24,7 @@ function WithLayout({ children }: { children: React.ReactNode }) {
 }
 
 const App = () => (
+  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -37,11 +40,13 @@ const App = () => (
           <Route path="/conversations" element={<WithLayout><Conversations /></WithLayout>} />
           <Route path="/analytics" element={<WithLayout><AnalyticsPage /></WithLayout>} />
           <Route path="/playground" element={<WithLayout><Playground /></WithLayout>} />
+          <Route path="/docs" element={<Docs />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import TypedDict
 from uuid import uuid4
 
@@ -16,6 +17,11 @@ from backend.application.ports.agent_graph import (
 from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
+from backend.domain.agent.token_budget import apply_context_token_budget
+
+
+MAX_CONTEXT_TOKENS = max(1024, int(os.getenv("AGENT_CONTEXT_TOKEN_LIMIT", "12000")))
+RESERVED_OUTPUT_TOKENS = max(256, int(os.getenv("AGENT_OUTPUT_TOKEN_RESERVE", "2000")))
 
 
 class MultiAgentState(TypedDict):
@@ -203,11 +209,26 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                         "chunk_ids": pack.chunk_ids,
                     })
 
+            budget_result = apply_context_token_budget(
+                llm=llm,
+                system_prompt=agent.system_prompt,
+                user_input=user_input,
+                max_context_tokens=MAX_CONTEXT_TOKENS,
+                reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
+            )
+            user_input = budget_result.text
+
             # Stream: LLM processing started
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
                 "agent_name": agent.name,
                 "context_length": len(user_input),
+                "context_tokens": budget_result.input_tokens,
+                "context_token_limit": budget_result.max_input_tokens,
+                "context_truncated": budget_result.truncated,
+                "tokenizer_family": budget_result.tokenizer_family,
+                "llm_provider": budget_result.provider,
+                "llm_model": budget_result.model,
             })
             
             output = await llm.chat(

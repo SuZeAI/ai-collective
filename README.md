@@ -72,9 +72,15 @@ uv sync
 Create a `.env` file in the root directory:
 
 ```env
-GEMINI_API_KEY=<YOUR_GEMINI_API_KEY_HERE>
-GEMINI_API_URL=https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent
-GEMINI_API_MODEL=gemini-2.5-flash
+# Backend LLM provider selection
+LLM_PROVIDER=google
+LLM_MODEL=gemini-3-flash-preview
+
+# Optional provider keys
+GOOGLE_API_KEY=<YOUR_GOOGLE_API_KEY_HERE>
+ANTHROPIC_API_KEY=<YOUR_ANTHROPIC_API_KEY_HERE>
+OPENAI_API_KEY=<YOUR_OPENAI_API_KEY_HERE>
+OPENROUTER_API_KEY=<YOUR_OPENROUTER_API_KEY_HERE>
 
 LOG_CONSOLE=true
 LOG_FILE=true

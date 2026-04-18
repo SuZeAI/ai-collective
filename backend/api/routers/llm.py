@@ -47,7 +47,7 @@ async def chat(
     tool_manager: SkillToolManager = Depends(get_skill_tool_manager),
 ) -> ChatResponse:
     if not service:
-        raise HTTPException(status_code=503, detail="LLM not configured (missing GEMINI_API_KEY)")
+        raise HTTPException(status_code=503, detail="LLM not configured")
     system_prompt = req.system
     tools: list[object] = []
     if req.agentId:
@@ -82,7 +82,7 @@ async def run_agent_graph(
 ) -> GraphRunResponse:
     service = get_agent_graph_service(mode=req.mode)
     if not service:
-        raise HTTPException(status_code=503, detail="LLM not configured (missing GEMINI_API_KEY)")
+        raise HTTPException(status_code=503, detail="LLM not configured")
 
     # Fetch agents from database by ID and bind tools
     definitions = []
@@ -141,7 +141,7 @@ async def run_agent_graph_stream(
     """Stream agent responses in real-time using Server-Sent Events"""
     service = get_agent_graph_service(mode=req.mode)
     if not service:
-        raise HTTPException(status_code=503, detail="LLM not configured (missing GEMINI_API_KEY)")
+        raise HTTPException(status_code=503, detail="LLM not configured")
 
     # Fetch agents from database by ID and bind tools
     definitions = []
