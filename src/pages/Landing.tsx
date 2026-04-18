@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import { ArrowRight, Star, GitFork, ExternalLink, ChevronRight } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const GITHUB_URL = "https://github.com/SuZeAI/ai-collective";
 const GITHUB_REPO = "SuZeAI/ai-collective";
@@ -162,57 +163,52 @@ export default function Landing() {
   const { stars, forks } = useGitHubStats();
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-zinc-100 font-sans">
+    <div className="min-h-screen bg-background text-foreground font-sans">
       {/* Subtle grid pattern */}
       <div
-        className="pointer-events-none fixed inset-0 opacity-[0.03]"
+        className="pointer-events-none fixed inset-0 opacity-[0.04]"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px)",
+            "linear-gradient(hsl(var(--foreground)/.15) 1px,transparent 1px),linear-gradient(90deg,hsl(var(--foreground)/.15) 1px,transparent 1px)",
           backgroundSize: "64px 64px",
         }}
       />
 
       {/* ── Navbar ───────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-white/6 bg-[#080c14]/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           {/* Brand */}
           <Link to="/" className="flex items-center gap-2.5 group">
             <img src="/spider.png" alt="" className="h-7 w-7 object-contain opacity-90" />
-            <span className="font-bold text-[15px] tracking-tight text-white">AI Collective</span>
+            <span className="font-bold text-[15px] tracking-tight text-foreground">AI Collective</span>
           </Link>
 
           {/* Right */}
           <div className="flex items-center gap-2">
-            {/* <Link to="/docs" className="hidden sm:flex items-center h-8 px-3 text-xs font-medium text-zinc-400 hover:text-white transition-colors rounded-lg hover:bg-white/5">
-              Docs
-            </Link> */}
-            {/* <Link to="/dashboard" className="hidden sm:flex items-center h-8 px-3 text-xs font-medium text-zinc-400 hover:text-white transition-colors rounded-lg hover:bg-white/5">
-              Dashboard
-            </Link> */}
-
             {/* GitHub star button */}
             <a
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center h-8 rounded-lg overflow-hidden border border-white/10 text-xs font-semibold hover:border-white/20 transition-all group"
+              className="flex items-center h-8 rounded-lg overflow-hidden border border-border/60 text-xs font-semibold hover:border-border transition-all group"
             >
-              <span className="flex items-center gap-1.5 px-3 h-full bg-white/5 hover:bg-white/8 transition-colors text-zinc-300 group-hover:text-white border-r border-white/8">
+              <span className="flex items-center gap-1.5 px-3 h-full bg-muted/60 hover:bg-muted transition-colors text-muted-foreground group-hover:text-foreground border-r border-border/60">
                 <GithubIcon className="w-3.5 h-3.5" />
                 Star
               </span>
-              <span className="flex items-center gap-1 px-2.5 h-full text-zinc-200 font-bold">
+              <span className="flex items-center gap-1 px-2.5 h-full text-foreground font-bold">
                 {stars === null
-                  ? <span className="w-6 h-2.5 rounded bg-zinc-700 animate-pulse" />
+                  ? <span className="w-6 h-2.5 rounded bg-muted animate-pulse" />
                   : <><Star className="w-3 h-3 text-amber-400 fill-amber-400" />{fmt(stars)}</>
                 }
               </span>
             </a>
 
+            <ThemeToggle />
+
             <Link
               to="/dashboard"
-              className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-white text-zinc-900 text-xs font-bold hover:bg-zinc-100 transition-colors"
+              className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity"
             >
               Get Started
               <ArrowRight className="w-3 h-3" />
@@ -237,7 +233,7 @@ export default function Landing() {
             href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/4 text-zinc-400 text-xs font-medium mb-8 hover:border-white/20 hover:text-zinc-300 transition-all"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border/60 bg-muted/40 text-muted-foreground text-xs font-medium mb-8 hover:border-border hover:text-foreground transition-all"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             Open Source · MIT License
@@ -245,17 +241,17 @@ export default function Landing() {
           </a>
 
           {/* Headline */}
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-6 text-white">
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-6 text-foreground">
             An open-source AI collective
             <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-violet-400 to-pink-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-violet-500 to-pink-500">
               that researches, codes,
             </span>
             <br />
             and creates
           </h1>
 
-          <p className="text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed mb-10">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-10">
             Build specialized agent teams — each with their own role, skills, and memory.
             Submit a task, watch them collaborate, get production-ready results.
           </p>
@@ -264,14 +260,14 @@ export default function Landing() {
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link
               to="/dashboard"
-              className="inline-flex items-center gap-2 h-11 px-6 rounded-lg bg-white text-zinc-900 font-bold text-sm hover:bg-zinc-100 transition-colors shadow-lg shadow-white/5"
+              className="inline-flex items-center gap-2 h-11 px-6 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
             >
               Get Started
               <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               to="/docs"
-              className="inline-flex items-center gap-2 h-11 px-6 rounded-lg border border-white/10 bg-white/4 text-zinc-300 font-semibold text-sm hover:border-white/20 hover:text-white transition-all"
+              className="inline-flex items-center gap-2 h-11 px-6 rounded-lg border border-border/60 bg-muted/40 text-muted-foreground font-semibold text-sm hover:border-border hover:text-foreground transition-all"
             >
               Read the Docs
             </Link>
@@ -279,13 +275,13 @@ export default function Landing() {
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 h-11 px-6 rounded-lg border border-white/10 bg-white/4 text-zinc-300 font-semibold text-sm hover:border-white/20 hover:text-white transition-all"
+              className="inline-flex items-center gap-2 h-11 px-6 rounded-lg border border-border/60 bg-muted/40 text-muted-foreground font-semibold text-sm hover:border-border hover:text-foreground transition-all"
             >
               <GithubIcon className="w-4 h-4" />
               GitHub
               {stars !== null && (
-                <span className="flex items-center gap-1 text-amber-400 font-bold ml-1">
-                  <Star className="w-3 h-3 fill-amber-400" />
+                <span className="flex items-center gap-1 text-amber-500 font-bold ml-1">
+                  <Star className="w-3 h-3 fill-amber-500" />
                   {fmt(stars)}
                 </span>
               )}
@@ -305,20 +301,20 @@ export default function Landing() {
       <section className="px-6 pb-24 max-w-5xl mx-auto">
         <FadeIn>
           <div className="mb-10">
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-3">What's included</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">What's included</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
               Everything you need to build<br />AI-powered workflows
             </h2>
           </div>
         </FadeIn>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-white/6 border border-white/6 rounded-2xl overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border/40 border border-border/40 rounded-2xl overflow-hidden">
           {FEATURES.map((f, i) => (
             <FadeIn key={f.n} delay={i * 0.06}>
-              <div className="bg-[#080c14] p-6 h-full hover:bg-white/[0.02] transition-colors group">
-                <div className="text-[11px] font-black text-zinc-600 mb-4 font-mono group-hover:text-blue-500/60 transition-colors">{f.n}</div>
-                <h3 className="text-sm font-bold text-white mb-2">{f.title}</h3>
-                <p className="text-sm text-zinc-500 leading-relaxed">{f.desc}</p>
+              <div className="bg-background p-6 h-full hover:bg-muted/30 transition-colors group">
+                <div className="text-[11px] font-black text-muted-foreground/50 mb-4 font-mono group-hover:text-primary/60 transition-colors">{f.n}</div>
+                <h3 className="text-sm font-bold text-foreground mb-2">{f.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
               </div>
             </FadeIn>
           ))}
@@ -329,15 +325,15 @@ export default function Landing() {
       <section className="px-6 pb-24 max-w-5xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <FadeIn>
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-3">Modular by design</p>
-            <h2 className="text-3xl font-bold text-white tracking-tight mb-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">Modular by design</p>
+            <h2 className="text-3xl font-bold text-foreground tracking-tight mb-4">
               Compose agents,<br />skills, and teams
             </h2>
-            <p className="text-zinc-400 leading-relaxed mb-6">
+            <p className="text-muted-foreground leading-relaxed mb-6">
               Every agent is a configurable unit. Assign any combination of skills — web search, code execution,
               Google integrations, custom APIs — and compose them into teams with a single config.
             </p>
-            <div className="space-y-2 text-sm text-zinc-400">
+            <div className="space-y-2 text-sm text-muted-foreground">
               {[
                 "40+ built-in agent role templates",
                 "10+ integrations out of the box",
@@ -345,7 +341,7 @@ export default function Landing() {
                 "REST API for programmatic control",
               ].map((t) => (
                 <div key={t} className="flex items-center gap-2">
-                  <span className="w-1 h-1 rounded-full bg-blue-400 flex-shrink-0" />
+                  <span className="w-1 h-1 rounded-full bg-primary flex-shrink-0" />
                   {t}
                 </div>
               ))}
@@ -385,16 +381,16 @@ export default function Landing() {
       {/* ── Open source CTA ──────────────────────────────────────────────────── */}
       <section className="px-6 pb-24 max-w-5xl mx-auto">
         <FadeIn>
-          <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-10 md:p-14 relative overflow-hidden">
+          <div className="rounded-2xl border border-border/50 bg-card/60 p-10 md:p-14 relative overflow-hidden">
             {/* Glow */}
-            <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-96 h-48 bg-[radial-gradient(ellipse,rgba(99,102,241,0.15),transparent_70%)]" />
+            <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-96 h-48 bg-[radial-gradient(ellipse,rgba(99,102,241,0.12),transparent_70%)]" />
 
             <div className="relative text-center max-w-2xl mx-auto">
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Open Source</p>
-              <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-4">Open Source</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-4">
                 Originated from Open Source,<br />give back to Open Source
               </h2>
-              <p className="text-zinc-400 mb-8 leading-relaxed">
+              <p className="text-muted-foreground mb-8 leading-relaxed">
                 AI Collective is MIT-licensed and built in public. Star the repo, fork it, open issues,
                 or contribute — this is your platform too.
               </p>
@@ -405,27 +401,27 @@ export default function Landing() {
                   href={GITHUB_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/4 text-sm font-bold text-zinc-300 hover:border-white/20 hover:text-white transition-all"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/60 bg-muted/40 text-sm font-bold text-muted-foreground hover:border-border hover:text-foreground transition-all"
                 >
-                  <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                   {stars === null ? "—" : fmt(stars)} Stars
                 </a>
                 <a
                   href={`${GITHUB_URL}/forks`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/4 text-sm font-bold text-zinc-300 hover:border-white/20 hover:text-white transition-all"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/60 bg-muted/40 text-sm font-bold text-muted-foreground hover:border-border hover:text-foreground transition-all"
                 >
-                  <GitFork className="w-4 h-4 text-blue-400" />
+                  <GitFork className="w-4 h-4 text-primary" />
                   {forks === null ? "—" : fmt(forks)} Forks
                 </a>
                 <a
                   href={`${GITHUB_URL}/issues`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/4 text-sm font-bold text-zinc-300 hover:border-white/20 hover:text-white transition-all"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/60 bg-muted/40 text-sm font-bold text-muted-foreground hover:border-border hover:text-foreground transition-all"
                 >
-                  <ExternalLink className="w-4 h-4 text-violet-400" />
+                  <ExternalLink className="w-4 h-4 text-accent" />
                   Open Issues
                 </a>
               </div>
@@ -435,14 +431,14 @@ export default function Landing() {
                   href={GITHUB_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 h-10 px-6 rounded-lg bg-white text-zinc-900 font-bold text-sm hover:bg-zinc-100 transition-colors"
+                  className="inline-flex items-center gap-2 h-10 px-6 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity"
                 >
                   <GithubIcon className="w-4 h-4" />
                   Star on GitHub
                 </a>
                 <Link
                   to="/dashboard"
-                  className="inline-flex items-center gap-2 h-10 px-6 rounded-lg border border-white/10 bg-white/4 text-zinc-300 font-semibold text-sm hover:border-white/20 hover:text-white transition-all"
+                  className="inline-flex items-center gap-2 h-10 px-6 rounded-lg border border-border/60 bg-muted/40 text-muted-foreground font-semibold text-sm hover:border-border hover:text-foreground transition-all"
                 >
                   Launch App
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -454,20 +450,20 @@ export default function Landing() {
       </section>
 
       {/* ── Footer ───────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/6 py-8 px-6">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-zinc-600">
+      <footer className="border-t border-border/60 py-8 px-6">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground/60">
           <div className="flex items-center gap-2">
             <img src="/spider.png" alt="" className="h-5 w-5 object-contain opacity-40" />
             <span>© 2026 AI Collective · MIT License</span>
           </div>
           <div className="flex items-center gap-5">
-            <Link to="/docs" className="hover:text-zinc-300 transition-colors">Docs</Link>
-            <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+            <Link to="/docs" className="hover:text-foreground transition-colors">Docs</Link>
+            <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors flex items-center gap-1.5">
               <GithubIcon className="w-3.5 h-3.5" />
               GitHub
             </a>
-            <a href={`${GITHUB_URL}/issues`} target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors">Issues</a>
-            <a href={`${GITHUB_URL}/blob/main/README.md`} target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors">README</a>
+            <a href={`${GITHUB_URL}/issues`} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Issues</a>
+            <a href={`${GITHUB_URL}/blob/main/README.md`} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">README</a>
           </div>
         </div>
       </footer>

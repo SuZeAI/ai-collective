@@ -4,6 +4,7 @@ import {
   Layout, Users, MessageSquare, CheckCircle2,
   BarChart3, Cpu, Play, Wrench, ChevronRight,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   SidebarProvider, SidebarTrigger, Sidebar, SidebarContent,
   SidebarGroup, SidebarGroupLabel, SidebarGroupContent,
@@ -192,6 +193,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <span className="font-semibold text-foreground">{currentPage.title}</span>
                 </>
               )}
+            </div>
+            <div className="ml-auto">
+              <ThemeToggle />
             </div>
           </header>
           <main className="flex-1 min-h-0 overflow-auto scrollbar-thin">
