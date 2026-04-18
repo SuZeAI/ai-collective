@@ -11,21 +11,21 @@
       "a2",
       "a3"
     ],
-    "startTime": "2026-04-06T16:46:57+00:00",
-    "endTime": "2026-04-06T16:50:02+00:00"
+    "startTime": "2026-04-18T04:28:02+00:00",
+    "endTime": "2026-04-18T04:30:13+00:00"
   },
   {
     "id": "task_9b6c8ee04d664b1d916d07960a616bda",
     "title": "Trend Adaptation Challenge",
-    "description": "Generate a short, engaging story about a specific panda animal . The story should be emotional, easy to understand, and suitable for social media captions. (you must search and use instruction tool)",
+    "description": "Generate a short, engaging story about a specific panda animal . The story should be emotional, easy to understand, and suitable for social media captions. (you must search and use instruction tool)\nwith about charactor:\nCaption: Bao Bao’s journey reminds us that sometimes, our greatest strengths are found in the most unexpected places. Don't be afraid to roll with it! 🐼💖 #PandaStory #UniqueTalent #FindYourPurpose #CuteAnimals #Inspiration\n\nHashtags: #PandaStory #UniqueTalent #FindYourPurpose #CuteAnimals #Inspiration #TikTokPanda #AnimalLover #WholesomeContent #FeelGood",
     "teamId": "t1773677767766",
-    "status": "completed",
-    "progress": 100,
+    "status": "in-progress",
+    "progress": 0,
     "assignedAgents": [
       "agent_bccd2e8cd82f40ecb294a928eed4a89b"
     ],
-    "startTime": "2026-03-26T15:39:20+00:00",
-    "endTime": "2026-03-26T15:39:29+00:00"
+    "startTime": "2026-04-18T04:31:46+00:00",
+    "endTime": null
   },
   {
     "id": "task_45d05c0be33f47bdb86071fd6a8f7d6f",
