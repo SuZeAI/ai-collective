@@ -5,6 +5,8 @@ import {
   BarChart3, Cpu, Play, Wrench, ChevronRight,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   SidebarProvider, SidebarTrigger, Sidebar, SidebarContent,
   SidebarGroup, SidebarGroupLabel, SidebarGroupContent,
@@ -12,75 +14,26 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  {
-    title: "Dashboard",
-    url: "/dashboard",
-    icon: Layout,
-    iconText: "text-sky-300",
-    iconSurface: "bg-sky-500/15",
-    iconActive: "from-sky-500 to-blue-600",
-  },
-  {
-    title: "Agents",
-    url: "/agents",
-    icon: Cpu,
-    iconText: "text-emerald-300",
-    iconSurface: "bg-emerald-500/15",
-    iconActive: "from-emerald-500 to-teal-600",
-  },
-  {
-    title: "Skills",
-    url: "/skills",
-    icon: Wrench,
-    iconText: "text-amber-300",
-    iconSurface: "bg-amber-500/15",
-    iconActive: "from-amber-500 to-orange-500",
-  },
-  {
-    title: "Teams",
-    url: "/teams",
-    icon: Users,
-    iconText: "text-violet-300",
-    iconSurface: "bg-violet-500/15",
-    iconActive: "from-indigo-500 to-violet-600",
-  },
-  {
-    title: "Tasks",
-    url: "/tasks",
-    icon: CheckCircle2,
-    iconText: "text-lime-300",
-    iconSurface: "bg-lime-500/15",
-    iconActive: "from-lime-500 to-emerald-600",
-  },
-  {
-    title: "Conversations",
-    url: "/conversations",
-    icon: MessageSquare,
-    iconText: "text-cyan-300",
-    iconSurface: "bg-cyan-500/15",
-    iconActive: "from-cyan-500 to-sky-600",
-  },
-  {
-    title: "Analytics",
-    url: "/analytics",
-    icon: BarChart3,
-    iconText: "text-fuchsia-300",
-    iconSurface: "bg-fuchsia-500/15",
-    iconActive: "from-fuchsia-500 to-pink-600",
-  },
-  {
-    title: "Playground",
-    url: "/playground",
-    icon: Play,
-    iconText: "text-rose-300",
-    iconSurface: "bg-rose-500/15",
-    iconActive: "from-rose-500 to-red-600",
-  },
+const NAV_CONFIG = [
+  { key: "dashboard" as const, url: "/dashboard", icon: Layout, iconText: "text-sky-300", iconSurface: "bg-sky-500/15", iconActive: "from-sky-500 to-blue-600" },
+  { key: "agents" as const, url: "/agents", icon: Cpu, iconText: "text-emerald-300", iconSurface: "bg-emerald-500/15", iconActive: "from-emerald-500 to-teal-600" },
+  { key: "skills" as const, url: "/skills", icon: Wrench, iconText: "text-amber-300", iconSurface: "bg-amber-500/15", iconActive: "from-amber-500 to-orange-500" },
+  { key: "teams" as const, url: "/teams", icon: Users, iconText: "text-violet-300", iconSurface: "bg-violet-500/15", iconActive: "from-indigo-500 to-violet-600" },
+  { key: "tasks" as const, url: "/tasks", icon: CheckCircle2, iconText: "text-lime-300", iconSurface: "bg-lime-500/15", iconActive: "from-lime-500 to-emerald-600" },
+  { key: "conversations" as const, url: "/conversations", icon: MessageSquare, iconText: "text-cyan-300", iconSurface: "bg-cyan-500/15", iconActive: "from-cyan-500 to-sky-600" },
+  { key: "analytics" as const, url: "/analytics", icon: BarChart3, iconText: "text-fuchsia-300", iconSurface: "bg-fuchsia-500/15", iconActive: "from-fuchsia-500 to-pink-600" },
+  { key: "playground" as const, url: "/playground", icon: Play, iconText: "text-rose-300", iconSurface: "bg-rose-500/15", iconActive: "from-rose-500 to-red-600" },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const { t } = useLanguage();
+
+  const navItems = NAV_CONFIG.map((item) => ({
+    ...item,
+    title: t.nav[item.key],
+  }));
+
   const currentPage = navItems.find((n) => n.url === location.pathname);
 
   return (
@@ -112,7 +65,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     AI Collective
                   </span>
                   <span className="block text-[10px] text-sidebar-foreground/40 font-medium mt-0.5 uppercase tracking-wider">
-                    Multi-Agent Platform
+                    {t.brand.subtitle}
                   </span>
                 </div>
               </Link>
@@ -121,7 +74,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             {/* Navigation */}
             <SidebarGroup className="flex-1 overflow-y-auto py-2">
               <SidebarGroupLabel className="text-sidebar-foreground/35 text-[10px] font-bold uppercase tracking-widest px-3 mb-1">
-                Navigation
+                {t.nav.label}
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-0.5">
@@ -174,7 +127,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
                 </span>
                 <span className="text-[11px] text-sidebar-foreground/40 font-mono group-data-[collapsible=icon]:hidden">
-                  All systems online
+                  {t.status.allSystemsOnline}
                 </span>
               </div>
             </div>
@@ -194,7 +147,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </>
               )}
             </div>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-1">
+              <LanguageSwitcher />
               <ThemeToggle />
             </div>
           </header>

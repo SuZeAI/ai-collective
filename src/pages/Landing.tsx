@@ -3,11 +3,12 @@ import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import { ArrowRight, Star, GitFork, ExternalLink, ChevronRight } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const GITHUB_URL = "https://github.com/SuZeAI/ai-collective";
 const GITHUB_REPO = "SuZeAI/ai-collective";
 
-// ─── GitHub stats ─────────────────────────────────────────────────────────────
 function useGitHubStats() {
   const [stars, setStars] = useState<number | null>(null);
   const [forks, setForks] = useState<number | null>(null);
@@ -24,7 +25,6 @@ function fmt(n: number | null) {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 }
 
-// ─── GH icon ─────────────────────────────────────────────────────────────────
 function GithubIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -33,7 +33,6 @@ function GithubIcon({ className }: { className?: string }) {
   );
 }
 
-// ─── Terminal line ────────────────────────────────────────────────────────────
 interface TermLine { agent: string; color: string; text: string; delay: number }
 
 const TERM_LINES: TermLine[] = [
@@ -64,21 +63,18 @@ function Terminal() {
 
   return (
     <div ref={ref} className="rounded-xl border border-white/8 bg-zinc-950 overflow-hidden font-mono text-[13px]">
-      {/* Toolbar */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-white/6 bg-black/30">
         <span className="w-3 h-3 rounded-full bg-rose-500/70" />
         <span className="w-3 h-3 rounded-full bg-amber-500/70" />
         <span className="w-3 h-3 rounded-full bg-emerald-500/70" />
         <span className="ml-3 text-zinc-500 text-[11px]">ai-collective · task execution</span>
       </div>
-      {/* Prompt */}
       <div className="px-5 pt-4 pb-2 text-zinc-500">
         <span className="text-emerald-400">❯</span>{" "}
         <span className="text-zinc-300">ai-collective run</span>{" "}
         <span className="text-zinc-500">--team research-team --task</span>{" "}
         <span className="text-amber-300/80">"Research top AI frameworks 2026"</span>
       </div>
-      {/* Output lines */}
       <div className="px-5 pb-5 space-y-1.5 min-h-[220px]">
         {TERM_LINES.slice(0, visible).map((l, i) => (
           <motion.div
@@ -106,17 +102,6 @@ function Terminal() {
   );
 }
 
-// ─── Feature badges (numbered like deerflow) ──────────────────────────────────
-const FEATURES = [
-  { n: "01", title: "Multi-Agent Architecture", desc: "Specialized agents with distinct roles — PM, Researcher, Developer, Reviewer — each with a focused system prompt." },
-  { n: "02", title: "Skill System",             desc: "Attach tools and integrations to any agent: web search, Google Sheets, code execution, REST APIs, browser automation." },
-  { n: "03", title: "Team Execution Modes",     desc: "Mesh mode for open collaboration or sequential mode for strict pipelines. Configure per team." },
-  { n: "04", title: "Real-time Task Graph",     desc: "SVG visualization of agent interactions with pan & zoom. Watch your agents work in real time." },
-  { n: "05", title: "LangGraph Powered",        desc: "The orchestration layer is built on LangGraph — battle-tested, composable, and production-ready." },
-  { n: "06", title: "Self-Hosted & MIT",        desc: "Full control over your data and infrastructure. No vendor lock-in. Deploy on any cloud or on-premise." },
-];
-
-// ─── File tree section ────────────────────────────────────────────────────────
 const FILE_TREE = [
   { indent: 0, type: "dir",  name: "ai-collective/" },
   { indent: 1, type: "dir",  name: "agents/" },
@@ -128,7 +113,6 @@ const FILE_TREE = [
   { indent: 2, type: "file", name: "web_search.py",      badge: null },
   { indent: 2, type: "file", name: "google_sheets.py",   badge: null },
   { indent: 2, type: "file", name: "code_executor.py",   badge: null },
-  { indent: 2, type: "file", name: "browser_use.py",     badge: null },
   { indent: 1, type: "dir",  name: "teams/" },
   { indent: 2, type: "file", name: "research_team.yaml", badge: null },
   { indent: 2, type: "file", name: "dev_team.yaml",      badge: null },
@@ -141,7 +125,6 @@ const BADGE_COLORS: Record<string, string> = {
   Review:   "bg-violet-500/15 text-violet-300 border-violet-500/20",
 };
 
-// ─── Fade-in section wrapper ──────────────────────────────────────────────────
 function FadeIn({ children, className, delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
@@ -158,13 +141,13 @@ function FadeIn({ children, className, delay = 0 }: { children: React.ReactNode;
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
 export default function Landing() {
   const { stars, forks } = useGitHubStats();
+  const { t } = useLanguage();
+  const L = t.landing;
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
-      {/* Subtle grid pattern */}
       <div
         className="pointer-events-none fixed inset-0 opacity-[0.04]"
         style={{
@@ -174,18 +157,15 @@ export default function Landing() {
         }}
       />
 
-      {/* ── Navbar ───────────────────────────────────────────────────────────── */}
+      {/* Navbar */}
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          {/* Brand */}
           <Link to="/" className="flex items-center gap-2.5 group">
             <img src="/spider.png" alt="" className="h-7 w-7 object-contain opacity-90" />
             <span className="font-bold text-[15px] tracking-tight text-foreground">AI Collective</span>
           </Link>
 
-          {/* Right */}
           <div className="flex items-center gap-2">
-            {/* GitHub star button */}
             <a
               href={GITHUB_URL}
               target="_blank"
@@ -204,22 +184,22 @@ export default function Landing() {
               </span>
             </a>
 
+            <LanguageSwitcher />
             <ThemeToggle />
 
             <Link
               to="/dashboard"
               className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity"
             >
-              Get Started
+              {L.nav.getStarted}
               <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
         </div>
       </header>
 
-      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
+      {/* Hero */}
       <section className="pt-24 pb-20 px-6 text-center relative">
-        {/* Radial glow */}
         <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.12),transparent_70%)]" />
 
         <motion.div
@@ -228,7 +208,6 @@ export default function Landing() {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="relative max-w-4xl mx-auto"
         >
-          {/* Badge */}
           <a
             href={GITHUB_URL}
             target="_blank"
@@ -236,40 +215,37 @@ export default function Landing() {
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border/60 bg-muted/40 text-muted-foreground text-xs font-medium mb-8 hover:border-border hover:text-foreground transition-all"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Open Source · MIT License
+            {L.hero.badge}
             <ChevronRight className="w-3 h-3 opacity-50" />
           </a>
 
-          {/* Headline */}
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-6 text-foreground">
-            An open-source AI collective
+            {L.hero.h1[0]}
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-violet-500 to-pink-500">
-              that researches, codes,
+              {L.hero.h1[1]}
             </span>
             <br />
-            and creates
+            {L.hero.h1[2]}
           </h1>
 
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-10">
-            Build specialized agent teams — each with their own role, skills, and memory.
-            Submit a task, watch them collaborate, get production-ready results.
+            {L.hero.sub}
           </p>
 
-          {/* CTAs */}
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link
               to="/dashboard"
               className="inline-flex items-center gap-2 h-11 px-6 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
             >
-              Get Started
+              {L.hero.cta1}
               <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               to="/docs"
               className="inline-flex items-center gap-2 h-11 px-6 rounded-lg border border-border/60 bg-muted/40 text-muted-foreground font-semibold text-sm hover:border-border hover:text-foreground transition-all"
             >
-              Read the Docs
+              {L.hero.cta2}
             </Link>
             <a
               href={GITHUB_URL}
@@ -290,29 +266,33 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      {/* ── Terminal demo ─────────────────────────────────────────────────────── */}
+      {/* Terminal demo */}
       <section className="px-6 pb-24 max-w-4xl mx-auto">
         <FadeIn>
           <Terminal />
         </FadeIn>
       </section>
 
-      {/* ── Features (numbered badges) ────────────────────────────────────────── */}
+      {/* Features */}
       <section className="px-6 pb-24 max-w-5xl mx-auto">
         <FadeIn>
           <div className="mb-10">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">What's included</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">{L.features.label}</p>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
-              Everything you need to build<br />AI-powered workflows
+              {L.features.title.split("\n").map((line, i) => (
+                <span key={i}>{line}{i === 0 && <br />}</span>
+              ))}
             </h2>
           </div>
         </FadeIn>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border/40 border border-border/40 rounded-2xl overflow-hidden">
-          {FEATURES.map((f, i) => (
-            <FadeIn key={f.n} delay={i * 0.06}>
+          {L.features.items.map((f, i) => (
+            <FadeIn key={i} delay={i * 0.06}>
               <div className="bg-background p-6 h-full hover:bg-muted/30 transition-colors group">
-                <div className="text-[11px] font-black text-muted-foreground/50 mb-4 font-mono group-hover:text-primary/60 transition-colors">{f.n}</div>
+                <div className="text-[11px] font-black text-muted-foreground/50 mb-4 font-mono group-hover:text-primary/60 transition-colors">
+                  {String(i + 1).padStart(2, "0")}
+                </div>
                 <h3 className="text-sm font-bold text-foreground mb-2">{f.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
               </div>
@@ -321,28 +301,22 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── File tree + description ───────────────────────────────────────────── */}
+      {/* Modular section */}
       <section className="px-6 pb-24 max-w-5xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <FadeIn>
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">Modular by design</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">{L.modular.label}</p>
             <h2 className="text-3xl font-bold text-foreground tracking-tight mb-4">
-              Compose agents,<br />skills, and teams
+              {L.modular.title.split("\n").map((line, i) => (
+                <span key={i}>{line}{i === 0 && <br />}</span>
+              ))}
             </h2>
-            <p className="text-muted-foreground leading-relaxed mb-6">
-              Every agent is a configurable unit. Assign any combination of skills — web search, code execution,
-              Google integrations, custom APIs — and compose them into teams with a single config.
-            </p>
+            <p className="text-muted-foreground leading-relaxed mb-6">{L.modular.desc}</p>
             <div className="space-y-2 text-sm text-muted-foreground">
-              {[
-                "40+ built-in agent role templates",
-                "10+ integrations out of the box",
-                "Custom JavaScript skill support",
-                "REST API for programmatic control",
-              ].map((t) => (
-                <div key={t} className="flex items-center gap-2">
+              {L.modular.bullets.map((b) => (
+                <div key={b} className="flex items-center gap-2">
                   <span className="w-1 h-1 rounded-full bg-primary flex-shrink-0" />
-                  {t}
+                  {b}
                 </div>
               ))}
             </div>
@@ -359,12 +333,8 @@ export default function Landing() {
               <div className="p-5 space-y-1">
                 {FILE_TREE.map((node, i) => (
                   <div key={i} className="flex items-center gap-2" style={{ paddingLeft: `${node.indent * 20}px` }}>
-                    <span className="text-zinc-600 select-none">
-                      {node.type === "dir" ? "📁" : "📄"}
-                    </span>
-                    <span className={node.type === "dir" ? "text-blue-400 font-medium" : "text-zinc-300"}>
-                      {node.name}
-                    </span>
+                    <span className="text-zinc-600 select-none">{node.type === "dir" ? "📁" : "📄"}</span>
+                    <span className={node.type === "dir" ? "text-blue-400 font-medium" : "text-zinc-300"}>{node.name}</span>
                     {node.badge && (
                       <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${BADGE_COLORS[node.badge] ?? ""}`}>
                         {node.badge}
@@ -378,69 +348,48 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Open source CTA ──────────────────────────────────────────────────── */}
+      {/* Open Source CTA */}
       <section className="px-6 pb-24 max-w-5xl mx-auto">
         <FadeIn>
           <div className="rounded-2xl border border-border/50 bg-card/60 p-10 md:p-14 relative overflow-hidden">
-            {/* Glow */}
             <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-96 h-48 bg-[radial-gradient(ellipse,rgba(99,102,241,0.12),transparent_70%)]" />
 
             <div className="relative text-center max-w-2xl mx-auto">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-4">Open Source</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-4">{L.openSource.label}</p>
               <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-4">
-                Originated from Open Source,<br />give back to Open Source
+                {L.openSource.title.split("\n").map((line, i) => (
+                  <span key={i}>{line}{i === 0 && <br />}</span>
+                ))}
               </h2>
-              <p className="text-muted-foreground mb-8 leading-relaxed">
-                AI Collective is MIT-licensed and built in public. Star the repo, fork it, open issues,
-                or contribute — this is your platform too.
-              </p>
+              <p className="text-muted-foreground mb-8 leading-relaxed">{L.openSource.desc}</p>
 
-              {/* GitHub stats */}
               <div className="flex flex-wrap justify-center gap-3 mb-8">
-                <a
-                  href={GITHUB_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/60 bg-muted/40 text-sm font-bold text-muted-foreground hover:border-border hover:text-foreground transition-all"
-                >
+                <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/60 bg-muted/40 text-sm font-bold text-muted-foreground hover:border-border hover:text-foreground transition-all">
                   <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                  {stars === null ? "—" : fmt(stars)} Stars
+                  {stars === null ? "—" : fmt(stars)} {L.openSource.stars}
                 </a>
-                <a
-                  href={`${GITHUB_URL}/forks`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/60 bg-muted/40 text-sm font-bold text-muted-foreground hover:border-border hover:text-foreground transition-all"
-                >
+                <a href={`${GITHUB_URL}/forks`} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/60 bg-muted/40 text-sm font-bold text-muted-foreground hover:border-border hover:text-foreground transition-all">
                   <GitFork className="w-4 h-4 text-primary" />
-                  {forks === null ? "—" : fmt(forks)} Forks
+                  {forks === null ? "—" : fmt(forks)} {L.openSource.forks}
                 </a>
-                <a
-                  href={`${GITHUB_URL}/issues`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/60 bg-muted/40 text-sm font-bold text-muted-foreground hover:border-border hover:text-foreground transition-all"
-                >
+                <a href={`${GITHUB_URL}/issues`} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/60 bg-muted/40 text-sm font-bold text-muted-foreground hover:border-border hover:text-foreground transition-all">
                   <ExternalLink className="w-4 h-4 text-accent" />
-                  Open Issues
+                  {L.openSource.issues}
                 </a>
               </div>
 
               <div className="flex flex-wrap justify-center gap-3">
-                <a
-                  href={GITHUB_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 h-10 px-6 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity"
-                >
+                <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 h-10 px-6 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity">
                   <GithubIcon className="w-4 h-4" />
-                  Star on GitHub
+                  {L.openSource.starCta}
                 </a>
-                <Link
-                  to="/dashboard"
-                  className="inline-flex items-center gap-2 h-10 px-6 rounded-lg border border-border/60 bg-muted/40 text-muted-foreground font-semibold text-sm hover:border-border hover:text-foreground transition-all"
-                >
-                  Launch App
+                <Link to="/dashboard"
+                  className="inline-flex items-center gap-2 h-10 px-6 rounded-lg border border-border/60 bg-muted/40 text-muted-foreground font-semibold text-sm hover:border-border hover:text-foreground transition-all">
+                  {L.openSource.launch}
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
@@ -449,15 +398,15 @@ export default function Landing() {
         </FadeIn>
       </section>
 
-      {/* ── Footer ───────────────────────────────────────────────────────────── */}
+      {/* Footer */}
       <footer className="border-t border-border/60 py-8 px-6">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground/60">
           <div className="flex items-center gap-2">
             <img src="/spider.png" alt="" className="h-5 w-5 object-contain opacity-40" />
-            <span>© 2026 AI Collective · MIT License</span>
+            <span>{L.footer.copy}</span>
           </div>
           <div className="flex items-center gap-5">
-            <Link to="/docs" className="hover:text-foreground transition-colors">Docs</Link>
+            <Link to="/docs" className="hover:text-foreground transition-colors">{t.docs.ui.docsLabel}</Link>
             <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors flex items-center gap-1.5">
               <GithubIcon className="w-3.5 h-3.5" />
               GitHub
