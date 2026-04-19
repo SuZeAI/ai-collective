@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AppLayout } from "@/components/AppLayout";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
@@ -25,6 +26,7 @@ function WithLayout({ children }: { children: React.ReactNode }) {
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+  <LanguageProvider>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -46,6 +48,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  </LanguageProvider>
   </ThemeProvider>
 );
 
