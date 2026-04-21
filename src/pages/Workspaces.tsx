@@ -100,7 +100,7 @@ function WebhookUrlRow({ url }: { url: string }) {
   return (
     <div className="flex items-center gap-2 rounded-lg border border-border/40 bg-muted/30 px-3 py-2">
       <Webhook className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-      <span className="flex-1 text-[10px] font-mono text-muted-foreground truncate">{url}</span>
+      <span className="flex-1 text-[10px] font-mono text-muted-foreground break-all">{url}</span>
       <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={copy}>
         {copied ? <CheckCheck className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
       </Button>
@@ -261,7 +261,7 @@ function WorkspaceDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[min(95vw,1280px)] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BrainCircuit className="h-4 w-4 text-teal-400" />
