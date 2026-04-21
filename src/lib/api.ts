@@ -139,6 +139,45 @@ export type GraphContextSnapshot = {
   updated_at: string | null;
 };
 
+export type PlatformHook = {
+  id: string;
+  platform: string;
+  name: string;
+  config: Record<string, unknown>;
+  description: string;
+  enabled: boolean;
+};
+
+export type Workspace = {
+  id: string;
+  name: string;
+  description: string;
+  teamIds: string[];
+  primaryTeamId: string;
+  platformHooks: PlatformHook[];
+  createdAt: string;
+  avatar?: string;
+  avatar_icon?: string;
+  avatar_color?: string;
+  avatar_url?: string;
+};
+
+export type PlatformConfigField = {
+  key: string;
+  label: string;
+  input: "text" | "textarea" | "select" | "boolean";
+  required?: boolean;
+  default?: unknown;
+  placeholder?: string;
+  options?: string[];
+};
+
+export type PlatformDef = {
+  platform: string;
+  label: string;
+  config_fields: PlatformConfigField[];
+};
+
 export type Analytics = {
   tasksCompleted: number;
   avgCompletionTime: string;
@@ -333,4 +372,11 @@ export const api = {
 
   getAnalytics: () => apiFetch<Analytics>("/analytics"),
   listActivityFeed: () => apiFetch<ActivityFeedItem[]>("/activity-feed"),
+
+  listWorkspaces: () => apiFetch<Workspace[]>("/workspaces"),
+  getWorkspace: (id: string) => apiFetch<Workspace>(`/workspaces/${id}`),
+  upsertWorkspace: (payload: Partial<Workspace> & Pick<Workspace, "name">) =>
+    apiFetch<Workspace>("/workspaces", { method: "POST", body: JSON.stringify(payload) }),
+  deleteWorkspace: (id: string) => apiFetch<{ deleted: boolean }>(`/workspaces/${id}`, { method: "DELETE" }),
+  listPlatforms: () => apiFetch<PlatformDef[]>("/workspaces/platforms"),
 };

@@ -18,6 +18,7 @@ export type Translations = {
     conversations: string;
     analytics: string;
     playground: string;
+    workspaces: string;
   };
   status: { allSystemsOnline: string };
   brand: { subtitle: string };
@@ -171,7 +172,7 @@ export const translations: Record<Language, Translations> = {
     nav: {
       label: "Navigation", dashboard: "Dashboard", agents: "Agents",
       skills: "Skills", teams: "Teams", tasks: "Tasks",
-      conversations: "Conversations", analytics: "Analytics", playground: "Playground",
+      conversations: "Conversations", analytics: "Analytics", playground: "Playground", workspaces: "Workspaces",
     },
     status: { allSystemsOnline: "All systems online" },
     brand: { subtitle: "Multi-Agent Platform" },
@@ -348,7 +349,7 @@ export const translations: Record<Language, Translations> = {
     nav: {
       label: "Điều hướng", dashboard: "Bảng điều khiển", agents: "Tác nhân",
       skills: "Kỹ năng", teams: "Nhóm", tasks: "Nhiệm vụ",
-      conversations: "Hội thoại", analytics: "Phân tích", playground: "Thử nghiệm",
+      conversations: "Hội thoại", analytics: "Phân tích", playground: "Thử nghiệm", workspaces: "Không gian làm việc",
     },
     status: { allSystemsOnline: "Tất cả hệ thống hoạt động" },
     brand: { subtitle: "Nền tảng đa tác nhân" },
@@ -525,7 +526,7 @@ export const translations: Record<Language, Translations> = {
     nav: {
       label: "导航", dashboard: "仪表盘", agents: "智能体",
       skills: "技能", teams: "团队", tasks: "任务",
-      conversations: "对话", analytics: "分析", playground: "演练场",
+      conversations: "对话", analytics: "分析", playground: "演练场", workspaces: "工作空间",
     },
     status: { allSystemsOnline: "所有系统运行正常" },
     brand: { subtitle: "多智能体平台" },
@@ -702,7 +703,7 @@ export const translations: Record<Language, Translations> = {
     nav: {
       label: "ナビゲーション", dashboard: "ダッシュボード", agents: "エージェント",
       skills: "スキル", teams: "チーム", tasks: "タスク",
-      conversations: "会話", analytics: "分析", playground: "プレイグラウンド",
+      conversations: "会話", analytics: "分析", playground: "プレイグラウンド", workspaces: "ワークスペース",
     },
     status: { allSystemsOnline: "全システム稼働中" },
     brand: { subtitle: "マルチエージェントプラットフォーム" },
