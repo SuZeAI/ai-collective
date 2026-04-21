@@ -29,7 +29,7 @@ export default function TeamBuilder() {
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
-  const [mode, setMode] = useState<"mesh" | "sequential" | "ring" | "supervisor">("sequential");
+  const [mode, setMode] = useState<"mesh" | "sequential" | "ring" | "supervisor" | "tree">("sequential");
   const [maxSteps, setMaxSteps] = useState("6");
   const [avatarMode, setAvatarMode] = useState<AvatarMode>("initial");
   const [avatarIcon, setAvatarIcon] = useState("users");
@@ -132,7 +132,7 @@ export default function TeamBuilder() {
     setName(team.name);
     setDesc(team.description ?? "");
     setSelectedAgents(team.agents || []);
-    setMode((team.mode as "mesh" | "sequential" | "ring" | "supervisor") ?? "sequential");
+    setMode((team.mode as "mesh" | "sequential" | "ring" | "supervisor" | "tree") ?? "sequential");
     setMaxSteps(String(team.maxSteps ?? 6));
     setAvatarMode(team.avatar_url ? "image" : team.avatar_icon ? "icon" : "initial");
     setAvatarIcon(team.avatar_icon || "users");
@@ -385,17 +385,24 @@ export default function TeamBuilder() {
                   <label className="text-sm font-medium">Execution Mode</label>
                   <select
                     value={mode}
-                    onChange={(e) => setMode(e.target.value as "mesh" | "sequential" | "ring" | "supervisor")}
+                    onChange={(e) => setMode(e.target.value as "mesh" | "sequential" | "ring" | "supervisor" | "tree")}
                     className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
                   >
                     <option value="sequential">Sequential (agents take turns)</option>
                     <option value="mesh">Mesh (all agents interact simultaneously)</option>
                     <option value="ring">Ring (agents loop in circular order)</option>
                     <option value="supervisor">Supervisor (lead delegates to workers)</option>
+                    <option value="tree">Tree (root delegates down branches, leaves return to root)</option>
                   </select>
                   {mode === "supervisor" && (
                     <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                       First agent in the order will be the <strong>lead</strong>. Remaining agents are <strong>workers</strong>.
+                    </p>
+                  )}
+                  {mode === "tree" && selectedAgents.length > 0 && (
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      Agents arranged as a binary tree: <strong>{agentById.get(selectedAgents[0])?.name ?? "Agent 1"}</strong> is root.
+                      {selectedAgents.length > 1 && <> Children: <strong>{[selectedAgents[1], selectedAgents[2]].filter(Boolean).map(id => agentById.get(id)?.name).filter(Boolean).join(", ")}</strong>.</>}
                     </p>
                   )}
                 </div>
@@ -720,7 +727,7 @@ export default function TeamBuilder() {
             <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
               <span>{team.activeTasks} active tasks</span>
               <span className="px-2 py-1 rounded bg-muted/50">
-                {team.mode === "mesh" ? "🔗 Mesh" : team.mode === "ring" ? "🔄 Ring" : team.mode === "supervisor" ? "👑 Supervisor" : "📋 Sequential"} • {team.maxSteps || 6} steps
+                {team.mode === "mesh" ? "🔗 Mesh" : team.mode === "ring" ? "🔄 Ring" : team.mode === "supervisor" ? "👑 Supervisor" : team.mode === "tree" ? "🌲 Tree" : "📋 Sequential"} • {team.maxSteps || 6} steps
               </span>
             </div>
           </motion.div>
