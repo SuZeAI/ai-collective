@@ -29,7 +29,7 @@ export default function TeamBuilder() {
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
-  const [mode, setMode] = useState<"mesh" | "sequential">("sequential");
+  const [mode, setMode] = useState<"mesh" | "sequential" | "ring">("sequential");
   const [maxSteps, setMaxSteps] = useState("6");
   const [avatarMode, setAvatarMode] = useState<AvatarMode>("initial");
   const [avatarIcon, setAvatarIcon] = useState("users");
@@ -132,7 +132,7 @@ export default function TeamBuilder() {
     setName(team.name);
     setDesc(team.description ?? "");
     setSelectedAgents(team.agents || []);
-    setMode(team.mode ?? "sequential");
+    setMode((team.mode as "mesh" | "sequential" | "ring") ?? "sequential");
     setMaxSteps(String(team.maxSteps ?? 6));
     setAvatarMode(team.avatar_url ? "image" : team.avatar_icon ? "icon" : "initial");
     setAvatarIcon(team.avatar_icon || "users");
@@ -385,11 +385,12 @@ export default function TeamBuilder() {
                   <label className="text-sm font-medium">Execution Mode</label>
                   <select
                     value={mode}
-                    onChange={(e) => setMode(e.target.value as "mesh" | "sequential")}
+                    onChange={(e) => setMode(e.target.value as "mesh" | "sequential" | "ring")}
                     className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
                   >
                     <option value="sequential">Sequential (agents take turns)</option>
                     <option value="mesh">Mesh (all agents interact simultaneously)</option>
+                    <option value="ring">Ring (agents loop in circular order)</option>
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -713,7 +714,7 @@ export default function TeamBuilder() {
             <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
               <span>{team.activeTasks} active tasks</span>
               <span className="px-2 py-1 rounded bg-muted/50">
-                {team.mode === "mesh" ? "🔗 Mesh" : "📋 Sequential"} • {team.maxSteps || 6} steps
+                {team.mode === "mesh" ? "🔗 Mesh" : team.mode === "ring" ? "🔄 Ring" : "📋 Sequential"} • {team.maxSteps || 6} steps
               </span>
             </div>
           </motion.div>

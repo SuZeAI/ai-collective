@@ -18,6 +18,7 @@ from backend.application.service.skill_service import SkillService
 from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.domain.agent.langgraph_orchestrator import LangGraphAgentOrchestrator
 from backend.domain.agent.langgraph_mesh import MultiAgentMeshOrchestrator
+from backend.domain.agent.langgraph_ring import LangGraphRingOrchestrator
 from backend.infrastructure.llm.factory import create_llm_provider
 from backend.infrastructure.repositories.json_files import (
     JsonActivityFeedRepository,
@@ -126,9 +127,11 @@ def get_agent_graph_service(mode: str = "sequential") -> AgentGraphService | Non
     provider = _llm_provider()
     if not provider:
         return None
-    orchestrator = (
-        MultiAgentMeshOrchestrator() if mode == "mesh"
-        else LangGraphAgentOrchestrator()
-    )
+    if mode == "mesh":
+        orchestrator = MultiAgentMeshOrchestrator()
+    elif mode == "ring":
+        orchestrator = LangGraphRingOrchestrator()
+    else:
+        orchestrator = LangGraphAgentOrchestrator()
     get_logger().info(f"{orchestrator.__class__.__name__} selected for mode='{mode}'")
     return AgentGraphService(provider, orchestrator)

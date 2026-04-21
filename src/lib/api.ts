@@ -77,7 +77,7 @@ export type Team = {
   avatar_icon?: string;
   avatar_color?: string;
   avatar_url?: string;
-  mode?: "mesh" | "sequential";
+  mode?: "mesh" | "sequential" | "ring";
   maxSteps?: number;
 };
 
@@ -254,7 +254,7 @@ export const api = {
     user_input: string;
     agents: string[];
     max_rounds?: number;
-    mode?: "mesh" | "sequential";
+    mode?: "mesh" | "sequential" | "ring";
     conversation_id?: string;
     graph_config?: {
       build_method?: "rule" | "embedding" | "ie";
