@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import time
 from uuid import uuid4
 from dataclasses import replace
 from datetime import datetime, timezone
@@ -24,7 +26,9 @@ from backend.domain.enums import AgentStatus
 from backend.domain.enums import TaskStatus
 from backend.domain.models import Message, Task
 from backend.infrastructure import task_run_registry
+from backend.infrastructure import task_queue
 
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -79,6 +83,7 @@ def _run_team_conversation_loop(
     team_service: TeamService,
     agent_service: AgentService,
     conv_service: ConversationService,
+    cancel_flag=None,
 ) -> Task:
     if task.status != TaskStatus.in_progress:
         return task
@@ -115,6 +120,9 @@ def _run_team_conversation_loop(
     for step in range(max_steps):
         if progress >= 100:
             break
+        if cancel_flag is not None and cancel_flag.cancelled:
+            logger.info("Task %s cancelled at step %d", task.id, step)
+            break
         speaker = participants[step % len(participants)]
         text = messages[step % len(messages)]
         conv_service.add_message(
@@ -144,8 +152,21 @@ def _run_team_conversation_loop(
             )
         )
 
+    if cancel_flag is not None and cancel_flag.cancelled:
+        # Don't overwrite the user-set stopped/paused status that triggered cancellation.
+        try:
+            return task_service.get_task(task.id)
+        except Exception:
+            return task
+
     updated = replace(task, progress=progress, status=status)
     return task_service.upsert_task(updated)
+
+
+@router.get("/queue/status")
+def get_queue_status() -> dict:
+    """Return current task queue state: running/waiting task IDs and concurrency limits."""
+    return task_queue.status()
 
 
 @router.get("", response_model=list[TaskSchema])
@@ -185,9 +206,10 @@ def upsert_task(
     if end_time is None and previous_task is not None:
         end_time = previous_task.end_time
 
-    # When stopping or pausing: signal any active stream to halt immediately.
+    # When stopping or pausing: signal any active stream to halt and remove from queue.
     if next_status in {TaskStatus.stopped, TaskStatus.paused}:
         task_run_registry.signal_cancel(task_id)
+        task_queue.cancel(task_id)
 
     # Restart behavior: moving from completed/stopped -> in-progress clears old conversations.
     if previous_status in {TaskStatus.completed, TaskStatus.stopped} and next_status == TaskStatus.in_progress:
@@ -226,6 +248,31 @@ def upsert_task(
     saved = service.upsert_task(task)
 
     _sync_runtime_state(service, team_service, agent_service)
+
+    # Submit background execution when task becomes active.
+    if next_status == TaskStatus.in_progress:
+        # Register the cancel flag NOW — before submit — so that a concurrent
+        # stop/pause request can signal it even before the worker thread starts.
+        cancel_flag = task_run_registry.register(task_id)
+
+        _svc = service
+        _tsvc = team_service
+        _asvc = agent_service
+        _csvc = conv_service
+        _snap = saved
+
+        def _background_run() -> None:
+            try:
+                if not cancel_flag.cancelled:
+                    _run_team_conversation_loop(_snap, _svc, _tsvc, _asvc, _csvc, cancel_flag)
+            finally:
+                task_run_registry.unregister(_snap.id)
+                _sync_runtime_state(_svc, _tsvc, _asvc)
+
+        position = task_queue.submit(task_id, _background_run)
+        if position > 0:
+            logger.info("Task %s queued at position %d (max concurrent reached)", task_id, position)
+
     return TaskSchema.from_domain(saved)
 
 
