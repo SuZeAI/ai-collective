@@ -443,6 +443,46 @@
         "edge_weight": 0.2,
         "persist_mode": "snapshot_plus_log"
       }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "user-8a02595929e34e61a9463ff3600d25fe",
+      "speaker": "user",
+      "created_at": "2026-04-22T15:54:14.136350+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "agent-Research Content TikTok-107d5ddbb0414f7b8871fc7fc9f82c7c",
+      "speaker": "Research Content TikTok",
+      "created_at": "2026-04-22T15:54:37.477752+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
     }
   ],
   "t1774110075739": [
@@ -530,9 +570,9 @@
   "task_9b6c8ee04d664b1d916d07960a616bda": [
     {
       "type": "ingest_message",
-      "message_id": "user-e7bdf4fc906646d19055f5b77ff18034",
+      "message_id": "user-27087fa9a4594031b6f43e523a952196",
       "speaker": "user",
-      "created_at": "2026-04-21T17:04:33.655960+00:00",
+      "created_at": "2026-04-22T15:55:37.413523+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -550,9 +590,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "agent-Research Content TikTok-e127fcee289d4a719e6615a23cc0c49b",
+      "message_id": "agent-Research Content TikTok-f6654771a4d342138c1d820bfcfd5c1a",
       "speaker": "Research Content TikTok",
-      "created_at": "2026-04-21T17:04:48.899362+00:00",
+      "created_at": "2026-04-22T15:55:40.188514+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -570,9 +610,29 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "m_0ab5d682b79d4b1d8c443953429d4ae7",
+      "message_id": "agent-Research Content TikTok-19c7c1037c4e435894c2f99a267d0abd",
+      "speaker": "Research Content TikTok",
+      "created_at": "2026-04-22T15:56:29.749158+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "m_aaf4f98e85a743e7882c4b291a8ae4b3",
       "speaker": "agent_bccd2e8cd82f40ecb294a928eed4a89b",
-      "created_at": "2026-04-21T17:04:48.995783+00:00",
+      "created_at": "2026-04-22T15:56:29.841161+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",

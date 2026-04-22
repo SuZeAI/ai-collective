@@ -23,6 +23,7 @@ from backend.domain.errors import NotFoundError
 from backend.domain.enums import AgentStatus
 from backend.domain.enums import TaskStatus
 from backend.domain.models import Message, Task
+from backend.infrastructure import task_run_registry
 
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -184,13 +185,21 @@ def upsert_task(
     if end_time is None and previous_task is not None:
         end_time = previous_task.end_time
 
-    # Restart behavior: moving from completed -> in-progress should start from 0 and clear old conversations.
-    if previous_status == TaskStatus.completed and next_status == TaskStatus.in_progress:
+    # When stopping or pausing: signal any active stream to halt immediately.
+    if next_status in {TaskStatus.stopped, TaskStatus.paused}:
+        task_run_registry.signal_cancel(task_id)
+
+    # Restart behavior: moving from completed/stopped -> in-progress clears old conversations.
+    if previous_status in {TaskStatus.completed, TaskStatus.stopped} and next_status == TaskStatus.in_progress:
         progress = 0
         start_time = now
         end_time = None
         conv_service.delete_messages_by_task(task_id)
         graph_context_service.reset_conversation(conversation_id=task_id)
+
+    # Resume from paused: keep existing conversations, preserve progress
+    if previous_status == TaskStatus.paused and next_status == TaskStatus.in_progress:
+        start_time = previous_task.start_time if previous_task else start_time
 
     if next_status == TaskStatus.in_progress and start_time is None:
         start_time = now

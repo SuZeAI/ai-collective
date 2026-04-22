@@ -295,6 +295,7 @@ export const api = {
     max_rounds?: number;
     mode?: "mesh" | "sequential";
     conversation_id?: string;
+    signal?: AbortSignal;
     graph_config?: {
       build_method?: "rule" | "embedding" | "ie";
       entity_method?: "keyword" | "capitalized" | "hybrid";
@@ -325,6 +326,7 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body,
+      signal: payload.signal,
     });
 
     if (!res.ok) {
@@ -340,6 +342,10 @@ export const api = {
 
     const reader = res.body?.getReader();
     if (!reader) throw new Error("No response body");
+
+    // Cancel the reader when the abort signal fires so reader.read() resolves immediately
+    const abortHandler = () => reader.cancel();
+    payload.signal?.addEventListener("abort", abortHandler);
 
     const decoder = new TextDecoder();
     let buffer = "";
@@ -366,6 +372,7 @@ export const api = {
         }
       }
     } finally {
+      payload.signal?.removeEventListener("abort", abortHandler);
       reader.releaseLock();
     }
   },
