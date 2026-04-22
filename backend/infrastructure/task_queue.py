@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import concurrent.futures
 import json
-import logging
 import threading
 from abc import ABC, abstractmethod
 from collections import deque
 from typing import Callable
 
-logger = logging.getLogger(__name__)
+from backend.log import get_logger
+
+logger = get_logger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -68,6 +69,7 @@ class MemoryTaskQueue(ITaskQueue):
     def submit(self, task_id: str, fn: Callable[[], None]) -> int:
         with self._lock:
             if task_id in self._running:
+                logger.debug("[Queue/memory] submit skip — task_id=%s already running", task_id)
                 return 0
             # De-dup: remove any stale waiting entry for this id
             self._waiting = deque(
@@ -76,15 +78,30 @@ class MemoryTaskQueue(ITaskQueue):
             if len(self._running) < self._max:
                 self._running.add(task_id)
                 self._executor.submit(self._run_wrapped, task_id, fn)
+                logger.info(
+                    "[Queue/memory] task STARTED immediately | task_id=%s | running=%d/%d",
+                    task_id, len(self._running), self._max,
+                )
                 return 0
             self._waiting.append((task_id, fn))
-            return len(self._waiting)
+            pos = len(self._waiting)
+            logger.info(
+                "[Queue/memory] task QUEUED | task_id=%s | queue_position=%d | running=%d/%d",
+                task_id, pos, len(self._running), self._max,
+            )
+            return pos
 
     def cancel(self, task_id: str) -> None:
         with self._lock:
+            before = len(self._waiting)
             self._waiting = deque(
                 (tid, f) for tid, f in self._waiting if tid != task_id
             )
+            removed = before - len(self._waiting)
+        if removed:
+            logger.info("[Queue/memory] task REMOVED from queue | task_id=%s", task_id)
+        else:
+            logger.debug("[Queue/memory] cancel called but task_id=%s was not in queue", task_id)
 
     def queue_position(self, task_id: str) -> int | None:
         with self._lock:
@@ -110,19 +127,28 @@ class MemoryTaskQueue(ITaskQueue):
     # Internal
 
     def _run_wrapped(self, task_id: str, fn: Callable[[], None]) -> None:
+        logger.info("[Queue/memory] worker ENTER | task_id=%s", task_id)
         try:
             fn()
         except Exception:
-            logger.exception("Unhandled error in background task %s", task_id)
+            logger.exception("[Queue/memory] UNHANDLED ERROR in task | task_id=%s", task_id)
         finally:
             self._on_complete(task_id)
 
     def _on_complete(self, task_id: str) -> None:
         with self._lock:
             self._running.discard(task_id)
+            logger.info(
+                "[Queue/memory] worker EXIT | task_id=%s | remaining_running=%d | waiting=%d",
+                task_id, len(self._running), len(self._waiting),
+            )
             if self._waiting:
                 next_id, next_fn = self._waiting.popleft()
                 self._running.add(next_id)
+                logger.info(
+                    "[Queue/memory] dequeued next task | task_id=%s | queue_remaining=%d",
+                    next_id, len(self._waiting),
+                )
                 self._executor.submit(self._run_wrapped, next_id, next_fn)
 
 
@@ -188,15 +214,17 @@ class RabbitMQTaskQueue(ITaskQueue):
     def submit(self, task_id: str, fn: Callable[[], None]) -> int:
         with self._registry_lock:
             self._fn_registry[task_id] = fn
-
+        logger.info("[Queue/rabbitmq] task PUBLISHED | task_id=%s | queue=%s", task_id, self._QUEUE_NAME)
         self._publish(task_id)
         return 0  # exact position inside RabbitMQ queue is not tracked here
 
     def cancel(self, task_id: str) -> None:
         with self._registry_lock:
-            self._fn_registry.pop(task_id, None)
-        # The message may still be in the RabbitMQ queue; the consumer will
-        # skip it because the fn_registry entry is gone.
+            removed = self._fn_registry.pop(task_id, None)
+        if removed is not None:
+            logger.info("[Queue/rabbitmq] task CANCELLED (fn deregistered) | task_id=%s", task_id)
+        else:
+            logger.debug("[Queue/rabbitmq] cancel called but task_id=%s not in fn_registry", task_id)
 
     def queue_position(self, task_id: str) -> int | None:
         with self._running_lock:
@@ -236,8 +264,9 @@ class RabbitMQTaskQueue(ITaskQueue):
                 properties=pika.BasicProperties(delivery_mode=2),  # persistent
             )
             conn.close()
+            logger.debug("[Queue/rabbitmq] message published OK | task_id=%s", task_id)
         except Exception:
-            logger.exception("Failed to publish task %s to RabbitMQ", task_id)
+            logger.exception("[Queue/rabbitmq] PUBLISH FAILED | task_id=%s — falling back to direct executor", task_id)
             # Fall back: execute directly so task doesn't get lost
             with self._registry_lock:
                 fn = self._fn_registry.pop(task_id, None)
@@ -258,10 +287,10 @@ class RabbitMQTaskQueue(ITaskQueue):
                     queue=self._QUEUE_NAME,
                     on_message_callback=self._on_message,
                 )
-                logger.info("RabbitMQ consumer started on queue '%s'", self._QUEUE_NAME)
+                logger.info("[Queue/rabbitmq] consumer started | queue=%s | max_concurrent=%d", self._QUEUE_NAME, self._max_concurrent)
                 channel.start_consuming()
             except Exception:
-                logger.exception("RabbitMQ consumer error — reconnecting in 5 s")
+                logger.exception("[Queue/rabbitmq] consumer connection lost — reconnecting in 5 s")
                 import time
                 time.sleep(5)
 
@@ -269,6 +298,7 @@ class RabbitMQTaskQueue(ITaskQueue):
         try:
             task_id = json.loads(body)["task_id"]
         except Exception:
+            logger.warning("[Queue/rabbitmq] malformed message body, acking and skipping: %r", body[:200])
             channel.basic_ack(delivery_tag=method.delivery_tag)
             return
 
@@ -278,22 +308,24 @@ class RabbitMQTaskQueue(ITaskQueue):
         channel.basic_ack(delivery_tag=method.delivery_tag)
 
         if fn is None:
-            # Task was cancelled before we got to process it
-            logger.debug("Skipping cancelled task %s from RabbitMQ", task_id)
+            logger.info("[Queue/rabbitmq] message received but task already CANCELLED | task_id=%s", task_id)
             return
 
+        logger.info("[Queue/rabbitmq] dispatching task to executor | task_id=%s", task_id)
         self._executor.submit(self._run_wrapped, task_id, fn)
 
     def _run_wrapped(self, task_id: str, fn: Callable[[], None]) -> None:
         with self._running_lock:
             self._running.add(task_id)
+        logger.info("[Queue/rabbitmq] worker ENTER | task_id=%s", task_id)
         try:
             fn()
         except Exception:
-            logger.exception("Unhandled error in RabbitMQ task %s", task_id)
+            logger.exception("[Queue/rabbitmq] UNHANDLED ERROR in task | task_id=%s", task_id)
         finally:
             with self._running_lock:
                 self._running.discard(task_id)
+            logger.info("[Queue/rabbitmq] worker EXIT | task_id=%s | remaining_running=%d", task_id, len(self._running))
 
 
 # ---------------------------------------------------------------------------
@@ -313,8 +345,12 @@ def create_task_queue(
     if backend == "rabbitmq":
         if not rabbitmq_url:
             raise ValueError("RABBITMQ_URL must be set when TASK_QUEUE_BACKEND=rabbitmq")
-        return RabbitMQTaskQueue(rabbitmq_url, max_concurrent=max_concurrent)
-    return MemoryTaskQueue(max_concurrent=max_concurrent)
+        q = RabbitMQTaskQueue(rabbitmq_url, max_concurrent=max_concurrent)
+        logger.info("[Queue] initialised RabbitMQ backend | url=%s | max_concurrent=%d", rabbitmq_url, max_concurrent)
+        return q
+    q = MemoryTaskQueue(max_concurrent=max_concurrent)
+    logger.info("[Queue] initialised memory backend | max_concurrent=%d", max_concurrent)
+    return q
 
 
 # Lazy singleton — initialised by deps.py on first import; tests can replace it.

@@ -27,8 +27,9 @@ from backend.domain.enums import TaskStatus
 from backend.domain.models import Message, Task
 from backend.infrastructure import task_run_registry
 from backend.infrastructure import task_queue
+from backend.log import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -116,12 +117,15 @@ def _run_team_conversation_loop(
     max_steps = 10
     progress = max(0, min(100, int(task.progress)))
     base_ts = int(time.time() * 1000)
+    logger.info("[Loop] starting | task_id=%s | participants=%d | initial_progress=%d%%",
+                task.id, len(participants), progress)
 
     for step in range(max_steps):
         if progress >= 100:
             break
         if cancel_flag is not None and cancel_flag.cancelled:
-            logger.info("Task %s cancelled at step %d", task.id, step)
+            logger.info("[Loop] CANCELLED | task_id=%s | at_step=%d | progress_so_far=%d%%",
+                        task.id, step, progress)
             break
         speaker = participants[step % len(participants)]
         text = messages[step % len(messages)]
@@ -138,10 +142,12 @@ def _run_team_conversation_loop(
         remaining_steps = max_steps - step
         increment = max(8, (100 - progress + remaining_steps - 1) // remaining_steps)
         progress = min(100, progress + increment)
+        logger.debug("[Loop] step %d/%d | task_id=%s | progress=%d%%", step + 1, max_steps, task.id, progress)
 
     status = task.status
     if progress >= 100:
         status = TaskStatus.completed
+        logger.info("[Loop] COMPLETED | task_id=%s | final_progress=%d%%", task.id, progress)
         conv_service.add_message(
             Message(
                 id=f"m{base_ts + max_steps + 1}",
@@ -154,13 +160,17 @@ def _run_team_conversation_loop(
 
     if cancel_flag is not None and cancel_flag.cancelled:
         # Don't overwrite the user-set stopped/paused status that triggered cancellation.
+        logger.info("[Loop] preserving user status after cancel | task_id=%s", task.id)
         try:
             return task_service.get_task(task.id)
         except Exception:
             return task
 
     updated = replace(task, progress=progress, status=status)
-    return task_service.upsert_task(updated)
+    saved = task_service.upsert_task(updated)
+    logger.info("[Loop] DB write | task_id=%s | status=%s | progress=%d%%",
+                task.id, saved.status.value, saved.progress)
+    return saved
 
 
 @router.get("/queue/status")
@@ -208,6 +218,8 @@ def upsert_task(
 
     # When stopping or pausing: signal any active stream to halt and remove from queue.
     if next_status in {TaskStatus.stopped, TaskStatus.paused}:
+        logger.info("[Task] STOP/PAUSE signal | task_id=%s | new_status=%s | prev_status=%s",
+                    task_id, next_status.value, previous_status.value if previous_status else "none")
         task_run_registry.signal_cancel(task_id)
         task_queue.cancel(task_id)
 
@@ -246,6 +258,8 @@ def upsert_task(
         end_time=end_time,
     )
     saved = service.upsert_task(task)
+    logger.info("[Task] upsert saved | task_id=%s | status=%s | progress=%s%%",
+                task_id, next_status.value, saved.progress)
 
     _sync_runtime_state(service, team_service, agent_service)
 
@@ -254,6 +268,7 @@ def upsert_task(
         # Register the cancel flag NOW — before submit — so that a concurrent
         # stop/pause request can signal it even before the worker thread starts.
         cancel_flag = task_run_registry.register(task_id)
+        logger.info("[Task] cancel_flag registered | task_id=%s", task_id)
 
         _svc = service
         _tsvc = team_service
@@ -263,15 +278,19 @@ def upsert_task(
 
         def _background_run() -> None:
             try:
-                if not cancel_flag.cancelled:
-                    _run_team_conversation_loop(_snap, _svc, _tsvc, _asvc, _csvc, cancel_flag)
+                if cancel_flag.cancelled:
+                    logger.info("[Task] background_run skipped (already cancelled before start) | task_id=%s", _snap.id)
+                    return
+                logger.info("[Task] background_run START | task_id=%s", _snap.id)
+                _run_team_conversation_loop(_snap, _svc, _tsvc, _asvc, _csvc, cancel_flag)
+                logger.info("[Task] background_run END | task_id=%s", _snap.id)
             finally:
                 task_run_registry.unregister(_snap.id)
                 _sync_runtime_state(_svc, _tsvc, _asvc)
 
         position = task_queue.submit(task_id, _background_run)
         if position > 0:
-            logger.info("Task %s queued at position %d (max concurrent reached)", task_id, position)
+            logger.info("[Task] QUEUED (waiting for slot) | task_id=%s | queue_position=%d", task_id, position)
 
     return TaskSchema.from_domain(saved)
 

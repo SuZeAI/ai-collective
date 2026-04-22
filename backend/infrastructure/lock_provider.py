@@ -4,6 +4,10 @@ import threading
 from contextlib import contextmanager
 from typing import Generator
 
+from backend.log import get_logger
+
+logger = get_logger(__name__)
+
 
 class ThreadingLockProvider:
     """Per-key threading.RLock — default for single-process deployments."""
@@ -17,9 +21,12 @@ class ThreadingLockProvider:
         with self._meta:
             if key not in self._locks:
                 self._locks[key] = threading.RLock()
+                logger.debug("[Lock/threading] created new RLock | key=%s", key)
             lock = self._locks[key]
+        logger.debug("[Lock/threading] acquire | key=%s", key)
         with lock:
             yield
+        logger.debug("[Lock/threading] release | key=%s", key)
 
 
 class RedisLockProvider:
@@ -47,20 +54,25 @@ class RedisLockProvider:
 
     @contextmanager
     def acquire(self, key: str) -> Generator[None, None, None]:
+        redis_key = f"json_repo:{key}"
         lock = self._client.lock(
-            f"json_repo:{key}",
+            redis_key,
             timeout=self._timeout,
             blocking_timeout=self._blocking_timeout,
         )
+        logger.debug("[Lock/redis] acquire | key=%s", redis_key)
         if not lock.acquire(blocking=True):
+            logger.error("[Lock/redis] TIMEOUT acquiring lock | key=%s", redis_key)
             raise TimeoutError(f"Could not acquire Redis lock for key '{key}'")
+        logger.debug("[Lock/redis] acquired | key=%s", redis_key)
         try:
             yield
         finally:
             try:
                 lock.release()
+                logger.debug("[Lock/redis] released | key=%s", redis_key)
             except Exception:
-                pass
+                logger.warning("[Lock/redis] release failed (lock may have expired) | key=%s", redis_key)
 
 
 def create_lock_provider(
@@ -74,5 +86,9 @@ def create_lock_provider(
     if backend == "redis":
         if not redis_url:
             raise ValueError("REDIS_URL must be set when LOCK_BACKEND=redis")
-        return RedisLockProvider(redis_url)
-    return ThreadingLockProvider()
+        p = RedisLockProvider(redis_url)
+        logger.info("[Lock] initialised Redis lock provider | url=%s", redis_url)
+        return p
+    p = ThreadingLockProvider()
+    logger.info("[Lock] initialised threading lock provider")
+    return p
