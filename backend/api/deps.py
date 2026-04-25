@@ -18,6 +18,7 @@ from backend.application.service.skill_service import SkillService
 from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.domain.agent.langgraph_orchestrator import LangGraphAgentOrchestrator
 from backend.domain.agent.langgraph_mesh import MultiAgentMeshOrchestrator
+from backend.infrastructure.lock_provider import create_lock_provider
 from backend.infrastructure.llm.factory import create_llm_provider
 from backend.infrastructure.repositories.json_files import (
     JsonActivityFeedRepository,
@@ -32,6 +33,7 @@ from backend.infrastructure.repositories.json_files import (
 from backend.application.service.workspace_service import WorkspaceService
 from backend.infrastructure.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
 from backend.infrastructure.repositories.json_store import JsonFileStore
+from backend.infrastructure import task_queue as _task_queue_module
 from backend.log import get_logger
 
 
@@ -40,19 +42,47 @@ STORAGE_DIR = PROJECT_ROOT / "storage"
 
 
 @lru_cache
-def _repos():
-    agents = JsonAgentRepository(JsonFileStore(STORAGE_DIR / "agents.json"))
-    skills = JsonSkillRepository(JsonFileStore(STORAGE_DIR / "skills.json"))
-    teams = JsonTeamRepository(JsonFileStore(STORAGE_DIR / "teams.json"))
-    tasks = JsonTaskRepository(JsonFileStore(STORAGE_DIR / "tasks.json"))
-    conversations = JsonConversationRepository(JsonFileStore(STORAGE_DIR / "conversations.json"))
-    analytics = JsonAnalyticsRepository(JsonFileStore(STORAGE_DIR / "analytics.json"))
-    activity_feed = JsonActivityFeedRepository(JsonFileStore(STORAGE_DIR / "activity_feed.json"))
-    graph_knowledge = JsonGraphKnowledgeRepository(
-        JsonFileStore(STORAGE_DIR / "graph_knowledge.json"),
-        JsonFileStore(STORAGE_DIR / "graph_knowledge_events.json"),
+def _lock_provider():
+    """Singleton lock provider — initialised once from settings."""
+    return create_lock_provider(
+        backend=settings.lock_backend,
+        redis_url=settings.redis_url,
     )
-    workspaces = JsonWorkspaceRepository(JsonFileStore(STORAGE_DIR / "workspaces.json"))
+
+
+def _store(filename: str) -> JsonFileStore:
+    """Create a JsonFileStore with the configured lock provider."""
+    return JsonFileStore(STORAGE_DIR / filename, lock_provider=_lock_provider())
+
+
+@lru_cache
+def _init_task_queue():
+    """Initialise and register the configured task queue singleton."""
+    from backend.infrastructure.task_queue import create_task_queue, _set_queue
+    q = create_task_queue(
+        backend=settings.task_queue_backend,
+        max_concurrent=settings.task_queue_max_concurrent,
+        rabbitmq_url=settings.rabbitmq_url,
+    )
+    _set_queue(q)
+    return q
+
+
+@lru_cache
+def _repos():
+    _init_task_queue()  # ensure task queue is configured before first request
+    agents = JsonAgentRepository(_store("agents.json"))
+    skills = JsonSkillRepository(_store("skills.json"))
+    teams = JsonTeamRepository(_store("teams.json"))
+    tasks = JsonTaskRepository(_store("tasks.json"))
+    conversations = JsonConversationRepository(_store("conversations.json"))
+    analytics = JsonAnalyticsRepository(_store("analytics.json"))
+    activity_feed = JsonActivityFeedRepository(_store("activity_feed.json"))
+    graph_knowledge = JsonGraphKnowledgeRepository(
+        _store("graph_knowledge.json"),
+        _store("graph_knowledge_events.json"),
+    )
+    workspaces = JsonWorkspaceRepository(_store("workspaces.json"))
     return agents, skills, teams, tasks, conversations, analytics, activity_feed, graph_knowledge, workspaces
 
 

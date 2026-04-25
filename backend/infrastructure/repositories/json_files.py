@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -32,6 +33,7 @@ def _default_agent_system_prompt(*, name: str, role: str, description: str) -> s
 class JsonAgentRepository:
     def __init__(self, store: JsonFileStore):
         self._store = store
+        self._lock = threading.RLock()
         data = store.read()
         if not isinstance(data, list):
             data = []
@@ -84,24 +86,29 @@ class JsonAgentRepository:
         )
 
     def list(self) -> list[Agent]:
-        return list(self._items.values())
+        with self._lock:
+            return list(self._items.values())
 
     def get(self, agent_id: str) -> Agent | None:
-        return self._items.get(agent_id)
+        with self._lock:
+            return self._items.get(agent_id)
 
     def upsert(self, agent: Agent) -> Agent:
-        self._items[agent.id] = agent
-        self._persist()
+        with self._lock:
+            self._items[agent.id] = agent
+            self._persist()
         return agent
 
     def delete(self, agent_id: str) -> None:
-        self._items.pop(agent_id, None)
-        self._persist()
+        with self._lock:
+            self._items.pop(agent_id, None)
+            self._persist()
 
 
 class JsonSkillRepository:
     def __init__(self, store: JsonFileStore):
         self._store = store
+        self._lock = threading.RLock()
         data = store.read()
         if not isinstance(data, list):
             data = []
@@ -148,24 +155,29 @@ class JsonSkillRepository:
         )
 
     def list(self) -> list[Skill]:
-        return list(self._items.values())
+        with self._lock:
+            return list(self._items.values())
 
     def get(self, skill_id: str) -> Skill | None:
-        return self._items.get(skill_id)
+        with self._lock:
+            return self._items.get(skill_id)
 
     def upsert(self, skill: Skill) -> Skill:
-        self._items[skill.id] = skill
-        self._persist()
+        with self._lock:
+            self._items[skill.id] = skill
+            self._persist()
         return skill
 
     def delete(self, skill_id: str) -> None:
-        self._items.pop(skill_id, None)
-        self._persist()
+        with self._lock:
+            self._items.pop(skill_id, None)
+            self._persist()
 
 
 class JsonTeamRepository:
     def __init__(self, store: JsonFileStore):
         self._store = store
+        self._lock = threading.RLock()
         data = store.read()
         if not isinstance(data, list):
             data = []
@@ -210,24 +222,29 @@ class JsonTeamRepository:
         )
 
     def list(self) -> list[Team]:
-        return list(self._items.values())
+        with self._lock:
+            return list(self._items.values())
 
     def get(self, team_id: str) -> Team | None:
-        return self._items.get(team_id)
+        with self._lock:
+            return self._items.get(team_id)
 
     def upsert(self, team: Team) -> Team:
-        self._items[team.id] = team
-        self._persist()
+        with self._lock:
+            self._items[team.id] = team
+            self._persist()
         return team
 
     def delete(self, team_id: str) -> None:
-        self._items.pop(team_id, None)
-        self._persist()
+        with self._lock:
+            self._items.pop(team_id, None)
+            self._persist()
 
 
 class JsonTaskRepository:
     def __init__(self, store: JsonFileStore):
         self._store = store
+        self._lock = threading.RLock()
         data = store.read()
         if not isinstance(data, list):
             data = []
@@ -270,24 +287,29 @@ class JsonTaskRepository:
         )
 
     def list(self) -> list[Task]:
-        return list(self._items.values())
+        with self._lock:
+            return list(self._items.values())
 
     def get(self, task_id: str) -> Task | None:
-        return self._items.get(task_id)
+        with self._lock:
+            return self._items.get(task_id)
 
     def upsert(self, task: Task) -> Task:
-        self._items[task.id] = task
-        self._persist()
+        with self._lock:
+            self._items[task.id] = task
+            self._persist()
         return task
 
     def delete(self, task_id: str) -> None:
-        self._items.pop(task_id, None)
-        self._persist()
+        with self._lock:
+            self._items.pop(task_id, None)
+            self._persist()
 
 
 class JsonConversationRepository:
     def __init__(self, store: JsonFileStore):
         self._store = store
+        self._lock = threading.RLock()
         data = store.read()
         if not isinstance(data, list):
             data = []
@@ -323,23 +345,27 @@ class JsonConversationRepository:
         )
 
     def list(self, task_id: str | None = None) -> list[Message]:
-        if task_id is None:
-            return list(self._items)
-        return [m for m in self._items if m.task_id == task_id]
+        with self._lock:
+            if task_id is None:
+                return list(self._items)
+            return [m for m in self._items if m.task_id == task_id]
 
     def add(self, message: Message) -> Message:
-        self._items.append(message)
-        self._persist()
+        with self._lock:
+            self._items.append(message)
+            self._persist()
         return message
 
     def delete_by_task(self, task_id: str) -> None:
-        self._items = [m for m in self._items if m.task_id != task_id]
-        self._persist()
+        with self._lock:
+            self._items = [m for m in self._items if m.task_id != task_id]
+            self._persist()
 
 
 class JsonAnalyticsRepository:
     def __init__(self, store: JsonFileStore):
         self._store = store
+        self._lock = threading.RLock()
         data = store.read()
         if not isinstance(data, dict):
             data = {}
@@ -361,17 +387,20 @@ class JsonAnalyticsRepository:
         )
 
     def get(self) -> Analytics:
-        return self._analytics
+        with self._lock:
+            return self._analytics
 
     def set(self, analytics: Analytics) -> Analytics:
-        self._analytics = analytics
-        self._persist()
+        with self._lock:
+            self._analytics = analytics
+            self._persist()
         return analytics
 
 
 class JsonWorkspaceRepository:
     def __init__(self, store: JsonFileStore):
         self._store = store
+        self._lock = threading.RLock()
         data = store.read()
         if not isinstance(data, list):
             data = []
@@ -435,24 +464,29 @@ class JsonWorkspaceRepository:
         ])
 
     def list(self) -> list[Workspace]:
-        return list(self._items.values())
+        with self._lock:
+            return list(self._items.values())
 
     def get(self, workspace_id: str) -> Workspace | None:
-        return self._items.get(workspace_id)
+        with self._lock:
+            return self._items.get(workspace_id)
 
     def upsert(self, workspace: Workspace) -> Workspace:
-        self._items[workspace.id] = workspace
-        self._persist()
+        with self._lock:
+            self._items[workspace.id] = workspace
+            self._persist()
         return workspace
 
     def delete(self, workspace_id: str) -> None:
-        self._items.pop(workspace_id, None)
-        self._persist()
+        with self._lock:
+            self._items.pop(workspace_id, None)
+            self._persist()
 
 
 class JsonActivityFeedRepository:
     def __init__(self, store: JsonFileStore):
         self._store = store
+        self._lock = threading.RLock()
         data = store.read()
         if not isinstance(data, list):
             data = []
@@ -476,9 +510,11 @@ class JsonActivityFeedRepository:
         )
 
     def list(self) -> list[ActivityFeedItem]:
-        return list(self._items)
+        with self._lock:
+            return list(self._items)
 
     def add(self, item: ActivityFeedItem) -> ActivityFeedItem:
-        self._items.insert(0, item)
-        self._persist()
+        with self._lock:
+            self._items.insert(0, item)
+            self._persist()
         return item
