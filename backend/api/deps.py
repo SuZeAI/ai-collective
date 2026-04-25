@@ -27,7 +27,9 @@ from backend.infrastructure.repositories.json_files import (
     JsonSkillRepository,
     JsonTaskRepository,
     JsonTeamRepository,
+    JsonWorkspaceRepository,
 )
+from backend.application.service.workspace_service import WorkspaceService
 from backend.infrastructure.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
 from backend.infrastructure.repositories.json_store import JsonFileStore
 from backend.log import get_logger
@@ -50,47 +52,53 @@ def _repos():
         JsonFileStore(STORAGE_DIR / "graph_knowledge.json"),
         JsonFileStore(STORAGE_DIR / "graph_knowledge_events.json"),
     )
-    return agents, skills, teams, tasks, conversations, analytics, activity_feed, graph_knowledge
+    workspaces = JsonWorkspaceRepository(JsonFileStore(STORAGE_DIR / "workspaces.json"))
+    return agents, skills, teams, tasks, conversations, analytics, activity_feed, graph_knowledge, workspaces
 
 
 def get_agent_service() -> AgentService:
-    agents, skills, _, _, _, _, _, _ = _repos()
+    agents, skills, _, _, _, _, _, _, _ = _repos()
     return AgentService(agents, skills)
 
 
 def get_skill_service() -> SkillService:
-    _, skills, _, _, _, _, _, _ = _repos()
+    _, skills, _, _, _, _, _, _, _ = _repos()
     return SkillService(skills)
 
 
 def get_team_service() -> TeamService:
-    _, _, teams, _, _, _, _, _ = _repos()
+    _, _, teams, _, _, _, _, _, _ = _repos()
     return TeamService(teams)
 
 
 def get_task_service() -> TaskService:
-    _, _, _, tasks, _, _, _, _ = _repos()
+    _, _, _, tasks, _, _, _, _, _ = _repos()
     return TaskService(tasks)
 
 
 def get_conversation_service() -> ConversationService:
-    _, _, _, _, conversations, _, _, graph_knowledge = _repos()
+    _, _, _, _, conversations, _, _, graph_knowledge, _ = _repos()
     return ConversationService(conversations, GraphContextService(graph_knowledge))
 
 
 def get_analytics_service() -> AnalyticsService:
-    _, _, _, tasks, _, analytics, _, _ = _repos()
+    _, _, _, tasks, _, analytics, _, _, _ = _repos()
     return AnalyticsService(analytics, tasks)
 
 
 def get_activity_feed_service() -> ActivityFeedService:
-    _, _, _, _, _, _, feed, _ = _repos()
+    _, _, _, _, _, _, feed, _, _ = _repos()
     return ActivityFeedService(feed)
 
 
 def get_graph_context_service() -> GraphContextService:
-    _, _, _, _, _, _, _, graph_knowledge = _repos()
+    _, _, _, _, _, _, _, graph_knowledge, _ = _repos()
     return GraphContextService(graph_knowledge)
+
+
+def get_workspace_service() -> WorkspaceService:
+    _, _, _, _, _, _, _, _, workspaces = _repos()
+    return WorkspaceService(workspaces)
 
 
 def get_skill_tool_manager() -> SkillToolManager:

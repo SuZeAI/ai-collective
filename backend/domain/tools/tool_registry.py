@@ -30,6 +30,21 @@ from backend.domain.tools.drive import DriveToolkit
 from backend.domain.tools.docs import DocsToolkit
 from backend.domain.tools.slides import SlidesToolkit
 from backend.domain.tools.calendar import CalendarToolkit
+from backend.domain.tools.telegram_messaging import TelegramMessagingToolkit
+from backend.domain.tools.discord_messaging import DiscordMessagingToolkit
+from backend.domain.tools.slack_messaging import SlackMessagingToolkit
+from backend.domain.tools.teams_messaging import TeamsMessagingToolkit
+from backend.domain.tools.whatsapp_business import WhatsAppBusinessToolkit
+from backend.domain.tools.facebook_messenger import FacebookMessengerToolkit
+from backend.domain.tools.instagram_messaging import InstagramMessagingToolkit
+from backend.domain.tools.line_messaging import LINEMessagingToolkit
+from backend.domain.tools.viber_messaging import ViberMessagingToolkit
+from backend.domain.tools.zalo_messaging import ZaloMessagingToolkit
+from backend.domain.tools.signal_messaging import SignalMessagingToolkit
+from backend.domain.tools.skype_messaging import SkypeMessagingToolkit
+from backend.domain.tools.wire_messaging import WireMessagingToolkit
+from backend.domain.tools.wechat_messaging import WeChatMessagingToolkit
+from backend.domain.tools.snapchat_messaging import SnapchatMessagingToolkit
 
 
 class ToolType(str, Enum):
@@ -61,6 +76,21 @@ class ToolType(str, Enum):
     DOCS = "docs"
     SLIDES = "slides"
     CALENDAR = "calendar"
+    TELEGRAM_MESSAGING = "telegram_messaging"
+    DISCORD_MESSAGING = "discord_messaging"
+    SLACK_MESSAGING = "slack_messaging"
+    TEAMS_MESSAGING = "teams_messaging"
+    WHATSAPP_BUSINESS = "whatsapp_business"
+    FACEBOOK_MESSENGER = "facebook_messenger"
+    INSTAGRAM_MESSAGING = "instagram_messaging"
+    LINE_MESSAGING = "line_messaging"
+    VIBER_MESSAGING = "viber_messaging"
+    ZALO_MESSAGING = "zalo_messaging"
+    SIGNAL_MESSAGING = "signal_messaging"
+    SKYPE_MESSAGING = "skype_messaging"
+    WIRE_MESSAGING = "wire_messaging"
+    WECHAT_MESSAGING = "wechat_messaging"
+    SNAPCHAT_MESSAGING = "snapchat_messaging"
 
 
 TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
@@ -92,6 +122,21 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.DOCS.value: DocsToolkit,
     ToolType.SLIDES.value: SlidesToolkit,
     ToolType.CALENDAR.value: CalendarToolkit,
+    ToolType.TELEGRAM_MESSAGING.value: TelegramMessagingToolkit,
+    ToolType.DISCORD_MESSAGING.value: DiscordMessagingToolkit,
+    ToolType.SLACK_MESSAGING.value: SlackMessagingToolkit,
+    ToolType.TEAMS_MESSAGING.value: TeamsMessagingToolkit,
+    ToolType.WHATSAPP_BUSINESS.value: WhatsAppBusinessToolkit,
+    ToolType.FACEBOOK_MESSENGER.value: FacebookMessengerToolkit,
+    ToolType.INSTAGRAM_MESSAGING.value: InstagramMessagingToolkit,
+    ToolType.LINE_MESSAGING.value: LINEMessagingToolkit,
+    ToolType.VIBER_MESSAGING.value: ViberMessagingToolkit,
+    ToolType.ZALO_MESSAGING.value: ZaloMessagingToolkit,
+    ToolType.SIGNAL_MESSAGING.value: SignalMessagingToolkit,
+    ToolType.SKYPE_MESSAGING.value: SkypeMessagingToolkit,
+    ToolType.WIRE_MESSAGING.value: WireMessagingToolkit,
+    ToolType.WECHAT_MESSAGING.value: WeChatMessagingToolkit,
+    ToolType.SNAPCHAT_MESSAGING.value: SnapchatMessagingToolkit,
 }
 
 

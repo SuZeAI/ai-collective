@@ -25,6 +25,8 @@ from backend.api.routers import (
     skills,
     tasks,
     teams,
+    workspaces,
+    webhook,
 )
 
 
@@ -58,6 +60,8 @@ def create_app() -> FastAPI:
     app.include_router(simulations.router, prefix=settings.api_prefix)
     app.include_router(llm.router, prefix=settings.api_prefix)
     app.include_router(auth.router, prefix=settings.api_prefix)
+    app.include_router(workspaces.router, prefix=settings.api_prefix)
+    app.include_router(webhook.router, prefix=settings.api_prefix)
     return app
 
 

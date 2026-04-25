@@ -1,186 +1,4 @@
 {
-  "task_9b6c8ee04d664b1d916d07960a616bda": [
-    {
-      "type": "ingest_message",
-      "message_id": "user-71b775bf16a14abcbb1b49c05b247d38",
-      "speaker": "user",
-      "created_at": "2026-04-18T04:31:46.107460+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "user-7239ed7a8ae1411c8d56a7a64c0ee53d",
-      "speaker": "user",
-      "created_at": "2026-04-18T04:33:23.941261+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "user-0b8bb6d1cc584c60a4f9c9711dd9af50",
-      "speaker": "user",
-      "created_at": "2026-04-18T04:33:55.908524+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "user-1e81147ec6414167b352e4027305c423",
-      "speaker": "user",
-      "created_at": "2026-04-18T04:34:49.304702+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "user-d2aba30d819a42a6925a915e5ba7f710",
-      "speaker": "user",
-      "created_at": "2026-04-18T05:59:00.919961+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "user-a17ed6b5ebe943adb0fe417f9e4b67ab",
-      "speaker": "user",
-      "created_at": "2026-04-18T05:59:04.303397+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "user-460f6e153d394377a1171be4ae9cf958",
-      "speaker": "user",
-      "created_at": "2026-04-19T13:49:22.148977+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "agent-Research Content TikTok-6ab29f75d44049808a6a704cf655fb20",
-      "speaker": "Research Content TikTok",
-      "created_at": "2026-04-19T13:49:33.404088+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "m_fa38412ac88f43a6930d4542009f5363",
-      "speaker": "agent_bccd2e8cd82f40ecb294a928eed4a89b",
-      "created_at": "2026-04-19T13:49:33.456655+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    }
-  ],
   "task_45d05c0be33f47bdb86071fd6a8f7d6f": [
     {
       "type": "ingest_message",
@@ -569,6 +387,192 @@
       "message_id": "m_14bf4345627c4d21afc5280dfb9c54e7",
       "speaker": "a1",
       "created_at": "2026-04-19T13:51:21.637346+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    }
+  ],
+  "t1773677767766": [
+    {
+      "type": "ingest_message",
+      "message_id": "user-58d32249f7c349508987fc9a42ca2a33",
+      "speaker": "user",
+      "created_at": "2026-04-21T17:03:07.868780+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "agent-Research Content TikTok-ed6982626453447dab1030a7453751aa",
+      "speaker": "Research Content TikTok",
+      "created_at": "2026-04-21T17:03:20.929260+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    }
+  ],
+  "t1774110075739": [
+    {
+      "type": "ingest_message",
+      "message_id": "user-ba7164802f58428eb9d6d055bc22af77",
+      "speaker": "user",
+      "created_at": "2026-04-21T17:03:08.901937+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "agent-Gold Data Researcher-752de9c91400491fbe67dad0a3c5fe78",
+      "speaker": "Gold Data Researcher",
+      "created_at": "2026-04-21T17:03:13.314469+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "agent-Gold Market Analyst-96feb5400d4d46d89d6891bcdc0db6b5",
+      "speaker": "Gold Market Analyst",
+      "created_at": "2026-04-21T17:04:12.858364+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "agent-Gold Reporting Specialist-a584efae56f84f03931fcb3ba7716a2f",
+      "speaker": "Gold Reporting Specialist",
+      "created_at": "2026-04-21T17:04:25.696401+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    }
+  ],
+  "task_9b6c8ee04d664b1d916d07960a616bda": [
+    {
+      "type": "ingest_message",
+      "message_id": "user-e7bdf4fc906646d19055f5b77ff18034",
+      "speaker": "user",
+      "created_at": "2026-04-21T17:04:33.655960+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "agent-Research Content TikTok-e127fcee289d4a719e6615a23cc0c49b",
+      "speaker": "Research Content TikTok",
+      "created_at": "2026-04-21T17:04:48.899362+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "m_0ab5d682b79d4b1d8c443953429d4ae7",
+      "speaker": "agent_bccd2e8cd82f40ecb294a928eed4a89b",
+      "created_at": "2026-04-21T17:04:48.995783+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
