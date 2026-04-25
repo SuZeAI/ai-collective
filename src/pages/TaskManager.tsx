@@ -205,6 +205,8 @@ export default function TaskManager() {
     startPoint: { x: number; y: number };
     startPositions: Record<string, GraphNodePosition>;
   } | null>(null);
+  // Track active SSE stream controllers so stop/pause can cancel them immediately
+  const activeStreamsRef = useRef<Map<string, AbortController>>(new Map());
 
 
 
@@ -499,7 +501,20 @@ export default function TaskManager() {
   };
 
   const updateTaskStatus = async (task: Task, status: Task["status"]) => {
-    if (updatingTaskIds.has(task.id) || task.status === status) return;
+    if (task.status === status) return;
+
+    // Stop/pause: cancel the active stream immediately before anything else
+    if (status === "stopped" || status === "paused") {
+      const controller = activeStreamsRef.current.get(task.id);
+      if (controller) {
+        controller.abort();
+        activeStreamsRef.current.delete(task.id);
+      }
+    } else if (updatingTaskIds.has(task.id)) {
+      // For other transitions, prevent concurrent updates
+      return;
+    }
+
     setUpdatingTaskIds((prev) => new Set(prev).add(task.id));
     try {
       const updated = await api.upsertTask({
@@ -510,6 +525,9 @@ export default function TaskManager() {
 
       // If starting the task, stream agent responses
       if (status === "in-progress" && updated.assignedAgents.length > 0) {
+        const controller = new AbortController();
+        activeStreamsRef.current.set(updated.id, controller);
+
         openTaskView(updated.id);
 
         // Reset thinking state for a fresh start/restart.
@@ -519,7 +537,7 @@ export default function TaskManager() {
           return next;
         });
 
-        // Clear old conversations if restarting from completed/stopped
+        // Clear old conversations only when restarting from completed/stopped (not from paused)
         if (task.status === "completed" || task.status === "stopped") {
           setTaskConversations((prev) => {
             const next = { ...prev };
@@ -542,6 +560,7 @@ export default function TaskManager() {
             return next;
           });
         }
+        // paused → in-progress: keep existing conversations so progress is visible
 
         setLoadingConversationTaskIds((prev) => {
           const next = new Set(prev);
@@ -555,14 +574,21 @@ export default function TaskManager() {
           const teamMode = team?.mode ?? "sequential";
           const teamMaxSteps = team?.maxSteps ?? 6;
           const formattedInput = `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}`;
-          
+
           for await (const event of api.runAgentGraphStream({
             user_input: formattedInput,
             agents: updated.assignedAgents,
             max_rounds: teamMaxSteps,
             mode: teamMode,
             conversation_id: updated.id,
+            signal: controller.signal,
           })) {
+            // Stream was aborted (stop/pause from user)
+            if (controller.signal.aborted) break;
+
+            // Backend signalled cancellation (stop/pause arrived via status update)
+            if (event.type === "cancelled") break;
+
             if (event.error) {
               console.error(event.error);
               break;
@@ -571,7 +597,7 @@ export default function TaskManager() {
             // Handle different event types
             const eventType = event.type;
             const agentId = event.agent_id || event.agentId || event.agent_name || event.agentName;
-            
+
             // Handle thinking state (LLM request start)
             if (eventType === "llm_request_start") {
               if (!agentId) continue;
@@ -694,8 +720,8 @@ export default function TaskManager() {
             }
           }
 
-          // Stream completed, update task to completed with 100% progress
-          if (messages.length > 0) {
+          // Auto-complete only when stream finished naturally (not cancelled by stop/pause)
+          if (messages.length > 0 && !controller.signal.aborted) {
             const completed = await api.upsertTask({
               ...updated,
               status: "completed",
@@ -704,8 +730,12 @@ export default function TaskManager() {
             setTaskList((prev) => prev.map((item) => (item.id === completed.id ? completed : item)));
           }
         } catch (e) {
-          console.error("Stream error:", e);
+          // AbortError is expected when stop/pause cancels the stream
+          if (!(e instanceof DOMException && e.name === "AbortError")) {
+            console.error("Stream error:", e);
+          }
         } finally {
+          activeStreamsRef.current.delete(updated.id);
           setThinkingAgents((prev) => {
             const next = { ...prev };
             delete next[updated.id];
@@ -719,7 +749,9 @@ export default function TaskManager() {
         }
       }
     } catch (e) {
-      console.error(e);
+      if (!(e instanceof DOMException && e.name === "AbortError")) {
+        console.error(e);
+      }
     } finally {
       setUpdatingTaskIds((prev) => {
         const next = new Set(prev);

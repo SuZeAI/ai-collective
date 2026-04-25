@@ -212,3 +212,9 @@ pyrightconfig.json
 # End of https://www.toptal.com/developers/gitignore/api/python,jupyternotebooks
 
 !src/lib
+context
+dist
+logs
+node_modules
+secrets
+backup

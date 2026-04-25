@@ -11,8 +11,8 @@
       "a2",
       "a3"
     ],
-    "startTime": "2026-04-19T13:50:45+00:00",
-    "endTime": "2026-04-19T13:52:14+00:00"
+    "startTime": "2026-04-22T16:40:14+00:00",
+    "endTime": "2026-04-22T16:47:42+00:00"
   },
   {
     "id": "task_9b6c8ee04d664b1d916d07960a616bda",
@@ -24,23 +24,8 @@
     "assignedAgents": [
       "agent_bccd2e8cd82f40ecb294a928eed4a89b"
     ],
-    "startTime": "2026-04-21T17:04:33+00:00",
-    "endTime": "2026-04-21T17:04:49+00:00"
-  },
-  {
-    "id": "task_45d05c0be33f47bdb86071fd6a8f7d6f",
-    "title": "Bao Tin Minh Chau gold price in Hanoi today",
-    "description": "Bao Tin Minh Chau gold price in Hanoi today",
-    "teamId": "t_c401148000bb4a4a9dbbfe9d339212af",
-    "status": "completed",
-    "progress": 100,
-    "assignedAgents": [
-      "a1",
-      "a2",
-      "a3"
-    ],
-    "startTime": "2026-04-18T05:59:11+00:00",
-    "endTime": "2026-04-18T06:02:14+00:00"
+    "startTime": "2026-04-22T16:41:55+00:00",
+    "endTime": "2026-04-22T16:42:24+00:00"
   },
   {
     "id": "task_904f5fcb9a884d30a39747086bc689b2",
@@ -53,7 +38,7 @@
       "agent_4aa2e6b617fb4375970e3a0110285993",
       "agent_fc7267cfdc3149e3a1766805e4942b02"
     ],
-    "startTime": "2026-04-01T16:15:15+00:00",
-    "endTime": "2026-04-01T16:17:36+00:00"
+    "startTime": "2026-04-22T16:48:12+00:00",
+    "endTime": "2026-04-22T16:49:16+00:00"
   }
 ]

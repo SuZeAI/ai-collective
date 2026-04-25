@@ -22,6 +22,15 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("OPEN_WEIGHT_API_KEY", "OPENROUTER_API_KEY"),
     )
     
+    # Task queue backend: "memory" (default) | "rabbitmq"
+    task_queue_backend: str = "memory"
+    task_queue_max_concurrent: int = 3
+    rabbitmq_url: str | None = None
+
+    # Repository lock backend: "threading" (default) | "redis"
+    lock_backend: str = "threading"
+    redis_url: str | None = None
+
     # LLM configuration for browser automation
     model_name: str = "gemini-2.0-flash"
     model_provider: str = "google_genai"
