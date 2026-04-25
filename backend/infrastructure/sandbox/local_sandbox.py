@@ -7,7 +7,11 @@ so agents don't need stateful `cd` sessions.
 from __future__ import annotations
 
 import asyncio
+import glob as _glob_module
+import os
+import re
 import shlex
+from pathlib import Path
 from typing import Any, Optional
 
 from pydantic import BaseModel
@@ -15,6 +19,8 @@ from pydantic import BaseModel
 from backend.log import get_logger
 
 logger = get_logger()
+
+_IGNORE_DIRS = {".git", "__pycache__", "node_modules", ".venv", "venv", ".tox", "dist", "build"}
 
 
 class SandboxResult(BaseModel):
@@ -27,20 +33,42 @@ class SandboxResult(BaseModel):
         return self.output
 
 
+class GrepMatch(BaseModel):
+    path: str
+    line_number: int
+    line: str
+
+
 class LocalSandboxAdapter:
     """SandboxPort implementation that runs commands directly on the host.
 
     Each call to exec_command spawns an independent subprocess.
     Results are cached by session ID so view_shell / wait_for_process work.
+    File operations (read, write, ls, glob, grep) use native Python I/O.
+    The workspace directory is auto-created on first use.
     """
 
-    def __init__(self, timeout: int = 60):
+    def __init__(self, timeout: int = 60, workspace: str | None = None):
         self._timeout = timeout
+        self._workspace = workspace or os.path.join(os.path.expanduser("~"), "sandbox_workspace")
         self._results: dict[str, SandboxResult] = {}
         self._procs: dict[str, asyncio.subprocess.Process] = {}
+        self._workspace_ready = False
+
+    def ensure_workspace(self) -> str:
+        """Create the workspace directory if it doesn't exist and return its path."""
+        if not self._workspace_ready:
+            os.makedirs(self._workspace, exist_ok=True)
+            self._workspace_ready = True
+        return self._workspace
+
+    # ── Shell operations ──────────────────────────────────────────────────────
 
     async def exec_command(self, id: str, exec_dir: str, command: str) -> SandboxResult:
         """Run *command* inside *exec_dir*, return stdout+stderr output."""
+        # Auto-create workspace if exec_dir is the default workspace
+        if exec_dir == self._workspace:
+            self.ensure_workspace()
         safe_dir = shlex.quote(exec_dir)
         shell_cmd = f"cd {safe_dir} 2>&1 || true; {command}"
         try:
@@ -109,3 +137,108 @@ class LocalSandboxAdapter:
                 pass
         self._results.pop(id, None)
         return {"success": True}
+
+    # ── File operations ───────────────────────────────────────────────────────
+
+    async def read_file(
+        self,
+        path: str,
+        start_line: int | None = None,
+        end_line: int | None = None,
+    ) -> str:
+        """Read file content; optionally slice by line range (1-indexed, inclusive)."""
+        with open(path, "r", errors="replace") as f:
+            content = f.read()
+        if not content:
+            return "(empty)"
+        if start_line is not None or end_line is not None:
+            lines = content.splitlines()
+            s = (start_line or 1) - 1
+            e = end_line or len(lines)
+            content = "\n".join(lines[s:e])
+        return content
+
+    async def write_file(self, path: str, content: str, append: bool = False) -> None:
+        """Write content to a file, auto-creating parent directories."""
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        mode = "a" if append else "w"
+        with open(path, mode, encoding="utf-8") as f:
+            f.write(content)
+
+    async def list_dir(self, path: str, max_depth: int = 2) -> list[str]:
+        """Return a list of paths up to *max_depth* levels under *path*."""
+        results: list[str] = []
+        base = Path(path)
+        for root, dirs, files in os.walk(base):
+            rel_root = Path(root).relative_to(base)
+            depth = len(rel_root.parts)
+            # Prune ignored dirs in-place
+            dirs[:] = sorted(d for d in dirs if d not in _IGNORE_DIRS and depth < max_depth)
+            for fname in sorted(files):
+                results.append(str(Path(root) / fname))
+            if len(results) >= 500:
+                break
+        return results
+
+    async def glob_files(
+        self,
+        path: str,
+        pattern: str,
+        max_results: int = 200,
+    ) -> tuple[list[str], bool]:
+        """Glob *pattern* recursively under *path*, returning (matches, truncated)."""
+        all_matches = _glob_module.glob(
+            os.path.join(path, "**", pattern), recursive=True
+        )
+        # Filter out ignored dirs
+        filtered = [
+            m for m in all_matches
+            if not any(part in _IGNORE_DIRS for part in Path(m).parts)
+        ]
+        truncated = len(filtered) > max_results
+        return filtered[:max_results], truncated
+
+    async def grep_files(
+        self,
+        path: str,
+        pattern: str,
+        glob_filter: str | None = None,
+        case_sensitive: bool = False,
+        max_results: int = 100,
+    ) -> tuple[list[GrepMatch], bool]:
+        """Regex-search files under *path*, returning (matches, truncated)."""
+        flags = 0 if case_sensitive else re.IGNORECASE
+        try:
+            regex = re.compile(pattern, flags)
+        except re.error as exc:
+            raise ValueError(f"Invalid regex pattern: {exc}") from exc
+
+        if glob_filter:
+            candidates = _glob_module.glob(
+                os.path.join(path, "**", glob_filter), recursive=True
+            )
+        else:
+            candidates = []
+            for root, dirs, files in os.walk(path):
+                dirs[:] = [d for d in dirs if d not in _IGNORE_DIRS]
+                for fname in files:
+                    candidates.append(os.path.join(root, fname))
+
+        matches: list[GrepMatch] = []
+        truncated = False
+        for filepath in candidates:
+            if any(part in _IGNORE_DIRS for part in Path(filepath).parts):
+                continue
+            try:
+                with open(filepath, "r", errors="replace") as f:
+                    for lineno, line in enumerate(f, 1):
+                        if regex.search(line):
+                            matches.append(
+                                GrepMatch(path=filepath, line_number=lineno, line=line.rstrip())
+                            )
+                            if len(matches) >= max_results:
+                                truncated = True
+                                return matches, truncated
+            except (OSError, UnicodeDecodeError):
+                continue
+        return matches, truncated

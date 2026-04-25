@@ -180,3 +180,99 @@ class RemoteSandboxAdapter:
     async def aclose(self) -> None:
         """Close the underlying HTTP client."""
         await self._client.aclose()
+
+    # ── File operations via shell commands ────────────────────────────────────
+
+    async def read_file(
+        self,
+        path: str,
+        start_line: int | None = None,
+        end_line: int | None = None,
+    ) -> str:
+        """Read file content from the remote sandbox container."""
+        import shlex as _shlex
+        if start_line is not None and end_line is not None:
+            cmd = f"sed -n '{start_line},{end_line}p' {_shlex.quote(path)} 2>&1"
+        elif start_line is not None:
+            cmd = f"tail -n +{start_line} {_shlex.quote(path)} 2>&1"
+        else:
+            cmd = f"cat {_shlex.quote(path)} 2>&1"
+        result = await self.exec_command(f"_read_{id(path)}", "/", cmd)
+        return result.output
+
+    async def write_file(self, path: str, content: str, append: bool = False) -> None:
+        """Write content to a file inside the remote sandbox container."""
+        import base64 as _b64, shlex as _shlex
+        encoded = _b64.b64encode(content.encode("utf-8")).decode()
+        mode = "ab" if append else "wb"
+        # Use Python inside the container to avoid shell-escaping edge cases
+        py_cmd = (
+            f"python3 -c \""
+            f"import base64,os; os.makedirs(os.path.dirname(os.path.abspath({path!r})), exist_ok=True); "
+            f"open({path!r}, {mode!r}).write(base64.b64decode('{encoded}'))\""
+        )
+        await self.exec_command(f"_write_{id(path)}", "/", py_cmd)
+
+    async def list_dir(self, path: str, max_depth: int = 2) -> list[str]:
+        """List directory contents inside the remote sandbox container."""
+        import shlex as _shlex
+        cmd = (
+            f"find {_shlex.quote(path)} -maxdepth {max_depth} "
+            r"\( -name .git -o -name __pycache__ -o -name node_modules \) -prune -o -print 2>/dev/null "
+            "| head -500"
+        )
+        result = await self.exec_command(f"_ls_{id(path)}", "/", cmd)
+        lines = [l.strip() for l in result.output.splitlines() if l.strip()]
+        return lines
+
+    async def glob_files(
+        self,
+        path: str,
+        pattern: str,
+        max_results: int = 200,
+    ) -> tuple[list[str], bool]:
+        """Glob *pattern* under *path* inside the remote sandbox container."""
+        import shlex as _shlex
+        cmd = (
+            f"find {_shlex.quote(path)} -name {_shlex.quote(pattern)} "
+            r"\( -path '*/.git/*' -o -path '*/__pycache__/*' -o -path '*/node_modules/*' \) -prune -o -print 2>/dev/null "
+            f"| head -{max_results + 1}"
+        )
+        result = await self.exec_command(f"_glob_{id(pattern)}", "/", cmd)
+        lines = [l.strip() for l in result.output.splitlines() if l.strip()]
+        truncated = len(lines) > max_results
+        return lines[:max_results], truncated
+
+    async def grep_files(
+        self,
+        path: str,
+        pattern: str,
+        glob_filter: str | None = None,
+        case_sensitive: bool = False,
+        max_results: int = 100,
+    ) -> tuple[list["GrepMatch"], bool]:
+        """Regex-search files under *path* inside the remote sandbox container."""
+        import shlex as _shlex
+        from .local_sandbox import GrepMatch
+
+        flags = "" if case_sensitive else "i"
+        include = f"--include={_shlex.quote(glob_filter)}" if glob_filter else ""
+        cmd = (
+            f"grep -rn{flags} {include} -m {max_results + 1} "
+            f"-e {_shlex.quote(pattern)} {_shlex.quote(path)} 2>/dev/null "
+            f"| head -{max_results + 1}"
+        )
+        result = await self.exec_command(f"_grep_{id(pattern)}", "/", cmd)
+        matches: list[GrepMatch] = []
+        for line in result.output.splitlines():
+            # grep output: path:lineno:content
+            parts = line.split(":", 2)
+            if len(parts) >= 3:
+                try:
+                    matches.append(
+                        GrepMatch(path=parts[0], line_number=int(parts[1]), line=parts[2])
+                    )
+                except ValueError:
+                    continue
+        truncated = len(matches) > max_results
+        return matches[:max_results], truncated
