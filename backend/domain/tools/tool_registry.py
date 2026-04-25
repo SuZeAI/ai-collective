@@ -173,11 +173,12 @@ class ToolRegistry:
                     sandbox_url=kwargs.pop("sandbox_url", settings.sandbox_url),
                     provisioner_url=kwargs.pop("sandbox_provisioner_url", settings.sandbox_provisioner_url),
                     timeout=int(kwargs.pop("sandbox_timeout", settings.sandbox_timeout)),
+                    workspace=kwargs.pop("sandbox_workspace", settings.sandbox_workspace),
                 )
                 kwargs = {**kwargs, "sandbox": sandbox}
             else:
                 # Remove sandbox-config keys so they don't reach the constructor
-                for _k in ("sandbox_mode", "sandbox_url", "sandbox_provisioner_url", "sandbox_timeout"):
+                for _k in ("sandbox_mode", "sandbox_url", "sandbox_provisioner_url", "sandbox_timeout", "sandbox_workspace"):
                     kwargs.pop(_k, None)
 
         if tool_name == ToolType.BROWSER.value:

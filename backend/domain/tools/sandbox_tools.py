@@ -78,15 +78,15 @@ class SandboxToolkit(BaseToolkit):
     def __init__(self, sandbox=None, workspace: str | None = None, **kwargs):
         super().__init__(**kwargs)
         self.sandbox = _get_sandbox(sandbox)
-        # Workspace defaults to ~/sandbox_workspace for local, /workspace for remote
+        # Workspace is resolved lazily — only created on first tool call.
+        # Defaults: local → ~/sandbox_workspace, remote → /workspace
+        from backend.infrastructure.sandbox.local_sandbox import LocalSandboxAdapter
         if workspace:
             self.workspace = workspace
+        elif isinstance(self.sandbox, LocalSandboxAdapter):
+            self.workspace = self.sandbox._workspace  # read default, don't create yet
         else:
-            from backend.infrastructure.sandbox.local_sandbox import LocalSandboxAdapter
-            if isinstance(self.sandbox, LocalSandboxAdapter):
-                self.workspace = self.sandbox.ensure_workspace()
-            else:
-                self.workspace = "/workspace"
+            self.workspace = "/workspace"
 
     # ── Shell ─────────────────────────────────────────────────────────────────
 

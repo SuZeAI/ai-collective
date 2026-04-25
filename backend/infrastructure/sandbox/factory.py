@@ -9,6 +9,7 @@ def create_sandbox_adapter(
     sandbox_url: str | None = None,
     provisioner_url: str | None = None,
     timeout: int = 60,
+    workspace: str | None = None,
 ):
     """Return a SandboxPort implementation based on *mode*.
 
@@ -17,6 +18,7 @@ def create_sandbox_adapter(
         sandbox_url:     Direct URL of a running AIO sandbox container (remote mode).
         provisioner_url: URL of the provisioner service that manages sandbox Pods (remote mode).
         timeout:         Default command execution timeout in seconds.
+        workspace:       Local workspace directory (local mode only). Auto-created on first use.
 
     Returns:
         LocalSandboxAdapter  when mode == "local"
@@ -31,4 +33,4 @@ def create_sandbox_adapter(
         )
 
     from .local_sandbox import LocalSandboxAdapter
-    return LocalSandboxAdapter(timeout=timeout)
+    return LocalSandboxAdapter(timeout=timeout, workspace=workspace)
