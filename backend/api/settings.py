@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     lock_backend: str = "threading"
     redis_url: str | None = None
 
+    # Sandbox configuration for the bash tool
+    # mode: "local" (direct host execution) | "remote" (AIO container via HTTP)
+    sandbox_mode: str = "local"
+    # Remote mode — provide either sandbox_url (direct) or sandbox_provisioner_url (K8s)
+    sandbox_url: str | None = None
+    sandbox_provisioner_url: str | None = None
+    sandbox_timeout: int = 60
+
     # LLM configuration for browser automation
     model_name: str = "gemini-2.0-flash"
     model_provider: str = "google_genai"
