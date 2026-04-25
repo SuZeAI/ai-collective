@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
-  BarChart3, Cpu, Play, Wrench, ChevronRight,
+  BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -23,6 +23,7 @@ const NAV_CONFIG = [
   { key: "conversations" as const, url: "/conversations", icon: MessageSquare, iconText: "text-cyan-300", iconSurface: "bg-cyan-500/15", iconActive: "from-cyan-500 to-sky-600" },
   { key: "analytics" as const, url: "/analytics", icon: BarChart3, iconText: "text-fuchsia-300", iconSurface: "bg-fuchsia-500/15", iconActive: "from-fuchsia-500 to-pink-600" },
   { key: "playground" as const, url: "/playground", icon: Play, iconText: "text-rose-300", iconSurface: "bg-rose-500/15", iconActive: "from-rose-500 to-red-600" },
+  { key: "workspaces" as const, url: "/workspaces", icon: BrainCircuit, iconText: "text-teal-300", iconSurface: "bg-teal-500/15", iconActive: "from-teal-500 to-cyan-600" },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {

@@ -91,6 +91,31 @@ class ActivityFeedItem:
     time: str
 
 
+@dataclass(frozen=True, slots=True)
+class PlatformHook:
+    id: str
+    platform: str       # "telegram" | "discord" | "slack" | "teams" | "whatsapp_business" | ...
+    name: str
+    config: dict[str, Any]   # platform-specific tokens/keys
+    description: str = ""
+    enabled: bool = True
+
+
+@dataclass(frozen=True, slots=True)
+class Workspace:
+    id: str
+    name: str
+    description: str
+    team_ids: list[str]
+    platform_hooks: list[PlatformHook]
+    created_at: datetime
+    avatar: str = ""
+    avatar_icon: str = ""
+    avatar_color: str = ""
+    avatar_url: str = ""
+    primary_team_id: str = ""
+
+
 @dataclass
 class ToolResult:
     """Result returned from tool operations"""

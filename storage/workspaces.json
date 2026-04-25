@@ -1,0 +1,34 @@
+[
+  {
+    "id": "ws_adbe3caeeb5e4167b551166baf472fb1",
+    "name": "Content Creator",
+    "description": "",
+    "teamIds": [
+      "t1773677767766"
+    ],
+    "primaryTeamId": "t1773677767766",
+    "platformHooks": [
+      {
+        "id": "hook_1776791144664",
+        "platform": "telegram",
+        "name": "Telegram",
+        "config": {},
+        "description": "",
+        "enabled": true
+      },
+      {
+        "id": "hook_1776791156554",
+        "platform": "teams",
+        "name": "Teams",
+        "config": {},
+        "description": "",
+        "enabled": true
+      }
+    ],
+    "createdAt": "2026-04-21T17:06:13.739946+00:00",
+    "avatar": "C",
+    "avatar_icon": "",
+    "avatar_color": "",
+    "avatar_url": ""
+  }
+]
