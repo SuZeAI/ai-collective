@@ -38,7 +38,7 @@ from backend.log import get_logger
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-STORAGE_DIR = PROJECT_ROOT / "storage"
+STORAGE_DIR = Path(settings.storage_dir) if settings.storage_dir else PROJECT_ROOT / "storage"
 
 
 @lru_cache

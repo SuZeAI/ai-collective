@@ -3,6 +3,7 @@ from enum import Enum
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools.bash import BashToolkit
+from backend.domain.tools.sandbox_tools import SandboxToolkit
 from backend.domain.tools.brave_search import BraveSearchToolkit
 from backend.domain.tools.browser import BrowserToolkit
 from backend.domain.tools.dedupe_search import DedupeSearchToolkit
@@ -49,6 +50,7 @@ from backend.domain.tools.snapchat_messaging import SnapchatMessagingToolkit
 
 class ToolType(str, Enum):
     BASH = "bash"
+    SANDBOX = "sandbox"
     BRAVE_SEARCH = "brave_search"
     BROWSER = "browser"
     WEBSEARCH = "websearch"
@@ -95,6 +97,7 @@ class ToolType(str, Enum):
 
 TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.BASH.value: BashToolkit,
+    ToolType.SANDBOX.value: SandboxToolkit,
     ToolType.BRAVE_SEARCH.value: BraveSearchToolkit,
     ToolType.BROWSER.value: BrowserToolkit,
     ToolType.WEBSEARCH.value: WebSearchToolkit,
@@ -158,6 +161,25 @@ class ToolRegistry:
         tool_class = ToolRegistry.get_tool_class(tool_name)
         if tool_class is None:
             return None
+
+        if tool_name in (ToolType.BASH.value, ToolType.SANDBOX.value):
+            from backend.api.settings import settings
+            from backend.infrastructure.sandbox.factory import create_sandbox_adapter
+
+            # SandboxToolkit auto-creates its own sandbox; only inject if not already provided
+            if "sandbox" not in kwargs:
+                sandbox = create_sandbox_adapter(
+                    mode=kwargs.pop("sandbox_mode", settings.sandbox_mode),
+                    sandbox_url=kwargs.pop("sandbox_url", settings.sandbox_url),
+                    provisioner_url=kwargs.pop("sandbox_provisioner_url", settings.sandbox_provisioner_url),
+                    timeout=int(kwargs.pop("sandbox_timeout", settings.sandbox_timeout)),
+                    workspace=kwargs.pop("sandbox_workspace", settings.sandbox_workspace),
+                )
+                kwargs = {**kwargs, "sandbox": sandbox}
+            else:
+                # Remove sandbox-config keys so they don't reach the constructor
+                for _k in ("sandbox_mode", "sandbox_url", "sandbox_provisioner_url", "sandbox_timeout", "sandbox_workspace"):
+                    kwargs.pop(_k, None)
 
         if tool_name == ToolType.BROWSER.value:
             cdp_url = kwargs.get("cdp_url")

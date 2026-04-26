@@ -1,28 +1,37 @@
 # AI Collective — Production Environment
 # Usage: docker compose -f docker/docker-compose.yaml up -d
 #
-# Services:
-#   - redis:       Task cancel signals + pause checkpoints
-#   - rabbitmq:    Task execution queue
-#   - nginx:       Reverse proxy (port 2026, configurable via PORT env var)
-#   - frontend:    Next.js production server
-#   - gateway:     FastAPI Gateway API
-#   - langgraph:   LangGraph production server
-#   - provisioner: (optional) Sandbox provisioner for Kubernetes mode
+# Services (always on):
+#   redis      — distributed lock backend  (enable: LOCK_BACKEND=redis)
+#   rabbitmq   — task queue                (enable: TASK_QUEUE_BACKEND=rabbitmq)
+#   nginx      — reverse proxy             (port 2026, override: PORT=xxxx)
+#   frontend   — Vite React static server  (served by `serve`, port 8080 internal)
+#   backend    — FastAPI application       (port 8000 internal)
+#
+# Optional services (Docker Compose profiles):
+#   sandbox    — AIO sandbox container for isolated code execution
+#                Enable: docker compose --profile sandbox up -d
+#                Then set in .env: SANDBOX_MODE=remote  SANDBOX_URL=http://sandbox:8080
+#
+#   provisioner — K8s sandbox provisioner (creates per-request sandbox Pods)
+#                Enable: docker compose --profile provisioner up -d
+#                Then set in .env: SANDBOX_MODE=remote  SANDBOX_PROVISIONER_URL=http://provisioner:8002
 #
 # Key environment variables (set in .env at project root):
-#   AI_COLLECTIVE_HOME                   — runtime data dir
-#   AI_COLLECTIVE_CONFIG_PATH            — path to config.yaml
-#   AI_COLLECTIVE_EXTENSIONS_CONFIG_PATH — path to extensions_config.json
-#   AI_COLLECTIVE_DOCKER_SOCKET          — Docker socket path, default /var/run/docker.sock
-#   AI_COLLECTIVE_REPO_ROOT              — repo root (used for skills host path in DooD)
-#   BETTER_AUTH_SECRET               — required for frontend auth/session security
-#   RABBITMQ_USER / RABBITMQ_PASS    — RabbitMQ credentials (default: guest/guest)
+#   LLM_PROVIDER / LLM_MODEL              — LLM provider & model
+#   GOOGLE_API_KEY / ANTHROPIC_API_KEY / OPENAI_API_KEY
+#   RABBITMQ_USER / RABBITMQ_PASS         — RabbitMQ credentials (default: guest/guest)
+#   SANDBOX_MODE                          — "local" (default) | "remote"
+#   SANDBOX_URL                           — http://sandbox:8080 (if profile sandbox is active)
+#   SANDBOX_PROVISIONER_URL               — http://provisioner:8002 (if profile provisioner is active)
+#   SANDBOX_TIMEOUT                       — command timeout in seconds (default: 60)
+#   STORAGE_DIR                           — override storage directory path
+#   PORT                                  — public port (default: 2026)
 #
 # Access: http://localhost:${PORT:-2026}
 
 services:
-  # ── Redis (task cancel signals + pause checkpoints) ────────────────────────
+  # ── Redis (distributed lock backend) ──────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: ai-collective-redis
@@ -59,87 +68,52 @@ services:
     ports:
       - "${PORT:-2026}:2026"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf.template:ro
-    environment:
-      - LANGGRAPH_UPSTREAM=${LANGGRAPH_UPSTREAM:-langgraph:2024}
-      - LANGGRAPH_REWRITE=${LANGGRAPH_REWRITE:-/}
-    command: >
-      sh -c "envsubst '$$LANGGRAPH_UPSTREAM $$LANGGRAPH_REWRITE'
-      < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
-      && nginx -g 'daemon off;'"
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - frontend
-      - gateway
+      - backend
     networks:
       - ai-collective
     restart: unless-stopped
 
-  # ── Frontend: Next.js Production ───────────────────────────────────────────
+  # ── Frontend: Vite React (static production build) ────────────────────────
   frontend:
     build:
       context: ../
-      dockerfile: frontend/Dockerfile
+      dockerfile: Dockerfile.frontend
       target: prod
-      args:
-        PNPM_STORE_PATH: ${PNPM_STORE_PATH:-/root/.local/share/pnpm/store}
-        NPM_REGISTRY: ${NPM_REGISTRY:-}
     container_name: ai-collective-frontend
-    environment:
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-      - AI_COLLECTIVE_INTERNAL_GATEWAY_BASE_URL=http://gateway:8001
-      - AI_COLLECTIVE_INTERNAL_LANGGRAPH_BASE_URL=http://langgraph:2024
-    env_file:
-      - ../frontend/.env
     networks:
       - ai-collective
     restart: unless-stopped
 
-  # ── Gateway API ────────────────────────────────────────────────────────────
-  gateway:
+  # ── Backend: FastAPI ───────────────────────────────────────────────────────
+  backend:
     build:
       context: ../
       dockerfile: backend/Dockerfile
       args:
         APT_MIRROR: ${APT_MIRROR:-}
         UV_IMAGE: ${UV_IMAGE:-ghcr.io/astral-sh/uv:0.7.20}
-        UV_INDEX_URL: ${UV_INDEX_URL:-https://pypi.org/simple}
-    container_name: ai-collective-gateway
-    command: sh -c "cd backend && PYTHONPATH=. uv run uvicorn app.gateway.app:app --host 0.0.0.0 --port 8001 --workers ${GATEWAY_WORKERS:-4}"
+        UV_INDEX_URL: ${UV_INDEX_URL:-}
+    container_name: ai-collective-backend
+    command: uv run uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --workers ${BACKEND_WORKERS:-4}
     volumes:
-      - ${AI_COLLECTIVE_CONFIG_PATH}:/app/backend/config.yaml:ro
-      - ${AI_COLLECTIVE_EXTENSIONS_CONFIG_PATH}:/app/backend/extensions_config.json:ro
-      - ../skills:/app/skills:ro
-      - ${AI_COLLECTIVE_HOME}:/app/backend/.ai-collective
-      - ${AI_COLLECTIVE_DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
-      - type: bind
-        source: ${HOME:?HOME must be set}/.claude
-        target: /root/.claude
-        read_only: true
-        bind:
-          create_host_path: true
-      - type: bind
-        source: ${HOME:?HOME must be set}/.codex
-        target: /root/.codex
-        read_only: true
-        bind:
-          create_host_path: true
-    working_dir: /app
-    environment:
-      - CI=true
-      - AI_COLLECTIVE_HOME=/app/backend/.ai-collective
-      - AI_COLLECTIVE_CONFIG_PATH=/app/backend/config.yaml
-      - AI_COLLECTIVE_EXTENSIONS_CONFIG_PATH=/app/backend/extensions_config.json
-      - AI_COLLECTIVE_CHANNELS_LANGGRAPH_URL=${AI_COLLECTIVE_CHANNELS_LANGGRAPH_URL:-http://langgraph:2024}
-      - AI_COLLECTIVE_CHANNELS_GATEWAY_URL=${AI_COLLECTIVE_CHANNELS_GATEWAY_URL:-http://gateway:8001}
-      - REDIS_URL=redis://redis:6379/0
-      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
-      - AI_COLLECTIVE_HOST_BASE_DIR=${AI_COLLECTIVE_HOME}
-      - AI_COLLECTIVE_HOST_SKILLS_PATH=${AI_COLLECTIVE_REPO_ROOT}/skills
-      - AI_COLLECTIVE_SANDBOX_HOST=host.docker.internal
+      - ../storage:/app/storage
+      - ../logs:/app/logs
+      - sandbox-workspace:/app/sandbox_workspace
     env_file:
       - ../.env
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
+      # Sandbox — override via .env to switch modes
+      - SANDBOX_MODE=${SANDBOX_MODE:-local}
+      - SANDBOX_URL=${SANDBOX_URL:-}
+      - SANDBOX_PROVISIONER_URL=${SANDBOX_PROVISIONER_URL:-}
+      - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-60}
+      - SANDBOX_WORKSPACE=/app/sandbox_workspace
+      - STORAGE_DIR=/app/storage
     networks:
       - ai-collective
     restart: unless-stopped
@@ -149,83 +123,59 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  # ── LangGraph Server ───────────────────────────────────────────────────────
-  langgraph:
-    build:
-      context: ../
-      dockerfile: backend/Dockerfile
-      args:
-        APT_MIRROR: ${APT_MIRROR:-}
-        UV_IMAGE: ${UV_IMAGE:-ghcr.io/astral-sh/uv:0.7.20}
-        UV_INDEX_URL: ${UV_INDEX_URL:-https://pypi.org/simple}
-    container_name: ai-collective-langgraph
-    command: sh -c 'cd /app/backend && args="--no-browser --no-reload --host 0.0.0.0 --port 2024 --n-jobs-per-worker $${LANGGRAPH_JOBS_PER_WORKER:-10}" && if [ "$${LANGGRAPH_ALLOW_BLOCKING:-0}" = "1" ]; then args="$$args --allow-blocking"; fi && uv run langgraph dev $$args'
+  # ── AIO Sandbox Container (optional — profile: sandbox) ───────────────────
+  # Activate: docker compose --profile sandbox up -d
+  # Then set in .env: SANDBOX_MODE=remote  SANDBOX_URL=http://sandbox:8080
+  sandbox:
+    image: ${SANDBOX_IMAGE:-enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest}
+    container_name: ai-collective-sandbox
+    profiles: ["sandbox"]
     volumes:
-      - ${AI_COLLECTIVE_CONFIG_PATH}:/app/backend/config.yaml:ro
-      - ${AI_COLLECTIVE_EXTENSIONS_CONFIG_PATH}:/app/backend/extensions_config.json:ro
-      - ${AI_COLLECTIVE_HOME}:/app/backend/.ai-collective
-      - ../skills:/app/skills:ro
-      - ../backend/.langgraph_api:/app/backend/.langgraph_api
-      - ${AI_COLLECTIVE_DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
-      - type: bind
-        source: ${HOME:?HOME must be set}/.claude
-        target: /root/.claude
-        read_only: true
-        bind:
-          create_host_path: true
-      - type: bind
-        source: ${HOME:?HOME must be set}/.codex
-        target: /root/.codex
-        read_only: true
-        bind:
-          create_host_path: true
-    environment:
-      - CI=true
-      - AI_COLLECTIVE_HOME=/app/backend/.ai-collective
-      - AI_COLLECTIVE_CONFIG_PATH=/app/backend/config.yaml
-      - AI_COLLECTIVE_EXTENSIONS_CONFIG_PATH=/app/backend/extensions_config.json
-      - AI_COLLECTIVE_HOST_BASE_DIR=${AI_COLLECTIVE_HOME}
-      - AI_COLLECTIVE_HOST_SKILLS_PATH=${AI_COLLECTIVE_REPO_ROOT}/skills
-      - AI_COLLECTIVE_SANDBOX_HOST=host.docker.internal
-    env_file:
-      - ../.env
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - ai-collective
-    restart: unless-stopped
-
-  # ── Sandbox Provisioner (optional, Kubernetes mode) ────────────────────────
-  provisioner:
-    build:
-      context: ./provisioner
-      dockerfile: Dockerfile
-      args:
-        APT_MIRROR: ${APT_MIRROR:-}
-        PIP_INDEX_URL: ${PIP_INDEX_URL:-}
-    container_name: ai-collective-provisioner
-    volumes:
-      - ~/.kube/config:/root/.kube/config:ro
-    environment:
-      - K8S_NAMESPACE=ai-collective
-      - SANDBOX_IMAGE=enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
-      - SKILLS_HOST_PATH=${AI_COLLECTIVE_REPO_ROOT}/skills
-      - THREADS_HOST_PATH=${AI_COLLECTIVE_HOME}/threads
-      - KUBECONFIG_PATH=/root/.kube/config
-      - NODE_HOST=host.docker.internal
-      - K8S_API_SERVER=https://host.docker.internal:26443
-    env_file:
-      - ../.env
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - sandbox-workspace:/workspace
     networks:
       - ai-collective
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
-      interval: 10s
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/v1/sandbox"]
+      interval: 15s
       timeout: 5s
-      retries: 6
+      retries: 5
+      start_period: 10s
+
+  # ── Sandbox Provisioner (optional — profile: provisioner) ─────────────────
+  # Activate: docker compose --profile provisioner up -d
+  # Then set in .env: SANDBOX_MODE=remote  SANDBOX_PROVISIONER_URL=http://provisioner:8002
+  # Requires: kubectl context available at KUBECONFIG_PATH
+  provisioner:
+    build:
+      context: ./provisioner
+      args:
+        APT_MIRROR: ${APT_MIRROR:-}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+    container_name: ai-collective-provisioner
+    profiles: ["provisioner"]
+    environment:
+      - K8S_NAMESPACE=${K8S_NAMESPACE:-ai-collective}
+      - SANDBOX_IMAGE=${SANDBOX_IMAGE:-enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest}
+      - NODE_HOST=${NODE_HOST:-host.docker.internal}
+      - K8S_API_SERVER=${K8S_API_SERVER:-}
+      - KUBECONFIG_PATH=/root/.kube/config
+      - SKILLS_HOST_PATH=${SKILLS_HOST_PATH:-/skills}
+      - THREADS_HOST_PATH=${THREADS_HOST_PATH:-/.ai-collective/threads}
+    volumes:
+      - ${KUBECONFIG:-~/.kube}:/root/.kube:ro
+    networks:
+      - ai-collective
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8002/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  sandbox-workspace:
 
 networks:
   ai-collective:
