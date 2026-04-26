@@ -33,7 +33,16 @@ const NAV_CONFIG = [
   { key: "settings" as const, url: "/settings", icon: Settings2, iconText: "text-violet-300", iconSurface: "bg-violet-500/15", iconActive: "from-violet-500 to-indigo-600" },
 ];
 
-function UserAvatarButton({ name }: { name: string }) {
+function UserAvatarButton({ name, src }: { name: string; src?: string }) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className="w-8 h-8 rounded-full object-cover select-none"
+      />
+    );
+  }
   const initials = name
     .split(" ")
     .slice(0, 2)
@@ -177,7 +186,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="ml-1 rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-opacity hover:opacity-80">
-                      <UserAvatarButton name={user.name} />
+                      <UserAvatarButton name={user.name} src={user.avatar || undefined} />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">

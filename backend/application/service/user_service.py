@@ -41,7 +41,7 @@ class UserService:
             raise ValidationError("Invalid email or password")
         return user
 
-    def update_profile(self, user_id: str, *, name: str | None = None, email: str | None = None) -> User:
+    def update_profile(self, user_id: str, *, name: str | None = None, email: str | None = None, avatar: str | None = None) -> User:
         user = self.find_by_id(user_id)
         if email and email.strip().lower() != user.email:
             existing = self._repo.find_by_email(email)
@@ -54,6 +54,7 @@ class UserService:
             hashed_password=user.hashed_password,
             role=user.role,
             joined_at=user.joined_at,
+            avatar=(avatar if avatar is not None else user.avatar),
         )
         return self._repo.save(updated)
 

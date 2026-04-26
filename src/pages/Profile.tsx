@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import {
   User, Mail, Lock, Shield, Calendar, LogOut,
-  Check, AlertCircle, Pencil,
+  Check, AlertCircle, Pencil, Camera, Upload,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -16,15 +16,22 @@ import { api } from "@/lib/api";
 type ProfileForm = { name: string; email: string };
 type PasswordForm = { current: string; newPw: string; confirm: string };
 
-function UserAvatar({ name, size = "lg" }: { name: string; size?: "sm" | "lg" }) {
+function UserAvatar({ name, src, size = "lg" }: { name: string; src?: string; size?: "sm" | "lg" }) {
   const initials = name
     .split(" ")
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
-  const cls = size === "lg"
-    ? "w-20 h-20 text-2xl"
-    : "w-9 h-9 text-sm";
+  const cls = size === "lg" ? "w-20 h-20 text-2xl" : "w-9 h-9 text-sm";
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className={`${cls} rounded-full object-cover flex-shrink-0`}
+      />
+    );
+  }
   return (
     <div className={`${cls} rounded-full bg-gradient-to-br from-sky-500 to-violet-600 flex items-center justify-center text-white font-bold flex-shrink-0`}>
       {initials || <User className="w-1/2 h-1/2" />}
@@ -43,21 +50,55 @@ export default function Profile() {
   const [pwError, setPwError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
 
+  const [avatarMode, setAvatarMode] = useState<"url" | "upload">("url");
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatar ?? "");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const profileForm = useForm<ProfileForm>({
     defaultValues: { name: user?.name ?? "", email: user?.email ?? "" },
   });
 
   const passwordForm = useForm<PasswordForm>();
 
+  const handleOpenEditMode = () => {
+    setAvatarUrl(user?.avatar ?? "");
+    setAvatarMode("url");
+    setAvatarError(null);
+    setEditMode(true);
+  };
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    setAvatarError(null);
+    try {
+      const updated = await api.uploadAvatar(file);
+      setAvatarUrl(updated.avatar ?? "");
+      updateUser({ avatar: updated.avatar });
+    } catch (err: any) {
+      setAvatarError(err?.message ?? "Upload failed");
+    } finally {
+      setAvatarUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const onSaveProfile = profileForm.handleSubmit(async (data) => {
     setProfileStatus("saving");
     setProfileError(null);
     try {
       if (!isGuest) {
-        const updated = await api.updateProfile({ name: data.name, email: data.email });
+        const updated = await api.updateProfile({
+          name: data.name,
+          email: data.email,
+          avatar: avatarUrl || null,
+        });
         updateUser(updated);
       } else {
-        updateUser({ name: data.name, email: data.email });
+        updateUser({ name: data.name, email: data.email, avatar: avatarUrl || undefined });
       }
       setProfileStatus("ok");
       setEditMode(false);
@@ -106,7 +147,19 @@ export default function Profile() {
         className="rounded-2xl border border-border bg-card p-6"
       >
         <div className="flex items-start gap-5">
-          <UserAvatar name={user.name} size="lg" />
+          <button
+            type="button"
+            className="relative group flex-shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={editMode ? undefined : handleOpenEditMode}
+            title="Change avatar"
+          >
+            <UserAvatar name={user.name} src={user.avatar || undefined} size="lg" />
+            {!editMode && (
+              <span className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="w-5 h-5 text-white" />
+              </span>
+            )}
+          </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -119,7 +172,12 @@ export default function Profile() {
                   </span>
                 )}
               </div>
-              <Button variant="outline" size="sm" onClick={() => setEditMode((v) => !v)} className="flex-shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={editMode ? () => setEditMode(false) : handleOpenEditMode}
+                className="flex-shrink-0"
+              >
                 <Pencil className="w-3.5 h-3.5 mr-1.5" />
                 {editMode ? t.auth.cancel : t.auth.editProfile}
               </Button>
@@ -154,6 +212,70 @@ export default function Profile() {
             <h2 className="font-semibold">{t.auth.editProfile}</h2>
           </div>
           <form onSubmit={onSaveProfile} className="space-y-4">
+            {/* Avatar section */}
+            <div className="space-y-2">
+              <Label>Avatar</Label>
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <UserAvatar name={user.name} src={avatarUrl || undefined} size="lg" />
+                </div>
+                <div className="flex-1 space-y-2">
+                  {/* Mode toggle */}
+                  <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setAvatarMode("url")}
+                      className={`px-3 py-1 rounded-md transition-colors ${avatarMode === "url" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      Image URL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAvatarMode("upload")}
+                      className={`px-3 py-1 rounded-md transition-colors ${avatarMode === "upload" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      Upload file
+                    </button>
+                  </div>
+
+                  {avatarMode === "url" ? (
+                    <Input
+                      placeholder="https://example.com/avatar.jpg"
+                      value={avatarUrl}
+                      onChange={(e) => setAvatarUrl(e.target.value)}
+                    />
+                  ) : (
+                    <label className="inline-flex items-center gap-2 cursor-pointer border border-border rounded-md px-3 py-1.5 text-sm hover:bg-muted transition-colors select-none">
+                      <Upload className="w-3.5 h-3.5" />
+                      {avatarUploading ? "Uploading…" : "Choose image"}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        className="hidden"
+                        disabled={avatarUploading}
+                        onChange={handleAvatarFileChange}
+                      />
+                    </label>
+                  )}
+
+                  {avatarError && (
+                    <p className="text-xs text-destructive">{avatarError}</p>
+                  )}
+
+                  {avatarUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setAvatarUrl("")}
+                      className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      Remove avatar
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="prof-name">{t.auth.name}</Label>

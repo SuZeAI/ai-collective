@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import HTMLResponse
 
 from backend.api.settings import settings
@@ -303,23 +303,51 @@ def get_me(current_user: User = Depends(current_user_dep)) -> UserSchema:
     return UserSchema.from_domain(current_user)
 
 
+_ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+_AVATAR_DIR = Path("static/avatars")
+_MAX_AVATAR_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
 @router.patch("/profile", response_model=UserSchema)
 def update_profile(
     body: UpdateProfileRequest,
     current_user: User = Depends(current_user_dep),
     user_service: UserService = Depends(get_user_service),
 ) -> UserSchema:
-    """Update the current user's name and/or email."""
+    """Update the current user's name, email, and/or avatar URL."""
     try:
         updated = user_service.update_profile(
             current_user.id,
             name=body.name,
             email=str(body.email) if body.email else None,
+            avatar=body.avatar,
         )
     except ValidationError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
     except NotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return UserSchema.from_domain(updated)
+
+
+@router.post("/avatar", response_model=UserSchema)
+async def upload_avatar(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(current_user_dep),
+    user_service: UserService = Depends(get_user_service),
+) -> UserSchema:
+    """Upload a new avatar image (JPEG, PNG, GIF, WebP; max 5 MB)."""
+    if file.content_type not in _ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPEG, PNG, GIF, WebP.")
+    content = await file.read()
+    if len(content) > _MAX_AVATAR_BYTES:
+        raise HTTPException(status_code=400, detail="File too large. Max 5 MB.")
+    ext = Path(file.filename or "avatar.jpg").suffix.lower() or ".jpg"
+    _AVATAR_DIR.mkdir(parents=True, exist_ok=True)
+    dest = _AVATAR_DIR / f"{current_user.id}{ext}"
+    dest.write_bytes(content)
+    avatar_url = str(request.base_url).rstrip("/") + f"/static/avatars/{current_user.id}{ext}"
+    updated = user_service.update_profile(current_user.id, avatar=avatar_url)
     return UserSchema.from_domain(updated)
 
 

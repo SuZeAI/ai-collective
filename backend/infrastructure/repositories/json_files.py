@@ -596,6 +596,7 @@ class JsonUserRepository:
                     hashed_password=str(item.get("hashed_password", "")),
                     role=str(item.get("role", "user")),
                     joined_at=str(item.get("joined_at", "")),
+                    avatar=str(item.get("avatar", "")),
                 )
                 self._items[user.id] = user
             except Exception:
@@ -611,6 +612,7 @@ class JsonUserRepository:
                     "hashed_password": u.hashed_password,
                     "role": u.role,
                     "joined_at": u.joined_at,
+                    "avatar": u.avatar,
                 }
                 for u in self._items.values()
             ]

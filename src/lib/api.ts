@@ -434,8 +434,37 @@ export const api = {
     apiFetch<LoginResponse>("/auth/register", { method: "POST", body: JSON.stringify({ name, email, password }) }),
   logout: () => apiFetch<void>("/auth/logout", { method: "POST" }),
   getCurrentUser: () => apiFetch<AuthUser>("/auth/me"),
-  updateProfile: (payload: Partial<AuthUser>) =>
+  updateProfile: (payload: { name?: string; email?: string; avatar?: string | null }) =>
     apiFetch<AuthUser>("/auth/profile", { method: "PATCH", body: JSON.stringify(payload) }),
   changePassword: (current_password: string, new_password: string) =>
     apiFetch<void>("/auth/password", { method: "PATCH", body: JSON.stringify({ current_password, new_password }) }),
+  uploadAvatar: async (file: File): Promise<AuthUser> => {
+    const base = getApiBase().replace(/\/$/, "");
+    const url = `${base}/auth/avatar`;
+    const formData = new FormData();
+    formData.append("file", file);
+    const token = localStorage.getItem("ai-collective-token");
+    const res = await fetch(url, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    if (!res.ok) {
+      let detail = `${res.status} ${res.statusText}`;
+      try {
+        const data = await res.json();
+        if (data?.detail) detail = String(data.detail);
+      } catch { /* ignore */ }
+      throw new Error(detail);
+    }
+    const data = await res.json();
+    return {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      avatar: data.avatar ?? undefined,
+      role: data.role,
+      joinedAt: data.joined_at ?? undefined,
+    };
+  },
 };

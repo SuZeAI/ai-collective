@@ -19,6 +19,7 @@ class UserSchema(BaseModel):
     name: str
     email: str
     role: str
+    avatar: str | None = None
     joined_at: str | None = None
 
     @staticmethod
@@ -28,6 +29,7 @@ class UserSchema(BaseModel):
             name=u.name,
             email=u.email,
             role=u.role,
+            avatar=u.avatar or None,
             joined_at=u.joined_at or None,
         )
 
@@ -41,6 +43,7 @@ class TokenResponse(BaseModel):
 class UpdateProfileRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     email: EmailStr | None = None
+    avatar: str | None = None
 
 
 class ChangePasswordRequest(BaseModel):

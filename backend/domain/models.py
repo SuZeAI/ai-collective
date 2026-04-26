@@ -150,3 +150,4 @@ class User:
     hashed_password: str
     role: str = "user"
     joined_at: str = ""
+    avatar: str = ""

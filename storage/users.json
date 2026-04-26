@@ -5,6 +5,7 @@
     "email": "t33t3@gmail.com",
     "hashed_password": "$2b$12$eDTVz3IAZBST4q2YtB4/AOnoCicTppKmQLIMG00Trz0dXpm.G9PxK",
     "role": "user",
-    "joined_at": "2026-04-26T05:44:31.476562+00:00"
+    "joined_at": "2026-04-26T05:44:31.476562+00:00",
+    "avatar": "https://ai-collective-eight.vercel.app/spider.png"
   }
 ]
