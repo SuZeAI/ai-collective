@@ -1,0 +1,12 @@
+[
+  {
+    "id": "conn_e21205649ed346f0bd7acee1a702d314",
+    "platform": "telegram",
+    "name": "Telegram",
+    "config": {
+      "bot_token": "123456"
+    },
+    "description": "t33t3@gmail.com",
+    "created_at": "2026-04-26T04:14:37.213321+00:00"
+  }
+]

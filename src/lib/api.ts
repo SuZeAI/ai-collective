@@ -162,6 +162,15 @@ export type Workspace = {
   avatar_url?: string;
 };
 
+export type ThirdPartyConnection = {
+  id: string;
+  platform: string;
+  name: string;
+  config: Record<string, string>;
+  description: string;
+  createdAt: string;
+};
+
 export type PlatformConfigField = {
   key: string;
   label: string;
@@ -386,4 +395,9 @@ export const api = {
     apiFetch<Workspace>("/workspaces", { method: "POST", body: JSON.stringify(payload) }),
   deleteWorkspace: (id: string) => apiFetch<{ deleted: boolean }>(`/workspaces/${id}`, { method: "DELETE" }),
   listPlatforms: () => apiFetch<PlatformDef[]>("/workspaces/platforms"),
+
+  listConnections: () => apiFetch<ThirdPartyConnection[]>("/connections"),
+  upsertConnection: (payload: Partial<ThirdPartyConnection> & Pick<ThirdPartyConnection, "platform" | "name">) =>
+    apiFetch<ThirdPartyConnection>("/connections", { method: "POST", body: JSON.stringify(payload) }),
+  deleteConnection: (id: string) => apiFetch<{ deleted: boolean }>(`/connections/${id}`, { method: "DELETE" }),
 };
