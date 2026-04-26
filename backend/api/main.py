@@ -18,6 +18,7 @@ from backend.api.routers import (
     agents,
     analytics,
     auth,
+    connections,
     conversations,
     health,
     llm,
@@ -61,6 +62,7 @@ def create_app() -> FastAPI:
     app.include_router(llm.router, prefix=settings.api_prefix)
     app.include_router(auth.router, prefix=settings.api_prefix)
     app.include_router(workspaces.router, prefix=settings.api_prefix)
+    app.include_router(connections.router, prefix=settings.api_prefix)
     app.include_router(webhook.router, prefix=settings.api_prefix)
     return app
 

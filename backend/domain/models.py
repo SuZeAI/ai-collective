@@ -116,6 +116,16 @@ class Workspace:
     primary_team_id: str = ""
 
 
+@dataclass(frozen=True, slots=True)
+class ThirdPartyConnection:
+    id: str
+    platform: str
+    name: str
+    config: dict[str, Any]
+    created_at: datetime
+    description: str = ""
+
+
 @dataclass
 class ToolResult:
     """Result returned from tool operations"""
