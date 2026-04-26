@@ -22,6 +22,7 @@ import Workspaces from "@/pages/Workspaces";
 import Settings from "@/pages/Settings";
 import Docs from "@/pages/Docs";
 import NotFound from "@/pages/NotFound";
+import AuthCallback from "@/pages/AuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/dashboard" element={<WithLayout><Dashboard /></WithLayout>} />
                 <Route path="/agents" element={<WithLayout><AgentBuilder /></WithLayout>} />
                 <Route path="/skills" element={<WithLayout><Skills /></WithLayout>} />

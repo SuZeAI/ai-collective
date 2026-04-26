@@ -597,6 +597,8 @@ class JsonUserRepository:
                     role=str(item.get("role", "user")),
                     joined_at=str(item.get("joined_at", "")),
                     avatar=str(item.get("avatar", "")),
+                    provider=str(item.get("provider", "local")),
+                    provider_id=str(item.get("provider_id", "")),
                 )
                 self._items[user.id] = user
             except Exception:
@@ -613,6 +615,8 @@ class JsonUserRepository:
                     "role": u.role,
                     "joined_at": u.joined_at,
                     "avatar": u.avatar,
+                    "provider": u.provider,
+                    "provider_id": u.provider_id,
                 }
                 for u in self._items.values()
             ]
@@ -626,6 +630,13 @@ class JsonUserRepository:
         with self._lock:
             email_lower = email.strip().lower()
             return next((u for u in self._items.values() if u.email.lower() == email_lower), None)
+
+    def find_by_provider_id(self, provider: str, provider_id: str) -> User | None:
+        with self._lock:
+            return next(
+                (u for u in self._items.values() if u.provider == provider and u.provider_id == provider_id),
+                None,
+            )
 
     def save(self, user: User) -> User:
         with self._lock:

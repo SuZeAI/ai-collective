@@ -151,3 +151,5 @@ class User:
     role: str = "user"
     joined_at: str = ""
     avatar: str = ""
+    provider: str = "local"   # "local" | "google" | "github" | ...
+    provider_id: str = ""     # OAuth provider's unique user ID (e.g. Google sub)

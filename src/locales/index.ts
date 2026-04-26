@@ -50,6 +50,16 @@ export type AuthTranslations = {
   logoutDesc: string;
   passwordMismatch: string;
   errorDefault: string;
+  orContinueWith: string;
+  socialComingSoon: string;
+  phoneBtn: string;
+  phonePlaceholder: string;
+  sendCode: string;
+  sendingCode: string;
+  verifyCode: string;
+  codePlaceholder: string;
+  verifyBtn: string;
+  phoneNote: string;
 };
 
 export type Translations = {
@@ -259,6 +269,16 @@ export const translations: Record<Language, Translations> = {
       logoutDesc: "Sign out of your account on this device.",
       passwordMismatch: "Passwords do not match.",
       errorDefault: "Something went wrong. Please try again.",
+      orContinueWith: "Or continue with",
+      socialComingSoon: "Social login coming soon",
+      phoneBtn: "Phone Number",
+      phonePlaceholder: "+1 (555) 000-0000",
+      sendCode: "Send Code",
+      sendingCode: "Sending…",
+      verifyCode: "Enter verification code",
+      codePlaceholder: "000000",
+      verifyBtn: "Verify",
+      phoneNote: "We'll send a verification code to your number.",
     },
     nav: {
       label: "Navigation", dashboard: "Dashboard", agents: "Agents",
@@ -481,6 +501,16 @@ export const translations: Record<Language, Translations> = {
       logoutDesc: "Đăng xuất khỏi tài khoản của bạn trên thiết bị này.",
       passwordMismatch: "Mật khẩu không khớp.",
       errorDefault: "Đã xảy ra lỗi. Vui lòng thử lại.",
+      orContinueWith: "Hoặc tiếp tục với",
+      socialComingSoon: "Đăng nhập mạng xã hội sắp ra mắt",
+      phoneBtn: "Số điện thoại",
+      phonePlaceholder: "+84 (90) 000-0000",
+      sendCode: "Gửi mã",
+      sendingCode: "Đang gửi…",
+      verifyCode: "Nhập mã xác minh",
+      codePlaceholder: "000000",
+      verifyBtn: "Xác minh",
+      phoneNote: "Chúng tôi sẽ gửi mã xác minh đến số của bạn.",
     },
     nav: {
       label: "Điều hướng", dashboard: "Bảng điều khiển", agents: "Tác nhân",
@@ -703,6 +733,16 @@ export const translations: Record<Language, Translations> = {
       logoutDesc: "在此设备上退出您的账户。",
       passwordMismatch: "密码不匹配。",
       errorDefault: "出现错误，请重试。",
+      orContinueWith: "或继续使用",
+      socialComingSoon: "社交登录即将推出",
+      phoneBtn: "手机号码",
+      phonePlaceholder: "+86 (138) 0000-0000",
+      sendCode: "发送验证码",
+      sendingCode: "发送中…",
+      verifyCode: "输入验证码",
+      codePlaceholder: "000000",
+      verifyBtn: "验证",
+      phoneNote: "我们将向您的号码发送验证码。",
     },
     nav: {
       label: "导航", dashboard: "仪表盘", agents: "智能体",
@@ -925,6 +965,16 @@ export const translations: Record<Language, Translations> = {
       logoutDesc: "このデバイスからサインアウトします。",
       passwordMismatch: "パスワードが一致しません。",
       errorDefault: "エラーが発生しました。もう一度お試しください。",
+      orContinueWith: "または以下で続ける",
+      socialComingSoon: "ソーシャルログインは近日公開予定",
+      phoneBtn: "電話番号",
+      phonePlaceholder: "+81 (90) 0000-0000",
+      sendCode: "コードを送信",
+      sendingCode: "送信中…",
+      verifyCode: "確認コードを入力",
+      codePlaceholder: "000000",
+      verifyBtn: "確認",
+      phoneNote: "お使いの番号に確認コードを送信します。",
     },
     nav: {
       label: "ナビゲーション", dashboard: "ダッシュボード", agents: "エージェント",

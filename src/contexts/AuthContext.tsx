@@ -15,6 +15,7 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   loginAsGuest: () => void;
+  loginWithToken: (token: string) => Promise<void>;
   logout: () => void;
   updateUser: (data: Partial<AuthUser>) => void;
   isLoading: boolean;
@@ -108,6 +109,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const loginWithToken = useCallback(async (rawToken: string) => {
+    setIsLoading(true);
+    try {
+      const base = getApiBase().replace(/\/$/, "");
+      const res = await fetch(`${base}/auth/me`, {
+        headers: { Authorization: `Bearer ${rawToken}` },
+      });
+      if (!res.ok) throw new Error("Invalid token");
+      const user: AuthUser = await res.json();
+      persistAuth(rawToken, user, false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const loginAsGuest = useCallback(() => {
     const guestUser: AuthUser = {
       id: "guest",
@@ -138,7 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, loginAsGuest, logout, updateUser, isLoading, isGuest }}>
+    <AuthContext.Provider value={{ user, token, login, register, loginAsGuest, loginWithToken, logout, updateUser, isLoading, isGuest }}>
       {children}
     </AuthContext.Provider>
   );

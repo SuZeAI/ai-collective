@@ -58,6 +58,55 @@ class UserService:
         )
         return self._repo.save(updated)
 
+    def find_or_create_by_oauth(
+        self,
+        *,
+        provider: str,
+        provider_id: str,
+        email: str,
+        name: str,
+        avatar: str = "",
+    ) -> User:
+        """Return an existing OAuth user or create one if they don't exist yet.
+
+        Lookup order:
+        1. Match by (provider, provider_id) — the stable link between logins.
+        2. Match by email — link an existing local account to the OAuth provider.
+        3. Create a new user account.
+        """
+        user = self._repo.find_by_provider_id(provider, provider_id)
+        if user:
+            return user
+
+        user = self._repo.find_by_email(email)
+        if user:
+            # Link the OAuth provider to the existing account
+            linked = User(
+                id=user.id,
+                name=user.name,
+                email=user.email,
+                hashed_password=user.hashed_password,
+                role=user.role,
+                joined_at=user.joined_at,
+                avatar=user.avatar or avatar,
+                provider=provider,
+                provider_id=provider_id,
+            )
+            return self._repo.save(linked)
+
+        new_user = User(
+            id=str(uuid.uuid4()),
+            name=name.strip() or email.split("@")[0],
+            email=email.strip().lower(),
+            hashed_password="",
+            role="user",
+            joined_at=datetime.now(timezone.utc).isoformat(),
+            avatar=avatar,
+            provider=provider,
+            provider_id=provider_id,
+        )
+        return self._repo.save(new_user)
+
     def change_password(self, user_id: str, current_password: str, new_password: str) -> None:
         user = self.find_by_id(user_id)
         if not verify_password(current_password, user.hashed_password):
