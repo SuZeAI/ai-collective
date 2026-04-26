@@ -13,6 +13,7 @@ RUN if [ -n "${APT_MIRROR}" ]; then \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    bash \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=uv /uv /bin/uv
@@ -30,6 +31,9 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --all-extras
 
 COPY backend/ ./backend/
+
+# Pre-create runtime directories so volume mounts work without root
+RUN mkdir -p /app/storage /app/logs /app/sandbox_workspace
 
 EXPOSE 8000
 
