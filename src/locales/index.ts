@@ -7,7 +7,53 @@ export const LANGUAGES: { code: Language; label: string; flag: string }[] = [
   { code: "ja", label: "日本語", flag: "🇯🇵" },
 ];
 
+export type AuthTranslations = {
+  badge: string;
+  heroTitle: string;
+  heroSub: string;
+  heroBullets: string[];
+  loginTab: string;
+  registerTab: string;
+  loginTitle: string;
+  loginSubtitle: string;
+  registerTitle: string;
+  registerSubtitle: string;
+  email: string;
+  password: string;
+  name: string;
+  namePlaceholder: string;
+  confirmPassword: string;
+  loginBtn: string;
+  registerBtn: string;
+  loggingIn: string;
+  registering: string;
+  or: string;
+  guestBtn: string;
+  guestNote: string;
+  guestMode: string;
+  guestModeNote: string;
+  profileBtn: string;
+  logoutBtn: string;
+  editProfile: string;
+  changePassword: string;
+  currentPassword: string;
+  newPassword: string;
+  saveChanges: string;
+  saving: string;
+  saved: string;
+  cancel: string;
+  accountInfo: string;
+  role: string;
+  userId: string;
+  memberSince: string;
+  dangerZone: string;
+  logoutDesc: string;
+  passwordMismatch: string;
+  errorDefault: string;
+};
+
 export type Translations = {
+  auth: AuthTranslations;
   nav: {
     label: string;
     dashboard: string;
@@ -170,6 +216,50 @@ export type Translations = {
 
 export const translations: Record<Language, Translations> = {
   en: {
+    auth: {
+      badge: "Multi-Agent AI Platform",
+      heroTitle: "Build AI agent teams that work together",
+      heroSub: "Orchestrate specialized AI agents — researcher, developer, reviewer — to collaborate and complete complex tasks autonomously.",
+      heroBullets: ["40+ built-in agent role templates", "Skill system with 10+ integrations", "Real-time task graph visualization", "Self-hosted & MIT licensed"],
+      loginTab: "Sign In",
+      registerTab: "Register",
+      loginTitle: "Welcome back",
+      loginSubtitle: "Sign in to continue to AI Collective",
+      registerTitle: "Create an account",
+      registerSubtitle: "Start building your AI agent team",
+      email: "Email",
+      password: "Password",
+      name: "Full Name",
+      namePlaceholder: "John Doe",
+      confirmPassword: "Confirm Password",
+      loginBtn: "Sign In",
+      registerBtn: "Create Account",
+      loggingIn: "Signing in…",
+      registering: "Creating account…",
+      or: "or",
+      guestBtn: "Continue as Guest",
+      guestNote: "Guest mode stores data locally only. No account required.",
+      guestMode: "Guest",
+      guestModeNote: "You are in guest mode. Your data is stored locally. Sign in for full access.",
+      profileBtn: "My Profile",
+      logoutBtn: "Sign Out",
+      editProfile: "Edit Profile",
+      changePassword: "Change Password",
+      currentPassword: "Current Password",
+      newPassword: "New Password",
+      saveChanges: "Save Changes",
+      saving: "Saving…",
+      saved: "Saved!",
+      cancel: "Cancel",
+      accountInfo: "Account Information",
+      role: "Role",
+      userId: "User ID",
+      memberSince: "Member since",
+      dangerZone: "Danger Zone",
+      logoutDesc: "Sign out of your account on this device.",
+      passwordMismatch: "Passwords do not match.",
+      errorDefault: "Something went wrong. Please try again.",
+    },
     nav: {
       label: "Navigation", dashboard: "Dashboard", agents: "Agents",
       skills: "Skills", teams: "Teams", tasks: "Tasks",
@@ -348,6 +438,50 @@ export const translations: Record<Language, Translations> = {
   },
 
   vi: {
+    auth: {
+      badge: "Nền tảng AI đa tác nhân",
+      heroTitle: "Xây dựng nhóm tác nhân AI cộng tác cùng nhau",
+      heroSub: "Điều phối các tác nhân AI chuyên biệt — nhà nghiên cứu, nhà phát triển, người kiểm duyệt — để cộng tác và hoàn thành các nhiệm vụ phức tạp tự động.",
+      heroBullets: ["Hơn 40 mẫu vai trò tác nhân tích hợp", "Hệ thống kỹ năng với 10+ tích hợp", "Trực quan hóa đồ thị nhiệm vụ thời gian thực", "Tự lưu trữ & giấy phép MIT"],
+      loginTab: "Đăng nhập",
+      registerTab: "Đăng ký",
+      loginTitle: "Chào mừng trở lại",
+      loginSubtitle: "Đăng nhập để tiếp tục sử dụng AI Collective",
+      registerTitle: "Tạo tài khoản",
+      registerSubtitle: "Bắt đầu xây dựng nhóm tác nhân AI của bạn",
+      email: "Email",
+      password: "Mật khẩu",
+      name: "Họ và tên",
+      namePlaceholder: "Nguyễn Văn A",
+      confirmPassword: "Xác nhận mật khẩu",
+      loginBtn: "Đăng nhập",
+      registerBtn: "Tạo tài khoản",
+      loggingIn: "Đang đăng nhập…",
+      registering: "Đang tạo tài khoản…",
+      or: "hoặc",
+      guestBtn: "Tiếp tục với tư cách khách",
+      guestNote: "Chế độ khách lưu dữ liệu cục bộ. Không cần tài khoản.",
+      guestMode: "Khách",
+      guestModeNote: "Bạn đang ở chế độ khách. Dữ liệu được lưu cục bộ. Đăng nhập để truy cập đầy đủ.",
+      profileBtn: "Hồ sơ của tôi",
+      logoutBtn: "Đăng xuất",
+      editProfile: "Chỉnh sửa hồ sơ",
+      changePassword: "Đổi mật khẩu",
+      currentPassword: "Mật khẩu hiện tại",
+      newPassword: "Mật khẩu mới",
+      saveChanges: "Lưu thay đổi",
+      saving: "Đang lưu…",
+      saved: "Đã lưu!",
+      cancel: "Hủy",
+      accountInfo: "Thông tin tài khoản",
+      role: "Vai trò",
+      userId: "ID người dùng",
+      memberSince: "Thành viên từ",
+      dangerZone: "Vùng nguy hiểm",
+      logoutDesc: "Đăng xuất khỏi tài khoản của bạn trên thiết bị này.",
+      passwordMismatch: "Mật khẩu không khớp.",
+      errorDefault: "Đã xảy ra lỗi. Vui lòng thử lại.",
+    },
     nav: {
       label: "Điều hướng", dashboard: "Bảng điều khiển", agents: "Tác nhân",
       skills: "Kỹ năng", teams: "Nhóm", tasks: "Nhiệm vụ",
@@ -526,6 +660,50 @@ export const translations: Record<Language, Translations> = {
   },
 
   zh: {
+    auth: {
+      badge: "多智能体AI平台",
+      heroTitle: "构建协同工作的AI智能体团队",
+      heroSub: "协调专业AI智能体——研究员、开发者、审核者——自主协作完成复杂任务。",
+      heroBullets: ["40+内置智能体角色模板", "10+集成的技能系统", "实时任务图可视化", "自托管 & MIT许可"],
+      loginTab: "登录",
+      registerTab: "注册",
+      loginTitle: "欢迎回来",
+      loginSubtitle: "登录以继续使用AI Collective",
+      registerTitle: "创建账户",
+      registerSubtitle: "开始构建您的AI智能体团队",
+      email: "邮箱",
+      password: "密码",
+      name: "姓名",
+      namePlaceholder: "张三",
+      confirmPassword: "确认密码",
+      loginBtn: "登录",
+      registerBtn: "创建账户",
+      loggingIn: "登录中…",
+      registering: "创建账户中…",
+      or: "或",
+      guestBtn: "以访客身份继续",
+      guestNote: "访客模式仅在本地存储数据，无需账户。",
+      guestMode: "访客",
+      guestModeNote: "您处于访客模式。数据存储在本地。登录以获得完整访问权限。",
+      profileBtn: "我的资料",
+      logoutBtn: "退出登录",
+      editProfile: "编辑资料",
+      changePassword: "修改密码",
+      currentPassword: "当前密码",
+      newPassword: "新密码",
+      saveChanges: "保存更改",
+      saving: "保存中…",
+      saved: "已保存！",
+      cancel: "取消",
+      accountInfo: "账户信息",
+      role: "角色",
+      userId: "用户ID",
+      memberSince: "加入时间",
+      dangerZone: "危险区域",
+      logoutDesc: "在此设备上退出您的账户。",
+      passwordMismatch: "密码不匹配。",
+      errorDefault: "出现错误，请重试。",
+    },
     nav: {
       label: "导航", dashboard: "仪表盘", agents: "智能体",
       skills: "技能", teams: "团队", tasks: "任务",
@@ -704,6 +882,50 @@ export const translations: Record<Language, Translations> = {
   },
 
   ja: {
+    auth: {
+      badge: "マルチエージェントAIプラットフォーム",
+      heroTitle: "協調して動くAIエージェントチームを構築",
+      heroSub: "研究者・開発者・レビュアーなど専門AIエージェントを調整し、複雑なタスクを自律的に完成させます。",
+      heroBullets: ["40以上のエージェントロールテンプレート", "10以上の統合スキルシステム", "リアルタイムタスクグラフ可視化", "セルフホスト & MITライセンス"],
+      loginTab: "ログイン",
+      registerTab: "登録",
+      loginTitle: "おかえりなさい",
+      loginSubtitle: "AI Collectiveにサインインして続ける",
+      registerTitle: "アカウント作成",
+      registerSubtitle: "AIエージェントチームの構築を始める",
+      email: "メールアドレス",
+      password: "パスワード",
+      name: "氏名",
+      namePlaceholder: "山田太郎",
+      confirmPassword: "パスワード確認",
+      loginBtn: "ログイン",
+      registerBtn: "アカウントを作成",
+      loggingIn: "ログイン中…",
+      registering: "アカウント作成中…",
+      or: "または",
+      guestBtn: "ゲストとして続ける",
+      guestNote: "ゲストモードはデータをローカルのみに保存します。アカウント不要。",
+      guestMode: "ゲスト",
+      guestModeNote: "ゲストモードです。データはローカルに保存されます。フルアクセスにはサインインしてください。",
+      profileBtn: "マイプロフィール",
+      logoutBtn: "サインアウト",
+      editProfile: "プロフィール編集",
+      changePassword: "パスワード変更",
+      currentPassword: "現在のパスワード",
+      newPassword: "新しいパスワード",
+      saveChanges: "変更を保存",
+      saving: "保存中…",
+      saved: "保存済み！",
+      cancel: "キャンセル",
+      accountInfo: "アカウント情報",
+      role: "ロール",
+      userId: "ユーザーID",
+      memberSince: "参加日",
+      dangerZone: "危険ゾーン",
+      logoutDesc: "このデバイスからサインアウトします。",
+      passwordMismatch: "パスワードが一致しません。",
+      errorDefault: "エラーが発生しました。もう一度お試しください。",
+    },
     nav: {
       label: "ナビゲーション", dashboard: "ダッシュボード", agents: "エージェント",
       skills: "スキル", teams: "チーム", tasks: "タスク",

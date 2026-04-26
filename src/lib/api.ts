@@ -211,11 +211,36 @@ export type ChatResponse = {
   response: string;
 };
 
+export type AuthUser = {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  role?: string;
+  joinedAt?: string;
+};
+
+export type LoginResponse = {
+  access_token: string;
+  token_type: string;
+  user: AuthUser;
+};
+
 type ApiOptions = RequestInit & { timeoutMs?: number };
 
 function getApiBase(): string {
   // Default matches backend README.
   return ((import.meta as any).env?.VITE_API_BASE_URL as string) || "http://localhost:8000/api/v1";
+}
+
+function getAuthHeader(): Record<string, string> {
+  try {
+    const token = localStorage.getItem("ai-collective-token");
+    if (token) return { Authorization: `Bearer ${token}` };
+  } catch {
+    // ignore
+  }
+  return {};
 }
 
 async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
@@ -229,6 +254,7 @@ async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        ...getAuthHeader(),
         ...(options.headers || {}),
       },
       signal: controller.signal,
@@ -400,4 +426,16 @@ export const api = {
   upsertConnection: (payload: Partial<ThirdPartyConnection> & Pick<ThirdPartyConnection, "platform" | "name">) =>
     apiFetch<ThirdPartyConnection>("/connections", { method: "POST", body: JSON.stringify(payload) }),
   deleteConnection: (id: string) => apiFetch<{ deleted: boolean }>(`/connections/${id}`, { method: "DELETE" }),
+
+  // Auth
+  login: (email: string, password: string) =>
+    apiFetch<LoginResponse>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+  register: (name: string, email: string, password: string) =>
+    apiFetch<LoginResponse>("/auth/register", { method: "POST", body: JSON.stringify({ name, email, password }) }),
+  logout: () => apiFetch<void>("/auth/logout", { method: "POST" }),
+  getCurrentUser: () => apiFetch<AuthUser>("/auth/me"),
+  updateProfile: (payload: Partial<AuthUser>) =>
+    apiFetch<AuthUser>("/auth/profile", { method: "PATCH", body: JSON.stringify(payload) }),
+  changePassword: (current_password: string, new_password: string) =>
+    apiFetch<void>("/auth/password", { method: "PATCH", body: JSON.stringify({ current_password, new_password }) }),
 };
