@@ -74,6 +74,19 @@ class Settings(BaseSettings):
     extra_headers: dict | None = None
     google_oauth_redirect_uri: str = "http://127.0.0.1:8000/api/v1/auth/oauth/callback"
 
+    # ── Google Login (social sign-in) ─────────────────────────────────────────
+    google_login_client_id: str | None = None
+    google_login_client_secret: str | None = None
+    # Where Google redirects after social sign-in
+    google_login_redirect_uri: str = "http://127.0.0.1:8000/api/v1/auth/google/callback"
+    # Where the backend redirects the browser after successful login (with ?token=...)
+    frontend_url: str = "http://localhost:5173"
+
+    # ── JWT / User auth ───────────────────────────────────────────────────────
+    jwt_secret_key: str = "change-me-in-production-use-openssl-rand-hex-32"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
+
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 

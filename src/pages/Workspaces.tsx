@@ -3,14 +3,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Trash2, Plug, Copy, CheckCheck, ChevronDown, ChevronRight,
-  BrainCircuit, Users, Webhook, Settings2, Eye, EyeOff, RefreshCw,
+  BrainCircuit, Users, Webhook, Settings2, RefreshCw,
   MessageCircle, Zap, Globe, Link2,
 } from "lucide-react";
 import { api, type Workspace, type PlatformHook, type PlatformDef, type Team, type ThirdPartyConnection } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -355,7 +354,6 @@ function WorkspaceDialog({
   const [primaryTeamId, setPrimaryTeamId] = useState(existing?.primaryTeamId || "");
   const [hooks, setHooks] = useState<PlatformHook[]>(existing?.platformHooks || []);
   const [addHookOpen, setAddHookOpen] = useState(false);
-  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (open) {
