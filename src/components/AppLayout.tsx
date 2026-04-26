@@ -1,17 +1,23 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
   BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit, Settings2,
+  LogOut, User, UserCircle,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   SidebarProvider, SidebarTrigger, Sidebar, SidebarContent,
   SidebarGroup, SidebarGroupLabel, SidebarGroupContent,
   SidebarMenu, SidebarMenuItem, SidebarMenuButton,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 const NAV_CONFIG = [
@@ -27,9 +33,33 @@ const NAV_CONFIG = [
   { key: "settings" as const, url: "/settings", icon: Settings2, iconText: "text-violet-300", iconSurface: "bg-violet-500/15", iconActive: "from-violet-500 to-indigo-600" },
 ];
 
+function UserAvatarButton({ name, src }: { name: string; src?: string }) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className="w-8 h-8 rounded-full object-cover select-none"
+      />
+    );
+  }
+  const initials = name
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
+  return (
+    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold select-none">
+      {initials || <User className="w-4 h-4" />}
+    </div>
+  );
+}
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { t } = useLanguage();
+  const { user, logout, isGuest } = useAuth();
 
   const navItems = NAV_CONFIG.map((item) => ({
     ...item,
@@ -152,6 +182,39 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="ml-auto flex items-center gap-1">
               <LanguageSwitcher />
               <ThemeToggle />
+              {user && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="ml-1 rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-opacity hover:opacity-80">
+                      <UserAvatarButton name={user.name} src={user.avatar || undefined} />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-semibold text-sm truncate">{user.name}</span>
+                        <span className="text-xs text-muted-foreground truncate">{user.email}</span>
+                        {isGuest && (
+                          <span className="text-[10px] text-amber-500 mt-0.5">{t.auth.guestMode}</span>
+                        )}
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate("/profile")}>
+                      <UserCircle className="w-4 h-4 mr-2" />
+                      {t.auth.profileBtn}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => { logout(); navigate("/login"); }}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      {t.auth.logoutBtn}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </header>
           <main className="flex-1 min-h-0 overflow-auto scrollbar-thin">
