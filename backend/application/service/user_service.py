@@ -1,0 +1,72 @@
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone
+
+from backend.api.security import hash_password, verify_password
+from backend.domain.errors import NotFoundError, ValidationError
+from backend.domain.models import User
+from backend.infrastructure.repositories.json_files import JsonUserRepository
+
+
+class UserService:
+    def __init__(self, repo: JsonUserRepository) -> None:
+        self._repo = repo
+
+    def find_by_id(self, user_id: str) -> User:
+        user = self._repo.find_by_id(user_id)
+        if not user:
+            raise NotFoundError(f"User '{user_id}' not found")
+        return user
+
+    def find_by_email(self, email: str) -> User | None:
+        return self._repo.find_by_email(email)
+
+    def register(self, name: str, email: str, password: str) -> User:
+        if self._repo.find_by_email(email):
+            raise ValidationError("A user with this email already exists")
+        user = User(
+            id=str(uuid.uuid4()),
+            name=name.strip(),
+            email=email.strip().lower(),
+            hashed_password=hash_password(password),
+            role="user",
+            joined_at=datetime.now(timezone.utc).isoformat(),
+        )
+        return self._repo.save(user)
+
+    def authenticate(self, email: str, password: str) -> User:
+        user = self._repo.find_by_email(email)
+        if not user or not verify_password(password, user.hashed_password):
+            raise ValidationError("Invalid email or password")
+        return user
+
+    def update_profile(self, user_id: str, *, name: str | None = None, email: str | None = None) -> User:
+        user = self.find_by_id(user_id)
+        if email and email.strip().lower() != user.email:
+            existing = self._repo.find_by_email(email)
+            if existing and existing.id != user_id:
+                raise ValidationError("Email is already in use")
+        updated = User(
+            id=user.id,
+            name=(name.strip() if name else user.name),
+            email=(email.strip().lower() if email else user.email),
+            hashed_password=user.hashed_password,
+            role=user.role,
+            joined_at=user.joined_at,
+        )
+        return self._repo.save(updated)
+
+    def change_password(self, user_id: str, current_password: str, new_password: str) -> None:
+        user = self.find_by_id(user_id)
+        if not verify_password(current_password, user.hashed_password):
+            raise ValidationError("Current password is incorrect")
+        updated = User(
+            id=user.id,
+            name=user.name,
+            email=user.email,
+            hashed_password=hash_password(new_password),
+            role=user.role,
+            joined_at=user.joined_at,
+        )
+        self._repo.save(updated)

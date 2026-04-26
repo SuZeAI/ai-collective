@@ -33,7 +33,9 @@ from backend.infrastructure.repositories.json_files import (
 )
 from backend.application.service.workspace_service import WorkspaceService
 from backend.application.service.connection_service import ConnectionService
+from backend.application.service.user_service import UserService
 from backend.infrastructure.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
+from backend.infrastructure.repositories.json_files import JsonUserRepository
 from backend.infrastructure.repositories.json_store import JsonFileStore
 from backend.infrastructure import task_queue as _task_queue_module
 from backend.log import get_logger
@@ -139,6 +141,15 @@ def get_connection_service() -> ConnectionService:
     return ConnectionService(connections)
 
 
+@lru_cache
+def _user_store() -> JsonUserRepository:
+    return JsonUserRepository(_store("users.json"))
+
+
+def get_user_service() -> UserService:
+    return UserService(_user_store())
+
+
 def get_skill_tool_manager() -> SkillToolManager:
     """Get SkillToolManager for binding tools to skills during agent initialization."""
     return SkillToolManager()
@@ -178,3 +189,75 @@ def get_agent_graph_service(mode: str = "sequential") -> AgentGraphService | Non
     )
     get_logger().info(f"{orchestrator.__class__.__name__} selected for mode='{mode}'")
     return AgentGraphService(provider, orchestrator)
+
+
+# ---------------------------------------------------------------------------
+# Auth dependency
+# ---------------------------------------------------------------------------
+
+def get_current_user(
+    authorization: str | None = None,
+    user_service: UserService = None,
+):
+    """Placeholder — import _current_user_dep for use in routers."""
+    pass
+
+
+def _current_user_dep(
+    authorization: str | None = None,
+    user_service: UserService = None,
+):
+    """Defined at module load; routers should use Depends(current_user_dep)."""
+    pass
+
+
+# Real implementation — defined here so the import is available.
+# Usage in routers:
+#   from backend.api.deps import current_user_dep
+#   @router.get("") def endpoint(user = Depends(current_user_dep)): ...
+def _make_current_user_dep():
+    from fastapi import Depends, Header, HTTPException, status
+
+    def dep(
+        authorization: str | None = Header(default=None, alias="Authorization"),
+        user_service: UserService = Depends(get_user_service),
+    ):
+        import jwt as _jwt
+        from backend.api.security import decode_access_token
+        from backend.domain.errors import NotFoundError
+
+        if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        token = authorization.split(" ", 1)[1]
+        try:
+            payload = decode_access_token(token)
+            user_id: str = payload.get("sub", "")
+        except _jwt.ExpiredSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has expired",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        except _jwt.PyJWTError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        try:
+            return user_service.find_by_id(user_id)
+        except NotFoundError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+    return dep
+
+
+current_user_dep = _make_current_user_dep()

@@ -140,3 +140,13 @@ class SimulationStep:
     msg: str
     delay_ms: int
     phase: int | None = None  # 1..4 (Planning/Execution/Review/Complete)
+
+
+@dataclass
+class User:
+    id: str
+    name: str
+    email: str
+    hashed_password: str
+    role: str = "user"
+    joined_at: str = ""

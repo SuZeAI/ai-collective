@@ -74,6 +74,11 @@ class Settings(BaseSettings):
     extra_headers: dict | None = None
     google_oauth_redirect_uri: str = "http://127.0.0.1:8000/api/v1/auth/oauth/callback"
 
+    # ── JWT / User auth ───────────────────────────────────────────────────────
+    jwt_secret_key: str = "change-me-in-production-use-openssl-rand-hex-32"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
+
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 

@@ -6,15 +6,28 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse
 
 from backend.api.settings import settings
+from backend.api.security import create_access_token
 from backend.api.schemas.skill import (
     GoogleSheetOAuthStartRequest,
     GoogleSheetOAuthStartResponse,
     GoogleSheetOAuthStatusResponse,
 )
+from backend.api.schemas.auth_user import (
+    RegisterRequest,
+    LoginRequest,
+    UserSchema,
+    TokenResponse,
+    UpdateProfileRequest,
+    ChangePasswordRequest,
+)
+from backend.api.deps import get_user_service, current_user_dep
+from backend.application.service.user_service import UserService
+from backend.domain.errors import ValidationError, NotFoundError
+from backend.domain.models import User
 
 _GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -250,3 +263,84 @@ def oauth_callback(
 ) -> HTMLResponse:
     """OAuth callback handler from Google (use this URL in Google Cloud Console)."""
     return _google_sheet_oauth_callback_impl(request=request, code=code, state=state, error=error)
+
+
+# ============================================================================
+# User Authentication Endpoints
+# ============================================================================
+
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+def register(
+    body: RegisterRequest,
+    user_service: UserService = Depends(get_user_service),
+) -> TokenResponse:
+    """Register a new user account."""
+    try:
+        user = user_service.register(name=body.name, email=body.email, password=body.password)
+    except ValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    token = create_access_token(subject=user.id)
+    return TokenResponse(access_token=token, user=UserSchema.from_domain(user))
+
+
+@router.post("/login", response_model=TokenResponse)
+def login(
+    body: LoginRequest,
+    user_service: UserService = Depends(get_user_service),
+) -> TokenResponse:
+    """Authenticate with email + password and return a JWT token."""
+    try:
+        user = user_service.authenticate(email=body.email, password=body.password)
+    except ValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc))
+    token = create_access_token(subject=user.id)
+    return TokenResponse(access_token=token, user=UserSchema.from_domain(user))
+
+
+@router.get("/me", response_model=UserSchema)
+def get_me(current_user: User = Depends(current_user_dep)) -> UserSchema:
+    """Return the currently authenticated user's profile."""
+    return UserSchema.from_domain(current_user)
+
+
+@router.patch("/profile", response_model=UserSchema)
+def update_profile(
+    body: UpdateProfileRequest,
+    current_user: User = Depends(current_user_dep),
+    user_service: UserService = Depends(get_user_service),
+) -> UserSchema:
+    """Update the current user's name and/or email."""
+    try:
+        updated = user_service.update_profile(
+            current_user.id,
+            name=body.name,
+            email=str(body.email) if body.email else None,
+        )
+    except ValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    except NotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return UserSchema.from_domain(updated)
+
+
+@router.patch("/password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    body: ChangePasswordRequest,
+    current_user: User = Depends(current_user_dep),
+    user_service: UserService = Depends(get_user_service),
+) -> None:
+    """Change the current user's password."""
+    try:
+        user_service.change_password(
+            current_user.id,
+            current_password=body.current_password,
+            new_password=body.new_password,
+        )
+    except ValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(current_user: User = Depends(current_user_dep)) -> None:
+    """Sign out — client should discard the JWT token."""
+    return None
