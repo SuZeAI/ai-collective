@@ -4,9 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Trash2, Plug, Copy, CheckCheck, ChevronDown, ChevronRight,
   BrainCircuit, Users, Webhook, Settings2, Eye, EyeOff, RefreshCw,
-  MessageCircle, Zap, Globe,
+  MessageCircle, Zap, Globe, Link2,
 } from "lucide-react";
-import { api, type Workspace, type PlatformHook, type PlatformDef, type Team } from "@/lib/api";
+import { api, type Workspace, type PlatformHook, type PlatformDef, type Team, type ThirdPartyConnection } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -113,19 +113,45 @@ function AddHookDialog({
   open,
   onClose,
   platforms,
+  connections,
   onAdd,
 }: {
   open: boolean;
   onClose: () => void;
   platforms: PlatformDef[];
+  connections: ThirdPartyConnection[];
   onAdd: (hook: Omit<PlatformHook, "id">) => void;
 }) {
   const [platform, setPlatform] = useState("");
   const [name, setName] = useState("");
   const [config, setConfig] = useState<Record<string, string>>({});
+  const [mode, setMode] = useState<"saved" | "manual">("saved");
+  const [selectedConnId, setSelectedConnId] = useState("");
 
-  const reset = () => { setPlatform(""); setName(""); setConfig({}); };
+  const reset = () => {
+    setPlatform(""); setName(""); setConfig({});
+    setMode("saved"); setSelectedConnId("");
+  };
   const close = () => { reset(); onClose(); };
+
+  const savedForPlatform = connections.filter((c) => c.platform === platform);
+
+  const handlePlatformChange = (v: string) => {
+    setPlatform(v);
+    setConfig({});
+    setSelectedConnId("");
+    const hasSaved = connections.some((c) => c.platform === v);
+    setMode(hasSaved ? "saved" : "manual");
+  };
+
+  const handleConnPick = (connId: string) => {
+    setSelectedConnId(connId);
+    const conn = connections.find((c) => c.id === connId);
+    if (conn) {
+      setConfig(conn.config as Record<string, string>);
+      if (!name) setName(conn.name);
+    }
+  };
 
   const submit = () => {
     if (!platform || !name) return;
@@ -144,36 +170,126 @@ function AddHookDialog({
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
+          {/* Platform selector */}
           <div className="grid gap-1.5">
             <Label className="text-xs">Platform</Label>
-            <Select value={platform} onValueChange={(v) => { setPlatform(v); setConfig({}); }}>
+            <Select value={platform} onValueChange={handlePlatformChange}>
               <SelectTrigger className="h-9">
                 <SelectValue placeholder="Select platform..." />
               </SelectTrigger>
               <SelectContent>
-                {platforms.map((p) => (
-                  <SelectItem key={p.platform} value={p.platform}>
-                    <span className="flex items-center gap-2">
-                      <span>{PLATFORM_ICONS[p.platform] || "🔗"}</span>
-                      {p.label}
-                    </span>
-                  </SelectItem>
-                ))}
+                {platforms.map((p) => {
+                  const hasSaved = connections.some((c) => c.platform === p.platform);
+                  return (
+                    <SelectItem key={p.platform} value={p.platform}>
+                      <span className="flex items-center gap-2">
+                        <span>{PLATFORM_ICONS[p.platform] || "🔗"}</span>
+                        {p.label}
+                        {hasSaved && (
+                          <span className="text-[9px] text-teal-400 border border-teal-500/40 rounded-full px-1.5 py-0.5">
+                            {connections.filter((c) => c.platform === p.platform).length} saved
+                          </span>
+                        )}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="grid gap-1.5">
-            <Label className="text-xs">Hook Name</Label>
-            <Input
-              placeholder="e.g. Customer Support Bot"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="h-9"
-            />
-          </div>
-
+          {/* Mode toggle: use saved vs manual */}
           {platform && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setMode("saved")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-all",
+                  mode === "saved"
+                    ? "border-teal-500/60 bg-teal-500/10 text-teal-400"
+                    : "border-border/40 text-muted-foreground hover:border-border"
+                )}
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                Use saved connection
+                {savedForPlatform.length > 0 && (
+                  <span className="ml-1 bg-teal-500/20 text-teal-300 rounded-full px-1.5 text-[9px]">
+                    {savedForPlatform.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode("manual"); setSelectedConnId(""); setConfig({}); }}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-all",
+                  mode === "manual"
+                    ? "border-amber-500/60 bg-amber-500/10 text-amber-400"
+                    : "border-border/40 text-muted-foreground hover:border-border"
+                )}
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+                Configure manually
+              </button>
+            </div>
+          )}
+
+          {/* Saved connections picker */}
+          {platform && mode === "saved" && (
+            <>
+              {savedForPlatform.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border/50 p-4 text-center">
+                  <p className="text-xs text-muted-foreground mb-2">
+                    No saved connections for this platform yet.
+                  </p>
+                  <button
+                    type="button"
+                    className="text-xs text-teal-400 underline underline-offset-2"
+                    onClick={() => setMode("manual")}
+                  >
+                    Configure manually instead
+                  </button>
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  <Label className="text-xs text-muted-foreground">Choose saved connection</Label>
+                  {savedForPlatform.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => handleConnPick(c.id)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl border p-3 text-left transition-all",
+                        selectedConnId === c.id
+                          ? "border-teal-500/60 bg-teal-500/10"
+                          : "border-border/40 hover:border-border"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center text-sm bg-gradient-to-br shrink-0",
+                        PLATFORM_COLORS[c.platform] || "from-slate-500 to-gray-600"
+                      )}>
+                        {PLATFORM_ICONS[c.platform] || "🔗"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{c.name}</p>
+                        {c.description && (
+                          <p className="text-[10px] text-muted-foreground truncate">{c.description}</p>
+                        )}
+                      </div>
+                      {selectedConnId === c.id && (
+                        <CheckCheck className="h-4 w-4 text-teal-400 shrink-0" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Manual config */}
+          {platform && mode === "manual" && (
             <HookConfigForm
               platform={platform}
               platforms={platforms}
@@ -181,12 +297,32 @@ function AddHookDialog({
               onChange={setConfig}
             />
           )}
+
+          {/* Hook name */}
+          {platform && (
+            <div className="grid gap-1.5">
+              <Label className="text-xs">Hook Name <span className="text-rose-400">*</span></Label>
+              <Input
+                placeholder="e.g. Customer Support Bot"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="h-9"
+              />
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={close}>Cancel</Button>
-          <Button size="sm" onClick={submit} disabled={!platform || !name}
-            className="bg-teal-600 hover:bg-teal-500">
+          <Button
+            size="sm"
+            onClick={submit}
+            disabled={
+              !platform || !name ||
+              (mode === "saved" && !selectedConnId && savedForPlatform.length > 0)
+            }
+            className="bg-teal-600 hover:bg-teal-500"
+          >
             Add Hook
           </Button>
         </DialogFooter>
@@ -202,6 +338,7 @@ function WorkspaceDialog({
   existing,
   teams,
   platforms,
+  connections,
   onSave,
 }: {
   open: boolean;
@@ -209,6 +346,7 @@ function WorkspaceDialog({
   existing?: Workspace;
   teams: Team[];
   platforms: PlatformDef[];
+  connections: ThirdPartyConnection[];
   onSave: (data: Partial<Workspace> & Pick<Workspace, "name">) => void;
 }) {
   const [name, setName] = useState(existing?.name || "");
@@ -422,6 +560,7 @@ function WorkspaceDialog({
         open={addHookOpen}
         onClose={() => setAddHookOpen(false)}
         platforms={platforms}
+        connections={connections}
         onAdd={addHook}
       />
     </>
@@ -582,6 +721,11 @@ export default function Workspaces() {
     queryFn: api.listPlatforms,
   });
 
+  const { data: connections = [] } = useQuery({
+    queryKey: ["connections"],
+    queryFn: api.listConnections,
+  });
+
   const upsert = useMutation({
     mutationFn: api.upsertWorkspace,
     onSuccess: () => {
@@ -737,6 +881,7 @@ export default function Workspaces() {
         existing={editing}
         teams={teams}
         platforms={platforms}
+        connections={connections}
         onSave={handleSave}
       />
     </div>
