@@ -32,6 +32,9 @@ from backend.domain.errors import ValidationError, NotFoundError
 from backend.domain.models import User
 
 _GOOGLE_SCOPES = [
+    "openid",
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/documents",

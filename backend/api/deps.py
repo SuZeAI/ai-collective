@@ -37,6 +37,19 @@ from backend.application.service.user_service import UserService
 from backend.infrastructure.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
 from backend.infrastructure.repositories.json_files import JsonUserRepository
 from backend.infrastructure.repositories.json_store import JsonFileStore
+from backend.infrastructure.repositories.mongo_repositories import (
+    MongoActivityFeedRepository,
+    MongoAgentRepository,
+    MongoAnalyticsRepository,
+    MongoConnectionRepository,
+    MongoConversationRepository,
+    MongoGraphKnowledgeRepository,
+    MongoSkillRepository,
+    MongoTaskRepository,
+    MongoTeamRepository,
+    MongoUserRepository,
+    MongoWorkspaceRepository,
+)
 from backend.infrastructure import task_queue as _task_queue_module
 from backend.log import get_logger
 
@@ -74,20 +87,35 @@ def _init_task_queue():
 
 @lru_cache
 def _repos():
-    _init_task_queue()  # ensure task queue is configured before first request
-    agents = JsonAgentRepository(_store("agents.json"))
-    skills = JsonSkillRepository(_store("skills.json"))
-    teams = JsonTeamRepository(_store("teams.json"))
-    tasks = JsonTaskRepository(_store("tasks.json"))
-    conversations = JsonConversationRepository(_store("conversations.json"))
-    analytics = JsonAnalyticsRepository(_store("analytics.json"))
-    activity_feed = JsonActivityFeedRepository(_store("activity_feed.json"))
-    graph_knowledge = JsonGraphKnowledgeRepository(
-        _store("graph_knowledge.json"),
-        _store("graph_knowledge_events.json"),
-    )
-    workspaces = JsonWorkspaceRepository(_store("workspaces.json"))
-    connections = JsonConnectionRepository(_store("connections.json"))
+    _init_task_queue()
+    if settings.storage_backend == "mongo":
+        import pymongo
+        client = pymongo.MongoClient(settings.mongo_uri)
+        db = client[settings.mongo_db]
+        agents = MongoAgentRepository(db)
+        skills = MongoSkillRepository(db)
+        teams = MongoTeamRepository(db)
+        tasks = MongoTaskRepository(db)
+        conversations = MongoConversationRepository(db)
+        analytics = MongoAnalyticsRepository(db)
+        activity_feed = MongoActivityFeedRepository(db)
+        graph_knowledge = MongoGraphKnowledgeRepository(db)
+        workspaces = MongoWorkspaceRepository(db)
+        connections = MongoConnectionRepository(db)
+    else:
+        agents = JsonAgentRepository(JsonFileStore(STORAGE_DIR / "agents.json"))
+        skills = JsonSkillRepository(JsonFileStore(STORAGE_DIR / "skills.json"))
+        teams = JsonTeamRepository(JsonFileStore(STORAGE_DIR / "teams.json"))
+        tasks = JsonTaskRepository(JsonFileStore(STORAGE_DIR / "tasks.json"))
+        conversations = JsonConversationRepository(JsonFileStore(STORAGE_DIR / "conversations.json"))
+        analytics = JsonAnalyticsRepository(JsonFileStore(STORAGE_DIR / "analytics.json"))
+        activity_feed = JsonActivityFeedRepository(JsonFileStore(STORAGE_DIR / "activity_feed.json"))
+        graph_knowledge = JsonGraphKnowledgeRepository(
+            JsonFileStore(STORAGE_DIR / "graph_knowledge.json"),
+            JsonFileStore(STORAGE_DIR / "graph_knowledge_events.json"),
+        )
+        workspaces = JsonWorkspaceRepository(JsonFileStore(STORAGE_DIR / "workspaces.json"))
+        connections = JsonConnectionRepository(JsonFileStore(STORAGE_DIR / "connections.json"))
     return agents, skills, teams, tasks, conversations, analytics, activity_feed, graph_knowledge, workspaces, connections
 
 
@@ -142,7 +170,12 @@ def get_connection_service() -> ConnectionService:
 
 
 @lru_cache
-def _user_store() -> JsonUserRepository:
+def _user_store():
+    if settings.storage_backend == "mongo":
+        import pymongo
+        client = pymongo.MongoClient(settings.mongo_uri)
+        db = client[settings.mongo_db]
+        return MongoUserRepository(db)
     return JsonUserRepository(_store("users.json"))
 
 
