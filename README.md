@@ -193,10 +193,13 @@ make dev
 docker compose -f docker/docker-compose-dev.yaml up --build -d
 
 # 3. Open the app
-#    App:            http://localhost:2026
-#    API docs:       http://localhost:2026/api/v1/docs
-#    RabbitMQ UI:    http://localhost:15672  (guest/guest)
-#    Mongo Express:  http://localhost:8081   (admin/admin)
+#    App:              http://localhost:2026
+#    API docs:         http://localhost:2026/api/v1/docs       — Swagger UI (frontend owns /docs)
+#    API redoc:        http://localhost:2026/api/v1/redoc
+#    RabbitMQ UI:      http://localhost:15672  (guest/guest)   — queues, message rates, connections
+#    Redis Commander:  http://localhost:8083                   — browse keys, values, TTL
+#    Mongo Express:    http://localhost:8081   (admin/admin)   — collections, documents
+#    Nginx status:     http://localhost:2026/nginx_status      — active connections, requests/sec
 ```
 
 **Useful dev commands:**
@@ -273,8 +276,19 @@ make prod-provisioner
 
 ```bash
 docker compose -f docker/docker-compose.yaml --profile mongo-express up -d
-# UI: http://localhost:8081
+# UI: http://localhost:8081  (MONGO_USER/MONGO_PASS)
 ```
+
+**Monitoring tools** (prod only) — Redis Commander + RabbitMQ Management UI:
+
+```bash
+docker compose -f docker/docker-compose.yaml --profile tools up -d
+# Redis Commander:  http://localhost:8083        — browse keys, values, TTL, memory stats
+# RabbitMQ UI:      http://localhost:15672       — queues, bindings, message rates
+```
+
+> In **dev**, both UIs are always on — no profile flag needed.
+> The RabbitMQ Management plugin is built into the `rabbitmq:3-management-alpine` image used by both stacks.
 
 ### Services overview
 
@@ -284,11 +298,15 @@ docker compose -f docker/docker-compose.yaml --profile mongo-express up -d
 | Backend API | internal:8000 | internal:8000 | FastAPI |
 | Frontend | internal:8080 | internal:8080 | React (Vite dev / `serve`) |
 | MongoDB | 27017 | internal | Database |
-| Redis | internal | internal | Distributed lock |
-| RabbitMQ | 5672, 15672 | internal | Task queue |
-| Mongo Express | 8081 | 8081 (profile) | MongoDB web UI |
+| Redis | internal | internal | Distributed lock backend |
+| RabbitMQ | 5672, **15672** | 5672, **15672** | Task queue + Management UI |
+| Mongo Express | **8081** | **8081** (profile) | MongoDB web UI |
+| Redis Commander | **8083** | **8083** (profile: tools) | Redis browser UI |
+| Nginx status | **2026/nginx_status** | **2026/nginx_status** | Connection & request stats |
 | Sandbox | 8081 (profile) | — (profile) | Code execution |
 | Provisioner | 8002 (profile) | — (profile) | K8s sandbox manager |
+
+> Ports in **bold** are browser-accessible UI endpoints.
 
 -----
 
