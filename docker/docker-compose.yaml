@@ -10,8 +10,12 @@
 #   backend    — FastAPI application       (port 8000 internal)
 #
 # Optional services (Docker Compose profiles):
-#   mongo-express — MongoDB web UI         (profile: mongo-express, port 8081)
-#                Enable: docker compose --profile mongo-express up -d
+#   mongo-express   — MongoDB web UI       (profile: mongo-express, port 8081)
+#                  Enable: docker compose --profile mongo-express up -d
+#
+#   redis-commander — Redis web UI         (profile: tools, port 8083)
+#   rabbitmq-mgmt  — RabbitMQ Mgmt UI     (profile: tools, port 15672)
+#                  Enable: docker compose --profile tools up -d
 #
 #   sandbox    — AIO sandbox container for isolated code execution
 #                Enable: docker compose --profile sandbox up -d
@@ -91,13 +95,36 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── Redis Commander (optional — profile: tools) ────────────────────────────
+  # Activate: docker compose --profile tools up -d
+  # Access: http://localhost:8083
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: ai-collective-redis-commander
+    profiles: ["tools"]
+    environment:
+      - REDIS_HOSTS=redis:redis:6379
+    ports:
+      - "8083:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - ai-collective
+    restart: unless-stopped
+
   # ── RabbitMQ (task execution queue) ───────────────────────────────────────
+  # Management UI is built into rabbitmq:3-management-alpine.
+  # Port 15672 is exposed — remove if not needed in production.
+  # Access: http://localhost:15672 (RABBITMQ_USER/RABBITMQ_PASS)
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: ai-collective-rabbitmq
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-guest}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS:-guest}
+    ports:
+      - "15672:15672"
     networks:
       - ai-collective
     restart: unless-stopped

@@ -2,21 +2,24 @@
 # Usage: docker compose -f docker/docker-compose-dev.yaml up --build
 #
 # Services (always on in dev):
-#   mongodb      — MongoDB database         (port 27017 exposed for local tools)
-#   mongo-express— MongoDB web UI           (http://localhost:8081)
-#   redis        — distributed lock backend
-#   rabbitmq     — task queue (management UI: http://localhost:15672)
-#   nginx        — reverse proxy (port 2026)
-#   frontend     — Vite dev server with hot-reload (port 8080 internal)
-#   backend      — FastAPI with --reload (port 8000 internal)
-#   sandbox      — AIO sandbox container (port 8081 exposed for debugging)
-#   provisioner  — K8s sandbox provisioner (port 8002 exposed for debugging)
+#   mongodb         — MongoDB database         (port 27017 exposed for local tools)
+#   mongo-express   — MongoDB web UI           (http://localhost:8081)
+#   redis           — distributed lock backend
+#   redis-commander — Redis web UI             (http://localhost:8083)
+#   rabbitmq        — task queue + management UI (http://localhost:15672)
+#   nginx           — reverse proxy (port 2026, stats: http://localhost:2026/nginx_status)
+#   frontend        — Vite dev server with hot-reload (port 8080 internal)
+#   backend         — FastAPI with --reload (port 8000 internal)
+#   sandbox         — AIO sandbox container (port 8081 exposed for debugging)
+#   provisioner     — K8s sandbox provisioner (port 8002 exposed for debugging)
 #
 # Access: http://localhost:2026
-# MongoDB Express: http://localhost:8081 (admin/admin)
-# RabbitMQ Management: http://localhost:15672 (guest/guest)
-# Sandbox direct: http://localhost:8081 (if running)
-# Provisioner:    http://localhost:8002/health
+# MongoDB Express:    http://localhost:8081  (admin/admin)
+# Redis Commander:    http://localhost:8083  (no login required)
+# RabbitMQ Mgmt UI:  http://localhost:15672 (guest/guest)
+# Nginx status:      http://localhost:2026/nginx_status
+# Sandbox direct:    http://localhost:8081  (if running)
+# Provisioner:       http://localhost:8002/health
 
 services:
   # ── MongoDB ────────────────────────────────────────────────────────────────
@@ -72,6 +75,22 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # ── Redis Commander (visual Redis browser) ────────────────────────────────
+  # Access: http://localhost:8083
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: ai-collective-redis-commander-dev
+    environment:
+      - REDIS_HOSTS=redis:redis:6379
+    ports:
+      - "8083:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - ai-collective-dev
+    restart: unless-stopped
 
   # ── RabbitMQ (task execution queue) ───────────────────────────────────────
   rabbitmq:
