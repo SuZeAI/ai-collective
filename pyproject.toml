@@ -31,6 +31,8 @@ dependencies = [
 	"pytest>=9.0.2",
 	"motor>=3.4.0",
 	"pymongo>=4.7.0",
+	"requests>=2.31.0",
+	"kubernetes>=28.1.0",
 	"bcrypt>=4.0.0",
 	"pyjwt>=2.0.0",
 ]

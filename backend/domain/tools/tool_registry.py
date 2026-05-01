@@ -166,7 +166,6 @@ class ToolRegistry:
             from backend.api.settings import settings
             from backend.infrastructure.sandbox.factory import create_sandbox_adapter
 
-            # SandboxToolkit auto-creates its own sandbox; only inject if not already provided
             if "sandbox" not in kwargs:
                 sandbox = create_sandbox_adapter(
                     mode=kwargs.pop("sandbox_mode", settings.sandbox_mode),
@@ -177,7 +176,6 @@ class ToolRegistry:
                 )
                 kwargs = {**kwargs, "sandbox": sandbox}
             else:
-                # Remove sandbox-config keys so they don't reach the constructor
                 for _k in ("sandbox_mode", "sandbox_url", "sandbox_provisioner_url", "sandbox_timeout", "sandbox_workspace"):
                     kwargs.pop(_k, None)
 

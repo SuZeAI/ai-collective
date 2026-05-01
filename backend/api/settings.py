@@ -52,12 +52,21 @@ class Settings(BaseSettings):
     redis_url: str | None = None
 
     # ── Sandbox ───────────────────────────────────────────────────────────────
-    # mode: "local"  — commands run inside the backend process (default, dev-only)
-    #       "remote" — commands run inside an isolated AIO sandbox container
+    # mode: "local"  — commands run directly on the host (default, dev-only)
+    #       "docker" — commands run inside local Docker containers
+    #       "k8s"    — commands run inside K8s/k3s pods via provisioner service
     sandbox_mode: str = "local"
-    sandbox_url: str | None = None
+    # Docker mode: container image and lifecycle settings
+    sandbox_image: str = "enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest"
+    sandbox_base_port: int = 8080
+    sandbox_container_prefix: str = "ai-collective-sandbox"
+    sandbox_replicas: int = 3
+    sandbox_idle_timeout: int = 600
+    sandbox_host: str = "localhost"
+    # K8s mode: provisioner service URL (required when sandbox_mode=k8s)
     sandbox_provisioner_url: str | None = None
-    sandbox_timeout: int = 60
+    # Shared settings
+    sandbox_timeout: int = 120
     sandbox_workspace: str | None = None
 
     # ── JWT / User auth ───────────────────────────────────────────────────────
