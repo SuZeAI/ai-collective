@@ -25,6 +25,13 @@
 #                Enable: docker compose --profile provisioner up -d
 #                Then set in .env: SANDBOX_MODE=remote  SANDBOX_PROVISIONER_URL=http://provisioner:8002
 #
+# Sandbox modes:
+#   1. Local Docker (default): backend uses Docker-in-Docker to start sandbox containers.
+#      Requires the Docker socket mount (already configured). Set SANDBOX_MODE=local.
+#   2. Remote AIO sandbox: activate profile "sandbox". Set SANDBOX_MODE=remote SANDBOX_URL=http://sandbox:8080.
+#   3. Kubernetes mode: activate profile "provisioner". Set SANDBOX_MODE=remote SANDBOX_PROVISIONER_URL=http://provisioner:8002.
+#      Requires ~/.kube/config pointing to a valid Kubernetes cluster.
+#
 # Key environment variables (set in .env at project root):
 #   LLM_PROVIDER / LLM_MODEL              — LLM provider & model
 #   GOOGLE_API_KEY / ANTHROPIC_API_KEY / OPENAI_API_KEY
@@ -114,9 +121,6 @@ services:
     restart: unless-stopped
 
   # ── RabbitMQ (task execution queue) ───────────────────────────────────────
-  # Management UI is built into rabbitmq:3-management-alpine.
-  # Port 15672 is exposed — remove if not needed in production.
-  # Access: http://localhost:15672 (RABBITMQ_USER/RABBITMQ_PASS)
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: ai-collective-rabbitmq
@@ -175,6 +179,7 @@ services:
       - ../storage:/app/storage
       - ../logs:/app/logs
       - sandbox-workspace:/app/sandbox_workspace
+      - /var/run/docker.sock:/var/run/docker.sock
     env_file:
       - ../.env
     environment:
@@ -183,13 +188,14 @@ services:
       - STORAGE_BACKEND=${STORAGE_BACKEND:-json}
       - MONGO_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-admin}@mongodb:27017/ai_collective?authSource=admin
       - MONGO_DB=${MONGO_DB:-ai_collective}
-      # Sandbox — override via .env to switch modes
       - SANDBOX_MODE=${SANDBOX_MODE:-local}
       - SANDBOX_URL=${SANDBOX_URL:-}
       - SANDBOX_PROVISIONER_URL=${SANDBOX_PROVISIONER_URL:-}
       - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-60}
       - SANDBOX_WORKSPACE=/app/sandbox_workspace
       - STORAGE_DIR=/app/storage
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - ai-collective
     restart: unless-stopped
@@ -242,6 +248,12 @@ services:
       - THREADS_HOST_PATH=${THREADS_HOST_PATH:-/.ai-collective/threads}
     volumes:
       - ${KUBECONFIG:-~/.kube}:/root/.kube:ro
+    env_file:
+      - ../.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8002:8002"
     networks:
       - ai-collective
     restart: unless-stopped

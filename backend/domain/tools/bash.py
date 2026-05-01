@@ -1,36 +1,25 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Protocol
+from typing import Any, Optional
 
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-
-
-class SandboxPort(Protocol):
-    async def exec_command(self, id: str, exec_dir: str, command: str) -> Any: ...
-
-    async def view_shell(self, id: str) -> Any: ...
-
-    async def wait_for_process(self, id: str, seconds: Optional[int] = None) -> Any: ...
-
-    async def write_to_process(self, id: str, input: str, press_enter: bool) -> Any: ...
-
-    async def kill_process(self, id: str) -> Any: ...
+from backend.infrastructure.sandbox import Sandbox
 
 
 class BashToolkit(BaseToolkit):
-    """Bash tool class for shell interaction."""
+    """Bash tool class for session-based shell interaction inside a sandbox."""
 
     name: str = "bash"
 
-    def __init__(self, sandbox: SandboxPort, **kwargs):
+    def __init__(self, sandbox: Sandbox, **kwargs):
         super().__init__(**kwargs)
         self.sandbox = sandbox
 
     @tool(parse_docstring=True)
     async def bash_exec(self, id: str, exec_dir: str, command: str) -> Any:
-        """Execute commands in a specified shell session.
+        """Execute commands in a specified shell session inside the sandbox.
 
         Args:
             id: Unique identifier of the target shell session.
@@ -77,3 +66,20 @@ class BashToolkit(BaseToolkit):
             id: Unique identifier of the target shell session.
         """
         return await self.sandbox.kill_process(id)
+
+
+def create_bash_toolkit(session_id: str | None = None, **kwargs) -> BashToolkit:
+    """Create a BashToolkit wired to the appropriate sandbox for the current mode.
+
+    Mode is read from settings.sandbox_mode:
+        local  → LocalSandboxAdapter (direct host execution)
+        docker → AioSandbox backed by a Docker container
+        k8s    → AioSandbox backed by a K8s pod via provisioner
+
+    Args:
+        session_id: Session/thread identifier. Same session_id reuses the same sandbox.
+        **kwargs:   Additional kwargs passed to BashToolkit.
+    """
+    from backend.infrastructure.sandbox.factory import create_sandbox_adapter
+    sandbox = create_sandbox_adapter(session_id=session_id)
+    return BashToolkit(sandbox=sandbox, **kwargs)
