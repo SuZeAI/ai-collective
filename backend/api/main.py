@@ -1,5 +1,6 @@
 from __future__ import annotations
 import os
+from pathlib import Path
 import dotenv
 
 # Allow OAuth 2 on http://localhost for development (must be set before importing google_auth_oauthlib)
@@ -10,6 +11,7 @@ dotenv.load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from backend.api.settings import settings
 from backend.domain.errors import NotFoundError, ValidationError
@@ -18,6 +20,7 @@ from backend.api.routers import (
     agents,
     analytics,
     auth,
+    connections,
     conversations,
     health,
     llm,
@@ -25,6 +28,8 @@ from backend.api.routers import (
     skills,
     tasks,
     teams,
+    workspaces,
+    webhook,
 )
 
 
@@ -58,6 +63,14 @@ def create_app() -> FastAPI:
     app.include_router(simulations.router, prefix=settings.api_prefix)
     app.include_router(llm.router, prefix=settings.api_prefix)
     app.include_router(auth.router, prefix=settings.api_prefix)
+    app.include_router(workspaces.router, prefix=settings.api_prefix)
+    app.include_router(connections.router, prefix=settings.api_prefix)
+    app.include_router(webhook.router, prefix=settings.api_prefix)
+
+    static_dir = Path("static")
+    static_dir.mkdir(exist_ok=True)
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
     return app
 
 

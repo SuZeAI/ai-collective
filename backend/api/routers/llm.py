@@ -22,6 +22,7 @@ from backend.application.service.graph_context_service import GraphContextServic
 from backend.application.service.llm_service import LLMService
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.service.skill_tool_service import SkillToolManager
+from backend.infrastructure import task_run_registry
 from backend.log import get_logger
 
 
@@ -149,7 +150,7 @@ async def run_agent_graph_stream(
     for agent_id in req.agents:
         try:
             agent = agent_service.get_agent(agent_id)
-            
+
             # Get tools for this agent's skills
             agent_tools = {}
             skills = agent_service.get_agent_skills(agent_id)
@@ -160,7 +161,7 @@ async def run_agent_graph_stream(
                     logger.info(f"Bound tool '{skill.tool_name}' for skill '{skill.id}' (agent: {agent.name})")
                 else:
                     logger.debug(f"No tool available for skill '{skill.id}' (agent: {agent.name})")
-            
+
             definitions.append(
                 GraphAgentDefinition(
                     name=agent.name,
@@ -174,12 +175,15 @@ async def run_agent_graph_stream(
             agent_name_to_id[agent.name] = agent_id  # Store mapping
         except Exception as e:
             raise HTTPException(
-                status_code=404, 
+                status_code=404,
                 detail=f"Agent '{agent_id}' not found: {str(e)}"
             )
 
     graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
     conversation_id = req.conversation_id
+
+    # Register a cancel flag so stop/pause can signal this stream to halt
+    cancel_flag = task_run_registry.register(conversation_id) if conversation_id else None
 
     async def event_generator():
         """Generate Server-Sent Events for agent turns and intermediate events"""
@@ -192,6 +196,11 @@ async def run_agent_graph_stream(
                 graph_context_provider=graph_context_service,
                 graph_config=graph_config,
             ):
+                # Check if stop/pause was requested via status update
+                if cancel_flag and cancel_flag.cancelled:
+                    yield f"data: {json.dumps({'type': 'cancelled'})}\n\n"
+                    return
+
                 # Handle both custom events (dicts) and GraphTurn objects
                 if isinstance(event, dict):
                     # Custom event from get_stream_writer()
@@ -220,8 +229,9 @@ async def run_agent_graph_stream(
                         content=turn.content,
                     )
                     yield f"data: {json.dumps(turn_schema.model_dump())}\n\n"
-            
-            if conversation_id:
+
+            # Only build graph context if stream completed naturally (not cancelled)
+            if conversation_id and not (cancel_flag and cancel_flag.cancelled):
                 pack = graph_context_service.build_graph_context(
                     conversation_id=conversation_id,
                     query=req.user_input,
@@ -231,5 +241,8 @@ async def run_agent_graph_stream(
                     yield f"data: {json.dumps({'graph_context': asdict(pack)})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        finally:
+            if conversation_id:
+                task_run_registry.unregister(conversation_id)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

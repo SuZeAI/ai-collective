@@ -1,45 +1,82 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  TrendingUp,
-  Zap,
-  Users,
-  Clock,
-  Activity,
-  CheckCircle2,
-  ListTodo,
+  TrendingUp, Zap, Users, Clock, Activity, CheckCircle2, ListTodo,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { useAgentSimulation } from "@/hooks/use-agent-simulation";
-import { getAgentRoleColor } from "@/lib/agent-role-ui";
-import { api, type Agent, type Team, type Analytics, type ActivityFeedItem, type Task } from "@/lib/api";
+import { api, type Agent, type Analytics, type ActivityFeedItem, type Task } from "@/lib/api";
 
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.15,
-    },
+    transition: { staggerChildren: 0.07, delayChildren: 0.1 },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4 },
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
+};
+
+const metricConfig = [
+  {
+    key: "completed",
+    icon: CheckCircle2,
+    label: "Tasks Completed",
+    gradientClass: "stat-gradient-green",
+    iconColor: "text-emerald-600",
+    iconBg: "bg-emerald-500/12",
+    trendColor: "text-emerald-600",
   },
+  {
+    key: "active",
+    icon: ListTodo,
+    label: "Active Tasks",
+    gradientClass: "stat-gradient-blue",
+    iconColor: "text-blue-600",
+    iconBg: "bg-blue-500/12",
+    trendColor: "text-blue-500",
+  },
+  {
+    key: "efficiency",
+    icon: Zap,
+    label: "Team Efficiency",
+    gradientClass: "stat-gradient-orange",
+    iconColor: "text-amber-600",
+    iconBg: "bg-amber-500/12",
+    trendColor: "text-amber-600",
+  },
+  {
+    key: "agents",
+    icon: Users,
+    label: "Active Agents",
+    gradientClass: "stat-gradient-purple",
+    iconColor: "text-violet-600",
+    iconBg: "bg-violet-500/12",
+    trendColor: "text-violet-500",
+  },
+  {
+    key: "time",
+    icon: Clock,
+    label: "Avg. Completion",
+    gradientClass: "stat-gradient-teal",
+    iconColor: "text-teal-600",
+    iconBg: "bg-teal-500/12",
+    trendColor: "text-teal-500",
+  },
+];
+
+const statusVariant: Record<string, string> = {
+  completed: "default",
+  "in-progress": "secondary",
+  pending: "outline",
 };
 
 export default function Dashboard() {
-  const { isSimulating } = useAgentSimulation();
+  useAgentSimulation();
   const [isLoading, setIsLoading] = useState(true);
-
   const [agents, setAgents] = useState<Agent[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
@@ -67,9 +104,7 @@ export default function Dashboard() {
         if (!cancelled) setIsLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   const agentById = useMemo(() => {
@@ -82,238 +117,221 @@ export default function Dashboard() {
   const activeTasks = tasks.filter((t) => t.status === "in-progress").length;
   const completedTasks = tasks.filter((t) => t.status === "completed").length;
 
+  const metricValues = [
+    { value: String(completedTasks), trend: "+12%" },
+    { value: String(activeTasks), trend: "in progress" },
+    { value: `${analytics?.teamEfficiency ?? 0}%`, trend: "+5%" },
+    { value: String(activeAgentsCount), trend: `of ${agents.length}` },
+    { value: analytics?.avgCompletionTime ?? "—", trend: "avg time" },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/80">
-      {/* Animated Background Elements */}
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-20 right-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl opacity-20 animate-pulse" />
-        <div className="absolute bottom-20 left-20 w-72 h-72 bg-accent/10 rounded-full blur-3xl opacity-20 animate-pulse" style={{ animationDelay: "1s" }} />
-      </div>
+    <motion.div
+      className="space-y-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Page header */}
+      <motion.div variants={itemVariants}>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Overview of your multi-agent workspace
+        </p>
+      </motion.div>
 
+      {/* Metric cards */}
       <motion.div
-        className="space-y-4 py-6"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3"
+        variants={itemVariants}
       >
-        {/* Header Section */}
-        <motion.header className="px-6 md:px-8" variants={itemVariants}>
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-              Dashboard
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Manage your multi-agent workspace
-            </p>
-          </div>
-        </motion.header>
+        {metricConfig.map((cfg, i) => (
+          <MetricCard
+            key={cfg.key}
+            icon={cfg.icon}
+            label={cfg.label}
+            value={metricValues[i].value}
+            trend={metricValues[i].trend}
+            isLoading={isLoading}
+            gradientClass={cfg.gradientClass}
+            iconColor={cfg.iconColor}
+            iconBg={cfg.iconBg}
+            trendColor={cfg.trendColor}
+          />
+        ))}
+      </motion.div>
 
-        {/* Key Metrics Row */}
-        <motion.div
-          className="grid grid-cols-1 md:grid-cols-5 gap-3 px-6 md:px-8"
-          variants={itemVariants}
-        >
-          <MetricCard
-            icon={CheckCircle2}
-            label="Tasks Completed"
-            value={String(completedTasks)}
-            trend="+12%"
-            isLoading={isLoading}
-          />
-          <MetricCard
-            icon={ListTodo}
-            label="Active Tasks"
-            value={String(activeTasks)}
-            trend="in progress"
-            isLoading={isLoading}
-          />
-          <MetricCard
-            icon={Zap}
-            label="Team Efficiency"
-            value={`${analytics?.teamEfficiency ?? 0}%`}
-            trend="+5%"
-            isLoading={isLoading}
-          />
-          <MetricCard
-            icon={Users}
-            label="Active Agents"
-            value={String(activeAgentsCount)}
-            trend={`of ${agents.length}`}
-            isLoading={isLoading}
-          />
-          <MetricCard
-            icon={Clock}
-            label="Avg. Completion"
-            value={analytics?.avgCompletionTime ?? "—"}
-            trend="time"
-            isLoading={isLoading}
-          />
-        </motion.div>
-
-        {/* Main Content Grid */}
-        <motion.div
-          className="grid grid-cols-1 lg:grid-cols-3 gap-4 px-6 md:px-8 h-[calc(100vh-300px)]"
-          variants={itemVariants}
-        >
-          {/* Left: Tasks List with Scroll */}
-          <div className="lg:col-span-2 flex flex-col">
-            <Card className="p-4 border-0 shadow-xl bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/30 flex flex-col flex-1 overflow-hidden">
-              <div className="flex items-center gap-2 mb-4 flex-shrink-0">
-                <ListTodo className="w-5 h-5 text-primary" />
-                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-                  Recent Tasks
-                </h3>
+      {/* Main grid */}
+      <motion.div
+        className="grid grid-cols-1 lg:grid-cols-3 gap-4"
+        style={{ minHeight: "calc(100vh - 360px)" }}
+        variants={itemVariants}
+      >
+        {/* Tasks list */}
+        <div className="lg:col-span-2 glass-card flex flex-col overflow-hidden" style={{ maxHeight: "calc(100vh - 320px)" }}>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/60 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <ListTodo className="w-4 h-4 text-blue-600" />
               </div>
-              <div className="overflow-y-auto flex-1 pr-3">
-                <div className="space-y-2">
-                  {tasks.length > 0 ? (
-                    tasks.map((task, idx) => (
-                      <motion.div
-                        key={task.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.03 }}
-                        className="p-3 rounded-lg bg-background/40 hover:bg-background/60 transition-all border border-border/50 hover:border-primary/30 group"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
-                              {task.title}
-                            </h4>
-                            <p className="text-xs text-muted-foreground truncate mt-0.5">
-                              {task.description}
-                            </p>
-                          </div>
-                          <Badge
-                            variant={
-                              task.status === "completed"
-                                ? "default"
-                                : task.status === "in-progress"
-                                  ? "secondary"
-                                  : "outline"
-                            }
-                            className="flex-shrink-0 capitalize text-xs"
-                          >
-                            {task.status}
-                          </Badge>
-                        </div>
-                        {task.progress > 0 && (
-                          <div className="mt-2">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-xs text-muted-foreground">Progress</span>
-                              <span className="text-xs font-semibold">{task.progress}%</span>
-                            </div>
-                            <div className="w-full bg-muted rounded-full h-1 overflow-hidden">
-                              <motion.div
-                                className="h-full bg-gradient-to-r from-primary to-accent"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${task.progress}%` }}
-                                transition={{ duration: 0.5 }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </motion.div>
-                    ))
-                  ) : (
-                    <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
-                      <div className="text-center">
-                        <ListTodo className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                        No tasks yet
+              <h3 className="text-sm font-bold text-foreground">Recent Tasks</h3>
+            </div>
+            <span className="text-xs text-muted-foreground font-medium">{tasks.length} total</span>
+          </div>
+          <div className="overflow-y-auto flex-1 scrollbar-thin p-3">
+            <div className="space-y-2">
+              {tasks.length > 0 ? (
+                tasks.map((task, idx) => (
+                  <motion.div
+                    key={task.id}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.03 }}
+                    className="p-3.5 rounded-xl bg-background/50 hover:bg-background/80 transition-all border border-border/50 hover:border-primary/25 group cursor-default"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+                          {task.title}
+                        </h4>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {task.description}
+                        </p>
                       </div>
+                      <Badge
+                        variant={(statusVariant[task.status] ?? "outline") as any}
+                        className="flex-shrink-0 capitalize text-[11px] font-semibold"
+                      >
+                        {task.status}
+                      </Badge>
                     </div>
-                  )}
+                    {task.progress > 0 && (
+                      <div className="mt-2.5">
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-[11px] text-muted-foreground font-medium">Progress</span>
+                          <span className="text-[11px] font-bold text-foreground/70">{task.progress}%</span>
+                        </div>
+                        <div className="w-full bg-muted/60 rounded-full h-1.5 overflow-hidden">
+                          <motion.div
+                            className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${task.progress}%` }}
+                            transition={{ duration: 0.6, ease: "easeOut" }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                ))
+              ) : (
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                  <div className="text-center">
+                    <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                      <ListTodo className="w-6 h-6 opacity-40" />
+                    </div>
+                    <p className="text-sm font-medium">No tasks yet</p>
+                    <p className="text-xs opacity-60 mt-0.5">Create a task to get started</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Activity feed */}
+        <div className="glass-card flex flex-col overflow-hidden" style={{ maxHeight: "calc(100vh - 320px)" }}>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/60 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <Activity className="w-4 h-4 text-emerald-600" />
+              </div>
+              <h3 className="text-sm font-bold text-foreground">Activity Feed</h3>
+            </div>
+            {activityFeed.length > 0 && (
+              <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live
+              </span>
+            )}
+          </div>
+          <div className="overflow-y-auto flex-1 scrollbar-thin p-3">
+            {activityFeed.length > 0 ? (
+              <div className="space-y-1.5">
+                <AnimatePresence>
+                  {activityFeed.map((item, idx) => {
+                    const agent = agentById.get(item.agentId);
+                    return (
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.025 }}
+                        className="flex items-start gap-2.5 p-2.5 rounded-xl bg-background/50 hover:bg-background/80 transition-colors group cursor-default"
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0 group-hover:scale-125 transition-transform" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs leading-snug">
+                            <span className="font-semibold text-foreground">
+                              {agent?.name || "System"}
+                            </span>{" "}
+                            <span className="text-muted-foreground">{item.action}</span>
+                          </p>
+                          <span className="text-[11px] text-muted-foreground/60 font-mono">{item.time}</span>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground py-8">
+                <div className="text-center">
+                  <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center mx-auto mb-2.5">
+                    <Activity className="w-5 h-5 opacity-40" />
+                  </div>
+                  <p className="text-xs font-medium">No activity yet</p>
                 </div>
               </div>
-            </Card>
+            )}
           </div>
-
-          {/* Right Section: Activity */}
-          <div className="flex flex-col">
-            {/* Recent Activity Card */}
-            <Card className="p-4 border-0 shadow-xl bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/30 flex flex-col flex-1 overflow-hidden">
-              <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-                <Activity className="w-5 h-5 text-primary" />
-                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  Activity Feed
-                </h3>
-              </div>
-              <div className="overflow-y-auto flex-1 pr-2">
-                {activityFeed.length > 0 ? (
-                  <div className="space-y-2">
-                    <AnimatePresence>
-                      {activityFeed.map((item, idx) => {
-                        const agent = agentById.get(item.agentId);
-                        return (
-                          <motion.div
-                            key={item.id}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: idx * 0.03 }}
-                            className="flex items-start gap-2 p-2 rounded-lg bg-background/40 hover:bg-background/60 transition-colors group text-xs"
-                          >
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0 group-hover:scale-125 transition-transform" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs leading-snug">
-                                <span className="font-semibold text-foreground">
-                                  {agent?.name || "System"}
-                                </span>{" "}
-                                <span className="text-muted-foreground">{item.action}</span>
-                              </p>
-                              <span className="text-xs text-muted-foreground opacity-70">
-                                {item.time}
-                              </span>
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                    </AnimatePresence>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground text-xs py-4">
-                    <div className="text-center">
-                      <Activity className="w-4 h-4 mx-auto mb-1 opacity-50" />
-                      No activity yet
-                    </div>
-                  </div>
-                )}
-              </div>
-            </Card>
-          </div>
-        </motion.div>
+        </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
 
 interface MetricCardProps {
-  icon: any;
+  icon: React.ElementType;
   label: string;
   value: string;
   trend: string;
   isLoading?: boolean;
+  gradientClass: string;
+  iconColor: string;
+  iconBg: string;
+  trendColor: string;
 }
 
-function MetricCard({ icon: Icon, label, value, trend, isLoading }: MetricCardProps) {
+function MetricCard({ icon: Icon, label, value, trend, isLoading, gradientClass, iconColor, iconBg, trendColor }: MetricCardProps) {
   return (
     <motion.div variants={itemVariants}>
-      <Card className="p-5 border-0 shadow-lg bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/30 hover:shadow-xl hover:bg-card/60 transition-all group cursor-pointer h-full">
-        <div className="flex items-start justify-between mb-3">
-          <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-            <Icon className="w-5 h-5 text-primary" />
+      <div className={`glass-card card-hover p-4 border ${gradientClass} h-full`}>
+        <div className="flex items-center justify-between mb-3">
+          <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center flex-shrink-0`}>
+            <Icon className={`w-4 h-4 ${iconColor}`} strokeWidth={2.1} />
           </div>
-          <div className="flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+          <div className={`flex items-center gap-1 text-[11px] font-bold ${trendColor}`}>
             <TrendingUp className="w-3 h-3" />
             {trend}
           </div>
         </div>
-        <p className="text-xs font-medium text-muted-foreground mb-1">{label}</p>
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">{label}</p>
         {isLoading ? (
-          <div className="h-7 bg-muted rounded animate-pulse" />
+          <div className="h-7 bg-muted/60 rounded-lg animate-pulse w-3/4" />
         ) : (
-          <p className="text-2xl font-bold text-foreground">{value}</p>
+          <p className="text-xl font-extrabold text-foreground tracking-tight">{value}</p>
         )}
-      </Card>
+      </div>
     </motion.div>
   );
 }

@@ -1,0 +1,182 @@
+from __future__ import annotations
+
+import asyncio
+import json
+import os
+from typing import Any, Dict, List, Optional
+from urllib import error, request
+
+from langchain.tools import tool
+
+from backend.domain.tools.base import BaseToolkit
+
+WHATSAPP_API_BASE = "https://graph.facebook.com/v19.0"
+
+
+def _wa_request(
+    method: str,
+    path: str,
+    access_token: str,
+    data: Optional[Dict] = None,
+    timeout: int = 30,
+) -> Dict[str, Any]:
+    url = f"{WHATSAPP_API_BASE}{path}?access_token={access_token}"
+    payload = None
+    headers = {"Content-Type": "application/json"}
+    if data is not None:
+        payload = json.dumps(data).encode("utf-8")
+    req = request.Request(url=url, method=method, data=payload, headers=headers)
+    try:
+        with request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"WhatsApp API error {exc.code}: {body[:300]}") from exc
+    except (error.URLError, TimeoutError) as exc:
+        raise RuntimeError(f"WhatsApp request failed: {exc}") from exc
+
+
+class WhatsAppBusinessToolkit(BaseToolkit):
+    """WhatsApp Business Cloud API toolkit for sending messages to customers."""
+
+    name: str = "whatsapp_business"
+
+    def __init__(
+        self,
+        access_token: Optional[str] = None,
+        phone_number_id: Optional[str] = None,
+        **kwargs: Any,
+    ):
+        super().__init__(**kwargs)
+        self.access_token = access_token or os.getenv("WHATSAPP_ACCESS_TOKEN", "")
+        self.phone_number_id = phone_number_id or os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
+
+    def _validate(self) -> None:
+        if not self.access_token:
+            raise ValueError("WhatsApp access token required. Set WHATSAPP_ACCESS_TOKEN.")
+        if not self.phone_number_id:
+            raise ValueError(
+                "WhatsApp phone number ID required. Set WHATSAPP_PHONE_NUMBER_ID."
+            )
+
+    @tool(parse_docstring=True)
+    async def whatsapp_send_text(
+        self,
+        to: str,
+        message: str,
+    ) -> Dict[str, Any]:
+        """Send a text message via WhatsApp Business Cloud API.
+
+        Args:
+            to: Recipient phone number in E.164 format (e.g., +84901234567).
+            message: Text message content (max 4096 characters).
+        """
+        self._validate()
+        data = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to.lstrip("+"),
+            "type": "text",
+            "text": {"preview_url": False, "body": message},
+        }
+        return await asyncio.to_thread(
+            _wa_request,
+            "POST",
+            f"/{self.phone_number_id}/messages",
+            self.access_token,
+            data,
+        )
+
+    @tool(parse_docstring=True)
+    async def whatsapp_send_template(
+        self,
+        to: str,
+        template_name: str,
+        language_code: str = "en_US",
+        components: Optional[List[Dict]] = None,
+    ) -> Dict[str, Any]:
+        """Send an approved WhatsApp Business template message.
+
+        Args:
+            to: Recipient phone number in E.164 format.
+            template_name: Name of the approved Meta Business template.
+            language_code: Template language code (e.g., en_US, vi, zh_CN).
+            components: Optional list of template component parameters for variable substitution.
+        """
+        self._validate()
+        template: Dict[str, Any] = {
+            "name": template_name,
+            "language": {"code": language_code},
+        }
+        if components:
+            template["components"] = components
+        data = {
+            "messaging_product": "whatsapp",
+            "to": to.lstrip("+"),
+            "type": "template",
+            "template": template,
+        }
+        return await asyncio.to_thread(
+            _wa_request,
+            "POST",
+            f"/{self.phone_number_id}/messages",
+            self.access_token,
+            data,
+        )
+
+    @tool(parse_docstring=True)
+    async def whatsapp_send_image(
+        self,
+        to: str,
+        image_url: str,
+        caption: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Send an image message via WhatsApp Business.
+
+        Args:
+            to: Recipient phone number in E.164 format.
+            image_url: Public HTTPS URL of the image (JPEG or PNG).
+            caption: Optional image caption text.
+        """
+        self._validate()
+        image_data: Dict[str, Any] = {"link": image_url}
+        if caption:
+            image_data["caption"] = caption
+        data = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to.lstrip("+"),
+            "type": "image",
+            "image": image_data,
+        }
+        return await asyncio.to_thread(
+            _wa_request,
+            "POST",
+            f"/{self.phone_number_id}/messages",
+            self.access_token,
+            data,
+        )
+
+    @tool(parse_docstring=True)
+    async def whatsapp_mark_read(
+        self,
+        message_id: str,
+    ) -> Dict[str, Any]:
+        """Mark a received WhatsApp message as read to show double blue ticks.
+
+        Args:
+            message_id: ID of the received message to mark as read.
+        """
+        self._validate()
+        data = {
+            "messaging_product": "whatsapp",
+            "status": "read",
+            "message_id": message_id,
+        }
+        return await asyncio.to_thread(
+            _wa_request,
+            "POST",
+            f"/{self.phone_number_id}/messages",
+            self.access_token,
+            data,
+        )

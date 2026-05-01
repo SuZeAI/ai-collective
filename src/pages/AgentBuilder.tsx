@@ -457,7 +457,7 @@ export default function AgentBuilder() {
                 value={testPrompt}
                 onChange={(e) => setTestPrompt(e.target.value)}
                 placeholder="Enter a prompt to test this agent..."
-                className="min-h-[90px] text-sm resize-none border-2 border-slate-200 dark:border-slate-700 focus:border-blue-500"
+                className="min-h-[90px] text-sm resize-none border-border focus:border-primary"
                 disabled={isTesting}
               />
               <Button
@@ -480,21 +480,21 @@ export default function AgentBuilder() {
             <div className="flex flex-col gap-2 flex-1 overflow-hidden">
               <label className="text-sm font-semibold">Output</label>
               {testError ? (
-                <div className="flex-1 rounded-lg border border-red-300 bg-red-50 dark:bg-red-950/20 dark:border-red-700 p-4 overflow-y-auto">
-                  <p className="text-sm text-red-700 dark:text-red-400 font-mono font-semibold mb-2">🚨 Error</p>
-                  <p className="text-sm text-red-600 dark:text-red-300 whitespace-pre-wrap break-words">
+                <div className="flex-1 rounded-lg border border-destructive/30 bg-destructive/8 p-4 overflow-y-auto">
+                  <p className="text-sm text-destructive font-mono font-semibold mb-2">🚨 Error</p>
+                  <p className="text-sm text-destructive/80 whitespace-pre-wrap break-words">
                     {testError}
                   </p>
                 </div>
               ) : testOutput ? (
-                <div className="flex-1 rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-4 overflow-y-auto">
-                  <pre className="text-sm font-mono text-slate-800 dark:text-slate-100 whitespace-pre-wrap break-words leading-relaxed">
+                <div className="flex-1 rounded-lg border border-border bg-muted/30 p-4 overflow-y-auto">
+                  <pre className="text-sm font-mono text-foreground whitespace-pre-wrap break-words leading-relaxed">
                     {testOutput}
                   </pre>
                 </div>
               ) : (
-                <div className="flex-1 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/30 p-4 flex items-center justify-center">
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Output will appear here after running test...</p>
+                <div className="flex-1 rounded-lg border-2 border-dashed border-border bg-muted/20 p-4 flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground">Output will appear here after running test...</p>
                 </div>
               )}
             </div>

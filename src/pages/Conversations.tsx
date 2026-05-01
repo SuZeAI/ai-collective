@@ -99,9 +99,9 @@ export default function Conversations() {
       )}
 
       {error && (
-        <div className="glass-card p-6 border-2 border-red-500 rounded-lg mb-6 bg-red-50">
-          <p className="text-red-700 font-bold text-lg">Error loading conversations</p>
-          <p className="text-red-600 text-sm mt-2">{error}</p>
+        <div className="glass-card p-6 border-2 border-destructive/50 rounded-lg mb-6 bg-destructive/8">
+          <p className="text-destructive font-bold text-lg">Error loading conversations</p>
+          <p className="text-destructive/80 text-sm mt-2">{error}</p>
         </div>
       )}
 
@@ -192,7 +192,7 @@ export default function Conversations() {
                     <div className="flex gap-4 items-start mb-3">
                       <AgentAvatar
                         agent={agent || { avatar: "?" }}
-                        className={`mt-1 w-10 h-10 flex-shrink-0 shadow-sm ${agent ? (agent.avatar_color ? "" : getAgentRoleColor(agentRole)) : "bg-gray-400 text-white"}`}
+                        className={`mt-1 w-10 h-10 flex-shrink-0 shadow-sm ${agent ? (agent.avatar_color ? "" : getAgentRoleColor(agentRole)) : "bg-muted text-muted-foreground"}`}
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-2 flex-wrap mb-2">
@@ -201,12 +201,12 @@ export default function Conversations() {
                             {agentRole}
                           </span>
                           {team && (
-                            <span className="text-xs text-muted-foreground bg-blue-500/10 text-blue-700 px-2 py-0.5 rounded border border-blue-200/50">
+                            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20">
                               Team: {team.name}
                             </span>
                           )}
                           {task && (
-                            <span className="text-xs text-muted-foreground bg-purple-500/10 text-purple-700 px-2 py-0.5 rounded border border-purple-200/50">
+                            <span className="text-xs bg-violet-500/10 text-violet-400 px-2 py-0.5 rounded border border-violet-500/20">
                               Task: {task.title}
                             </span>
                           )}

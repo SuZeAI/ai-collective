@@ -1,0 +1,182 @@
+# AI Collective — Production Environment
+# Usage: docker compose -f docker/docker-compose.yaml up -d
+#
+# Services (always on):
+#   redis      — distributed lock backend  (enable: LOCK_BACKEND=redis)
+#   rabbitmq   — task queue                (enable: TASK_QUEUE_BACKEND=rabbitmq)
+#   nginx      — reverse proxy             (port 2026, override: PORT=xxxx)
+#   frontend   — Vite React static server  (served by `serve`, port 8080 internal)
+#   backend    — FastAPI application       (port 8000 internal)
+#
+# Optional services (Docker Compose profiles):
+#   sandbox    — AIO sandbox container for isolated code execution
+#                Enable: docker compose --profile sandbox up -d
+#                Then set in .env: SANDBOX_MODE=remote  SANDBOX_URL=http://sandbox:8080
+#
+#   provisioner — K8s sandbox provisioner (creates per-request sandbox Pods)
+#                Enable: docker compose --profile provisioner up -d
+#                Then set in .env: SANDBOX_MODE=remote  SANDBOX_PROVISIONER_URL=http://provisioner:8002
+#
+# Key environment variables (set in .env at project root):
+#   LLM_PROVIDER / LLM_MODEL              — LLM provider & model
+#   GOOGLE_API_KEY / ANTHROPIC_API_KEY / OPENAI_API_KEY
+#   RABBITMQ_USER / RABBITMQ_PASS         — RabbitMQ credentials (default: guest/guest)
+#   SANDBOX_MODE                          — "local" (default) | "remote"
+#   SANDBOX_URL                           — http://sandbox:8080 (if profile sandbox is active)
+#   SANDBOX_PROVISIONER_URL               — http://provisioner:8002 (if profile provisioner is active)
+#   SANDBOX_TIMEOUT                       — command timeout in seconds (default: 60)
+#   STORAGE_DIR                           — override storage directory path
+#   PORT                                  — public port (default: 2026)
+#
+# Access: http://localhost:${PORT:-2026}
+
+services:
+  # ── Redis (distributed lock backend) ──────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ai-collective-redis
+    command: redis-server --save "" --appendonly no
+    networks:
+      - ai-collective
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── RabbitMQ (task execution queue) ───────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: ai-collective-rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-guest}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS:-guest}
+    networks:
+      - ai-collective
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ── Reverse Proxy ──────────────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: ai-collective-nginx
+    ports:
+      - "${PORT:-2026}:2026"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - ai-collective
+    restart: unless-stopped
+
+  # ── Frontend: Vite React (static production build) ────────────────────────
+  frontend:
+    build:
+      context: ../
+      dockerfile: Dockerfile.frontend
+      target: prod
+    container_name: ai-collective-frontend
+    networks:
+      - ai-collective
+    restart: unless-stopped
+
+  # ── Backend: FastAPI ───────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ../
+      dockerfile: backend/Dockerfile
+      args:
+        APT_MIRROR: ${APT_MIRROR:-}
+        UV_IMAGE: ${UV_IMAGE:-ghcr.io/astral-sh/uv:0.7.20}
+        UV_INDEX_URL: ${UV_INDEX_URL:-}
+    container_name: ai-collective-backend
+    command: uv run uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --workers ${BACKEND_WORKERS:-4}
+    volumes:
+      - ../storage:/app/storage
+      - ../logs:/app/logs
+      - sandbox-workspace:/app/sandbox_workspace
+    env_file:
+      - ../.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
+      # Sandbox — override via .env to switch modes
+      - SANDBOX_MODE=${SANDBOX_MODE:-local}
+      - SANDBOX_URL=${SANDBOX_URL:-}
+      - SANDBOX_PROVISIONER_URL=${SANDBOX_PROVISIONER_URL:-}
+      - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-60}
+      - SANDBOX_WORKSPACE=/app/sandbox_workspace
+      - STORAGE_DIR=/app/storage
+    networks:
+      - ai-collective
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # ── AIO Sandbox Container (optional — profile: sandbox) ───────────────────
+  # Activate: docker compose --profile sandbox up -d
+  # Then set in .env: SANDBOX_MODE=remote  SANDBOX_URL=http://sandbox:8080
+  sandbox:
+    image: ${SANDBOX_IMAGE:-enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest}
+    container_name: ai-collective-sandbox
+    profiles: ["sandbox"]
+    volumes:
+      - sandbox-workspace:/workspace
+    networks:
+      - ai-collective
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/v1/sandbox"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Sandbox Provisioner (optional — profile: provisioner) ─────────────────
+  # Activate: docker compose --profile provisioner up -d
+  # Then set in .env: SANDBOX_MODE=remote  SANDBOX_PROVISIONER_URL=http://provisioner:8002
+  # Requires: kubectl context available at KUBECONFIG_PATH
+  provisioner:
+    build:
+      context: ./provisioner
+      args:
+        APT_MIRROR: ${APT_MIRROR:-}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+    container_name: ai-collective-provisioner
+    profiles: ["provisioner"]
+    environment:
+      - K8S_NAMESPACE=${K8S_NAMESPACE:-ai-collective}
+      - SANDBOX_IMAGE=${SANDBOX_IMAGE:-enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest}
+      - NODE_HOST=${NODE_HOST:-host.docker.internal}
+      - K8S_API_SERVER=${K8S_API_SERVER:-}
+      - KUBECONFIG_PATH=/root/.kube/config
+      - SKILLS_HOST_PATH=${SKILLS_HOST_PATH:-/skills}
+      - THREADS_HOST_PATH=${THREADS_HOST_PATH:-/.ai-collective/threads}
+    volumes:
+      - ${KUBECONFIG:-~/.kube}:/root/.kube:ro
+    networks:
+      - ai-collective
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8002/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  sandbox-workspace:
+
+networks:
+  ai-collective:
+    driver: bridge

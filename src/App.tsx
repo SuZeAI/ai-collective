@@ -1,10 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { LanguageProvider } from "@/contexts/LanguageContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
+import Profile from "@/pages/Profile";
 import Dashboard from "@/pages/Dashboard";
 import AgentBuilder from "@/pages/AgentBuilder";
 import Skills from "./pages/Skills";
@@ -13,35 +18,62 @@ import TaskManager from "@/pages/TaskManager";
 import Conversations from "@/pages/Conversations";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import Playground from "@/pages/Playground";
+import Workspaces from "@/pages/Workspaces";
+import Settings from "@/pages/Settings";
+import Docs from "@/pages/Docs";
 import NotFound from "@/pages/NotFound";
+import AuthCallback from "@/pages/AuthCallback";
 
 const queryClient = new QueryClient();
 
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const location = useLocation();
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
+  return <>{children}</>;
+}
+
 function WithLayout({ children }: { children: React.ReactNode }) {
-  return <AppLayout>{children}</AppLayout>;
+  return (
+    <RequireAuth>
+      <AppLayout>{children}</AppLayout>
+    </RequireAuth>
+  );
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/dashboard" element={<WithLayout><Dashboard /></WithLayout>} />
-          <Route path="/agents" element={<WithLayout><AgentBuilder /></WithLayout>} />
-          <Route path="/skills" element={<WithLayout><Skills /></WithLayout>} />
-          <Route path="/teams" element={<WithLayout><TeamBuilder /></WithLayout>} />
-          <Route path="/tasks" element={<WithLayout><TaskManager /></WithLayout>} />
-          <Route path="/conversations" element={<WithLayout><Conversations /></WithLayout>} />
-          <Route path="/analytics" element={<WithLayout><AnalyticsPage /></WithLayout>} />
-          <Route path="/playground" element={<WithLayout><Playground /></WithLayout>} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+    <LanguageProvider>
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/dashboard" element={<WithLayout><Dashboard /></WithLayout>} />
+                <Route path="/agents" element={<WithLayout><AgentBuilder /></WithLayout>} />
+                <Route path="/skills" element={<WithLayout><Skills /></WithLayout>} />
+                <Route path="/teams" element={<WithLayout><TeamBuilder /></WithLayout>} />
+                <Route path="/tasks" element={<WithLayout><TaskManager /></WithLayout>} />
+                <Route path="/conversations" element={<WithLayout><Conversations /></WithLayout>} />
+                <Route path="/analytics" element={<WithLayout><AnalyticsPage /></WithLayout>} />
+                <Route path="/playground" element={<WithLayout><Playground /></WithLayout>} />
+                <Route path="/workspaces" element={<WithLayout><Workspaces /></WithLayout>} />
+                <Route path="/settings" element={<WithLayout><Settings /></WithLayout>} />
+                <Route path="/profile" element={<WithLayout><Profile /></WithLayout>} />
+                <Route path="/docs" element={<Docs />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </AuthProvider>
+    </LanguageProvider>
+  </ThemeProvider>
 );
 
 export default App;
