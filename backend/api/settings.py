@@ -10,12 +10,12 @@ class Settings(BaseSettings):
     # ── Application ───────────────────────────────────────────────────────────
     app_name: str = "ai-collective-backend"
     api_prefix: str = "/api/v1"
-    # Include port 2026 (nginx) so the UI served through the proxy can call the API
     cors_origins: str = (
         "http://localhost:5173,http://127.0.0.1:5173,"
         "http://localhost:8080,http://127.0.0.1:8080,"
         "http://localhost:2026,http://127.0.0.1:2026"
     )
+    frontend_url: str = "http://localhost:8080"
     log_level: str = "info"
 
     # ── LLM providers ─────────────────────────────────────────────────────────
@@ -30,6 +30,16 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("OPEN_WEIGHT_API_KEY", "OPENROUTER_API_KEY"),
     )
 
+    # ── Storage ───────────────────────────────────────────────────────────────
+    # backend: "json" (default, file-based) | "mongo" (MongoDB)
+    storage_backend: str = "json"
+    # Absolute path for JSON storage files. Defaults to <project_root>/storage.
+    storage_dir: str | None = None
+
+    # ── MongoDB ───────────────────────────────────────────────────────────────
+    mongo_uri: str = "mongodb://admin:admin@localhost:27017/ai_collective?authSource=admin"
+    mongo_db: str = "ai_collective"
+
     # ── Task queue ────────────────────────────────────────────────────────────
     # backend: "memory" (default, single-instance) | "rabbitmq" (multi-instance)
     task_queue_backend: str = "memory"
@@ -41,51 +51,35 @@ class Settings(BaseSettings):
     lock_backend: str = "threading"
     redis_url: str | None = None
 
-    # ── Storage ───────────────────────────────────────────────────────────────
-    # Absolute path for JSON storage files.  Defaults to <project_root>/storage.
-    storage_dir: str | None = None
-
     # ── Sandbox ───────────────────────────────────────────────────────────────
     # mode: "local"  — commands run inside the backend process (default, dev-only)
     #       "remote" — commands run inside an isolated AIO sandbox container
     sandbox_mode: str = "local"
-
-    # remote mode — direct URL to a running AIO sandbox container
-    # e.g. http://sandbox:8080  (when using the `sandbox` Docker service)
     sandbox_url: str | None = None
-
-    # remote mode — URL of the provisioner that creates per-request sandbox Pods (K8s)
-    # e.g. http://provisioner:8002  (when using the `provisioner` Docker service)
     sandbox_provisioner_url: str | None = None
-
-    # Shell command timeout in seconds (local and remote modes)
     sandbox_timeout: int = 60
-
-    # local mode — workspace directory on the host / inside the container.
-    # Auto-created on first use.  Defaults to ~/sandbox_workspace.
     sandbox_workspace: str | None = None
 
-    # ── Browser automation ────────────────────────────────────────────────────
+    # ── JWT / User auth ───────────────────────────────────────────────────────
+    jwt_secret_key: str = "change-me-in-production-use-openssl-rand-hex-32"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
+
+    # ── Google OAuth (social sign-in) ─────────────────────────────────────────
+    google_login_client_id: str | None = None
+    google_login_client_secret: str | None = None
+    google_login_redirect_uri: str = "http://127.0.0.1:8000/api/v1/auth/google/callback"
+
+    # ── Google OAuth (tool/workspace integration) ─────────────────────────────
+    google_oauth_redirect_uri: str = "http://127.0.0.1:8000/api/v1/auth/oauth/callback"
+
+    # ── Browser automation (agent browser tools) ──────────────────────────────
     model_name: str = "gemini-2.0-flash"
     model_provider: str = "google_genai"
     temperature: float = 0.0
     max_tokens: int = 1024
     api_base: str | None = None
     extra_headers: dict | None = None
-    google_oauth_redirect_uri: str = "http://127.0.0.1:8000/api/v1/auth/oauth/callback"
-
-    # ── Google Login (social sign-in) ─────────────────────────────────────────
-    google_login_client_id: str | None = None
-    google_login_client_secret: str | None = None
-    # Where Google redirects after social sign-in
-    google_login_redirect_uri: str = "http://127.0.0.1:8000/api/v1/auth/google/callback"
-    # Where the backend redirects the browser after successful login (with ?token=...)
-    frontend_url: str = "http://localhost:5173"
-
-    # ── JWT / User auth ───────────────────────────────────────────────────────
-    jwt_secret_key: str = "change-me-in-production-use-openssl-rand-hex-32"
-    jwt_algorithm: str = "HS256"
-    jwt_access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
 
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

@@ -2,20 +2,63 @@
 # Usage: docker compose -f docker/docker-compose-dev.yaml up --build
 #
 # Services (always on in dev):
+#   mongodb      — MongoDB database         (port 27017 exposed for local tools)
+#   mongo-express— MongoDB web UI           (http://localhost:8081)
 #   redis        — distributed lock backend
 #   rabbitmq     — task queue (management UI: http://localhost:15672)
 #   nginx        — reverse proxy (port 2026)
 #   frontend     — Vite dev server with hot-reload (port 8080 internal)
 #   backend      — FastAPI with --reload (port 8000 internal)
-#   sandbox      — AIO sandbox container (port 8080 exposed for debugging)
+#   sandbox      — AIO sandbox container (port 8081 exposed for debugging)
 #   provisioner  — K8s sandbox provisioner (port 8002 exposed for debugging)
 #
 # Access: http://localhost:2026
+# MongoDB Express: http://localhost:8081 (admin/admin)
 # RabbitMQ Management: http://localhost:15672 (guest/guest)
-# Sandbox direct: http://localhost:8080 (if running)
+# Sandbox direct: http://localhost:8081 (if running)
 # Provisioner:    http://localhost:8002/health
 
 services:
+  # ── MongoDB ────────────────────────────────────────────────────────────────
+  mongodb:
+    image: mongo:7
+    container_name: ai-collective-mongodb-dev
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS:-admin}
+      MONGO_INITDB_DATABASE: ai_collective
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - ai-collective-dev
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── MongoDB Web UI ─────────────────────────────────────────────────────────
+  mongo-express:
+    image: mongo-express:1
+    container_name: ai-collective-mongo-express-dev
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USER:-admin}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASS:-admin}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-admin}@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_USER:-admin}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_PASS:-admin}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - ai-collective-dev
+
   # ── Redis (distributed lock backend) ──────────────────────────────────────
   redis:
     image: redis:7-alpine
@@ -89,6 +132,8 @@ services:
       - ../tsconfig.json:/app/tsconfig.json:ro
       - ../tsconfig.app.json:/app/tsconfig.app.json:ro
       - ../components.json:/app/components.json:ro
+    env_file:
+      - ../.env
     environment:
       - NODE_ENV=development
     networks:
@@ -110,6 +155,7 @@ services:
       uv run uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
       - ../backend:/app/backend
+      - ../secrets:/app/secrets
       - ../storage:/app/storage
       - ../logs:/app/logs
       - sandbox-workspace:/app/sandbox_workspace
@@ -118,8 +164,12 @@ services:
     env_file:
       - ../.env
     environment:
+      - GOOGLE_OAUTH_CLIENT_SECRET_PATH=/app/secrets/credentials/client_secret_126452164764-91jgaonrbbj8upq515jmr8cbnn6sqemt.apps.googleusercontent.com.json
       - REDIS_URL=redis://redis:6379/0
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-json}
+      - MONGO_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-admin}@mongodb:27017/ai_collective?authSource=admin
+      - MONGO_DB=${MONGO_DB:-ai_collective}
       # Sandbox — set SANDBOX_MODE=remote + SANDBOX_URL=http://sandbox:8080 in .env
       # to use the sandbox container below; default is local mode
       - SANDBOX_MODE=${SANDBOX_MODE:-local}
@@ -133,6 +183,8 @@ services:
       - ai-collective-dev
     restart: unless-stopped
     depends_on:
+      mongodb:
+        condition: service_healthy
       redis:
         condition: service_healthy
       rabbitmq:
@@ -151,6 +203,8 @@ services:
     networks:
       - ai-collective-dev
     restart: unless-stopped
+    profiles:
+      - sandbox
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8080/v1/sandbox"]
       interval: 15s
@@ -182,6 +236,8 @@ services:
       - ${KUBECONFIG:-~/.kube}:/root/.kube:ro
     networks:
       - ai-collective-dev
+    profiles:
+      - sandbox
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8002/health"]
@@ -191,6 +247,8 @@ services:
       start_period: 15s
 
 volumes:
+  mongo_data:
+    driver: local
   backend-venv:
   backend-uv-cache:
   sandbox-workspace:
