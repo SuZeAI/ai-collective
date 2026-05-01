@@ -91,6 +91,41 @@ class ActivityFeedItem:
     time: str
 
 
+@dataclass(frozen=True, slots=True)
+class PlatformHook:
+    id: str
+    platform: str       # "telegram" | "discord" | "slack" | "teams" | "whatsapp_business" | ...
+    name: str
+    config: dict[str, Any]   # platform-specific tokens/keys
+    description: str = ""
+    enabled: bool = True
+
+
+@dataclass(frozen=True, slots=True)
+class Workspace:
+    id: str
+    name: str
+    description: str
+    team_ids: list[str]
+    platform_hooks: list[PlatformHook]
+    created_at: datetime
+    avatar: str = ""
+    avatar_icon: str = ""
+    avatar_color: str = ""
+    avatar_url: str = ""
+    primary_team_id: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class ThirdPartyConnection:
+    id: str
+    platform: str
+    name: str
+    config: dict[str, Any]
+    created_at: datetime
+    description: str = ""
+
+
 @dataclass
 class ToolResult:
     """Result returned from tool operations"""
@@ -105,3 +140,16 @@ class SimulationStep:
     msg: str
     delay_ms: int
     phase: int | None = None  # 1..4 (Planning/Execution/Review/Complete)
+
+
+@dataclass
+class User:
+    id: str
+    name: str
+    email: str
+    hashed_password: str
+    role: str = "user"
+    joined_at: str = ""
+    avatar: str = ""
+    provider: str = "local"   # "local" | "google" | "github" | ...
+    provider_id: str = ""     # OAuth provider's unique user ID (e.g. Google sub)

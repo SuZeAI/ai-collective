@@ -126,6 +126,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 self._make_mesh_llm_node(
                     agent=agent,
                     llm=llm,
+                    max_rounds=max_rounds,
                     all_agents=agents,
                     hub_agent_name=hub_agent.name,
                     conversation_id=conversation_id,
@@ -133,7 +134,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                     graph_config=graph_config,
                 ),
             )
-        
+
         for agent in agents:
             def should_route_to_next(state, current_agent_name=agent.name):
                 return self._decide_next_agent(
@@ -142,19 +143,19 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                     max_rounds,
                     all_agent_names,
                 )
-            
+
             routing_options = {name: name for name in all_agent_names if name != agent.name}
             routing_options["end"] = END
-            
+
             builder.add_conditional_edges(
                 agent.name,
                 should_route_to_next,
                 routing_options,
             )
-        
+
         builder.add_edge(START, hub_agent.name)
         graph = builder.compile()
-        
+
         initial: MultiAgentMeshState = {
             "input": user_input,
             "original_input": user_input,
@@ -170,7 +171,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             "last_action": "",
             "rounds": 0,
         }
-        
+
         final_state = await graph.ainvoke(initial)
         turns = list(final_state.get("turns", []))
         final_response = final_state.get("final_response") or (
@@ -296,16 +297,6 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         graph_config: GraphContextConfig | None,
     ) -> GraphRunResult:
         """Fallback execution path when only one agent is provided."""
-        node = self._make_mesh_llm_node(
-            agent=agent,
-            llm=llm,
-            max_rounds=max_rounds,
-            all_agents=[agent],
-            hub_agent_name=agent.name,
-            conversation_id=conversation_id,
-            graph_context_provider=graph_context_provider,
-            graph_config=graph_config,
-        )
         if graph_context_provider and conversation_id:
             graph_context_provider.ingest_message(
                 conversation_id=conversation_id,
@@ -314,6 +305,25 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 content=user_input,
                 config=graph_config,
             )
+
+        builder: StateGraph = StateGraph(MultiAgentMeshState)
+        builder.add_node(
+            agent.name,
+            self._make_mesh_llm_node(
+                agent=agent,
+                llm=llm,
+                max_rounds=max_rounds,
+                all_agents=[agent],
+                hub_agent_name=agent.name,
+                conversation_id=conversation_id,
+                graph_context_provider=graph_context_provider,
+                graph_config=graph_config,
+            ),
+        )
+        builder.add_edge(START, agent.name)
+        builder.add_edge(agent.name, END)
+        graph = builder.compile()
+
         initial: MultiAgentMeshState = {
             "input": user_input,
             "original_input": user_input,
@@ -327,7 +337,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             "last_action": "",
             "rounds": 0,
         }
-        final_state = await node(initial)
+        final_state = await graph.ainvoke(initial)
         turns = list(final_state.get("turns", []))
         final_response = final_state.get("final_response") or (
             turns[-1].content if turns else ""
@@ -352,17 +362,50 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         graph_config: GraphContextConfig | None,
     ):
         """Streaming fallback when only one agent is provided."""
-        result = await self._run_single_agent(
-            user_input=user_input,
-            agent=agent,
-            llm=llm,
-            max_rounds=max_rounds,
-            conversation_id=conversation_id,
-            graph_context_provider=graph_context_provider,
-            graph_config=graph_config,
+        if graph_context_provider and conversation_id:
+            graph_context_provider.ingest_message(
+                conversation_id=conversation_id,
+                message_id=f"user-{uuid4().hex}",
+                speaker="user",
+                content=user_input,
+                config=graph_config,
+            )
+
+        builder: StateGraph = StateGraph(MultiAgentMeshState)
+        builder.add_node(
+            agent.name,
+            self._make_mesh_llm_node(
+                agent=agent,
+                llm=llm,
+                max_rounds=max_rounds,
+                all_agents=[agent],
+                hub_agent_name=agent.name,
+                conversation_id=conversation_id,
+                graph_context_provider=graph_context_provider,
+                graph_config=graph_config,
+            ),
         )
-        if result.turns:
-            yield result.turns[-1]
+        builder.add_edge(START, agent.name)
+        builder.add_edge(agent.name, END)
+        graph = builder.compile()
+
+        initial: MultiAgentMeshState = {
+            "input": user_input,
+            "original_input": user_input,
+            "turns": [],
+            "conversation_history": {agent.name: []},
+            "current_agent": agent.name,
+            "hub_agent": agent.name,
+            "agent_names": [agent.name],
+            "discussion_ended": False,
+            "final_response": "",
+            "last_action": "",
+            "rounds": 0,
+        }
+
+        async for event in graph.astream(initial, stream_mode="custom"):
+            if isinstance(event, dict):
+                yield event
 
     def _build_round_budget_context(self, *, rounds_used: int, max_rounds: int) -> str:
         remaining_including_current = max(0, max_rounds - rounds_used)

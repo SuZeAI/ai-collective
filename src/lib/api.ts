@@ -139,6 +139,54 @@ export type GraphContextSnapshot = {
   updated_at: string | null;
 };
 
+export type PlatformHook = {
+  id: string;
+  platform: string;
+  name: string;
+  config: Record<string, unknown>;
+  description: string;
+  enabled: boolean;
+};
+
+export type Workspace = {
+  id: string;
+  name: string;
+  description: string;
+  teamIds: string[];
+  primaryTeamId: string;
+  platformHooks: PlatformHook[];
+  createdAt: string;
+  avatar?: string;
+  avatar_icon?: string;
+  avatar_color?: string;
+  avatar_url?: string;
+};
+
+export type ThirdPartyConnection = {
+  id: string;
+  platform: string;
+  name: string;
+  config: Record<string, string>;
+  description: string;
+  createdAt: string;
+};
+
+export type PlatformConfigField = {
+  key: string;
+  label: string;
+  input: "text" | "textarea" | "select" | "boolean";
+  required?: boolean;
+  default?: unknown;
+  placeholder?: string;
+  options?: string[];
+};
+
+export type PlatformDef = {
+  platform: string;
+  label: string;
+  config_fields: PlatformConfigField[];
+};
+
 export type Analytics = {
   tasksCompleted: number;
   avgCompletionTime: string;
@@ -163,11 +211,36 @@ export type ChatResponse = {
   response: string;
 };
 
+export type AuthUser = {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  role?: string;
+  joinedAt?: string;
+};
+
+export type LoginResponse = {
+  access_token: string;
+  token_type: string;
+  user: AuthUser;
+};
+
 type ApiOptions = RequestInit & { timeoutMs?: number };
 
 function getApiBase(): string {
   // Default matches backend README.
   return ((import.meta as any).env?.VITE_API_BASE_URL as string) || "http://localhost:8000/api/v1";
+}
+
+function getAuthHeader(): Record<string, string> {
+  try {
+    const token = localStorage.getItem("ai-collective-token");
+    if (token) return { Authorization: `Bearer ${token}` };
+  } catch {
+    // ignore
+  }
+  return {};
 }
 
 async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
@@ -181,6 +254,7 @@ async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        ...getAuthHeader(),
         ...(options.headers || {}),
       },
       signal: controller.signal,
@@ -256,6 +330,7 @@ export const api = {
     max_rounds?: number;
     mode?: "mesh" | "sequential";
     conversation_id?: string;
+    signal?: AbortSignal;
     graph_config?: {
       build_method?: "rule" | "embedding" | "ie";
       entity_method?: "keyword" | "capitalized" | "hybrid";
@@ -286,6 +361,7 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body,
+      signal: payload.signal,
     });
 
     if (!res.ok) {
@@ -301,6 +377,10 @@ export const api = {
 
     const reader = res.body?.getReader();
     if (!reader) throw new Error("No response body");
+
+    // Cancel the reader when the abort signal fires so reader.read() resolves immediately
+    const abortHandler = () => reader.cancel();
+    payload.signal?.addEventListener("abort", abortHandler);
 
     const decoder = new TextDecoder();
     let buffer = "";
@@ -327,10 +407,64 @@ export const api = {
         }
       }
     } finally {
+      payload.signal?.removeEventListener("abort", abortHandler);
       reader.releaseLock();
     }
   },
 
   getAnalytics: () => apiFetch<Analytics>("/analytics"),
   listActivityFeed: () => apiFetch<ActivityFeedItem[]>("/activity-feed"),
+
+  listWorkspaces: () => apiFetch<Workspace[]>("/workspaces"),
+  getWorkspace: (id: string) => apiFetch<Workspace>(`/workspaces/${id}`),
+  upsertWorkspace: (payload: Partial<Workspace> & Pick<Workspace, "name">) =>
+    apiFetch<Workspace>("/workspaces", { method: "POST", body: JSON.stringify(payload) }),
+  deleteWorkspace: (id: string) => apiFetch<{ deleted: boolean }>(`/workspaces/${id}`, { method: "DELETE" }),
+  listPlatforms: () => apiFetch<PlatformDef[]>("/workspaces/platforms"),
+
+  listConnections: () => apiFetch<ThirdPartyConnection[]>("/connections"),
+  upsertConnection: (payload: Partial<ThirdPartyConnection> & Pick<ThirdPartyConnection, "platform" | "name">) =>
+    apiFetch<ThirdPartyConnection>("/connections", { method: "POST", body: JSON.stringify(payload) }),
+  deleteConnection: (id: string) => apiFetch<{ deleted: boolean }>(`/connections/${id}`, { method: "DELETE" }),
+
+  // Auth
+  login: (email: string, password: string) =>
+    apiFetch<LoginResponse>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+  register: (name: string, email: string, password: string) =>
+    apiFetch<LoginResponse>("/auth/register", { method: "POST", body: JSON.stringify({ name, email, password }) }),
+  logout: () => apiFetch<void>("/auth/logout", { method: "POST" }),
+  getCurrentUser: () => apiFetch<AuthUser>("/auth/me"),
+  updateProfile: (payload: { name?: string; email?: string; avatar?: string | null }) =>
+    apiFetch<AuthUser>("/auth/profile", { method: "PATCH", body: JSON.stringify(payload) }),
+  changePassword: (current_password: string, new_password: string) =>
+    apiFetch<void>("/auth/password", { method: "PATCH", body: JSON.stringify({ current_password, new_password }) }),
+  uploadAvatar: async (file: File): Promise<AuthUser> => {
+    const base = getApiBase().replace(/\/$/, "");
+    const url = `${base}/auth/avatar`;
+    const formData = new FormData();
+    formData.append("file", file);
+    const token = localStorage.getItem("ai-collective-token");
+    const res = await fetch(url, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    if (!res.ok) {
+      let detail = `${res.status} ${res.statusText}`;
+      try {
+        const data = await res.json();
+        if (data?.detail) detail = String(data.detail);
+      } catch { /* ignore */ }
+      throw new Error(detail);
+    }
+    const data = await res.json();
+    return {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      avatar: data.avatar ?? undefined,
+      role: data.role,
+      joinedAt: data.joined_at ?? undefined,
+    };
+  },
 };

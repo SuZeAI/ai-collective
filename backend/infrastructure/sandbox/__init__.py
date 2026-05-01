@@ -7,9 +7,12 @@ Provides:
     - RemoteSandboxBackend: delegates to K8s provisioner service
     - SandboxInfo: sandbox metadata dataclass
     - get_sandbox_provider(): process-level singleton factory
+    - create_sandbox_adapter(): factory that returns the right adapter based on settings
 
 Environment variables (all optional):
-    SANDBOX_PROVISIONER_URL   — enables K8s mode (default: local Docker mode)
+    SANDBOX_MODE              — "local" (default) | "remote"
+    SANDBOX_URL               — sandbox HTTP endpoint (remote mode)
+    SANDBOX_PROVISIONER_URL   — enables K8s provisioner mode
     SANDBOX_IMAGE             — sandbox container image
     SANDBOX_BASE_PORT         — base port for local containers (default: 8080)
     SANDBOX_CONTAINER_PREFIX  — container name prefix
@@ -19,6 +22,7 @@ Environment variables (all optional):
 """
 
 from .aio_sandbox import AioSandbox
+from .factory import create_sandbox_adapter
 from .local_backend import LocalContainerBackend
 from .provider import SandboxProvider, get_sandbox_provider, reset_sandbox_provider
 from .remote_backend import RemoteSandboxBackend
@@ -30,6 +34,7 @@ __all__ = [
     "RemoteSandboxBackend",
     "SandboxInfo",
     "SandboxProvider",
+    "create_sandbox_adapter",
     "get_sandbox_provider",
     "reset_sandbox_provider",
 ]

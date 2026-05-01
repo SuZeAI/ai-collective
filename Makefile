@@ -1,0 +1,274 @@
+# ============================================================================
+# AI Collective — Makefile
+# ============================================================================
+# Usage:  make <target>
+# Run     make help   for a full list of available targets.
+# ============================================================================
+
+# ── Project configuration ─────────────────────────────────────────────────
+SHELL     := /bin/bash
+.DEFAULT_GOAL := help
+
+COMPOSE_DEV  := docker compose -f docker/docker-compose-dev.yaml
+COMPOSE_PROD := docker compose -f docker/docker-compose.yaml
+
+BACKEND_PORT  ?= 8000
+FRONTEND_PORT ?= 8080
+BACKEND_WORKERS ?= 1
+
+# Colour helpers (no-op if terminal does not support them)
+C_RESET  := \033[0m
+C_BOLD   := \033[1m
+C_GREEN  := \033[32m
+C_CYAN   := \033[36m
+C_YELLOW := \033[33m
+
+# ── Phony declarations ────────────────────────────────────────────────────
+.PHONY: help \
+        dev dev-down dev-build dev-logs dev-ps \
+        dev-sandbox dev-provisioner \
+        up down build restart ps logs logs-backend logs-frontend \
+        prod-sandbox prod-provisioner \
+        backend frontend \
+        infra infra-down \
+        install install-backend install-frontend \
+        env setup dirs \
+        test test-backend test-frontend \
+        lint lint-backend lint-frontend \
+        clean clean-docker clean-venv \
+        storage-reset
+
+# ============================================================================
+# HELP
+# ============================================================================
+
+help: ## Show this help message
+	@printf "\n$(C_BOLD)$(C_CYAN)AI Collective — available targets$(C_RESET)\n\n"
+	@printf "$(C_BOLD)  %-28s %s$(C_RESET)\n" "Target" "Description"
+	@printf "  %-28s %s\n" "------" "-----------"
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_\-]+:.*##/ { \
+	    printf "  $(C_GREEN)%-28s$(C_RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@printf "\n$(C_BOLD)$(C_YELLOW)Examples$(C_RESET)\n"
+	@printf "  make dev              # Start full dev stack (Docker, hot-reload)\n"
+	@printf "  make backend          # Run backend locally (needs infra running)\n"
+	@printf "  make up               # Start production stack\n"
+	@printf "  make dev-sandbox      # Dev stack + AIO sandbox container\n"
+	@printf "  make prod-provisioner # Prod stack + K8s provisioner\n"
+	@printf "\n"
+
+# ============================================================================
+# DEVELOPMENT — full Docker stack (hot-reload)
+# ============================================================================
+
+dev: dirs env ## Start full development stack (hot-reload, all services)
+	@printf "$(C_CYAN)Starting dev stack…$(C_RESET)\n"
+	$(COMPOSE_DEV) up --build -d
+	@printf "$(C_GREEN)✓ Dev stack up:$(C_RESET) http://localhost:2026  (API: http://localhost:2026/api/v1)\n"
+	@printf "  RabbitMQ UI: http://localhost:15672  (guest/guest)\n"
+	@printf "  Backend logs: make dev-logs\n"
+
+dev-build: ## Rebuild all dev images without cache
+	$(COMPOSE_DEV) build --no-cache
+
+dev-down: ## Stop and remove dev containers
+	$(COMPOSE_DEV) down
+
+dev-logs: ## Tail all dev container logs (Ctrl-C to stop)
+	$(COMPOSE_DEV) logs -f
+
+dev-logs-backend: ## Tail only backend dev logs
+	$(COMPOSE_DEV) logs -f backend
+
+dev-logs-frontend: ## Tail only frontend dev logs
+	$(COMPOSE_DEV) logs -f frontend
+
+dev-ps: ## Show status of dev containers
+	$(COMPOSE_DEV) ps
+
+dev-restart: ## Restart all dev containers
+	$(COMPOSE_DEV) restart
+
+dev-restart-backend: ## Restart only the backend container
+	$(COMPOSE_DEV) restart backend
+
+# ── Dev with optional sandbox profiles ───────────────────────────────────
+
+dev-sandbox: dirs env ## Dev stack + AIO sandbox container (set SANDBOX_MODE=remote in .env)
+	@printf "$(C_CYAN)Starting dev stack with sandbox…$(C_RESET)\n"
+	$(COMPOSE_DEV) up --build -d
+	@printf "  Sandbox URL (internal): http://sandbox:8080\n"
+	@printf "  Sandbox URL (host):     http://localhost:8081\n"
+	@printf "$(C_YELLOW)  Tip: set SANDBOX_MODE=remote and SANDBOX_URL=http://sandbox:8080 in .env$(C_RESET)\n"
+
+dev-provisioner: dirs env ## Dev stack + AIO sandbox + K8s provisioner
+	@printf "$(C_CYAN)Starting dev stack with provisioner…$(C_RESET)\n"
+	$(COMPOSE_DEV) up --build -d
+	@printf "  Provisioner: http://localhost:8002/health\n"
+	@printf "$(C_YELLOW)  Tip: set SANDBOX_MODE=remote and SANDBOX_PROVISIONER_URL=http://provisioner:8002 in .env$(C_RESET)\n"
+
+# ============================================================================
+# PRODUCTION
+# ============================================================================
+
+up: dirs env ## Start production stack (detached)
+	@printf "$(C_CYAN)Starting production stack…$(C_RESET)\n"
+	$(COMPOSE_PROD) up -d
+	@printf "$(C_GREEN)✓ Production stack up:$(C_RESET) http://localhost:2026\n"
+
+down: ## Stop and remove production containers
+	$(COMPOSE_PROD) down
+
+build: ## Build production images (no cache)
+	$(COMPOSE_PROD) build --no-cache
+
+restart: ## Restart all production containers
+	$(COMPOSE_PROD) restart
+
+ps: ## Show status of production containers
+	$(COMPOSE_PROD) ps
+
+logs: ## Tail all production logs
+	$(COMPOSE_PROD) logs -f
+
+logs-backend: ## Tail only backend production logs
+	$(COMPOSE_PROD) logs -f backend
+
+logs-frontend: ## Tail only frontend production logs
+	$(COMPOSE_PROD) logs -f frontend
+
+# ── Production with optional sandbox profiles ─────────────────────────────
+
+prod-sandbox: dirs env ## Production stack + AIO sandbox container
+	@printf "$(C_CYAN)Starting production stack + sandbox…$(C_RESET)\n"
+	$(COMPOSE_PROD) --profile sandbox up -d
+	@printf "$(C_GREEN)✓ Sandbox running.$(C_RESET)  Set SANDBOX_MODE=remote SANDBOX_URL=http://sandbox:8080 in .env\n"
+
+prod-provisioner: dirs env ## Production stack + K8s provisioner (needs kubeconfig)
+	@printf "$(C_CYAN)Starting production stack + provisioner…$(C_RESET)\n"
+	$(COMPOSE_PROD) --profile provisioner up -d
+	@printf "$(C_GREEN)✓ Provisioner running.$(C_RESET)  Set SANDBOX_MODE=remote SANDBOX_PROVISIONER_URL=http://provisioner:8002 in .env\n"
+
+prod-all: dirs env ## Production stack + sandbox + provisioner
+	$(COMPOSE_PROD) --profile sandbox --profile provisioner up -d
+
+# ============================================================================
+# LOCAL DEVELOPMENT (without Docker — runs directly on host)
+# ============================================================================
+
+backend: dirs env ## Run backend locally with hot-reload (needs: make infra)
+	@printf "$(C_CYAN)Starting backend on port $(BACKEND_PORT)…$(C_RESET)\n"
+	uv run uvicorn backend.api.main:app \
+	    --host 0.0.0.0 \
+	    --port $(BACKEND_PORT) \
+	    --reload \
+	    --log-level $${LOG_LEVEL:-info}
+
+backend-prod: dirs env ## Run backend locally in production mode (multi-worker)
+	uv run uvicorn backend.api.main:app \
+	    --host 0.0.0.0 \
+	    --port $(BACKEND_PORT) \
+	    --workers $(BACKEND_WORKERS)
+
+frontend: ## Run frontend dev server locally
+	@printf "$(C_CYAN)Starting frontend on port $(FRONTEND_PORT)…$(C_RESET)\n"
+	npm run dev -- --host 0.0.0.0 --port $(FRONTEND_PORT)
+
+frontend-build: ## Build frontend for production
+	npm run build
+
+frontend-preview: frontend-build ## Preview the production frontend build
+	npm run preview
+
+# ── Infrastructure only (redis + rabbitmq for local backend dev) ──────────
+
+infra: dirs ## Start only redis + rabbitmq (for running backend locally)
+	@printf "$(C_CYAN)Starting infra services (redis, rabbitmq)…$(C_RESET)\n"
+	$(COMPOSE_DEV) up -d redis rabbitmq
+	@printf "$(C_GREEN)✓ Redis:    localhost:6379$(C_RESET)\n"
+	@printf "$(C_GREEN)✓ RabbitMQ: localhost:5672  (mgmt: http://localhost:15672)$(C_RESET)\n"
+
+infra-down: ## Stop infra services
+	$(COMPOSE_DEV) stop redis rabbitmq
+
+# ============================================================================
+# SETUP & INSTALL
+# ============================================================================
+
+install: install-backend install-frontend ## Install all dependencies
+
+install-backend: ## Install Python dependencies (uv)
+	uv sync --all-extras
+
+install-frontend: ## Install Node.js dependencies (npm)
+	npm ci
+
+env: ## Create .env from .env.example if it does not exist
+	@if [ ! -f .env ]; then \
+	    if [ -f .env.example ]; then \
+	        cp .env.example .env; \
+	        printf "$(C_YELLOW)⚠  Created .env from .env.example — edit it before starting.$(C_RESET)\n"; \
+	    else \
+	        printf "$(C_YELLOW)⚠  No .env file found. Create one at the project root.$(C_RESET)\n"; \
+	    fi \
+	fi
+
+dirs: ## Create required runtime directories
+	@mkdir -p storage logs sandbox_workspace
+
+setup: install dirs env ## Full first-time project setup
+	@printf "$(C_GREEN)✓ Setup complete.$(C_RESET)  Edit .env then run:  make dev\n"
+
+# ============================================================================
+# TESTING & LINTING
+# ============================================================================
+
+test: test-backend test-frontend ## Run all tests
+
+test-backend: ## Run backend tests (pytest)
+	uv run pytest backend/ -v
+
+test-frontend: ## Run frontend tests (vitest)
+	npm run test
+
+test-frontend-watch: ## Run frontend tests in watch mode
+	npm run test:watch
+
+lint: lint-backend lint-frontend ## Lint all code
+
+lint-backend: ## Lint backend (ruff / flake8 if available)
+	@uv run ruff check backend/ 2>/dev/null || \
+	 uv run flake8 backend/ 2>/dev/null || \
+	 printf "$(C_YELLOW)No Python linter found (install ruff: uv add ruff)$(C_RESET)\n"
+
+lint-frontend: ## Lint frontend (eslint)
+	npm run lint
+
+# ============================================================================
+# STORAGE
+# ============================================================================
+
+storage-reset: ## ⚠ Delete all storage JSON files (agents, tasks, conversations…)
+	@printf "$(C_YELLOW)⚠  This will delete all data in storage/$(C_RESET)\n"
+	@read -p "Type 'yes' to continue: " confirm && [ "$$confirm" = "yes" ] || exit 1
+	rm -f storage/*.json
+	@printf "$(C_GREEN)✓ Storage cleared.$(C_RESET)\n"
+
+# ============================================================================
+# CLEANUP
+# ============================================================================
+
+clean: clean-docker ## Remove build artefacts and cache files
+	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name .ruff_cache -exec rm -rf {} + 2>/dev/null || true
+	find . -name "*.pyc" -delete 2>/dev/null || true
+	rm -rf dist/ 2>/dev/null || true
+	@printf "$(C_GREEN)✓ Clean complete.$(C_RESET)\n"
+
+clean-docker: ## Remove stopped containers and dangling images
+	$(COMPOSE_DEV) down --remove-orphans 2>/dev/null || true
+	$(COMPOSE_PROD) down --remove-orphans 2>/dev/null || true
+	docker image prune -f 2>/dev/null || true
+
+clean-venv: ## Remove the .venv directory
+	rm -rf .venv

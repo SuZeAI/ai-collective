@@ -1,0 +1,62 @@
+from __future__ import annotations
+
+import asyncio
+import json
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
+from urllib import error, request as urllib_request
+
+
+@dataclass
+class IncomingMessage:
+    chat_id: str
+    user_id: str
+    text: str
+    raw: Dict[str, Any]
+
+
+class BaseHookProcessor(ABC):
+    """Abstract base for all platform webhook processors."""
+
+    platform: str = ""
+
+    @abstractmethod
+    def extract_message(self, body: Dict[str, Any]) -> Optional[IncomingMessage]:
+        """Parse incoming webhook payload and extract message. Returns None if not a chat message."""
+
+    @abstractmethod
+    async def send_response(self, config: Dict[str, Any], chat_id: str, text: str) -> None:
+        """Send a response back to the user on this platform."""
+
+    def verify_request(
+        self,
+        headers: Dict[str, str],
+        raw_body: bytes,
+        config: Dict[str, Any],
+    ) -> bool:
+        """Optionally verify webhook signature. Default accepts all."""
+        return True
+
+    def get_verification_response(
+        self,
+        query_params: Dict[str, str],
+        config: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """Handle GET-based verification challenges (Facebook, Instagram, WhatsApp).
+        Return dict with 'content' key to send as plain text response, or None."""
+        return None
+
+
+def _http_post(url: str, data: Dict, headers: Dict[str, str], timeout: int = 20) -> Dict:
+    payload = json.dumps(data).encode("utf-8")
+    headers = {"Content-Type": "application/json", **headers}
+    req = urllib_request.Request(url=url, method="POST", data=payload, headers=headers)
+    try:
+        with urllib_request.urlopen(req, timeout=timeout) as resp:
+            body = resp.read().decode("utf-8")
+            return json.loads(body) if body.strip() else {}
+    except error.HTTPError as exc:
+        raise RuntimeError(f"HTTP {exc.code}: {exc.read().decode('utf-8', errors='replace')[:200]}") from exc
+    except Exception as exc:
+        raise RuntimeError(str(exc)) from exc
