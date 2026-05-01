@@ -1,40 +1,57 @@
 """Sandbox infrastructure package.
 
 Provides:
-    - AioSandbox: connects to a running sandbox container via HTTP (SandboxPort-compatible)
-    - SandboxProvider: manages sandbox lifecycle (Docker or K8s via provisioner)
-    - LocalContainerBackend: manages Docker containers locally
-    - RemoteSandboxBackend: delegates to K8s provisioner service
-    - SandboxInfo: sandbox metadata dataclass
-    - get_sandbox_provider(): process-level singleton factory
-    - create_sandbox_adapter(): factory that returns the right adapter based on settings
+    Sandbox              — abstract base class for all sandbox implementations
+    SandboxProvider      — abstract base class for sandbox lifecycle managers
+    SandboxBackend       — abstract base class for provisioning backends
 
-Environment variables (all optional):
-    SANDBOX_MODE              — "local" (default) | "remote"
-    SANDBOX_URL               — sandbox HTTP endpoint (remote mode)
-    SANDBOX_PROVISIONER_URL   — enables K8s provisioner mode
-    SANDBOX_IMAGE             — sandbox container image
-    SANDBOX_BASE_PORT         — base port for local containers (default: 8080)
-    SANDBOX_CONTAINER_PREFIX  — container name prefix
-    SANDBOX_IDLE_TIMEOUT      — idle eviction timeout in seconds (default: 600)
-    SANDBOX_REPLICAS          — max concurrent sandbox containers (default: 3)
-    SANDBOX_HOST              — hostname for sandbox access (default: localhost)
+    LocalSandboxAdapter  — runs commands directly on the host (local mode)
+    AioSandbox           — runs commands inside a container via HTTP (docker/k8s mode)
+
+    AioSandboxProvider   — manages AioSandbox lifecycle (warm pool, idle timeout, orphan recovery)
+    LocalContainerBackend — provisions Docker containers locally
+    RemoteSandboxBackend  — provisions K8s pods via provisioner service
+
+    create_sandbox_adapter() — factory: returns the right Sandbox for settings.sandbox_mode
+    get_sandbox_provider()   — singleton AioSandboxProvider
+
+Modes (SANDBOX_MODE env var):
+    local  — direct host execution (dev-only, no isolation)
+    docker — local Docker containers
+    k8s    — K8s/k3s pods via SANDBOX_PROVISIONER_URL
 """
 
 from .aio_sandbox import AioSandbox
+from .backend import SandboxBackend, wait_for_sandbox_ready
 from .factory import create_sandbox_adapter
 from .local_backend import LocalContainerBackend
-from .provider import SandboxProvider, get_sandbox_provider, reset_sandbox_provider
+from .local_sandbox import LocalSandboxAdapter
 from .remote_backend import RemoteSandboxBackend
+from .sandbox import GrepMatch, Sandbox, SandboxResult
 from .sandbox_info import SandboxInfo
+from .sandbox_provider import (
+    AioSandboxProvider,
+    SandboxProvider,
+    get_sandbox_provider,
+    reset_sandbox_provider,
+    shutdown_sandbox_provider,
+)
 
 __all__ = [
     "AioSandbox",
+    "AioSandboxProvider",
+    "GrepMatch",
     "LocalContainerBackend",
+    "LocalSandboxAdapter",
     "RemoteSandboxBackend",
+    "Sandbox",
+    "SandboxBackend",
     "SandboxInfo",
     "SandboxProvider",
+    "SandboxResult",
     "create_sandbox_adapter",
     "get_sandbox_provider",
     "reset_sandbox_provider",
+    "shutdown_sandbox_provider",
+    "wait_for_sandbox_ready",
 ]

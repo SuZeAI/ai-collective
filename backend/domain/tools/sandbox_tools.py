@@ -53,14 +53,8 @@ def _get_sandbox(sandbox=None):
     """Return *sandbox* as-is, or auto-create one from settings."""
     if sandbox is not None:
         return sandbox
-    from backend.api.settings import settings
     from backend.infrastructure.sandbox.factory import create_sandbox_adapter
-    return create_sandbox_adapter(
-        mode=settings.sandbox_mode,
-        sandbox_url=settings.sandbox_url,
-        provisioner_url=settings.sandbox_provisioner_url,
-        timeout=settings.sandbox_timeout,
-    )
+    return create_sandbox_adapter()
 
 
 class SandboxToolkit(BaseToolkit):

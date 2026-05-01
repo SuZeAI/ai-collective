@@ -1,12 +1,12 @@
-"""AIO Sandbox implementation — connects to a running sandbox container via HTTP API.
+"""AIO Sandbox — HTTP client to a running all-in-one sandbox container.
 
-The sandbox container exposes a REST API for executing shell commands,
-reading/writing files, etc. This class wraps that API and implements the
-SandboxPort protocol expected by BashToolkit.
+Implements the Sandbox ABC: session-based shell operations + file operations.
+A threading lock serializes shell commands to prevent concurrent requests from
+corrupting the container's single persistent shell session.
 """
-
 from __future__ import annotations
 
+import base64
 import logging
 import shlex
 import threading
@@ -15,11 +15,11 @@ from typing import Any, Optional
 
 import requests
 
+from .sandbox import GrepMatch, Sandbox, SandboxResult
+
 logger = logging.getLogger(__name__)
 
 _ERROR_OBSERVATION_SIGNATURE = "'ErrorObservation' object has no attribute 'exit_code'"
-
-# Default timeout for sandbox API calls (seconds)
 DEFAULT_TIMEOUT = 600
 
 
@@ -28,7 +28,6 @@ class SandboxAPIError(Exception):
 
 
 def _post(base_url: str, path: str, payload: dict, timeout: int = DEFAULT_TIMEOUT) -> dict:
-    """Helper: POST to sandbox API and return JSON response data."""
     url = f"{base_url}{path}"
     try:
         resp = requests.post(url, json=payload, timeout=timeout)
@@ -38,49 +37,20 @@ def _post(base_url: str, path: str, payload: dict, timeout: int = DEFAULT_TIMEOU
         raise SandboxAPIError(f"Sandbox API error at {url}: {e}") from e
 
 
-def _get(base_url: str, path: str, timeout: int = 30) -> dict:
-    """Helper: GET from sandbox API and return JSON response data."""
-    url = f"{base_url}{path}"
-    try:
-        resp = requests.get(url, timeout=timeout)
-        resp.raise_for_status()
-        return resp.json()
-    except requests.RequestException as e:
-        raise SandboxAPIError(f"Sandbox API error at {url}: {e}") from e
-
-
-class AioSandbox:
+class AioSandbox(Sandbox):
     """Sandbox that connects to a running AIO sandbox container via HTTP API.
-
-    Implements the SandboxPort protocol required by BashToolkit:
-        - exec_command(id, exec_dir, command)
-        - view_shell(id)
-        - wait_for_process(id, seconds)
-        - write_to_process(id, input, press_enter)
-        - kill_process(id)
 
     The AIO sandbox container must be reachable at `base_url` and expose:
         POST /v1/sandbox/shell/exec       — execute a command
-        GET  /v1/sandbox/shell/{id}       — view shell session output
         POST /v1/sandbox/shell/{id}/write — write to running process
         DELETE /v1/sandbox/shell/{id}     — kill process
-
-    A threading lock serializes shell commands to prevent concurrent requests
-    from corrupting the container's single persistent session.
     """
 
     def __init__(self, id: str, base_url: str):
-        """Initialize the AIO sandbox.
-
-        Args:
-            id: Unique identifier for this sandbox instance.
-            base_url: URL of the sandbox API (e.g., http://localhost:8080).
-        """
         self._id = id
         self._base_url = base_url.rstrip("/")
         self._lock = threading.Lock()
-        # Track currently running shell session IDs → last output
-        self._last_output: dict[str, str] = {}
+        self._last_output: dict[str, SandboxResult] = {}
 
     @property
     def id(self) -> str:
@@ -90,146 +60,134 @@ class AioSandbox:
     def base_url(self) -> str:
         return self._base_url
 
-    # ── SandboxPort protocol implementation ──────────────────────────────────
+    # ── Shell operations ──────────────────────────────────────────────────────
 
-    async def exec_command(self, id: str, exec_dir: str, command: str) -> Any:
-        """Execute a shell command in the sandbox.
-
-        Args:
-            id: Shell session identifier.
-            exec_dir: Working directory for the command.
-            command: Shell command to execute.
-
-        Returns:
-            Command output string.
-        """
+    async def exec_command(self, id: str, exec_dir: str, command: str) -> SandboxResult:
         with self._lock:
             try:
-                # Build full command with cd prefix if exec_dir is given
-                full_command = command
-                if exec_dir:
-                    full_command = f"cd {shlex.quote(exec_dir)} && {command}"
-
-                data = _post(self._base_url, "/v1/sandbox/shell/exec", {
-                    "id": id,
-                    "command": full_command,
-                })
-
+                full_command = f"cd {shlex.quote(exec_dir)} && {command}" if exec_dir else command
+                data = _post(self._base_url, "/v1/sandbox/shell/exec", {"id": id, "command": full_command})
                 output = data.get("output", "")
 
-                # Detect and recover from ErrorObservation (sandbox corruption)
                 if output and _ERROR_OBSERVATION_SIGNATURE in output:
-                    logger.warning(
-                        "ErrorObservation in sandbox output for session %s, retrying with fresh session", id
-                    )
-                    fresh_id = str(uuid.uuid4())
+                    logger.warning("ErrorObservation in sandbox output for session %s, retrying", id)
                     data = _post(self._base_url, "/v1/sandbox/shell/exec", {
-                        "id": fresh_id,
+                        "id": str(uuid.uuid4()),
                         "command": full_command,
                     })
                     output = data.get("output", "")
 
-                result = output if output else "(no output)"
+                result = SandboxResult(output=output or "(no output)", exit_code=data.get("exit_code"))
                 self._last_output[id] = result
                 return result
-
             except SandboxAPIError as e:
                 logger.error("exec_command failed for session %s: %s", id, e)
-                return f"Error: {e}"
+                return SandboxResult(output=f"Error: {e}", exit_code=1)
 
-    async def view_shell(self, id: str) -> Any:
-        """View the output of a shell session.
+    async def view_shell(self, id: str) -> SandboxResult:
+        return self._last_output.get(id, SandboxResult(output="(no output)"))
 
-        Args:
-            id: Shell session identifier.
-
-        Returns:
-            Last known output for this session.
-        """
-        # Return cached output from last exec
-        return self._last_output.get(id, "(no output)")
-
-    async def wait_for_process(self, id: str, seconds: Optional[int] = None) -> Any:
-        """Wait for a running process in a shell session.
-
-        For the AIO sandbox, commands are synchronous so this is a no-op
-        that simply returns the last cached output.
-
-        Args:
-            id: Shell session identifier.
-            seconds: Maximum wait time in seconds (unused for sync sandbox).
-
-        Returns:
-            Last known output for this session.
-        """
-        return self._last_output.get(id, "(process complete)")
+    async def wait_for_process(self, id: str, seconds: Optional[int] = None) -> SandboxResult:
+        return self._last_output.get(id, SandboxResult(output="(process complete)"))
 
     async def write_to_process(self, id: str, input: str, press_enter: bool) -> Any:
-        """Write input to an interactive process in a shell session.
-
-        Args:
-            id: Shell session identifier.
-            input: Input content to write to the process.
-            press_enter: Whether to press Enter after input.
-
-        Returns:
-            Result string.
-        """
         with self._lock:
             try:
                 text = input + ("\n" if press_enter else "")
-                data = _post(self._base_url, f"/v1/sandbox/shell/{id}/write", {
-                    "input": text,
-                })
+                data = _post(self._base_url, f"/v1/sandbox/shell/{id}/write", {"input": text})
                 output = data.get("output", "")
                 if output:
-                    self._last_output[id] = output
-                return output if output else "(wrote to process)"
+                    self._last_output[id] = SandboxResult(output=output)
+                return output or "(wrote to process)"
             except SandboxAPIError as e:
                 logger.error("write_to_process failed for session %s: %s", id, e)
                 return f"Error: {e}"
 
     async def kill_process(self, id: str) -> Any:
-        """Terminate a running process in a shell session.
-
-        Args:
-            id: Shell session identifier.
-
-        Returns:
-            Result string.
-        """
         with self._lock:
             try:
-                url = f"{self._base_url}/v1/sandbox/shell/{id}"
-                resp = requests.delete(url, timeout=10)
+                resp = requests.delete(f"{self._base_url}/v1/sandbox/shell/{id}", timeout=10)
                 self._last_output.pop(id, None)
-                if resp.ok:
-                    return "Process killed"
-                return f"Kill returned status {resp.status_code}"
+                return "Process killed" if resp.ok else f"Kill returned status {resp.status_code}"
             except requests.RequestException as e:
                 logger.error("kill_process failed for session %s: %s", id, e)
                 return f"Error: {e}"
 
-    # ── Direct file/command operations (used by Sandbox abstract interface) ──
+    # ── File operations (via shell commands inside the container) ─────────────
 
-    def execute_command(self, command: str) -> str:
-        """Execute a bash command synchronously (blocking).
+    async def read_file(
+        self,
+        path: str,
+        start_line: int | None = None,
+        end_line: int | None = None,
+    ) -> str:
+        if start_line is not None and end_line is not None:
+            cmd = f"sed -n '{start_line},{end_line}p' {shlex.quote(path)} 2>&1"
+        elif start_line is not None:
+            cmd = f"tail -n +{start_line} {shlex.quote(path)} 2>&1"
+        else:
+            cmd = f"cat {shlex.quote(path)} 2>&1"
+        result = await self.exec_command(f"_read_{uuid.uuid4().hex[:6]}", "/", cmd)
+        return result.output
 
-        Args:
-            command: The command to execute.
+    async def write_file(self, path: str, content: str, append: bool = False) -> None:
+        encoded = base64.b64encode(content.encode("utf-8")).decode()
+        mode = "ab" if append else "wb"
+        py_cmd = (
+            f"python3 -c \""
+            f"import base64,os; os.makedirs(os.path.dirname(os.path.abspath({path!r})), exist_ok=True); "
+            f"open({path!r}, {mode!r}).write(base64.b64decode('{encoded}'))\""
+        )
+        await self.exec_command(f"_write_{uuid.uuid4().hex[:6]}", "/", py_cmd)
 
-        Returns:
-            The output of the command.
-        """
-        with self._lock:
-            try:
-                session_id = str(uuid.uuid4())[:8]
-                data = _post(self._base_url, "/v1/sandbox/shell/exec", {
-                    "id": session_id,
-                    "command": command,
-                })
-                output = data.get("output", "")
-                return output if output else "(no output)"
-            except SandboxAPIError as e:
-                logger.error("execute_command failed: %s", e)
-                return f"Error: {e}"
+    async def list_dir(self, path: str, max_depth: int = 2) -> list[str]:
+        cmd = (
+            f"find {shlex.quote(path)} -maxdepth {max_depth} "
+            r"\( -name .git -o -name __pycache__ -o -name node_modules \) -prune -o -print 2>/dev/null "
+            "| head -500"
+        )
+        result = await self.exec_command(f"_ls_{uuid.uuid4().hex[:6]}", "/", cmd)
+        return [line.strip() for line in result.output.splitlines() if line.strip()]
+
+    async def glob_files(
+        self,
+        path: str,
+        pattern: str,
+        max_results: int = 200,
+    ) -> tuple[list[str], bool]:
+        cmd = (
+            f"find {shlex.quote(path)} -name {shlex.quote(pattern)} "
+            r"\( -path '*/.git/*' -o -path '*/__pycache__/*' -o -path '*/node_modules/*' \) -prune -o -print 2>/dev/null "
+            f"| head -{max_results + 1}"
+        )
+        result = await self.exec_command(f"_glob_{uuid.uuid4().hex[:6]}", "/", cmd)
+        lines = [line.strip() for line in result.output.splitlines() if line.strip()]
+        truncated = len(lines) > max_results
+        return lines[:max_results], truncated
+
+    async def grep_files(
+        self,
+        path: str,
+        pattern: str,
+        glob_filter: str | None = None,
+        case_sensitive: bool = False,
+        max_results: int = 100,
+    ) -> tuple[list[GrepMatch], bool]:
+        flags = "" if case_sensitive else "i"
+        include = f"--include={shlex.quote(glob_filter)}" if glob_filter else ""
+        cmd = (
+            f"grep -rn{flags} {include} -m {max_results + 1} "
+            f"-e {shlex.quote(pattern)} {shlex.quote(path)} 2>/dev/null "
+            f"| head -{max_results + 1}"
+        )
+        result = await self.exec_command(f"_grep_{uuid.uuid4().hex[:6]}", "/", cmd)
+        matches: list[GrepMatch] = []
+        for line in result.output.splitlines():
+            parts = line.split(":", 2)
+            if len(parts) >= 3:
+                try:
+                    matches.append(GrepMatch(path=parts[0], line_number=int(parts[1]), line=parts[2]))
+                except ValueError:
+                    continue
+        truncated = len(matches) > max_results
+        return matches[:max_results], truncated

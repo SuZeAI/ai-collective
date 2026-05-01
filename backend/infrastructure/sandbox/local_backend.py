@@ -1,8 +1,4 @@
-"""Local container backend for sandbox provisioning.
-
-Manages sandbox containers using Docker on the local machine.
-"""
-
+"""Local container backend — manages sandbox containers using Docker on the local machine."""
 from __future__ import annotations
 
 import json
@@ -12,6 +8,7 @@ import subprocess
 from datetime import datetime
 from typing import Optional
 
+from .backend import SandboxBackend
 from .sandbox_info import SandboxInfo
 
 logger = logging.getLogger(__name__)
@@ -58,7 +55,7 @@ def _get_free_port(start: int = DEFAULT_BASE_PORT) -> int:
     raise RuntimeError("No free ports found")
 
 
-class LocalContainerBackend:
+class LocalContainerBackend(SandboxBackend):
     """Backend that manages sandbox containers locally using Docker."""
 
     def __init__(
@@ -74,26 +71,17 @@ class LocalContainerBackend:
         self._container_prefix = container_prefix
         self._environment = environment or {}
 
+    # ── SandboxBackend interface ──────────────────────────────────────────────
+
     def create(
         self,
         thread_id: Optional[str],
         sandbox_id: str,
         extra_mounts: Optional[list[tuple[str, str, bool]]] = None,
     ) -> SandboxInfo:
-        """Start a new Docker container for the sandbox.
-
-        Args:
-            thread_id: Optional thread ID (for labeling only).
-            sandbox_id: Deterministic sandbox identifier (used in container name).
-            extra_mounts: Additional volume mounts as (host_path, container_path, read_only).
-
-        Returns:
-            SandboxInfo with container details.
-        """
         container_name = f"{self._container_prefix}-{sandbox_id}"
         next_port = self._base_port
 
-        # Try up to 10 ports
         for _ in range(10):
             port = _get_free_port(start=next_port)
             try:
@@ -121,7 +109,6 @@ class LocalContainerBackend:
         )
 
     def destroy(self, info: SandboxInfo) -> None:
-        """Stop and remove the container."""
         stop_target = info.container_id or info.container_name
         if stop_target:
             try:
@@ -134,13 +121,11 @@ class LocalContainerBackend:
                 logger.warning("Failed to stop container %s: %s", stop_target, e.stderr)
 
     def is_alive(self, info: SandboxInfo) -> bool:
-        """Check if the container is still running."""
         if info.container_name:
             return self._is_container_running(info.container_name)
         return False
 
     def discover(self, sandbox_id: str) -> Optional[SandboxInfo]:
-        """Discover an existing container by its deterministic name."""
         container_name = f"{self._container_prefix}-{sandbox_id}"
         if not self._is_container_running(container_name):
             return None
@@ -155,7 +140,6 @@ class LocalContainerBackend:
         )
 
     def list_running(self) -> list[SandboxInfo]:
-        """Enumerate all running containers matching the configured prefix."""
         try:
             result = subprocess.run(
                 ["docker", "ps", "--filter", f"name={self._container_prefix}-", "--format", "{{.Names}}"],
@@ -206,6 +190,8 @@ class LocalContainerBackend:
                 created_at=created_at,
             ))
         return infos
+
+    # ── Internal helpers ──────────────────────────────────────────────────────
 
     def _start_container(
         self,

@@ -1,9 +1,16 @@
-"""Remote sandbox backend — delegates Pod lifecycle to an external provisioner service.
+"""Remote sandbox backend — delegates Pod lifecycle to the K8s/k3s provisioner service.
 
-The provisioner dynamically creates per-sandbox-id Pods + NodePort Services
-in Kubernetes. This backend is a thin HTTP client to that service.
+Architecture:
+    ┌────────────┐  HTTP   ┌─────────────┐  K8s API  ┌──────────┐
+    │  backend   │ ──────▶ │ provisioner │ ────────▶ │  k3s     │
+    │  (this)    │         │   :8002     │           │  :6443   │
+    └────────────┘         └─────────────┘           └────┬─────┘
+                                                          │ creates
+                           ┌─────────────┐          ┌─────▼──────┐
+                           │   backend   │ ────────▶ │  sandbox  │
+                           │             │  direct   │  Pod(s)   │
+                           └─────────────┘ NodePort  └───────────┘
 """
-
 from __future__ import annotations
 
 import logging
@@ -11,31 +18,27 @@ from typing import Optional
 
 import requests
 
+from .backend import SandboxBackend
 from .sandbox_info import SandboxInfo
 
 logger = logging.getLogger(__name__)
 
 
-class RemoteSandboxBackend:
+class RemoteSandboxBackend(SandboxBackend):
     """Backend that delegates sandbox lifecycle to the K8s provisioner service.
 
-    Typical usage:
-        Set environment variable SANDBOX_PROVISIONER_URL=http://provisioner:8002
-        to activate this backend instead of LocalContainerBackend.
+    Configure with SANDBOX_PROVISIONER_URL pointing to the provisioner service
+    that dynamically creates per-sandbox Pods + NodePort Services in k3s.
     """
 
     def __init__(self, provisioner_url: str):
-        """Initialize with the provisioner service URL.
-
-        Args:
-            provisioner_url: URL of the provisioner service
-                             (e.g., ``http://provisioner:8002``).
-        """
         self._provisioner_url = provisioner_url.rstrip("/")
 
     @property
     def provisioner_url(self) -> str:
         return self._provisioner_url
+
+    # ── SandboxBackend interface ──────────────────────────────────────────────
 
     def create(
         self,
@@ -43,31 +46,22 @@ class RemoteSandboxBackend:
         sandbox_id: str,
         extra_mounts: Optional[list[tuple[str, str, bool]]] = None,
     ) -> SandboxInfo:
-        """Create a sandbox Pod + Service via the provisioner.
-
-        Calls ``POST /api/sandboxes`` and returns SandboxInfo with the sandbox URL.
-        """
+        """POST /api/sandboxes → create Pod + Service."""
         try:
             resp = requests.post(
                 f"{self._provisioner_url}/api/sandboxes",
-                json={
-                    "sandbox_id": sandbox_id,
-                    "thread_id": thread_id or sandbox_id,
-                },
+                json={"sandbox_id": sandbox_id, "thread_id": thread_id or sandbox_id},
                 timeout=30,
             )
             resp.raise_for_status()
             data = resp.json()
             logger.info("Provisioner created sandbox %s: url=%s", sandbox_id, data["sandbox_url"])
-            return SandboxInfo(
-                sandbox_id=sandbox_id,
-                sandbox_url=data["sandbox_url"],
-            )
+            return SandboxInfo(sandbox_id=sandbox_id, sandbox_url=data["sandbox_url"])
         except requests.RequestException as exc:
             raise RuntimeError(f"Provisioner create failed for {sandbox_id}: {exc}") from exc
 
     def destroy(self, info: SandboxInfo) -> None:
-        """Destroy a sandbox Pod + Service via the provisioner."""
+        """DELETE /api/sandboxes/{id} → destroy Pod + Service."""
         try:
             resp = requests.delete(
                 f"{self._provisioner_url}/api/sandboxes/{info.sandbox_id}",
@@ -81,7 +75,7 @@ class RemoteSandboxBackend:
             logger.warning("Provisioner destroy failed for %s: %s", info.sandbox_id, exc)
 
     def is_alive(self, info: SandboxInfo) -> bool:
-        """Check whether the sandbox Pod is running."""
+        """GET /api/sandboxes/{id} → check Pod phase."""
         try:
             resp = requests.get(
                 f"{self._provisioner_url}/api/sandboxes/{info.sandbox_id}",
@@ -94,7 +88,7 @@ class RemoteSandboxBackend:
         return False
 
     def discover(self, sandbox_id: str) -> Optional[SandboxInfo]:
-        """Discover an existing sandbox via the provisioner."""
+        """GET /api/sandboxes/{id} → discover existing sandbox."""
         try:
             resp = requests.get(
                 f"{self._provisioner_url}/api/sandboxes/{sandbox_id}",
@@ -104,26 +98,19 @@ class RemoteSandboxBackend:
                 return None
             resp.raise_for_status()
             data = resp.json()
-            return SandboxInfo(
-                sandbox_id=sandbox_id,
-                sandbox_url=data["sandbox_url"],
-            )
+            return SandboxInfo(sandbox_id=sandbox_id, sandbox_url=data["sandbox_url"])
         except requests.RequestException as exc:
             logger.debug("Provisioner discover failed for %s: %s", sandbox_id, exc)
             return None
 
     def list_running(self) -> list[SandboxInfo]:
-        """List all currently running sandboxes from the provisioner."""
+        """GET /api/sandboxes → list all running sandboxes from provisioner."""
         try:
             resp = requests.get(f"{self._provisioner_url}/api/sandboxes", timeout=10)
             resp.raise_for_status()
-            sandboxes = resp.json().get("sandboxes", [])
             return [
-                SandboxInfo(
-                    sandbox_id=s["sandbox_id"],
-                    sandbox_url=s["sandbox_url"],
-                )
-                for s in sandboxes
+                SandboxInfo(sandbox_id=s["sandbox_id"], sandbox_url=s["sandbox_url"])
+                for s in resp.json().get("sandboxes", [])
             ]
         except requests.RequestException as exc:
             logger.warning("Failed to list sandboxes from provisioner: %s", exc)

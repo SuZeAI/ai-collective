@@ -1,36 +1,31 @@
-"""Sandbox adapter factory — creates the right SandboxPort based on mode config."""
+"""Sandbox adapter factory — creates the right Sandbox based on settings.sandbox_mode."""
 from __future__ import annotations
 
-from typing import Literal
+from typing import Optional
+
+from .sandbox import Sandbox
 
 
-def create_sandbox_adapter(
-    mode: Literal["local", "remote"] = "local",
-    sandbox_url: str | None = None,
-    provisioner_url: str | None = None,
-    timeout: int = 60,
-    workspace: str | None = None,
-):
-    """Return a SandboxPort implementation based on *mode*.
+def create_sandbox_adapter(session_id: Optional[str] = None) -> Sandbox:
+    """Return a Sandbox implementation based on settings.sandbox_mode.
 
-    Args:
-        mode:            "local" for direct host execution, "remote" for AIO container.
-        sandbox_url:     Direct URL of a running AIO sandbox container (remote mode).
-        provisioner_url: URL of the provisioner service that manages sandbox Pods (remote mode).
-        timeout:         Default command execution timeout in seconds.
-        workspace:       Local workspace directory (local mode only). Auto-created on first use.
-
-    Returns:
-        LocalSandboxAdapter  when mode == "local"
-        RemoteSandboxAdapter when mode == "remote"
+    local  → LocalSandboxAdapter (direct host execution, no container)
+    docker → AioSandbox backed by a local Docker container
+    k8s    → AioSandbox backed by a K8s pod via the provisioner service
     """
-    if mode == "remote":
-        from .remote_sandbox import RemoteSandboxAdapter
-        return RemoteSandboxAdapter(
-            sandbox_url=sandbox_url,
-            provisioner_url=provisioner_url,
-            cmd_timeout=timeout,
+    from backend.api.settings import settings
+
+    if settings.sandbox_mode == "local":
+        from .local_sandbox import LocalSandboxAdapter
+        return LocalSandboxAdapter(
+            timeout=settings.sandbox_timeout,
+            workspace=settings.sandbox_workspace,
         )
 
-    from .local_sandbox import LocalSandboxAdapter
-    return LocalSandboxAdapter(timeout=timeout, workspace=workspace)
+    from .sandbox_provider import get_sandbox_provider
+    provider = get_sandbox_provider()
+    sandbox_id = provider.acquire(session_id or "default")
+    sandbox = provider.get(sandbox_id)
+    if sandbox is None:
+        raise RuntimeError(f"Failed to acquire sandbox for session {session_id!r}")
+    return sandbox

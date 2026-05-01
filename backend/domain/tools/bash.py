@@ -1,30 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Protocol
+from typing import Any, Optional
 
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-
-
-class SandboxPort(Protocol):
-    async def exec_command(self, id: str, exec_dir: str, command: str) -> Any: ...
-
-    async def view_shell(self, id: str) -> Any: ...
-
-    async def wait_for_process(self, id: str, seconds: Optional[int] = None) -> Any: ...
-
-    async def write_to_process(self, id: str, input: str, press_enter: bool) -> Any: ...
-
-    async def kill_process(self, id: str) -> Any: ...
+from backend.infrastructure.sandbox import Sandbox
 
 
 class BashToolkit(BaseToolkit):
-    """Bash tool class for shell interaction inside a sandbox container."""
+    """Bash tool class for session-based shell interaction inside a sandbox."""
 
     name: str = "bash"
 
-    def __init__(self, sandbox: SandboxPort, **kwargs):
+    def __init__(self, sandbox: Sandbox, **kwargs):
         super().__init__(**kwargs)
         self.sandbox = sandbox
 
@@ -80,24 +69,17 @@ class BashToolkit(BaseToolkit):
 
 
 def create_bash_toolkit(session_id: str | None = None, **kwargs) -> BashToolkit:
-    """Factory function that creates a BashToolkit wired to a sandbox.
+    """Create a BashToolkit wired to the appropriate sandbox for the current mode.
 
-    Acquires (or creates) a sandbox container via SandboxProvider and
-    returns a BashToolkit backed by that sandbox.
+    Mode is read from settings.sandbox_mode:
+        local  → LocalSandboxAdapter (direct host execution)
+        docker → AioSandbox backed by a Docker container
+        k8s    → AioSandbox backed by a K8s pod via provisioner
 
     Args:
-        session_id: Optional session/thread identifier. Sandboxes with the
-                    same session_id share the same container instance.
-        **kwargs: Additional kwargs passed to BashToolkit.
-
-    Returns:
-        A BashToolkit instance ready to execute commands.
+        session_id: Session/thread identifier. Same session_id reuses the same sandbox.
+        **kwargs:   Additional kwargs passed to BashToolkit.
     """
-    from backend.infrastructure.sandbox import AioSandbox, get_sandbox_provider
-
-    provider = get_sandbox_provider()
-    sandbox_id = provider.acquire(session_id or "default")
-    sandbox = provider.get(sandbox_id)
-    if sandbox is None:
-        raise RuntimeError(f"Failed to acquire sandbox (id={sandbox_id})")
+    from backend.infrastructure.sandbox.factory import create_sandbox_adapter
+    sandbox = create_sandbox_adapter(session_id=session_id)
     return BashToolkit(sandbox=sandbox, **kwargs)
