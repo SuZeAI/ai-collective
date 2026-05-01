@@ -2,6 +2,7 @@
 # Usage: docker compose -f docker/docker-compose.yaml up -d
 #
 # Services (always on):
+#   mongodb    — MongoDB database           (port 27017 internal)
 #   redis      — distributed lock backend  (enable: LOCK_BACKEND=redis)
 #   rabbitmq   — task queue                (enable: TASK_QUEUE_BACKEND=rabbitmq)
 #   nginx      — reverse proxy             (port 2026, override: PORT=xxxx)
@@ -9,6 +10,9 @@
 #   backend    — FastAPI application       (port 8000 internal)
 #
 # Optional services (Docker Compose profiles):
+#   mongo-express — MongoDB web UI         (profile: mongo-express, port 8081)
+#                Enable: docker compose --profile mongo-express up -d
+#
 #   sandbox    — AIO sandbox container for isolated code execution
 #                Enable: docker compose --profile sandbox up -d
 #                Then set in .env: SANDBOX_MODE=remote  SANDBOX_URL=http://sandbox:8080
@@ -21,6 +25,8 @@
 #   LLM_PROVIDER / LLM_MODEL              — LLM provider & model
 #   GOOGLE_API_KEY / ANTHROPIC_API_KEY / OPENAI_API_KEY
 #   RABBITMQ_USER / RABBITMQ_PASS         — RabbitMQ credentials (default: guest/guest)
+#   MONGO_USER / MONGO_PASS               — MongoDB credentials (default: admin/admin)
+#   STORAGE_BACKEND                       — "json" (default) | "mongo"
 #   SANDBOX_MODE                          — "local" (default) | "remote"
 #   SANDBOX_URL                           — http://sandbox:8080 (if profile sandbox is active)
 #   SANDBOX_PROVISIONER_URL               — http://provisioner:8002 (if profile provisioner is active)
@@ -31,6 +37,46 @@
 # Access: http://localhost:${PORT:-2026}
 
 services:
+  # ── MongoDB ────────────────────────────────────────────────────────────────
+  mongodb:
+    image: mongo:7
+    container_name: ai-collective-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS:-admin}
+      MONGO_INITDB_DATABASE: ai_collective
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - ai-collective
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── MongoDB Web UI (optional — profile: mongo-express) ────────────────────
+  # Activate: docker compose --profile mongo-express up -d
+  mongo-express:
+    image: mongo-express:1
+    container_name: ai-collective-mongo-express
+    restart: unless-stopped
+    profiles: ["mongo-express"]
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USER:-admin}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASS:-admin}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-admin}@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_USER:-admin}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_PASS:-admin}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - ai-collective
+
   # ── Redis (distributed lock backend) ──────────────────────────────────────
   redis:
     image: redis:7-alpine
@@ -107,6 +153,9 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379/0
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-json}
+      - MONGO_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-admin}@mongodb:27017/ai_collective?authSource=admin
+      - MONGO_DB=${MONGO_DB:-ai_collective}
       # Sandbox — override via .env to switch modes
       - SANDBOX_MODE=${SANDBOX_MODE:-local}
       - SANDBOX_URL=${SANDBOX_URL:-}
@@ -118,6 +167,8 @@ services:
       - ai-collective
     restart: unless-stopped
     depends_on:
+      mongodb:
+        condition: service_healthy
       redis:
         condition: service_healthy
       rabbitmq:
@@ -175,6 +226,8 @@ services:
       start_period: 15s
 
 volumes:
+  mongo_data:
+    driver: local
   sandbox-workspace:
 
 networks:

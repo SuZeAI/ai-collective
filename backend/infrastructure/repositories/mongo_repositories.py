@@ -22,9 +22,13 @@ from backend.domain.models import (
     Agent,
     Analytics,
     Message,
+    PlatformHook,
     Skill,
     Task,
     Team,
+    ThirdPartyConnection,
+    User,
+    Workspace,
 )
 from backend.domain.memory.knowledge_graph import (
     ConversationKnowledgeGraph,
@@ -512,3 +516,194 @@ class MongoGraphKnowledgeRepository:
                 graph.edges[edge.id] = edge
 
         return graph
+
+
+# ---------------------------------------------------------------------------
+# Workspace
+# ---------------------------------------------------------------------------
+
+class MongoWorkspaceRepository:
+    def __init__(self, db: pymongo.database.Database) -> None:
+        self._col = db["workspaces"]
+        self._col.create_index("id", unique=True, background=True)
+
+    def _doc_to_workspace(self, item: dict[str, Any]) -> Workspace:
+        hooks = [
+            PlatformHook(
+                id=str(h["id"]),
+                platform=str(h.get("platform", "")),
+                name=str(h.get("name", "")),
+                config=dict(h.get("config") or {}),
+                description=str(h.get("description", "")),
+                enabled=bool(h.get("enabled", True)),
+            )
+            for h in (item.get("platformHooks") or [])
+        ]
+        created_raw = item.get("createdAt")
+        if isinstance(created_raw, datetime):
+            created_at = created_raw if created_raw.tzinfo else created_raw.replace(tzinfo=timezone.utc)
+        else:
+            try:
+                created_at = datetime.fromisoformat(str(created_raw).replace("Z", "+00:00"))
+            except Exception:
+                created_at = datetime.now(timezone.utc)
+        return Workspace(
+            id=str(item["id"]),
+            name=str(item.get("name", "")),
+            description=str(item.get("description", "")),
+            team_ids=[str(x) for x in (item.get("teamIds") or [])],
+            platform_hooks=hooks,
+            created_at=created_at,
+            avatar=str(item.get("avatar", "") or str(item.get("name", "") or "W")[:1].upper()),
+            avatar_icon=str(item.get("avatar_icon", "") or ""),
+            avatar_color=str(item.get("avatar_color", "") or ""),
+            avatar_url=str(item.get("avatar_url", "") or ""),
+            primary_team_id=str(item.get("primaryTeamId", "")),
+        )
+
+    def _workspace_to_doc(self, w: Workspace) -> dict[str, Any]:
+        return {
+            "id": w.id,
+            "_id": w.id,
+            "name": w.name,
+            "description": w.description,
+            "teamIds": list(w.team_ids),
+            "primaryTeamId": w.primary_team_id,
+            "platformHooks": [
+                {
+                    "id": h.id,
+                    "platform": h.platform,
+                    "name": h.name,
+                    "config": dict(h.config),
+                    "description": h.description,
+                    "enabled": h.enabled,
+                }
+                for h in w.platform_hooks
+            ],
+            "createdAt": w.created_at.isoformat(),
+            "avatar": w.avatar,
+            "avatar_icon": w.avatar_icon,
+            "avatar_color": w.avatar_color,
+            "avatar_url": w.avatar_url,
+        }
+
+    def list(self) -> list[Workspace]:
+        return [self._doc_to_workspace(doc) for doc in self._col.find()]
+
+    def get(self, workspace_id: str) -> Workspace | None:
+        doc = self._col.find_one({"id": workspace_id})
+        return self._doc_to_workspace(doc) if doc else None
+
+    def upsert(self, workspace: Workspace) -> Workspace:
+        self._col.replace_one({"id": workspace.id}, self._workspace_to_doc(workspace), upsert=True)
+        return workspace
+
+    def delete(self, workspace_id: str) -> None:
+        self._col.delete_one({"id": workspace_id})
+
+
+# ---------------------------------------------------------------------------
+# Connection (ThirdPartyConnection)
+# ---------------------------------------------------------------------------
+
+class MongoConnectionRepository:
+    def __init__(self, db: pymongo.database.Database) -> None:
+        self._col = db["connections"]
+        self._col.create_index("id", unique=True, background=True)
+
+    def _doc_to_conn(self, item: dict[str, Any]) -> ThirdPartyConnection:
+        created_raw = item.get("created_at")
+        if isinstance(created_raw, datetime):
+            created_at = created_raw if created_raw.tzinfo else created_raw.replace(tzinfo=timezone.utc)
+        else:
+            try:
+                created_at = datetime.fromisoformat(str(created_raw).replace("Z", "+00:00"))
+            except Exception:
+                created_at = datetime.now(timezone.utc)
+        return ThirdPartyConnection(
+            id=str(item["id"]),
+            platform=str(item.get("platform", "")),
+            name=str(item.get("name", "")),
+            config=dict(item.get("config") or {}),
+            description=str(item.get("description", "")),
+            created_at=created_at,
+        )
+
+    def _conn_to_doc(self, c: ThirdPartyConnection) -> dict[str, Any]:
+        return {
+            "id": c.id,
+            "_id": c.id,
+            "platform": c.platform,
+            "name": c.name,
+            "config": dict(c.config),
+            "description": c.description,
+            "created_at": c.created_at.isoformat(),
+        }
+
+    def list(self) -> list[ThirdPartyConnection]:
+        return [self._doc_to_conn(doc) for doc in self._col.find()]
+
+    def get(self, conn_id: str) -> ThirdPartyConnection | None:
+        doc = self._col.find_one({"id": conn_id})
+        return self._doc_to_conn(doc) if doc else None
+
+    def upsert(self, conn: ThirdPartyConnection) -> ThirdPartyConnection:
+        self._col.replace_one({"id": conn.id}, self._conn_to_doc(conn), upsert=True)
+        return conn
+
+    def delete(self, conn_id: str) -> None:
+        self._col.delete_one({"id": conn_id})
+
+
+# ---------------------------------------------------------------------------
+# User
+# ---------------------------------------------------------------------------
+
+class MongoUserRepository:
+    def __init__(self, db: pymongo.database.Database) -> None:
+        self._col = db["users"]
+        self._col.create_index("id", unique=True, background=True)
+        self._col.create_index("email", unique=True, sparse=True, background=True)
+
+    def _doc_to_user(self, item: dict[str, Any]) -> User:
+        return User(
+            id=str(item["id"]),
+            name=str(item.get("name", "")),
+            email=str(item.get("email", "")),
+            hashed_password=str(item.get("hashed_password", "")),
+            role=str(item.get("role", "user")),
+            joined_at=str(item.get("joined_at", "")),
+            avatar=str(item.get("avatar", "")),
+            provider=str(item.get("provider", "local")),
+            provider_id=str(item.get("provider_id", "")),
+        )
+
+    def _user_to_doc(self, u: User) -> dict[str, Any]:
+        return {
+            "id": u.id,
+            "_id": u.id,
+            "name": u.name,
+            "email": u.email.strip().lower(),
+            "hashed_password": u.hashed_password,
+            "role": u.role,
+            "joined_at": u.joined_at,
+            "avatar": u.avatar,
+            "provider": u.provider,
+            "provider_id": u.provider_id,
+        }
+
+    def find_by_id(self, user_id: str) -> User | None:
+        doc = self._col.find_one({"id": user_id})
+        return self._doc_to_user(doc) if doc else None
+
+    def find_by_email(self, email: str) -> User | None:
+        doc = self._col.find_one({"email": email.strip().lower()})
+        return self._doc_to_user(doc) if doc else None
+
+    def find_by_provider_id(self, provider: str, provider_id: str) -> User | None:
+        doc = self._col.find_one({"provider": provider, "provider_id": provider_id})
+        return self._doc_to_user(doc) if doc else None
+
+    def save(self, user: User) -> User:
+        self._col.replace_one({"id": user.id}, self._user_to_doc(user), upsert=True)
+        return user
