@@ -97,7 +97,7 @@
     "role": "Other Agent",
     "description": "Theo yêu cầu người dùng",
     "skillIds": [
-      "skill_browser_automation"
+      "skill_e3f5c5569bd941dba23c84feb76add7d"
     ],
     "status": "idle",
     "avatar": "T",
