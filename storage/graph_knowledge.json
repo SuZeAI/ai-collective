@@ -29240,5 +29240,5087 @@
       "m_615c358d99b7438fa5cf6e4feb89b2da"
     ],
     "updated_at": "2026-04-25T18:35:00.721610+00:00"
+  },
+  "team:t_e4d0476eefb34c069ceadb448415fd17": {
+    "conversation_id": "team:t_e4d0476eefb34c069ceadb448415fd17",
+    "version": 1,
+    "schema_version": 1,
+    "last_message_index": 1,
+    "config": {
+      "build_method": "rule",
+      "entity_method": "hybrid",
+      "relation_method": "pattern",
+      "retrieve_method": "hybrid",
+      "expand_hops": 1,
+      "top_k_nodes": 10,
+      "top_k_edges": 12,
+      "min_score_threshold": 0.05,
+      "recency_weight": 0.2,
+      "similarity_weight": 0.6,
+      "edge_weight": 0.2,
+      "persist_mode": "snapshot_plus_log"
+    },
+    "nodes": [
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: Team coding agent is now active. Let's align on goals and deliverables.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.985149+00:00",
+        "updated_at": "2026-05-06T16:22:31.985149+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "entity:deliverables",
+        "type": "entity",
+        "value": "deliverables",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.995677+00:00",
+        "updated_at": "2026-05-06T16:22:31.995677+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:align",
+        "type": "entity",
+        "value": "align",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.995698+00:00",
+        "updated_at": "2026-05-06T16:22:31.995698+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:now",
+        "type": "entity",
+        "value": "now",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.995714+00:00",
+        "updated_at": "2026-05-06T16:22:31.995714+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:goals",
+        "type": "entity",
+        "value": "goals",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.995729+00:00",
+        "updated_at": "2026-05-06T16:22:31.995729+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:active",
+        "type": "entity",
+        "value": "active",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.995751+00:00",
+        "updated_at": "2026-05-06T16:22:31.995751+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:coding",
+        "type": "entity",
+        "value": "coding",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.995767+00:00",
+        "updated_at": "2026-05-06T16:22:31.995767+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:team",
+        "type": "entity",
+        "value": "Team",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.995781+00:00",
+        "updated_at": "2026-05-06T16:22:31.995781+00:00",
+        "confidence": 0.7,
+        "salience_score": 0.65
+      },
+      {
+        "id": "entity:let",
+        "type": "entity",
+        "value": "Let",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.995794+00:00",
+        "updated_at": "2026-05-06T16:22:31.995794+00:00",
+        "confidence": 0.7,
+        "salience_score": 0.65
+      },
+      {
+        "id": "entity:team coding agent",
+        "type": "entity",
+        "value": "Team coding agent",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:22:31.999826+00:00",
+        "updated_at": "2026-05-06T16:22:31.999826+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6
+      },
+      {
+        "id": "entity:now active",
+        "type": "entity",
+        "value": "now active",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:22:31.999834+00:00",
+        "updated_at": "2026-05-06T16:22:31.999834+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6
+      }
+    ],
+    "edges": [
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983->entity:deliverables",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983",
+        "dst": "entity:deliverables",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.995688+00:00",
+        "updated_at": "2026-05-06T16:22:31.995688+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983->entity:align",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983",
+        "dst": "entity:align",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.995706+00:00",
+        "updated_at": "2026-05-06T16:22:31.995706+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983->entity:now",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983",
+        "dst": "entity:now",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.995721+00:00",
+        "updated_at": "2026-05-06T16:22:31.995721+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983->entity:goals",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983",
+        "dst": "entity:goals",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.995736+00:00",
+        "updated_at": "2026-05-06T16:22:31.995736+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983->entity:active",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983",
+        "dst": "entity:active",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.995758+00:00",
+        "updated_at": "2026-05-06T16:22:31.995758+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983->entity:coding",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983",
+        "dst": "entity:coding",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.995773+00:00",
+        "updated_at": "2026-05-06T16:22:31.995773+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983->entity:team",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983",
+        "dst": "entity:team",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.995787+00:00",
+        "updated_at": "2026-05-06T16:22:31.995787+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983->entity:let",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983",
+        "dst": "entity:let",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.995801+00:00",
+        "updated_at": "2026-05-06T16:22:31.995801+00:00"
+      },
+      {
+        "id": "unknown:entity:team coding agent->entity:now active",
+        "src": "entity:team coding agent",
+        "dst": "entity:now active",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:22:31.999842+00:00",
+        "updated_at": "2026-05-06T16:22:31.999842+00:00"
+      }
+    ],
+    "chunks": {
+      "msg_m1778084551983_0": "Team coding agent is now active. Let's align on goals and deliverables."
+    },
+    "message_ids": [
+      "m1778084551983"
+    ],
+    "updated_at": "2026-05-06T16:22:31.999846+00:00"
+  },
+  "team:t_19c51dce1f25495fbf6c27ba98f5a82b": {
+    "conversation_id": "team:t_19c51dce1f25495fbf6c27ba98f5a82b",
+    "version": 1,
+    "schema_version": 1,
+    "last_message_index": 1,
+    "config": {
+      "build_method": "rule",
+      "entity_method": "hybrid",
+      "relation_method": "pattern",
+      "retrieve_method": "hybrid",
+      "expand_hops": 1,
+      "top_k_nodes": 10,
+      "top_k_edges": 12,
+      "min_score_threshold": 0.05,
+      "recency_weight": 0.2,
+      "similarity_weight": 0.6,
+      "edge_weight": 0.2,
+      "persist_mode": "snapshot_plus_log"
+    },
+    "nodes": [
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: Team coding agent is now active. Let's align on goals and deliverables.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.982637+00:00",
+        "updated_at": "2026-05-06T16:22:31.982637+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "entity:deliverables",
+        "type": "entity",
+        "value": "deliverables",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.000744+00:00",
+        "updated_at": "2026-05-06T16:22:32.000744+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:align",
+        "type": "entity",
+        "value": "align",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.000761+00:00",
+        "updated_at": "2026-05-06T16:22:32.000761+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:now",
+        "type": "entity",
+        "value": "now",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.000775+00:00",
+        "updated_at": "2026-05-06T16:22:32.000775+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:goals",
+        "type": "entity",
+        "value": "goals",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.000789+00:00",
+        "updated_at": "2026-05-06T16:22:32.000789+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:active",
+        "type": "entity",
+        "value": "active",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.000802+00:00",
+        "updated_at": "2026-05-06T16:22:32.000802+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:coding",
+        "type": "entity",
+        "value": "coding",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.000816+00:00",
+        "updated_at": "2026-05-06T16:22:32.000816+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:team",
+        "type": "entity",
+        "value": "Team",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.000830+00:00",
+        "updated_at": "2026-05-06T16:22:32.000830+00:00",
+        "confidence": 0.7,
+        "salience_score": 0.65
+      },
+      {
+        "id": "entity:let",
+        "type": "entity",
+        "value": "Let",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.000843+00:00",
+        "updated_at": "2026-05-06T16:22:32.000843+00:00",
+        "confidence": 0.7,
+        "salience_score": 0.65
+      },
+      {
+        "id": "entity:team coding agent",
+        "type": "entity",
+        "value": "Team coding agent",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:22:32.000974+00:00",
+        "updated_at": "2026-05-06T16:22:32.000974+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6
+      },
+      {
+        "id": "entity:now active",
+        "type": "entity",
+        "value": "now active",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:22:32.000980+00:00",
+        "updated_at": "2026-05-06T16:22:32.000980+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6
+      }
+    ],
+    "edges": [
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981->entity:deliverables",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981",
+        "dst": "entity:deliverables",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.000753+00:00",
+        "updated_at": "2026-05-06T16:22:32.000753+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981->entity:align",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981",
+        "dst": "entity:align",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.000768+00:00",
+        "updated_at": "2026-05-06T16:22:32.000768+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981->entity:now",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981",
+        "dst": "entity:now",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.000782+00:00",
+        "updated_at": "2026-05-06T16:22:32.000782+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981->entity:goals",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981",
+        "dst": "entity:goals",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.000795+00:00",
+        "updated_at": "2026-05-06T16:22:32.000795+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981->entity:active",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981",
+        "dst": "entity:active",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.000809+00:00",
+        "updated_at": "2026-05-06T16:22:32.000809+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981->entity:coding",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981",
+        "dst": "entity:coding",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.000822+00:00",
+        "updated_at": "2026-05-06T16:22:32.000822+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981->entity:team",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981",
+        "dst": "entity:team",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.000836+00:00",
+        "updated_at": "2026-05-06T16:22:32.000836+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981->entity:let",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551981",
+        "dst": "entity:let",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551981_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.000849+00:00",
+        "updated_at": "2026-05-06T16:22:32.000849+00:00"
+      },
+      {
+        "id": "unknown:entity:team coding agent->entity:now active",
+        "src": "entity:team coding agent",
+        "dst": "entity:now active",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084551981"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:22:32.000986+00:00",
+        "updated_at": "2026-05-06T16:22:32.000986+00:00"
+      }
+    ],
+    "chunks": {
+      "msg_m1778084551981_0": "Team coding agent is now active. Let's align on goals and deliverables."
+    },
+    "message_ids": [
+      "m1778084551981"
+    ],
+    "updated_at": "2026-05-06T16:22:32.000988+00:00"
+  },
+  "team:t_69088495170c49d5a9d695b6378f2b65": {
+    "conversation_id": "team:t_69088495170c49d5a9d695b6378f2b65",
+    "version": 1,
+    "schema_version": 1,
+    "last_message_index": 3,
+    "config": {
+      "build_method": "rule",
+      "entity_method": "hybrid",
+      "relation_method": "pattern",
+      "retrieve_method": "hybrid",
+      "expand_hops": 1,
+      "top_k_nodes": 10,
+      "top_k_edges": 12,
+      "min_score_threshold": 0.05,
+      "recency_weight": 0.2,
+      "similarity_weight": 0.6,
+      "edge_weight": 0.2,
+      "persist_mode": "snapshot_plus_log"
+    },
+    "nodes": [
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: Team coding agent is now active. Let's align on goals and deliverables.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0"
+        ],
+        "created_at": "2026-05-06T16:22:31.984041+00:00",
+        "updated_at": "2026-05-06T16:22:31.984041+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "entity:deliverables",
+        "type": "entity",
+        "value": "deliverables",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.011373+00:00",
+        "updated_at": "2026-05-06T16:22:32.011373+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:align",
+        "type": "entity",
+        "value": "align",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.011391+00:00",
+        "updated_at": "2026-05-06T16:22:32.011391+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:now",
+        "type": "entity",
+        "value": "now",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551982",
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0",
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.011415+00:00",
+        "updated_at": "2026-05-06T16:22:32.104083+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:goals",
+        "type": "entity",
+        "value": "goals",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.011428+00:00",
+        "updated_at": "2026-05-06T16:22:32.011428+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:active",
+        "type": "entity",
+        "value": "active",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.011441+00:00",
+        "updated_at": "2026-05-06T16:22:32.011441+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:coding",
+        "type": "entity",
+        "value": "coding",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.011453+00:00",
+        "updated_at": "2026-05-06T16:22:32.011453+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:team",
+        "type": "entity",
+        "value": "Team",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.011466+00:00",
+        "updated_at": "2026-05-06T16:22:32.011466+00:00",
+        "confidence": 0.7,
+        "salience_score": 0.65
+      },
+      {
+        "id": "entity:let",
+        "type": "entity",
+        "value": "Let",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.011478+00:00",
+        "updated_at": "2026-05-06T16:22:32.011478+00:00",
+        "confidence": 0.7,
+        "salience_score": 0.65
+      },
+      {
+        "id": "entity:team coding agent",
+        "type": "entity",
+        "value": "Team coding agent",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:22:32.011605+00:00",
+        "updated_at": "2026-05-06T16:22:32.011605+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6
+      },
+      {
+        "id": "entity:now active",
+        "type": "entity",
+        "value": "now active",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:22:32.011611+00:00",
+        "updated_at": "2026-05-06T16:22:32.011611+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6
+      },
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: I will break down responsibilities and coordinate the first execution cycle.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058071+00:00",
+        "updated_at": "2026-05-06T16:22:32.058071+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "entity:cycle",
+        "type": "entity",
+        "value": "cycle",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058335+00:00",
+        "updated_at": "2026-05-06T16:22:32.058335+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:first",
+        "type": "entity",
+        "value": "first",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058367+00:00",
+        "updated_at": "2026-05-06T16:22:32.058920+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:responsibilities",
+        "type": "entity",
+        "value": "responsibilities",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058391+00:00",
+        "updated_at": "2026-05-06T16:22:32.058872+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:execution",
+        "type": "entity",
+        "value": "execution",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058407+00:00",
+        "updated_at": "2026-05-06T16:22:32.058927+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.51
+      },
+      {
+        "id": "entity:down",
+        "type": "entity",
+        "value": "down",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058422+00:00",
+        "updated_at": "2026-05-06T16:22:32.058849+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:coordinate",
+        "type": "entity",
+        "value": "coordinate",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058444+00:00",
+        "updated_at": "2026-05-06T16:22:32.058895+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:will",
+        "type": "entity",
+        "value": "will",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:22:32.058791+00:00",
+        "updated_at": "2026-05-06T16:22:32.058791+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6
+      },
+      {
+        "id": "entity:break",
+        "type": "entity",
+        "value": "break",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058799+00:00",
+        "updated_at": "2026-05-06T16:22:32.058817+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.63
+      },
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551984",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: Acknowledged. I am ready and starting my assigned part now.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.103242+00:00",
+        "updated_at": "2026-05-06T16:22:32.103242+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "entity:part",
+        "type": "entity",
+        "value": "part",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.103493+00:00",
+        "updated_at": "2026-05-06T16:22:32.104072+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:ready",
+        "type": "entity",
+        "value": "ready",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.103525+00:00",
+        "updated_at": "2026-05-06T16:22:32.103951+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:starting",
+        "type": "entity",
+        "value": "starting",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.103545+00:00",
+        "updated_at": "2026-05-06T16:22:32.103991+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:assigned",
+        "type": "entity",
+        "value": "assigned",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.103566+00:00",
+        "updated_at": "2026-05-06T16:22:32.104032+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:acknowledged",
+        "type": "entity",
+        "value": "acknowledged",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.103638+00:00",
+        "updated_at": "2026-05-06T16:22:32.103913+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.51
+      }
+    ],
+    "edges": [
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982->entity:deliverables",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982",
+        "dst": "entity:deliverables",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.011382+00:00",
+        "updated_at": "2026-05-06T16:22:32.011382+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982->entity:align",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982",
+        "dst": "entity:align",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.011398+00:00",
+        "updated_at": "2026-05-06T16:22:32.011398+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982->entity:now",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982",
+        "dst": "entity:now",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.011421+00:00",
+        "updated_at": "2026-05-06T16:22:32.011421+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982->entity:goals",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982",
+        "dst": "entity:goals",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.011434+00:00",
+        "updated_at": "2026-05-06T16:22:32.011434+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982->entity:active",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982",
+        "dst": "entity:active",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.011447+00:00",
+        "updated_at": "2026-05-06T16:22:32.011447+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982->entity:coding",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982",
+        "dst": "entity:coding",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.011459+00:00",
+        "updated_at": "2026-05-06T16:22:32.011459+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982->entity:team",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982",
+        "dst": "entity:team",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.011471+00:00",
+        "updated_at": "2026-05-06T16:22:32.011471+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982->entity:let",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551982",
+        "dst": "entity:let",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551982_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.011483+00:00",
+        "updated_at": "2026-05-06T16:22:32.011483+00:00"
+      },
+      {
+        "id": "unknown:entity:team coding agent->entity:now active",
+        "src": "entity:team coding agent",
+        "dst": "entity:now active",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084551982"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:22:32.011617+00:00",
+        "updated_at": "2026-05-06T16:22:32.011617+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983->entity:cycle",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983",
+        "dst": "entity:cycle",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058351+00:00",
+        "updated_at": "2026-05-06T16:22:32.058351+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983->entity:first",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983",
+        "dst": "entity:first",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058379+00:00",
+        "updated_at": "2026-05-06T16:22:32.058379+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983->entity:responsibilities",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983",
+        "dst": "entity:responsibilities",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058398+00:00",
+        "updated_at": "2026-05-06T16:22:32.058398+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983->entity:execution",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983",
+        "dst": "entity:execution",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058413+00:00",
+        "updated_at": "2026-05-06T16:22:32.058413+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983->entity:down",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983",
+        "dst": "entity:down",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058431+00:00",
+        "updated_at": "2026-05-06T16:22:32.058431+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983->entity:coordinate",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551983",
+        "dst": "entity:coordinate",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058450+00:00",
+        "updated_at": "2026-05-06T16:22:32.058450+00:00"
+      },
+      {
+        "id": "unknown:entity:will->entity:break",
+        "src": "entity:will",
+        "dst": "entity:break",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:22:32.058806+00:00",
+        "updated_at": "2026-05-06T16:22:32.058806+00:00"
+      },
+      {
+        "id": "unknown:entity:break->entity:down",
+        "src": "entity:break",
+        "dst": "entity:down",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058839+00:00",
+        "updated_at": "2026-05-06T16:22:32.058839+00:00"
+      },
+      {
+        "id": "unknown:entity:down->entity:responsibilities",
+        "src": "entity:down",
+        "dst": "entity:responsibilities",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058863+00:00",
+        "updated_at": "2026-05-06T16:22:32.058863+00:00"
+      },
+      {
+        "id": "unknown:entity:responsibilities->entity:coordinate",
+        "src": "entity:responsibilities",
+        "dst": "entity:coordinate",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058886+00:00",
+        "updated_at": "2026-05-06T16:22:32.058886+00:00"
+      },
+      {
+        "id": "unknown:entity:coordinate->entity:first",
+        "src": "entity:coordinate",
+        "dst": "entity:first",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058908+00:00",
+        "updated_at": "2026-05-06T16:22:32.058908+00:00"
+      },
+      {
+        "id": "unknown:entity:first->entity:execution",
+        "src": "entity:first",
+        "dst": "entity:execution",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084551983"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551983_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.058933+00:00",
+        "updated_at": "2026-05-06T16:22:32.058933+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551984->entity:part",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551984",
+        "dst": "entity:part",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.103510+00:00",
+        "updated_at": "2026-05-06T16:22:32.103510+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551984->entity:ready",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551984",
+        "dst": "entity:ready",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.103534+00:00",
+        "updated_at": "2026-05-06T16:22:32.103534+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551984->entity:starting",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551984",
+        "dst": "entity:starting",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.103554+00:00",
+        "updated_at": "2026-05-06T16:22:32.103554+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551984->entity:assigned",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551984",
+        "dst": "entity:assigned",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.103577+00:00",
+        "updated_at": "2026-05-06T16:22:32.103577+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551984->entity:now",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551984",
+        "dst": "entity:now",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.103624+00:00",
+        "updated_at": "2026-05-06T16:22:32.103624+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551984->entity:acknowledged",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084551984",
+        "dst": "entity:acknowledged",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.103649+00:00",
+        "updated_at": "2026-05-06T16:22:32.103649+00:00"
+      },
+      {
+        "id": "unknown:entity:acknowledged->entity:ready",
+        "src": "entity:acknowledged",
+        "dst": "entity:ready",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.103936+00:00",
+        "updated_at": "2026-05-06T16:22:32.103936+00:00"
+      },
+      {
+        "id": "unknown:entity:ready->entity:starting",
+        "src": "entity:ready",
+        "dst": "entity:starting",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.103974+00:00",
+        "updated_at": "2026-05-06T16:22:32.103974+00:00"
+      },
+      {
+        "id": "unknown:entity:starting->entity:assigned",
+        "src": "entity:starting",
+        "dst": "entity:assigned",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.104015+00:00",
+        "updated_at": "2026-05-06T16:22:32.104015+00:00"
+      },
+      {
+        "id": "unknown:entity:assigned->entity:part",
+        "src": "entity:assigned",
+        "dst": "entity:part",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.104055+00:00",
+        "updated_at": "2026-05-06T16:22:32.104055+00:00"
+      },
+      {
+        "id": "unknown:entity:part->entity:now",
+        "src": "entity:part",
+        "dst": "entity:now",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084551984"
+        ],
+        "chunk_ids": [
+          "msg_m1778084551984_0"
+        ],
+        "created_at": "2026-05-06T16:22:32.104096+00:00",
+        "updated_at": "2026-05-06T16:22:32.104096+00:00"
+      }
+    ],
+    "chunks": {
+      "msg_m1778084551982_0": "Team coding agent is now active. Let's align on goals and deliverables.",
+      "msg_m1778084551983_0": "I will break down responsibilities and coordinate the first execution cycle.",
+      "msg_m1778084551984_0": "Acknowledged. I am ready and starting my assigned part now."
+    },
+    "message_ids": [
+      "m1778084551982",
+      "m1778084551983",
+      "m1778084551984"
+    ],
+    "updated_at": "2026-05-06T16:22:32.104100+00:00"
+  },
+  "team:t_75da7550f6f24cafb003147e5ef71d10": {
+    "conversation_id": "team:t_75da7550f6f24cafb003147e5ef71d10",
+    "version": 1,
+    "schema_version": 1,
+    "last_message_index": 3,
+    "config": {
+      "build_method": "rule",
+      "entity_method": "hybrid",
+      "relation_method": "pattern",
+      "retrieve_method": "hybrid",
+      "expand_hops": 1,
+      "top_k_nodes": 10,
+      "top_k_edges": 12,
+      "min_score_threshold": 0.05,
+      "recency_weight": 0.2,
+      "similarity_weight": 0.6,
+      "edge_weight": 0.2,
+      "persist_mode": "snapshot_plus_log"
+    },
+    "nodes": [
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: Team coding agent is now active. Let's align on goals and deliverables.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.178585+00:00",
+        "updated_at": "2026-05-06T16:22:52.178585+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "entity:deliverables",
+        "type": "entity",
+        "value": "deliverables",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.178891+00:00",
+        "updated_at": "2026-05-06T16:22:52.178891+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:align",
+        "type": "entity",
+        "value": "align",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.178917+00:00",
+        "updated_at": "2026-05-06T16:22:52.178917+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:now",
+        "type": "entity",
+        "value": "now",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572177",
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0",
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.178939+00:00",
+        "updated_at": "2026-05-06T16:22:52.273591+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:goals",
+        "type": "entity",
+        "value": "goals",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.178961+00:00",
+        "updated_at": "2026-05-06T16:22:52.178961+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:active",
+        "type": "entity",
+        "value": "active",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.178982+00:00",
+        "updated_at": "2026-05-06T16:22:52.178982+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:coding",
+        "type": "entity",
+        "value": "coding",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.179002+00:00",
+        "updated_at": "2026-05-06T16:22:52.179002+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:team",
+        "type": "entity",
+        "value": "Team",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.179022+00:00",
+        "updated_at": "2026-05-06T16:22:52.179022+00:00",
+        "confidence": 0.7,
+        "salience_score": 0.65
+      },
+      {
+        "id": "entity:let",
+        "type": "entity",
+        "value": "Let",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.179041+00:00",
+        "updated_at": "2026-05-06T16:22:52.179041+00:00",
+        "confidence": 0.7,
+        "salience_score": 0.65
+      },
+      {
+        "id": "entity:team coding agent",
+        "type": "entity",
+        "value": "Team coding agent",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:22:52.179190+00:00",
+        "updated_at": "2026-05-06T16:22:52.179190+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6
+      },
+      {
+        "id": "entity:now active",
+        "type": "entity",
+        "value": "now active",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:22:52.179197+00:00",
+        "updated_at": "2026-05-06T16:22:52.179197+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6
+      },
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572178",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: I will break down responsibilities and coordinate the first execution cycle.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.225872+00:00",
+        "updated_at": "2026-05-06T16:22:52.225872+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "entity:cycle",
+        "type": "entity",
+        "value": "cycle",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226021+00:00",
+        "updated_at": "2026-05-06T16:22:52.226021+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.48000000000000004
+      },
+      {
+        "id": "entity:first",
+        "type": "entity",
+        "value": "first",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226039+00:00",
+        "updated_at": "2026-05-06T16:22:52.226484+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:responsibilities",
+        "type": "entity",
+        "value": "responsibilities",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226053+00:00",
+        "updated_at": "2026-05-06T16:22:52.226446+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:execution",
+        "type": "entity",
+        "value": "execution",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226066+00:00",
+        "updated_at": "2026-05-06T16:22:52.226490+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.51
+      },
+      {
+        "id": "entity:down",
+        "type": "entity",
+        "value": "down",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226079+00:00",
+        "updated_at": "2026-05-06T16:22:52.226426+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:coordinate",
+        "type": "entity",
+        "value": "coordinate",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226092+00:00",
+        "updated_at": "2026-05-06T16:22:52.226465+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:will",
+        "type": "entity",
+        "value": "will",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:22:52.226383+00:00",
+        "updated_at": "2026-05-06T16:22:52.226383+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6
+      },
+      {
+        "id": "entity:break",
+        "type": "entity",
+        "value": "break",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226389+00:00",
+        "updated_at": "2026-05-06T16:22:52.226404+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.63
+      },
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572179",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: Acknowledged. I am ready and starting my assigned part now.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273136+00:00",
+        "updated_at": "2026-05-06T16:22:52.273136+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "entity:part",
+        "type": "entity",
+        "value": "part",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273287+00:00",
+        "updated_at": "2026-05-06T16:22:52.273585+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:ready",
+        "type": "entity",
+        "value": "ready",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273305+00:00",
+        "updated_at": "2026-05-06T16:22:52.273525+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:starting",
+        "type": "entity",
+        "value": "starting",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273318+00:00",
+        "updated_at": "2026-05-06T16:22:52.273546+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:assigned",
+        "type": "entity",
+        "value": "assigned",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273331+00:00",
+        "updated_at": "2026-05-06T16:22:52.273566+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:acknowledged",
+        "type": "entity",
+        "value": "acknowledged",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273359+00:00",
+        "updated_at": "2026-05-06T16:22:52.273503+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.51
+      }
+    ],
+    "edges": [
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177->entity:deliverables",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177",
+        "dst": "entity:deliverables",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.178905+00:00",
+        "updated_at": "2026-05-06T16:22:52.178905+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177->entity:align",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177",
+        "dst": "entity:align",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.178927+00:00",
+        "updated_at": "2026-05-06T16:22:52.178927+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177->entity:now",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177",
+        "dst": "entity:now",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.178950+00:00",
+        "updated_at": "2026-05-06T16:22:52.178950+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177->entity:goals",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177",
+        "dst": "entity:goals",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.178970+00:00",
+        "updated_at": "2026-05-06T16:22:52.178970+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177->entity:active",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177",
+        "dst": "entity:active",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.178991+00:00",
+        "updated_at": "2026-05-06T16:22:52.178991+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177->entity:coding",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177",
+        "dst": "entity:coding",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.179011+00:00",
+        "updated_at": "2026-05-06T16:22:52.179011+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177->entity:team",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177",
+        "dst": "entity:team",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.179030+00:00",
+        "updated_at": "2026-05-06T16:22:52.179030+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177->entity:let",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572177",
+        "dst": "entity:let",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572177_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.179051+00:00",
+        "updated_at": "2026-05-06T16:22:52.179051+00:00"
+      },
+      {
+        "id": "unknown:entity:team coding agent->entity:now active",
+        "src": "entity:team coding agent",
+        "dst": "entity:now active",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084572177"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:22:52.179204+00:00",
+        "updated_at": "2026-05-06T16:22:52.179204+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572178->entity:cycle",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572178",
+        "dst": "entity:cycle",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226031+00:00",
+        "updated_at": "2026-05-06T16:22:52.226031+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572178->entity:first",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572178",
+        "dst": "entity:first",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226045+00:00",
+        "updated_at": "2026-05-06T16:22:52.226045+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572178->entity:responsibilities",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572178",
+        "dst": "entity:responsibilities",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226059+00:00",
+        "updated_at": "2026-05-06T16:22:52.226059+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572178->entity:execution",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572178",
+        "dst": "entity:execution",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226072+00:00",
+        "updated_at": "2026-05-06T16:22:52.226072+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572178->entity:down",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572178",
+        "dst": "entity:down",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226085+00:00",
+        "updated_at": "2026-05-06T16:22:52.226085+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572178->entity:coordinate",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572178",
+        "dst": "entity:coordinate",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226097+00:00",
+        "updated_at": "2026-05-06T16:22:52.226097+00:00"
+      },
+      {
+        "id": "unknown:entity:will->entity:break",
+        "src": "entity:will",
+        "dst": "entity:break",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:22:52.226395+00:00",
+        "updated_at": "2026-05-06T16:22:52.226395+00:00"
+      },
+      {
+        "id": "unknown:entity:break->entity:down",
+        "src": "entity:break",
+        "dst": "entity:down",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226417+00:00",
+        "updated_at": "2026-05-06T16:22:52.226417+00:00"
+      },
+      {
+        "id": "unknown:entity:down->entity:responsibilities",
+        "src": "entity:down",
+        "dst": "entity:responsibilities",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226438+00:00",
+        "updated_at": "2026-05-06T16:22:52.226438+00:00"
+      },
+      {
+        "id": "unknown:entity:responsibilities->entity:coordinate",
+        "src": "entity:responsibilities",
+        "dst": "entity:coordinate",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226457+00:00",
+        "updated_at": "2026-05-06T16:22:52.226457+00:00"
+      },
+      {
+        "id": "unknown:entity:coordinate->entity:first",
+        "src": "entity:coordinate",
+        "dst": "entity:first",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226476+00:00",
+        "updated_at": "2026-05-06T16:22:52.226476+00:00"
+      },
+      {
+        "id": "unknown:entity:first->entity:execution",
+        "src": "entity:first",
+        "dst": "entity:execution",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084572178"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572178_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.226496+00:00",
+        "updated_at": "2026-05-06T16:22:52.226496+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572179->entity:part",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572179",
+        "dst": "entity:part",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273296+00:00",
+        "updated_at": "2026-05-06T16:22:52.273296+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572179->entity:ready",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572179",
+        "dst": "entity:ready",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273311+00:00",
+        "updated_at": "2026-05-06T16:22:52.273311+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572179->entity:starting",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572179",
+        "dst": "entity:starting",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273324+00:00",
+        "updated_at": "2026-05-06T16:22:52.273324+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572179->entity:assigned",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572179",
+        "dst": "entity:assigned",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273336+00:00",
+        "updated_at": "2026-05-06T16:22:52.273336+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572179->entity:now",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572179",
+        "dst": "entity:now",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273352+00:00",
+        "updated_at": "2026-05-06T16:22:52.273352+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572179->entity:acknowledged",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084572179",
+        "dst": "entity:acknowledged",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273365+00:00",
+        "updated_at": "2026-05-06T16:22:52.273365+00:00"
+      },
+      {
+        "id": "unknown:entity:acknowledged->entity:ready",
+        "src": "entity:acknowledged",
+        "dst": "entity:ready",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273516+00:00",
+        "updated_at": "2026-05-06T16:22:52.273516+00:00"
+      },
+      {
+        "id": "unknown:entity:ready->entity:starting",
+        "src": "entity:ready",
+        "dst": "entity:starting",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273538+00:00",
+        "updated_at": "2026-05-06T16:22:52.273538+00:00"
+      },
+      {
+        "id": "unknown:entity:starting->entity:assigned",
+        "src": "entity:starting",
+        "dst": "entity:assigned",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273557+00:00",
+        "updated_at": "2026-05-06T16:22:52.273557+00:00"
+      },
+      {
+        "id": "unknown:entity:assigned->entity:part",
+        "src": "entity:assigned",
+        "dst": "entity:part",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273577+00:00",
+        "updated_at": "2026-05-06T16:22:52.273577+00:00"
+      },
+      {
+        "id": "unknown:entity:part->entity:now",
+        "src": "entity:part",
+        "dst": "entity:now",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084572179"
+        ],
+        "chunk_ids": [
+          "msg_m1778084572179_0"
+        ],
+        "created_at": "2026-05-06T16:22:52.273597+00:00",
+        "updated_at": "2026-05-06T16:22:52.273597+00:00"
+      }
+    ],
+    "chunks": {
+      "msg_m1778084572177_0": "Team coding agent is now active. Let's align on goals and deliverables.",
+      "msg_m1778084572178_0": "I will break down responsibilities and coordinate the first execution cycle.",
+      "msg_m1778084572179_0": "Acknowledged. I am ready and starting my assigned part now."
+    },
+    "message_ids": [
+      "m1778084572177",
+      "m1778084572178",
+      "m1778084572179"
+    ],
+    "updated_at": "2026-05-06T16:22:52.273599+00:00"
+  },
+  "task_198e22a7ac7e488b8ae57fc1a89c4ba8": {
+    "conversation_id": "task_198e22a7ac7e488b8ae57fc1a89c4ba8",
+    "version": 1,
+    "schema_version": 1,
+    "last_message_index": 12,
+    "config": {
+      "build_method": "rule",
+      "entity_method": "hybrid",
+      "relation_method": "pattern",
+      "retrieve_method": "hybrid",
+      "expand_hops": 1,
+      "top_k_nodes": 10,
+      "top_k_edges": 12,
+      "min_score_threshold": 0.05,
+      "recency_weight": 0.2,
+      "similarity_weight": 0.6,
+      "edge_weight": 0.2,
+      "persist_mode": "snapshot_plus_log"
+    },
+    "nodes": [
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589849",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: [Step 1/10] Starting execution for this task. Sharing plan and splitting responsibilities.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589849"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.852106+00:00",
+        "updated_at": "2026-05-06T16:23:09.852106+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "entity:starting",
+        "type": "entity",
+        "value": "starting",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589849",
+          "m1778084589853",
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0",
+          "msg_m1778084589853_0",
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.852551+00:00",
+        "updated_at": "2026-05-06T16:23:10.529987+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.7200000000000002
+      },
+      {
+        "id": "entity:step",
+        "type": "entity",
+        "value": "step",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589849",
+          "m1778084589850",
+          "m1778084589851",
+          "m1778084589852",
+          "m1778084589853",
+          "m1778084589854",
+          "m1778084589855",
+          "m1778084589856",
+          "m1778084589857",
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0",
+          "msg_m1778084589850_0",
+          "msg_m1778084589851_0",
+          "msg_m1778084589852_0",
+          "msg_m1778084589853_0",
+          "msg_m1778084589854_0",
+          "msg_m1778084589855_0",
+          "msg_m1778084589856_0",
+          "msg_m1778084589857_0",
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.852577+00:00",
+        "updated_at": "2026-05-06T16:23:10.589307+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.9900000000000004
+      },
+      {
+        "id": "entity:execution",
+        "type": "entity",
+        "value": "execution",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589849",
+          "m1778084589853",
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0",
+          "msg_m1778084589853_0",
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.852592+00:00",
+        "updated_at": "2026-05-06T16:23:10.530008+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.7200000000000002
+      },
+      {
+        "id": "entity:sharing",
+        "type": "entity",
+        "value": "sharing",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589849",
+          "m1778084589853",
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0",
+          "msg_m1778084589853_0",
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.852608+00:00",
+        "updated_at": "2026-05-06T16:23:10.530029+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.7200000000000002
+      },
+      {
+        "id": "entity:responsibilities",
+        "type": "entity",
+        "value": "responsibilities",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589849",
+          "m1778084589853",
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0",
+          "msg_m1778084589853_0",
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.852625+00:00",
+        "updated_at": "2026-05-06T16:23:10.530078+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6300000000000001
+      },
+      {
+        "id": "entity:splitting",
+        "type": "entity",
+        "value": "splitting",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589849",
+          "m1778084589853",
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0",
+          "msg_m1778084589853_0",
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.852642+00:00",
+        "updated_at": "2026-05-06T16:23:10.530071+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.7200000000000002
+      },
+      {
+        "id": "entity:plan",
+        "type": "entity",
+        "value": "plan",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589849",
+          "m1778084589853",
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0",
+          "msg_m1778084589853_0",
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.853016+00:00",
+        "updated_at": "2026-05-06T16:23:10.530051+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.7500000000000001
+      },
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589850",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: [Step 2/10] Received. I am processing my part and will report intermediate results.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589850"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.916327+00:00",
+        "updated_at": "2026-05-06T16:23:09.916327+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "event:user:user-bc08577c5f8f433786e5786922c854f2",
+        "type": "event",
+        "value": "user: Task title: coding agent; description: create a python file with hello world",
+        "aliases": [],
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.916461+00:00",
+        "updated_at": "2026-05-06T16:23:09.916461+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "entity:part",
+        "type": "entity",
+        "value": "part",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589850",
+          "m1778084589854",
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0",
+          "msg_m1778084589854_0",
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.916700+00:00",
+        "updated_at": "2026-05-06T16:23:10.589402+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.7200000000000002
+      },
+      {
+        "id": "entity:processing",
+        "type": "entity",
+        "value": "processing",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589850",
+          "m1778084589854",
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0",
+          "msg_m1778084589854_0",
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.916725+00:00",
+        "updated_at": "2026-05-06T16:23:10.589366+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.7200000000000002
+      },
+      {
+        "id": "entity:received",
+        "type": "entity",
+        "value": "received",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589850",
+          "m1778084589854",
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0",
+          "msg_m1778084589854_0",
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.916741+00:00",
+        "updated_at": "2026-05-06T16:23:10.589342+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.7200000000000002
+      },
+      {
+        "id": "entity:intermediate",
+        "type": "entity",
+        "value": "intermediate",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589850",
+          "m1778084589854",
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0",
+          "msg_m1778084589854_0",
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.916777+00:00",
+        "updated_at": "2026-05-06T16:23:10.589485+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6300000000000001
+      },
+      {
+        "id": "entity:report",
+        "type": "entity",
+        "value": "report",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589850",
+          "m1778084589854",
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0",
+          "msg_m1778084589854_0",
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.916795+00:00",
+        "updated_at": "2026-05-06T16:23:10.589474+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.7200000000000002
+      },
+      {
+        "id": "entity:will",
+        "type": "entity",
+        "value": "will",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589850",
+          "m1778084589854",
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0",
+          "msg_m1778084589854_0",
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.917099+00:00",
+        "updated_at": "2026-05-06T16:23:10.589437+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.7500000000000001
+      },
+      {
+        "id": "entity:hello",
+        "type": "entity",
+        "value": "hello",
+        "aliases": [],
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927020+00:00",
+        "updated_at": "2026-05-06T16:23:09.927352+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:python",
+        "type": "entity",
+        "value": "python",
+        "aliases": [],
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927042+00:00",
+        "updated_at": "2026-05-06T16:23:09.927311+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:create",
+        "type": "entity",
+        "value": "create",
+        "aliases": [],
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927058+00:00",
+        "updated_at": "2026-05-06T16:23:09.927288+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:file",
+        "type": "entity",
+        "value": "file",
+        "aliases": [],
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927072+00:00",
+        "updated_at": "2026-05-06T16:23:09.927332+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:coding",
+        "type": "entity",
+        "value": "coding",
+        "aliases": [],
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927086+00:00",
+        "updated_at": "2026-05-06T16:23:09.927254+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.51
+      },
+      {
+        "id": "entity:world",
+        "type": "entity",
+        "value": "world",
+        "aliases": [],
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927099+00:00",
+        "updated_at": "2026-05-06T16:23:09.927358+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.51
+      },
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589851",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: [Step 3/10] Update: progress is moving. Syncing blockers and dependencies now.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589851"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589851_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.158326+00:00",
+        "updated_at": "2026-05-06T16:23:10.158326+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "entity:dependencies",
+        "type": "entity",
+        "value": "dependencies",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589851",
+          "m1778084589855"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589851_0",
+          "msg_m1778084589855_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.160496+00:00",
+        "updated_at": "2026-05-06T16:23:10.427348+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.51
+      },
+      {
+        "id": "entity:syncing",
+        "type": "entity",
+        "value": "syncing",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589851",
+          "m1778084589855"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589851_0",
+          "msg_m1778084589855_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.160516+00:00",
+        "updated_at": "2026-05-06T16:23:10.427381+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.51
+      },
+      {
+        "id": "entity:now",
+        "type": "entity",
+        "value": "now",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589851",
+          "m1778084589855"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589851_0",
+          "msg_m1778084589855_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.160549+00:00",
+        "updated_at": "2026-05-06T16:23:10.427423+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.51
+      },
+      {
+        "id": "entity:blockers",
+        "type": "entity",
+        "value": "blockers",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589851",
+          "m1778084589855"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589851_0",
+          "msg_m1778084589855_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.160563+00:00",
+        "updated_at": "2026-05-06T16:23:10.427439+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.51
+      },
+      {
+        "id": "entity:progress",
+        "type": "entity",
+        "value": "progress",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589851",
+          "m1778084589855"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589851_0",
+          "msg_m1778084589855_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.160577+00:00",
+        "updated_at": "2026-05-06T16:23:10.427597+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.5700000000000001
+      },
+      {
+        "id": "entity:update",
+        "type": "entity",
+        "value": "Update",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589851",
+          "m1778084589855"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589851_0",
+          "msg_m1778084589855_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.160589+00:00",
+        "updated_at": "2026-05-06T16:23:10.427470+00:00",
+        "confidence": 0.7,
+        "salience_score": 0.68
+      },
+      {
+        "id": "entity:moving",
+        "type": "entity",
+        "value": "moving",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589851",
+          "m1778084589855"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589851_0",
+          "msg_m1778084589855_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.160731+00:00",
+        "updated_at": "2026-05-06T16:23:10.427604+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.63
+      },
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589852",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: [Step 4/10] Reviewing outputs and validating quality before final handoff.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589852"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.253984+00:00",
+        "updated_at": "2026-05-06T16:23:10.253984+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "entity:outputs",
+        "type": "entity",
+        "value": "outputs",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589852",
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0",
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.264769+00:00",
+        "updated_at": "2026-05-06T16:23:10.477697+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6300000000000001
+      },
+      {
+        "id": "entity:quality",
+        "type": "entity",
+        "value": "quality",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589852",
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0",
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.264787+00:00",
+        "updated_at": "2026-05-06T16:23:10.477776+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6300000000000001
+      },
+      {
+        "id": "entity:reviewing",
+        "type": "entity",
+        "value": "reviewing",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589852",
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0",
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.264819+00:00",
+        "updated_at": "2026-05-06T16:23:10.477658+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6300000000000001
+      },
+      {
+        "id": "entity:validating",
+        "type": "entity",
+        "value": "validating",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589852",
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0",
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.264832+00:00",
+        "updated_at": "2026-05-06T16:23:10.477737+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6300000000000001
+      },
+      {
+        "id": "entity:handoff",
+        "type": "entity",
+        "value": "handoff",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589852",
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0",
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.264845+00:00",
+        "updated_at": "2026-05-06T16:23:10.477331+00:00",
+        "confidence": 0.55,
+        "salience_score": 0.51
+      },
+      {
+        "id": "entity:before",
+        "type": "entity",
+        "value": "before",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589852",
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0",
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.265165+00:00",
+        "updated_at": "2026-05-06T16:23:10.477815+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.6900000000000001
+      },
+      {
+        "id": "entity:final",
+        "type": "entity",
+        "value": "final",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589852",
+          "m1778084589856"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:23:10.265184+00:00",
+        "updated_at": "2026-05-06T16:23:10.477826+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.63
+      },
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589853",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: [Step 5/10] Starting execution for this task. Sharing plan and splitting responsibilities.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589853"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589853_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.324011+00:00",
+        "updated_at": "2026-05-06T16:23:10.324011+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589854",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: [Step 6/10] Received. I am processing my part and will report intermediate results.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589854"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589854_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.376908+00:00",
+        "updated_at": "2026-05-06T16:23:10.376908+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589855",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: [Step 7/10] Update: progress is moving. Syncing blockers and dependencies now.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589855"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589855_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.427142+00:00",
+        "updated_at": "2026-05-06T16:23:10.427142+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589856",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: [Step 8/10] Reviewing outputs and validating quality before final handoff.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.476974+00:00",
+        "updated_at": "2026-05-06T16:23:10.476974+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589857",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: [Step 9/10] Starting execution for this task. Sharing plan and splitting responsibilities.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.529511+00:00",
+        "updated_at": "2026-05-06T16:23:10.529511+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589858",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: [Step 10/10] Received. I am processing my part and will report intermediate results.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.588547+00:00",
+        "updated_at": "2026-05-06T16:23:10.588547+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589860",
+        "type": "event",
+        "value": "agent_6a9b24bbb1014ae381c13bc5250087a1: Task completed. Team has finalized all deliverables.",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664313+00:00",
+        "updated_at": "2026-05-06T16:23:10.664313+00:00",
+        "confidence": 1.0,
+        "salience_score": 0.7
+      },
+      {
+        "id": "entity:deliverables",
+        "type": "entity",
+        "value": "deliverables",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664530+00:00",
+        "updated_at": "2026-05-06T16:23:10.664813+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.51
+      },
+      {
+        "id": "entity:finalized",
+        "type": "entity",
+        "value": "finalized",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664549+00:00",
+        "updated_at": "2026-05-06T16:23:10.664784+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:completed",
+        "type": "entity",
+        "value": "completed",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664563+00:00",
+        "updated_at": "2026-05-06T16:23:10.664712+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.51
+      },
+      {
+        "id": "entity:all",
+        "type": "entity",
+        "value": "all",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664578+00:00",
+        "updated_at": "2026-05-06T16:23:10.664806+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:team",
+        "type": "entity",
+        "value": "team",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664591+00:00",
+        "updated_at": "2026-05-06T16:23:10.664738+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      },
+      {
+        "id": "entity:has",
+        "type": "entity",
+        "value": "has",
+        "aliases": [],
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664605+00:00",
+        "updated_at": "2026-05-06T16:23:10.664762+00:00",
+        "confidence": 0.6,
+        "salience_score": 0.54
+      }
+    ],
+    "edges": [
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589849->entity:starting",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589849",
+        "dst": "entity:starting",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589849"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.852567+00:00",
+        "updated_at": "2026-05-06T16:23:09.852567+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589849->entity:step",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589849",
+        "dst": "entity:step",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589849"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.852583+00:00",
+        "updated_at": "2026-05-06T16:23:09.852583+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589849->entity:execution",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589849",
+        "dst": "entity:execution",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589849"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.852598+00:00",
+        "updated_at": "2026-05-06T16:23:09.852598+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589849->entity:sharing",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589849",
+        "dst": "entity:sharing",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589849"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.852616+00:00",
+        "updated_at": "2026-05-06T16:23:09.852616+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589849->entity:responsibilities",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589849",
+        "dst": "entity:responsibilities",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589849"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.852632+00:00",
+        "updated_at": "2026-05-06T16:23:09.852632+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589849->entity:splitting",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589849",
+        "dst": "entity:splitting",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589849"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.852648+00:00",
+        "updated_at": "2026-05-06T16:23:09.852648+00:00"
+      },
+      {
+        "id": "unknown:entity:step->entity:starting",
+        "src": "entity:step",
+        "dst": "entity:starting",
+        "relation": "unknown",
+        "weight": 0.8,
+        "source_message_ids": [
+          "m1778084589849",
+          "m1778084589853",
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0",
+          "msg_m1778084589853_0",
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.852945+00:00",
+        "updated_at": "2026-05-06T16:23:10.529977+00:00"
+      },
+      {
+        "id": "unknown:entity:starting->entity:execution",
+        "src": "entity:starting",
+        "dst": "entity:execution",
+        "relation": "unknown",
+        "weight": 0.8,
+        "source_message_ids": [
+          "m1778084589849",
+          "m1778084589853",
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0",
+          "msg_m1778084589853_0",
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.852973+00:00",
+        "updated_at": "2026-05-06T16:23:10.529999+00:00"
+      },
+      {
+        "id": "unknown:entity:execution->entity:sharing",
+        "src": "entity:execution",
+        "dst": "entity:sharing",
+        "relation": "unknown",
+        "weight": 0.8,
+        "source_message_ids": [
+          "m1778084589849",
+          "m1778084589853",
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0",
+          "msg_m1778084589853_0",
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.853000+00:00",
+        "updated_at": "2026-05-06T16:23:10.530020+00:00"
+      },
+      {
+        "id": "unknown:entity:sharing->entity:plan",
+        "src": "entity:sharing",
+        "dst": "entity:plan",
+        "relation": "unknown",
+        "weight": 0.8,
+        "source_message_ids": [
+          "m1778084589849",
+          "m1778084589853",
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0",
+          "msg_m1778084589853_0",
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.853022+00:00",
+        "updated_at": "2026-05-06T16:23:10.530042+00:00"
+      },
+      {
+        "id": "unknown:entity:plan->entity:splitting",
+        "src": "entity:plan",
+        "dst": "entity:splitting",
+        "relation": "unknown",
+        "weight": 0.8,
+        "source_message_ids": [
+          "m1778084589849",
+          "m1778084589853",
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0",
+          "msg_m1778084589853_0",
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.853045+00:00",
+        "updated_at": "2026-05-06T16:23:10.530063+00:00"
+      },
+      {
+        "id": "unknown:entity:splitting->entity:responsibilities",
+        "src": "entity:splitting",
+        "dst": "entity:responsibilities",
+        "relation": "unknown",
+        "weight": 0.8,
+        "source_message_ids": [
+          "m1778084589849",
+          "m1778084589853",
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589849_0",
+          "msg_m1778084589853_0",
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.853068+00:00",
+        "updated_at": "2026-05-06T16:23:10.530084+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589850->entity:part",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589850",
+        "dst": "entity:part",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589850"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.916715+00:00",
+        "updated_at": "2026-05-06T16:23:09.916715+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589850->entity:processing",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589850",
+        "dst": "entity:processing",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589850"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.916732+00:00",
+        "updated_at": "2026-05-06T16:23:09.916732+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589850->entity:received",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589850",
+        "dst": "entity:received",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589850"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.916747+00:00",
+        "updated_at": "2026-05-06T16:23:09.916747+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589850->entity:step",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589850",
+        "dst": "entity:step",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589850"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.916766+00:00",
+        "updated_at": "2026-05-06T16:23:09.916766+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589850->entity:intermediate",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589850",
+        "dst": "entity:intermediate",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589850"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.916786+00:00",
+        "updated_at": "2026-05-06T16:23:09.916786+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589850->entity:report",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589850",
+        "dst": "entity:report",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589850"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.916801+00:00",
+        "updated_at": "2026-05-06T16:23:09.916801+00:00"
+      },
+      {
+        "id": "unknown:entity:step->entity:received",
+        "src": "entity:step",
+        "dst": "entity:received",
+        "relation": "unknown",
+        "weight": 0.8,
+        "source_message_ids": [
+          "m1778084589850",
+          "m1778084589854",
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0",
+          "msg_m1778084589854_0",
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.917036+00:00",
+        "updated_at": "2026-05-06T16:23:10.589328+00:00"
+      },
+      {
+        "id": "unknown:entity:received->entity:processing",
+        "src": "entity:received",
+        "dst": "entity:processing",
+        "relation": "unknown",
+        "weight": 0.8,
+        "source_message_ids": [
+          "m1778084589850",
+          "m1778084589854",
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0",
+          "msg_m1778084589854_0",
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.917059+00:00",
+        "updated_at": "2026-05-06T16:23:10.589354+00:00"
+      },
+      {
+        "id": "unknown:entity:processing->entity:part",
+        "src": "entity:processing",
+        "dst": "entity:part",
+        "relation": "unknown",
+        "weight": 0.8,
+        "source_message_ids": [
+          "m1778084589850",
+          "m1778084589854",
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0",
+          "msg_m1778084589854_0",
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.917083+00:00",
+        "updated_at": "2026-05-06T16:23:10.589385+00:00"
+      },
+      {
+        "id": "unknown:entity:part->entity:will",
+        "src": "entity:part",
+        "dst": "entity:will",
+        "relation": "unknown",
+        "weight": 0.8,
+        "source_message_ids": [
+          "m1778084589850",
+          "m1778084589854",
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0",
+          "msg_m1778084589854_0",
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.917104+00:00",
+        "updated_at": "2026-05-06T16:23:10.589419+00:00"
+      },
+      {
+        "id": "unknown:entity:will->entity:report",
+        "src": "entity:will",
+        "dst": "entity:report",
+        "relation": "unknown",
+        "weight": 0.8,
+        "source_message_ids": [
+          "m1778084589850",
+          "m1778084589854",
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0",
+          "msg_m1778084589854_0",
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.917128+00:00",
+        "updated_at": "2026-05-06T16:23:10.589457+00:00"
+      },
+      {
+        "id": "unknown:entity:report->entity:intermediate",
+        "src": "entity:report",
+        "dst": "entity:intermediate",
+        "relation": "unknown",
+        "weight": 0.8,
+        "source_message_ids": [
+          "m1778084589850",
+          "m1778084589854",
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589850_0",
+          "msg_m1778084589854_0",
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.917150+00:00",
+        "updated_at": "2026-05-06T16:23:10.589503+00:00"
+      },
+      {
+        "id": "mentions:event:user:user-bc08577c5f8f433786e5786922c854f2->entity:hello",
+        "src": "event:user:user-bc08577c5f8f433786e5786922c854f2",
+        "dst": "entity:hello",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927032+00:00",
+        "updated_at": "2026-05-06T16:23:09.927032+00:00"
+      },
+      {
+        "id": "mentions:event:user:user-bc08577c5f8f433786e5786922c854f2->entity:python",
+        "src": "event:user:user-bc08577c5f8f433786e5786922c854f2",
+        "dst": "entity:python",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927049+00:00",
+        "updated_at": "2026-05-06T16:23:09.927049+00:00"
+      },
+      {
+        "id": "mentions:event:user:user-bc08577c5f8f433786e5786922c854f2->entity:create",
+        "src": "event:user:user-bc08577c5f8f433786e5786922c854f2",
+        "dst": "entity:create",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927064+00:00",
+        "updated_at": "2026-05-06T16:23:09.927064+00:00"
+      },
+      {
+        "id": "mentions:event:user:user-bc08577c5f8f433786e5786922c854f2->entity:file",
+        "src": "event:user:user-bc08577c5f8f433786e5786922c854f2",
+        "dst": "entity:file",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927078+00:00",
+        "updated_at": "2026-05-06T16:23:09.927078+00:00"
+      },
+      {
+        "id": "mentions:event:user:user-bc08577c5f8f433786e5786922c854f2->entity:coding",
+        "src": "event:user:user-bc08577c5f8f433786e5786922c854f2",
+        "dst": "entity:coding",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927092+00:00",
+        "updated_at": "2026-05-06T16:23:09.927092+00:00"
+      },
+      {
+        "id": "mentions:event:user:user-bc08577c5f8f433786e5786922c854f2->entity:world",
+        "src": "event:user:user-bc08577c5f8f433786e5786922c854f2",
+        "dst": "entity:world",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927106+00:00",
+        "updated_at": "2026-05-06T16:23:09.927106+00:00"
+      },
+      {
+        "id": "unknown:entity:coding->entity:create",
+        "src": "entity:coding",
+        "dst": "entity:create",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927279+00:00",
+        "updated_at": "2026-05-06T16:23:09.927279+00:00"
+      },
+      {
+        "id": "unknown:entity:create->entity:python",
+        "src": "entity:create",
+        "dst": "entity:python",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927302+00:00",
+        "updated_at": "2026-05-06T16:23:09.927302+00:00"
+      },
+      {
+        "id": "unknown:entity:python->entity:file",
+        "src": "entity:python",
+        "dst": "entity:file",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927323+00:00",
+        "updated_at": "2026-05-06T16:23:09.927323+00:00"
+      },
+      {
+        "id": "unknown:entity:file->entity:hello",
+        "src": "entity:file",
+        "dst": "entity:hello",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927344+00:00",
+        "updated_at": "2026-05-06T16:23:09.927344+00:00"
+      },
+      {
+        "id": "unknown:entity:hello->entity:world",
+        "src": "entity:hello",
+        "dst": "entity:world",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "user-bc08577c5f8f433786e5786922c854f2"
+        ],
+        "chunk_ids": [
+          "msg_user-bc08577c5f8f433786e5786922c854f2_0"
+        ],
+        "created_at": "2026-05-06T16:23:09.927364+00:00",
+        "updated_at": "2026-05-06T16:23:09.927364+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589851->entity:dependencies",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589851",
+        "dst": "entity:dependencies",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589851"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589851_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.160507+00:00",
+        "updated_at": "2026-05-06T16:23:10.160507+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589851->entity:syncing",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589851",
+        "dst": "entity:syncing",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589851"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589851_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.160524+00:00",
+        "updated_at": "2026-05-06T16:23:10.160524+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589851->entity:step",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589851",
+        "dst": "entity:step",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589851"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589851_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.160542+00:00",
+        "updated_at": "2026-05-06T16:23:10.160542+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589851->entity:now",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589851",
+        "dst": "entity:now",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589851"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589851_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.160556+00:00",
+        "updated_at": "2026-05-06T16:23:10.160556+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589851->entity:blockers",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589851",
+        "dst": "entity:blockers",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589851"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589851_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.160569+00:00",
+        "updated_at": "2026-05-06T16:23:10.160569+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589851->entity:progress",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589851",
+        "dst": "entity:progress",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589851"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589851_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.160583+00:00",
+        "updated_at": "2026-05-06T16:23:10.160583+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589851->entity:update",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589851",
+        "dst": "entity:update",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589851"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589851_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.160595+00:00",
+        "updated_at": "2026-05-06T16:23:10.160595+00:00"
+      },
+      {
+        "id": "unknown:entity:progress->entity:moving",
+        "src": "entity:progress",
+        "dst": "entity:moving",
+        "relation": "unknown",
+        "weight": 0.75,
+        "source_message_ids": [
+          "m1778084589851",
+          "m1778084589855"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589851_0",
+          "msg_m1778084589855_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.160737+00:00",
+        "updated_at": "2026-05-06T16:23:10.427611+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589852->entity:outputs",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589852",
+        "dst": "entity:outputs",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589852"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.264778+00:00",
+        "updated_at": "2026-05-06T16:23:10.264778+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589852->entity:quality",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589852",
+        "dst": "entity:quality",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589852"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.264793+00:00",
+        "updated_at": "2026-05-06T16:23:10.264793+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589852->entity:step",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589852",
+        "dst": "entity:step",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589852"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.264811+00:00",
+        "updated_at": "2026-05-06T16:23:10.264811+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589852->entity:reviewing",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589852",
+        "dst": "entity:reviewing",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589852"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.264825+00:00",
+        "updated_at": "2026-05-06T16:23:10.264825+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589852->entity:validating",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589852",
+        "dst": "entity:validating",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589852"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.264838+00:00",
+        "updated_at": "2026-05-06T16:23:10.264838+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589852->entity:handoff",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589852",
+        "dst": "entity:handoff",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589852"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.264850+00:00",
+        "updated_at": "2026-05-06T16:23:10.264850+00:00"
+      },
+      {
+        "id": "unknown:entity:step->entity:reviewing",
+        "src": "entity:step",
+        "dst": "entity:reviewing",
+        "relation": "unknown",
+        "weight": 0.75,
+        "source_message_ids": [
+          "m1778084589852",
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0",
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.265089+00:00",
+        "updated_at": "2026-05-06T16:23:10.477643+00:00"
+      },
+      {
+        "id": "unknown:entity:reviewing->entity:outputs",
+        "src": "entity:reviewing",
+        "dst": "entity:outputs",
+        "relation": "unknown",
+        "weight": 0.75,
+        "source_message_ids": [
+          "m1778084589852",
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0",
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.265110+00:00",
+        "updated_at": "2026-05-06T16:23:10.477678+00:00"
+      },
+      {
+        "id": "unknown:entity:outputs->entity:validating",
+        "src": "entity:outputs",
+        "dst": "entity:validating",
+        "relation": "unknown",
+        "weight": 0.75,
+        "source_message_ids": [
+          "m1778084589852",
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0",
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.265131+00:00",
+        "updated_at": "2026-05-06T16:23:10.477720+00:00"
+      },
+      {
+        "id": "unknown:entity:validating->entity:quality",
+        "src": "entity:validating",
+        "dst": "entity:quality",
+        "relation": "unknown",
+        "weight": 0.75,
+        "source_message_ids": [
+          "m1778084589852",
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0",
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.265151+00:00",
+        "updated_at": "2026-05-06T16:23:10.477758+00:00"
+      },
+      {
+        "id": "unknown:entity:quality->entity:before",
+        "src": "entity:quality",
+        "dst": "entity:before",
+        "relation": "unknown",
+        "weight": 0.75,
+        "source_message_ids": [
+          "m1778084589852",
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589852_0",
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.265170+00:00",
+        "updated_at": "2026-05-06T16:23:10.477799+00:00"
+      },
+      {
+        "id": "unknown:entity:before->entity:final",
+        "src": "entity:before",
+        "dst": "entity:final",
+        "relation": "unknown",
+        "weight": 0.75,
+        "source_message_ids": [
+          "m1778084589852",
+          "m1778084589856"
+        ],
+        "chunk_ids": [],
+        "created_at": "2026-05-06T16:23:10.265189+00:00",
+        "updated_at": "2026-05-06T16:23:10.477837+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589853->entity:starting",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589853",
+        "dst": "entity:starting",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589853"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589853_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.324178+00:00",
+        "updated_at": "2026-05-06T16:23:10.324178+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589853->entity:step",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589853",
+        "dst": "entity:step",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589853"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589853_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.324195+00:00",
+        "updated_at": "2026-05-06T16:23:10.324195+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589853->entity:execution",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589853",
+        "dst": "entity:execution",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589853"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589853_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.324210+00:00",
+        "updated_at": "2026-05-06T16:23:10.324210+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589853->entity:sharing",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589853",
+        "dst": "entity:sharing",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589853"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589853_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.324223+00:00",
+        "updated_at": "2026-05-06T16:23:10.324223+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589853->entity:responsibilities",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589853",
+        "dst": "entity:responsibilities",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589853"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589853_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.324237+00:00",
+        "updated_at": "2026-05-06T16:23:10.324237+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589853->entity:splitting",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589853",
+        "dst": "entity:splitting",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589853"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589853_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.324251+00:00",
+        "updated_at": "2026-05-06T16:23:10.324251+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589854->entity:part",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589854",
+        "dst": "entity:part",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589854"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589854_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.377394+00:00",
+        "updated_at": "2026-05-06T16:23:10.377394+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589854->entity:processing",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589854",
+        "dst": "entity:processing",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589854"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589854_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.377423+00:00",
+        "updated_at": "2026-05-06T16:23:10.377423+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589854->entity:received",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589854",
+        "dst": "entity:received",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589854"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589854_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.377452+00:00",
+        "updated_at": "2026-05-06T16:23:10.377452+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589854->entity:step",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589854",
+        "dst": "entity:step",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589854"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589854_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.377485+00:00",
+        "updated_at": "2026-05-06T16:23:10.377485+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589854->entity:intermediate",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589854",
+        "dst": "entity:intermediate",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589854"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589854_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.377512+00:00",
+        "updated_at": "2026-05-06T16:23:10.377512+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589854->entity:report",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589854",
+        "dst": "entity:report",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589854"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589854_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.377541+00:00",
+        "updated_at": "2026-05-06T16:23:10.377541+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589855->entity:dependencies",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589855",
+        "dst": "entity:dependencies",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589855"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589855_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.427367+00:00",
+        "updated_at": "2026-05-06T16:23:10.427367+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589855->entity:syncing",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589855",
+        "dst": "entity:syncing",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589855"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589855_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.427393+00:00",
+        "updated_at": "2026-05-06T16:23:10.427393+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589855->entity:step",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589855",
+        "dst": "entity:step",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589855"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589855_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.427415+00:00",
+        "updated_at": "2026-05-06T16:23:10.427415+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589855->entity:now",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589855",
+        "dst": "entity:now",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589855"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589855_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.427431+00:00",
+        "updated_at": "2026-05-06T16:23:10.427431+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589855->entity:blockers",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589855",
+        "dst": "entity:blockers",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589855"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589855_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.427447+00:00",
+        "updated_at": "2026-05-06T16:23:10.427447+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589855->entity:progress",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589855",
+        "dst": "entity:progress",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589855"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589855_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.427463+00:00",
+        "updated_at": "2026-05-06T16:23:10.427463+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589855->entity:update",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589855",
+        "dst": "entity:update",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589855"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589855_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.427478+00:00",
+        "updated_at": "2026-05-06T16:23:10.427478+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589856->entity:outputs",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589856",
+        "dst": "entity:outputs",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.477247+00:00",
+        "updated_at": "2026-05-06T16:23:10.477247+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589856->entity:quality",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589856",
+        "dst": "entity:quality",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.477272+00:00",
+        "updated_at": "2026-05-06T16:23:10.477272+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589856->entity:step",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589856",
+        "dst": "entity:step",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.477293+00:00",
+        "updated_at": "2026-05-06T16:23:10.477293+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589856->entity:reviewing",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589856",
+        "dst": "entity:reviewing",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.477309+00:00",
+        "updated_at": "2026-05-06T16:23:10.477309+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589856->entity:validating",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589856",
+        "dst": "entity:validating",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.477323+00:00",
+        "updated_at": "2026-05-06T16:23:10.477323+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589856->entity:handoff",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589856",
+        "dst": "entity:handoff",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589856"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589856_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.477337+00:00",
+        "updated_at": "2026-05-06T16:23:10.477337+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589857->entity:starting",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589857",
+        "dst": "entity:starting",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.529711+00:00",
+        "updated_at": "2026-05-06T16:23:10.529711+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589857->entity:step",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589857",
+        "dst": "entity:step",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.529729+00:00",
+        "updated_at": "2026-05-06T16:23:10.529729+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589857->entity:execution",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589857",
+        "dst": "entity:execution",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.529746+00:00",
+        "updated_at": "2026-05-06T16:23:10.529746+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589857->entity:sharing",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589857",
+        "dst": "entity:sharing",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.529760+00:00",
+        "updated_at": "2026-05-06T16:23:10.529760+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589857->entity:responsibilities",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589857",
+        "dst": "entity:responsibilities",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.529775+00:00",
+        "updated_at": "2026-05-06T16:23:10.529775+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589857->entity:splitting",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589857",
+        "dst": "entity:splitting",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589857"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589857_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.529788+00:00",
+        "updated_at": "2026-05-06T16:23:10.529788+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589858->entity:part",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589858",
+        "dst": "entity:part",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.588924+00:00",
+        "updated_at": "2026-05-06T16:23:10.588924+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589858->entity:processing",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589858",
+        "dst": "entity:processing",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.588956+00:00",
+        "updated_at": "2026-05-06T16:23:10.588956+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589858->entity:received",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589858",
+        "dst": "entity:received",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.588987+00:00",
+        "updated_at": "2026-05-06T16:23:10.588987+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589858->entity:step",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589858",
+        "dst": "entity:step",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.589009+00:00",
+        "updated_at": "2026-05-06T16:23:10.589009+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589858->entity:intermediate",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589858",
+        "dst": "entity:intermediate",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.589024+00:00",
+        "updated_at": "2026-05-06T16:23:10.589024+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589858->entity:report",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589858",
+        "dst": "entity:report",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589858"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589858_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.589040+00:00",
+        "updated_at": "2026-05-06T16:23:10.589040+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589860->entity:deliverables",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589860",
+        "dst": "entity:deliverables",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664539+00:00",
+        "updated_at": "2026-05-06T16:23:10.664539+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589860->entity:finalized",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589860",
+        "dst": "entity:finalized",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664556+00:00",
+        "updated_at": "2026-05-06T16:23:10.664556+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589860->entity:completed",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589860",
+        "dst": "entity:completed",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664570+00:00",
+        "updated_at": "2026-05-06T16:23:10.664570+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589860->entity:all",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589860",
+        "dst": "entity:all",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664584+00:00",
+        "updated_at": "2026-05-06T16:23:10.664584+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589860->entity:team",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589860",
+        "dst": "entity:team",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664598+00:00",
+        "updated_at": "2026-05-06T16:23:10.664598+00:00"
+      },
+      {
+        "id": "mentions:event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589860->entity:has",
+        "src": "event:agent_6a9b24bbb1014ae381c13bc5250087a1:m1778084589860",
+        "dst": "entity:has",
+        "relation": "mentions",
+        "weight": 0.55,
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664611+00:00",
+        "updated_at": "2026-05-06T16:23:10.664611+00:00"
+      },
+      {
+        "id": "unknown:entity:completed->entity:team",
+        "src": "entity:completed",
+        "dst": "entity:team",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664729+00:00",
+        "updated_at": "2026-05-06T16:23:10.664729+00:00"
+      },
+      {
+        "id": "unknown:entity:team->entity:has",
+        "src": "entity:team",
+        "dst": "entity:has",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664752+00:00",
+        "updated_at": "2026-05-06T16:23:10.664752+00:00"
+      },
+      {
+        "id": "unknown:entity:has->entity:finalized",
+        "src": "entity:has",
+        "dst": "entity:finalized",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664775+00:00",
+        "updated_at": "2026-05-06T16:23:10.664775+00:00"
+      },
+      {
+        "id": "unknown:entity:finalized->entity:all",
+        "src": "entity:finalized",
+        "dst": "entity:all",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664797+00:00",
+        "updated_at": "2026-05-06T16:23:10.664797+00:00"
+      },
+      {
+        "id": "unknown:entity:all->entity:deliverables",
+        "src": "entity:all",
+        "dst": "entity:deliverables",
+        "relation": "unknown",
+        "weight": 0.7,
+        "source_message_ids": [
+          "m1778084589860"
+        ],
+        "chunk_ids": [
+          "msg_m1778084589860_0"
+        ],
+        "created_at": "2026-05-06T16:23:10.664820+00:00",
+        "updated_at": "2026-05-06T16:23:10.664820+00:00"
+      }
+    ],
+    "chunks": {
+      "msg_m1778084589849_0": "[Step 1/10] Starting execution for this task. Sharing plan and splitting responsibilities.",
+      "msg_m1778084589850_0": "[Step 2/10] Received. I am processing my part and will report intermediate results.",
+      "msg_user-bc08577c5f8f433786e5786922c854f2_0": "Task title: coding agent; description: create a python file with hello world",
+      "msg_m1778084589851_0": "[Step 3/10] Update: progress is moving. Syncing blockers and dependencies now.",
+      "msg_m1778084589852_0": "[Step 4/10] Reviewing outputs and validating quality before final handoff.",
+      "msg_m1778084589853_0": "[Step 5/10] Starting execution for this task. Sharing plan and splitting responsibilities.",
+      "msg_m1778084589854_0": "[Step 6/10] Received. I am processing my part and will report intermediate results.",
+      "msg_m1778084589855_0": "[Step 7/10] Update: progress is moving. Syncing blockers and dependencies now.",
+      "msg_m1778084589856_0": "[Step 8/10] Reviewing outputs and validating quality before final handoff.",
+      "msg_m1778084589857_0": "[Step 9/10] Starting execution for this task. Sharing plan and splitting responsibilities.",
+      "msg_m1778084589858_0": "[Step 10/10] Received. I am processing my part and will report intermediate results.",
+      "msg_m1778084589860_0": "Task completed. Team has finalized all deliverables."
+    },
+    "message_ids": [
+      "m1778084589849",
+      "m1778084589850",
+      "user-bc08577c5f8f433786e5786922c854f2",
+      "m1778084589851",
+      "m1778084589852",
+      "m1778084589853",
+      "m1778084589854",
+      "m1778084589855",
+      "m1778084589856",
+      "m1778084589857",
+      "m1778084589858",
+      "m1778084589860"
+    ],
+    "updated_at": "2026-05-06T16:23:10.664823+00:00"
   }
 }

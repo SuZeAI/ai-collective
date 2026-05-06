@@ -462,6 +462,21 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         async def mesh_node(state: MultiAgentMeshState) -> dict:
             stream_writer = get_stream_writer()
 
+            # Generate a unique thread_id for this agent turn.
+            # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
+            from backend.infrastructure.sandbox.sandbox_session import (
+                new_thread_id as _new_thread_id,
+                get_thread_workspace as _get_thread_workspace,
+            )
+            from backend.api.settings import settings as _settings
+            sandbox_thread_id = _new_thread_id(
+                agent_name=agent.name,
+                conversation_id=conversation_id,
+            )
+            sandbox_workspace = _get_thread_workspace(
+                _settings.sandbox_workspace or "", sandbox_thread_id
+            )
+
             # Stream: Agent turn starting
             stream_writer({
                 "type": EventType.AGENT_TURN_START.value,
@@ -469,6 +484,8 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 "agent_role": agent.role,
                 "turn": len(state.get("turns", [])) + 1,
                 "round": state.get("rounds", 0) + 1,
+                "sandbox_thread_id": sandbox_thread_id,
+                "sandbox_workspace": sandbox_workspace,
             })
 
             conversation_history = state.get("conversation_history", {})

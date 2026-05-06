@@ -170,15 +170,32 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
     ):
         async def node(state: MultiAgentState) -> MultiAgentState:
             stream_writer = get_stream_writer()
-            
+
+            # Generate a unique thread_id for this agent turn.
+            # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
+            from backend.infrastructure.sandbox.sandbox_session import (
+                new_thread_id as _new_thread_id,
+                get_thread_workspace as _get_thread_workspace,
+            )
+            from backend.api.settings import settings as _settings
+            sandbox_thread_id = _new_thread_id(
+                agent_name=agent.name,
+                conversation_id=conversation_id,
+            )
+            sandbox_workspace = _get_thread_workspace(
+                _settings.sandbox_workspace or "", sandbox_thread_id
+            )
+
             # Stream: Agent starting
             stream_writer({
                 "type": EventType.AGENT_START.value,
                 "agent_name": agent.name,
                 "agent_role": agent.role,
                 "turn": state["rounds"] + 1,
+                "sandbox_thread_id": sandbox_thread_id,
+                "sandbox_workspace": sandbox_workspace,
             })
-            
+
             bound_tools = []
             if agent.tools:
                 for toolkit in agent.tools.values():

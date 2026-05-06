@@ -36,6 +36,7 @@ from .sandbox_provider import (
     reset_sandbox_provider,
     shutdown_sandbox_provider,
 )
+from .sandbox_session import get_current_thread_id, get_thread_workspace, new_thread_id, set_current_thread_id
 
 __all__ = [
     "AioSandbox",
@@ -50,8 +51,12 @@ __all__ = [
     "SandboxProvider",
     "SandboxResult",
     "create_sandbox_adapter",
+    "get_current_thread_id",
     "get_sandbox_provider",
+    "get_thread_workspace",
+    "new_thread_id",
     "reset_sandbox_provider",
+    "set_current_thread_id",
     "shutdown_sandbox_provider",
     "wait_for_sandbox_ready",
 ]
