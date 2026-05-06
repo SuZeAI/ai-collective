@@ -2060,9 +2060,9 @@
   "task_198e22a7ac7e488b8ae57fc1a89c4ba8": [
     {
       "type": "ingest_message",
-      "message_id": "m1778084589849",
+      "message_id": "m1778085881955",
       "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
-      "created_at": "2026-05-06T16:23:09.900804+00:00",
+      "created_at": "2026-05-06T16:44:42.045101+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -2080,9 +2080,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "m1778084589850",
+      "message_id": "m1778085881956",
       "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
-      "created_at": "2026-05-06T16:23:10.128757+00:00",
+      "created_at": "2026-05-06T16:44:42.103879+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -2100,9 +2100,189 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "user-bc08577c5f8f433786e5786922c854f2",
+      "message_id": "m1778085881957",
+      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
+      "created_at": "2026-05-06T16:44:42.164341+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "m1778085881958",
+      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
+      "created_at": "2026-05-06T16:44:42.222059+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "m1778085881959",
+      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
+      "created_at": "2026-05-06T16:44:42.275585+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "m1778085881960",
+      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
+      "created_at": "2026-05-06T16:44:42.327726+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "m1778085881961",
+      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
+      "created_at": "2026-05-06T16:44:42.384145+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "m1778085881962",
+      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
+      "created_at": "2026-05-06T16:44:42.468990+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "m1778085881963",
+      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
+      "created_at": "2026-05-06T16:44:42.541126+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "m1778085881964",
+      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
+      "created_at": "2026-05-06T16:44:42.697118+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "m1778085881966",
+      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
+      "created_at": "2026-05-06T16:44:42.750313+00:00",
+      "config": {
+        "build_method": "rule",
+        "entity_method": "hybrid",
+        "relation_method": "pattern",
+        "retrieve_method": "hybrid",
+        "expand_hops": 1,
+        "top_k_nodes": 10,
+        "top_k_edges": 12,
+        "min_score_threshold": 0.05,
+        "recency_weight": 0.2,
+        "similarity_weight": 0.6,
+        "edge_weight": 0.2,
+        "persist_mode": "snapshot_plus_log"
+      }
+    },
+    {
+      "type": "ingest_message",
+      "message_id": "user-a9cd128a6b4c4c4381846840a9a11ebc",
       "speaker": "user",
-      "created_at": "2026-05-06T16:23:10.158054+00:00",
+      "created_at": "2026-05-06T16:44:43.705249+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -2120,9 +2300,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "m1778084589851",
-      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
-      "created_at": "2026-05-06T16:23:10.223055+00:00",
+      "message_id": "agent-Testing Tool-f9af9cb6477d499785b40832b1a16aca",
+      "speaker": "Testing Tool",
+      "created_at": "2026-05-06T16:45:14.096872+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",
@@ -2140,149 +2320,9 @@
     },
     {
       "type": "ingest_message",
-      "message_id": "m1778084589852",
+      "message_id": "m_55c18de86dbf4af9b7317a6d852a1ce6",
       "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
-      "created_at": "2026-05-06T16:23:10.321496+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "m1778084589853",
-      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
-      "created_at": "2026-05-06T16:23:10.372563+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "m1778084589854",
-      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
-      "created_at": "2026-05-06T16:23:10.424048+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "m1778084589855",
-      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
-      "created_at": "2026-05-06T16:23:10.473403+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "m1778084589856",
-      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
-      "created_at": "2026-05-06T16:23:10.526535+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "m1778084589857",
-      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
-      "created_at": "2026-05-06T16:23:10.581160+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "m1778084589858",
-      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
-      "created_at": "2026-05-06T16:23:10.660221+00:00",
-      "config": {
-        "build_method": "rule",
-        "entity_method": "hybrid",
-        "relation_method": "pattern",
-        "retrieve_method": "hybrid",
-        "expand_hops": 1,
-        "top_k_nodes": 10,
-        "top_k_edges": 12,
-        "min_score_threshold": 0.05,
-        "recency_weight": 0.2,
-        "similarity_weight": 0.6,
-        "edge_weight": 0.2,
-        "persist_mode": "snapshot_plus_log"
-      }
-    },
-    {
-      "type": "ingest_message",
-      "message_id": "m1778084589860",
-      "speaker": "agent_6a9b24bbb1014ae381c13bc5250087a1",
-      "created_at": "2026-05-06T16:23:10.715908+00:00",
+      "created_at": "2026-05-06T16:45:14.261351+00:00",
       "config": {
         "build_method": "rule",
         "entity_method": "hybrid",

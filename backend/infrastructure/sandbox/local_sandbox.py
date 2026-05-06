@@ -53,6 +53,7 @@ class LocalSandboxAdapter(Sandbox):
         try:
             proc = await asyncio.create_subprocess_shell(
                 shell_cmd,
+                executable="/bin/bash",  # bash required for builtin/function overrides in prelude
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
             )

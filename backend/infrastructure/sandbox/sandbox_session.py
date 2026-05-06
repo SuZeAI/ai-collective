@@ -53,7 +53,7 @@ def get_thread_workspace(base_workspace: str, thread_id: Optional[str] = None) -
 
 def new_thread_id(
     agent_name: str,
-    conversation_id: Optional[str] = None,
+    task_id: Optional[str] = None,
     run_id: Optional[str] = None,
 ) -> str:
     """Generate a new thread_id, set it in context, and persist to storage.
@@ -70,13 +70,13 @@ def new_thread_id(
     _persist_session(
         thread_id=thread_id,
         agent_name=agent_name,
-        conversation_id=conversation_id,
+        task_id=task_id,
         run_id=run_id or uuid4().hex,
         workspace_path=workspace_path,
     )
     logger.debug(
-        "Sandbox thread_id=%s created for agent=%s conv=%s workspace=%s",
-        thread_id, agent_name, conversation_id, workspace_path,
+        "Sandbox thread_id=%s created for agent=%s task_id=%s workspace=%s",
+        thread_id, agent_name, task_id, workspace_path,
     )
     return thread_id
 
@@ -104,14 +104,14 @@ def _ensure_thread_workspace(thread_id: str) -> str:
 def _persist_session(
     thread_id: str,
     agent_name: str,
-    conversation_id: Optional[str],
+    task_id: Optional[str],
     run_id: str,
     workspace_path: str = "",
 ) -> None:
     record = {
         "thread_id": thread_id,
         "agent_name": agent_name,
-        "conversation_id": conversation_id,
+        "taskId": task_id,
         "run_id": run_id,
         "workspace_path": workspace_path,
         "created_at": datetime.now(timezone.utc).isoformat(),

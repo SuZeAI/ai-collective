@@ -180,7 +180,7 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
             from backend.api.settings import settings as _settings
             sandbox_thread_id = _new_thread_id(
                 agent_name=agent.name,
-                conversation_id=conversation_id,
+                task_id=conversation_id,
             )
             sandbox_workspace = _get_thread_workspace(
                 _settings.sandbox_workspace or "", sandbox_thread_id
