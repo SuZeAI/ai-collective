@@ -1,7 +1,11 @@
 """SandboxToolkit — high-level sandbox tools (bash, ls, glob, grep, read_file, write_file, str_replace).
 
-The toolkit auto-creates a sandbox adapter from settings if none is provided.
-Workspace directory is created automatically on first use.
+All operations are strictly confined to the agent run's thread workspace:
+  {SANDBOX_WORKSPACE}/{thread_id}/
+
+File tools reject any path outside that boundary.
+Bash commands run with HOME/TMPDIR set to the workspace and 'cd' restricted
+to prevent escaping (best-effort in local mode; hard-enforced in docker/k8s).
 
 Available tools:
   sandbox_bash        — execute a shell command
@@ -14,6 +18,7 @@ Available tools:
 """
 from __future__ import annotations
 
+import os
 import re
 from typing import Any, Optional
 
@@ -28,7 +33,6 @@ _LS_MAX_CHARS = 20_000
 
 
 def _truncate_middle(output: str, max_chars: int) -> str:
-    """Middle-truncate: preserve head + tail since errors can appear anywhere."""
     if max_chars == 0 or len(output) <= max_chars:
         return output
     total = len(output)
@@ -40,7 +44,6 @@ def _truncate_middle(output: str, max_chars: int) -> str:
 
 
 def _truncate_head(output: str, max_chars: int, hint: str = "Use start_line/end_line to read a specific range") -> str:
-    """Head-truncate: content is front-loaded (source code, ls)."""
     if max_chars == 0 or len(output) <= max_chars:
         return output
     total = len(output)
@@ -50,7 +53,6 @@ def _truncate_head(output: str, max_chars: int, hint: str = "Use start_line/end_
 
 
 def _get_sandbox(sandbox=None):
-    """Return *sandbox* as-is, or auto-create one from settings."""
     if sandbox is not None:
         return sandbox
     from backend.infrastructure.sandbox.factory import create_sandbox_adapter
@@ -58,13 +60,11 @@ def _get_sandbox(sandbox=None):
 
 
 class SandboxToolkit(BaseToolkit):
-    """All-in-one sandbox toolkit: shell + file system operations.
+    """All-in-one sandbox toolkit with strict workspace confinement.
 
-    The *sandbox* parameter is optional. When omitted, a sandbox adapter is
-    created automatically from the application settings
-    (``SANDBOX_MODE``, ``SANDBOX_URL``, ``SANDBOX_PROVISIONER_URL``).
-
-    Workspace directory is created on first use (local mode only).
+    Every agent run is isolated inside ``{SANDBOX_WORKSPACE}/{thread_id}/``.
+    All file operations reject paths outside that directory; bash commands
+    start in that directory with HOME/TMPDIR scoped there and cd restricted.
     """
 
     name: str = "sandbox"
@@ -72,36 +72,112 @@ class SandboxToolkit(BaseToolkit):
     def __init__(self, sandbox=None, workspace: str | None = None, **kwargs):
         super().__init__(**kwargs)
         self.sandbox = _get_sandbox(sandbox)
-        # Workspace is resolved lazily — only created on first tool call.
-        # Defaults: local → ~/sandbox_workspace, remote → /workspace
         from backend.infrastructure.sandbox.local_sandbox import LocalSandboxAdapter
         if workspace:
-            self.workspace = workspace
+            self._base_workspace = workspace
         elif isinstance(self.sandbox, LocalSandboxAdapter):
-            self.workspace = self.sandbox._workspace  # read default, don't create yet
+            self._base_workspace = self.sandbox._workspace
         else:
-            self.workspace = "/workspace"
+            self._base_workspace = "/workspace"
+        self.workspace = self._base_workspace
+
+    # ── Workspace helpers ─────────────────────────────────────────────────────
+
+    def _resolve_workspace(self, thread_id: str | None) -> str:
+        """Return ``{_base_workspace}/{thread_id}`` or base when no thread_id."""
+        if thread_id:
+            return os.path.join(self._base_workspace, thread_id)
+        return self._base_workspace
+
+    def _confine_path(self, path: str, workspace: str) -> str:
+        """Resolve *path* and assert it is inside *workspace*.
+
+        Relative paths are anchored to *workspace*.
+        Raises ``PermissionError`` for any path that escapes the boundary,
+        including ``..`` traversal and symlink targets outside the workspace.
+        """
+        # Anchor relative paths to workspace
+        if not os.path.isabs(path):
+            path = os.path.join(workspace, path)
+
+        # Normalize to collapse .. without following symlinks
+        norm_path = os.path.normpath(path)
+        norm_ws = os.path.normpath(workspace)
+
+        if norm_path != norm_ws and not norm_path.startswith(norm_ws + os.sep):
+            raise PermissionError(
+                f"Sandbox violation: '{path}' is outside the thread workspace "
+                f"'{workspace}'. All operations must stay within the workspace."
+            )
+
+        # Guard against symlink escape for existing paths
+        if os.path.exists(norm_path):
+            real_path = os.path.realpath(norm_path)
+            real_ws = os.path.realpath(norm_ws)
+            if real_path != real_ws and not real_path.startswith(real_ws + os.sep):
+                raise PermissionError(
+                    f"Sandbox violation: '{path}' resolves via symlink to "
+                    f"'{real_path}' which is outside the thread workspace."
+                )
+
+        return norm_path
+
+    def _bash_prelude(self, workspace: str) -> str:
+        """Return bash code that confines the shell session to *workspace*.
+
+        Sets HOME/TMPDIR to workspace and overrides ``cd`` so it cannot
+        navigate outside the workspace boundary.
+        """
+        # Escape workspace for single-quoted bash assignment
+        ws_sq = workspace.replace("'", "'\\''")
+        return (
+            f"__SANDBOX_WS='{ws_sq}'\n"
+            "cd() {\n"
+            "    local __t=\"${1:-$__SANDBOX_WS}\"\n"
+            "    local __here=\"$PWD\"\n"
+            "    builtin cd \"$__t\" 2>/dev/null || "
+            "{ echo \"sandbox: no such directory: $__t\" >&2; return 1; }\n"
+            "    case \"$PWD\" in\n"
+            "        \"$__SANDBOX_WS\"|\"$__SANDBOX_WS\"/*) ;;\n"
+            "        *) builtin cd \"$__here\"; "
+            "echo \"sandbox: cd restricted to $__SANDBOX_WS\" >&2; return 1 ;;\n"
+            "    esac\n"
+            "}\n"
+            "export HOME=\"$__SANDBOX_WS\"\n"
+            "export TMPDIR=\"$__SANDBOX_WS/.tmp\"\n"
+            "mkdir -p \"$TMPDIR\"\n"
+        )
 
     # ── Shell ─────────────────────────────────────────────────────────────────
 
     @tool(parse_docstring=True)
     async def sandbox_bash(self, description: str, command: str, session_id: str = "default") -> Any:
-        """Execute a bash command inside the sandbox.
+        """Execute a bash command inside the sandbox workspace.
 
-        The workspace directory is auto-created if it does not exist.
-        Use absolute paths. For Python code, prefer the sandbox workspace.
+        The command runs inside the agent's isolated workspace directory.
+        ``cd`` is restricted so the shell cannot leave the workspace.
+        HOME and TMPDIR are scoped to the workspace.
 
         Args:
             description: Brief explanation of why this command is being run.
             command: The bash command to execute (supports multi-line with &&).
-            session_id: Unique identifier for this shell session (default: "default").
+            session_id: Named sub-session within this agent run (default: "default").
         """
-        # Ensure local workspace exists
         from backend.infrastructure.sandbox.local_sandbox import LocalSandboxAdapter
-        if isinstance(self.sandbox, LocalSandboxAdapter):
-            self.sandbox.ensure_workspace()
+        from backend.infrastructure.sandbox.sandbox_session import get_current_thread_id
 
-        result = await self.sandbox.exec_command(session_id, self.workspace, command)
+        thread_id = get_current_thread_id()
+        workspace = self._resolve_workspace(thread_id)
+
+        if isinstance(self.sandbox, LocalSandboxAdapter):
+            os.makedirs(workspace, exist_ok=True)
+
+        scoped_session = f"{thread_id}:{session_id}" if thread_id else session_id
+
+        # Prepend bash prelude that confines cd, HOME, TMPDIR to workspace
+        confined_command = self._bash_prelude(workspace) + command
+
+        result = await self.sandbox.exec_command(scoped_session, workspace, confined_command)
         return _truncate_middle(str(result), _BASH_MAX_CHARS)
 
     # ── File system ───────────────────────────────────────────────────────────
@@ -110,19 +186,25 @@ class SandboxToolkit(BaseToolkit):
     async def sandbox_ls(self, description: str, path: str) -> Any:
         """List the contents of a directory up to 2 levels deep.
 
+        Path must be inside the agent's sandbox workspace.
+
         Args:
             description: Brief explanation of why you are listing this directory.
-            path: Absolute path to the directory to list.
+            path: Path to the directory to list (absolute or relative to workspace).
         """
+        from backend.infrastructure.sandbox.sandbox_session import get_current_thread_id
+        thread_id = get_current_thread_id()
+        workspace = self._resolve_workspace(thread_id)
         try:
-            entries = await self.sandbox.list_dir(path)
+            safe_path = self._confine_path(path, workspace)
+            entries = await self.sandbox.list_dir(safe_path)
             if not entries:
                 return "(empty)"
             return _truncate_head("\n".join(entries), _LS_MAX_CHARS, "Use a more specific path")
+        except PermissionError as exc:
+            return f"Error: {exc}"
         except FileNotFoundError:
             return f"Error: Directory not found: {path}"
-        except PermissionError:
-            return f"Error: Permission denied: {path}"
         except Exception as exc:
             return f"Error: {exc}"
 
@@ -134,24 +216,32 @@ class SandboxToolkit(BaseToolkit):
         path: str,
         max_results: int = 200,
     ) -> Any:
-        """Find files matching a glob pattern under a root directory.
+        """Find files matching a glob pattern under a directory in the workspace.
+
+        Path must be inside the agent's sandbox workspace.
 
         Args:
             description: Brief explanation of why you are searching for these paths.
             pattern: Glob pattern relative to root, e.g. ``**/*.py``.
-            path: Absolute root directory to search under.
+            path: Root directory to search under (absolute or relative to workspace).
             max_results: Maximum number of paths to return (default 200, max 1000).
         """
+        from backend.infrastructure.sandbox.sandbox_session import get_current_thread_id
+        thread_id = get_current_thread_id()
+        workspace = self._resolve_workspace(thread_id)
         try:
+            safe_path = self._confine_path(path, workspace)
             limit = max(1, min(max_results, 1000))
-            matches, truncated = await self.sandbox.glob_files(path, pattern, limit)
+            matches, truncated = await self.sandbox.glob_files(safe_path, pattern, limit)
             if not matches:
-                return f"No files matched pattern '{pattern}' under {path}"
-            lines = [f"Found {len(matches)} paths under {path}" + (" (truncated)" if truncated else "")]
+                return f"No files matched pattern '{pattern}' under {safe_path}"
+            lines = [f"Found {len(matches)} paths under {safe_path}" + (" (truncated)" if truncated else "")]
             lines.extend(f"{i}. {p}" for i, p in enumerate(matches, 1))
             if truncated:
                 lines.append("Results truncated — narrow the pattern or path.")
             return "\n".join(lines)
+        except PermissionError as exc:
+            return f"Error: {exc}"
         except FileNotFoundError:
             return f"Error: Directory not found: {path}"
         except Exception as exc:
@@ -168,34 +258,42 @@ class SandboxToolkit(BaseToolkit):
         case_sensitive: bool = False,
         max_results: int = 100,
     ) -> Any:
-        """Search for matching lines inside files under a root directory.
+        """Search for matching lines inside files within the workspace.
+
+        Path must be inside the agent's sandbox workspace.
 
         Args:
             description: Brief explanation of why you are searching file contents.
             pattern: String or regex pattern to search for.
-            path: Absolute root directory to search under.
+            path: Root directory to search under (absolute or relative to workspace).
             glob_filter: Optional file glob to filter candidates, e.g. ``**/*.py``.
             literal: Treat pattern as a plain string (default False).
             case_sensitive: Case-sensitive matching (default False).
             max_results: Maximum matching lines to return (default 100, max 500).
         """
+        from backend.infrastructure.sandbox.sandbox_session import get_current_thread_id
+        thread_id = get_current_thread_id()
+        workspace = self._resolve_workspace(thread_id)
         try:
             if literal:
                 pattern = re.escape(pattern)
+            safe_path = self._confine_path(path, workspace)
             limit = max(1, min(max_results, 500))
             matches, truncated = await self.sandbox.grep_files(
-                path, pattern,
+                safe_path, pattern,
                 glob_filter=glob_filter,
                 case_sensitive=case_sensitive,
                 max_results=limit,
             )
             if not matches:
-                return f"No matches found under {path}"
-            lines = [f"Found {len(matches)} matches under {path}" + (" (truncated)" if truncated else "")]
+                return f"No matches found under {safe_path}"
+            lines = [f"Found {len(matches)} matches under {safe_path}" + (" (truncated)" if truncated else "")]
             lines.extend(f"{m.path}:{m.line_number}: {m.line}" for m in matches)
             if truncated:
                 lines.append("Results truncated — narrow the path or add a glob filter.")
             return "\n".join(lines)
+        except PermissionError as exc:
+            return f"Error: {exc}"
         except re.error as exc:
             return f"Error: Invalid regex pattern: {exc}"
         except FileNotFoundError:
@@ -213,23 +311,29 @@ class SandboxToolkit(BaseToolkit):
         start_line: Optional[int] = None,
         end_line: Optional[int] = None,
     ) -> Any:
-        """Read the contents of a text file.
+        """Read the contents of a file inside the workspace.
+
+        Path must be inside the agent's sandbox workspace.
 
         Args:
             description: Brief explanation of why you are reading this file.
-            path: Absolute path to the file to read.
+            path: Path to the file (absolute or relative to workspace).
             start_line: Starting line number, 1-indexed inclusive (optional).
             end_line: Ending line number, 1-indexed inclusive (optional).
         """
+        from backend.infrastructure.sandbox.sandbox_session import get_current_thread_id
+        thread_id = get_current_thread_id()
+        workspace = self._resolve_workspace(thread_id)
         try:
-            content = await self.sandbox.read_file(path, start_line, end_line)
+            safe_path = self._confine_path(path, workspace)
+            content = await self.sandbox.read_file(safe_path, start_line, end_line)
             return _truncate_head(content, _READ_MAX_CHARS)
+        except PermissionError as exc:
+            return f"Error: {exc}"
         except FileNotFoundError:
             return f"Error: File not found: {path}"
         except IsADirectoryError:
             return f"Error: Path is a directory, not a file: {path}"
-        except PermissionError:
-            return f"Error: Permission denied: {path}"
         except Exception as exc:
             return f"Error: {exc}"
 
@@ -241,19 +345,26 @@ class SandboxToolkit(BaseToolkit):
         content: str,
         append: bool = False,
     ) -> Any:
-        """Write text content to a file (creates parent directories automatically).
+        """Write text content to a file inside the workspace.
+
+        Parent directories are created automatically.
+        Path must be inside the agent's sandbox workspace.
 
         Args:
             description: Brief explanation of why you are writing this file.
-            path: Absolute path to the file to write.
+            path: Path to the file (absolute or relative to workspace).
             content: Text content to write.
             append: Append to the file instead of overwriting (default False).
         """
+        from backend.infrastructure.sandbox.sandbox_session import get_current_thread_id
+        thread_id = get_current_thread_id()
+        workspace = self._resolve_workspace(thread_id)
         try:
-            await self.sandbox.write_file(path, content, append)
+            safe_path = self._confine_path(path, workspace)
+            await self.sandbox.write_file(safe_path, content, append)
             return "OK"
-        except PermissionError:
-            return f"Error: Permission denied writing to: {path}"
+        except PermissionError as exc:
+            return f"Error: {exc}"
         except IsADirectoryError:
             return f"Error: Path is a directory: {path}"
         except OSError as exc:
@@ -270,32 +381,37 @@ class SandboxToolkit(BaseToolkit):
         new_str: str,
         replace_all: bool = False,
     ) -> Any:
-        """Replace a substring in a file.
+        """Replace a substring in a file inside the workspace.
 
         When replace_all is False (default), old_str must appear exactly once.
+        Path must be inside the agent's sandbox workspace.
 
         Args:
             description: Brief explanation of why you are replacing this string.
-            path: Absolute path to the file to modify.
+            path: Path to the file to modify (absolute or relative to workspace).
             old_str: The substring to replace.
             new_str: The replacement substring.
             replace_all: Replace every occurrence (default False).
         """
+        from backend.infrastructure.sandbox.sandbox_session import get_current_thread_id
+        thread_id = get_current_thread_id()
+        workspace = self._resolve_workspace(thread_id)
         try:
-            content = await self.sandbox.read_file(path)
+            safe_path = self._confine_path(path, workspace)
+            content = await self.sandbox.read_file(safe_path)
             if old_str not in content:
-                return f"Error: String not found in file: {path}"
+                return f"Error: String not found in file: {safe_path}"
             if not replace_all and content.count(old_str) > 1:
                 return (
                     f"Error: String appears {content.count(old_str)} times — "
                     "provide a more specific old_str or set replace_all=True"
                 )
             updated = content.replace(old_str, new_str) if replace_all else content.replace(old_str, new_str, 1)
-            await self.sandbox.write_file(path, updated)
+            await self.sandbox.write_file(safe_path, updated)
             return "OK"
+        except PermissionError as exc:
+            return f"Error: {exc}"
         except FileNotFoundError:
             return f"Error: File not found: {path}"
-        except PermissionError:
-            return f"Error: Permission denied: {path}"
         except Exception as exc:
             return f"Error: {exc}"

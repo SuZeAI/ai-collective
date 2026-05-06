@@ -62,7 +62,8 @@ async def chat(
                 toolkit = tool_manager.get_tool_for_skill(skill)
                 if toolkit:
                     tools.extend(toolkit.get_tools())
-        except Exception:
+        except Exception as exc:
+            logger.exception("Failed to resolve tools for agent '%s': %s", req.agentId, exc)
             if not system_prompt:
                 system_prompt = None
 

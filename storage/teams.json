@@ -97,5 +97,20 @@
     "avatar_url": "",
     "mode": "mesh",
     "maxSteps": 6
+  },
+  {
+    "id": "t_75da7550f6f24cafb003147e5ef71d10",
+    "name": "coding agent",
+    "description": " coding agent",
+    "agents": [
+      "agent_6a9b24bbb1014ae381c13bc5250087a1"
+    ],
+    "activeTasks": 0,
+    "avatar": "C",
+    "avatar_icon": "",
+    "avatar_color": "#0EA5E9",
+    "avatar_url": "",
+    "mode": "sequential",
+    "maxSteps": 6
   }
 ]

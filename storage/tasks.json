@@ -40,5 +40,18 @@
     ],
     "startTime": "2026-04-22T16:48:12+00:00",
     "endTime": "2026-04-22T16:49:16+00:00"
+  },
+  {
+    "id": "task_198e22a7ac7e488b8ae57fc1a89c4ba8",
+    "title": "coding agent",
+    "description": "code snake game use only html",
+    "teamId": "t_75da7550f6f24cafb003147e5ef71d10",
+    "status": "completed",
+    "progress": 100,
+    "assignedAgents": [
+      "agent_6a9b24bbb1014ae381c13bc5250087a1"
+    ],
+    "startTime": "2026-05-06T16:51:01+00:00",
+    "endTime": "2026-05-06T16:51:21+00:00"
   }
 ]
