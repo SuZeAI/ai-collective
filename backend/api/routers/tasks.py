@@ -24,7 +24,7 @@ from backend.application.service.team_service import TeamService
 from backend.domain.errors import NotFoundError
 from backend.domain.enums import AgentStatus
 from backend.domain.enums import TaskStatus
-from backend.domain.models import Message, Task
+from backend.domain.models import Task
 from backend.infrastructure import task_run_registry
 from backend.infrastructure import task_queue
 from backend.log import get_logger
@@ -83,7 +83,6 @@ def _run_team_conversation_loop(
     task_service: TaskService,
     team_service: TeamService,
     agent_service: AgentService,
-    conv_service: ConversationService,
     cancel_flag=None,
 ) -> Task:
     if task.status != TaskStatus.in_progress:
@@ -107,16 +106,8 @@ def _run_team_conversation_loop(
     if not participants:
         return task
 
-    messages = [
-        "Starting execution for this task. Sharing plan and splitting responsibilities.",
-        "Received. I am processing my part and will report intermediate results.",
-        "Update: progress is moving. Syncing blockers and dependencies now.",
-        "Reviewing outputs and validating quality before final handoff.",
-    ]
-
     max_steps = 10
     progress = max(0, min(100, int(task.progress)))
-    base_ts = int(time.time() * 1000)
     logger.info("[Loop] starting | task_id=%s | participants=%d | initial_progress=%d%%",
                 task.id, len(participants), progress)
 
@@ -127,36 +118,14 @@ def _run_team_conversation_loop(
             logger.info("[Loop] CANCELLED | task_id=%s | at_step=%d | progress_so_far=%d%%",
                         task.id, step, progress)
             break
-        speaker = participants[step % len(participants)]
-        text = messages[step % len(messages)]
-        conv_service.add_message(
-            Message(
-                id=f"m{base_ts + step}",
-                agent_id=speaker,
-                content=f"[Step {step + 1}/{max_steps}] {text}",
-                timestamp=datetime.utcnow().replace(microsecond=0),
-                task_id=task.id,
-            )
-        )
-
         remaining_steps = max_steps - step
         increment = max(8, (100 - progress + remaining_steps - 1) // remaining_steps)
         progress = min(100, progress + increment)
-        logger.debug("[Loop] step %d/%d | task_id=%s | progress=%d%%", step + 1, max_steps, task.id, progress)
 
     status = task.status
     if progress >= 100:
         status = TaskStatus.completed
         logger.info("[Loop] COMPLETED | task_id=%s | final_progress=%d%%", task.id, progress)
-        conv_service.add_message(
-            Message(
-                id=f"m{base_ts + max_steps + 1}",
-                agent_id=participants[0],
-                content="Task completed. Team has finalized all deliverables.",
-                timestamp=datetime.utcnow().replace(microsecond=0),
-                task_id=task.id,
-            )
-        )
 
     if cancel_flag is not None and cancel_flag.cancelled:
         # Don't overwrite the user-set stopped/paused status that triggered cancellation.
@@ -282,7 +251,7 @@ def upsert_task(
                     logger.info("[Task] background_run skipped (already cancelled before start) | task_id=%s", _snap.id)
                     return
                 logger.info("[Task] background_run START | task_id=%s", _snap.id)
-                _run_team_conversation_loop(_snap, _svc, _tsvc, _asvc, _csvc, cancel_flag)
+                _run_team_conversation_loop(_snap, _svc, _tsvc, _asvc, cancel_flag)
                 logger.info("[Task] background_run END | task_id=%s", _snap.id)
             finally:
                 task_run_registry.unregister(_snap.id)
