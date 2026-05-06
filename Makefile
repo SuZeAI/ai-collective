@@ -25,9 +25,9 @@ C_YELLOW := \033[33m
 
 # ── Phony declarations ────────────────────────────────────────────────────
 .PHONY: help \
-        dev dev-down dev-build dev-logs dev-ps \
+        dev dev-down dev-stop dev-start dev-build dev-logs dev-ps \
         dev-sandbox dev-provisioner \
-        up down build restart ps logs logs-backend logs-frontend \
+        up down stop start build restart ps logs logs-backend logs-frontend \
         prod-sandbox prod-provisioner \
         backend frontend \
         infra infra-down \
@@ -70,8 +70,14 @@ dev: dirs env ## Start full development stack (hot-reload, all services)
 dev-build: ## Rebuild all dev images without cache
 	$(COMPOSE_DEV) build --no-cache
 
-dev-down: ## Stop and remove dev containers
+dev-down: ## Stop and remove dev containers (removes containers + networks)
 	$(COMPOSE_DEV) down
+
+dev-stop: ## Stop dev containers without removing them (preserves state for restart)
+	$(COMPOSE_DEV) stop
+
+dev-start: ## Start stopped dev containers (use after dev-stop)
+	$(COMPOSE_DEV) start
 
 dev-logs: ## Tail all dev container logs (Ctrl-C to stop)
 	$(COMPOSE_DEV) logs -f
@@ -115,8 +121,14 @@ up: dirs env ## Start production stack (detached)
 	$(COMPOSE_PROD) up -d
 	@printf "$(C_GREEN)✓ Production stack up:$(C_RESET) http://localhost:2026\n"
 
-down: ## Stop and remove production containers
+down: ## Stop and remove production containers (removes containers + networks)
 	$(COMPOSE_PROD) down
+
+stop: ## Stop production containers without removing them (preserves state for restart)
+	$(COMPOSE_PROD) stop
+
+start: ## Start stopped production containers (use after stop)
+	$(COMPOSE_PROD) start
 
 build: ## Build production images (no cache)
 	$(COMPOSE_PROD) build --no-cache

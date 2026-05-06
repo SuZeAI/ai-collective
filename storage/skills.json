@@ -657,5 +657,19 @@
       "service_account_path": ""
     },
     "code": null
+  },
+  {
+    "id": "skill_e3f5c5569bd941dba23c84feb76add7d",
+    "name": "Sandbox",
+    "description": "",
+    "third_party": "Sandbox",
+    "kind": "integration",
+    "avatar": "S",
+    "avatar_icon": "terminal",
+    "avatar_color": "#3bf76a",
+    "avatar_url": "",
+    "tool_name": "sandbox",
+    "config": {},
+    "code": null
   }
 ]
