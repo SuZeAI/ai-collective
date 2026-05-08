@@ -141,7 +141,25 @@ def get_task_service() -> TaskService:
 
 def get_conversation_service() -> ConversationService:
     _, _, _, _, conversations, _, _, graph_knowledge, _, _ = _repos()
-    return ConversationService(conversations, GraphContextService(graph_knowledge))
+    graph_llm = None
+    if settings.graph_build_mode == "llm":
+        graph_llm = create_llm_provider(
+            provider=settings.graph_llm_provider or settings.llm_provider,
+            model=settings.graph_llm_model or settings.llm_model,
+            google_api_key=settings.google_api_key,
+            anthropic_api_key=settings.anthropic_api_key,
+            openai_api_key=settings.openai_api_key,
+            open_weight_api_key=settings.open_weight_api_key,
+            base_url=settings.llm_api_base,
+        )
+    return ConversationService(
+        conversations,
+        GraphContextService(
+            graph_knowledge,
+            llm_provider=graph_llm,
+            build_mode=settings.graph_build_mode,
+        ),
+    )
 
 
 def get_analytics_service() -> AnalyticsService:
@@ -156,7 +174,22 @@ def get_activity_feed_service() -> ActivityFeedService:
 
 def get_graph_context_service() -> GraphContextService:
     _, _, _, _, _, _, _, graph_knowledge, _, _ = _repos()
-    return GraphContextService(graph_knowledge)
+    graph_llm = None
+    if settings.graph_build_mode == "llm":
+        graph_llm = create_llm_provider(
+            provider=settings.graph_llm_provider or settings.llm_provider,
+            model=settings.graph_llm_model or settings.llm_model,
+            google_api_key=settings.google_api_key,
+            anthropic_api_key=settings.anthropic_api_key,
+            openai_api_key=settings.openai_api_key,
+            open_weight_api_key=settings.open_weight_api_key,
+            base_url=settings.llm_api_base,
+        )
+    return GraphContextService(
+        graph_knowledge,
+        llm_provider=graph_llm,
+        build_mode=settings.graph_build_mode,
+    )
 
 
 def get_workspace_service() -> WorkspaceService:
