@@ -47,7 +47,6 @@
     "avatar_url": "",
     "tool_name": "bash",
     "config": {
-      "sandbox": "default",
       "requires_runtime": true
     },
     "code": null

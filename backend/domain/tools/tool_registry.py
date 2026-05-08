@@ -164,11 +164,13 @@ class ToolRegistry:
 
         if tool_name in (ToolType.BASH.value, ToolType.SANDBOX.value):
             from backend.infrastructure.sandbox.factory import create_sandbox_adapter
+            from backend.infrastructure.sandbox import Sandbox
 
             for _k in ("sandbox_mode", "sandbox_url", "sandbox_provisioner_url", "sandbox_timeout", "sandbox_workspace"):
                 kwargs.pop(_k, None)
 
-            if "sandbox" not in kwargs:
+            if not isinstance(kwargs.get("sandbox"), Sandbox):
+                kwargs.pop("sandbox", None)
                 sandbox = create_sandbox_adapter()
                 kwargs = {**kwargs, "sandbox": sandbox}
 
