@@ -3,7 +3,7 @@ import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent }
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X, Eye } from "lucide-react";
+import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -191,6 +191,7 @@ export default function TaskManager() {
   const [taskGraphPositions, setTaskGraphPositions] = useState<Record<string, Record<string, GraphNodePosition>>>({});
   const [open, setOpen] = useState(false);
   const [viewTaskId, setViewTaskId] = useState<string | null>(null);
+  const [graphPanelVisible, setGraphPanelVisible] = useState(true);
   const graphSvgRef = useRef<SVGSVGElement | null>(null);
   const graphDragRef = useRef<{
     taskId: string;
@@ -898,7 +899,7 @@ export default function TaskManager() {
             const viewport = taskGraphViewports[selectedTask.id] ?? createDefaultViewport();
 
             return (
-              <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,3fr)]">
+              <div className={`h-full min-h-0 grid grid-cols-1 ${graphPanelVisible ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,3fr)]" : "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]"}`}>
                 <div className="h-full min-h-0 border-r border-border bg-muted/25 overflow-y-auto p-5 space-y-5">
                   <DialogHeader className="space-y-2 text-left">
                     <div className="flex items-center justify-between gap-3">
@@ -1018,9 +1019,20 @@ export default function TaskManager() {
                     <div className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                       Live Conversation
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      {selectedTask.status === "in-progress" && <span className="w-2 h-2 rounded-full bg-agent-dev animate-pulse" />}
-                      <span>{selectedTask.status === "in-progress" ? "Live" : "Recent"}</span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setGraphPanelVisible((v) => !v)}
+                        title={graphPanelVisible ? "Hide graph" : "Show graph"}
+                      >
+                        {graphPanelVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </Button>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        {selectedTask.status === "in-progress" && <span className="w-2 h-2 rounded-full bg-agent-dev animate-pulse" />}
+                        <span>{selectedTask.status === "in-progress" ? "Live" : "Recent"}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -1081,17 +1093,28 @@ export default function TaskManager() {
                   </div>
                 </div>
 
-                <div className="h-full min-h-0 p-5 flex flex-col overflow-hidden bg-card/80 text-foreground">
+                {graphPanelVisible && <div className="h-full min-h-0 p-5 flex flex-col overflow-hidden bg-card/80 text-foreground">
                   <div className="flex items-start justify-between gap-4 border-b border-border pb-3 mb-3">
                     <div>
                       <div className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Graph context</div>
                       <div className="mt-1 text-sm font-semibold text-foreground">Knowledge graph activity</div>
                     </div>
-                    <div className="text-right text-[11px] text-foreground/70">
-                      <div className="font-medium text-foreground">
-                        {graphHighlight?.agentName ?? (selectedTask.status === "in-progress" ? "Waiting for context" : "Idle")}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setGraphPanelVisible(false)}
+                        title="Hide graph"
+                      >
+                        <EyeOff className="w-3.5 h-3.5" />
+                      </Button>
+                      <div className="text-right text-[11px] text-foreground/70">
+                        <div className="font-medium text-foreground">
+                          {graphHighlight?.agentName ?? (selectedTask.status === "in-progress" ? "Waiting for context" : "Idle")}
+                        </div>
+                        <div>{graphNodes.length} nodes · {graphEdges.length} edges</div>
                       </div>
-                      <div>{graphNodes.length} nodes · {graphEdges.length} edges</div>
                     </div>
                   </div>
 
@@ -1222,7 +1245,7 @@ export default function TaskManager() {
                       </div>
                     )}
                   </div>
-                </div>
+                </div>}
               </div>
             );
           })()}
