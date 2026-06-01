@@ -11,6 +11,7 @@ export type Agent = {
   avatar_icon?: string;
   avatar_color?: string;
   avatar_url?: string;
+  subagent_enabled?: boolean;
 };
 
 export type Skill = {

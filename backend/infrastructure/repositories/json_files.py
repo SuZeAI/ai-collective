@@ -59,6 +59,7 @@ class JsonAgentRepository:
                             description=str(item.get("description", "")),
                         )
                     ),
+                    subagent_enabled=bool(item.get("subagent_enabled", False)),
                 )
                 self._items[agent.id] = agent
             except Exception:
@@ -80,6 +81,7 @@ class JsonAgentRepository:
                     "avatar_url": a.avatar_url,
                     "system_prompt": a.system_prompt
                     or _default_agent_system_prompt(name=a.name, role=a.role, description=a.description),
+                    "subagent_enabled": a.subagent_enabled,
                 }
                 for a in self._items.values()
             ]

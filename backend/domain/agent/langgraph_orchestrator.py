@@ -201,6 +201,14 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                 for toolkit in agent.tools.values():
                     bound_tools.extend(toolkit.get_tools())
 
+            # Agent Mode: expose the `task` tool so this agent can delegate to
+            # subagents (which inherit these tools minus `task`).
+            if agent.subagent_enabled:
+                from backend.domain.tools.task import TaskToolkit
+
+                task_toolkit = TaskToolkit(llm=llm, subagent_tools=list(bound_tools))
+                bound_tools.extend(task_toolkit.get_tools())
+
             user_input = state["input"]
             
             # Stream: Building context
@@ -252,6 +260,7 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                 system=agent.system_prompt,
                 user=user_input,
                 tools=bound_tools or None,
+                parallel_tools=agent.subagent_enabled,
             )
 
             # Stream: LLM response received

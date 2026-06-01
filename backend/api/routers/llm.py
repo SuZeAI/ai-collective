@@ -51,11 +51,13 @@ async def chat(
         raise HTTPException(status_code=503, detail="LLM not configured")
     system_prompt = req.system
     tools: list[object] = []
+    subagent_enabled = False
     if req.agentId:
         try:
             agent = agent_service.get_agent(req.agentId)
             if not system_prompt:
                 system_prompt = agent.system_prompt or None
+            subagent_enabled = bool(getattr(agent, "subagent_enabled", False))
 
             skills = agent_service.get_agent_skills(req.agentId)
             for skill in skills:
@@ -67,10 +69,19 @@ async def chat(
             if not system_prompt:
                 system_prompt = None
 
+    # Agent Mode: expose the `task` tool (subagent delegation) and run tool
+    # calls in parallel. Subagents inherit the agent's tools (minus `task`).
+    if subagent_enabled:
+        from backend.domain.tools.task import TaskToolkit
+
+        task_toolkit = TaskToolkit(llm=service.get_provider(), subagent_tools=list(tools))
+        tools.extend(task_toolkit.get_tools())
+
     text = await service.chat(
         prompt=req.prompt,
         system=system_prompt or "You are a helpful assistant.",
         tools=tools or None,
+        parallel_tools=subagent_enabled,
     )
     return ChatResponse(response=text)
 
@@ -111,6 +122,7 @@ async def run_agent_graph(
                     description=agent.description,
                     skill_ids=list(agent.skill_ids),
                     tools=agent_tools or None,
+                    subagent_enabled=bool(getattr(agent, "subagent_enabled", False)),
                 )
             )
         except Exception as e:
@@ -171,6 +183,7 @@ async def run_agent_graph_stream(
                     description=agent.description,
                     skill_ids=list(agent.skill_ids),
                     tools=agent_tools or None,
+                    subagent_enabled=bool(getattr(agent, "subagent_enabled", False)),
                 )
             )
             agent_name_to_id[agent.name] = agent_id  # Store mapping
