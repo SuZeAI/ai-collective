@@ -40,6 +40,16 @@ class Settings(BaseSettings):
     mongo_uri: str = "mongodb://admin:admin@localhost:27017/ai_collective?authSource=admin"
     mongo_db: str = "ai_collective"
 
+    # ── Agent / tools ─────────────────────────────────────────────────────────
+    # Max LLM<->tool rounds per agent turn (the bounded tool-calling loop).
+    agent_max_tool_rounds: int = 6
+    # Per-tool execution timeout in seconds. 0 disables the timeout (default),
+    # since some tools (browser, bash) may legitimately run long.
+    tool_timeout_seconds: int = 0
+    # Subagent (Agent Mode) limits.
+    subagent_max_concurrent: int = 3
+    subagent_max_turns: int = 6
+
     # ── Task queue ────────────────────────────────────────────────────────────
     # backend: "memory" (default, single-instance) | "rabbitmq" (multi-instance)
     task_queue_backend: str = "memory"

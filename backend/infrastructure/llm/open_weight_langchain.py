@@ -40,6 +40,7 @@ class OpenWeightLangChainProvider(LangChainLLMProvider):
         base_url: str | None = None,
         default_headers: dict[str, str] | None = None,
         max_tool_rounds: int = 6,
+        tool_timeout_seconds: int | None = None,
     ):
         try:
             ChatOpenAI = importlib.import_module("langchain_openai").ChatOpenAI
@@ -65,4 +66,5 @@ class OpenWeightLangChainProvider(LangChainLLMProvider):
             ChatOpenAI(**kwargs),
             provider_name="Open-weight",
             max_tool_rounds=max_tool_rounds,
+            tool_timeout_seconds=tool_timeout_seconds,
         )

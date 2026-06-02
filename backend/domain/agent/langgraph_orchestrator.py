@@ -22,6 +22,7 @@ from backend.domain.agent.token_budget import apply_context_token_budget
 
 MAX_CONTEXT_TOKENS = max(1024, int(os.getenv("AGENT_CONTEXT_TOKEN_LIMIT", "12000")))
 RESERVED_OUTPUT_TOKENS = max(256, int(os.getenv("AGENT_OUTPUT_TOKEN_RESERVE", "2000")))
+SUBAGENT_MAX_CONCURRENT = max(1, int(os.getenv("SUBAGENT_MAX_CONCURRENT", "3")))
 
 
 class MultiAgentState(TypedDict):
@@ -206,7 +207,12 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
             if agent.subagent_enabled:
                 from backend.domain.tools.task import TaskToolkit
 
-                task_toolkit = TaskToolkit(llm=llm, subagent_tools=list(bound_tools))
+                task_toolkit = TaskToolkit(
+                    llm=llm,
+                    subagent_tools=list(bound_tools),
+                    max_concurrent=SUBAGENT_MAX_CONCURRENT,
+                    parent_agent_name=agent.name,
+                )
                 bound_tools.extend(task_toolkit.get_tools())
 
             user_input = state["input"]

@@ -231,6 +231,8 @@ def _llm_provider():
         openai_api_key=settings.openai_api_key,
         open_weight_api_key=settings.open_weight_api_key,
         base_url=settings.llm_api_base,
+        max_tool_rounds=settings.agent_max_tool_rounds,
+        tool_timeout_seconds=settings.tool_timeout_seconds,
     )
 
 

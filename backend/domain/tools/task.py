@@ -2,15 +2,18 @@
 
 A subagent runs as a bounded, recursive ``LLMProvider.chat`` call with a
 dedicated system prompt and a filtered tool set. The ``task`` tool itself is
-always excluded from the subagent's tools to prevent infinite recursion.
+always excluded from the subagent's tools to prevent infinite recursion, and
+``config.max_turns`` bounds the subagent's tool-calling loop.
 
 When the parent LLM emits multiple ``task`` calls in a single turn, the
 provider's parallel tool-execution path runs them concurrently — mirroring the
-deerflow "task tool" parallelism.
+deerflow "task tool" parallelism. A semaphore caps how many subagents run at
+once (``max_concurrent``).
 """
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, List
 
 from langchain.tools import tool
@@ -21,8 +24,28 @@ from backend.domain.agent.subagents import (
     get_available_subagent_names,
     get_subagent_config,
 )
+from backend.domain.event.schema import EventType
 from backend.domain.tools.base import BaseToolkit, Tool
 from backend.log import get_logger
+
+DEFAULT_MAX_CONCURRENT_SUBAGENTS = 3
+
+
+def _emit_event(payload: dict) -> None:
+    """Best-effort custom stream event.
+
+    When running inside a LangGraph node the stream writer forwards this to the
+    SSE stream; outside a graph (e.g. the ``/llm/chat`` test path) there is no
+    writer, so this is a silent no-op.
+    """
+    try:
+        from langgraph.config import get_stream_writer
+
+        writer = get_stream_writer()
+        if writer is not None:
+            writer(payload)
+    except Exception:
+        pass
 
 
 class TaskToolkit(BaseToolkit):
@@ -30,12 +53,28 @@ class TaskToolkit(BaseToolkit):
 
     name: str = "task"
 
-    def __init__(self, llm: LLMProvider, subagent_tools: List[Tool], **kwargs: Any):
+    def __init__(
+        self,
+        llm: LLMProvider,
+        subagent_tools: List[Tool],
+        max_concurrent: int = DEFAULT_MAX_CONCURRENT_SUBAGENTS,
+        parent_agent_name: str | None = None,
+        **kwargs: Any,
+    ):
         super().__init__(**kwargs)
         # Stored as extra attributes (model_config allows extra fields).
         self._llm = llm
         # Snapshot the parent agent's tools to hand to subagents.
         self._subagent_tools = list(subagent_tools)
+        self._max_concurrent = max(1, int(max_concurrent))
+        self._parent_agent_name = parent_agent_name
+        # Lazily created so it binds to the active event loop.
+        self._semaphore: asyncio.Semaphore | None = None
+
+    def _get_semaphore(self) -> asyncio.Semaphore:
+        if self._semaphore is None:
+            self._semaphore = asyncio.Semaphore(self._max_concurrent)
+        return self._semaphore
 
     @tool(parse_docstring=True)
     async def task(self, description: str, prompt: str, subagent_type: str) -> Any:
@@ -71,15 +110,48 @@ class TaskToolkit(BaseToolkit):
         )
 
         get_logger().info(
-            "Spawning subagent '%s' (%s) with %d tools",
+            "Spawning subagent '%s' (%s) with %d tools, max_turns=%d",
             subagent_type,
             description,
             len(filtered),
+            config.max_turns,
+        )
+        _emit_event(
+            {
+                "type": EventType.SUBAGENT_START.value,
+                "agent_name": self._parent_agent_name,
+                "subagent_type": subagent_type,
+                "description": description,
+            }
         )
 
-        result = await self._llm.chat(
-            system=config.system_prompt,
-            user=prompt,
-            tools=filtered or None,
+        async with self._get_semaphore():
+            try:
+                result = await self._llm.chat(
+                    system=config.system_prompt,
+                    user=prompt,
+                    tools=filtered or None,
+                    max_tool_rounds=config.max_turns,
+                )
+            except Exception as exc:  # noqa: BLE001 - surface as tool output
+                get_logger().exception("Subagent '%s' failed", subagent_type)
+                _emit_event(
+                    {
+                        "type": EventType.SUBAGENT_COMPLETE.value,
+                        "agent_name": self._parent_agent_name,
+                        "subagent_type": subagent_type,
+                        "description": description,
+                        "error": str(exc),
+                    }
+                )
+                return f"Subagent '{subagent_type}' failed: {exc}"
+
+        _emit_event(
+            {
+                "type": EventType.SUBAGENT_COMPLETE.value,
+                "agent_name": self._parent_agent_name,
+                "subagent_type": subagent_type,
+                "description": description,
+            }
         )
         return f"Subagent '{subagent_type}' result:\n{result}"

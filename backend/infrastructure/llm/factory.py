@@ -35,6 +35,7 @@ def create_llm_provider(
     openai_api_key: str | None = None,
     open_weight_api_key: str | None = None,
     max_tool_rounds: int = 6,
+    tool_timeout_seconds: int | None = None,
     base_url: str | None = None,
 ) -> LLMProvider | None:
     resolved_provider = _normalize_provider(provider)
@@ -51,6 +52,7 @@ def create_llm_provider(
             model=resolved_model,
             api_key=anthropic_api_key,
             max_tool_rounds=max_tool_rounds,
+            tool_timeout_seconds=tool_timeout_seconds,
         )
     if resolved_provider == "openai":
         if not openai_api_key:
@@ -60,6 +62,7 @@ def create_llm_provider(
             api_key=openai_api_key,
             base_url=base_url,
             max_tool_rounds=max_tool_rounds,
+            tool_timeout_seconds=tool_timeout_seconds,
         )
     if resolved_provider == "open_weight":
         if not open_weight_api_key:
@@ -69,6 +72,7 @@ def create_llm_provider(
             api_key=open_weight_api_key,
             base_url=base_url,
             max_tool_rounds=max_tool_rounds,
+            tool_timeout_seconds=tool_timeout_seconds,
         )
     if not google_api_key:
         return None
@@ -76,4 +80,5 @@ def create_llm_provider(
         model=resolved_model,
         api_key=google_api_key,
         max_tool_rounds=max_tool_rounds,
+        tool_timeout_seconds=tool_timeout_seconds,
     )

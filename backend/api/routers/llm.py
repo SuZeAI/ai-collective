@@ -17,7 +17,6 @@ from backend.api.deps import (
 from backend.api.schemas.agent_graph import GraphRunRequest, GraphRunResponse, GraphTurnSchema
 from backend.application.ports.agent_graph import GraphAgentDefinition
 from backend.application.service.agent_service import AgentService
-from backend.application.service.agent_graph_service import AgentGraphService
 from backend.application.service.graph_context_service import GraphContextService
 from backend.application.service.llm_service import LLMService
 from backend.domain.memory.knowledge_graph import GraphContextConfig
@@ -72,9 +71,14 @@ async def chat(
     # Agent Mode: expose the `task` tool (subagent delegation) and run tool
     # calls in parallel. Subagents inherit the agent's tools (minus `task`).
     if subagent_enabled:
+        from backend.api.settings import settings
         from backend.domain.tools.task import TaskToolkit
 
-        task_toolkit = TaskToolkit(llm=service.get_provider(), subagent_tools=list(tools))
+        task_toolkit = TaskToolkit(
+            llm=service.get_provider(),
+            subagent_tools=list(tools),
+            max_concurrent=settings.subagent_max_concurrent,
+        )
         tools.extend(task_toolkit.get_tools())
 
     text = await service.chat(

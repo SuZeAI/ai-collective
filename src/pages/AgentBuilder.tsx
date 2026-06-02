@@ -554,9 +554,14 @@ export default function AgentBuilder() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className={`w-1.5 h-1.5 rounded-full ${getAgentDotColor(agent.role)}`} />
                   <span className="text-xs text-muted-foreground">{agent.role}</span>
+                  {agent.subagent_enabled ? (
+                    <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">
+                      Agent Mode
+                    </Badge>
+                  ) : null}
                 </div>
 
                 <div className="mt-2">
