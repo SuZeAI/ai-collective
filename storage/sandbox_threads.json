@@ -54,5 +54,29 @@
     "run_id": "ba33a8d757cd4589a5176a0167901812",
     "workspace_path": "/home/suzeai/Documents/suzeai/W_SUZERAIN_W5/Projects/ai-collective/.sandbox_workspace/794b125739774f4bbd218ca0616a39d7",
     "created_at": "2026-05-06T16:51:01.308886+00:00"
+  },
+  {
+    "thread_id": "b67347ba2c7548f49dc011b635e71c4a",
+    "agent_name": "test agent",
+    "taskId": "task_a736433c0fa24013bdeb6d9a121e5c25",
+    "run_id": "e22dfd7ffffa4417be309789dd46afae",
+    "workspace_path": "/app/sandbox_workspace/b67347ba2c7548f49dc011b635e71c4a",
+    "created_at": "2026-06-02T16:10:08.086011+00:00"
+  },
+  {
+    "thread_id": "fa8095af2b29435e81ece37618a03757",
+    "agent_name": "test agent",
+    "taskId": "task_a736433c0fa24013bdeb6d9a121e5c25",
+    "run_id": "34e2a4e177d642b4aa0208daf40df9d9",
+    "workspace_path": "/app/sandbox_workspace/fa8095af2b29435e81ece37618a03757",
+    "created_at": "2026-06-02T16:10:35.536284+00:00"
+  },
+  {
+    "thread_id": "a30a92e41138441a82c9b3e0f6ca98b7",
+    "agent_name": "test agent",
+    "taskId": "task_a736433c0fa24013bdeb6d9a121e5c25",
+    "run_id": "f66650c821f3451595b4d0bead334e75",
+    "workspace_path": "/app/sandbox_workspace/a30a92e41138441a82c9b3e0f6ca98b7",
+    "created_at": "2026-06-02T16:15:03.845397+00:00"
   }
 ]

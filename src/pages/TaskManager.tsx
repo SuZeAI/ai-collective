@@ -191,7 +191,7 @@ export default function TaskManager() {
   const [taskGraphPositions, setTaskGraphPositions] = useState<Record<string, Record<string, GraphNodePosition>>>({});
   const [open, setOpen] = useState(false);
   const [viewTaskId, setViewTaskId] = useState<string | null>(null);
-  const [graphPanelVisible, setGraphPanelVisible] = useState(true);
+  const [graphPanelVisible, setGraphPanelVisible] = useState(false);
   const [graphActivityCollapsed, setGraphActivityCollapsed] = useState(false);
   const graphSvgRef = useRef<SVGSVGElement | null>(null);
   const graphDragRef = useRef<{
