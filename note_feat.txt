@@ -1,4 +1,0 @@
-  feat/agent_topology_ring
-  feat/agent_topology
-
-  feat: workspace, background, analyze

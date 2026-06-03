@@ -416,6 +416,27 @@ src/
 
 -----
 
+## ⚙️ Advanced Features & Mechanics
+
+### 1. Concurrent Agent Communication
+Within the `MultiAgentMeshOrchestrator`, the platform supports running agent queries and subagent task delegations concurrently. By setting the `max_concurrent` parameter (e.g. in the dashboard or environment `SUBAGENT_MAX_CONCURRENT`), the hub agent can query multiple spoke agents simultaneously. This achieves parallel execution of task blocks, dramatically reducing overall process latency.
+
+### 2. Isolated Code Execution Sandboxes
+For untrusted code execution (such as Python scripts or shell commands parsed by agents), the system implements a robust `SandboxProvider`. It supports three execution layers:
+- **Local**: Executes commands directly in the host OS (for development).
+- **Docker**: Spins up isolated ephemeral Docker containers to execute commands safely.
+- **Kubernetes (K8s)**: Calls a dedicated remote provisioner service that dynamically spawns per-request sandbox Pods, lifecycle-managed automatically.
+
+### 3. Dynamic Knowledge Graph Memory
+Conversations build and consult a persistent semantic model dynamically. Guided by `GRAPH_BUILD_MODE`, the orchestrator extracts entities and relationships from conversation history using:
+- **Static Mode**: Fast, local rule-based entity parsing utilizing `spaCy` NLP libraries.
+- **LLM Mode**: High-fidelity semantic graph extraction using configurable foundation models to capture complex multi-agent interactions and facts.
+
+### 4. Distributed Task Queuing & Locking
+For production-grade scalability, the backend detaches long-running agent loops from the HTTP thread pool using a **RabbitMQ** event bus. Mutual exclusion of agent graph transitions is enforced via distributed locking (supported via **Redis** commander).
+
+-----
+
 ## 🧪 Use Cases
 
 - **Financial Analysis**: Team of analysts debating market trends based on real-time news.

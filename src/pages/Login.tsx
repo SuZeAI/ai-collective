@@ -151,24 +151,24 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left panel – branding */}
-      <div className="hidden lg:flex lg:w-[52%] flex-col relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <div className="hidden lg:flex lg:w-[52%] flex-col relative overflow-hidden bg-[#141413] border-r border-[#262625]">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-sky-500/8 blur-3xl" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-violet-500/8 blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40%] h-[40%] rounded-full bg-emerald-500/5 blur-3xl" />
+          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-accent/10 blur-3xl" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#faf9f5]/3 blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40%] h-[40%] rounded-full bg-accent/5 blur-3xl" />
           <div
-            className="absolute inset-0 opacity-[0.03]"
+            className="absolute inset-0 opacity-[0.02]"
             style={{ backgroundImage: "linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)", backgroundSize: "40px 40px" }}
           />
         </div>
 
         <div className="relative z-10 flex flex-col h-full p-12">
           <Link to="/" className="flex items-center gap-3 mb-auto">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500/20 to-blue-600/20 border border-white/10 flex items-center justify-center p-1.5">
+            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center p-1.5">
               <img src="/spider.png" alt="AI Collective" className="w-full h-full object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
             </div>
             <div>
-              <div className="font-bold text-lg text-white leading-none">AI Collective</div>
+              <div className="font-serif text-xl text-white leading-none">AI Collective</div>
               <div className="text-[10px] text-white/40 uppercase tracking-wider mt-0.5">{t.brand.subtitle}</div>
             </div>
           </Link>
@@ -178,7 +178,7 @@ export default function Login() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-sky-500/20 bg-sky-500/10 text-sky-400 text-xs font-medium mb-6"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-accent/20 bg-accent/10 text-accent text-xs font-medium mb-6"
             >
               <Bot className="w-3.5 h-3.5" />
               {t.auth.badge}
@@ -188,7 +188,7 @@ export default function Login() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="text-4xl font-bold text-white leading-tight mb-4"
+              className="text-4xl font-medium font-serif text-white leading-tight mb-4"
             >
               {t.auth.heroTitle}
             </motion.h1>
@@ -210,7 +210,7 @@ export default function Login() {
             >
               {t.auth.heroBullets.map((bullet, i) => (
                 <li key={i} className="flex items-center gap-3 text-white/60 text-sm">
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-accent flex items-center justify-center">
                     <ArrowRight className="w-2.5 h-2.5 text-white" />
                   </span>
                   {bullet}
