@@ -59,12 +59,16 @@ C_YELLOW := \033[33m
 # ============================================================================
 
 help: ## Show this help message
-	@printf "\n$(C_BOLD)$(C_CYAN)AI Collective — available targets$(C_RESET)\n\n"
-	@printf "$(C_BOLD)  %-28s %s$(C_RESET)\n" "Target" "Description"
-	@printf "  %-28s %s\n" "------" "-----------"
-	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_\-]+:.*##/ { \
-	    printf "  $(C_GREEN)%-28s$(C_RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
-	@printf "\n$(C_BOLD)$(C_YELLOW)Examples$(C_RESET)\n"
+	@printf "\n\033[1m\033[36m  AI Collective — available targets\033[0m\n"
+	@awk 'BEGIN {FS = ":.*##"} \
+	    /^##@ / { \
+	        sub(/^##@ /, ""); \
+	        printf "\n\033[1m  %s\033[0m\n  %s\n", $$0, "------------------------------------------------------------"; \
+	    } \
+	    /^[a-zA-Z_-]+:.*##/ { \
+	        printf "  \033[32m%-28s\033[0m %s\n", $$1, $$2 \
+	    }' $(MAKEFILE_LIST)
+	@printf "\n\033[1m\033[33m  Examples\033[0m\n"
 	@printf "  make dev              # Start full dev stack (Docker, hot-reload)\n"
 	@printf "  make backend          # Run backend locally (needs infra running)\n"
 	@printf "  make up               # Start production stack\n"
@@ -75,6 +79,8 @@ help: ## Show this help message
 # ============================================================================
 # DEVELOPMENT — full Docker stack (hot-reload)
 # ============================================================================
+
+##@ Development (Docker — hot-reload)
 
 dev: dirs env ## Start full development stack (hot-reload, all services)
 	@printf "$(C_CYAN)Starting dev stack…$(C_RESET)\n"
@@ -179,6 +185,8 @@ dev-provisioner: dirs env ## Dev stack + AIO sandbox + K8s provisioner
 # PRODUCTION
 # ============================================================================
 
+##@ Production (Docker)
+
 up: dirs env ## Start production stack (detached)
 	@printf "$(C_CYAN)Starting production stack…$(C_RESET)\n"
 	$(COMPOSE_PROD) up -d
@@ -230,6 +238,8 @@ prod-all: dirs env ## Production stack + sandbox + provisioner
 # LOCAL DEVELOPMENT (without Docker — runs directly on host)
 # ============================================================================
 
+##@ Local Development (no Docker)
+
 backend: dirs env ## Run backend locally with hot-reload (needs: make infra)
 	@printf "$(C_CYAN)Starting backend on port $(BACKEND_PORT)…$(C_RESET)\n"
 	uv run uvicorn backend.api.main:app \
@@ -269,6 +279,8 @@ infra-down: ## Stop infra services
 # SETUP & INSTALL
 # ============================================================================
 
+##@ Setup & Install
+
 install: install-backend install-frontend ## Install all dependencies
 
 install-backend: ## Install Python dependencies (uv)
@@ -297,6 +309,8 @@ setup: install dirs env ## Full first-time project setup
 # TESTING & LINTING
 # ============================================================================
 
+##@ Testing & Linting
+
 test: test-backend test-frontend ## Run all tests
 
 test-backend: ## Run backend tests (pytest)
@@ -322,6 +336,8 @@ lint-frontend: ## Lint frontend (eslint)
 # STORAGE
 # ============================================================================
 
+##@ Storage
+
 storage-reset: ## ⚠ Delete all storage JSON files (agents, tasks, conversations…)
 	@printf "$(C_YELLOW)⚠  This will delete all data in storage/$(C_RESET)\n"
 	@read -p "Type 'yes' to continue: " confirm && [ "$$confirm" = "yes" ] || exit 1
@@ -331,6 +347,8 @@ storage-reset: ## ⚠ Delete all storage JSON files (agents, tasks, conversation
 # ============================================================================
 # CLEANUP
 # ============================================================================
+
+##@ Cleanup
 
 clean: clean-docker ## Remove build artefacts and cache files
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
