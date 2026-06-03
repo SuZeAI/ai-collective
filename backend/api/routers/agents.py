@@ -58,6 +58,7 @@ def upsert_agent(req: UpsertAgentRequest, service: AgentService = Depends(get_ag
                 description=req.description or f"{req.role} agent",
             )
         ),
+        subagent_enabled=req.subagent_enabled,
     )
     saved = service.upsert_agent(agent)
     skills = service.get_agent_skills(saved.id)

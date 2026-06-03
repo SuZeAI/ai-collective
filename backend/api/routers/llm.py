@@ -17,7 +17,6 @@ from backend.api.deps import (
 from backend.api.schemas.agent_graph import GraphRunRequest, GraphRunResponse, GraphTurnSchema
 from backend.application.ports.agent_graph import GraphAgentDefinition
 from backend.application.service.agent_service import AgentService
-from backend.application.service.agent_graph_service import AgentGraphService
 from backend.application.service.graph_context_service import GraphContextService
 from backend.application.service.llm_service import LLMService
 from backend.domain.memory.knowledge_graph import GraphContextConfig
@@ -51,11 +50,13 @@ async def chat(
         raise HTTPException(status_code=503, detail="LLM not configured")
     system_prompt = req.system
     tools: list[object] = []
+    subagent_enabled = False
     if req.agentId:
         try:
             agent = agent_service.get_agent(req.agentId)
             if not system_prompt:
                 system_prompt = agent.system_prompt or None
+            subagent_enabled = bool(getattr(agent, "subagent_enabled", False))
 
             skills = agent_service.get_agent_skills(req.agentId)
             for skill in skills:
@@ -67,10 +68,24 @@ async def chat(
             if not system_prompt:
                 system_prompt = None
 
+    # Agent Mode: expose the `task` tool (subagent delegation) and run tool
+    # calls in parallel. Subagents inherit the agent's tools (minus `task`).
+    if subagent_enabled:
+        from backend.api.settings import settings
+        from backend.domain.tools.task import TaskToolkit
+
+        task_toolkit = TaskToolkit(
+            llm=service.get_provider(),
+            subagent_tools=list(tools),
+            max_concurrent=settings.subagent_max_concurrent,
+        )
+        tools.extend(task_toolkit.get_tools())
+
     text = await service.chat(
         prompt=req.prompt,
         system=system_prompt or "You are a helpful assistant.",
         tools=tools or None,
+        parallel_tools=subagent_enabled,
     )
     return ChatResponse(response=text)
 
@@ -111,6 +126,7 @@ async def run_agent_graph(
                     description=agent.description,
                     skill_ids=list(agent.skill_ids),
                     tools=agent_tools or None,
+                    subagent_enabled=bool(getattr(agent, "subagent_enabled", False)),
                 )
             )
         except Exception as e:
@@ -171,6 +187,7 @@ async def run_agent_graph_stream(
                     description=agent.description,
                     skill_ids=list(agent.skill_ids),
                     tools=agent_tools or None,
+                    subagent_enabled=bool(getattr(agent, "subagent_enabled", False)),
                 )
             )
             agent_name_to_id[agent.name] = agent_id  # Store mapping

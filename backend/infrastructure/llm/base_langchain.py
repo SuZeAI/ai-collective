@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import json
+import os
 from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
@@ -9,11 +11,29 @@ from backend.application.ports.llm import LLMProvider
 from backend.log import get_logger
 
 
+def _default_tool_timeout() -> int:
+    try:
+        return max(0, int(os.getenv("TOOL_TIMEOUT_SECONDS", "0")))
+    except ValueError:
+        return 0
+
+
 class LangChainLLMProvider(LLMProvider):
-    def __init__(self, llm: Any, *, provider_name: str, max_tool_rounds: int = 6):
+    def __init__(
+        self,
+        llm: Any,
+        *,
+        provider_name: str,
+        max_tool_rounds: int = 6,
+        tool_timeout_seconds: int | None = None,
+    ):
         self._llm = llm
         self._provider_name = provider_name
         self._max_tool_rounds = max(1, max_tool_rounds)
+        # 0 / None disables the per-tool timeout.
+        self._tool_timeout = (
+            tool_timeout_seconds if tool_timeout_seconds is not None else _default_tool_timeout()
+        )
 
     async def chat(
         self,
@@ -21,7 +41,10 @@ class LangChainLLMProvider(LLMProvider):
         system: str,
         user: str,
         tools: list[Any] | None = None,
+        parallel_tools: bool = False,
+        max_tool_rounds: int | None = None,
     ) -> str:
+        rounds = max(1, max_tool_rounds) if max_tool_rounds else self._max_tool_rounds
         resolved_tools = tools or []
         get_logger().info(
             f"Resolving tools for {self._provider_name}: {[tool.name for tool in resolved_tools]}"
@@ -34,8 +57,8 @@ class LangChainLLMProvider(LLMProvider):
         messages: list[Any] = [SystemMessage(content=system), HumanMessage(content=user)]
         result: AIMessage | Any
 
-        for round_index in range(self._max_tool_rounds):
-            is_last_round = round_index == self._max_tool_rounds - 1
+        for round_index in range(rounds):
+            is_last_round = round_index == rounds - 1
 
             invoke_model = self._llm if is_last_round else chat_model
             if is_last_round:
@@ -65,33 +88,15 @@ class LangChainLLMProvider(LLMProvider):
                 )
                 return self._extract_text_content(result)
 
-            tool_messages: list[ToolMessage] = []
-            for tool_call in tool_calls:
-                tool_name = tool_call.get("name", "")
-                tool = tool_by_name.get(tool_name)
-                if not tool:
-                    tool_messages.append(
-                        ToolMessage(
-                            tool_call_id=tool_call.get("id", ""),
-                            name=tool_name,
-                            content=f"Tool '{tool_name}' is not available for this agent.",
-                        )
-                    )
-                    continue
-
-                try:
-                    tool_result = await tool.ainvoke(tool_call)
-                    get_logger().info(f"Tool '{tool_name}' executed successfully with result: {tool_result}")
-                except Exception as e:
-                    get_logger().exception("Tool '%s' execution failed", tool_name)
-                    tool_result = ToolMessage(
-                        tool_call_id=tool_call.get("id", ""),
-                        name=tool_name,
-                        content=f"Tool '{tool_name}' failed: {e}",
-                    )
-                    continue
-
-                tool_messages.append(tool_result)
+            if parallel_tools:
+                get_logger().info(f"Executing {len(tool_calls)} tool call(s) in parallel.")
+                tool_messages = await asyncio.gather(
+                    *(self._execute_tool_call(tc, tool_by_name) for tc in tool_calls)
+                )
+            else:
+                tool_messages = [
+                    await self._execute_tool_call(tc, tool_by_name) for tc in tool_calls
+                ]
 
             if not tool_messages:
                 return self._extract_text_content(result)
@@ -99,6 +104,39 @@ class LangChainLLMProvider(LLMProvider):
             messages.extend(tool_messages)
 
         return self._extract_text_content(result)
+
+    async def _execute_tool_call(self, tool_call: dict, tool_by_name: dict) -> ToolMessage:
+        tool_name = tool_call.get("name", "")
+        tool = tool_by_name.get(tool_name)
+        if not tool:
+            return ToolMessage(
+                tool_call_id=tool_call.get("id", ""),
+                name=tool_name,
+                content=f"Tool '{tool_name}' is not available for this agent.",
+            )
+        try:
+            if self._tool_timeout and self._tool_timeout > 0:
+                tool_result = await asyncio.wait_for(
+                    tool.ainvoke(tool_call), timeout=self._tool_timeout
+                )
+            else:
+                tool_result = await tool.ainvoke(tool_call)
+            get_logger().info(f"Tool '{tool_name}' executed successfully with result: {tool_result}")
+            return tool_result
+        except asyncio.TimeoutError:
+            get_logger().warning("Tool '%s' timed out after %ss", tool_name, self._tool_timeout)
+            return ToolMessage(
+                tool_call_id=tool_call.get("id", ""),
+                name=tool_name,
+                content=f"Tool '{tool_name}' timed out after {self._tool_timeout}s.",
+            )
+        except Exception as e:
+            get_logger().exception("Tool '%s' execution failed", tool_name)
+            return ToolMessage(
+                tool_call_id=tool_call.get("id", ""),
+                name=tool_name,
+                content=f"Tool '{tool_name}' failed: {e}",
+            )
 
     def _extract_text_content(self, result: Any) -> str:
         content = getattr(result, "content", result)

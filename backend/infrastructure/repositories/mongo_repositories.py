@@ -83,6 +83,7 @@ def _doc_to_agent(item: dict[str, Any]) -> Agent:
                 description=str(item.get("description", "")),
             )
         ),
+        subagent_enabled=bool(item.get("subagent_enabled", False)),
     )
 
 
@@ -101,6 +102,7 @@ def _agent_to_doc(a: Agent) -> dict[str, Any]:
         "avatar_url": a.avatar_url,
         "system_prompt": a.system_prompt
         or _default_agent_system_prompt(name=a.name, role=a.role, description=a.description),
+        "subagent_enabled": a.subagent_enabled,
     }
 
 
