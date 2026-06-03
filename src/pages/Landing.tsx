@@ -58,273 +58,265 @@ const LOCAL_COPY = {
   en: {
     hero: {
       h1: "Build on the AI Collective Platform",
-      sub: "Use our API to create new user experiences, products, and ways to work with the most advanced AI models on the market.",
+      sub: "A high-performance multi-agent orchestration platform for programmable AI workforces. Deploy sequential, ring, mesh, or supervisor agent topologies with atomic tool integration.",
       cta1: "Start building",
       cta2: "See developer docs"
     },
     started: {
       title: "Choose how to get started",
       buildOwn: {
-        title: "Build on your own",
-        sub: "Launch your own generative AI solution with:",
+        title: "Deploy on your own",
+        sub: "Launch your own custom multi-agent workforce with:",
         bullets: [
-          "Access to all AI Collective models",
-          "Usage-based tiers",
-          "Automatically increasing rate limits",
-          "Simple pay-as-you-go pricing",
-          "Self-serve deployment on workbench",
-          "Prompting guides and developer docs"
+          "Sequential, Ring, Mesh, or Supervisor agent topologies",
+          "50+ atomic skill toolkits (Google Workspace, browser automation, social media)",
+          "Automatic token budget management and context-window optimization",
+          "Flexible backend: local run (JSON) or distributed scaling (Docker/RabbitMQ)",
+          "Interactive Human-in-the-Loop steering capabilities",
+          "Advanced spaCy and LLM-based Knowledge Graph extraction"
         ],
         cta: "Start building"
       },
       support: {
-        title: "Get extra support",
-        sub: "Need custom rate limits or hands-on help? Contact our sales team for:",
+        title: "Enterprise Deployments",
+        sub: "Need custom tool integrations, Kubernetes sandboxes, or hosted orchestration?",
         bullets: [
-          "Anthropic-supported onboarding",
-          "Custom rate limits",
-          "Billing via monthly invoices",
-          "Prompting support",
-          "Deployment support"
+          "Enterprise onboarding and custom agent topology design",
+          "Custom API and database integrations with SLA guarantees",
+          "Managed high-throughput RabbitMQ and Redis clustering",
+          "Advanced secure code execution sandbox configuration (Docker/K8s)",
+          "Dedicated 24/7 engineering and deployment support"
         ],
         cta: "Contact sales"
       }
     },
     models: {
-      title: "AI Collective models",
-      sub: "Right-sized for any task, our models offer the best combination of speed and performance.",
-      batch: "Save 50% with batch processing. Learn more",
+      title: "Supported LLM Foundations",
+      sub: "Configure, swap, or route foundational model engines at runtime across industry-leading providers.",
+      batch: "Fully LLM-agnostic: Route via Google Gemini, Anthropic, OpenAI, or OpenRouter gateway.",
       list: [
         {
-          name: "Opus 4.8",
-          desc: "Most intelligent model for agents and coding",
-          input: "$5 / MTok",
-          output: "$25 / MTok",
-          caching: "Write $6.25 / MTok · Read $0.50 / MTok"
+          name: "Google Gemini",
+          desc: "Default speed engine, optimized for entity extraction and real-time knowledge graphs",
+          input: "Gemini 2.0 Flash",
+          output: "Gemini 1.5 Pro",
+          caching: "Auto semantic graph building"
         },
         {
-          name: "Sonnet 4.6",
-          desc: "Optimal balance of intelligence, cost, and speed",
-          input: "$3 / MTok",
-          output: "$15 / MTok",
-          caching: "Write $3.75 / MTok · Read $0.30 / MTok"
+          name: "Anthropic Claude",
+          desc: "Premier logic engine for multi-agent mesh coordinator and code generation",
+          input: "Claude 3.5 Sonnet",
+          output: "Claude 3 Opus",
+          caching: "Advanced prompt caching"
         },
         {
-          name: "Haiku 4.5",
-          desc: "Fastest, most cost-effective model",
-          input: "$1 / MTok",
-          output: "$5 / MTok",
-          caching: "Write $1.25 / MTok · Read $0.10 / MTok"
+          name: "OpenAI GPT",
+          desc: "Highly reliable standard engine for structured JSON schemas and tool binding",
+          input: "GPT-4o",
+          output: "GPT-4o-mini",
+          caching: "JSON schema enforcement"
         }
       ]
     },
     tools: {
-      title: "Do more with built-in tools",
-      sub: "Explore AI Collective's advanced features and capabilities.",
+      title: "Capabilities of the Agent Mesh",
+      sub: "Explore the advanced runtime services powering the AI Collective platform.",
       cta: "See developer docs",
       list: [
-        { name: "Claude Managed Agents", desc: "A suite of composable APIs for building and deploying agents at scale." },
-        { name: "Prompt caching", desc: "Give Claude more background knowledge and example outputs to reduce costs and latency." },
-        { name: "Web search and fetch", desc: "Augment Claude’s knowledge with current, real-world data from across the web." },
-        { name: "Advanced tool use", desc: "Allow Claude to interact with hundreds of external tools and APIs so it can perform a wider range of tasks." },
-        { name: "Batch processing", desc: "Process large volumes of requests asynchronously and save 50% on costs." },
-        { name: "Memory", desc: "Let Claude store and consult information from a dedicated memory file." },
-        { name: "Context editing", desc: "Automatically clear less relevant tool calls and results from context window when approaching limits." },
-        { name: "MCP connector", desc: "Connect Claude to any remote MCP server without writing client code." },
-        { name: "Code execution", desc: "Run Python code, create visualizations, and analyze data directly within API calls." },
-        { name: "Citations", desc: "Get detailed references to the exact sentences and passages Claude uses to generate responses." },
-        { name: "Files API", desc: "Upload documents once and reference them repeatedly across conversations." },
-        { name: "Skills", desc: "Teach Claude your expertise, procedures, and best practices so it delivers consistent results." },
-        { name: "Structured outputs", desc: "Ensure Claude's responses conform to your JSON schema." }
+        { name: "Multi-Agent Topologies", desc: "Orchestrate sequential pipelines, ring debate patterns, mesh coordinator networks, or supervisor structures." },
+        { name: "50+ Skill Toolkits", desc: "Equip agents with Google Drive/Calendar, Playwright web scrapers, social feeds, and productivity tools." },
+        { name: "Subagent Delegation", desc: "Allow main agents to spawn and run parallel subagents concurrently with strict turn limits." },
+        { name: "Real-time SSE Streaming", desc: "Follow execution progress turn-by-turn with transparent event logs (agent_start, llm_request, subagent_complete)." },
+        { name: "Secure Sandbox Execution", desc: "Safely execute Python/Bash commands inside isolated local, Docker, or Kubernetes sandbox environments." },
+        { name: "Knowledge Graph Memory", desc: "Extract conversation context dynamically via NLP (spaCy) or LLMs to build a queryable semantic memory." },
+        { name: "Context & Token Budgeting", desc: "Automatically trim and optimize context windows when approaching token limits." },
+        { name: "Human-in-the-Loop", desc: "Intervene in ongoing multi-agent discussions to steer agents or provide manual task inputs." },
+        { name: "Multi-Workspace Isolation", desc: "Secure multi-tenant data segmentation using JWT validation, Google OAuth, and database isolation." }
       ]
     },
     console: {
-      title: "Get to production faster with the AI Collective Console",
-      sub: "Integrate Claude’s powerful AI capabilities into your apps and deliver production-grade solutions faster.",
-      devTitle: "Built for developers",
-      desc: "Build, test, and iterate on your deployment:",
+      title: "Manage Teams inside the AI Collective Console",
+      sub: "Integrate powerful multi-agent teams into your existing application stack via clean FastAPI endpoints and interactive dashboards.",
+      devTitle: "Built for AI Engineers",
+      desc: "Monitor, test, and tune your workforce:",
       bullets: [
-        "Automatically generate or improve existing prompts",
-        "Evaluate model responses against real-world scenarios",
-        "Build faster with pre-built cookbooks and guides"
+        "Create, edit, and configure custom agents and tools in real-time",
+        "Trace agent execution steps, token cost logs, and message histories",
+        "Interact directly with teams during multi-round runs"
       ]
     },
     usecases: {
-      title: "Use cases for Claude",
+      title: "Real-world Multi-Agent Use Cases",
       list: [
         {
-          name: "Coding",
-          desc: "Our models are constantly improving on coding, math, and reasoning. Claude can complete complex engineering tasks to solve problems that would typically take a day."
+          name: "Financial Debate",
+          desc: "Spawn a team of analysts debating market indicators using real-time Brave search tools under a Ring topology."
         },
         {
-          name: "Agents",
-          desc: "Claude offers superior instruction following, tool selection, error correction, and advanced reasoning for customer-facing agents and complex AI workflows."
+          name: "Editorial Pipeline",
+          desc: "Manage content creation from research and drafting to proofreading and formatting under a Supervisor lead."
         },
         {
-          name: "Productivity",
-          desc: "Claude can extract relevant information from business emails and documents, categorize survey responses, and wrangle reams of text with high speed."
+          name: "Software Auditing",
+          desc: "Run automated vulnerability scanner agents that execute and test code within secure, isolated sandboxes."
         },
         {
-          name: "Customer support",
-          desc: "Claude can handle ticket triage, on-demand complex inquiries using rich context awareness, and multi-step support workflows—all with a natural tone."
+          name: "Parallel Web Crawling",
+          desc: "Delegate concurrent crawling tasks to subagents to parse target websites using browser automation tools."
         }
       ]
     },
     footer: {
       ctaTitle: "Start building",
-      newsTitle: "Get the developer newsletter",
-      newsSub: "Product updates, how-tos, community spotlights, and more. Delivered monthly to your inbox.",
+      newsTitle: "Get developer updates",
+      newsSub: "Product updates, code recipes, tool additions, and more. Delivered monthly to your inbox.",
       newsPlaceholder: "Enter your email",
       newsButton: "Subscribe",
-      newsDisclaimer: "Please provide your email address if you'd like to receive our monthly developer newsletter. You can unsubscribe at any time."
+      newsDisclaimer: "By subscribing, you agree to receive monthly framework updates. Unsubscribe at any time."
     }
   },
   vi: {
     hero: {
       h1: "Xây dựng trên Nền tảng AI Collective",
-      sub: "Sử dụng API của chúng tôi để tạo ra trải nghiệm người dùng, sản phẩm mới và cách thức làm việc với các mô hình AI tiên tiến nhất thị trường.",
+      sub: "Nền tảng điều phối đa tác nhân (multi-agent) hiệu năng cao cho lực lượng lao động AI lập trình được. Triển khai các cấu trúc Sequential, Ring, Mesh hoặc Supervisor với tích hợp công cụ nguyên tử.",
       cta1: "Bắt đầu xây dựng",
       cta2: "Xem tài liệu lập trình"
     },
     started: {
       title: "Chọn cách thức bắt đầu",
       buildOwn: {
-        title: "Tự xây dựng",
-        sub: "Khởi chạy giải pháp AI của riêng bạn với:",
+        title: "Tự triển khai",
+        sub: "Khởi chạy lực lượng lao động đa tác nhân tùy chỉnh của bạn với:",
         bullets: [
-          "Quyền truy cập vào tất cả mô hình AI Collective",
-          "Hạn ngạch dựa trên mức sử dụng",
-          "Tự động tăng hạn ngạch sử dụng",
-          "Thanh toán đơn giản theo mức sử dụng",
-          "Tự triển khai trên workbench",
-          "Hướng dẫn viết prompt và tài liệu phát triển"
+          "Các cấu trúc tác nhân: Sequential, Ring, Mesh hoặc Supervisor",
+          "Hơn 50 bộ công cụ nguyên tử (Google Workspace, tự động hóa trình duyệt, mạng xã hội)",
+          "Tự động quản lý ngân sách Token và tối ưu hóa cửa sổ ngữ cảnh",
+          "Backend linh hoạt: chạy local (JSON) hoặc mở rộng phân tán (Docker/RabbitMQ)",
+          "Tương tác điều hướng trực tiếp bằng cơ chế Human-in-the-loop",
+          "Trích xuất Biểu đồ tri thức (Knowledge Graph) nâng cao qua spaCy hoặc LLM"
         ],
         cta: "Bắt đầu xây dựng"
       },
       support: {
-        title: "Nhận hỗ trợ nâng cao",
-        sub: "Cần hạn ngạch tùy chỉnh hoặc hỗ trợ trực tiếp? Liên hệ bộ phận bán hàng:",
+        title: "Triển khai doanh nghiệp",
+        sub: "Cần tích hợp công cụ tùy chỉnh, Kubernetes sandbox hoặc hệ thống điều phối lưu trữ?",
         bullets: [
-          "Hỗ trợ tích hợp chuyên sâu",
-          "Hạn ngạch (rate limit) tùy chỉnh",
-          "Thanh toán qua hóa đơn hàng tháng",
-          "Hỗ trợ kỹ thuật prompt",
-          "Hỗ trợ triển khai hệ thống"
+          "Hỗ trợ tích hợp và thiết kế cấu trúc tác nhân doanh nghiệp",
+          "Tích hợp API và cơ sở dữ liệu tùy chỉnh kèm cam kết SLA",
+          "Quản lý cụm RabbitMQ và Redis hiệu năng cao được lưu trữ",
+          "Cấu hình môi trường sandbox thực thi mã an toàn (Docker/Kubernetes)",
+          "Hỗ trợ kỹ thuật và vận hành triển khai chuyên dụng 24/7"
         ],
         cta: "Liên hệ kinh doanh"
       }
     },
     models: {
-      title: "Các mô hình AI Collective",
-      sub: "Thiết kế phù hợp cho mọi tác vụ, mô hình của chúng tôi đem lại sự kết hợp tốt nhất giữa tốc độ và hiệu suất.",
-      batch: "Tiết kiệm 50% với xử lý theo lô. Tìm hiểu thêm",
+      title: "Các động cơ mô hình được hỗ trợ",
+      sub: "Cấu hình, thay đổi hoặc định tuyến các động cơ mô hình nền tảng ở thời điểm chạy mà không cần sửa mã.",
+      batch: "Hoàn toàn độc lập mô hình: Định tuyến qua Google Gemini, Anthropic, OpenAI hoặc OpenRouter.",
       list: [
         {
-          name: "Opus 4.8",
-          desc: "Mô hình thông minh nhất dành cho tác nhân và viết mã",
-          input: "$5 / Triệu Token",
-          output: "$25 / Triệu Token",
-          caching: "Ghi $6.25 / Triệu Token · Đọc $0.50 / Triệu Token"
+          name: "Google Gemini",
+          desc: "Động cơ tốc độ mặc định, tối ưu cho trích xuất thực thể và biểu đồ tri thức thời gian thực",
+          input: "Gemini 2.0 Flash",
+          output: "Gemini 1.5 Pro",
+          caching: "Xây dựng biểu đồ ngữ cảnh tự động"
         },
         {
-          name: "Sonnet 4.6",
-          desc: "Cân bằng tối ưu giữa trí tuệ, chi phí và tốc độ",
-          input: "$3 / Triệu Token",
-          output: "$15 / Triệu Token",
-          caching: "Ghi $3.75 / Triệu Token · Đọc $0.30 / Triệu Token"
+          name: "Anthropic Claude",
+          desc: "Động cơ logic hàng đầu cho điều phối Mesh và tạo mã nguồn chất lượng cao",
+          input: "Claude 3.5 Sonnet",
+          output: "Claude 3 Opus",
+          caching: "Hỗ trợ prompt caching nâng cao"
         },
         {
-          name: "Haiku 4.5",
-          desc: "Mô hình nhanh nhất và hiệu quả chi phí nhất",
-          input: "$1 / Triệu Token",
-          output: "$5 / Triệu Token",
-          caching: "Ghi $1.25 / Triệu Token · Đọc $0.10 / Triệu Token"
+          name: "OpenAI GPT",
+          desc: "Động cơ tiêu chuẩn đáng tin cậy cao cho cấu trúc JSON và liên kết gọi hàm",
+          input: "GPT-4o",
+          output: "GPT-4o-mini",
+          caching: "Ràng buộc lược đồ JSON chặt chẽ"
         }
       ]
     },
     tools: {
-      title: "Làm được nhiều hơn với các công cụ tích hợp sẵn",
-      sub: "Khám phá các tính năng và khả năng nâng cao của AI Collective.",
+      title: "Năng lực của Mạng lưới Tác nhân",
+      sub: "Khám phá các dịch vụ runtime tiên tiến cung cấp năng lượng cho nền tảng AI Collective.",
       cta: "Xem tài liệu lập trình",
       list: [
-        { name: "Claude Managed Agents", desc: "Bộ API giúp xây dựng và triển khai tác nhân linh hoạt ở quy mô lớn." },
-        { name: "Prompt caching", desc: "Cung cấp cho Claude nhiều kiến thức nền và ví dụ hơn để giảm chi phí và độ trễ." },
-        { name: "Web search and fetch", desc: "Bổ sung kiến thức cho Claude với dữ liệu thời gian thực từ khắp nơi trên web." },
-        { name: "Advanced tool use", desc: "Cho phép Claude tương tác với hàng trăm công cụ bên ngoài và API để làm được nhiều việc hơn." },
-        { name: "Batch processing", desc: "Xử lý hàng loạt yêu cầu không đồng bộ và tiết kiệm 50% chi phí." },
-        { name: "Memory", desc: "Cho phép Claude lưu trữ và tham khảo thông tin từ tệp bộ nhớ riêng biệt." },
-        { name: "Context editing", desc: "Tự động dọn dẹp các lệnh gọi công cụ ít liên quan khi gần chạm giới hạn token." },
-        { name: "MCP connector", desc: "Kết nối Claude với bất kỳ máy chủ MCP từ xa nào mà không cần viết mã máy khách." },
-        { name: "Code execution", desc: "Chạy mã Python, tạo trực quan hóa và phân tích dữ liệu trực tiếp trong cuộc gọi API." },
-        { name: "Citations", desc: "Nhận tham chiếu chi tiết đến các câu và đoạn văn chính xác mà Claude sử dụng." },
-        { name: "Files API", desc: "Tải tài liệu lên một lần và tham chiếu chúng liên tục qua các cuộc trò chuyện." },
-        { name: "Skills", desc: "Dạy cho Claude chuyên môn, quy trình và thực hành tốt nhất của bạn." },
-        { name: "Structured outputs", desc: "Đảm bảo phản hồi của Claude tuân thủ chính xác lược đồ JSON của bạn." }
+        { name: "Điều phối Đa tác nhân", desc: "Điều phối luồng tuần tự, tranh luận vòng tròn, mạng điều phối mesh hoặc cấu trúc supervisor." },
+        { name: "Hơn 50 bộ công cụ", desc: "Trang bị cho tác nhân Google Drive, Sheets, công cụ tìm kiếm Brave, mạng xã hội và các tiện ích hệ thống." },
+        { name: "Ủy thác Tác nhân con", desc: "Cho phép tác nhân chính tạo và chạy song song các tác nhân con đồng thời với giới hạn lượt nghiêm ngặt." },
+        { name: "Luồng SSE thời gian thực", desc: "Theo dõi tiến trình thực thi từng lượt với các sự kiện chi tiết (agent_start, llm_request, subagent_complete)." },
+        { name: "Môi trường Sandbox an toàn", desc: "Thực thi an toàn các lệnh Python/Bash trong các sandbox biệt lập trên Local, Docker hoặc Kubernetes." },
+        { name: "Bộ nhớ biểu đồ tri thức", desc: "Trích xuất ngữ cảnh động qua NLP (spaCy) hoặc LLM để xây dựng bộ nhớ ngữ nghĩa có thể truy vấn." },
+        { name: "Quản lý ngân sách Token", desc: "Tự động cắt tỉa và tối ưu hóa cửa sổ ngữ cảnh khi tiệm cận giới hạn token để kiểm soát chi phí." },
+        { name: "Human-in-the-Loop", desc: "Can thiệp trực tiếp vào các cuộc thảo luận của tác nhân để hướng dẫn hoặc cung cấp dữ liệu đầu vào thủ công." },
+        { name: "Phân vùng Workspace", desc: "Phân vùng dữ liệu an toàn cho nhiều workspace bằng JWT và cơ chế xác thực Google OAuth." }
       ]
     },
     console: {
-      title: "Triển khai thực tế nhanh hơn với AI Collective Console",
-      sub: "Tích hợp năng lực AI mạnh mẽ của Claude vào ứng dụng của bạn và mang lại giải pháp cấp sản xuất nhanh chóng.",
-      devTitle: "Xây dựng cho lập trình viên",
-      desc: "Xây dựng, thử nghiệm và lặp lại trên triển khai của bạn:",
+      title: "Quản lý đội ngũ tác nhân trên AI Collective Console",
+      sub: "Tích hợp các đội ngũ tác nhân mạnh mẽ vào ứng dụng hiện tại thông qua các endpoint FastAPI sạch và bảng điều khiển trực quan.",
+      devTitle: "Xây dựng cho kỹ sư AI",
+      desc: "Theo dõi, thử nghiệm và tinh chỉnh lực lượng lao động của bạn:",
       bullets: [
-        "Tự động tạo hoặc cải tiến các prompt hiện có",
-        "Đánh giá phản hồi của mô hình đối với các kịch bản thực tế",
-        "Xây dựng nhanh hơn với cookbooks và các tài liệu mẫu"
+        "Tạo, sửa đổi và cấu hình tác nhân và công cụ tùy chỉnh trong thời gian thực",
+        "Theo dõi từng bước thực thi của tác nhân, nhật ký chi phí token và lịch sử tin nhắn",
+        "Tương tác trực tiếp với các nhóm tác nhân trong các lượt chạy nhiều vòng"
       ]
     },
     usecases: {
-      title: "Các trường hợp sử dụng",
+      title: "Trường hợp sử dụng thực tế",
       list: [
         {
-          name: "Lập trình",
-          desc: "Các mô hình liên tục cải thiện về viết mã, toán và tư duy suy luận. Claude có thể hoàn thành các nhiệm vụ kỹ thuật phức tạp."
+          name: "Tranh luận tài chính",
+          desc: "Khởi tạo một nhóm tác nhân phân tích để tranh luận về các chỉ số thị trường bằng công cụ tìm kiếm Brave trong cấu trúc Ring."
         },
         {
-          name: "Tác nhân (Agents)",
-          desc: "Claude cung cấp khả năng tuân thủ hướng dẫn vượt trội, lựa chọn công cụ và sửa lỗi cho các agent tự động."
+          name: "Quy trình biên tập",
+          desc: "Quản lý quy trình sáng tạo nội dung từ nghiên cứu, phác thảo đến phê bình và định dạng dưới sự dẫn dắt của Supervisor."
         },
         {
-          name: "Năng suất",
-          desc: "Trích xuất thông tin liên quan từ email và tài liệu kinh doanh, phân loại phản hồi khảo sát với tốc độ cao."
+          name: "Kiểm định phần mềm",
+          desc: "Chạy các tác nhân quét lỗ hổng bảo mật tự động, thực thi và kiểm thử mã nguồn trong các sandbox Docker an toàn."
         },
         {
-          name: "Hỗ trợ khách hàng",
-          desc: "Xử lý phân loại yêu cầu, giải đáp các thắc mắc phức tạp dựa trên ngữ cảnh đầy đủ, phản hồi tự nhiên."
+          name: "Thu thập dữ liệu song song",
+          desc: "Ủy thác các tác vụ thu thập thông tin đồng thời cho các tác nhân con để phân tích các trang web mục tiêu bằng Playwright."
         }
       ]
     },
     footer: {
       ctaTitle: "Bắt đầu xây dựng",
-      newsTitle: "Đăng ký nhận bản tin lập trình viên",
-      newsSub: "Cập nhật sản phẩm, hướng dẫn, tiêu điểm cộng đồng và hơn thế nữa. Gửi hàng tháng tới hộp thư của bạn.",
+      newsTitle: "Nhận cập nhật cho lập trình viên",
+      newsSub: "Cập nhật sản phẩm, công thức mã nguồn, công cụ mới và nhiều thông tin bổ ích. Gửi hàng tháng tới hộp thư của bạn.",
       newsPlaceholder: "Nhập email của bạn",
       newsButton: "Đăng ký",
-      newsDisclaimer: "Vui lòng cung cấp địa chỉ email của bạn nếu bạn muốn nhận bản tin phát triển hàng tháng. Hủy đăng ký bất cứ lúc nào."
+      newsDisclaimer: "Bằng cách đăng ký, bạn đồng ý nhận bản tin cập nhật định kỳ. Hủy đăng ký bất cứ lúc nào."
     }
   }
 };
 
 const CLIENT_TESTIMONIALS = [
   {
-    logo: "CURSOR",
-    text: "“On CursorBench, Claude 3.5 Sonnet is outstanding. We migrated all our agent mesh architecture over and saw immediate latency improvements.”",
-    author: "Michael Truell, CEO"
+    logo: "CODEMESH",
+    text: "“On AgentBench, the AI Collective multi-agent mesh architecture gave us immediate latency improvements and clean orchestration.”",
+    author: "Marcus Vance, CEO"
   },
   {
-    logo: "StubHub",
-    text: "“The decision to choose Claude was simple. The safety, reliability, and ease of deployment across our global platforms was seamless.”",
-    author: "Timothy Addison, Engineering Chief of Staff"
+    logo: "EVENTPASS",
+    text: "“Deploying multi-agent workflows was simple. The reliability and flexibility of the LangGraph topology options made the transition seamless.”",
+    author: "Taylor Addison, Engineering Chief of Staff"
   },
   {
-    logo: "Genspark.ai",
-    text: "“On our Super Agent benchmark, Claude leads by a wide margin. It excels in reasoning, instruction following, and error correction.”",
-    author: "Genspark Team"
+    logo: "SPARKAGENT",
+    text: "“The ability to run secure code execution sandbox alongside specialized toolkits has elevated our agent performance by a wide margin.”",
+    author: "SparkAgent Core Team"
   },
   {
-    logo: "Rakuten",
-    text: "“Claude 3.5 Sonnet produced the best iOS outputs. It handles ticket triage, multi-step workflows, and complex conversational queries.”",
-    author: "Rakuten Engineering"
+    logo: "SHOPMESH",
+    text: "“AI Collective handles ticket triage, multi-step workflows, and complex conversational queries with robust human-in-the-loop support.”",
+    author: "ShopMesh Dev Team"
   }
 ];
 
@@ -767,28 +759,59 @@ export default function Landing() {
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  <span className="ml-2 text-[10px] text-zinc-500">Claude Console · Workbench</span>
+                  <span className="ml-2 text-[10px] text-zinc-500">AI Collective Console · Mesh Workbench</span>
                 </div>
-                <div className="px-2 py-0.5 rounded bg-white/5 text-[9px] text-zinc-500">v4.6</div>
+                <div className="px-2 py-0.5 rounded bg-white/5 text-[9px] text-zinc-500">v0.2.6</div>
               </div>
               <div className="p-4 space-y-4">
                 <div className="space-y-1.5">
-                  <div className="text-[10px] text-zinc-500 uppercase font-semibold">User System Prompt</div>
+                  <div className="text-[10px] text-zinc-500 uppercase font-semibold flex items-center justify-between">
+                    <span>Task Objective</span>
+                    <span className="text-accent text-[9px] px-1.5 py-0.5 rounded bg-accent/10 border border-accent/25">Supervisor Mode</span>
+                  </div>
                   <div className="bg-zinc-900 border border-white/5 rounded-lg p-3 text-zinc-300">
-                    You are an expert software reviewer. Evaluate the code quality, locate potential security vulnerabilities, and propose optimized refactoring steps.
+                    Analyze user auth logic, execute vulnerability tests in sandbox, and patch SQL injection vectors.
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <div className="text-[10px] text-zinc-500 uppercase font-semibold">User Message Input</div>
-                  <div className="bg-zinc-900 border border-white/5 rounded-lg p-3 text-zinc-300">
-                    async function fetchUser(id) {"{"} return await db.query("SELECT * FROM users WHERE id = " + id); {"}"}
+                  <div className="text-[10px] text-zinc-500 uppercase font-semibold">Active Agent Team</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-zinc-900 border border-white/5 rounded-lg px-2.5 py-1.5 text-[10px]">
+                      <span className="text-zinc-500 font-semibold block text-[8px] uppercase">Lead</span>
+                      <span className="text-zinc-300 font-medium">Orchestrator</span>
+                    </div>
+                    <div className="bg-zinc-900 border border-white/5 rounded-lg px-2.5 py-1.5 text-[10px]">
+                      <span className="text-zinc-500 font-semibold block text-[8px] uppercase">Sandbox Exec</span>
+                      <span className="text-zinc-300 font-medium">Coder Agent</span>
+                    </div>
+                    <div className="bg-zinc-900 border border-white/5 rounded-lg px-2.5 py-1.5 text-[10px]">
+                      <span className="text-accent font-semibold block text-[8px] uppercase">Human-In-Loop</span>
+                      <span className="text-zinc-300 font-medium">Auditor Agent</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[10px] text-zinc-500 uppercase font-semibold">Real-Time Streaming Events</div>
+                  <div className="bg-zinc-900 border border-white/5 rounded-lg p-3 space-y-2 text-[10px]">
+                    <div className="flex items-start gap-2">
+                      <span className="text-emerald-500 font-semibold uppercase text-[8px] mt-0.5 px-1 rounded bg-emerald-500/10 border border-emerald-500/20">SSE</span>
+                      <span className="text-zinc-400">Event: <span className="text-zinc-300">agent_turn_start</span> ➔ Coder Agent</span>
+                    </div>
+                    <div className="flex items-start gap-2 pl-4 border-l border-zinc-800">
+                      <span className="text-zinc-500 mt-0.5">&gt;</span>
+                      <span className="text-zinc-500 italic">Spawning Docker Sandbox. Executing target code...</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-emerald-500 font-semibold uppercase text-[8px] mt-0.5 px-1 rounded bg-emerald-500/10 border border-emerald-500/20">SSE</span>
+                      <span className="text-zinc-400">Event: <span className="text-zinc-300">turn_complete</span> ➔ Patch written to db.py.</span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <div className="text-zinc-500 text-[10px]">Evaluating with Claude 3.5 Sonnet</div>
+                  <div className="text-zinc-500 text-[10px]">Routed via Gemini 2.0 + Claude 3.5</div>
                   <button className="flex items-center gap-1.5 px-3 py-1 rounded bg-accent text-white font-semibold text-[11px] hover:bg-accent/80 transition-colors">
                     <Play className="w-3 h-3 fill-current" />
-                    Run Prompt
+                    Run Orchestrator
                   </button>
                 </div>
               </div>
@@ -885,7 +908,7 @@ export default function Landing() {
           </div>
           <div className="space-y-3">
             <span className="block font-semibold text-white uppercase tracking-wider text-[10px]">Products</span>
-            <span className="block hover:text-white cursor-pointer">Claude Platform</span>
+            <span className="block hover:text-white cursor-pointer">Orchestrator</span>
             <span className="block hover:text-white cursor-pointer">Pricing</span>
             <span className="block hover:text-white cursor-pointer">Documentation</span>
           </div>
