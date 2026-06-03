@@ -23,6 +23,11 @@ import Settings from "@/pages/Settings";
 import Docs from "@/pages/Docs";
 import NotFound from "@/pages/NotFound";
 import AuthCallback from "@/pages/AuthCallback";
+import MeetCollective from "@/pages/marketing/MeetCollective";
+import Pricing from "@/pages/marketing/Pricing";
+import Solutions from "@/pages/marketing/Solutions";
+import Resources from "@/pages/marketing/Resources";
+import Changelog from "@/pages/marketing/Changelog";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +71,12 @@ const App = () => (
                 <Route path="/settings" element={<WithLayout><Settings /></WithLayout>} />
                 <Route path="/profile" element={<WithLayout><Profile /></WithLayout>} />
                 <Route path="/docs" element={<Docs />} />
+                {/* Marketing pages */}
+                <Route path="/meet" element={<MeetCollective />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/solutions" element={<Solutions />} />
+                <Route path="/resources" element={<Resources />} />
+                <Route path="/changelog" element={<Changelog />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

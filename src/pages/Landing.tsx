@@ -432,25 +432,25 @@ export default function Landing() {
                         <div>
                           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Products</p>
                           <div className="space-y-2.5">
-                            <Link to="/dashboard" className="block text-sm text-foreground hover:text-accent transition-colors font-medium">AI Collective</Link>
-                            <Link to="/dashboard" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Agent Mesh</Link>
+                            <Link to="/meet" className="block text-sm text-foreground hover:text-accent transition-colors font-medium">AI Collective</Link>
+                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Agent Mesh</Link>
                           </div>
                         </div>
                         <div>
                           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Features</p>
                           <div className="space-y-2.5">
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Multi-Agent Topologies</span>
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Knowledge Graph</span>
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Secure Sandbox</span>
+                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Multi-Agent Topologies</Link>
+                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Knowledge Graph</Link>
+                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Secure Sandbox</Link>
                           </div>
                         </div>
                         <div>
                           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Models</p>
                           <div className="space-y-2.5">
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Gemini</span>
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Claude</span>
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">GPT-4o</span>
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Qwen</span>
+                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Gemini</Link>
+                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Claude</Link>
+                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">GPT-4o</Link>
+                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Qwen</Link>
                           </div>
                         </div>
                       </div>
@@ -478,7 +478,7 @@ export default function Landing() {
                       <a href="http://localhost:2026/docs" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                         Developer docs <ExternalLink className="w-3.5 h-3.5" />
                       </a>
-                      <span className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer transition-colors">Pricing</span>
+                      <Link to="/pricing" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">Pricing</Link>
                       <div className="my-1 border-t border-[#e8e6dc] dark:border-[#2e2e2d]" />
                       <Link to="/dashboard" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                         Console login <ExternalLink className="w-3.5 h-3.5" />
@@ -507,31 +507,31 @@ export default function Landing() {
                         <div>
                           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Use cases</p>
                           <div className="space-y-2.5">
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">AI agents</span>
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Data pipelines</span>
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Code review</span>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">AI agents</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Data pipelines</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Code review</Link>
                           </div>
                         </div>
                         <div>
                           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Company size</p>
                           <div className="space-y-2.5">
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Startups</span>
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Enterprise</span>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Startups</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Enterprise</Link>
                           </div>
                         </div>
                         <div>
                           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Departments</p>
                           <div className="space-y-2.5">
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Engineering</span>
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Research</span>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Engineering</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Research</Link>
                           </div>
                         </div>
                         <div>
                           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Industries</p>
                           <div className="space-y-2.5">
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">FinTech</span>
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Legal</span>
-                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Healthcare</span>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">FinTech</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Legal</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Healthcare</Link>
                           </div>
                         </div>
                       </div>
@@ -541,7 +541,7 @@ export default function Landing() {
               </div>
 
               {/* Pricing - no dropdown */}
-              <span className="hover:text-foreground cursor-pointer transition-colors whitespace-nowrap">Pricing</span>
+              <Link to="/pricing" className="hover:text-foreground cursor-pointer transition-colors whitespace-nowrap">Pricing</Link>
 
               {/* Resources */}
               <div className="relative" onMouseEnter={() => setActiveDropdown('resources')} onMouseLeave={() => setActiveDropdown(null)}>
@@ -558,7 +558,7 @@ export default function Landing() {
                       transition={{ duration: 0.15 }}
                       className="absolute top-full left-0 mt-3 w-48 bg-background border border-[#e8e6dc] dark:border-[#2e2e2d] rounded-xl shadow-xl py-2 z-50"
                     >
-                      <span className="flex items-center px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 cursor-pointer transition-colors">Overview</span>
+                      <Link to="/resources" className="flex items-center px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 cursor-pointer transition-colors">Overview</Link>
                       <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                         GitHub <ExternalLink className="w-3.5 h-3.5" />
                       </a>
@@ -566,7 +566,7 @@ export default function Landing() {
                         Developer docs <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                       <div className="my-1 border-t border-[#e8e6dc] dark:border-[#2e2e2d]" />
-                      <span className="flex items-center px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer transition-colors">Changelog</span>
+                      <Link to="/changelog" className="flex items-center px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer transition-colors">Changelog</Link>
                     </motion.div>
                   )}
                 </AnimatePresence>
