@@ -515,7 +515,7 @@ export default function Landing() {
         <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-[radial-gradient(ellipse_at_center,hsl(var(--accent)/0.035),transparent_70%)]" />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-20 items-center">
-          <div className="lg:col-span-7 text-left space-y-6">
+          <div className="lg:col-span-6 text-left space-y-6">
             <FadeIn>
               <h1 className="text-5xl md:text-[68px] font-medium tracking-tight leading-[1.05] text-foreground font-serif">
                 Build on the<br />AI Collective Platform
@@ -546,56 +546,524 @@ export default function Landing() {
             </FadeIn>
           </div>
 
-          <div className="lg:col-span-5 flex justify-center">
+          <div className="lg:col-span-6 flex justify-center">
             <FadeIn delay={0.1}>
-              {/* Node Drawing Line-Art vector matching Claude Platform exactly in teal color style */}
-              <div className="relative w-full max-w-[420px] aspect-square flex items-center justify-center bg-transparent">
+              {/* Balanced Dynamic Spiderweb Multi-Agent Mesh with Descending Spider */}
+              <div className="relative w-full max-w-[500px] aspect-square flex items-center justify-center bg-transparent">
                 <svg viewBox="0 0 400 400" className="w-full h-full text-foreground" fill="none">
+                  <style>{`
+                    @keyframes spiderAdventure {
+                      0% {
+                        transform: translate(0px, -210px) rotate(0deg);
+                      }
+                      10% {
+                        transform: translate(0px, 0px) rotate(0deg);
+                      }
+                      14% {
+                        transform: translate(0px, -48px) rotate(0deg);
+                      }
+                      16% {
+                        transform: translate(0px, -48px) rotate(125deg);
+                      }
+                      19% {
+                        transform: translate(52px, -12px) rotate(125deg);
+                      }
+                      20% {
+                        transform: translate(52px, -12px) rotate(200deg);
+                      }
+                      23% {
+                        transform: translate(32px, 40px) rotate(200deg);
+                      }
+                      24% {
+                        transform: translate(32px, 40px) rotate(270deg);
+                      }
+                      27% {
+                        transform: translate(-32px, 40px) rotate(270deg);
+                      }
+                      28% {
+                        transform: translate(-32px, 40px) rotate(340deg);
+                      }
+                      31% {
+                        transform: translate(-52px, -12px) rotate(340deg);
+                      }
+                      32% {
+                        transform: translate(-52px, -12px) rotate(415deg);
+                      }
+                      34% {
+                        transform: translate(0px, -48px) rotate(415deg);
+                      }
+                      34.5% {
+                        transform: translate(0px, -48px) rotate(0deg);
+                      }
+                      36.5% {
+                        transform: translate(0px, -84px) rotate(0deg);
+                      }
+                      37.5% {
+                        transform: translate(0px, -84px) rotate(125deg);
+                      }
+                      41.5% {
+                        transform: translate(91px, -21px) rotate(125deg);
+                      }
+                      42.5% {
+                        transform: translate(91px, -21px) rotate(200deg);
+                      }
+                      46.5% {
+                        transform: translate(56px, 70px) rotate(200deg);
+                      }
+                      47.5% {
+                        transform: translate(56px, 70px) rotate(270deg);
+                      }
+                      51.5% {
+                        transform: translate(-56px, 70px) rotate(270deg);
+                      }
+                      52.5% {
+                        transform: translate(-56px, 70px) rotate(340deg);
+                      }
+                      56.5% {
+                        transform: translate(-91px, -21px) rotate(340deg);
+                      }
+                      57.5% {
+                        transform: translate(-91px, -21px) rotate(415deg);
+                      }
+                      59.5% {
+                        transform: translate(0px, -84px) rotate(415deg);
+                      }
+                      60% {
+                        transform: translate(0px, -84px) rotate(0deg);
+                      }
+                      62% {
+                        transform: translate(0px, -120px) rotate(0deg);
+                      }
+                      63% {
+                        transform: translate(0px, -120px) rotate(125deg);
+                      }
+                      67% {
+                        transform: translate(130px, -30px) rotate(125deg);
+                      }
+                      68% {
+                        transform: translate(130px, -30px) rotate(200deg);
+                      }
+                      72% {
+                        transform: translate(80px, 100px) rotate(200deg);
+                      }
+                      73% {
+                        transform: translate(80px, 100px) rotate(270deg);
+                      }
+                      77% {
+                        transform: translate(-80px, 100px) rotate(270deg);
+                      }
+                      78% {
+                        transform: translate(-80px, 100px) rotate(340deg);
+                      }
+                      82% {
+                        transform: translate(-130px, -30px) rotate(340deg);
+                      }
+                      83% {
+                        transform: translate(-130px, -30px) rotate(415deg);
+                      }
+                      85% {
+                        transform: translate(0px, -120px) rotate(415deg);
+                      }
+                      86% {
+                        transform: translate(0px, -120px) rotate(180deg);
+                      }
+                      89% {
+                        transform: translate(0px, -50px) rotate(180deg);
+                      }
+                      90% {
+                        transform: translate(0px, -50px) rotate(0deg);
+                      }
+                      100% {
+                        transform: translate(0px, -50px) rotate(0deg);
+                      }
+                    }
+                    @keyframes threadScale {
+                      0% {
+                        transform: scaleY(0);
+                      }
+                      10% {
+                        transform: scaleY(1);
+                      }
+                      85% {
+                        transform: scaleY(1);
+                      }
+                      89% {
+                        transform: scaleY(0.76);
+                      }
+                      100% {
+                        transform: scaleY(0.76);
+                      }
+                    }
+                    @keyframes drawSpoke {
+                      0% {
+                        stroke-dashoffset: 140;
+                        opacity: 0.1;
+                      }
+                      10%, 94% {
+                        stroke-dashoffset: 0;
+                        opacity: 0.35;
+                      }
+                      98%, 100% {
+                        stroke-dashoffset: 140;
+                        opacity: 0.1;
+                      }
+                    }
+                    @keyframes drawInner {
+                      0%, 16% {
+                        stroke-dashoffset: 302;
+                        opacity: 0.15;
+                        stroke: currentColor;
+                      }
+                      16.1% {
+                        stroke-dashoffset: 302;
+                        opacity: 1;
+                        stroke: hsl(var(--accent));
+                      }
+                      34%, 94% {
+                        stroke-dashoffset: 0;
+                        opacity: 1;
+                        stroke: hsl(var(--accent));
+                      }
+                      98%, 100% {
+                        stroke-dashoffset: 302;
+                        opacity: 0.15;
+                        stroke: currentColor;
+                      }
+                    }
+                    @keyframes drawMiddle {
+                      0%, 37.5% {
+                        stroke-dashoffset: 529;
+                        opacity: 0.15;
+                        stroke: currentColor;
+                      }
+                      37.6% {
+                        stroke-dashoffset: 529;
+                        opacity: 1;
+                        stroke: hsl(var(--accent));
+                      }
+                      59.5%, 94% {
+                        stroke-dashoffset: 0;
+                        opacity: 1;
+                        stroke: hsl(var(--accent));
+                      }
+                      98%, 100% {
+                        stroke-dashoffset: 529;
+                        opacity: 0.15;
+                        stroke: currentColor;
+                      }
+                    }
+                    @keyframes drawOuter {
+                      0%, 63% {
+                        stroke-dashoffset: 754;
+                        opacity: 0.15;
+                        stroke: currentColor;
+                      }
+                      63.1% {
+                        stroke-dashoffset: 754;
+                        opacity: 1;
+                        stroke: hsl(var(--accent));
+                      }
+                      85%, 94% {
+                        stroke-dashoffset: 0;
+                        opacity: 1;
+                        stroke: hsl(var(--accent));
+                      }
+                      98%, 100% {
+                        stroke-dashoffset: 754;
+                        opacity: 0.15;
+                        stroke: currentColor;
+                      }
+                    }
+                    @keyframes pulseGlow {
+                      0%, 100% {
+                        opacity: 0.3;
+                        transform: scale(1);
+                      }
+                      50% {
+                        opacity: 0.6;
+                        transform: scale(1.06);
+                      }
+                    }
+                    .spider-group {
+                      animation: spiderAdventure 36s linear infinite;
+                      transform-origin: 0px 0px;
+                    }
+                    .spider-thread {
+                      animation: threadScale 36s linear infinite;
+                      transform-origin: 200px 0px;
+                    }
+                    .pulse-circle {
+                      animation: pulseGlow 4s ease-in-out infinite;
+                      transform-origin: center;
+                    }
+                    .spoke-line {
+                      stroke-dasharray: 140;
+                      animation: drawSpoke 36s linear infinite;
+                    }
+                    .ring-inner {
+                      stroke-dasharray: 302;
+                      animation: drawInner 36s linear infinite;
+                    }
+                    .ring-middle {
+                      stroke-dasharray: 529;
+                      animation: drawMiddle 36s linear infinite;
+                    }
+                    .ring-outer {
+                      stroke-dasharray: 754;
+                      animation: drawOuter 36s linear infinite;
+                    }
+                    .agent-text {
+                      font-family: var(--font-mono, monospace);
+                      font-weight: 700;
+                      font-size: 13.5px;
+                      fill: currentColor !important;
+                      letter-spacing: 0.05em;
+                    }
+                    /* --- SPIDER ALTERNATING TETRAPOD GAIT ---
+                       Group A (swing phase 0  ): L1, L3, R2, R4
+                       Group B (swing phase 0.5): L2, L4, R1, R3
+                       Each leg: sweeps forward (lift) → plants → pushes back → lifts again
+                    */
+                    @keyframes legStrideA {
+                      0%   { transform: rotate(-18deg) scaleY(0.90); }
+                      15%  { transform: rotate(-18deg) scaleY(1.08); }
+                      45%  { transform: rotate( 16deg) scaleY(0.96); }
+                      50%  { transform: rotate( 18deg) scaleY(0.90); }
+                      65%  { transform: rotate( 18deg) scaleY(1.06); }
+                      95%  { transform: rotate(-16deg) scaleY(0.96); }
+                      100% { transform: rotate(-18deg) scaleY(0.90); }
+                    }
+                    @keyframes legStrideB {
+                      0%   { transform: rotate( 18deg) scaleY(0.90); }
+                      15%  { transform: rotate( 18deg) scaleY(1.06); }
+                      45%  { transform: rotate(-16deg) scaleY(0.96); }
+                      50%  { transform: rotate(-18deg) scaleY(0.90); }
+                      65%  { transform: rotate(-18deg) scaleY(1.08); }
+                      95%  { transform: rotate( 16deg) scaleY(0.96); }
+                      100% { transform: rotate( 18deg) scaleY(0.90); }
+                    }
+                    /* Front legs sweep wider; back legs push harder */
+                    @keyframes legStrideFront {
+                      0%   { transform: rotate(-22deg) scaleY(0.88); }
+                      15%  { transform: rotate(-22deg) scaleY(1.10); }
+                      45%  { transform: rotate( 18deg) scaleY(0.95); }
+                      50%  { transform: rotate( 22deg) scaleY(0.88); }
+                      65%  { transform: rotate( 22deg) scaleY(1.08); }
+                      95%  { transform: rotate(-18deg) scaleY(0.95); }
+                      100% { transform: rotate(-22deg) scaleY(0.88); }
+                    }
+                    @keyframes legStrideFrontB {
+                      0%   { transform: rotate( 22deg) scaleY(0.88); }
+                      15%  { transform: rotate( 22deg) scaleY(1.08); }
+                      45%  { transform: rotate(-18deg) scaleY(0.95); }
+                      50%  { transform: rotate(-22deg) scaleY(0.88); }
+                      65%  { transform: rotate(-22deg) scaleY(1.10); }
+                      95%  { transform: rotate( 18deg) scaleY(0.95); }
+                      100% { transform: rotate( 22deg) scaleY(0.88); }
+                    }
+                    @keyframes palpReach {
+                      0%, 100% { transform: rotate(-10deg) scaleY(0.92); }
+                      50%      { transform: rotate( 10deg) scaleY(1.05); }
+                    }
+                    /* Group A — phase 0 */
+                    .leg-l1 {
+                      animation: legStrideFront 0.72s ease-in-out infinite 0s;
+                      transform-origin: -3px -4px;
+                    }
+                    .leg-l3 {
+                      animation: legStrideA 0.72s ease-in-out infinite 0s;
+                      transform-origin: -4px 2px;
+                    }
+                    .leg-r2 {
+                      animation: legStrideA 0.72s ease-in-out infinite 0s;
+                      transform-origin: 4px -1px;
+                    }
+                    .leg-r4 {
+                      animation: legStrideA 0.72s ease-in-out infinite 0s;
+                      transform-origin: 3px 5px;
+                    }
+                    /* Group B — phase 0.36s (half of 0.72s) */
+                    .leg-l2 {
+                      animation: legStrideB 0.72s ease-in-out infinite 0.36s;
+                      transform-origin: -4px -1px;
+                    }
+                    .leg-l4 {
+                      animation: legStrideB 0.72s ease-in-out infinite 0.36s;
+                      transform-origin: -3px 5px;
+                    }
+                    .leg-r1 {
+                      animation: legStrideFrontB 0.72s ease-in-out infinite 0.36s;
+                      transform-origin: 3px -4px;
+                    }
+                    .leg-r3 {
+                      animation: legStrideB 0.72s ease-in-out infinite 0.36s;
+                      transform-origin: 4px 2px;
+                    }
+                    /* Pedipalps — alternating reach */
+                    .palp-l {
+                      animation: palpReach 0.72s ease-in-out infinite 0s;
+                      transform-origin: -1.5px -8px;
+                    }
+                    .palp-r {
+                      animation: palpReach 0.72s ease-in-out infinite 0.36s;
+                      transform-origin: 1.5px -8px;
+                    }
+                  `}</style>
+
                   {/* Soft accent gradient backgrounds for shapes */}
                   <defs>
-                    <radialGradient id="tealGrad1" cx="50%" cy="50%" r="50%">
-                      <stop offset="0%" stopColor="hsl(var(--accent)/0.65)" />
-                      <stop offset="100%" stopColor="hsl(var(--accent)/0.2)" />
-                    </radialGradient>
-                    <radialGradient id="tealGrad2" cx="50%" cy="50%" r="50%">
+                    <radialGradient id="tealGradCenter" cx="50%" cy="50%" r="50%">
                       <stop offset="0%" stopColor="hsl(var(--accent)/0.5)" />
+                      <stop offset="100%" stopColor="hsl(var(--accent)/0.0)" />
+                    </radialGradient>
+                    <radialGradient id="tealGradNode" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stopColor="hsl(var(--accent)/0.65)" />
                       <stop offset="100%" stopColor="hsl(var(--accent)/0.1)" />
                     </radialGradient>
+                    <linearGradient id="spiderThreadGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="hsl(var(--accent)/0.1)" />
+                      <stop offset="100%" stopColor="hsl(var(--accent)/0.8)" />
+                    </linearGradient>
                   </defs>
 
-                  {/* Circular node soft glow */}
-                  <circle cx="280" cy="140" r="48" fill="url(#tealGrad1)" />
-                  {/* Rounded square node soft glow */}
-                  <rect x="235" y="215" width="76" height="76" rx="20" fill="url(#tealGrad2)" />
+                  {/* Large Center Glow */}
+                  <circle cx="200" cy="200" r="140" fill="url(#tealGradCenter)" className="pulse-circle" />
 
-                  {/* Connected line with node indicators */}
-                  <path 
-                    d="M 280 140 L 310 250" 
-                    stroke="currentColor" 
-                    strokeWidth="6" 
-                    strokeLinecap="round" 
-                  />
-                  <circle cx="280" cy="140" r="9" fill="currentColor" stroke="currentColor" strokeWidth="2" />
-                  <circle cx="310" cy="250" r="9" fill="currentColor" stroke="currentColor" strokeWidth="2" />
+                  {/* Glowing Node Backgrounds */}
+                  <g className="pulse-circle">
+                    <circle cx="200" cy="90" r="30" fill="url(#tealGradNode)" />
+                    <circle cx="330" cy="180" r="30" fill="url(#tealGradNode)" />
+                    <circle cx="280" cy="310" r="30" fill="url(#tealGradNode)" />
+                    <circle cx="120" cy="310" r="30" fill="url(#tealGradNode)" />
+                    <circle cx="70" cy="180" r="30" fill="url(#tealGradNode)" />
+                  </g>
 
-                  {/* Drawing Hand Outline contour */}
-                  <path
-                    d="M 180 320 C 190 280, 220 280, 230 280 C 235 280, 240 270, 240 260 M 240 260 C 240 240, 260 240, 265 240 C 270 240, 275 250, 275 265 M 275 265 C 275 245, 292 245, 296 245 C 300 245, 305 255, 305 270 M 305 270 C 305 255, 320 255, 324 255 C 328 255, 332 265, 332 280 C 332 300, 310 320, 310 330 C 310 340, 350 350, 370 380"
-                    stroke="currentColor"
-                    strokeWidth="5.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                  {/* Spiderweb Structural Grid */}
+                  <g>
+                    {/* Radial spokes extending from center (200, 210) to nodes */}
+                    <line x1="200" y1="210" x2="200" y2="90" stroke="currentColor" strokeWidth="1" className="spoke-line" />
+                    <line x1="200" y1="210" x2="330" y2="180" stroke="currentColor" strokeWidth="1" className="spoke-line" />
+                    <line x1="200" y1="210" x2="280" y2="310" stroke="currentColor" strokeWidth="1" className="spoke-line" />
+                    <line x1="200" y1="210" x2="120" y2="310" stroke="currentColor" strokeWidth="1" className="spoke-line" />
+                    <line x1="200" y1="210" x2="70" y2="180" stroke="currentColor" strokeWidth="1" className="spoke-line" />
+
+                    {/* Concentric Spiderweb Rings (Straight pentagon styles) */}
+                    <path
+                      d="M 200 162 L 252 198 L 232 250 L 168 250 L 148 198 Z"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                      fill="none"
+                      className="ring-inner"
+                    />
+                    <path
+                      d="M 200 126 L 291 189 L 256 280 L 144 280 L 109 189 Z"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                      fill="none"
+                      className="ring-middle"
+                    />
+                    <path
+                      d="M 200 90 L 330 180 L 280 310 L 120 310 L 70 180 Z"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      fill="none"
+                      className="ring-outer"
+                    />
+                  </g>
+
+                  {/* Extra cross-mesh shortcuts to represent mesh orchestrator topology */}
+                  <g opacity="0.4">
+                    <line x1="200" y1="90" x2="280" y2="310" stroke="currentColor" strokeWidth="1" strokeDasharray="3,6" />
+                    <line x1="330" y1="180" x2="120" y2="310" stroke="currentColor" strokeWidth="1" strokeDasharray="3,6" />
+                    <line x1="70" y1="180" x2="280" y2="310" stroke="currentColor" strokeWidth="1" strokeDasharray="3,6" />
+                  </g>
+
+                  {/* Agent Mesh Nodes */}
                   
-                  {/* Wave scribble background line */}
-                  <path
-                    d="M 350 120 C 320 180, 380 220, 340 300 C 320 330, 360 360, 330 390"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    fill="none"
-                    opacity="0.85"
-                  />
+                  {/* 1. Supervisor Agent */}
+                  <g className="cursor-pointer">
+                    <circle cx="200" cy="90" r="10" fill="currentColor" />
+                    <circle cx="200" cy="90" r="18" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+                    <text x="200" y="62" textAnchor="middle" className="agent-text">
+                      SUPERVISOR
+                    </text>
+                  </g>
+
+                  {/* 2. Coder Agent */}
+                  <g className="cursor-pointer">
+                    <circle cx="330" cy="180" r="8" fill="currentColor" />
+                    <circle cx="330" cy="180" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+                    <text x="355" y="184" textAnchor="start" className="agent-text">
+                      CODER
+                    </text>
+                  </g>
+
+                  {/* 3. Search Agent */}
+                  <g className="cursor-pointer">
+                    <circle cx="280" cy="310" r="8" fill="currentColor" />
+                    <circle cx="280" cy="310" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+                    <text x="280" y="342" textAnchor="middle" className="agent-text">
+                      SEARCH
+                    </text>
+                  </g>
+
+                  {/* 4. Writer Agent */}
+                  <g className="cursor-pointer">
+                    <circle cx="120" cy="310" r="8" fill="currentColor" />
+                    <circle cx="120" cy="310" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+                    <text x="120" y="342" textAnchor="middle" className="agent-text">
+                      WRITER
+                    </text>
+                  </g>
+
+                  {/* 5. Browser Agent */}
+                  <g className="cursor-pointer">
+                    <circle cx="70" cy="180" r="8" fill="currentColor" />
+                    <circle cx="70" cy="180" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+                    <text x="45" y="184" textAnchor="end" className="agent-text">
+                      BROWSER
+                    </text>
+                  </g>
+
+                  {/* Center Node (representing the core orchestrator mesh hub) */}
+                  <g>
+                    <circle cx="200" cy="210" r="6" fill="currentColor" className="text-accent" />
+                    <circle cx="200" cy="210" r="12" stroke="currentColor" strokeWidth="1" className="text-accent" opacity="0.5" />
+                  </g>
+
+                  {/* Glowing silk thread descending from the top, reaching near the center */}
+                  <line x1="200" y1="0" x2="200" y2="210" stroke="url(#spiderThreadGrad)" strokeWidth="1.5" className="spider-thread" />
+
+                  {/* Spider Group (Centered around the outer web-center translate container) */}
+                  <g transform="translate(200, 210)">
+                    <g className="spider-group">
+                      {/* Legs (8 legs) */}
+                      {/* Left legs */}
+                      <path d="M -3 -4 Q -12 -9 -14 -2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none" className="leg-l1" />
+                      <path d="M -4 -1 Q -15 -3 -16 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none" className="leg-l2" />
+                      <path d="M -4 2 Q -15 5 -13 12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none" className="leg-l3" />
+                      <path d="M -4 5 Q -11 11 -8 17" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none" className="leg-l4" />
+
+                      {/* Right legs */}
+                      <path d="M 3 -4 Q 12 -9 14 -2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none" className="leg-r1" />
+                      <path d="M 4 -1 Q 15 -3 16 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none" className="leg-r2" />
+                      <path d="M 4 2 Q 15 5 13 12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none" className="leg-r3" />
+                      <path d="M 3 5 Q 11 11 8 17" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none" className="leg-r4" />
+
+                      {/* Pedipalps (front feelers) */}
+                      <path d="M -1.5 -8 Q -3.5 -11 -2 -13" stroke="currentColor" strokeWidth="1" strokeLinecap="round" fill="none" className="palp-l" />
+                      <path d="M 1.5 -8 Q 3.5 -11 2 -13" stroke="currentColor" strokeWidth="1" strokeLinecap="round" fill="none" className="palp-r" />
+
+                      {/* Head (Cephalothorax) */}
+                      <circle cx="0" cy="-4" r="4.5" fill="currentColor" />
+
+                      {/* Abdomen */}
+                      <ellipse cx="0" cy="4" rx="6" ry="7.5" fill="currentColor" />
+                      
+                      {/* Accent color dot on the back */}
+                      <circle cx="0" cy="3" r="2" fill="hsl(var(--accent))" />
+                    </g>
+                  </g>
                 </svg>
               </div>
             </FadeIn>
