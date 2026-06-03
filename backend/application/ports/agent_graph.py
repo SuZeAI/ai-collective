@@ -17,6 +17,7 @@ class GraphAgentDefinition:
     routing_guidance: str = ""
     skill_ids: list[str] | None = None
     tools: dict[str, BaseToolkit] | None = None  # Bound tools by skill_id
+    subagent_enabled: bool = False
 
 
 @dataclass(frozen=True, slots=True)

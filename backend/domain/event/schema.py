@@ -13,5 +13,7 @@ class EventType(str, Enum):
 	LLM_REQUEST_START = "llm_request_start"
 	LLM_RESPONSE_COMPLETE = "llm_response_complete"
 	MESSAGE_INGESTED = "message_ingested"
+	SUBAGENT_START = "subagent_start"
+	SUBAGENT_COMPLETE = "subagent_complete"
 	TURN_COMPLETE = "turn_complete"
 

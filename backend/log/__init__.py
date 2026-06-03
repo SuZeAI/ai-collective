@@ -46,7 +46,7 @@ def get_logger(
             log_dir.mkdir(exist_ok=True)
             log_file = log_dir / "ai_collective.log"
         
-        file_handler = logging.FileHandler(log_file, encoding='utf-8', mode="w")
+        file_handler = logging.FileHandler(log_file, encoding='utf-8', mode="a")
         file_handler.setLevel(level)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)

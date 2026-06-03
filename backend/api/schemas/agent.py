@@ -48,6 +48,7 @@ class AgentSchema(BaseModel):
     avatar_color: str = ""
     avatar_url: str = ""
     system_prompt: str = ""
+    subagent_enabled: bool = False
 
     @staticmethod
     def from_domain(a, skills: list = None) -> "AgentSchema":
@@ -64,6 +65,7 @@ class AgentSchema(BaseModel):
             avatar_color=getattr(a, "avatar_color", "") or "",
             avatar_url=getattr(a, "avatar_url", "") or "",
             system_prompt=getattr(a, "system_prompt", "") or "",
+            subagent_enabled=bool(getattr(a, "subagent_enabled", False)),
         )
 
 
@@ -79,3 +81,4 @@ class UpsertAgentRequest(BaseModel):
     avatar_color: str | None = None
     avatar_url: str | None = None
     system_prompt: str | None = None
+    subagent_enabled: bool = False

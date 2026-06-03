@@ -5,6 +5,12 @@
 # Run     make help   for a full list of available targets.
 # ============================================================================
 
+# ── Load .env (non-fatal if missing) ─────────────────────────────────────
+ifneq (,$(wildcard .env))
+    include .env
+    export
+endif
+
 # ── Project configuration ─────────────────────────────────────────────────
 SHELL     := /bin/bash
 .DEFAULT_GOAL := help
@@ -16,6 +22,16 @@ BACKEND_PORT  ?= 8000
 FRONTEND_PORT ?= 8080
 BACKEND_WORKERS ?= 1
 
+# Credential fallbacks (overridden by .env if defined there)
+MONGO_USER    ?= admin
+MONGO_PASS    ?= admin
+RABBITMQ_USER ?= guest
+RABBITMQ_PASS ?= guest
+
+# Services whose stdout/stderr are collected into logs/<service>.log by dev-log-collect
+COMPOSE_DEV_SERVICES := mongodb mongo-express redis redis-commander rabbitmq nginx frontend backend
+LOG_DIR              := logs
+
 # Colour helpers (no-op if terminal does not support them)
 C_RESET  := \033[0m
 C_BOLD   := \033[1m
@@ -25,7 +41,7 @@ C_YELLOW := \033[33m
 
 # ── Phony declarations ────────────────────────────────────────────────────
 .PHONY: help \
-        dev dev-down dev-stop dev-start dev-build dev-logs dev-ps \
+        dev dev-down dev-stop dev-start dev-build dev-logs dev-ps dev-log-collect \
         dev-sandbox dev-provisioner \
         up down stop start build restart ps logs logs-backend logs-frontend \
         prod-sandbox prod-provisioner \
@@ -43,12 +59,16 @@ C_YELLOW := \033[33m
 # ============================================================================
 
 help: ## Show this help message
-	@printf "\n$(C_BOLD)$(C_CYAN)AI Collective — available targets$(C_RESET)\n\n"
-	@printf "$(C_BOLD)  %-28s %s$(C_RESET)\n" "Target" "Description"
-	@printf "  %-28s %s\n" "------" "-----------"
-	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_\-]+:.*##/ { \
-	    printf "  $(C_GREEN)%-28s$(C_RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
-	@printf "\n$(C_BOLD)$(C_YELLOW)Examples$(C_RESET)\n"
+	@printf "\n\033[1m\033[36m  AI Collective — available targets\033[0m\n"
+	@awk 'BEGIN {FS = ":.*##"} \
+	    /^##@ / { \
+	        sub(/^##@ /, ""); \
+	        printf "\n\033[1m  %s\033[0m\n  %s\n", $$0, "------------------------------------------------------------"; \
+	    } \
+	    /^[a-zA-Z_-]+:.*##/ { \
+	        printf "  \033[32m%-28s\033[0m %s\n", $$1, $$2 \
+	    }' $(MAKEFILE_LIST)
+	@printf "\n\033[1m\033[33m  Examples\033[0m\n"
 	@printf "  make dev              # Start full dev stack (Docker, hot-reload)\n"
 	@printf "  make backend          # Run backend locally (needs infra running)\n"
 	@printf "  make up               # Start production stack\n"
@@ -60,24 +80,71 @@ help: ## Show this help message
 # DEVELOPMENT — full Docker stack (hot-reload)
 # ============================================================================
 
+##@ Development (Docker — hot-reload)
+
 dev: dirs env ## Start full development stack (hot-reload, all services)
 	@printf "$(C_CYAN)Starting dev stack…$(C_RESET)\n"
+	@printf "$(C_YELLOW)Clearing old logs…$(C_RESET)\n"
+	@rm -f $(LOG_DIR)/*.log
 	$(COMPOSE_DEV) up --build -d
-	@printf "$(C_GREEN)✓ Dev stack up:$(C_RESET) http://localhost:2026  (API: http://localhost:2026/api/v1)\n"
-	@printf "  RabbitMQ UI: http://localhost:15672  (guest/guest)\n"
-	@printf "  Backend logs: make dev-logs\n"
+	@$(MAKE) --no-print-directory dev-log-collect
+	@printf "\n"
+	@printf "$(C_BOLD)$(C_CYAN)  AI COLLECTIVE$(C_RESET)  —  Development Stack\n"
+	@printf "  Multi-agent platform · React + FastAPI · Hot-reload\n"
+	@printf "  LLM: $(LLM_PROVIDER) / $(LLM_MODEL)   Storage: $(STORAGE_BACKEND)   Log: $(LOG_LEVEL)\n"
+	@printf "\n"
+	@printf "$(C_BOLD)  Application$(C_RESET)\n"
+	@printf "    App       →  $(C_GREEN)http://localhost:2026$(C_RESET)\n"
+	@printf "    REST API  →  $(C_GREEN)http://localhost:2026/api/v1$(C_RESET)\n"
+	@printf "    API Docs  →  $(C_GREEN)http://localhost:2026/api/docs$(C_RESET)\n"
+	@printf "\n"
+	@printf "$(C_BOLD)  Admin UIs$(C_RESET)\n"
+	@printf "    MongoDB   →  $(C_YELLOW)http://localhost:8081$(C_RESET)   $(MONGO_USER)/$(MONGO_PASS)\n"
+	@printf "    Redis     →  $(C_YELLOW)http://localhost:8083$(C_RESET)\n"
+	@printf "    RabbitMQ  →  $(C_YELLOW)http://localhost:15672$(C_RESET)  $(RABBITMQ_USER)/$(RABBITMQ_PASS)\n"
+	@printf "\n"
+	@printf "$(C_BOLD)  Logs$(C_RESET)  →  $(LOG_DIR)/<service>.log\n"
+	@printf "    make dev-logs              tail all\n"
+	@printf "    make dev-logs-backend      tail backend\n"
+	@printf "    make dev-logs-frontend     tail frontend\n"
+	@printf "\n"
+	@printf "$(C_BOLD)  Commands$(C_RESET)\n"
+	@printf "    make dev-ps                container status\n"
+	@printf "    make dev-restart-backend   hot-restart backend\n"
+	@printf "    make dev-down              stop & remove all\n"
+	@printf "\n"
 
 dev-build: ## Rebuild all dev images without cache
 	$(COMPOSE_DEV) build --no-cache
 
 dev-down: ## Stop and remove dev containers (removes containers + networks)
+	@if [ -f $(LOG_DIR)/.collector.pids ]; then \
+	    xargs -r kill < $(LOG_DIR)/.collector.pids 2>/dev/null || true; \
+	    rm -f $(LOG_DIR)/.collector.pids; \
+	fi
 	$(COMPOSE_DEV) down
 
 dev-stop: ## Stop dev containers without removing them (preserves state for restart)
+	@if [ -f $(LOG_DIR)/.collector.pids ]; then \
+	    xargs -r kill < $(LOG_DIR)/.collector.pids 2>/dev/null || true; \
+	    rm -f $(LOG_DIR)/.collector.pids; \
+	fi
 	$(COMPOSE_DEV) stop
 
 dev-start: ## Start stopped dev containers (use after dev-stop)
 	$(COMPOSE_DEV) start
+	@$(MAKE) --no-print-directory dev-log-collect
+
+dev-log-collect: ## Start per-service log collectors → logs/<service>.log
+	@mkdir -p $(LOG_DIR)
+	@if [ -f $(LOG_DIR)/.collector.pids ]; then \
+	    xargs -r kill < $(LOG_DIR)/.collector.pids 2>/dev/null || true; \
+	    rm -f $(LOG_DIR)/.collector.pids; \
+	fi
+	@for svc in $(COMPOSE_DEV_SERVICES); do \
+	    $(COMPOSE_DEV) logs -f --timestamps $$svc >> $(LOG_DIR)/$$svc.log 2>&1 & echo $$! >> $(LOG_DIR)/.collector.pids; \
+	done
+	@printf "$(C_CYAN)Log collectors started$(C_RESET) → $(LOG_DIR)/*.log\n"
 
 dev-logs: ## Tail all dev container logs (Ctrl-C to stop)
 	$(COMPOSE_DEV) logs -f
@@ -102,6 +169,7 @@ dev-restart-backend: ## Restart only the backend container
 dev-sandbox: dirs env ## Dev stack + AIO sandbox container (set SANDBOX_MODE=remote in .env)
 	@printf "$(C_CYAN)Starting dev stack with sandbox…$(C_RESET)\n"
 	$(COMPOSE_DEV) up --build -d
+	@$(MAKE) --no-print-directory dev-log-collect
 	@printf "  Sandbox URL (internal): http://sandbox:8080\n"
 	@printf "  Sandbox URL (host):     http://localhost:8081\n"
 	@printf "$(C_YELLOW)  Tip: set SANDBOX_MODE=remote and SANDBOX_URL=http://sandbox:8080 in .env$(C_RESET)\n"
@@ -109,12 +177,15 @@ dev-sandbox: dirs env ## Dev stack + AIO sandbox container (set SANDBOX_MODE=rem
 dev-provisioner: dirs env ## Dev stack + AIO sandbox + K8s provisioner
 	@printf "$(C_CYAN)Starting dev stack with provisioner…$(C_RESET)\n"
 	$(COMPOSE_DEV) up --build -d
+	@$(MAKE) --no-print-directory dev-log-collect
 	@printf "  Provisioner: http://localhost:8002/health\n"
 	@printf "$(C_YELLOW)  Tip: set SANDBOX_MODE=remote and SANDBOX_PROVISIONER_URL=http://provisioner:8002 in .env$(C_RESET)\n"
 
 # ============================================================================
 # PRODUCTION
 # ============================================================================
+
+##@ Production (Docker)
 
 up: dirs env ## Start production stack (detached)
 	@printf "$(C_CYAN)Starting production stack…$(C_RESET)\n"
@@ -167,6 +238,8 @@ prod-all: dirs env ## Production stack + sandbox + provisioner
 # LOCAL DEVELOPMENT (without Docker — runs directly on host)
 # ============================================================================
 
+##@ Local Development (no Docker)
+
 backend: dirs env ## Run backend locally with hot-reload (needs: make infra)
 	@printf "$(C_CYAN)Starting backend on port $(BACKEND_PORT)…$(C_RESET)\n"
 	uv run uvicorn backend.api.main:app \
@@ -206,6 +279,8 @@ infra-down: ## Stop infra services
 # SETUP & INSTALL
 # ============================================================================
 
+##@ Setup & Install
+
 install: install-backend install-frontend ## Install all dependencies
 
 install-backend: ## Install Python dependencies (uv)
@@ -234,6 +309,8 @@ setup: install dirs env ## Full first-time project setup
 # TESTING & LINTING
 # ============================================================================
 
+##@ Testing & Linting
+
 test: test-backend test-frontend ## Run all tests
 
 test-backend: ## Run backend tests (pytest)
@@ -259,6 +336,8 @@ lint-frontend: ## Lint frontend (eslint)
 # STORAGE
 # ============================================================================
 
+##@ Storage
+
 storage-reset: ## ⚠ Delete all storage JSON files (agents, tasks, conversations…)
 	@printf "$(C_YELLOW)⚠  This will delete all data in storage/$(C_RESET)\n"
 	@read -p "Type 'yes' to continue: " confirm && [ "$$confirm" = "yes" ] || exit 1
@@ -268,6 +347,8 @@ storage-reset: ## ⚠ Delete all storage JSON files (agents, tasks, conversation
 # ============================================================================
 # CLEANUP
 # ============================================================================
+
+##@ Cleanup
 
 clean: clean-docker ## Remove build artefacts and cache files
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true

@@ -36,6 +36,7 @@ class Agent:
     avatar_color: str = ""
     avatar_url: str = ""
     system_prompt: str = ""
+    subagent_enabled: bool = False
 
 
 @dataclass(frozen=True, slots=True)

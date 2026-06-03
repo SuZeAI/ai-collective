@@ -191,7 +191,8 @@ export default function TaskManager() {
   const [taskGraphPositions, setTaskGraphPositions] = useState<Record<string, Record<string, GraphNodePosition>>>({});
   const [open, setOpen] = useState(false);
   const [viewTaskId, setViewTaskId] = useState<string | null>(null);
-  const [graphPanelVisible, setGraphPanelVisible] = useState(true);
+  const [graphPanelVisible, setGraphPanelVisible] = useState(false);
+  const [graphActivityCollapsed, setGraphActivityCollapsed] = useState(false);
   const graphSvgRef = useRef<SVGSVGElement | null>(null);
   const graphDragRef = useRef<{
     taskId: string;
@@ -606,6 +607,20 @@ export default function TaskManager() {
                 ...prev,
                 [updated.id]: new Set([...(prev[updated.id] ?? []), agentId]),
               }));
+            }
+            // Subagent (Agent Mode) delegation: keep the parent agent's
+            // thinking indicator active while its subagent runs.
+            else if (eventType === "subagent_start") {
+              if (agentId) {
+                setThinkingAgents((prev) => ({
+                  ...prev,
+                  [updated.id]: new Set([...(prev[updated.id] ?? []), agentId]),
+                }));
+              }
+              console.debug("subagent_start", event.subagent_type, event.description);
+            }
+            else if (eventType === "subagent_complete") {
+              console.debug("subagent_complete", event.subagent_type, event.error);
             }
             // Highlight the graph context that was retrieved for this agent turn.
             else if (eventType === "context_retrieved") {
@@ -1095,17 +1110,24 @@ export default function TaskManager() {
 
                 {graphPanelVisible && <div className="h-full min-h-0 p-5 flex flex-col overflow-hidden bg-card/80 text-foreground">
                   <div className="flex items-start justify-between gap-4 border-b border-border pb-3 mb-3">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Graph context</div>
-                      <div className="mt-1 text-sm font-semibold text-foreground">Knowledge graph activity</div>
-                    </div>
+                    <button
+                      className="flex items-center gap-2 text-left hover:opacity-75 transition-opacity"
+                      onClick={() => setGraphActivityCollapsed((v) => !v)}
+                      title={graphActivityCollapsed ? "Show knowledge graph activity / Hiện hoạt động đồ thị kiến thức" : "Hide knowledge graph activity / Ẩn hoạt động đồ thị kiến thức"}
+                    >
+                      {graphActivityCollapsed ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" /> : <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Graph context</div>
+                        <div className="mt-1 text-sm font-semibold text-foreground">Knowledge graph activity</div>
+                      </div>
+                    </button>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
                         onClick={() => setGraphPanelVisible(false)}
-                        title="Hide graph"
+                        title="Hide graph panel / Ẩn bảng đồ thị"
                       >
                         <EyeOff className="w-3.5 h-3.5" />
                       </Button>
@@ -1118,7 +1140,7 @@ export default function TaskManager() {
                     </div>
                   </div>
 
-                  <div className="min-h-0 flex-1 p-0">
+                  {!graphActivityCollapsed && <div className="min-h-0 flex-1 p-0">
                     {graphLoading && !graphSnapshot ? (
                       <div className="flex h-full items-center justify-center rounded-xl border border-border bg-muted/20 text-sm text-muted-foreground animate-pulse">
                         Loading graph context...
@@ -1244,7 +1266,7 @@ export default function TaskManager() {
                         No graph context yet. Start or restart the task to populate the knowledge graph.
                       </div>
                     )}
-                  </div>
+                  </div>}
                 </div>}
               </div>
             );

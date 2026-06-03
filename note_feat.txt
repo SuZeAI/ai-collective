@@ -1,6 +1,3 @@
-  feat/extract_information_llm
-  feat/cicd
-  feat/multithread
   feat/agent_topology_ring
   feat/agent_topology
 

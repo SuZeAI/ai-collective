@@ -14,6 +14,8 @@ class LLMProvider(Protocol):
         system: str,
         user: str,
         tools: list[Any] | None = None,
+        parallel_tools: bool = False,
+        max_tool_rounds: int | None = None,
     ) -> str:
         ...
 

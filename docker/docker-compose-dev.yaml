@@ -20,6 +20,15 @@
 # Nginx status:      http://localhost:2026/nginx_status
 # Sandbox direct:    http://localhost:8081  (if running)
 # Provisioner:       http://localhost:8002/health
+#
+# Logs: run `make dev` — per-service log files are written to ./logs/<service>.log
+
+# ── Shared logging configuration (log rotation for all services) ───────────
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "20m"
+    max-file: "5"
 
 services:
   # ── MongoDB ────────────────────────────────────────────────────────────────
@@ -37,6 +46,7 @@ services:
       - mongo_data:/data/db
     networks:
       - ai-collective-dev
+    logging: *default-logging
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -61,6 +71,7 @@ services:
         condition: service_healthy
     networks:
       - ai-collective-dev
+    logging: *default-logging
 
   # ── Redis (distributed lock backend) ──────────────────────────────────────
   redis:
@@ -70,6 +81,7 @@ services:
     networks:
       - ai-collective-dev
     restart: unless-stopped
+    logging: *default-logging
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -91,6 +103,7 @@ services:
     networks:
       - ai-collective-dev
     restart: unless-stopped
+    logging: *default-logging
 
   # ── RabbitMQ (task execution queue) ───────────────────────────────────────
   rabbitmq:
@@ -104,6 +117,7 @@ services:
     networks:
       - ai-collective-dev
     restart: unless-stopped
+    logging: *default-logging
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 15s
@@ -132,6 +146,7 @@ services:
     networks:
       - ai-collective-dev
     restart: unless-stopped
+    logging: *default-logging
 
   # ── Frontend: Vite Dev Server ──────────────────────────────────────────────
   frontend:
@@ -158,6 +173,7 @@ services:
     networks:
       - ai-collective-dev
     restart: unless-stopped
+    logging: *default-logging
 
   # ── Backend: FastAPI with hot-reload ──────────────────────────────────────
   backend:
@@ -198,9 +214,11 @@ services:
       - SANDBOX_WORKSPACE=/app/sandbox_workspace
       - STORAGE_DIR=/app/storage
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - PYTHONUNBUFFERED=1
     networks:
       - ai-collective-dev
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       mongodb:
         condition: service_healthy

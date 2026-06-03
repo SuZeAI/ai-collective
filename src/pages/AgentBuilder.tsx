@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { AgentAvatar, avatarIconOptions } from "@/components/AgentAvatar";
 import { api, type Agent, type Skill } from "@/lib/api";
@@ -80,6 +81,7 @@ export default function AgentBuilder() {
   const [avatarColor, setAvatarColor] = useState("#3b82f6");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
+  const [subagentEnabled, setSubagentEnabled] = useState(false);
   const [testingAgent, setTestingAgent] = useState<Agent | null>(null);
   const [testPrompt, setTestPrompt] = useState("");
   const [testOutput, setTestOutput] = useState("");
@@ -138,6 +140,7 @@ export default function AgentBuilder() {
     setAvatarColor("#3b82f6");
     setAvatarUrl("");
     setSelectedSkillIds([]);
+    setSubagentEnabled(false);
   };
 
   const openCreateDialog = () => {
@@ -155,6 +158,7 @@ export default function AgentBuilder() {
     setAvatarColor(isHexColor(agent.avatar_color || "") ? (agent.avatar_color as string) : "#3b82f6");
     setAvatarUrl(agent.avatar_url || "");
     setSelectedSkillIds(sanitizeSkillIds(agent.skill_ids || []));
+    setSubagentEnabled(agent.subagent_enabled ?? false);
     setOpen(true);
   };
 
@@ -174,6 +178,7 @@ export default function AgentBuilder() {
         avatar_icon: avatarMode === "icon" ? avatarIcon : "",
         avatar_color: isHexColor(avatarColor) ? avatarColor : "",
         avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
+        subagent_enabled: subagentEnabled,
       });
       setSelectedSkillIds(normalizedSkillIds);
       setAgentList((prev) => {
@@ -400,6 +405,18 @@ export default function AgentBuilder() {
                 </div>
               </div>
 
+              <div className="rounded-md border p-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-medium">Agent Mode (Subagents)</div>
+                    <p className="text-xs text-muted-foreground">
+                      Let this agent delegate work to subagents via the "task" tool and run multiple tools in parallel.
+                    </p>
+                  </div>
+                  <Switch checked={subagentEnabled} onCheckedChange={setSubagentEnabled} />
+                </div>
+              </div>
+
               <Button onClick={saveAgent} className="w-full" disabled={!name.trim() || !role}>
                 {editingAgentId ? "Save Changes" : "Create Agent"}
               </Button>
@@ -537,9 +554,14 @@ export default function AgentBuilder() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className={`w-1.5 h-1.5 rounded-full ${getAgentDotColor(agent.role)}`} />
                   <span className="text-xs text-muted-foreground">{agent.role}</span>
+                  {agent.subagent_enabled ? (
+                    <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">
+                      Agent Mode
+                    </Badge>
+                  ) : null}
                 </div>
 
                 <div className="mt-2">
