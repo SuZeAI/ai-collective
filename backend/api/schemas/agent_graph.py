@@ -11,7 +11,7 @@ class GraphRunRequest(BaseModel):
     user_input: str = Field(min_length=1)
     max_rounds: int = Field(default=6, ge=1, le=20)
     agents: list[str] = Field(min_length=1)
-    mode: Literal["mesh", "sequential", "ring", "supervisor"] = Field(default="sequential")
+    mode: Literal["mesh", "sequential", "ring", "supervisor", "tree"] = Field(default="sequential")
     conversation_id: str | None = Field(default=None, min_length=1)
     graph_config: "GraphConfigSchema | None" = None
 

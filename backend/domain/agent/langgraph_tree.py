@@ -24,6 +24,7 @@ from backend.domain.agent.token_budget import apply_context_token_budget
 
 MAX_CONTEXT_TOKENS = max(1024, int(os.getenv("AGENT_CONTEXT_TOKEN_LIMIT", "12000")))
 RESERVED_OUTPUT_TOKENS = max(256, int(os.getenv("AGENT_OUTPUT_TOKEN_RESERVE", "2000")))
+SUBAGENT_MAX_CONCURRENT = max(1, int(os.getenv("SUBAGENT_MAX_CONCURRENT", "3")))
 
 _TREE_LOG_WINDOW = 8
 
@@ -454,6 +455,22 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
 
             user_input_text = "\n".join(context_parts)
 
+            bound_tools: list = []
+            if agent.tools:
+                for toolkit in agent.tools.values():
+                    bound_tools.extend(toolkit.get_tools())
+
+            if agent.subagent_enabled:
+                from backend.domain.tools.task import TaskToolkit
+
+                task_toolkit = TaskToolkit(
+                    llm=llm,
+                    subagent_tools=list(bound_tools),
+                    max_concurrent=SUBAGENT_MAX_CONCURRENT,
+                    parent_agent_name=agent.name,
+                )
+                bound_tools.extend(task_toolkit.get_tools())
+
             budget_result = apply_context_token_budget(
                 llm=llm,
                 system_prompt=full_system,
@@ -462,11 +479,6 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
                 reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
             )
             user_input_text = budget_result.text
-
-            bound_tools: list = []
-            if agent.tools:
-                for toolkit in agent.tools.values():
-                    bound_tools.extend(toolkit.get_tools())
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
@@ -484,6 +496,7 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
                 system=full_system,
                 user=user_input_text,
                 tools=bound_tools or None,
+                parallel_tools=agent.subagent_enabled,
             )
 
             stream_writer({

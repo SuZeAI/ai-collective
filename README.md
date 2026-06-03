@@ -11,6 +11,7 @@
 <a href="#-what-is-ai--collective">About</a> •
 <a href="#-key-features">Features</a> •
 <a href="#-architecture">Architecture</a> •
+<a href="#-agent-topology-modes">Topologies</a> •
 <a href="#-option-1--run-locally">Local</a> •
 <a href="#-option-2--run-with-docker">Docker</a> •
 <a href="#-use-cases">Use Cases</a>
@@ -20,38 +21,70 @@
 
 ## 🤖 What is AI – Collective?
 
-**AI – Collective** is an open-source framework designed to model, orchestrate, and execute complex workflows through **Customizable Multi-Agent Teams**. Unlike standard chatbots, it enables the creation of an "AI Workforce" where agents possess specific skills, follow organizational hierarchies (Peer-to-Peer, Hierarchical, or Self-Organizing), and collaborate to solve high-level objectives.
+**AI – Collective** is an open-source framework for modeling, orchestrating, and executing complex workflows through **Customizable Multi-Agent Teams**. Unlike standard chatbots, it enables the creation of an "AI Workforce" where agents possess specific skills, follow organizational topologies (Sequential, Ring, Mesh, or Supervisor), and collaborate to solve high-level objectives — with real-time streaming and human-in-the-loop support.
 
 ## ✨ Key Features
 
 | Feature | Description |
 | :--- | :--- |
-| **Atomic Skill System** | Define granular capabilities (Market Analysis, Web Search, API Integration) and inject them into agents. |
-| **Agent Personas** | Create agents with unique identities, roles, and behavioral constraints. |
-| **Dynamic Team Structures** | Model real-world organizations: Flat teams for brainstorming or Hierarchical for production. |
-| **Multi-Agent Discussion** | Real-time message exchange, critique, and consensus-building between agents. |
+| **4 Agent Topologies** | Sequential, Ring, Mesh, and Supervisor orchestration patterns powered by LangGraph state machines. |
+| **Atomic Skill System** | 50+ built-in toolkits (Google Workspace, web search, social media, messaging platforms, browser automation). Bind granular capabilities to any agent. |
+| **Subagent Support** | Agents can spawn parallel subagents for concurrent task delegation (configurable concurrency + turn limits). |
+| **Real-time SSE Streaming** | Turn-by-turn agent response streaming with intermediate event visibility (`agent_start`, `llm_request_start`, `subagent_complete`, etc.). |
+| **Knowledge Graph Memory** | Conversation context extraction via spaCy (static) or LLM-based semantic graph building. |
+| **Token Budget Management** | Automatic context-window management per agent turn with configurable limits. |
+| **Multi-LLM Support** | LLM-agnostic: Google Gemini, OpenAI, Anthropic Claude, OpenRouter — swappable at runtime. |
+| **Flexible Storage** | JSON-based (zero setup) or MongoDB persistence. |
 | **Human-in-the-Loop** | Seamlessly intervene in agent discussions to provide feedback or steer the workflow. |
-| **Real-time Monitoring** | Comprehensive dashboard to track task progress, agent logs, and system performance. |
+| **Auth & Workspaces** | JWT + Google OAuth sign-in, multi-workspace isolation, role-based access. |
+| **Activity Feed & Analytics** | Real-time activity logging, task metrics, per-agent productivity, and team efficiency dashboards. |
 
 ## 🏗️ Architecture
 
-AI – Collective is built with a focus on **Clean Architecture** and **Asynchronous Execution**.
+AI – Collective follows **Clean Architecture** with strict layer separation and **fully asynchronous execution**.
 
 ```mermaid
 graph TD
-    A[User/Task] --> B[Team Orchestrator]
-    B --> C{Organization Type}
-    C -->|Hierarchical| D[Leader -> Workers]
-    C -->|Peer-to-Peer| E[Collaborative Mesh]
-    D & E --> F[Skill Execution]
-    F --> G[Google Workspace/Search/API]
-    G --> H[Final Result & Monitoring]
+    A[User / Task] --> B[REST API — FastAPI]
+    B --> C{Agent Graph Service}
+    C -->|sequential| D[LangGraph Agent Orchestrator]
+    C -->|ring| E[LangGraph Ring Orchestrator]
+    C -->|mesh| F[Multi-Agent Mesh Orchestrator]
+    C -->|supervisor| G[LangGraph Supervisor Orchestrator]
+    D & E & F & G --> H[Agent Executor + Tool Bindings]
+    H --> I[50+ Skill Toolkits]
+    H --> J[Subagent Spawner]
+    I & J --> K[LLM Provider — Gemini / GPT / Claude / OpenRouter]
+    K --> L[SSE Stream → Frontend]
+    L --> M[Knowledge Graph + Analytics]
 ```
 
-  * **Frontend**: React + TypeScript + Vite + Tailwind CSS + Framer Motion.
-  * **Backend**: FastAPI (Python 3.11+) with Clean Architecture boundaries.
-  * **Intelligence**: LLM-agnostic (optimized for Gemini-2.0-Flash) via agent-graph orchestration.
-  * **Storage**: JSON-based (default) or MongoDB persistence.
+**Stack:**
+- **Frontend**: React 18 + TypeScript 5.8 + Vite 6 + Tailwind CSS + Framer Motion + Radix UI
+- **Backend**: FastAPI (Python 3.11+) with Clean Architecture (Domain → Application → Infrastructure → API)
+- **Orchestration**: LangGraph 0.2 state machines with 4 topology modes
+- **Storage**: JSON (default) or MongoDB 7 via Motor (async driver)
+- **Task Queue**: In-memory ThreadPoolExecutor (default) or RabbitMQ (distributed)
+- **Distributed Lock**: Threading (default) or Redis
+- **Auth**: PyJWT + bcrypt + Google OAuth 2.0
+
+-----
+
+## 🔀 Agent Topology Modes
+
+Select a topology at runtime via the `mode` field in the API request.
+
+### Sequential (default)
+Single agent processes the full request. Fastest and most predictable.
+
+### Ring
+Agents execute in circular order: `Agent 0 → Agent 1 → … → Agent N → Agent 0`. Each agent sees the full accumulated conversation history. Continues until `max_rounds` is reached. Ideal for iterative refinement and debate scenarios.
+
+### Mesh
+A **hub agent** connects bidirectionally to N **spoke agents**. The hub decides which spoke to activate using control blocks (`<NEXT_AGENT>`, `<DISCUSSION_END>`). Best for diverse specialist teams with a central coordinator.
+
+### Supervisor
+A **lead agent** delegates to N **worker agents** via `<DELEGATE_TO>WorkerName</DELEGATE_TO>`. Workers report back to the lead, which synthesizes results and either delegates again or returns a `<FINAL_ANSWER>`. Ideal for hierarchical manager-worker workflows.
 
 -----
 
@@ -63,34 +96,70 @@ Regardless of which run option you choose, start by creating a `.env` file:
 cp .env.template .env
 ```
 
-Then fill in your values. The key variables are:
+Key variables:
 
 ```env
 # LLM provider — at least one API key is required
-LLM_PROVIDER=google
+LLM_PROVIDER=google          # google | openai | anthropic | openrouter
 LLM_MODEL=gemini-2.0-flash
 GOOGLE_API_KEY=<your-key>
+ANTHROPIC_API_KEY=
+OPENAI_API_KEY=
+OPENROUTER_API_KEY=
 
 # Storage backend: "json" (default, no setup) or "mongo"
 STORAGE_BACKEND=json
+MONGO_URI=mongodb://admin:admin@localhost:27017/ai_collective?authSource=admin
 
-# JWT secret — change this in production!
+# Task queue: "memory" (default) or "rabbitmq"
+TASK_QUEUE_BACKEND=memory
+TASK_QUEUE_MAX_CONCURRENT=3
+RABBITMQ_URL=amqp://guest:guest@localhost:5672/
+
+# Distributed lock: "threading" (default) or "redis"
+LOCK_BACKEND=threading
+REDIS_URL=redis://localhost:6379/0
+
+# Subagent limits
+SUBAGENT_MAX_CONCURRENT=3
+SUBAGENT_MAX_TURNS=6
+
+# Token budget per agent turn
+AGENT_CONTEXT_TOKEN_LIMIT=12000
+AGENT_OUTPUT_TOKEN_RESERVE=2000
+
+# Knowledge graph extraction: "static" (spaCy) or "llm"
+GRAPH_BUILD_MODE=static
+GRAPH_LLM_PROVIDER=google
+GRAPH_LLM_MODEL=gemini-3-flash-preview
+
+# Sandbox code execution: "local" | "docker" | "k8s"
+SANDBOX_MODE=local
+SANDBOX_TIMEOUT=120
+
+# Logging
+LOG_LEVEL=info               # debug | info | warning | error
+LOG_CONSOLE=true
+LOG_FILE=false               # true → logs/ai_collective.log
+
+# JWT — change in production!
 JWT_SECRET_KEY=change-me-in-production-use-openssl-rand-hex-32
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=10080
 
-# Google OAuth (for social sign-in — optional)
+# Google OAuth (optional social sign-in)
 GOOGLE_LOGIN_CLIENT_ID=
 GOOGLE_LOGIN_CLIENT_SECRET=
 ```
 
-See `.env.template` for all available options (MongoDB, RabbitMQ, sandbox, logging, etc.).
+See `.env.template` for all available options.
 
 -----
 
 ## 💻 Option 1 — Run Locally
 
-Run the frontend and backend directly on your machine. Requires **Node.js**, **Python 3.11+**, and [**uv**](https://github.com/astral-sh/uv).
+Requires **Node.js 18+**, **Python 3.11+**, and [**uv**](https://github.com/astral-sh/uv).
 
-> **Note:** The local backend defaults to in-memory task queue and threading lock — no Redis or RabbitMQ needed. For full feature parity you can start only the infrastructure services via Docker (step 3b below).
+> **Note:** The local backend defaults to in-memory task queue and threading lock — no Redis or RabbitMQ needed. Start only the infrastructure services via Docker if you need them (step 3b).
 
 ### Prerequisites
 
@@ -132,21 +201,19 @@ uv run uvicorn backend.api.main:app --reload --port 8000
 npm run dev -- --host 0.0.0.0 --port 8080
 ```
 
-App is available at **http://localhost:8080** · API docs at **http://localhost:8000/docs**
+App at **http://localhost:8080** · API docs at **http://localhost:8000/docs**
 
 ### Step 3b — (Optional) Start infrastructure services
 
-If you need MongoDB, Redis, or RabbitMQ locally without running the full Docker stack:
-
 ```bash
-# Start only redis + rabbitmq via Docker Compose
+# Start only Redis + RabbitMQ via Docker Compose
 make infra
 # Redis:    localhost:6379
 # RabbitMQ: localhost:5672  (management UI: http://localhost:15672)
 
 # Or include MongoDB as well
 docker compose -f docker/docker-compose-dev.yaml up -d mongodb redis rabbitmq
-# MongoDB:  localhost:27017
+# MongoDB: localhost:27017
 
 # Then update .env:
 # STORAGE_BACKEND=mongo
@@ -171,16 +238,11 @@ docker compose -f docker/docker-compose-dev.yaml up -d mongodb redis rabbitmq
 
 ## 🐳 Option 2 — Run with Docker
 
-All services (frontend, backend, MongoDB, Redis, RabbitMQ, Nginx) run as Docker containers. Requires **Docker** and **Docker Compose v2**.
-
-```bash
-docker --version         # 24+
-docker compose version   # v2.x
-```
+All services (frontend, backend, MongoDB, Redis, RabbitMQ, Nginx) run as Docker containers. Requires **Docker 24+** and **Docker Compose v2**.
 
 ### Development mode (hot-reload)
 
-The development stack mounts your source files into the containers — code changes in `backend/` and `src/` are reflected immediately without rebuilding.
+Source files in `backend/` and `src/` are mounted into containers — changes are reflected immediately without rebuilding.
 
 ```bash
 # 1. Configure environment
@@ -189,20 +251,21 @@ cp .env.template .env
 
 # 2. Start the full dev stack
 make dev
-# or directly:
+# or:
 docker compose -f docker/docker-compose-dev.yaml up --build -d
-
-# 3. Open the app
-#    App:              http://localhost:2026
-#    API docs:         http://localhost:2026/api/v1/docs       — Swagger UI (frontend owns /docs)
-#    API redoc:        http://localhost:2026/api/v1/redoc
-#    RabbitMQ UI:      http://localhost:15672  (guest/guest)   — queues, message rates, connections
-#    Redis Commander:  http://localhost:8083                   — browse keys, values, TTL
-#    Mongo Express:    http://localhost:8081   (admin/admin)   — collections, documents
-#    Nginx status:     http://localhost:2026/nginx_status      — active connections, requests/sec
 ```
 
-**Useful dev commands:**
+| URL | Description |
+| :--- | :--- |
+| http://localhost:2026 | Main application |
+| http://localhost:2026/api/v1/docs | Swagger UI |
+| http://localhost:2026/api/v1/redoc | ReDoc |
+| http://localhost:15672 | RabbitMQ management UI (guest/guest) |
+| http://localhost:8083 | Redis Commander |
+| http://localhost:8081 | Mongo Express (admin/admin) |
+| http://localhost:2026/nginx_status | Nginx connection stats |
+
+**Dev commands:**
 
 | Command | Description |
 | :--- | :--- |
@@ -215,23 +278,17 @@ docker compose -f docker/docker-compose-dev.yaml up --build -d
 
 ### Production mode
 
-The production stack builds optimized images and serves the frontend via Nginx.
+Builds optimized images and serves the frontend via Nginx.
 
 ```bash
-# 1. Configure environment
 cp .env.template .env
 # Edit .env — set LLM_PROVIDER + API key + a strong JWT_SECRET_KEY
 
-# 2. Build and start
 make up
-# or directly:
-docker compose -f docker/docker-compose.yaml up -d
-
-# 3. Open the app
-#    App: http://localhost:2026
+# App: http://localhost:2026
 ```
 
-**Useful prod commands:**
+**Prod commands:**
 
 | Command | Description |
 | :--- | :--- |
@@ -244,15 +301,10 @@ docker compose -f docker/docker-compose.yaml up -d
 
 ### Optional Docker profiles
 
-Both `dev` and `prod` stacks support optional add-on services via Docker Compose profiles:
-
 **AIO Sandbox** — isolated code execution container:
 
 ```bash
-# Dev
-docker compose -f docker/docker-compose-dev.yaml --profile sandbox up -d
-# Prod
-make prod-sandbox
+make dev-sandbox    # or: make prod-sandbox
 
 # Then add to .env:
 # SANDBOX_MODE=remote
@@ -262,44 +314,38 @@ make prod-sandbox
 **K8s Provisioner** — creates per-request sandbox Pods on Kubernetes:
 
 ```bash
-# Dev
-make dev-provisioner
-# Prod
-make prod-provisioner
+make dev-provisioner    # or: make prod-provisioner
 
 # Then add to .env:
 # SANDBOX_MODE=remote
 # SANDBOX_PROVISIONER_URL=http://provisioner:8002
 ```
 
-**MongoDB Express** (prod only) — web UI for MongoDB:
+**MongoDB Express** (prod only):
 
 ```bash
 docker compose -f docker/docker-compose.yaml --profile mongo-express up -d
-# UI: http://localhost:8081  (MONGO_USER/MONGO_PASS)
+# UI: http://localhost:8081
 ```
 
-**Monitoring tools** (prod only) — Redis Commander + RabbitMQ Management UI:
+**Monitoring tools** (prod only) — Redis Commander + RabbitMQ UI:
 
 ```bash
 docker compose -f docker/docker-compose.yaml --profile tools up -d
-# Redis Commander:  http://localhost:8083        — browse keys, values, TTL, memory stats
-# RabbitMQ UI:      http://localhost:15672       — queues, bindings, message rates
 ```
 
-> In **dev**, both UIs are always on — no profile flag needed.
-> The RabbitMQ Management plugin is built into the `rabbitmq:3-management-alpine` image used by both stacks.
+> In **dev**, all monitoring UIs are always on — no profile flag needed.
 
 ### Services overview
 
 | Service | Dev port | Prod port | Description |
 | :--- | :--- | :--- | :--- |
-| App (via Nginx) | 2026 | 2026 | Main entry point |
+| App (via Nginx) | **2026** | **2026** | Main entry point |
 | Backend API | internal:8000 | internal:8000 | FastAPI |
-| Frontend | internal:8080 | internal:8080 | React (Vite dev / `serve`) |
+| Frontend | internal:8080 | internal:8080 | React (Vite dev / serve) |
 | MongoDB | 27017 | internal | Database |
 | Redis | internal | internal | Distributed lock backend |
-| RabbitMQ | 5672, **15672** | 5672, **15672** | Task queue + Management UI |
+| RabbitMQ | 5672, **15672** | 5672, **15672** | Task queue + management UI |
 | Mongo Express | **8081** | **8081** (profile) | MongoDB web UI |
 | Redis Commander | **8083** | **8083** (profile: tools) | Redis browser UI |
 | Nginx status | **2026/nginx_status** | **2026/nginx_status** | Connection & request stats |
@@ -312,23 +358,79 @@ docker compose -f docker/docker-compose.yaml --profile tools up -d
 
 ## 🛠️ System Components
 
-  * **Skill System**: The DNA of agents. Supports both cognitive (logic) and tool-based (API) skills.
-  * **Communication Layer**: Manages message passing, state synchronization, and streaming (SSE).
-  * **Monitoring**: A transparent log system to "watch your team work" in real-time.
+### Backend (Clean Architecture)
+
+```
+backend/
+├── api/          # HTTP routers, request/response schemas, dependency injection
+├── application/  # Use-case services, abstract ports (interfaces)
+├── domain/       # Business logic
+│   ├── agent/    # Orchestrators: sequential, ring, mesh, supervisor + subagent + token budget
+│   ├── tools/    # 50+ skill toolkits (Google Workspace, web, social, messaging, sandbox)
+│   ├── memory/   # Knowledge graph extraction (spaCy / LLM-based)
+│   └── event/    # SSE event schema definitions
+├── infrastructure/ # Repositories, LLM factories, task queues, lock providers
+└── log/          # Structured logging (console + optional file output)
+```
+
+### Frontend
+
+```
+src/
+├── pages/       # Dashboard, AgentBuilder, TeamBuilder, TaskManager,
+│                # Conversations, Playground, Analytics, Skills, Settings, Workspaces
+├── components/  # Reusable UI (Radix UI + custom, dark/light theme)
+├── contexts/    # AuthContext, LanguageContext (i18n)
+├── hooks/       # Custom React hooks
+└── lib/         # API client, agent-role mapping utilities
+```
+
+### Real-time Event Streaming
+
+`POST /api/v1/llm/agent-graph/run-stream` returns **Server-Sent Events** with the following event types:
+
+| Event | Description |
+| :--- | :--- |
+| `agent_start` | Orchestrator started |
+| `agent_turn_start` | Individual agent turn begins |
+| `context_building` | Knowledge graph lookup |
+| `context_retrieved` | Graph context ready |
+| `llm_request_start` | LLM call dispatched |
+| `llm_response_complete` | LLM response received |
+| `subagent_start` | Subagent spawned |
+| `subagent_complete` | Subagent finished |
+| `turn_complete` | Full `GraphTurn` object with agent response |
+| `graph_context` | Final knowledge graph summary |
+
+### Integrated Tool Ecosystem (50+ Toolkits)
+
+| Category | Tools |
+| :--- | :--- |
+| **Google Workspace** | Drive, Docs, Sheets, Calendar |
+| **Web & Search** | DuckDuckGo, Brave, HackerNews, Reddit, OpenRouter |
+| **Browser Automation** | Playwright-based scraping & interaction |
+| **Social Media** | X/Twitter, Bluesky, Instagram, TikTok, YouTube, Reddit, Xiaohongshu |
+| **Messaging** | Discord, Slack, Telegram, WhatsApp Business, Signal, Teams, WeChat, Zalo, Line, Viber |
+| **Productivity** | HTTP client, Bash command execution, LLM task delegation |
+| **Specialized** | Polymarket predictions, image processing (rembg), YouTube (yt-dlp) |
+
+-----
 
 ## 🧪 Use Cases
 
-  * **Financial Analysis**: Team of analysts debating market trends based on real-time news.
-  * **Content Pipeline**: Strategy → Drafting → Critiquing → Final Polish.
-  * **Software Research**: Automated vulnerability detection and documentation generation.
+- **Financial Analysis**: Team of analysts debating market trends based on real-time news.
+- **Content Pipeline**: Strategy → Drafting → Critiquing → Final Polish (Supervisor topology).
+- **Iterative Research**: Ring topology for multi-round refinement across specialist agents.
+- **Software Research**: Automated vulnerability detection and documentation generation.
+- **Parallel Task Execution**: Subagents processing independent subtasks concurrently.
 
 ## 🤝 Contributing
 
-We welcome contributions! Please follow the Clean Architecture patterns established in the backend and ensure all frontend components are modular.
+We welcome contributions! Please follow the Clean Architecture patterns established in the backend and ensure all frontend components are modular and typed.
 
 ## 👨‍💻 Author
 
-**SuZeAI (SuzeNith)** - AI Research Engineer focused on autonomous multi-agent systems.
+**SuZeAI (SuzeNith)** — AI Research Engineer focused on autonomous multi-agent systems.
 
 -----
 
