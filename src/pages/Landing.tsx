@@ -94,27 +94,48 @@ const LOCAL_COPY = {
       title: "Supported LLM Foundations",
       sub: "Configure, swap, or route foundational model engines at runtime across industry-leading providers.",
       batch: "Fully LLM-agnostic: Route via Google Gemini, Anthropic, OpenAI, or OpenRouter gateway.",
+      activeModelLabel: "Active Model",
+      capabilitiesHeader: "Key Capabilities",
       list: [
         {
           name: "Google Gemini",
-          desc: "Default speed engine, optimized for entity extraction and real-time knowledge graphs",
-          input: "Gemini 2.0 Flash",
-          output: "Gemini 1.5 Pro",
-          caching: "Auto semantic graph building"
+          desc: "Default speed engine, optimized for entity extraction and real-time knowledge graphs.",
+          modelKey: "gemini-2.0-flash",
+          capabilities: [
+            "Automated spaCy & LLM-based entity extraction",
+            "Real-time graph building and state context loading",
+            "High token efficiency for agent debate rounds"
+          ]
         },
         {
           name: "Anthropic Claude",
-          desc: "Premier logic engine for multi-agent mesh coordinator and code generation",
-          input: "Claude 3.5 Sonnet",
-          output: "Claude 3 Opus",
-          caching: "Advanced prompt caching"
+          desc: "Premier logic engine for multi-agent mesh coordinator and code generation.",
+          modelKey: "claude-3-5-sonnet",
+          capabilities: [
+            "Advanced prompt caching to reduce token overhead",
+            "Superior tool selection and agent delegation flow",
+            "Structured code execution validation"
+          ]
         },
         {
           name: "OpenAI GPT",
-          desc: "Highly reliable standard engine for structured JSON schemas and tool binding",
-          input: "GPT-4o",
-          output: "GPT-4o-mini",
-          caching: "JSON schema enforcement"
+          desc: "Highly reliable standard engine for structured JSON schemas and tool binding.",
+          modelKey: "gpt-4o",
+          capabilities: [
+            "Strict JSON schema enforcement for inputs/outputs",
+            "Multi-agent ring debate consensus formatting",
+            "Broad external API integrations"
+          ]
+        },
+        {
+          name: "Open Weight (Qwen)",
+          desc: "High-parameter open weight engine for self-hosted or air-gapped secure agent clusters.",
+          modelKey: "qwen3.5-397B-A17B",
+          capabilities: [
+            "Self-hosted orchestration with zero data leakage",
+            "Fine-tuned for Python code execution inside Docker sandboxes",
+            "Compatible with custom model providers and endpoints"
+          ]
         }
       ]
     },
@@ -214,27 +235,48 @@ const LOCAL_COPY = {
       title: "Các động cơ mô hình được hỗ trợ",
       sub: "Cấu hình, thay đổi hoặc định tuyến các động cơ mô hình nền tảng ở thời điểm chạy mà không cần sửa mã.",
       batch: "Hoàn toàn độc lập mô hình: Định tuyến qua Google Gemini, Anthropic, OpenAI hoặc OpenRouter.",
+      activeModelLabel: "Model kích hoạt",
+      capabilitiesHeader: "Khả năng chính",
       list: [
         {
           name: "Google Gemini",
-          desc: "Động cơ tốc độ mặc định, tối ưu cho trích xuất thực thể và biểu đồ tri thức thời gian thực",
-          input: "Gemini 2.0 Flash",
-          output: "Gemini 1.5 Pro",
-          caching: "Xây dựng biểu đồ ngữ cảnh tự động"
+          desc: "Default speed engine, optimized for entity extraction and real-time knowledge graphs.",
+          modelKey: "gemini-2.0-flash",
+          capabilities: [
+            "Trích xuất thực thể tự động bằng spaCy & LLM",
+            "Xây dựng đồ thị ngữ cảnh và tải trạng thái cực nhanh",
+            "Tối ưu hóa token cho các lượt tranh luận của tác nhân"
+          ]
         },
         {
           name: "Anthropic Claude",
-          desc: "Động cơ logic hàng đầu cho điều phối Mesh và tạo mã nguồn chất lượng cao",
-          input: "Claude 3.5 Sonnet",
-          output: "Claude 3 Opus",
-          caching: "Hỗ trợ prompt caching nâng cao"
+          desc: "Premier logic engine for multi-agent mesh coordinator and code generation.",
+          modelKey: "claude-3-5-sonnet",
+          capabilities: [
+            "Hỗ trợ prompt caching giảm chi phí token và độ trễ",
+            "Khả năng lựa chọn công cụ và ủy thác tác nhân tối ưu",
+            "Xác thực và thực thi mã nguồn sandbox tin cậy"
+          ]
         },
         {
           name: "OpenAI GPT",
-          desc: "Động cơ tiêu chuẩn đáng tin cậy cao cho cấu trúc JSON và liên kết gọi hàm",
-          input: "GPT-4o",
-          output: "GPT-4o-mini",
-          caching: "Ràng buộc lược đồ JSON chặt chẽ"
+          desc: "Highly reliable standard engine for structured JSON schemas and tool binding.",
+          modelKey: "gpt-4o",
+          capabilities: [
+            "Ràng buộc lược đồ JSON nghiêm ngặt cho input/output",
+            "Định dạng đồng thuận tranh luận đa tác nhân vòng tròn",
+            "Tích hợp đa dạng API và dịch vụ bên ngoài"
+          ]
+        },
+        {
+          name: "Open Weight (Qwen)",
+          desc: "High-parameter open weight engine for self-hosted or air-gapped secure agent clusters.",
+          modelKey: "qwen3.5-397B-A17B",
+          capabilities: [
+            "Điều phối tự lưu trữ hoàn toàn không rò rỉ dữ liệu",
+            "Tối ưu hóa cho thực thi mã Python trong sandbox Docker",
+            "Tương thích linh hoạt các API và máy chủ tự cấu hình"
+          ]
         }
       ]
     },
@@ -654,25 +696,28 @@ export default function Landing() {
           </p>
         </FadeIn>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {t.models.list.map((m, idx) => (
             <FadeIn key={idx} delay={idx * 0.05} className="h-full">
-              <div className="bg-card border border-border/80 rounded-2xl p-6 flex flex-col h-full shadow-sm hover:border-border transition-all">
-                <h3 className="text-lg font-semibold text-foreground mb-1 font-serif">{m.name}</h3>
-                <p className="text-xs text-muted-foreground mb-6">{m.desc}</p>
-                <div className="space-y-3 text-sm border-t border-border/40 pt-4 flex-1">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Input</span>
-                    <span className="font-medium text-foreground">{m.input}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Output</span>
-                    <span className="font-medium text-foreground">{m.output}</span>
+              <div className="bg-card border border-[#e8e6dc]/80 dark:border-[#2e2e2d]/60 rounded-2xl p-6 flex flex-col h-full shadow-sm hover:border-border transition-all">
+                <div className="mb-3">
+                  <h3 className="text-lg font-semibold text-foreground font-serif mb-1.5">{m.name}</h3>
+                  <div className="inline-flex">
+                    <span className="font-mono text-[10px] font-medium text-accent bg-accent/5 border border-accent/15 px-2.5 py-1 rounded leading-none">
+                      {m.modelKey}
+                    </span>
                   </div>
                 </div>
-                <div className="mt-4 pt-4 border-t border-border/40 text-[11px] text-muted-foreground">
-                  <span className="block font-semibold text-foreground/70 mb-1">Prompt caching</span>
-                  {m.caching}
+                <div className="h-[72px] flex items-start mb-4 overflow-hidden">
+                  <p className="text-xs text-muted-foreground leading-relaxed">{m.desc}</p>
+                </div>
+                <div className="border-t border-[#e8e6dc]/80 dark:border-[#2e2e2d]/60 pt-4 flex-1">
+                  <span className="block text-[11px] font-semibold text-foreground/70 mb-2">{t.models.capabilitiesHeader}</span>
+                  <ul className="space-y-2 text-xs text-muted-foreground list-disc pl-4 leading-relaxed">
+                    {m.capabilities.map((cap, cidx) => (
+                      <li key={cidx}>{cap}</li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             </FadeIn>
