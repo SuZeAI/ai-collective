@@ -366,8 +366,21 @@ export default function Landing() {
   const { stars } = useGitHubStats();
   const { language } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const headerRef = useRef<HTMLElement>(null);
 
   const t = LOCAL_COPY[language as "en" | "vi"] || LOCAL_COPY.en;
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
+        setActiveDropdown(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#faf9f5] dark:bg-[#141413] text-foreground font-sans relative overflow-x-hidden transition-colors duration-300">
@@ -382,7 +395,7 @@ export default function Landing() {
       />
 
       {/* Global Header */}
-      <header className="sticky top-0 z-50 border-b border-[#e8e6dc]/80 dark:border-[#2e2e2d]/60 bg-background/90 backdrop-blur-xl">
+      <header ref={headerRef} className="sticky top-0 z-50 border-b border-[#e8e6dc]/80 dark:border-[#2e2e2d]/60 bg-background/90 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 shrink-0 group">
             {/* Spider logo - original blue/green color */}
@@ -397,46 +410,186 @@ export default function Landing() {
           </Link>
 
           {/* Right Side: Nav items + CTA Buttons */}
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium">
+          <div className="hidden md:flex items-center gap-6 text-sm font-medium relative">
             <nav className="flex items-center gap-6 text-muted-foreground">
-              <span className="flex items-center gap-1 hover:text-foreground cursor-pointer transition-colors group whitespace-nowrap">
-                Meet Collective
-                <ChevronDown className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
-              </span>
-              <span className="flex items-center gap-1 text-foreground font-semibold cursor-pointer group whitespace-nowrap">
-                Platform
-                <ChevronDown className="w-3.5 h-3.5 text-accent" />
-              </span>
-              <span className="flex items-center gap-1 hover:text-foreground cursor-pointer transition-colors group whitespace-nowrap">
-                Solutions
-                <ChevronDown className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
-              </span>
+
+              {/* Meet Collective */}
+              <div className="relative" onMouseEnter={() => setActiveDropdown('meet')} onMouseLeave={() => setActiveDropdown(null)}>
+                <span className={`flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap hover:text-foreground ${activeDropdown === 'meet' ? 'text-foreground' : ''}`}>
+                  Meet Collective
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${activeDropdown === 'meet' ? 'rotate-180 opacity-100' : 'opacity-60'}`} />
+                </span>
+                <AnimatePresence>
+                  {activeDropdown === 'meet' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-0 mt-3 w-[520px] bg-background border border-[#e8e6dc] dark:border-[#2e2e2d] rounded-xl shadow-xl p-5 z-50"
+                    >
+                      <div className="grid grid-cols-3 gap-6">
+                        <div>
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Products</p>
+                          <div className="space-y-2.5">
+                            <Link to="/dashboard" className="block text-sm text-foreground hover:text-accent transition-colors font-medium">AI Collective</Link>
+                            <Link to="/dashboard" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Agent Mesh</Link>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Features</p>
+                          <div className="space-y-2.5">
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Multi-Agent Topologies</span>
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Knowledge Graph</span>
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Secure Sandbox</span>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Models</p>
+                          <div className="space-y-2.5">
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Gemini</span>
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Claude</span>
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">GPT-4o</span>
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Qwen</span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Platform */}
+              <div className="relative" onMouseEnter={() => setActiveDropdown('platform')} onMouseLeave={() => setActiveDropdown(null)}>
+                <span className={`flex items-center gap-1 cursor-pointer whitespace-nowrap font-semibold transition-colors ${activeDropdown === 'platform' ? 'text-foreground' : 'text-foreground'}`}>
+                  Platform
+                  <ChevronDown className={`w-3.5 h-3.5 text-accent transition-transform duration-200 ${activeDropdown === 'platform' ? 'rotate-180' : ''}`} />
+                </span>
+                <AnimatePresence>
+                  {activeDropdown === 'platform' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-0 mt-3 w-52 bg-background border border-[#e8e6dc] dark:border-[#2e2e2d] rounded-xl shadow-xl py-2 z-50"
+                    >
+                      <Link to="/" className="flex items-center justify-between px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 transition-colors">Overview</Link>
+                      <a href="http://localhost:2026/docs" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                        Developer docs <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                      <span className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer transition-colors">Pricing</span>
+                      <div className="my-1 border-t border-[#e8e6dc] dark:border-[#2e2e2d]" />
+                      <Link to="/dashboard" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                        Console login <ExternalLink className="w-3.5 h-3.5" />
+                      </Link>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Solutions */}
+              <div className="relative" onMouseEnter={() => setActiveDropdown('solutions')} onMouseLeave={() => setActiveDropdown(null)}>
+                <span className={`flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap hover:text-foreground ${activeDropdown === 'solutions' ? 'text-foreground' : ''}`}>
+                  Solutions
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${activeDropdown === 'solutions' ? 'rotate-180 opacity-100' : 'opacity-60'}`} />
+                </span>
+                <AnimatePresence>
+                  {activeDropdown === 'solutions' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-0 mt-3 w-[560px] bg-background border border-[#e8e6dc] dark:border-[#2e2e2d] rounded-xl shadow-xl p-5 z-50"
+                    >
+                      <div className="grid grid-cols-4 gap-5">
+                        <div>
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Use cases</p>
+                          <div className="space-y-2.5">
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">AI agents</span>
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Data pipelines</span>
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Code review</span>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Company size</p>
+                          <div className="space-y-2.5">
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Startups</span>
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Enterprise</span>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Departments</p>
+                          <div className="space-y-2.5">
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Engineering</span>
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Research</span>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Industries</p>
+                          <div className="space-y-2.5">
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">FinTech</span>
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Legal</span>
+                            <span className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Healthcare</span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Pricing - no dropdown */}
               <span className="hover:text-foreground cursor-pointer transition-colors whitespace-nowrap">Pricing</span>
-              <span className="flex items-center gap-1 hover:text-foreground cursor-pointer transition-colors group whitespace-nowrap">
-                Resources
-                <ChevronDown className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
-              </span>
+
+              {/* Resources */}
+              <div className="relative" onMouseEnter={() => setActiveDropdown('resources')} onMouseLeave={() => setActiveDropdown(null)}>
+                <span className={`flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap hover:text-foreground ${activeDropdown === 'resources' ? 'text-foreground' : ''}`}>
+                  Resources
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${activeDropdown === 'resources' ? 'rotate-180 opacity-100' : 'opacity-60'}`} />
+                </span>
+                <AnimatePresence>
+                  {activeDropdown === 'resources' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-0 mt-3 w-48 bg-background border border-[#e8e6dc] dark:border-[#2e2e2d] rounded-xl shadow-xl py-2 z-50"
+                    >
+                      <span className="flex items-center px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 cursor-pointer transition-colors">Overview</span>
+                      <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                        GitHub <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                      <a href="http://localhost:2026/docs" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                        Developer docs <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                      <div className="my-1 border-t border-[#e8e6dc] dark:border-[#2e2e2d]" />
+                      <span className="flex items-center px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer transition-colors">Changelog</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </nav>
 
-            {/* Divider line */}
+            {/* Divider */}
             <div className="h-4 w-px bg-[#e8e6dc]/80 dark:bg-[#2e2e2d]/60" />
 
             {/* CTA Group */}
-            <div className="flex items-center gap-4">
-              <Link to="/login" className="hover:text-foreground transition-colors whitespace-nowrap">
+            <div className="flex items-center gap-3">
+              <Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap text-sm">
                 Login
               </Link>
-
               <Link
                 to="/login"
-                className="inline-flex items-center justify-center h-9 px-4 rounded-lg border border-[#c4c2ba] dark:border-[#4d4d4b] hover:bg-muted/60 transition-colors whitespace-nowrap"
+                className="inline-flex items-center justify-center h-9 px-4 rounded-lg border border-[#c4c2ba] dark:border-[#4d4d4b] hover:bg-muted/60 transition-colors whitespace-nowrap text-sm text-foreground"
               >
                 Contact sales
               </Link>
-
               <Link
                 to="/dashboard"
-                className="inline-flex items-center justify-center h-9 px-4 rounded-lg bg-[#141413] dark:bg-[#faf9f5] text-[#faf9f5] dark:text-[#141413] hover:opacity-90 transition-opacity shadow-sm whitespace-nowrap"
+                className="inline-flex items-center justify-center h-9 px-4 rounded-lg bg-[#141413] dark:bg-[#faf9f5] text-[#faf9f5] dark:text-[#141413] hover:opacity-90 transition-opacity shadow-sm whitespace-nowrap text-sm font-semibold"
               >
                 Start building
               </Link>
@@ -461,8 +614,6 @@ export default function Landing() {
                 <ChevronDown className="w-3.5 h-3.5 opacity-60" />
               </div>
             </div>
-
-            {/* Shifted Action Toggles to Secondary Header Strip */}
             <div className="hidden sm:flex items-center gap-4">
               <a
                 href={GITHUB_URL}
@@ -481,7 +632,6 @@ export default function Landing() {
                   }
                 </span>
               </a>
-
               <LanguageSwitcher />
               <ThemeToggle />
             </div>
@@ -496,7 +646,7 @@ export default function Landing() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-b border-border/60 bg-background px-6 py-4 space-y-3 flex flex-col font-medium text-sm text-muted-foreground"
+            className="md:hidden border-b border-border/60 bg-background px-6 py-4 space-y-3 flex flex-col font-medium text-sm text-muted-foreground z-40"
           >
             <span className="hover:text-foreground cursor-pointer py-1">Meet Collective</span>
             <span className="text-foreground font-semibold py-1">Platform</span>
