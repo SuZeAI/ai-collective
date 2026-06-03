@@ -21,51 +21,11 @@ const itemVariants = {
 };
 
 const metricConfig = [
-  {
-    key: "completed",
-    icon: CheckCircle2,
-    label: "Tasks Completed",
-    gradientClass: "stat-gradient-green",
-    iconColor: "text-emerald-600",
-    iconBg: "bg-emerald-500/12",
-    trendColor: "text-emerald-600",
-  },
-  {
-    key: "active",
-    icon: ListTodo,
-    label: "Active Tasks",
-    gradientClass: "stat-gradient-blue",
-    iconColor: "text-blue-600",
-    iconBg: "bg-blue-500/12",
-    trendColor: "text-blue-500",
-  },
-  {
-    key: "efficiency",
-    icon: Zap,
-    label: "Team Efficiency",
-    gradientClass: "stat-gradient-orange",
-    iconColor: "text-amber-600",
-    iconBg: "bg-amber-500/12",
-    trendColor: "text-amber-600",
-  },
-  {
-    key: "agents",
-    icon: Users,
-    label: "Active Agents",
-    gradientClass: "stat-gradient-purple",
-    iconColor: "text-violet-600",
-    iconBg: "bg-violet-500/12",
-    trendColor: "text-violet-500",
-  },
-  {
-    key: "time",
-    icon: Clock,
-    label: "Avg. Completion",
-    gradientClass: "stat-gradient-teal",
-    iconColor: "text-teal-600",
-    iconBg: "bg-teal-500/12",
-    trendColor: "text-teal-500",
-  },
+  { key: "completed", icon: CheckCircle2, label: "Tasks Completed" },
+  { key: "active", icon: ListTodo, label: "Active Tasks" },
+  { key: "efficiency", icon: Zap, label: "Team Efficiency" },
+  { key: "agents", icon: Users, label: "Active Agents" },
+  { key: "time", icon: Clock, label: "Avg. Completion" },
 ];
 
 const statusVariant: Record<string, string> = {
@@ -153,10 +113,6 @@ export default function Dashboard() {
             value={metricValues[i].value}
             trend={metricValues[i].trend}
             isLoading={isLoading}
-            gradientClass={cfg.gradientClass}
-            iconColor={cfg.iconColor}
-            iconBg={cfg.iconBg}
-            trendColor={cfg.trendColor}
           />
         ))}
       </motion.div>
@@ -169,12 +125,10 @@ export default function Dashboard() {
       >
         {/* Tasks list */}
         <div className="lg:col-span-2 glass-card flex flex-col overflow-hidden" style={{ maxHeight: "calc(100vh - 320px)" }}>
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border/60 flex-shrink-0">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-border flex-shrink-0">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <ListTodo className="w-4 h-4 text-blue-600" />
-              </div>
-              <h3 className="text-sm font-bold text-foreground">Recent Tasks</h3>
+              <ListTodo className="w-4 h-4 text-muted-foreground" />
+              <h3 className="text-sm font-semibold text-foreground">Recent Tasks</h3>
             </div>
             <span className="text-xs text-muted-foreground font-medium">{tasks.length} total</span>
           </div>
@@ -187,11 +141,11 @@ export default function Dashboard() {
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.03 }}
-                    className="p-3.5 rounded-xl bg-background/50 hover:bg-background/80 transition-all border border-border/50 hover:border-primary/25 group cursor-default"
+                    className="p-3.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all border border-border/50 hover:border-border group cursor-default"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+                        <h4 className="font-semibold text-sm text-foreground truncate">
                           {task.title}
                         </h4>
                         <p className="text-xs text-muted-foreground truncate mt-0.5">
@@ -213,7 +167,7 @@ export default function Dashboard() {
                         </div>
                         <div className="w-full bg-muted/60 rounded-full h-1.5 overflow-hidden">
                           <motion.div
-                            className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
+                            className="h-full rounded-full bg-foreground"
                             initial={{ width: 0 }}
                             animate={{ width: `${task.progress}%` }}
                             transition={{ duration: 0.6, ease: "easeOut" }}
@@ -240,16 +194,14 @@ export default function Dashboard() {
 
         {/* Activity feed */}
         <div className="glass-card flex flex-col overflow-hidden" style={{ maxHeight: "calc(100vh - 320px)" }}>
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border/60 flex-shrink-0">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-border flex-shrink-0">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                <Activity className="w-4 h-4 text-emerald-600" />
-              </div>
-              <h3 className="text-sm font-bold text-foreground">Activity Feed</h3>
+              <Activity className="w-4 h-4 text-muted-foreground" />
+              <h3 className="text-sm font-semibold text-foreground">Activity Feed</h3>
             </div>
             {activityFeed.length > 0 && (
-              <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-pulse" />
                 Live
               </span>
             )}
@@ -266,9 +218,9 @@ export default function Dashboard() {
                         initial={{ opacity: 0, x: -8 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.025 }}
-                        className="flex items-start gap-2.5 p-2.5 rounded-xl bg-background/50 hover:bg-background/80 transition-colors group cursor-default"
+                        className="flex items-start gap-2.5 p-2.5 rounded-lg hover:bg-muted/30 transition-colors group cursor-default"
                       >
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0 group-hover:scale-125 transition-transform" />
+                        <div className="w-1 h-1 rounded-full bg-muted-foreground/50 mt-2 flex-shrink-0" />
                         <div className="min-w-0 flex-1">
                           <p className="text-xs leading-snug">
                             <span className="font-semibold text-foreground">
@@ -306,30 +258,24 @@ interface MetricCardProps {
   value: string;
   trend: string;
   isLoading?: boolean;
-  gradientClass: string;
-  iconColor: string;
-  iconBg: string;
-  trendColor: string;
 }
 
-function MetricCard({ icon: Icon, label, value, trend, isLoading, gradientClass, iconColor, iconBg, trendColor }: MetricCardProps) {
+function MetricCard({ icon: Icon, label, value, trend, isLoading }: MetricCardProps) {
   return (
     <motion.div variants={itemVariants}>
-      <div className={`glass-card card-hover p-4 border ${gradientClass} h-full`}>
+      <div className="glass-card card-hover p-4 h-full">
         <div className="flex items-center justify-between mb-3">
-          <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center flex-shrink-0`}>
-            <Icon className={`w-4 h-4 ${iconColor}`} strokeWidth={2.1} />
-          </div>
-          <div className={`flex items-center gap-1 text-[11px] font-bold ${trendColor}`}>
+          <Icon className="w-4 h-4 text-muted-foreground" strokeWidth={1.8} />
+          <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium">
             <TrendingUp className="w-3 h-3" />
             {trend}
           </div>
         </div>
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">{label}</p>
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">{label}</p>
         {isLoading ? (
-          <div className="h-7 bg-muted/60 rounded-lg animate-pulse w-3/4" />
+          <div className="h-6 bg-muted rounded animate-pulse w-3/4" />
         ) : (
-          <p className="text-xl font-extrabold text-foreground tracking-tight">{value}</p>
+          <p className="text-2xl font-bold text-foreground tracking-tight">{value}</p>
         )}
       </div>
     </motion.div>
