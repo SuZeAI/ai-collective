@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Check, ArrowRight, ExternalLink, Zap } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 function FadeIn({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -17,63 +18,35 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
   );
 }
 
-const PLANS = [
-  {
-    name: "Open Source",
-    price: "Free",
-    period: "forever",
-    desc: "Self-host the full AI Collective platform on your own infrastructure.",
-    cta: "Get started on GitHub",
-    ctaHref: "https://github.com/SuZeAI/ai-collective",
-    external: true,
-    highlighted: false,
-    features: [
-      "All agent topologies (Sequential, Ring, Mesh, Supervisor)",
-      "50+ atomic skill toolkits",
-      "Local JSON backend",
-      "Real-time SSE streaming",
-      "Knowledge Graph extraction (spaCy)",
-      "Community support via GitHub",
-    ],
-  },
-  {
-    name: "Pro",
-    price: "$49",
-    period: "per month",
-    desc: "Managed hosting, distributed backends, and priority support for growing teams.",
-    cta: "Start free trial",
-    ctaHref: "/dashboard",
-    external: false,
-    highlighted: true,
-    features: [
-      "Everything in Open Source",
-      "Managed Docker + RabbitMQ backend",
-      "LLM-based Knowledge Graph extraction",
-      "Kubernetes sandbox environments",
-      "Advanced token budget analytics",
-      "Human-in-the-Loop real-time steering",
-      "Email + Slack support (48h SLA)",
-    ],
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    period: "tailored pricing",
-    desc: "Dedicated infrastructure, custom integrations, and guaranteed SLAs for large deployments.",
-    cta: "Contact sales",
-    ctaHref: "/login",
-    external: false,
-    highlighted: false,
-    features: [
-      "Everything in Pro",
-      "Custom agent topology design",
-      "Custom API & database integrations",
-      "Managed high-throughput RabbitMQ/Redis clusters",
-      "Air-gapped / on-premise deployment",
-      "Dedicated engineering support (24/7)",
-      "Custom SLA guarantees",
-    ],
-  },
+const GITHUB_URL = "https://github.com/SuZeAI/ai-collective";
+
+const PLAN_FEATURES = [
+  [
+    "All agent topologies (Sequential, Ring, Mesh, Supervisor)",
+    "50+ atomic skill toolkits",
+    "Local JSON backend",
+    "Real-time SSE streaming",
+    "Knowledge Graph extraction (spaCy)",
+    "Community support via GitHub",
+  ],
+  [
+    "Everything in Open Source",
+    "Managed Docker + RabbitMQ backend",
+    "LLM-based Knowledge Graph extraction",
+    "Kubernetes sandbox environments",
+    "Advanced token budget analytics",
+    "Human-in-the-Loop real-time steering",
+    "Email + Slack support (48h SLA)",
+  ],
+  [
+    "Everything in Pro",
+    "Custom agent topology design",
+    "Custom API & database integrations",
+    "Managed high-throughput RabbitMQ/Redis clusters",
+    "Air-gapped / on-premise deployment",
+    "Dedicated engineering support (24/7)",
+    "Custom SLA guarantees",
+  ],
 ];
 
 const API_TIERS = [
@@ -84,6 +57,15 @@ const API_TIERS = [
 ];
 
 export default function Pricing() {
+  const { t } = useLanguage();
+  const m = t.marketing;
+
+  const plans = [
+    { nameKey: m.pricing.plan1Name, priceKey: m.pricing.plan1Price, periodKey: m.pricing.plan1Period, descKey: m.pricing.plan1Desc, ctaKey: m.pricing.plan1Cta, href: GITHUB_URL, external: true, highlighted: false },
+    { nameKey: m.pricing.plan2Name, priceKey: m.pricing.plan2Price, periodKey: m.pricing.plan2Period, descKey: m.pricing.plan2Desc, ctaKey: m.pricing.plan2Cta, href: "/dashboard", external: false, highlighted: true },
+    { nameKey: m.pricing.plan3Name, priceKey: m.pricing.plan3Price, periodKey: m.pricing.plan3Period, descKey: m.pricing.plan3Desc, ctaKey: m.pricing.plan3Cta, href: "/login", external: false, highlighted: false },
+  ];
+
   return (
     <div className="min-h-screen bg-[#faf9f5] dark:bg-[#141413] text-foreground font-sans">
       {/* Nav */}
@@ -96,9 +78,9 @@ export default function Pricing() {
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
             <ThemeToggle />
-            <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Login</Link>
+            <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{m.common.login}</Link>
             <Link to="/dashboard" className="inline-flex h-9 px-4 items-center justify-center rounded-lg bg-foreground text-background text-sm font-semibold hover:opacity-90 transition-opacity">
-              Start building
+              {m.common.startBuilding}
             </Link>
           </div>
         </div>
@@ -107,53 +89,42 @@ export default function Pricing() {
       {/* Hero */}
       <section className="max-w-5xl mx-auto px-6 pt-24 pb-16 text-center">
         <FadeIn>
-          <p className="text-sm font-semibold text-accent uppercase tracking-widest mb-4">Pricing</p>
-          <h1 className="text-5xl md:text-[64px] font-medium tracking-tight leading-[1.05] font-serif mb-6">
-            Simple, transparent pricing
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Start free with open source. Scale with managed hosting. Grow with enterprise.
-          </p>
+          <p className="text-sm font-semibold text-accent uppercase tracking-widest mb-4">{m.pricing.badge}</p>
+          <h1 className="text-5xl md:text-[64px] font-medium tracking-tight leading-[1.05] font-serif mb-6">{m.pricing.h1}</h1>
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto">{m.pricing.sub}</p>
         </FadeIn>
       </section>
 
       {/* Plans */}
       <section className="max-w-6xl mx-auto px-6 pb-20">
         <div className="grid md:grid-cols-3 gap-6">
-          {PLANS.map((plan, i) => (
-            <FadeIn key={plan.name} delay={0.05 * i}>
+          {plans.map((plan, i) => (
+            <FadeIn key={plan.nameKey} delay={0.05 * i}>
               <div className={`flex flex-col h-full rounded-2xl border p-8 transition-all ${plan.highlighted ? "border-accent bg-accent/5 ring-1 ring-accent/20 shadow-lg shadow-accent/10" : "border-border bg-card"}`}>
                 {plan.highlighted && (
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-accent mb-4">
-                    <Zap className="w-3.5 h-3.5" />
-                    Most popular
+                    <Zap className="w-3.5 h-3.5" /> Most popular
                   </div>
                 )}
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">{plan.name}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">{plan.nameKey}</p>
                 <div className="flex items-baseline gap-1.5 mb-1">
-                  <span className="text-4xl font-bold font-serif">{plan.price}</span>
-                  <span className="text-sm text-muted-foreground">{plan.period}</span>
+                  <span className="text-4xl font-bold font-serif">{plan.priceKey}</span>
+                  <span className="text-sm text-muted-foreground">{plan.periodKey}</span>
                 </div>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-6 min-h-[2.5rem]">{plan.desc}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-6 min-h-[2.5rem]">{plan.descKey}</p>
                 {plan.external ? (
-                  <a
-                    href={plan.ctaHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold mb-8 transition-all ${plan.highlighted ? "bg-foreground text-background hover:opacity-90" : "border border-border hover:bg-muted/40"}`}
-                  >
-                    {plan.cta} <ExternalLink className="w-3.5 h-3.5" />
+                  <a href={plan.href} target="_blank" rel="noopener noreferrer"
+                    className={`inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold mb-8 transition-all ${plan.highlighted ? "bg-foreground text-background hover:opacity-90" : "border border-border hover:bg-muted/40"}`}>
+                    {plan.ctaKey} <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 ) : (
-                  <Link
-                    to={plan.ctaHref}
-                    className={`inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold mb-8 transition-all ${plan.highlighted ? "bg-foreground text-background hover:opacity-90" : "border border-border hover:bg-muted/40"}`}
-                  >
-                    {plan.cta} <ArrowRight className="w-3.5 h-3.5" />
+                  <Link to={plan.href}
+                    className={`inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold mb-8 transition-all ${plan.highlighted ? "bg-foreground text-background hover:opacity-90" : "border border-border hover:bg-muted/40"}`}>
+                    {plan.ctaKey} <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 )}
                 <ul className="space-y-3 mt-auto">
-                  {plan.features.map((f) => (
+                  {PLAN_FEATURES[i].map((f) => (
                     <li key={f} className="flex items-start gap-2.5 text-sm">
                       <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                       <span className="text-muted-foreground">{f}</span>
@@ -170,18 +141,18 @@ export default function Pricing() {
       <section className="border-t border-border/60 py-20">
         <div className="max-w-4xl mx-auto px-6">
           <FadeIn>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">API Pricing</p>
-            <h2 className="text-3xl md:text-4xl font-medium font-serif mb-4">Pay-as-you-go model costs</h2>
-            <p className="text-muted-foreground mb-10">LLM token costs are passed through at provider rates. No markup.</p>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">{m.pricing.apiLabel}</p>
+            <h2 className="text-3xl md:text-4xl font-medium font-serif mb-4">{m.pricing.apiTitle}</h2>
+            <p className="text-muted-foreground mb-10">{m.pricing.apiSub}</p>
           </FadeIn>
           <FadeIn delay={0.08}>
             <div className="rounded-xl border border-border overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 border-b border-border">
                   <tr>
-                    <th className="text-left px-5 py-3 font-semibold text-foreground">Model</th>
-                    <th className="text-right px-5 py-3 font-semibold text-foreground">Input</th>
-                    <th className="text-right px-5 py-3 font-semibold text-foreground">Output</th>
+                    <th className="text-left px-5 py-3 font-semibold">Model</th>
+                    <th className="text-right px-5 py-3 font-semibold">Input</th>
+                    <th className="text-right px-5 py-3 font-semibold">Output</th>
                     <th className="text-right px-5 py-3 font-semibold text-muted-foreground">Note</th>
                   </tr>
                 </thead>
@@ -201,18 +172,18 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* FAQ / CTA */}
+      {/* CTA */}
       <section className="border-t border-border/60 py-20">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <FadeIn>
-            <h2 className="text-4xl font-medium font-serif mb-4">Have questions?</h2>
-            <p className="text-muted-foreground mb-8">Our team is ready to help you find the right plan for your needs.</p>
+            <h2 className="text-4xl font-medium font-serif mb-4">{m.pricing.ctaTitle}</h2>
+            <p className="text-muted-foreground mb-8">{m.pricing.ctaSub}</p>
             <div className="flex justify-center gap-3">
               <Link to="/login" className="inline-flex items-center gap-2 h-11 px-8 rounded-lg bg-foreground text-background font-semibold text-sm hover:opacity-90 transition-opacity">
-                Contact sales
+                {m.common.contactSales}
               </Link>
-              <a href="https://github.com/SuZeAI/ai-collective" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 h-11 px-6 rounded-lg border border-border font-semibold text-sm hover:bg-muted/30 transition-all">
-                Explore on GitHub <ExternalLink className="w-4 h-4" />
+              <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 h-11 px-6 rounded-lg border border-border font-semibold text-sm hover:bg-muted/30 transition-all">
+                {m.pricing.ctaGithub} <ExternalLink className="w-4 h-4" />
               </a>
             </div>
           </FadeIn>

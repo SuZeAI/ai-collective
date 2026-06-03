@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ExternalLink, GitCommit, Package, Wrench, Zap, Shield, Bug } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const GITHUB_URL = "https://github.com/SuZeAI/ai-collective";
 
@@ -89,6 +90,9 @@ const TAG_META: Record<ChangeType, { label: string; icon: React.ElementType; cla
 };
 
 export default function Changelog() {
+  const { t } = useLanguage();
+  const m = t.marketing;
+
   return (
     <div className="min-h-screen bg-[#faf9f5] dark:bg-[#141413] text-foreground font-sans">
       {/* Nav */}
@@ -101,9 +105,9 @@ export default function Changelog() {
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
             <ThemeToggle />
-            <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Login</Link>
+            <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{m.common.login}</Link>
             <Link to="/dashboard" className="inline-flex h-9 px-4 items-center justify-center rounded-lg bg-foreground text-background text-sm font-semibold hover:opacity-90 transition-opacity">
-              Start building
+              {m.common.startBuilding}
             </Link>
           </div>
         </div>
@@ -112,16 +116,12 @@ export default function Changelog() {
       {/* Hero */}
       <section className="max-w-5xl mx-auto px-6 pt-24 pb-16">
         <FadeIn>
-          <p className="text-sm font-semibold text-accent uppercase tracking-widest mb-4">Changelog</p>
-          <h1 className="text-5xl md:text-[64px] font-medium tracking-tight leading-[1.05] font-serif mb-6">
-            What's new in<br />AI Collective
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-xl">
-            Every release, every improvement, every fix — documented in one place.
-          </p>
+          <p className="text-sm font-semibold text-accent uppercase tracking-widest mb-4">{m.changelog.badge}</p>
+          <h1 className="text-5xl md:text-[64px] font-medium tracking-tight leading-[1.05] font-serif mb-6">{m.changelog.h1}</h1>
+          <p className="text-lg text-muted-foreground max-w-xl">{m.changelog.sub}</p>
           <div className="flex items-center gap-3 mt-6">
             <a href={GITHUB_URL + "/releases"} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-border text-sm font-medium hover:bg-muted/30 transition-all">
-              View on GitHub <ExternalLink className="w-3.5 h-3.5" />
+              {m.changelog.viewGithub} <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>
         </FadeIn>

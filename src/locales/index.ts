@@ -111,6 +111,44 @@ export type Translations = {
     };
     footer: { copy: string };
   };
+  marketing: {
+    common: { login: string; startBuilding: string; contactSales: string; devDocs: string; viewPricing: string };
+    meet: {
+      badge: string; h1: string; sub: string;
+      productsLabel: string; productsTitle: string;
+      product1Name: string; product1Desc: string; product1Cta: string;
+      product2Name: string; product2Desc: string; product2Cta: string;
+      featuresLabel: string; featuresTitle: string;
+      modelsLabel: string; modelsTitle: string; modelsSub: string;
+      ctaTitle: string; ctaSub: string; ctaFree: string;
+    };
+    pricing: {
+      badge: string; h1: string; sub: string;
+      plan1Name: string; plan1Price: string; plan1Period: string; plan1Desc: string; plan1Cta: string;
+      plan2Name: string; plan2Price: string; plan2Period: string; plan2Desc: string; plan2Cta: string;
+      plan3Name: string; plan3Price: string; plan3Period: string; plan3Desc: string; plan3Cta: string;
+      apiLabel: string; apiTitle: string; apiSub: string;
+      ctaTitle: string; ctaSub: string; ctaGithub: string;
+    };
+    solutions: {
+      badge: string; h1: string; sub: string;
+      useCasesLabel: string; useCasesTitle: string;
+      sizeLabel: string; sizeTitle: string;
+      industriesLabel: string; industriesTitle: string;
+      ctaTitle: string; ctaSub: string;
+    };
+    resources: {
+      badge: string; h1: string; sub: string;
+      card1Label: string; card1Title: string; card1Desc: string; card1Cta: string;
+      card2Label: string; card2Title: string; card2Desc: string; card2Cta: string;
+      card3Label: string; card3Title: string; card3Desc: string; card3Cta: string;
+      articlesLabel: string; articlesTitle: string;
+      newsletterTitle: string; newsletterSub: string; newsletterBtn: string; newsletterNote: string;
+    };
+    changelog: {
+      badge: string; h1: string; sub: string; viewGithub: string;
+    };
+  };
   docs: {
     ui: {
       search: string;
@@ -322,6 +360,45 @@ export const translations: Record<Language, Translations> = {
         starCta: "Star on GitHub", launch: "Launch App",
       },
       footer: { copy: "© 2026 AI Collective · MIT License" },
+    },
+    marketing: {
+      common: { login: "Login", startBuilding: "Start building", contactSales: "Contact sales", devDocs: "Developer docs", viewPricing: "View pricing" },
+      meet: {
+        badge: "Meet AI Collective", h1: "A new era of programmable AI",
+        sub: "AI Collective is a high-performance multi-agent orchestration platform that lets you deploy, coordinate, and scale AI workforces — with full control over topology, tools, and execution environment.",
+        productsLabel: "Products", productsTitle: "Two ways to deploy",
+        product1Name: "AI Collective", product1Desc: "The full platform — build, configure, and monitor multi-agent teams via dashboard and REST API.", product1Cta: "Open console",
+        product2Name: "Agent Mesh", product2Desc: "A standalone mesh orchestrator layer for integrating multi-agent routing into your existing stack.", product2Cta: "Read the docs",
+        featuresLabel: "Features", featuresTitle: "Everything you need to orchestrate AI",
+        modelsLabel: "Models", modelsTitle: "Fully LLM-agnostic", modelsSub: "Configure, swap, or route model engines at runtime — no code changes required.",
+        ctaTitle: "Ready to build?", ctaSub: "Deploy your first multi-agent workforce in minutes.", ctaFree: "Start building free",
+      },
+      pricing: {
+        badge: "Pricing", h1: "Simple, transparent pricing", sub: "Start free with open source. Scale with managed hosting. Grow with enterprise.",
+        plan1Name: "Open Source", plan1Price: "Free", plan1Period: "forever", plan1Desc: "Self-host the full AI Collective platform on your own infrastructure.", plan1Cta: "Get started on GitHub",
+        plan2Name: "Pro", plan2Price: "$49", plan2Period: "per month", plan2Desc: "Managed hosting, distributed backends, and priority support for growing teams.", plan2Cta: "Start free trial",
+        plan3Name: "Enterprise", plan3Price: "Custom", plan3Period: "tailored pricing", plan3Desc: "Dedicated infrastructure, custom integrations, and guaranteed SLAs for large deployments.", plan3Cta: "Contact sales",
+        apiLabel: "API Pricing", apiTitle: "Pay-as-you-go model costs", apiSub: "LLM token costs are passed through at provider rates. No markup.",
+        ctaTitle: "Have questions?", ctaSub: "Our team is ready to help you find the right plan.", ctaGithub: "Explore on GitHub",
+      },
+      solutions: {
+        badge: "Solutions", h1: "AI Collective for every team", sub: "From startup prototyping to enterprise-grade orchestration — deploy the right multi-agent solution for your use case.",
+        useCasesLabel: "Use Cases", useCasesTitle: "What teams build with AI Collective",
+        sizeLabel: "Company Size", sizeTitle: "Right for your scale",
+        industriesLabel: "Industries", industriesTitle: "Built for regulated, high-stakes domains",
+        ctaTitle: "Find your solution", ctaSub: "Talk to our team to design the right agent architecture.",
+      },
+      resources: {
+        badge: "Resources", h1: "Everything you need to ship faster", sub: "Guides, reference docs, the changelog, and community resources — all in one place.",
+        card1Label: "Documentation", card1Title: "Developer Docs", card1Desc: "Full API reference, topology guides, tool integration recipes, and deployment playbooks.", card1Cta: "Open docs",
+        card2Label: "Open Source", card2Title: "GitHub Repository", card2Desc: "Explore the source code, contribute, file issues, and track development on GitHub.", card2Cta: "View on GitHub",
+        card3Label: "Updates", card3Title: "Changelog", card3Desc: "Follow every release — new topologies, toolkit additions, performance improvements, and breaking changes.", card3Cta: "See changelog",
+        articlesLabel: "From the Team", articlesTitle: "Latest articles & guides",
+        newsletterTitle: "Stay up to date", newsletterSub: "Product updates, new toolkits, and engineering deep-dives — monthly, no spam.", newsletterBtn: "Subscribe", newsletterNote: "Unsubscribe at any time.",
+      },
+      changelog: {
+        badge: "Changelog", h1: "What's new in AI Collective", sub: "Every release, every improvement, every fix — documented in one place.", viewGithub: "View on GitHub",
+      },
     },
     docs: {
       ui: {
@@ -555,6 +632,45 @@ export const translations: Record<Language, Translations> = {
       },
       footer: { copy: "© 2026 AI Collective · Giấy phép MIT" },
     },
+    marketing: {
+      common: { login: "Đăng nhập", startBuilding: "Bắt đầu xây dựng", contactSales: "Liên hệ kinh doanh", devDocs: "Tài liệu kỹ thuật", viewPricing: "Xem giá" },
+      meet: {
+        badge: "Giới thiệu AI Collective", h1: "Kỷ nguyên mới của AI lập trình được",
+        sub: "AI Collective là nền tảng điều phối đa tác nhân hiệu suất cao cho phép bạn triển khai, điều phối và mở rộng lực lượng lao động AI — với toàn quyền kiểm soát topo, công cụ và môi trường thực thi.",
+        productsLabel: "Sản phẩm", productsTitle: "Hai cách triển khai",
+        product1Name: "AI Collective", product1Desc: "Nền tảng đầy đủ — xây dựng, cấu hình và giám sát nhóm đa tác nhân qua dashboard và REST API.", product1Cta: "Mở bảng điều khiển",
+        product2Name: "Agent Mesh", product2Desc: "Lớp điều phối mesh độc lập để tích hợp định tuyến đa tác nhân vào stack hiện có của bạn.", product2Cta: "Xem tài liệu",
+        featuresLabel: "Tính năng", featuresTitle: "Tất cả những gì bạn cần để điều phối AI",
+        modelsLabel: "Mô hình", modelsTitle: "Hoàn toàn linh hoạt về LLM", modelsSub: "Cấu hình, hoán đổi hoặc định tuyến engine mô hình khi chạy — không cần thay đổi code.",
+        ctaTitle: "Sẵn sàng xây dựng?", ctaSub: "Triển khai lực lượng lao động đa tác nhân đầu tiên của bạn trong vài phút.", ctaFree: "Bắt đầu miễn phí",
+      },
+      pricing: {
+        badge: "Giá cả", h1: "Giá đơn giản, minh bạch", sub: "Bắt đầu miễn phí với mã nguồn mở. Mở rộng với hosting được quản lý. Phát triển với doanh nghiệp.",
+        plan1Name: "Mã nguồn mở", plan1Price: "Miễn phí", plan1Period: "mãi mãi", plan1Desc: "Tự lưu trữ toàn bộ nền tảng AI Collective trên hạ tầng của bạn.", plan1Cta: "Bắt đầu trên GitHub",
+        plan2Name: "Pro", plan2Price: "$49", plan2Period: "mỗi tháng", plan2Desc: "Hosting được quản lý, backend phân tán và hỗ trợ ưu tiên cho nhóm đang phát triển.", plan2Cta: "Dùng thử miễn phí",
+        plan3Name: "Doanh nghiệp", plan3Price: "Tùy chỉnh", plan3Period: "giá linh hoạt", plan3Desc: "Hạ tầng riêng, tích hợp tùy chỉnh và SLA đảm bảo cho triển khai quy mô lớn.", plan3Cta: "Liên hệ kinh doanh",
+        apiLabel: "Giá API", apiTitle: "Chi phí mô hình theo sử dụng", apiSub: "Chi phí token LLM được tính theo giá nhà cung cấp. Không có phụ phí.",
+        ctaTitle: "Có câu hỏi?", ctaSub: "Đội ngũ của chúng tôi sẵn sàng giúp bạn tìm gói phù hợp.", ctaGithub: "Khám phá trên GitHub",
+      },
+      solutions: {
+        badge: "Giải pháp", h1: "AI Collective cho mọi nhóm", sub: "Từ nguyên mẫu startup đến điều phối cấp doanh nghiệp — triển khai giải pháp đa tác nhân phù hợp với trường hợp sử dụng của bạn.",
+        useCasesLabel: "Trường hợp sử dụng", useCasesTitle: "Các nhóm xây dựng gì với AI Collective",
+        sizeLabel: "Quy mô công ty", sizeTitle: "Phù hợp với quy mô của bạn",
+        industriesLabel: "Ngành nghề", industriesTitle: "Được xây dựng cho các lĩnh vực có độ rủi ro cao",
+        ctaTitle: "Tìm giải pháp của bạn", ctaSub: "Nói chuyện với đội ngũ để thiết kế kiến trúc tác nhân phù hợp.",
+      },
+      resources: {
+        badge: "Tài nguyên", h1: "Tất cả những gì bạn cần để triển khai nhanh hơn", sub: "Hướng dẫn, tài liệu tham chiếu, changelog và tài nguyên cộng đồng — tất cả ở một nơi.",
+        card1Label: "Tài liệu", card1Title: "Tài liệu kỹ thuật", card1Desc: "Tham chiếu API đầy đủ, hướng dẫn topo, công thức tích hợp công cụ và sách hướng dẫn triển khai.", card1Cta: "Mở tài liệu",
+        card2Label: "Mã nguồn mở", card2Title: "Kho GitHub", card2Desc: "Khám phá mã nguồn, đóng góp, báo cáo lỗi và theo dõi phát triển trên GitHub.", card2Cta: "Xem trên GitHub",
+        card3Label: "Cập nhật", card3Title: "Nhật ký thay đổi", card3Desc: "Theo dõi mọi phiên bản — topo mới, bổ sung bộ công cụ, cải tiến hiệu suất và các thay đổi phá vỡ.", card3Cta: "Xem changelog",
+        articlesLabel: "Từ đội ngũ", articlesTitle: "Bài viết & hướng dẫn mới nhất",
+        newsletterTitle: "Luôn cập nhật", newsletterSub: "Cập nhật sản phẩm, bộ công cụ mới và nghiên cứu kỹ thuật — hàng tháng, không spam.", newsletterBtn: "Đăng ký", newsletterNote: "Hủy đăng ký bất kỳ lúc nào.",
+      },
+      changelog: {
+        badge: "Nhật ký thay đổi", h1: "Có gì mới trong AI Collective", sub: "Mọi phiên bản, mọi cải tiến, mọi bản sửa lỗi — được ghi lại ở một nơi.", viewGithub: "Xem trên GitHub",
+      },
+    },
     docs: {
       ui: {
         search: "Tìm kiếm tài liệu...", backToSite: "Về trang chủ", openApp: "Mở ứng dụng",
@@ -786,6 +902,45 @@ export const translations: Record<Language, Translations> = {
         starCta: "在 GitHub 上 Star", launch: "启动应用",
       },
       footer: { copy: "© 2026 AI Collective · MIT 许可证" },
+    },
+    marketing: {
+      common: { login: "登录", startBuilding: "开始构建", contactSales: "联系销售", devDocs: "开发者文档", viewPricing: "查看定价" },
+      meet: {
+        badge: "认识 AI Collective", h1: "可编程 AI 的新时代",
+        sub: "AI Collective 是一个高性能多智能体编排平台，让您可以部署、协调和扩展 AI 劳动力——完全控制拓扑、工具和执行环境。",
+        productsLabel: "产品", productsTitle: "两种部署方式",
+        product1Name: "AI Collective", product1Desc: "完整平台——通过仪表盘和 REST API 构建、配置和监控多智能体团队。", product1Cta: "打开控制台",
+        product2Name: "Agent Mesh", product2Desc: "独立的 Mesh 编排层，用于将多智能体路由集成到现有技术栈中。", product2Cta: "阅读文档",
+        featuresLabel: "功能", featuresTitle: "编排 AI 所需的一切",
+        modelsLabel: "模型", modelsTitle: "完全 LLM 无关", modelsSub: "在运行时配置、交换或路由模型引擎——无需更改代码。",
+        ctaTitle: "准备好构建了吗？", ctaSub: "在几分钟内部署您的第一个多智能体劳动力。", ctaFree: "免费开始构建",
+      },
+      pricing: {
+        badge: "定价", h1: "简单透明的定价", sub: "从开源免费开始。通过托管服务扩展。随企业成长。",
+        plan1Name: "开源", plan1Price: "免费", plan1Period: "永久", plan1Desc: "在您自己的基础设施上自托管完整的 AI Collective 平台。", plan1Cta: "在 GitHub 上开始",
+        plan2Name: "专业版", plan2Price: "$49", plan2Period: "每月", plan2Desc: "托管服务、分布式后端以及针对成长中团队的优先支持。", plan2Cta: "开始免费试用",
+        plan3Name: "企业版", plan3Price: "定制", plan3Period: "定制定价", plan3Desc: "用于大规模部署的专属基础设施、定制集成和 SLA 保证。", plan3Cta: "联系销售",
+        apiLabel: "API 定价", apiTitle: "按使用量计费的模型成本", apiSub: "LLM 令牌成本按提供商费率直接传递。无额外加价。",
+        ctaTitle: "有疑问？", ctaSub: "我们的团队随时准备帮您找到合适的方案。", ctaGithub: "在 GitHub 上探索",
+      },
+      solutions: {
+        badge: "解决方案", h1: "适合每个团队的 AI Collective", sub: "从初创原型到企业级编排——为您的用例部署正确的多智能体解决方案。",
+        useCasesLabel: "使用场景", useCasesTitle: "团队用 AI Collective 构建什么",
+        sizeLabel: "公司规模", sizeTitle: "适合您的规模",
+        industriesLabel: "行业", industriesTitle: "专为高风险领域打造",
+        ctaTitle: "找到您的解决方案", ctaSub: "与我们的团队交流，为您的组织设计合适的智能体架构。",
+      },
+      resources: {
+        badge: "资源", h1: "快速交付所需的一切", sub: "指南、参考文档、变更日志和社区资源——一站汇聚。",
+        card1Label: "文档", card1Title: "开发者文档", card1Desc: "完整的 API 参考、拓扑指南、工具集成方法和部署手册。", card1Cta: "打开文档",
+        card2Label: "开源", card2Title: "GitHub 仓库", card2Desc: "探索源代码、贡献代码、提交 Issue 并跟踪 GitHub 上的开发进度。", card2Cta: "在 GitHub 上查看",
+        card3Label: "更新", card3Title: "变更日志", card3Desc: "跟踪每个版本——新拓扑、工具包新增、性能改进和破坏性变更。", card3Cta: "查看变更日志",
+        articlesLabel: "来自团队", articlesTitle: "最新文章和指南",
+        newsletterTitle: "保持更新", newsletterSub: "产品更新、新工具包和工程深度分析——每月一期，不发垃圾邮件。", newsletterBtn: "订阅", newsletterNote: "随时可以取消订阅。",
+      },
+      changelog: {
+        badge: "变更日志", h1: "AI Collective 的新功能", sub: "每个版本、每项改进、每个修复——都记录在一处。", viewGithub: "在 GitHub 上查看",
+      },
     },
     docs: {
       ui: {
@@ -1149,6 +1304,45 @@ export const translations: Record<Language, Translations> = {
           testsH2: "テストを実行", styleH2: "コードスタイル",
           style: ["Python：リンティングとフォーマットに ruff を使用", "TypeScript：ESLint + TypeScript ストリクトモード", "コミット：conventional commits フォーマット（feat:、fix:、docs:）"],
         },
+      },
+    },
+    marketing: {
+      common: { login: "ログイン", startBuilding: "構築を始める", contactSales: "営業に連絡", devDocs: "開発者ドキュメント", viewPricing: "料金を見る" },
+      meet: {
+        badge: "AI Collective を紹介", h1: "プログラマブル AI の新時代",
+        sub: "AI Collective は高性能なマルチエージェント編成プラットフォームで、AI 労働力を展開・調整・拡張できます — トポロジー、ツール、実行環境を完全にコントロール。",
+        productsLabel: "製品", productsTitle: "2 つの展開方法",
+        product1Name: "AI Collective", product1Desc: "完全なプラットフォーム — ダッシュボードと REST API でマルチエージェントチームを構築・設定・監視。", product1Cta: "コンソールを開く",
+        product2Name: "Agent Mesh", product2Desc: "既存のスタックにマルチエージェントルーティングを統合するためのスタンドアロン Mesh 編成レイヤー。", product2Cta: "ドキュメントを読む",
+        featuresLabel: "機能", featuresTitle: "AI を編成するために必要なすべて",
+        modelsLabel: "モデル", modelsTitle: "完全 LLM 非依存", modelsSub: "実行時にモデルエンジンを設定・交換・ルーティング — コード変更不要。",
+        ctaTitle: "構築する準備はできましたか？", ctaSub: "数分で最初のマルチエージェント労働力を展開しましょう。", ctaFree: "無料で構築を始める",
+      },
+      pricing: {
+        badge: "料金", h1: "シンプルで透明な料金", sub: "オープンソースで無料から始める。マネージドホスティングでスケール。エンタープライズで成長。",
+        plan1Name: "オープンソース", plan1Price: "無料", plan1Period: "永久", plan1Desc: "自社インフラで AI Collective プラットフォーム全体をセルフホスト。", plan1Cta: "GitHub で始める",
+        plan2Name: "プロ", plan2Price: "$49", plan2Period: "月額", plan2Desc: "成長するチームのためのマネージドホスティング、分散バックエンド、優先サポート。", plan2Cta: "無料トライアルを開始",
+        plan3Name: "エンタープライズ", plan3Price: "カスタム", plan3Period: "カスタム料金", plan3Desc: "大規模展開のための専用インフラ、カスタム統合、SLA 保証。", plan3Cta: "営業に連絡",
+        apiLabel: "API 料金", apiTitle: "従量課金モデルコスト", apiSub: "LLM トークンコストはプロバイダー料率で直接転嫁。マークアップなし。",
+        ctaTitle: "質問がありますか？", ctaSub: "チームが最適なプランを見つけるお手伝いをします。", ctaGithub: "GitHub で探索",
+      },
+      solutions: {
+        badge: "ソリューション", h1: "すべてのチームのための AI Collective", sub: "スタートアッププロトタイピングからエンタープライズ級編成まで — ユースケースに適したマルチエージェントソリューションを展開。",
+        useCasesLabel: "ユースケース", useCasesTitle: "チームが AI Collective で構築するもの",
+        sizeLabel: "会社規模", sizeTitle: "あなたの規模に最適",
+        industriesLabel: "業界", industriesTitle: "高リスク領域向けに構築",
+        ctaTitle: "ソリューションを見つける", ctaSub: "チームと話し合い、組織に適したエージェントアーキテクチャを設計しましょう。",
+      },
+      resources: {
+        badge: "リソース", h1: "より速く出荷するために必要なすべて", sub: "ガイド、リファレンスドキュメント、変更履歴、コミュニティリソース — すべて一か所に。",
+        card1Label: "ドキュメント", card1Title: "開発者ドキュメント", card1Desc: "完全な API リファレンス、トポロジーガイド、ツール統合レシピ、デプロイプレイブック。", card1Cta: "ドキュメントを開く",
+        card2Label: "オープンソース", card2Title: "GitHub リポジトリ", card2Desc: "ソースコードを探索し、コントリビュートし、Issue を作成し、GitHub で開発を追跡。", card2Cta: "GitHub で見る",
+        card3Label: "更新", card3Title: "変更履歴", card3Desc: "すべてのリリースを追跡 — 新しいトポロジー、ツールキット追加、パフォーマンス改善、破壊的変更。", card3Cta: "変更履歴を見る",
+        articlesLabel: "チームから", articlesTitle: "最新の記事とガイド",
+        newsletterTitle: "最新情報を入手", newsletterSub: "製品アップデート、新しいツールキット、エンジニアリングの深堀り — 月1回、スパムなし。", newsletterBtn: "購読", newsletterNote: "いつでも購読解除できます。",
+      },
+      changelog: {
+        badge: "変更履歴", h1: "AI Collective の新機能", sub: "すべてのリリース、改善、修正 — 一か所にドキュメント化。", viewGithub: "GitHub で見る",
       },
     },
   },
