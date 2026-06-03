@@ -536,12 +536,14 @@ export default function Landing() {
                 >
                   Start building
                 </Link>
-                <Link
-                  to="/login"
+                <a
+                  href="http://localhost:2026/docs"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center justify-center h-11 px-6 rounded-lg border border-[#c4c2ba] dark:border-[#4d4d4b] bg-transparent text-foreground/80 font-semibold text-sm hover:bg-muted/30 transition-all shadow-xs"
                 >
                   See developer docs
-                </Link>
+                </a>
               </div>
             </FadeIn>
           </div>
