@@ -76,6 +76,12 @@ export type Translations = {
     playground: string;
     workspaces: string;
     settings: string;
+    overviewGroup: string;
+    operationsGroup: string;
+    orgGroup: string;
+    devGroup: string;
+    systemGroup: string;
+    manageWorkspaces: string;
   };
   status: { allSystemsOnline: string };
   brand: { subtitle: string };
@@ -359,6 +365,12 @@ export const translations: Record<Language, Translations> = {
       skills: "Skills & Tools", teams: "Departments", tasks: "Projects & Tasks",
       conversations: "Meetings & Discussions", analytics: "Analytics", playground: "Testing Lab", workspaces: "Offices",
       settings: "Settings",
+      overviewGroup: "Overview",
+      operationsGroup: "Operations",
+      orgGroup: "Organization",
+      devGroup: "Developer Tools",
+      systemGroup: "System",
+      manageWorkspaces: "Manage Offices",
     },
     status: { allSystemsOnline: "All systems online" },
     brand: { subtitle: "Company Builder" },
@@ -666,6 +678,12 @@ export const translations: Record<Language, Translations> = {
       skills: "Kỹ năng & Công cụ", teams: "Phòng ban", tasks: "Dự án & Công việc",
       conversations: "Họp & Thảo luận", analytics: "Phân tích", playground: "Phòng thử nghiệm", workspaces: "Văn phòng",
       settings: "Cài đặt",
+      overviewGroup: "Tổng quan",
+      operationsGroup: "Vận hành",
+      orgGroup: "Tổ chức",
+      devGroup: "Công cụ phát triển",
+      systemGroup: "Hệ thống",
+      manageWorkspaces: "Quản lý văn phòng",
     },
     status: { allSystemsOnline: "Tất cả hệ thống hoạt động" },
     brand: { subtitle: "Kiến tạo doanh nghiệp" },
@@ -973,6 +991,12 @@ export const translations: Record<Language, Translations> = {
       skills: "技能与工具", teams: "部门", tasks: "项目与任务",
       conversations: "会议与讨论", analytics: "分析", playground: "测试实验室", workspaces: "办公室",
       settings: "设置",
+      overviewGroup: "概览",
+      operationsGroup: "运营",
+      orgGroup: "组织",
+      devGroup: "开发者工具",
+      systemGroup: "系统",
+      manageWorkspaces: "管理办公室",
     },
     status: { allSystemsOnline: "所有系统运行正常" },
     brand: { subtitle: "公司构建器" },
@@ -1280,6 +1304,12 @@ export const translations: Record<Language, Translations> = {
       skills: "スキルとツール", teams: "部門", tasks: "プロジェクトとタスク",
       conversations: "会議とディスカッション", analytics: "分析", playground: "テストラボ", workspaces: "オフィス",
       settings: "設定",
+      overviewGroup: "概要",
+      operationsGroup: "オペレーション",
+      orgGroup: "組織",
+      devGroup: "開発者ツール",
+      systemGroup: "システム",
+      manageWorkspaces: "オフィス管理",
     },
     status: { allSystemsOnline: "全システム稼働中" },
     brand: { subtitle: "会社ビルダ" },

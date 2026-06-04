@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp, Zap, Users, Clock, Activity, CheckCircle2, ListTodo,
@@ -35,6 +36,7 @@ const statusVariant: Record<string, string> = {
 };
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   useAgentSimulation();
   const [isLoading, setIsLoading] = useState(true);
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -141,7 +143,8 @@ export default function Dashboard() {
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.03 }}
-                    className="p-3.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all border border-border/50 hover:border-border group cursor-default"
+                    onClick={() => navigate(`/tasks?id=${task.id}`)}
+                    className="p-3.5 rounded-lg bg-muted/30 hover:bg-muted/55 transition-all border border-border/50 hover:border-border group cursor-pointer hover:shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
