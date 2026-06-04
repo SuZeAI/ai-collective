@@ -1,9 +1,11 @@
 [project]
 name = "ai-collective"
 version = "0.1.0"
-description = "Add your description here"
+description = "AI – Collective: a multi-agent orchestration platform for programmable AI workforces (FastAPI backend)."
 readme = "README.md"
 requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "SuZeAI (SuzeNith)", email = "suzeai545@gmail.com" }]
 dependencies = [
 	"fastapi>=0.115.0",
 	"uvicorn[standard]>=0.30.0",

@@ -1,21 +1,100 @@
-MIT License
+AI – Collective — Non-Commercial / Academic License
+Copyright (c) 2026 SuZeAI (SuzeNith). All rights reserved.
 
-Copyright (c) 2026 SuZeAI - SuzeNith
+Contact for commercial licensing and other uses:
+  Email:  suzeai545@gmail.com
+  GitHub: https://github.com/SuZeAI
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+================================================================================
+1. DEFINITIONS
+================================================================================
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+"Software" means the AI – Collective source code, documentation, assets, and
+any accompanying files distributed in this repository.
+
+"Licensor" means SuZeAI (SuzeNith), the copyright holder.
+
+"You" means the individual or entity exercising the rights granted below.
+
+"Non-Commercial Use" means use for the purpose of personal study, teaching,
+academic coursework, scholarly research, experimentation, or evaluation, where
+such use is NOT primarily intended for or directed toward commercial advantage
+or monetary compensation.
+
+"Commercial Use" means any use that is NOT Non-Commercial Use, including but not
+limited to: using the Software (in whole or in part, modified or unmodified) in
+a product or service offered to third parties; in a paid or revenue-generating
+offering; in the internal business operations of a for-profit organization; in
+a hosted/SaaS deployment; in consulting or client work; or in any activity
+intended for or directed toward commercial advantage or monetary compensation.
+
+================================================================================
+2. GRANT (NON-COMMERCIAL / ACADEMIC ONLY)
+================================================================================
+
+Subject to the terms below, the Licensor grants You a worldwide, royalty-free,
+non-exclusive, non-transferable, revocable license to use, copy, modify, and
+create derivative works of the Software, and to share such copies or derivative
+works, SOLELY for Non-Commercial Use (education and research).
+
+Every copy or derivative work You share must:
+  (a) retain this LICENSE file and all copyright and attribution notices; and
+  (b) remain governed by this same license; and
+  (c) clearly state any changes You made.
+
+================================================================================
+3. COMMERCIAL USE REQUIRES A SEPARATE LICENSE
+================================================================================
+
+Commercial Use of the Software is NOT permitted under this license. To use the
+Software for any commercial purpose, in a product or service, or in any way not
+covered by Section 2, You MUST obtain prior written permission and a separate
+commercial license from the Licensor.
+
+Request a commercial license by contacting:
+  Email:  suzeai545@gmail.com
+  GitHub: https://github.com/SuZeAI
+
+================================================================================
+4. RESTRICTIONS
+================================================================================
+
+You may NOT:
+  (a) use the Software for any Commercial Use without a separate license;
+  (b) remove, obscure, or alter copyright, license, or attribution notices;
+  (c) sublicense, sell, rent, or relicense the Software except as allowed in
+      Section 2; or
+  (d) use the Licensor's names, logos, or trademarks except for factual
+      attribution.
+
+================================================================================
+5. NO WARRANTY
+================================================================================
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+================================================================================
+6. LIMITATION OF LIABILITY
+================================================================================
+
+IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM,
+OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+================================================================================
+7. TERMINATION
+================================================================================
+
+This license terminates automatically if You breach any term. Upon termination
+You must stop using and distributing the Software. The Licensor may also grant
+broader rights in writing; any such grant prevails over this file to the extent
+stated therein.
+
+================================================================================
+
+For permissions beyond the scope of this license — including commercial use,
+productization, OEM, or redistribution under different terms — contact
+suzeai545@gmail.com.

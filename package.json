@@ -2,6 +2,10 @@
   "name": "ai-collective",
   "private": true,
   "version": "0.0.0",
+  "description": "AI – Collective: a multi-agent orchestration platform for programmable AI workforces (React frontend).",
+  "author": "SuZeAI (SuzeNith) <suzeai545@gmail.com>",
+  "license": "SEE LICENSE IN LICENSE",
+  "homepage": "https://github.com/SuZeAI/ai-collective",
   "type": "module",
   "scripts": {
     "dev": "vite",
