@@ -1,4 +1,4 @@
-ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.7.20
+ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.9.5
 
 # ---------------------------------------------------------------------------
 # Stage 1: builder — resolve and install dependencies into a self-contained venv
