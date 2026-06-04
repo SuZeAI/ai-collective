@@ -148,6 +148,42 @@ export type Translations = {
     changelog: {
       badge: string; h1: string; sub: string; viewGithub: string;
     };
+    contactSales: {
+      badge: string;
+      h1: string;
+      sub: string;
+      supportCardTitle: string;
+      supportCardDesc: string;
+      supportCardCta: string;
+      formHelpLabel: string;
+      formHelpPlaceholder: string;
+      options: {
+        sales: string;
+        limits: string;
+        baa: string;
+        zdr: string;
+        support: string;
+      };
+      firstName: string;
+      lastName: string;
+      email: string;
+      emailHint: string;
+      phone: string;
+      companyName: string;
+      companyWebsite: string;
+      jobTitle: string;
+      industry: string;
+      hq: string;
+      interest: string;
+      employees: string;
+      journey: string;
+      message: string;
+      source: string;
+      submitBtn: string;
+      submitting: string;
+      successTitle: string;
+      successDesc: string;
+    };
   };
   docs: {
     ui: {
@@ -398,6 +434,42 @@ export const translations: Record<Language, Translations> = {
       },
       changelog: {
         badge: "Changelog", h1: "What's new in AI Collective", sub: "Every release, every improvement, every fix — documented in one place.", viewGithub: "View on GitHub",
+      },
+      contactSales: {
+        badge: "Contact Sales",
+        h1: "Contact sales",
+        sub: "Our sales team can provide resources for custom support with the AI Collective API or large, complex deployments. Or to get started now, explore our self-serve plans.",
+        supportCardTitle: "More help, right this way",
+        supportCardDesc: "Browse articles, see product details, and get answers to technical questions.",
+        supportCardCta: "Visit support center",
+        formHelpLabel: "What can we help you with?",
+        formHelpPlaceholder: "Please select",
+        options: {
+          sales: "Contact sales",
+          limits: "Increase rate limits",
+          baa: "Business associate agreement (BAA)",
+          zdr: "Zero data retention (ZDR)",
+          support: "Product support",
+        },
+        firstName: "First name",
+        lastName: "Last name",
+        email: "Business email",
+        emailHint: "If you're an existing user, please enter your account email.",
+        phone: "Phone number",
+        companyName: "Company or organization name",
+        companyWebsite: "Company or organization website",
+        jobTitle: "Job title",
+        industry: "Industry",
+        hq: "Company headquarters location",
+        interest: "Primary product interest",
+        employees: "What is your company's employee count?",
+        journey: "Where are you in your evaluation journey?",
+        message: "Please share a bit more about why you're contacting us...",
+        source: "How did you hear about us?",
+        submitBtn: "Submit",
+        submitting: "Submitting...",
+        successTitle: "Thank you!",
+        successDesc: "Your request has been submitted. Our team will review it and contact you shortly.",
       },
     },
     docs: {
@@ -670,6 +742,42 @@ export const translations: Record<Language, Translations> = {
       changelog: {
         badge: "Nhật ký thay đổi", h1: "Có gì mới trong AI Collective", sub: "Mọi phiên bản, mọi cải tiến, mọi bản sửa lỗi — được ghi lại ở một nơi.", viewGithub: "Xem trên GitHub",
       },
+      contactSales: {
+        badge: "Liên Hệ",
+        h1: "Liên hệ kinh doanh",
+        sub: "Đội ngũ kinh doanh của chúng tôi có thể cung cấp tài nguyên để hỗ trợ tùy chỉnh với AI Collective API hoặc các triển khai lớn, phức tạp. Hoặc để bắt đầu ngay bây giờ, hãy khám phá các gói tự phục vụ của chúng tôi.",
+        supportCardTitle: "Cần trợ giúp khác?",
+        supportCardDesc: "Duyệt qua các bài viết, xem chi tiết sản phẩm và nhận câu trả lời cho các câu hỏi kỹ thuật.",
+        supportCardCta: "Truy cập trung tâm hỗ trợ",
+        formHelpLabel: "Chúng tôi có thể giúp gì cho bạn?",
+        formHelpPlaceholder: "Vui lòng chọn",
+        options: {
+          sales: "Liên hệ kinh doanh",
+          limits: "Tăng giới hạn tỷ lệ (Rate limits)",
+          baa: "Thỏa thuận liên kết kinh doanh (BAA)",
+          zdr: "Không lưu trữ dữ liệu (ZDR)",
+          support: "Hỗ trợ sản phẩm",
+        },
+        firstName: "Tên",
+        lastName: "Họ",
+        email: "Email doanh nghiệp",
+        emailHint: "Nếu bạn đã là người dùng, vui lòng nhập email tài khoản của bạn.",
+        phone: "Số điện thoại",
+        companyName: "Tên công ty hoặc tổ chức",
+        companyWebsite: "Trang web công ty hoặc tổ chức",
+        jobTitle: "Chức danh công việc",
+        industry: "Ngành nghề",
+        hq: "Vị trí trụ sở chính của công ty",
+        interest: "Mối quan tâm chính về sản phẩm",
+        employees: "Số lượng nhân viên của công ty bạn?",
+        journey: "Bạn đang ở đâu trong hành trình đánh giá?",
+        message: "Vui lòng chia sẻ thêm một chút về lý do bạn liên hệ với chúng tôi...",
+        source: "Bạn biết đến chúng tôi qua đâu?",
+        submitBtn: "Gửi",
+        submitting: "Đang gửi...",
+        successTitle: "Cảm ơn bạn!",
+        successDesc: "Yêu cầu của bạn đã được gửi. Đội ngũ của chúng tôi sẽ xem xét và liên hệ với bạn sớm nhất có thể.",
+      },
     },
     docs: {
       ui: {
@@ -940,6 +1048,42 @@ export const translations: Record<Language, Translations> = {
       },
       changelog: {
         badge: "变更日志", h1: "AI Collective 的新功能", sub: "每个版本、每项改进、每个修复——都记录在一处。", viewGithub: "在 GitHub 上查看",
+      },
+      contactSales: {
+        badge: "联系销售",
+        h1: "联系销售",
+        sub: "我们的销售团队可以为您提供关于 AI Collective API 或大型复杂部署的定制化支持资源。或者，您也可以立即探索我们的自助服务方案。",
+        supportCardTitle: "需要其他帮助？",
+        supportCardDesc: "浏览文章、查看产品详情并获取技术问题的解答。",
+        supportCardCta: "访问支持中心",
+        formHelpLabel: "我们能帮您做些什么？",
+        formHelpPlaceholder: "请选择",
+        options: {
+          sales: "联系销售",
+          limits: "提高速率限制 (Rate limits)",
+          baa: "商业伙伴协议 (BAA)",
+          zdr: "零数据保留 (ZDR)",
+          support: "产品支持",
+        },
+        firstName: "名字",
+        lastName: "姓氏",
+        email: "业务邮箱",
+        emailHint: "如果您是现有用户，请输入您的账户邮箱。",
+        phone: "电话号码",
+        companyName: "公司或组织名称",
+        companyWebsite: "公司或组织网站",
+        jobTitle: "职位名称",
+        industry: "行业",
+        hq: "公司总部所在地",
+        interest: "主要产品兴趣",
+        employees: "您公司的员工人数是多少？",
+        journey: "您目前处于评估流程的哪个阶段？",
+        message: "请具体分享一下您联系我们的原因...",
+        source: "您是如何得知我们的？",
+        submitBtn: "提交",
+        submitting: "正在提交...",
+        successTitle: "非常感谢！",
+        successDesc: "您的请求已提交。我们的团队会尽快评估并与您取得联系。",
       },
     },
     docs: {
@@ -1343,6 +1487,42 @@ export const translations: Record<Language, Translations> = {
       },
       changelog: {
         badge: "変更履歴", h1: "AI Collective の新機能", sub: "すべてのリリース、改善、修正 — 一か所にドキュメント化。", viewGithub: "GitHub で見る",
+      },
+      contactSales: {
+        badge: "お問い合わせ",
+        h1: "営業に連絡",
+        sub: "当社の営業チームは、AI Collective APIや大規模で複雑なデプロイメント向けのカスタムサポート用リソースを提供できます。または、今すぐ始めるには、セルフサービスプランをご覧ください。",
+        supportCardTitle: "その他のヘルプが必要ですか？",
+        supportCardDesc: "ナレッジベースの記事を閲覧し、製品の詳細を確認し、技術的な質問の回答を得ることができます。",
+        supportCardCta: "サポートセンターにアクセス",
+        formHelpLabel: "どのようなご用件でしょうか？",
+        formHelpPlaceholder: "選択してください",
+        options: {
+          sales: "営業への連絡",
+          limits: "レート制限 of 引き上げ",
+          baa: "事業提携契約 (BAA)",
+          zdr: "データ保持ゼロ (ZDR)",
+          support: "製品サポート",
+        },
+        firstName: "名",
+        lastName: "姓",
+        email: "仕事用メールアドレス",
+        emailHint: "既存のユーザー様は、アカウントのメールアドレスを入力してください。",
+        phone: "電話番号",
+        companyName: "会社または組織名",
+        companyWebsite: "会社または組織のウェブサイト",
+        jobTitle: "役職",
+        industry: "業界",
+        hq: "本社の所在地",
+        interest: "主な製品への関心",
+        employees: "会社の従業員数は何名ですか？",
+        journey: "検討状況について教えてください。",
+        message: "お問い合わせの理由について詳しく教えてください...",
+        source: "当社についてどこでお知りになりましたか？",
+        submitBtn: "送信",
+        submitting: "送信中...",
+        successTitle: "ありがとうございます！",
+        successDesc: "リクエストが送信されました。担当者より折り返しご連絡いたします。",
       },
     },
   },

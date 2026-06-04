@@ -63,7 +63,7 @@ export default function Pricing() {
   const plans = [
     { nameKey: m.pricing.plan1Name, priceKey: m.pricing.plan1Price, periodKey: m.pricing.plan1Period, descKey: m.pricing.plan1Desc, ctaKey: m.pricing.plan1Cta, href: GITHUB_URL, external: true, highlighted: false },
     { nameKey: m.pricing.plan2Name, priceKey: m.pricing.plan2Price, periodKey: m.pricing.plan2Period, descKey: m.pricing.plan2Desc, ctaKey: m.pricing.plan2Cta, href: "/dashboard", external: false, highlighted: true },
-    { nameKey: m.pricing.plan3Name, priceKey: m.pricing.plan3Price, periodKey: m.pricing.plan3Period, descKey: m.pricing.plan3Desc, ctaKey: m.pricing.plan3Cta, href: "/login", external: false, highlighted: false },
+    { nameKey: m.pricing.plan3Name, priceKey: m.pricing.plan3Price, periodKey: m.pricing.plan3Period, descKey: m.pricing.plan3Desc, ctaKey: m.pricing.plan3Cta, href: "/contact-sales", external: false, highlighted: false },
   ];
 
   return (
@@ -179,7 +179,7 @@ export default function Pricing() {
             <h2 className="text-4xl font-medium font-serif mb-4">{m.pricing.ctaTitle}</h2>
             <p className="text-muted-foreground mb-8">{m.pricing.ctaSub}</p>
             <div className="flex justify-center gap-3">
-              <Link to="/login" className="inline-flex items-center gap-2 h-11 px-8 rounded-lg bg-foreground text-background font-semibold text-sm hover:opacity-90 transition-opacity">
+              <Link to="/contact-sales" className="inline-flex items-center gap-2 h-11 px-8 rounded-lg bg-foreground text-background font-semibold text-sm hover:opacity-90 transition-opacity">
                 {m.common.contactSales}
               </Link>
               <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 h-11 px-6 rounded-lg border border-border font-semibold text-sm hover:bg-muted/30 transition-all">

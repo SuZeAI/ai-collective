@@ -96,7 +96,7 @@ export default function Solutions() {
         <div className="grid md:grid-cols-2 gap-6">
           {[
             { icon: Bot, label: "Startups", desc: "Get to market faster with pre-built agent topologies and open-source self-hosting. Zero infrastructure cost to prototype.", link: "/dashboard", cta: m.common.startBuilding },
-            { icon: Building2, label: "Enterprise", desc: "Scale with dedicated RabbitMQ clusters, custom SLA agreements, custom integrations, and 24/7 engineering support.", link: "/login", cta: m.common.contactSales },
+            { icon: Building2, label: "Enterprise", desc: "Scale with dedicated RabbitMQ clusters, custom SLA agreements, custom integrations, and 24/7 engineering support.", link: "/contact-sales", cta: m.common.contactSales },
           ].map((cs, i) => (
             <FadeIn key={cs.label} delay={0.05 * i}>
               <div className="p-8 rounded-2xl border border-border bg-card hover:border-accent/40 transition-colors group">
@@ -138,7 +138,7 @@ export default function Solutions() {
             <h2 className="text-4xl font-medium font-serif mb-4">{m.solutions.ctaTitle}</h2>
             <p className="text-muted-foreground mb-8">{m.solutions.ctaSub}</p>
             <div className="flex justify-center gap-3">
-              <Link to="/login" className="inline-flex items-center gap-2 h-11 px-8 rounded-lg bg-foreground text-background font-semibold text-sm hover:opacity-90 transition-opacity">
+              <Link to="/contact-sales" className="inline-flex items-center gap-2 h-11 px-8 rounded-lg bg-foreground text-background font-semibold text-sm hover:opacity-90 transition-opacity">
                 {m.common.contactSales}
               </Link>
               <Link to="/dashboard" className="inline-flex items-center gap-2 h-11 px-6 rounded-lg border border-border font-semibold text-sm hover:bg-muted/30 transition-all">
