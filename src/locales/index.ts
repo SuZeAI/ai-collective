@@ -355,13 +355,13 @@ export const translations: Record<Language, Translations> = {
       phoneNote: "We'll send a verification code to your number.",
     },
     nav: {
-      label: "Navigation", dashboard: "Dashboard", agents: "Agents",
-      skills: "Skills", teams: "Teams", tasks: "Tasks",
-      conversations: "Conversations", analytics: "Analytics", playground: "Playground", workspaces: "Workspaces",
+      label: "Navigation", dashboard: "Company Overview", agents: "Humans",
+      skills: "Skills & Tools", teams: "Departments", tasks: "Projects & Tasks",
+      conversations: "Meetings & Discussions", analytics: "Analytics", playground: "Testing Lab", workspaces: "Offices",
       settings: "Settings",
     },
     status: { allSystemsOnline: "All systems online" },
-    brand: { subtitle: "Multi-Agent Platform" },
+    brand: { subtitle: "Company Builder" },
     landing: {
       nav: { getStarted: "Get Started" },
       hero: {
@@ -662,13 +662,13 @@ export const translations: Record<Language, Translations> = {
       phoneNote: "Chúng tôi sẽ gửi mã xác minh đến số của bạn.",
     },
     nav: {
-      label: "Điều hướng", dashboard: "Bảng điều khiển", agents: "Tác nhân",
-      skills: "Kỹ năng", teams: "Nhóm", tasks: "Nhiệm vụ",
-      conversations: "Hội thoại", analytics: "Phân tích", playground: "Thử nghiệm", workspaces: "Không gian làm việc",
+      label: "Điều hướng", dashboard: "Tổng quan công ty", agents: "Nhân sự",
+      skills: "Kỹ năng & Công cụ", teams: "Phòng ban", tasks: "Dự án & Công việc",
+      conversations: "Họp & Thảo luận", analytics: "Phân tích", playground: "Phòng thử nghiệm", workspaces: "Văn phòng",
       settings: "Cài đặt",
     },
     status: { allSystemsOnline: "Tất cả hệ thống hoạt động" },
-    brand: { subtitle: "Nền tảng đa tác nhân" },
+    brand: { subtitle: "Kiến tạo doanh nghiệp" },
     landing: {
       nav: { getStarted: "Bắt đầu" },
       hero: {
@@ -969,13 +969,13 @@ export const translations: Record<Language, Translations> = {
       phoneNote: "我们将向您的号码发送验证码。",
     },
     nav: {
-      label: "导航", dashboard: "仪表盘", agents: "智能体",
-      skills: "技能", teams: "团队", tasks: "任务",
-      conversations: "对话", analytics: "分析", playground: "演练场", workspaces: "工作空间",
+      label: "导航", dashboard: "公司概览", agents: "人员",
+      skills: "技能与工具", teams: "部门", tasks: "项目与任务",
+      conversations: "会议与讨论", analytics: "分析", playground: "测试实验室", workspaces: "办公室",
       settings: "设置",
     },
     status: { allSystemsOnline: "所有系统运行正常" },
-    brand: { subtitle: "多智能体平台" },
+    brand: { subtitle: "公司构建器" },
     landing: {
       nav: { getStarted: "立即开始" },
       hero: {
@@ -1276,13 +1276,13 @@ export const translations: Record<Language, Translations> = {
       phoneNote: "お使いの番号に確認コードを送信します。",
     },
     nav: {
-      label: "ナビゲーション", dashboard: "ダッシュボード", agents: "エージェント",
-      skills: "スキル", teams: "チーム", tasks: "タスク",
-      conversations: "会話", analytics: "分析", playground: "プレイグラウンド", workspaces: "ワークスペース",
+      label: "ナビゲーション", dashboard: "会社概要", agents: "人材",
+      skills: "スキルとツール", teams: "部門", tasks: "プロジェクトとタスク",
+      conversations: "会議とディスカッション", analytics: "分析", playground: "テストラボ", workspaces: "オフィス",
       settings: "設定",
     },
     status: { allSystemsOnline: "全システム稼働中" },
-    brand: { subtitle: "マルチエージェントプラットフォーム" },
+    brand: { subtitle: "会社ビルダ" },
     landing: {
       nav: { getStarted: "始める" },
       hero: {

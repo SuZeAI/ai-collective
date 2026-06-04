@@ -23,8 +23,8 @@ const itemVariants = {
 const metricConfig = [
   { key: "completed", icon: CheckCircle2, label: "Tasks Completed" },
   { key: "active", icon: ListTodo, label: "Active Tasks" },
-  { key: "efficiency", icon: Zap, label: "Team Efficiency" },
-  { key: "agents", icon: Users, label: "Active Agents" },
+  { key: "efficiency", icon: Zap, label: "Department Efficiency" },
+  { key: "agents", icon: Users, label: "Active Personnel" },
   { key: "time", icon: Clock, label: "Avg. Completion" },
 ];
 
@@ -94,9 +94,9 @@ export default function Dashboard() {
     >
       {/* Page header */}
       <motion.div variants={itemVariants}>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Company Overview</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Overview of your multi-agent workspace
+          Overview of your company operations
         </p>
       </motion.div>
 
@@ -128,7 +128,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-border flex-shrink-0">
             <div className="flex items-center gap-2">
               <ListTodo className="w-4 h-4 text-muted-foreground" />
-              <h3 className="text-sm font-semibold text-foreground">Recent Tasks</h3>
+              <h3 className="text-sm font-semibold text-foreground">Recent Projects & Tasks</h3>
             </div>
             <span className="text-xs text-muted-foreground font-medium">{tasks.length} total</span>
           </div>
@@ -183,7 +183,7 @@ export default function Dashboard() {
                     <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
                       <ListTodo className="w-6 h-6 opacity-40" />
                     </div>
-                    <p className="text-sm font-medium">No tasks yet</p>
+                    <p className="text-sm font-medium">No projects or tasks yet</p>
                     <p className="text-xs opacity-60 mt-0.5">Create a task to get started</p>
                   </div>
                 </div>

@@ -87,7 +87,7 @@ export default function Conversations() {
     <div className="h-screen w-full flex flex-col overflow-hidden">
       <header className="flex-shrink-0 mb-4 px-1">
         <h1 className="text-4xl font-bold tracking-tight">Conversations</h1>
-        <p className="text-muted-foreground mt-2">Browse and filter all agent communications across teams and tasks.</p>
+        <p className="text-muted-foreground mt-2">Browse and filter all personnel communications across departments and tasks.</p>
       </header>
 
       {loading && (
@@ -118,16 +118,16 @@ export default function Conversations() {
               </div>
               <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-2 uppercase tracking-wide">Team</label>
+                  <label className="text-xs font-semibold text-foreground block mb-2 uppercase tracking-wide">Department</label>
                   <Select value={selectedTeamId === "" ? "__all__" : selectedTeamId} onValueChange={(val) => {
                     setSelectedTeamId(val === "__all__" ? "" : val);
                     setSelectedTaskId("");
                   }}>
                     <SelectTrigger className="h-9">
-                      <SelectValue placeholder="All teams" />
+                      <SelectValue placeholder="All departments" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__all__">All teams</SelectItem>
+                      <SelectItem value="__all__">All departments</SelectItem>
                       {teams.map((team) => (
                         <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
                       ))}
@@ -153,15 +153,15 @@ export default function Conversations() {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-2 uppercase tracking-wide">Agent</label>
+                  <label className="text-xs font-semibold text-foreground block mb-2 uppercase tracking-wide">Personnel</label>
                   <Select value={selectedAgentId === "" ? "__all__" : selectedAgentId} onValueChange={(val) => {
                     setSelectedAgentId(val === "__all__" ? "" : val);
                   }}>
                     <SelectTrigger className="h-9">
-                      <SelectValue placeholder="All agents" />
+                      <SelectValue placeholder="All personnel" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__all__">All agents</SelectItem>
+                      <SelectItem value="__all__">All personnel</SelectItem>
                       {agents.map((agent) => (
                         <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>
                       ))}
@@ -179,7 +179,7 @@ export default function Conversations() {
                 const agent = agentById.get(msg.agentId);
                 const task = taskById.get(msg.taskId || "");
                 const team = task ? teamById.get(task.teamId) : null;
-                const agentName = agent?.name || "Unknown Agent";
+                const agentName = agent?.name || "Unknown Person";
                 const agentRole = agent?.role || "unknown";
                 return (
                   <motion.div
@@ -202,7 +202,7 @@ export default function Conversations() {
                           </span>
                           {team && (
                             <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20">
-                              Team: {team.name}
+                              Department: {team.name}
                             </span>
                           )}
                           {task && (

@@ -822,8 +822,8 @@ export default function TaskManager() {
     <div>
       <header className="mb-8 flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
-          <p className="text-muted-foreground mt-1">Manage and track team assignments.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Projects & Tasks</h1>
+          <p className="text-muted-foreground mt-1">Manage and track departments and tasks.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
@@ -840,7 +840,7 @@ export default function TaskManager() {
                 className="min-h-[140px] max-h-[220px] overflow-y-auto resize-none"
               />
               <Select value={teamId} onValueChange={setTeamId}>
-                <SelectTrigger><SelectValue placeholder="Assign to team" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Assign to department" /></SelectTrigger>
                 <SelectContent>
                   {teamList.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                 </SelectContent>
@@ -991,14 +991,14 @@ export default function TaskManager() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Assigned Team</label>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Assigned Department</label>
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-background text-xs font-semibold border border-border">
                       <AgentAvatar
                         agent={
                           team
                             ? team
                             : {
-                                avatar: "T",
+                                avatar: "D",
                                 avatar_icon: "users",
                               }
                         }
@@ -1010,7 +1010,7 @@ export default function TaskManager() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Assigned Agents</label>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Assigned Personnel</label>
                     <div className="flex flex-wrap gap-2">
                       {selectedTask.assignedAgents.map((aid) => {
                         const agent = agentById.get(aid);
@@ -1094,7 +1094,7 @@ export default function TaskManager() {
                                     <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0.4s" }} />
                                   </div>
                                   <span className="text-sm font-semibold text-primary">
-                                    {agent?.name ?? agentId} is thinking...
+                                    {agent?.name ?? agentId} is working/thinking...
                                   </span>
                                 </div>
                               </div>
@@ -1113,12 +1113,12 @@ export default function TaskManager() {
                     <button
                       className="flex items-center gap-2 text-left hover:opacity-75 transition-opacity"
                       onClick={() => setGraphActivityCollapsed((v) => !v)}
-                      title={graphActivityCollapsed ? "Show knowledge graph activity / Hiện hoạt động đồ thị kiến thức" : "Hide knowledge graph activity / Ẩn hoạt động đồ thị kiến thức"}
+                      title={graphActivityCollapsed ? "Show knowledge base activity / Hiện hoạt động cơ sở kiến thức" : "Hide knowledge base activity / Ẩn hoạt động cơ sở kiến thức"}
                     >
                       {graphActivityCollapsed ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" /> : <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
                       <div>
-                        <div className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Graph context</div>
-                        <div className="mt-1 text-sm font-semibold text-foreground">Knowledge graph activity</div>
+                        <div className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Knowledge context</div>
+                        <div className="mt-1 text-sm font-semibold text-foreground">Company memory activity</div>
                       </div>
                     </button>
                     <div className="flex items-center gap-2">
@@ -1443,16 +1443,16 @@ export default function TaskManager() {
                     )}
                   </div>
 
-                  {/* Assigned Team */}
+                  {/* Assigned Department */}
                   <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Assigned Team</label>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Assigned Department</label>
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-background text-xs font-semibold border border-border">
                       <AgentAvatar
                         agent={
                           team
                             ? team
                             : {
-                                avatar: "T",
+                                avatar: "D",
                                 avatar_icon: "users",
                               }
                         }
@@ -1463,9 +1463,9 @@ export default function TaskManager() {
                     </div>
                   </div>
 
-                  {/* Assigned Agents */}
+                  {/* Assigned Personnel */}
                   <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Assigned Agents</label>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Assigned Personnel</label>
                     <div className="flex flex-wrap gap-2">
                       {task.assignedAgents.map((aid) => {
                         const agent = agentById.get(aid);
@@ -1542,7 +1542,7 @@ export default function TaskManager() {
                                       <span className="w-1 h-1 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0.4s" }} />
                                     </div>
                                     <span className="text-xs font-semibold text-primary">
-                                      {agent?.name ?? agentId} thinking...
+                                      {agent?.name ?? agentId} working/thinking...
                                     </span>
                                   </div>
                                 </div>
