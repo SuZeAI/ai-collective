@@ -3,7 +3,18 @@ from __future__ import annotations
 from typing import Protocol
 
 from backend.domain.memory.knowledge_graph import ConversationKnowledgeGraph
-from backend.domain.models import Agent, Skill, Team, Task, Message, Analytics, ActivityFeedItem
+from backend.domain.models import (
+    Agent,
+    Skill,
+    Team,
+    Task,
+    Message,
+    Analytics,
+    ActivityFeedItem,
+    ThirdPartyConnection,
+    User,
+    Workspace,
+)
 
 
 class AgentRepository(Protocol):
@@ -86,6 +97,48 @@ class ActivityFeedRepository(Protocol):
         ...
 
     def add(self, item: ActivityFeedItem) -> ActivityFeedItem:
+        ...
+
+
+class ConnectionRepository(Protocol):
+    def list(self) -> list[ThirdPartyConnection]:
+        ...
+
+    def get(self, conn_id: str) -> ThirdPartyConnection | None:
+        ...
+
+    def upsert(self, conn: ThirdPartyConnection) -> ThirdPartyConnection:
+        ...
+
+    def delete(self, conn_id: str) -> None:
+        ...
+
+
+class WorkspaceRepository(Protocol):
+    def list(self) -> list[Workspace]:
+        ...
+
+    def get(self, workspace_id: str) -> Workspace | None:
+        ...
+
+    def upsert(self, workspace: Workspace) -> Workspace:
+        ...
+
+    def delete(self, workspace_id: str) -> None:
+        ...
+
+
+class UserRepository(Protocol):
+    def find_by_id(self, user_id: str) -> User | None:
+        ...
+
+    def find_by_email(self, email: str) -> User | None:
+        ...
+
+    def find_by_provider_id(self, provider: str, provider_id: str) -> User | None:
+        ...
+
+    def save(self, user: User) -> User:
         ...
 
 
