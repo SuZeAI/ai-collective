@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Check, ExternalLink, HelpCircle, AlertCircle, Info, Landmark, Layers, ShieldCheck, Mail, ArrowLeft } from "lucide-react";
+import { ArrowRight, Check, ExternalLink, HelpCircle, AlertCircle, Info, Landmark, Layers, ShieldCheck, Mail, ArrowLeft, Search } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -67,7 +67,7 @@ const PRODUCTS = [
 ];
 
 export default function ContactSales() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const m = t.marketing;
 
   // Selected inquiry type: 'sales' | 'limits' | 'baa' | 'zdr' | 'support' | ''
@@ -203,15 +203,13 @@ export default function ContactSales() {
                     {m.contactSales.supportCardDesc}
                   </p>
                 </div>
-                <a
-                  href="/docs"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  to="/support"
                   className="inline-flex items-center gap-1 text-sm font-semibold text-accent hover:underline"
                 >
                   {m.contactSales.supportCardCta}
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
             </FadeIn>
 
@@ -644,16 +642,42 @@ export default function ContactSales() {
 
                             <div className="p-6 border border-border bg-muted/20 rounded-xl space-y-4">
                               <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
-                                <AlertCircle className="w-5 h-5 text-accent" />
+                                <HelpCircle className="w-5 h-5 text-accent" />
                               </div>
                               <div>
-                                <h3 className="font-serif font-semibold text-lg mb-1">Looking for product support?</h3>
+                                <h3 className="font-serif font-semibold text-lg mb-1">
+                                  {language === "vi" ? "Tìm câu trả lời tại Trung tâm Hỗ trợ" : "Find Answers in the Support Center"}
+                                </h3>
                                 <p className="text-sm text-muted-foreground leading-relaxed">
-                                  Our sales team is unable to assist with technical issues, bug reports, or account billing inquiries. 
-                                  To ensure your issue is resolved as quickly as possible, please use one of our dedicated support channels:
+                                  {language === "vi" 
+                                    ? "Đội ngũ kinh doanh của chúng tôi không thể xử lý các vấn đề kỹ thuật, báo cáo lỗi hoặc yêu cầu thanh toán. Vui lòng truy cập Trung tâm Hỗ trợ của chúng tôi để tra cứu nhanh chóng:"
+                                    : "Our sales team is unable to assist with technical issues, bug reports, or billing. Please visit our unified Support Center to find quick self-serve answers:"}
                                 </p>
                               </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                              
+                              <div className="pt-2">
+                                <Link
+                                  to="/support"
+                                  className="flex items-center justify-between p-4 rounded-xl border border-accent/20 bg-accent/5 hover:border-accent/40 hover:bg-accent/10 transition-all text-sm font-semibold group"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center text-accent">
+                                      <Search className="w-4 h-4" />
+                                    </div>
+                                    <div className="text-left">
+                                      <div className="text-sm font-semibold">
+                                        {language === "vi" ? "Truy cập trung tâm hỗ trợ" : "Visit support center"}
+                                      </div>
+                                      <div className="text-[11px] text-muted-foreground font-normal">
+                                        {language === "vi" ? "Tìm kiếm bài viết, tài nguyên và hướng dẫn" : "Search articles, resources, and guides"}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <ArrowRight className="w-4 h-4 text-accent group-hover:translate-x-0.5 transition-transform" />
+                                </Link>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                                 <a
                                   href="https://github.com/SuZeAI/ai-collective/issues"
                                   target="_blank"
@@ -663,13 +687,13 @@ export default function ContactSales() {
                                   <span>Open GitHub Issue</span>
                                   <ExternalLink className="w-3.5 h-3.5" />
                                 </a>
-                                <a
-                                  href="/docs"
+                                <Link
+                                  to="/docs"
                                   className="flex items-center justify-between p-3.5 rounded-lg border border-border hover:border-foreground/20 hover:bg-card transition-colors text-sm font-semibold"
                                 >
                                   <span>Developer Docs</span>
                                   <ArrowRight className="w-3.5 h-3.5" />
-                                </a>
+                                </Link>
                               </div>
                               <div className="text-xs text-muted-foreground text-center pt-2">
                                 Or email our support team directly at <a href="mailto:support@aicollective.com" className="underline hover:text-foreground font-semibold">support@aicollective.com</a>

@@ -29,6 +29,7 @@ import Solutions from "@/pages/marketing/Solutions";
 import Resources from "@/pages/marketing/Resources";
 import Changelog from "@/pages/marketing/Changelog";
 import ContactSales from "@/pages/marketing/ContactSales";
+import SupportCenter from "@/pages/marketing/SupportCenter";
 
 const queryClient = new QueryClient();
 
@@ -79,6 +80,7 @@ const App = () => (
                 <Route path="/resources" element={<Resources />} />
                 <Route path="/changelog" element={<Changelog />} />
                 <Route path="/contact-sales" element={<ContactSales />} />
+                <Route path="/support" element={<SupportCenter />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
