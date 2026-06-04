@@ -118,6 +118,7 @@ const CONCEPT_ICONS = [
 
 export function getDocContent(t: Translations): Record<string, React.ReactNode> {
   const c = t.docs.content;
+  const lang = t.auth.or === "Hoặc" ? "vi" : t.auth.or === "或" ? "zh" : t.auth.or === "または" ? "ja" : "en";
 
   return {
     "what-is": (
@@ -184,6 +185,63 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
               </div>
             );
           })}
+        </div>
+      </div>
+    ),
+
+    "pricing": (
+      <div>
+        <H1>{lang === "vi" ? "Bảng giá & Gói dịch vụ" : lang === "zh" ? "定价与计划" : lang === "ja" ? "料金とプラン" : "Pricing & Plans Overview"}</H1>
+        <P>
+          {lang === "vi"
+            ? "AI Collective cung cấp các gói dịch vụ linh hoạt được thiết kế cho các nhà phát triển cá nhân, các đội ngũ đang phát triển và các doanh nghiệp lớn."
+            : "AI Collective offers flexible pricing tiers designed for individual developers, growing teams, and large enterprises."}
+        </P>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
+          <div className="p-5 rounded-xl border border-border bg-card">
+            <div className="font-bold text-lg mb-1">{lang === "vi" ? "Gói Cá nhân (Free)" : "Free Plan"}</div>
+            <div className="text-2xl font-extrabold mb-3">$0</div>
+            <p className="text-xs text-muted-foreground mb-4">
+              {lang === "vi" ? "Phù hợp để thử nghiệm và chạy các tác vụ cá nhân cục bộ." : "Ideal for testing, development, and personal projects."}
+            </p>
+            <UL>
+              <LI>{lang === "vi" ? "Chạy tác nhân cục bộ không giới hạn" : "Unlimited local agent executions"}</LI>
+              <LI>{lang === "vi" ? "1 không gian làm việc hoạt động" : "1 active workspace"}</LI>
+              <LI>{lang === "vi" ? "Hỗ trợ cộng đồng qua Discord/GitHub" : "Community support"}</LI>
+            </UL>
+          </div>
+
+          <div className="p-5 rounded-xl border-2 border-primary bg-primary/5 relative">
+            <div className="absolute -top-3 right-4 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+              {lang === "vi" ? "Phổ biến" : "Popular"}
+            </div>
+            <div className="font-bold text-lg mb-1">{lang === "vi" ? "Chuyên nghiệp (Pro)" : "Pro Plan"}</div>
+            <div className="text-2xl font-extrabold mb-3">$29<span className="text-xs font-normal text-muted-foreground">/user/mo</span></div>
+            <p className="text-xs text-muted-foreground mb-4">
+              {lang === "vi" ? "Dành cho các nhóm chạy dự án thực tế trên hạ tầng đám mây." : "For teams running production workloads on cloud infrastructures."}
+            </p>
+            <UL>
+              <LI>{lang === "vi" ? "Lên tới 10 không gian làm việc" : "Up to 10 active workspaces"}</LI>
+              <LI>{lang === "vi" ? "Hàng đợi tác vụ RabbitMQ tốc độ cao" : "High-speed RabbitMQ task queue"}</LI>
+              <LI>{lang === "vi" ? "Thống kê chi phí & độ trễ chi tiết" : "Advanced cost & telemetry analytics"}</LI>
+              <LI>{lang === "vi" ? "Hỗ trợ ưu tiên 24/7" : "Priority 24/7 email & Slack support"}</LI>
+            </UL>
+          </div>
+
+          <div className="p-5 rounded-xl border border-border bg-card">
+            <div className="font-bold text-lg mb-1">{lang === "vi" ? "Doanh nghiệp (Enterprise)" : "Enterprise"}</div>
+            <div className="text-2xl font-extrabold mb-3">Custom</div>
+            <p className="text-xs text-muted-foreground mb-4">
+              {lang === "vi" ? "Hạ tầng dành riêng cho tổ chức lớn với yêu cầu cao về bảo mật." : "Dedicated isolation for large organizations requiring custom SLAs and advanced security."}
+            </p>
+            <UL>
+              <LI>{lang === "vi" ? "Không giới hạn không gian làm việc" : "Unlimited workspaces"}</LI>
+              <LI>{lang === "vi" ? "Triển khai Self-hosted hoặc On-premise" : "Self-hosted / On-premise deployment"}</LI>
+              <LI>{lang === "vi" ? "Đăng nhập một lần (SSO / SAML)" : "Single Sign-On (SSO) & SAML"}</LI>
+              <LI>{lang === "vi" ? "Kỹ sư hỗ trợ riêng biệt & cam kết SLA" : "Dedicated Support Engineer & Uptime SLAs"}</LI>
+            </UL>
+          </div>
         </div>
       </div>
     ),
@@ -341,6 +399,134 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
         <CodeBlock lang="typescript" code={`type Message = {\n  id: string;\n  role: "user" | "assistant" | "system" | "tool";\n  content: string;\n  agent_id?: string;\n  task_id?: string;\n  timestamp: string;\n}`} />
         <H2>{c.conversations.filterH2}</H2>
         <P>{c.conversations.filterP}</P>
+      </div>
+    ),
+
+    "playground": (
+      <div>
+        <H1>{lang === "vi" ? "Thử nghiệm (Playground)" : lang === "zh" ? "演练场" : lang === "ja" ? "プレイグラウンド" : "Playground"}</H1>
+        <P>
+          {lang === "vi" 
+            ? "Môi trường Thử nghiệm (Playground) cung cấp một giao diện tương tác trực tiếp để thử nghiệm nhanh các tác nhân hoặc nhóm tác nhân AI của bạn mà không cần tạo và quản lý các nhiệm vụ (Tasks) chính thức."
+            : "The Playground provides an interactive chat interface to quickly test your AI agents or teams without having to create and monitor formal executing tasks."}
+        </P>
+        <H2>{lang === "vi" ? "Cách hoạt động" : "How it Works"}</H2>
+        <UL>
+          <LI>
+            {lang === "vi"
+              ? "Chọn Tác nhân hoặc Nhóm: Sử dụng trình thả xuống ở góc trên cùng để chọn đối tượng bạn muốn trò chuyện."
+              : "Select Agent or Team: Use the dropdown in the header to choose who you want to interact with."}
+          </LI>
+          <LI>
+            {lang === "vi"
+              ? "Tương tác thời gian thực: Gửi tin nhắn và xem các câu trả lời dạng truyền dữ liệu (streaming) từ các mô hình ngôn ngữ lớn (LLM)."
+              : "Real-time Chatting: Send prompts and watch live streaming token responses from LLMs."}
+          </LI>
+          <LI>
+            {lang === "vi"
+              ? "Theo dõi Cuộc gọi Công cụ: Xem trực tiếp cách các tác nhân quyết định gọi các kỹ năng như duyệt web hoặc thực thi mã."
+              : "Inspect Tool Calls: Directly view when agents decide to call skills such as web scraping or database read."}
+          </LI>
+        </UL>
+        <H2>{lang === "vi" ? "Mục đích sử dụng" : "When to Use"}</H2>
+        <P>
+          {lang === "vi"
+            ? "Chế độ Thử nghiệm là lựa chọn lý tưởng nhất để tinh chỉnh các câu lệnh hệ thống (system prompts) của tác nhân hoặc kiểm tra xem các kỹ năng (skills) có hoạt động như mong đợi hay không trước khi ghép chúng vào các luồng công việc phức tạp."
+            : "The Playground is ideal for refining agent system prompts and verifying whether custom tools and integrations work as intended before deploying them in automated multi-step flows."}
+        </P>
+      </div>
+    ),
+
+    "analytics": (
+      <div>
+        <H1>{lang === "vi" ? "Phân tích & Thống kê" : lang === "zh" ? "分析" : lang === "ja" ? "分析" : "Analytics"}</H1>
+        <P>
+          {lang === "vi"
+            ? "Trang Phân tích cung cấp các biểu đồ trực quan hóa chi tiết về hiệu năng hoạt động của hệ thống tác nhân và các chỉ số tài nguyên sử dụng."
+            : "The Analytics dashboard offers visual charts and detailed telemetry covering agent execution performance and system resources."}
+        </P>
+        <H2>{lang === "vi" ? "Các chỉ số chính" : "Key Metrics Tracked"}</H2>
+        <UL>
+          <LI>
+            <strong>{lang === "vi" ? "Tiêu thụ Token & Chi phí" : "Token Usage & Cost Tracker"}:</strong>{" "}
+            {lang === "vi"
+              ? "Theo dõi số lượng token đầu vào/đầu ra và ước tính chi phí thực tế cho từng nhà cung cấp mô hình (OpenAI, Anthropic, Gemini)."
+              : "Tracks cumulative input and output tokens consumed and calculates model cost estimation across different providers."}
+          </LI>
+          <LI>
+            <strong>{lang === "vi" ? "Độ trễ và Thời gian phản hồi" : "Execution Latencies"}:</strong>{" "}
+            {lang === "vi"
+              ? "Đo lường thời gian thực thi của các tác vụ và thời gian phản hồi trung bình từ LLM."
+              : "Measures task completion speed and LLM prompt generation times to locate performance bottlenecks."}
+          </LI>
+          <LI>
+            <strong>{lang === "vi" ? "Lưu lượng Hàng đợi Event Bus" : "Event Queue Statistics"}:</strong>{" "}
+            {lang === "vi"
+              ? "Giám sát số lượng thông điệp chạy qua bus sự kiện RabbitMQ để đảm bảo hệ thống không bị nghẽn."
+              : "Monitors active messages routing through RabbitMQ to ensure smooth agent communication."}
+          </LI>
+        </UL>
+      </div>
+    ),
+
+    "workspaces": (
+      <div>
+        <H1>{lang === "vi" ? "Không gian làm việc (Workspaces)" : lang === "zh" ? "工作空间" : lang === "ja" ? "ワークスペース" : "Workspaces"}</H1>
+        <P>
+          {lang === "vi"
+            ? "Không gian làm việc (Workspaces) cho phép bạn phân tách dự án, nhóm tác nhân và các nhiệm vụ thành các môi trường riêng biệt để dễ dàng quản lý."
+            : "Workspaces allow developers to compartmentalize project environments, keeping agents, teams, tasks, and historical logs completely isolated from one another."}
+        </P>
+        <H2>{lang === "vi" ? "Tính năng cốt lõi" : "Core Features"}</H2>
+        <UL>
+          <LI>
+            {lang === "vi"
+              ? "Phân tách dữ liệu: Mỗi không gian làm việc hoạt động độc lập và không chia sẻ tác nhân hay cấu hình với nhau."
+              : "Absolute Data Isolation: Switch between separate scopes where agents and tasks are completely self-contained."}
+          </LI>
+          <LI>
+            {lang === "vi"
+              ? "Quản lý Dự án: Đặt tên và tổ chức các không gian làm việc để phù hợp với từng phòng ban hoặc khách hàng khác nhau."
+              : "Project Management: Easily name, describe, and filter workspaces to match different departments or customers."}
+          </LI>
+          <LI>
+            {lang === "vi"
+              ? "Cấu hình riêng biệt: Đặt các biến môi trường và thiết lập mô hình mặc định khác nhau cho từng dự án."
+              : "Independent Configs: Define different environment setups and defaults based on project requirements."}
+          </LI>
+        </UL>
+      </div>
+    ),
+
+    "settings": (
+      <div>
+        <H1>{lang === "vi" ? "Cài đặt hệ thống" : lang === "zh" ? "设置" : lang === "ja" ? "設定" : "Settings"}</H1>
+        <P>
+          {lang === "vi"
+            ? "Trang Cài đặt là nơi bạn quản lý toàn bộ các thông số hoạt động của hệ thống AI Collective, bảo mật và thông tin tài khoản."
+            : "The Settings section provides central controls to manage system credentials, integrations, preferences, and account details."}
+        </P>
+        <H2>{lang === "vi" ? "Cấu hình có sẵn" : "Available Settings"}</H2>
+        <UL>
+          <LI>
+            <strong>{lang === "vi" ? "Khóa API Nhà cung cấp" : "Provider API Keys"}:</strong>{" "}
+            {lang === "vi"
+              ? "Cập nhật khóa API cho Anthropic Claude, OpenAI GPT, và Google Gemini để cấp quyền chạy mô hình."
+              : "Safely update keys for Anthropic, OpenAI, or Gemini to authorize agent model requests."}
+          </LI>
+          <LI>
+            <strong>{lang === "vi" ? "Cấu hình Hệ thống" : "System Integrations"}:</strong>{" "}
+            {lang === "vi"
+              ? "Cấu hình địa chỉ RabbitMQ, PostgreSQL hoặc SQLite, và thiết lập chế độ sandbox thực thi mã."
+              : "Configure connection URLs for RabbitMQ, persistent database backends, and sandbox runtimes."}
+          </LI>
+          <LI>
+            <strong>{lang === "vi" ? "Hồ sơ người dùng" : "Profile Preferences"}:</strong>{" "}
+            {lang === "vi"
+              ? "Thay đổi thông tin cá nhân, cài đặt ngôn ngữ mặc định, mật khẩu, và chế độ sáng/tối."
+              : "Manage personal parameters, default display languages, passwords, and color scheme."}
+          </LI>
+        </UL>
       </div>
     ),
 

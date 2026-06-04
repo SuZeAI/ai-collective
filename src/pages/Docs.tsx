@@ -18,9 +18,9 @@ const GITHUB_URL = "https://github.com/SuZeAI/ai-collective";
 // ─── Nav structure (keyed by section id) ────────────────────────────────────
 
 const NAV_STRUCTURE = [
-  { id: "intro",         icon: BookOpen,   items: ["what-is","architecture","key-concepts"] },
+  { id: "intro",         icon: BookOpen,   items: ["what-is","architecture","key-concepts","pricing"] },
   { id: "getting-started", icon: Rocket,   items: ["quickstart","installation","configuration"] },
-  { id: "concepts",      icon: Layers,     items: ["agents","skills","teams","tasks","conversations"] },
+  { id: "concepts",      icon: Layers,     items: ["agents","skills","teams","tasks","conversations","playground","analytics","workspaces","settings"] },
   { id: "guides",        icon: Lightbulb,  items: ["guide-first-agent","guide-build-team","guide-run-task","guide-skills"] },
   { id: "api-reference", icon: Terminal,   items: ["api-agents","api-skills","api-teams","api-tasks","api-chat"] },
   { id: "deployment",    icon: Package,    items: ["deploy-docker","deploy-env"] },
@@ -39,14 +39,25 @@ function DocSidebar({
   mobile?: boolean;
   onClose?: () => void;
 }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const ui = t.docs.ui;
   const navT = t.docs.nav;
+
+  const localTitles: Record<string, Record<string, string>> = {
+    pricing: { en: "Pricing & Plans", vi: "Bảng giá & Gói dịch vụ", zh: "定价与计划", ja: "料金とプラン" },
+    playground: { en: "Playground", vi: "Thử nghiệm (Playground)", zh: "演练场", ja: "プレイグラウンド" },
+    analytics: { en: "Analytics", vi: "Phân tích & Thống kê", zh: "分析", ja: "分析" },
+    workspaces: { en: "Workspaces", vi: "Không gian làm việc", zh: "工作空间", ja: "ワークスペース" },
+    settings: { en: "Settings", vi: "Cài đặt", zh: "设置", ja: "設定" },
+  };
 
   const nav = NAV_STRUCTURE.map((s) => ({
     ...s,
     title: navT.sections[s.id] ?? s.id,
-    items: s.items.map((id) => ({ id, title: navT.items[id] ?? id })),
+    items: s.items.map((id) => ({ 
+      id, 
+      title: navT.items[id] ?? localTitles[id]?.[language] ?? id 
+    })),
   }));
 
   const allItems = nav.flatMap((s) => s.items.map((i) => ({ ...i, section: s.title })));
@@ -164,7 +175,7 @@ export default function Docs() {
   const [search, setSearch] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const ui = t.docs.ui;
   const navT = t.docs.nav;
 
@@ -176,8 +187,19 @@ export default function Docs() {
     contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, [setSearchParams]);
 
+  const localTitles: Record<string, Record<string, string>> = {
+    pricing: { en: "Pricing & Plans", vi: "Bảng giá & Gói dịch vụ", zh: "定价与计划", ja: "料金とプラン" },
+    playground: { en: "Playground", vi: "Thử nghiệm (Playground)", zh: "演练场", ja: "プレイグラウンド" },
+    analytics: { en: "Analytics", vi: "Phân tích & Thống kê", zh: "分析", ja: "分析" },
+    workspaces: { en: "Workspaces", vi: "Không gian làm việc", zh: "工作空间", ja: "ワークスペース" },
+    settings: { en: "Settings", vi: "Cài đặt", zh: "设置", ja: "設定" },
+  };
+
   const allItems = NAV_STRUCTURE.flatMap((s) =>
-    s.items.map((id) => ({ id, title: navT.items[id] ?? id }))
+    s.items.map((id) => ({ 
+      id, 
+      title: navT.items[id] ?? localTitles[id]?.[language] ?? id 
+    }))
   );
   const currentIdx = allItems.findIndex((i) => i.id === activeId);
   const prev = currentIdx > 0 ? allItems[currentIdx - 1] : null;
