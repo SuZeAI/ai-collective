@@ -28,6 +28,7 @@ import Pricing from "@/pages/marketing/Pricing";
 import Solutions from "@/pages/marketing/Solutions";
 import Resources from "@/pages/marketing/Resources";
 import Changelog from "@/pages/marketing/Changelog";
+import ContactSales from "@/pages/marketing/ContactSales";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +78,7 @@ const App = () => (
                 <Route path="/solutions" element={<Solutions />} />
                 <Route path="/resources" element={<Resources />} />
                 <Route path="/changelog" element={<Changelog />} />
+                <Route path="/contact-sales" element={<ContactSales />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

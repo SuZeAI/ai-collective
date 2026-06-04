@@ -1126,7 +1126,7 @@ export default function Landing() {
                 {t.header.login}
               </Link>
               <Link
-                to="/login"
+                to="/contact-sales"
                 className="inline-flex items-center justify-center h-9 px-4 rounded-lg border border-[#c4c2ba] dark:border-[#4d4d4b] hover:bg-muted/60 transition-colors whitespace-nowrap text-sm text-foreground"
               >
                 {t.header.contactSales}
@@ -1199,7 +1199,7 @@ export default function Landing() {
             <span className="hover:text-foreground cursor-pointer py-1">{t.header.resources}</span>
             <hr className="border-border/60" />
             <Link to="/login" className="hover:text-foreground py-1">{t.header.login}</Link>
-            <Link to="/login" className="hover:text-foreground py-1">{t.header.contactSales}</Link>
+            <Link to="/contact-sales" className="hover:text-foreground py-1">{t.header.contactSales}</Link>
           </motion.div>
         )}
       </AnimatePresence>
@@ -2072,7 +2072,7 @@ export default function Landing() {
                 <ArrowRight className="w-4 h-4 text-zinc-950" />
               </Link>
               <Link
-                to="/login"
+                to="/contact-sales"
                 className="inline-flex items-center gap-2 h-10 px-6 rounded-lg border border-white/20 bg-transparent text-white font-medium text-sm hover:bg-white/5 transition-colors"
               >
                 {t.header.contactSales}
