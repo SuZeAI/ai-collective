@@ -18,6 +18,7 @@ from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
+from backend.domain.agent._graph_runtime import recursion_config, run_to_final_state, safe_chat
 
 
 MAX_CONTEXT_TOKENS = max(1024, int(os.getenv("AGENT_CONTEXT_TOKEN_LIMIT", "12000")))
@@ -88,7 +89,7 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                 config=graph_config,
             )
 
-        final_state = await graph.ainvoke(initial)
+        final_state = await run_to_final_state(graph, initial, len(selected_agents))
         turns = list(final_state.get("turns", []))
         final_response = final_state.get("final_response") or (turns[-1].content if turns else "")
         final_agent = final_state.get("final_agent")
@@ -155,7 +156,9 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
             )
 
         # Stream custom events from nodes using stream_mode="custom"
-        async for event in graph.astream(initial, stream_mode="custom"):
+        async for event in graph.astream(
+            initial, config=recursion_config(len(selected_agents)), stream_mode="custom"
+        ):
             # Custom events sent via get_stream_writer() from nodes
             if isinstance(event, dict):
                 yield event
@@ -262,7 +265,7 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                 "llm_model": budget_result.model,
             })
             
-            output = await llm.chat(
+            output = await safe_chat(llm,
                 system=agent.system_prompt,
                 user=user_input,
                 tools=bound_tools or None,
