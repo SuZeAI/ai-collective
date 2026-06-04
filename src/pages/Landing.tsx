@@ -10,6 +10,7 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { type Language } from "@/locales";
 
 const GITHUB_URL = "https://github.com/SuZeAI/ai-collective";
 const GITHUB_REPO = "SuZeAI/ai-collective";
@@ -194,6 +195,77 @@ const LOCAL_COPY = {
       newsPlaceholder: "Enter your email",
       newsButton: "Subscribe",
       newsDisclaimer: "By subscribing, you agree to receive monthly framework updates. Unsubscribe at any time."
+    },
+    header: {
+      meetCollective: "Meet Collective",
+      platform: "Platform",
+      solutions: "Solutions",
+      pricing: "Pricing",
+      resources: "Resources",
+      exploreHere: "Explore here",
+      login: "Login",
+      contactSales: "Contact sales",
+      startBuilding: "Start building",
+      products: "Products",
+      features: "Features",
+      models: "Models",
+      useCases: "Use cases",
+      aiAgents: "AI agents",
+      dataPipelines: "Data pipelines",
+      codeReview: "Code review",
+      companySize: "Company size",
+      startups: "Startups",
+      enterprise: "Enterprise",
+      departments: "Departments",
+      engineering: "Engineering",
+      research: "Research",
+      industries: "Industries",
+      fintech: "FinTech",
+      legal: "Legal",
+      healthcare: "Healthcare",
+      github: "GitHub",
+      devDocs: "Developer docs",
+      changelog: "Changelog",
+      overview: "Overview",
+      consoleLogin: "Console login",
+      star: "Star"
+    },
+    testimonials: [
+      {
+        logo: "CODEMESH",
+        text: "“On AgentBench, the AI Collective multi-agent mesh architecture gave us immediate latency improvements and clean orchestration.”",
+        author: "Marcus Vance, CEO"
+      },
+      {
+        logo: "EVENTPASS",
+        text: "“Deploying multi-agent workflows was simple. The reliability and flexibility of the LangGraph topology options made the transition seamless.”",
+        author: "Taylor Addison, Engineering Chief of Staff"
+      },
+      {
+        logo: "SPARKAGENT",
+        text: "“The ability to run secure code execution sandbox alongside specialized toolkits has elevated our agent performance by a wide margin.”",
+        author: "SparkAgent Core Team"
+      },
+      {
+        logo: "SHOPMESH",
+        text: "“AI Collective handles ticket triage, multi-step workflows, and complex conversational queries with robust human-in-the-loop support.”",
+        author: "ShopMesh Dev Team"
+      }
+    ],
+    footerSitemap: {
+      rights: "All rights reserved. Integrating agent mesh networks across public and local systems.",
+      products: "Products",
+      orchestrator: "Orchestrator",
+      pricing: "Pricing",
+      documentation: "Documentation",
+      solutions: "Solutions",
+      enterprise: "Enterprise",
+      education: "Education",
+      financial: "Financial",
+      company: "Company",
+      aboutUs: "About us",
+      careers: "Careers",
+      press: "Press"
     }
   },
   vi: {
@@ -240,7 +312,7 @@ const LOCAL_COPY = {
       list: [
         {
           name: "Google Gemini",
-          desc: "Default speed engine, optimized for entity extraction and real-time knowledge graphs.",
+          desc: "Động cơ tốc độ mặc định, tối ưu hóa cho việc trích xuất thực thể và đồ thị tri thức thời gian thực.",
           modelKey: "gemini-2.0-flash",
           capabilities: [
             "Trích xuất thực thể tự động bằng spaCy & LLM",
@@ -250,7 +322,7 @@ const LOCAL_COPY = {
         },
         {
           name: "Anthropic Claude",
-          desc: "Premier logic engine for multi-agent mesh coordinator and code generation.",
+          desc: "Động cơ logic hàng đầu cho bộ điều phối mesh đa tác nhân và sinh mã nguồn.",
           modelKey: "claude-3-5-sonnet",
           capabilities: [
             "Hỗ trợ prompt caching giảm chi phí token và độ trễ",
@@ -260,7 +332,7 @@ const LOCAL_COPY = {
         },
         {
           name: "OpenAI GPT",
-          desc: "Highly reliable standard engine for structured JSON schemas and tool binding.",
+          desc: "Động cơ tiêu chuẩn độ tin cậy cao cho các schema JSON cấu trúc và liên kết công cụ.",
           modelKey: "gpt-4o",
           capabilities: [
             "Ràng buộc lược đồ JSON nghiêm ngặt cho input/output",
@@ -270,7 +342,7 @@ const LOCAL_COPY = {
         },
         {
           name: "Open Weight (Qwen)",
-          desc: "High-parameter open weight engine for self-hosted or air-gapped secure agent clusters.",
+          desc: "Động cơ trọng số mở số lượng tham số lớn cho các cụm tác nhân bảo mật tự lưu trữ hoặc offline.",
           modelKey: "qwen3.5-397B-A17B",
           capabilities: [
             "Điều phối tự lưu trữ hoàn toàn không rò rỉ dữ liệu",
@@ -320,7 +392,7 @@ const LOCAL_COPY = {
         },
         {
           name: "Kiểm định phần mềm",
-          desc: "Chạy các tác nhân quét lỗ hổng bảo mật tự động, thực thi và kiểm thử mã nguồn trong các sandbox Docker an toàn."
+          desc: "Chạy các tác nhân quét lỗ hổng bảo mật tự động, thực thi và kiểm thử mã nguồn trong các sandbox Docker an sau toàn."
         },
         {
           name: "Thu thập dữ liệu song song",
@@ -335,32 +407,504 @@ const LOCAL_COPY = {
       newsPlaceholder: "Nhập email của bạn",
       newsButton: "Đăng ký",
       newsDisclaimer: "Bằng cách đăng ký, bạn đồng ý nhận bản tin cập nhật định kỳ. Hủy đăng ký bất cứ lúc nào."
+    },
+    header: {
+      meetCollective: "Khám phá Tập thể",
+      platform: "Nền tảng",
+      solutions: "Giải pháp",
+      pricing: "Bảng giá",
+      resources: "Tài nguyên",
+      exploreHere: "Khám phá tại đây",
+      login: "Đăng nhập",
+      contactSales: "Liên hệ kinh doanh",
+      startBuilding: "Bắt đầu xây dựng",
+      products: "Sản phẩm",
+      features: "Tính năng",
+      models: "Mô hình",
+      useCases: "Trường hợp sử dụng",
+      aiAgents: "Tác nhân AI",
+      dataPipelines: "Luồng dữ liệu",
+      codeReview: "Kiểm định mã nguồn",
+      companySize: "Quy mô công ty",
+      startups: "Khởi nghiệp",
+      enterprise: "Doanh nghiệp",
+      departments: "Phòng ban",
+      engineering: "Kỹ thuật",
+      research: "Nghiên cứu",
+      industries: "Ngành nghề",
+      fintech: "FinTech",
+      legal: "Pháp lý",
+      healthcare: "Y tế",
+      github: "GitHub",
+      devDocs: "Tài liệu kỹ thuật",
+      changelog: "Nhật ký thay đổi",
+      overview: "Tổng quan",
+      consoleLogin: "Đăng nhập Console",
+      star: "Đánh sao"
+    },
+    testimonials: [
+      {
+        logo: "CODEMESH",
+        text: "“Trên AgentBench, kiến trúc mesh đa tác nhân của AI Collective đã mang lại cải tiến độ trễ tức thì và điều phối gọn gàng cho chúng tôi.”",
+        author: "Marcus Vance, CEO"
+      },
+      {
+        logo: "EVENTPASS",
+        text: "“Triển khai luồng công việc đa tác nhân cực kỳ đơn giản. Độ tin cậy và linh hoạt của các tùy chọn cấu trúc LangGraph đã giúp quá trình chuyển đổi diễn ra liền mạch.”",
+        author: "Taylor Addison, Engineering Chief of Staff"
+      },
+      {
+        logo: "SPARKAGENT",
+        text: "“Khả năng chạy sandbox thực thi mã an toàn bên cạnh các bộ công cụ chuyên dụng đã nâng cao hiệu suất tác nhân của chúng tôi lên một mức vượt trội.”",
+        author: "SparkAgent Core Team"
+      },
+      {
+        logo: "SHOPMESH",
+        text: "“AI Collective xử lý phân loại ticket, quy trình nhiều bước và các câu hỏi hội thoại phức tạp với sự hỗ trợ Human-in-the-loop mạnh mẽ.”",
+        author: "ShopMesh Dev Team"
+      }
+    ],
+    footerSitemap: {
+      rights: "Bảo lưu mọi quyền. Tích hợp mạng lưới tác nhân AI trên các hệ thống công cộng và cục bộ.",
+      products: "Sản phẩm",
+      orchestrator: "Bộ điều phối",
+      pricing: "Bảng giá",
+      documentation: "Tài liệu kỹ thuật",
+      solutions: "Giải pháp",
+      enterprise: "Doanh nghiệp",
+      education: "Giáo dục",
+      financial: "Tài chính",
+      company: "Công ty",
+      aboutUs: "Về chúng tôi",
+      careers: "Tuyển dụng",
+      press: "Báo chí"
+    }
+  },
+  zh: {
+    hero: {
+      h1: "构建于 AI Collective 平台",
+      sub: "用于可编程 AI 员工的高性能多智能体编排平台。部署具有原子工具集成的顺序、环形、网状或主管智能体拓扑。",
+      cta1: "开始构建",
+      cta2: "查看开发者文档"
+    },
+    started: {
+      title: "选择如何开始",
+      buildOwn: {
+        title: "自主部署",
+        sub: "启动您定制的多智能体员工：",
+        bullets: [
+          "顺序、环形、网状或主管智能体拓扑",
+          "50+ 原子级技能工具包（Google Workspace、浏览器自动化、社交媒体）",
+          "自动代币预算管理和上下文窗口优化",
+          "灵活的后端：本地运行 (JSON) 或分布式扩展 (Docker/RabbitMQ)",
+          "交互式人机协同 (Human-in-the-Loop) 指导能力",
+          "高级 spaCy 和基于 LLM 的知识图谱提取"
+        ],
+        cta: "开始构建"
+      },
+      support: {
+        title: "企业部署",
+        sub: "需要定制工具集成、Kubernetes 沙箱或托管编排？",
+        bullets: [
+          "企业新手引导 and 定制智能体拓扑设计",
+          "带 SLA 保证的定制 API 和数据库集成",
+          "托管的高吞吐量 RabbitMQ 和 Redis 集群",
+          "高级安全代码执行沙箱配置（Docker/K8s）",
+          "专用的 24/7 工程与部署支持"
+        ],
+        cta: "联系销售"
+      }
+    },
+    models: {
+      title: "支持的 LLM 基座",
+      sub: "在运行时配置、交换或路由行业领先提供商的基座模型引擎。",
+      batch: "完全 LLM 无关：通过 Google Gemini、Anthropic、OpenAI 或 OpenRouter 网关进行路由。",
+      activeModelLabel: "当前活跃模型",
+      capabilitiesHeader: "核心能力",
+      list: [
+        {
+          name: "Google Gemini",
+          desc: "默认速度引擎，针对实体提取和实时知识图谱进行了优化。",
+          modelKey: "gemini-2.0-flash",
+          capabilities: [
+            "自动 spaCy 和基于 LLM 的实体提取",
+            "实时图谱构建和状态上下文加载",
+            "智能体辩论轮次的高代币效率"
+          ]
+        },
+        {
+          name: "Anthropic Claude",
+          desc: "用于多智能体网状协调器和代码生成的首选逻辑引擎。",
+          modelKey: "claude-3-5-sonnet",
+          capabilities: [
+            "先进的提示词缓存以减少代币开销",
+            "卓越的工具选择和智能体委派流",
+            "结构化代码 execution 验证"
+          ]
+        },
+        {
+          name: "OpenAI GPT",
+          desc: "用于结构化 JSON 模式和工具绑定的高可靠性标准引擎。",
+          modelKey: "gpt-4o",
+          capabilities: [
+            "针对输入/输出的严格 JSON 模式强制执行",
+            "多智能体环形辩论共识格式化",
+            "广泛的外部 API 集成"
+          ]
+        },
+        {
+          name: "Open Weight (Qwen)",
+          desc: "用于自托管或物理隔离的安全智能体集群的高参数开源权重引擎。",
+          modelKey: "qwen3.5-397B-A17B",
+          capabilities: [
+            "零数据泄露的自托管编排",
+            "微调用于 Docker 沙箱内的 Python 代码执行",
+            "兼容定制的模型提供商和端点"
+          ]
+        }
+      ]
+    },
+    tools: {
+      title: "智能体网格 (Agent Mesh) 能力",
+      sub: "探索为 AI Collective 平台提供支持的高级运行时服务。",
+      cta: "查看开发者文档",
+      list: [
+        { name: "多智能体拓扑", desc: "编排顺序流水线、环形辩论模式、网状协调器网络或主管结构。" },
+        { name: "50+ 技能工具包", desc: "为智能体装备 Google Drive/日历、Playwright 网页抓取、社交动态和生产力工具。" },
+        { name: "子智能体委派", desc: "允许主智能体并发生成并运行具有严格轮次限制的并行子智能体。" },
+        { name: "实时 SSE 流式传输", desc: "通过透明的事件日志（agent_start, llm_request, subagent_complete）逐轮跟踪执行进度。" },
+        { name: "安全沙箱执行", desc: "在隔离的本地、Docker 或 Kubernetes 沙箱环境中安全地执行 Python/Bash 命令。" },
+        { name: "知识图谱记忆", desc: "通过 NLP (spaCy) 或 LLM 动态提取对话上下文，构建可查询的语义记忆。" },
+        { name: "上下文与代币预算", desc: "在接近代币限制时自动修剪和优化上下文窗口。" },
+        { name: "人机协同 (Human-in-the-Loop)", desc: "干预正在进行的多智能体讨论以指导智能体或提供手动任务输入。" },
+        { name: "多工作区隔离", desc: "使用 JWT 验证、Google OAuth 和数据库隔离来确保多租户数据段的安全。" }
+      ]
+    },
+    console: {
+      title: "在 AI Collective 控制台中管理团队",
+      sub: "通过干净的 FastAPI 端点和交互式仪表盘，将强大的多智能体团队集成到您现有的应用栈中。",
+      devTitle: "专为 AI 工程师打造",
+      desc: "监控、测试和微调您的员工队伍：",
+      bullets: [
+        "实时创建、编辑和配置定制智能体与工具",
+        "追踪智能体执行步骤、代币成本日志和消息历史",
+        "在多轮运行中直接与团队互动"
+      ]
+    },
+    usecases: {
+      title: "真实世界多智能体使用场景",
+      list: [
+        {
+          name: "金融辩论",
+          desc: "在环形拓扑下，生成分析师团队使用实时 Brave 搜索工具辩论市场指标。"
+        },
+        {
+          name: "编辑流水线",
+          desc: "在主管领导下，管理从研究和起草到校对和格式化的内容创作。"
+        },
+        {
+          name: "软件审计",
+          desc: "运行在安全、隔离的沙箱内执行并测试代码的自动化漏洞扫描器智能体。"
+        },
+        {
+          name: "并行网页爬取",
+          desc: "委派并发爬取任务给子智能体，使用浏览器自动化工具解析目标网站。"
+        }
+      ]
+    },
+    footer: {
+      ctaTitle: "开始构建",
+      newsTitle: "获取开发者动态",
+      newsSub: "产品更新、代码秘籍、工具新增等。每月发送至您的收件箱。",
+      newsPlaceholder: "输入您的邮箱",
+      newsButton: "订阅",
+      newsDisclaimer: "订阅即表示您同意接收每月框架更新。可随时取消订阅。"
+    },
+    header: {
+      meetCollective: "认识 Collective",
+      platform: "平台",
+      solutions: "解决方案",
+      pricing: "价格",
+      resources: "资源",
+      exploreHere: "在此探索",
+      login: "登录",
+      contactSales: "联系销售",
+      startBuilding: "开始构建",
+      products: "产品",
+      features: "功能",
+      models: "模型",
+      useCases: "使用场景",
+      aiAgents: "AI 智能体",
+      dataPipelines: "数据流水线",
+      codeReview: "代码评审",
+      companySize: "公司规模",
+      startups: "初创公司",
+      enterprise: "企业级",
+      departments: "部门",
+      engineering: "工程",
+      research: "研究",
+      industries: "行业",
+      fintech: "金融科技",
+      legal: "法律",
+      healthcare: "医疗保健",
+      github: "GitHub",
+      devDocs: "开发者文档",
+      changelog: "变更日志",
+      overview: "概述",
+      consoleLogin: "控制台登录",
+      star: "Star"
+    },
+    testimonials: [
+      {
+        logo: "CODEMESH",
+        text: "“在 AgentBench 上，AI Collective 的多智能体网格架构为我们带来了即时的延迟改善和干净的编排。”",
+        author: "Marcus Vance, CEO"
+      },
+      {
+        logo: "EVENTPASS",
+        text: "“部署多智能体工作流非常简单。LangGraph 拓扑选项的可靠性和灵活性使过渡变得无缝。”",
+        author: "Taylor Addison, 首席工程参谋"
+      },
+      {
+        logo: "SPARKAGENT",
+        text: "“在专用工具包旁运行安全代码执行沙箱的能力，极大地提升了我们智能体的表现。”",
+        author: "SparkAgent 核心团队"
+      },
+      {
+        logo: "SHOPMESH",
+        text: "“AI Collective 拥有强大的半自动人机协同支持，能处理工单分类、多步骤工作流和复杂的对话式查询。”",
+        author: "ShopMesh 开发团队"
+      }
+    ],
+    footerSitemap: {
+      rights: "保留所有权利。跨公共和本地系统整合智能体网格网络。",
+      products: "产品",
+      orchestrator: "编排器",
+      pricing: "价格",
+      documentation: "文档",
+      solutions: "解决方案",
+      enterprise: "企业",
+      education: "教育",
+      financial: "金融",
+      company: "公司",
+      aboutUs: "关于我们",
+      careers: "职业生涯",
+      press: "新闻媒体"
+    }
+  },
+  ja: {
+    hero: {
+      h1: "AI Collective プラットフォームでの構築",
+      sub: "プログラマブルな AI 労働力のための高性能マルチエージェント編成プラットフォーム。アトミックなツール統合により、シーケンシャル、リング、メッシュ、またはスーパーバイザーのエージェントトポロジーを展開します。",
+      cta1: "構築を始める",
+      cta2: "開発者ドキュメントを見る"
+    },
+    started: {
+      title: "開始方法を選択する",
+      buildOwn: {
+        title: "自身で展開する",
+        sub: "以下を使用して、独自のカスタムマルチエージェント労働力を起動します：",
+        bullets: [
+          "シーケンシャル、リング、メッシュ、またはスーパーバイザーのエージェントトポロジー",
+          "50以上の原子スキルツールキット（Google Workspace、ブラウザ自動化、ソーシャルメディア）",
+          "自動トークン予算管理とコンテキストウィンドウの最適化",
+          "柔軟なバックエンド：ローカル実行 (JSON) 或いは分散スケーリング (Docker/RabbitMQ)",
+          "対話型ヒューマンインザループ（Human-in-the-Loop）ステアリング機能",
+          "高度な spaCy および LLM ベースのナレッジグラフ抽出"
+        ],
+        cta: "構築を始める"
+      },
+      support: {
+        title: "エンタープライズ展開",
+        sub: "カスタムツール統合、Kubernetes サンドボックス、またはホスト型オーケストレーションが必要ですか？",
+        bullets: [
+          "エンタープライズオンボーディングとカスタムエージェントトポロジー設計",
+          "SLA保証付きのカスタムAPIおよびデータベース統合",
+          "管理された高スループットの RabbitMQ および Redis クラスタリング",
+          "高度で安全なコード実行サンドボックス設定（Docker/K8s）",
+          "24時間365日の専用エンジニアリングおよび展開サポート"
+        ],
+        cta: "営業に連絡"
+      }
+    },
+    models: {
+      title: "サポートされている LLM 基座",
+      sub: "行业をリードするプロバイダー全体で、実行時に基座モデルエンジンを設定、交換、またはルーティングします。",
+      batch: "完全に LLM 非依存：Google Gemini、Anthropic、OpenAI、或者 OpenRouter ゲートウェイ経由でルーティング。",
+      activeModelLabel: "有効なモデル",
+      capabilitiesHeader: "主な機能",
+      list: [
+        {
+          name: "Google Gemini",
+          desc: "デフォルトの速度エンジン。エンティティ抽出とリアルタイムのナレッジグラフに最適化されています。",
+          modelKey: "gemini-2.0-flash",
+          capabilities: [
+            "自動化された spaCy および LLM ベースのエンティティ抽出",
+            "リアルタイムのグラフ構築と状態コンテキストの読み込み",
+            "エージェント討論ラウンドにおける高いトークン効率"
+          ]
+        },
+        {
+          name: "Anthropic Claude",
+          desc: "マルチエージェントメッシュコーディネーターおよびコード生成用のプレミアロジックエンジン。",
+          modelKey: "claude-3-5-sonnet",
+          capabilities: [
+            "トークンオーバーヘッドを削減する高度なプロンプトキャッシュ",
+            "優れたツール選択とエージェント委任フロー",
+            "構造化コード実行検証"
+          ]
+        },
+        {
+          name: "OpenAI GPT",
+          desc: "構造化された JSON スキーマとツールバインディング用の信頼性の高い標準エンジン。",
+          modelKey: "gpt-4o",
+          capabilities: [
+            "入力/出力に対する厳密な JSON スキーマの強制",
+            "マルチエージェントリング討論のコンセンサスフォーマット",
+            "幅広い外部 API 統合"
+          ]
+        },
+        {
+          name: "Open Weight (Qwen)",
+          desc: "セルフホストまたはエアギャップされた安全なエージェントクラスター用の高パラメータオープンウェイトエンジン。",
+          modelKey: "qwen3.5-397B-A17B",
+          capabilities: [
+            "データ漏洩ゼロのセルフホストオーケストレーション",
+            "Docker サンドボックス内での Python コード実行用に微調整",
+            "カスタムモデルプロバイダーおよびエンドポイントとの互换性"
+          ]
+        }
+      ]
+    },
+    tools: {
+      title: "エージェントメッシュ (Agent Mesh) の機能",
+      sub: "AI Collective プラットフォームを駆動する高度なランタイムサービスを探索してください。",
+      cta: "開発者ドキュメントを見る",
+      list: [
+        { name: "マルチエージェントトポロジー", desc: "シーケンシャルパイプライン、リング討論パターン、メッシュコーディネーターネットワーク、またはスーパーバイザー構造を編成します。" },
+        { name: "50以上のスキルツールキット", desc: "エージェントに Google ドライブ/カレンダー、Playwright ウェブスクレイパー、ソーシャルフィード、生産性ツールを装備します。" },
+        { name: "サブエージェント委任", desc: "メインエージェントが、厳密なターン制限を持つ並列サブエージェントを同時に生成して実行できるようにします。" },
+        { name: "リアルタイム SSE ストリーミング", desc: "透明なイベントログ（agent_start、llm_request、subagent_complete）で実行プロセスをターンごとに追跡します。" },
+        { name: "安全なサンドボックス実行", desc: "分離されたローカル、Docker、または Kubernetes サンドボックス環境内で Python/Bash コマンドを安全に実行します。" },
+        { name: "ナレッジグラフメモリ", desc: "NLP (spaCy) または LLM を介して会話コンテキストを動的に抽出し、クエリ可能なセマンティックメモリを構築します。" },
+        { name: "コンテキストとトークンバジェット", desc: "トークン制限に近づいたときに、コンテキストウィンドウを自動的にトリミングおよび最適化します。" },
+        { name: "ヒューマンインザループ (Human-in-the-Loop)", desc: "進行中のマルチエージェントディスカッションに介入して、エージェントを指導したり手動タスク入力を提供したりします。" },
+        { name: "マルチワークスペース分離", desc: "JWT 検証、Google OAuth、およびデータベース分離を使用して、安全なマルチテナントデータセグメンテーションを実現します。" }
+      ]
+    },
+    console: {
+      title: "AI Collective コンソール内でチームを管理",
+      sub: "クリーンな FastAPI エンドポイントと対話型ダッシュボードを介して、強力なマルチエージェントチームを既存のアプリケーションスタックに統合します。",
+      devTitle: "AI エンジニア向けに構築",
+      desc: "労働力の監視、テスト、調整：",
+      bullets: [
+        "カスタムエージェントとツールをリアルタイムで作成、編集、設定",
+        "エージェントの実行ステップ、トークンコストログ、メッセージ履歴を追跡",
+        "マルチラウンド実行中にチームと直接対話"
+      ]
+    },
+    usecases: {
+      title: "現実世界のマルチエージェントユースケース",
+      list: [
+        {
+          name: "金融討論",
+          desc: "リングトポロジーの下で、リアルタイムの Brave 検索ツールを使用して市場指標を議論するアナリストチームを生成します。"
+        },
+        {
+          name: "編集パイプライン",
+          desc: "スーパーバイザーの指導の下、調査や起草から校正、フォーマットまでのコンテンツ作成を管理します。"
+        },
+        {
+          name: "ソフトウェア監査",
+          desc: "安全で隔離されたサンドボックス内でコードを実行およびテストする自動脆弱性スキャナーエージェントを実行します。"
+        },
+        {
+          name: "並列ウェブクローリング",
+          desc: "ブラウザ自動化ツールを使用してターゲットウェブサイトを解析するために、同時クローリングタスクをサブエージェントに委任します。"
+        }
+      ]
+    },
+    footer: {
+      ctaTitle: "構築を始める",
+      newsTitle: "開発者向けアップデートを受け取る",
+      newsSub: "製品アップデート、コードレシピ、追加ツールなど。毎月受信トレイにお届けします。",
+      newsPlaceholder: "メールアドレスを入力",
+      newsButton: "購読",
+      newsDisclaimer: "購読することにより、毎月のフレームワークアップデートの受信に同意したことになります。いつでも購読解除できます。"
+    },
+    header: {
+      meetCollective: "Collective を知る",
+      platform: "プラットフォーム",
+      solutions: "ソリューション",
+      pricing: "料金",
+      resources: "リソース",
+      exploreHere: "ここを探索",
+      login: "ログイン",
+      contactSales: "営業に連絡",
+      startBuilding: "構築を始める",
+      products: "製品",
+      features: "機能",
+      models: "モデル",
+      useCases: "ユースケース",
+      aiAgents: "AI エージェント",
+      dataPipelines: "データパイプライン",
+      codeReview: "コードレビュー",
+      companySize: "会社規模",
+      startups: "スタートアップ",
+      enterprise: "エンタープライズ",
+      departments: "部門",
+      engineering: "開発",
+      research: "研究",
+      industries: "業界",
+      fintech: "フィンテック",
+      legal: "法務",
+      healthcare: "ヘルスケア",
+      github: "GitHub",
+      devDocs: "開発者ドキュメント",
+      changelog: "変更履歴",
+      overview: "概要",
+      consoleLogin: "コンソールログイン",
+      star: "スター"
+    },
+    testimonials: [
+      {
+        logo: "CODEMESH",
+        text: "“AgentBenchにおいて、AI Collectiveのマルチエージェントメッシュアーキテクチャは、即時のレイテンシ改善とクリーンなオーケストレーションを私たちにもたらしました。”",
+        author: "Marcus Vance, CEO"
+      },
+      {
+        logo: "EVENTPASS",
+        text: "“マルチエージェントワークフローのデプロイは簡単でした。LangGraphトポロジーオプション의 信頼性と柔軟性により、移行がシームレスに行われました。”",
+        author: "Taylor Addison, 開発チーフオブスタッフ"
+      },
+      {
+        logo: "SPARKAGENT",
+        text: "“専用ツールキットと並行して安全なコード実行サンドボックスを実行する機能により、エージェントのパフォーマンスが大幅に向上しました。”",
+        author: "SparkAgent コアチーム"
+      },
+      {
+        logo: "SHOPMESH",
+        text: "“AI Collectiveは、強力なヒューマンインザループのサポートにより、チケットのトリアージ、マルチステップのワークフロー、複雑な対話型クエリを処理します。”",
+        author: "ShopMesh 開発チーム"
+      }
+    ],
+    footerSitemap: {
+      rights: "All rights reserved. 公共システムとローカルシステム全体にエージェントメッシュネットワークを統合します。",
+      products: "製品",
+      orchestrator: "オーケレーター",
+      pricing: "料金",
+      documentation: "ドキュメント",
+      solutions: "ソリューション",
+      enterprise: "エンタープライズ",
+      education: "教育",
+      financial: "金融",
+      company: "会社",
+      aboutUs: "会社概要",
+      careers: "採用情報",
+      press: "プレス"
     }
   }
 };
-
-const CLIENT_TESTIMONIALS = [
-  {
-    logo: "CODEMESH",
-    text: "“On AgentBench, the AI Collective multi-agent mesh architecture gave us immediate latency improvements and clean orchestration.”",
-    author: "Marcus Vance, CEO"
-  },
-  {
-    logo: "EVENTPASS",
-    text: "“Deploying multi-agent workflows was simple. The reliability and flexibility of the LangGraph topology options made the transition seamless.”",
-    author: "Taylor Addison, Engineering Chief of Staff"
-  },
-  {
-    logo: "SPARKAGENT",
-    text: "“The ability to run secure code execution sandbox alongside specialized toolkits has elevated our agent performance by a wide margin.”",
-    author: "SparkAgent Core Team"
-  },
-  {
-    logo: "SHOPMESH",
-    text: "“AI Collective handles ticket triage, multi-step workflows, and complex conversational queries with robust human-in-the-loop support.”",
-    author: "ShopMesh Dev Team"
-  }
-];
 
 export default function Landing() {
   const { stars } = useGitHubStats();
@@ -369,7 +913,7 @@ export default function Landing() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const headerRef = useRef<HTMLElement>(null);
 
-  const t = LOCAL_COPY[language as "en" | "vi"] || LOCAL_COPY.en;
+  const t = (LOCAL_COPY as Record<Language, typeof LOCAL_COPY.en>)[language] || LOCAL_COPY.en;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -416,7 +960,7 @@ export default function Landing() {
               {/* Meet Collective */}
               <div className="relative" onMouseEnter={() => setActiveDropdown('meet')} onMouseLeave={() => setActiveDropdown(null)}>
                 <span className={`flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap hover:text-foreground ${activeDropdown === 'meet' ? 'text-foreground' : ''}`}>
-                  Meet Collective
+                  {t.header.meetCollective}
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${activeDropdown === 'meet' ? 'rotate-180 opacity-100' : 'opacity-60'}`} />
                 </span>
                 <AnimatePresence>
@@ -430,27 +974,27 @@ export default function Landing() {
                     >
                       <div className="grid grid-cols-3 gap-6">
                         <div>
-                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Products</p>
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">{t.header.products}</p>
                           <div className="space-y-2.5">
                             <Link to="/meet" className="block text-sm text-foreground hover:text-accent transition-colors font-medium">AI Collective</Link>
                             <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Agent Mesh</Link>
                           </div>
                         </div>
                         <div>
-                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Features</p>
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">{t.header.features}</p>
                           <div className="space-y-2.5">
-                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Multi-Agent Topologies</Link>
-                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Knowledge Graph</Link>
-                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Secure Sandbox</Link>
+                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.tools.list[0].name}</Link>
+                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.tools.list[5].name}</Link>
+                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.tools.list[4].name}</Link>
                           </div>
                         </div>
                         <div>
-                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Models</p>
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">{t.header.models}</p>
                           <div className="space-y-2.5">
-                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Gemini</Link>
-                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Claude</Link>
-                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">GPT-4o</Link>
-                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Qwen</Link>
+                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.models.list[0].name}</Link>
+                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.models.list[1].name}</Link>
+                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.models.list[2].name}</Link>
+                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.models.list[3].name}</Link>
                           </div>
                         </div>
                       </div>
@@ -462,7 +1006,7 @@ export default function Landing() {
               {/* Platform */}
               <div className="relative" onMouseEnter={() => setActiveDropdown('platform')} onMouseLeave={() => setActiveDropdown(null)}>
                 <span className={`flex items-center gap-1 cursor-pointer whitespace-nowrap font-semibold transition-colors ${activeDropdown === 'platform' ? 'text-foreground' : 'text-foreground'}`}>
-                  Platform
+                  {t.header.platform}
                   <ChevronDown className={`w-3.5 h-3.5 text-accent transition-transform duration-200 ${activeDropdown === 'platform' ? 'rotate-180' : ''}`} />
                 </span>
                 <AnimatePresence>
@@ -474,14 +1018,14 @@ export default function Landing() {
                       transition={{ duration: 0.15 }}
                       className="absolute top-full left-0 mt-3 w-52 bg-background border border-[#e8e6dc] dark:border-[#2e2e2d] rounded-xl shadow-xl py-2 z-50"
                     >
-                      <Link to="/" className="flex items-center justify-between px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 transition-colors">Overview</Link>
+                      <Link to="/" className="flex items-center justify-between px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 transition-colors">{t.header.overview}</Link>
                       <a href="http://localhost:2026/docs" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
-                        Developer docs <ExternalLink className="w-3.5 h-3.5" />
+                        {t.header.devDocs} <ExternalLink className="w-3.5 h-3.5" />
                       </a>
-                      <Link to="/pricing" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">Pricing</Link>
+                      <Link to="/pricing" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">{t.header.pricing}</Link>
                       <div className="my-1 border-t border-[#e8e6dc] dark:border-[#2e2e2d]" />
                       <Link to="/dashboard" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
-                        Console login <ExternalLink className="w-3.5 h-3.5" />
+                        {t.header.consoleLogin} <ExternalLink className="w-3.5 h-3.5" />
                       </Link>
                     </motion.div>
                   )}
@@ -491,7 +1035,7 @@ export default function Landing() {
               {/* Solutions */}
               <div className="relative" onMouseEnter={() => setActiveDropdown('solutions')} onMouseLeave={() => setActiveDropdown(null)}>
                 <span className={`flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap hover:text-foreground ${activeDropdown === 'solutions' ? 'text-foreground' : ''}`}>
-                  Solutions
+                  {t.header.solutions}
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${activeDropdown === 'solutions' ? 'rotate-180 opacity-100' : 'opacity-60'}`} />
                 </span>
                 <AnimatePresence>
@@ -505,33 +1049,33 @@ export default function Landing() {
                     >
                       <div className="grid grid-cols-4 gap-5">
                         <div>
-                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Use cases</p>
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">{t.header.useCases}</p>
                           <div className="space-y-2.5">
-                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">AI agents</Link>
-                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Data pipelines</Link>
-                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Code review</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.header.aiAgents}</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.header.dataPipelines}</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.header.codeReview}</Link>
                           </div>
                         </div>
                         <div>
-                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Company size</p>
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">{t.header.companySize}</p>
                           <div className="space-y-2.5">
-                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Startups</Link>
-                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Enterprise</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.header.startups}</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.header.enterprise}</Link>
                           </div>
                         </div>
                         <div>
-                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Departments</p>
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">{t.header.departments}</p>
                           <div className="space-y-2.5">
-                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Engineering</Link>
-                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Research</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.header.engineering}</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.header.research}</Link>
                           </div>
                         </div>
                         <div>
-                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Industries</p>
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">{t.header.industries}</p>
                           <div className="space-y-2.5">
-                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">FinTech</Link>
-                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Legal</Link>
-                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Healthcare</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.header.fintech}</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.header.legal}</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.header.healthcare}</Link>
                           </div>
                         </div>
                       </div>
@@ -541,12 +1085,12 @@ export default function Landing() {
               </div>
 
               {/* Pricing - no dropdown */}
-              <Link to="/pricing" className="hover:text-foreground cursor-pointer transition-colors whitespace-nowrap">Pricing</Link>
+              <Link to="/pricing" className="hover:text-foreground cursor-pointer transition-colors whitespace-nowrap">{t.header.pricing}</Link>
 
               {/* Resources */}
               <div className="relative" onMouseEnter={() => setActiveDropdown('resources')} onMouseLeave={() => setActiveDropdown(null)}>
                 <span className={`flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap hover:text-foreground ${activeDropdown === 'resources' ? 'text-foreground' : ''}`}>
-                  Resources
+                  {t.header.resources}
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${activeDropdown === 'resources' ? 'rotate-180 opacity-100' : 'opacity-60'}`} />
                 </span>
                 <AnimatePresence>
@@ -558,15 +1102,15 @@ export default function Landing() {
                       transition={{ duration: 0.15 }}
                       className="absolute top-full left-0 mt-3 w-48 bg-background border border-[#e8e6dc] dark:border-[#2e2e2d] rounded-xl shadow-xl py-2 z-50"
                     >
-                      <Link to="/resources" className="flex items-center px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 cursor-pointer transition-colors">Overview</Link>
+                      <Link to="/resources" className="flex items-center px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 cursor-pointer transition-colors">{t.header.overview}</Link>
                       <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                         GitHub <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                       <a href="http://localhost:2026/docs" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
-                        Developer docs <ExternalLink className="w-3.5 h-3.5" />
+                        {t.header.devDocs} <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                       <div className="my-1 border-t border-[#e8e6dc] dark:border-[#2e2e2d]" />
-                      <Link to="/changelog" className="flex items-center px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer transition-colors">Changelog</Link>
+                      <Link to="/changelog" className="flex items-center px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer transition-colors">{t.header.changelog}</Link>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -579,19 +1123,19 @@ export default function Landing() {
             {/* CTA Group */}
             <div className="flex items-center gap-3">
               <Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap text-sm">
-                Login
+                {t.header.login}
               </Link>
               <Link
                 to="/login"
                 className="inline-flex items-center justify-center h-9 px-4 rounded-lg border border-[#c4c2ba] dark:border-[#4d4d4b] hover:bg-muted/60 transition-colors whitespace-nowrap text-sm text-foreground"
               >
-                Contact sales
+                {t.header.contactSales}
               </Link>
               <Link
                 to="/dashboard"
                 className="inline-flex items-center justify-center h-9 px-4 rounded-lg bg-[#141413] dark:bg-[#faf9f5] text-[#faf9f5] dark:text-[#141413] hover:opacity-90 transition-opacity shadow-sm whitespace-nowrap text-sm font-semibold"
               >
-                Start building
+                {t.header.startBuilding}
               </Link>
             </div>
           </div>
@@ -608,9 +1152,9 @@ export default function Landing() {
         <div className="border-t border-[#e8e6dc]/80 dark:border-[#2e2e2d]/60 bg-[#f6f5ee]/40 dark:bg-[#181817]/20 py-2">
           <div className="max-w-7xl mx-auto px-6 flex items-center justify-between text-[13px] text-muted-foreground">
             <div className="flex items-center gap-4">
-              <span className="text-foreground font-semibold">Platform</span>
+              <span className="text-foreground font-semibold">{t.header.platform}</span>
               <div className="flex items-center gap-1 hover:text-foreground cursor-pointer font-medium">
-                <span>Explore here</span>
+                <span>{t.header.exploreHere}</span>
                 <ChevronDown className="w-3.5 h-3.5 opacity-60" />
               </div>
             </div>
@@ -623,7 +1167,7 @@ export default function Landing() {
               >
                 <span className="flex items-center gap-1.5 px-2.5 h-full bg-muted/60 hover:bg-muted transition-colors text-muted-foreground group-hover:text-foreground border-r border-border/60">
                   <GithubIcon className="w-3 h-3" />
-                  Star
+                  {t.header.star}
                 </span>
                 <span className="flex items-center gap-1 px-2 h-full text-foreground font-bold">
                   {stars === null
@@ -648,14 +1192,14 @@ export default function Landing() {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden border-b border-border/60 bg-background px-6 py-4 space-y-3 flex flex-col font-medium text-sm text-muted-foreground z-40"
           >
-            <span className="hover:text-foreground cursor-pointer py-1">Meet Collective</span>
-            <span className="text-foreground font-semibold py-1">Platform</span>
-            <span className="hover:text-foreground cursor-pointer py-1">Solutions</span>
-            <span className="hover:text-foreground cursor-pointer py-1">Pricing</span>
-            <span className="hover:text-foreground cursor-pointer py-1">Resources</span>
+            <span className="hover:text-foreground cursor-pointer py-1">{t.header.meetCollective}</span>
+            <span className="text-foreground font-semibold py-1">{t.header.platform}</span>
+            <span className="hover:text-foreground cursor-pointer py-1">{t.header.solutions}</span>
+            <span className="hover:text-foreground cursor-pointer py-1">{t.header.pricing}</span>
+            <span className="hover:text-foreground cursor-pointer py-1">{t.header.resources}</span>
             <hr className="border-border/60" />
-            <Link to="/login" className="hover:text-foreground py-1">Login</Link>
-            <Link to="/login" className="hover:text-foreground py-1">Contact sales</Link>
+            <Link to="/login" className="hover:text-foreground py-1">{t.header.login}</Link>
+            <Link to="/login" className="hover:text-foreground py-1">{t.header.contactSales}</Link>
           </motion.div>
         )}
       </AnimatePresence>
@@ -668,7 +1212,7 @@ export default function Landing() {
           <div className="lg:col-span-6 text-left space-y-6">
             <FadeIn>
               <h1 className="text-5xl md:text-[68px] font-medium tracking-tight leading-[1.05] text-foreground font-serif">
-                Build on the<br />AI Collective Platform
+                {t.hero.h1}
               </h1>
             </FadeIn>
 
@@ -684,7 +1228,7 @@ export default function Landing() {
                   to="/dashboard"
                   className="inline-flex items-center justify-center h-11 px-6 rounded-lg bg-[#141413] dark:bg-[#faf9f5] text-[#faf9f5] dark:text-[#141413] font-semibold text-sm hover:opacity-90 transition-opacity shadow-sm"
                 >
-                  Start building
+                  {t.hero.cta1}
                 </Link>
                 <a
                   href="http://localhost:2026/docs"
@@ -692,7 +1236,7 @@ export default function Landing() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center h-11 px-6 rounded-lg border border-[#c4c2ba] dark:border-[#4d4d4b] bg-transparent text-foreground/80 font-semibold text-sm hover:bg-muted/30 transition-all shadow-xs"
                 >
-                  See developer docs
+                  {t.hero.cta2}
                 </a>
               </div>
             </FadeIn>
@@ -1226,7 +1770,7 @@ export default function Landing() {
       {/* 2. Client Testimonials Row Section */}
       <section className="px-6 pb-24 max-w-7xl mx-auto border-t border-[#e8e6dc]/80 dark:border-[#2e2e2d]/60 pt-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-y-10 divide-y md:divide-y-0 md:divide-x divide-[#e8e6dc]/80 dark:divide-[#2e2e2d]/60">
-          {CLIENT_TESTIMONIALS.map((c, idx) => (
+          {t.testimonials.map((c, idx) => (
             <FadeIn 
               key={idx} 
               delay={idx * 0.06}
@@ -1524,14 +2068,14 @@ export default function Landing() {
                 to="/dashboard"
                 className="inline-flex items-center gap-2 h-10 px-6 rounded-lg bg-white text-zinc-950 font-medium text-sm hover:bg-zinc-200 transition-colors shadow animate-pulse"
               >
-                Start building
+                {t.hero.cta1}
                 <ArrowRight className="w-4 h-4 text-zinc-950" />
               </Link>
               <Link
                 to="/login"
                 className="inline-flex items-center gap-2 h-10 px-6 rounded-lg border border-white/20 bg-transparent text-white font-medium text-sm hover:bg-white/5 transition-colors"
               >
-                Contact sales
+                {t.header.contactSales}
               </Link>
             </div>
           </FadeIn>
@@ -1568,26 +2112,26 @@ export default function Landing() {
               <span className="font-serif text-sm tracking-tight font-medium">AI Collective</span>
             </Link>
             <p className="text-[10px] text-zinc-600 leading-normal max-w-xs">
-              © {new Date().getFullYear()} AI Collective. All rights reserved. Integrating agent mesh networks across public and local systems.
+              © {new Date().getFullYear()} AI Collective. {t.footerSitemap.rights}
             </p>
           </div>
           <div className="space-y-3">
-            <span className="block font-semibold text-white uppercase tracking-wider text-[10px]">Products</span>
-            <span className="block hover:text-white cursor-pointer">Orchestrator</span>
-            <span className="block hover:text-white cursor-pointer">Pricing</span>
-            <span className="block hover:text-white cursor-pointer">Documentation</span>
+            <span className="block font-semibold text-white uppercase tracking-wider text-[10px]">{t.footerSitemap.products}</span>
+            <span className="block hover:text-white cursor-pointer">{t.footerSitemap.orchestrator}</span>
+            <span className="block hover:text-white cursor-pointer">{t.footerSitemap.pricing}</span>
+            <span className="block hover:text-white cursor-pointer">{t.footerSitemap.documentation}</span>
           </div>
           <div className="space-y-3">
-            <span className="block font-semibold text-white uppercase tracking-wider text-[10px]">Solutions</span>
-            <span className="block hover:text-white cursor-pointer">Enterprise</span>
-            <span className="block hover:text-white cursor-pointer">Education</span>
-            <span className="block hover:text-white cursor-pointer">Financial</span>
+            <span className="block font-semibold text-white uppercase tracking-wider text-[10px]">{t.footerSitemap.solutions}</span>
+            <span className="block hover:text-white cursor-pointer">{t.footerSitemap.enterprise}</span>
+            <span className="block hover:text-white cursor-pointer">{t.footerSitemap.education}</span>
+            <span className="block hover:text-white cursor-pointer">{t.footerSitemap.financial}</span>
           </div>
           <div className="space-y-3">
-            <span className="block font-semibold text-white uppercase tracking-wider text-[10px]">Company</span>
-            <span className="block hover:text-white cursor-pointer">About us</span>
-            <span className="block hover:text-white cursor-pointer">Careers</span>
-            <span className="block hover:text-white cursor-pointer">Press</span>
+            <span className="block font-semibold text-white uppercase tracking-wider text-[10px]">{t.footerSitemap.company}</span>
+            <span className="block hover:text-white cursor-pointer">{t.footerSitemap.aboutUs}</span>
+            <span className="block hover:text-white cursor-pointer">{t.footerSitemap.careers}</span>
+            <span className="block hover:text-white cursor-pointer">{t.footerSitemap.press}</span>
           </div>
         </div>
       </section>
