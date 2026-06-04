@@ -1,8 +1,14 @@
 import logging
 import os
 import sys
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional
+
+# Rotation defaults (overridable via env): 10 MB per file, keep 5 backups.
+_LOG_MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", str(10 * 1024 * 1024)))
+_LOG_BACKUP_COUNT = int(os.getenv("LOG_BACKUP_COUNT", "5"))
+_VALID_LEVELS = {"CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"}
 
 
 def get_logger(
@@ -17,9 +23,14 @@ def get_logger(
         console_output = False
     if os.getenv("LOG_FILE") == "false":
         file_output = False
-    if os.getenv("LOG_LEVEL") is not None:
-        level = getattr(logging, os.getenv("LOG_LEVEL").upper(), level)
-        
+    env_level = os.getenv("LOG_LEVEL")
+    if env_level is not None:
+        candidate = env_level.strip().upper()
+        # Only accept real level names; ignore typos instead of resolving to a
+        # random logging attribute via getattr.
+        if candidate in _VALID_LEVELS:
+            level = getattr(logging, candidate)
+
     if name is None:
         name = "ai_collective"
     
@@ -46,7 +57,12 @@ def get_logger(
             log_dir.mkdir(exist_ok=True)
             log_file = log_dir / "ai_collective.log"
         
-        file_handler = logging.FileHandler(log_file, encoding='utf-8', mode="a")
+        file_handler = RotatingFileHandler(
+            log_file,
+            encoding='utf-8',
+            maxBytes=_LOG_MAX_BYTES,
+            backupCount=_LOG_BACKUP_COUNT,
+        )
         file_handler.setLevel(level)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
