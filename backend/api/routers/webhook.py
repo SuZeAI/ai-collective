@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-import asyncio
 import json
-import xml.etree.ElementTree as ET
 from typing import Any, Dict
 
+import defusedxml.ElementTree as ET
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import PlainTextResponse
 
 from backend.api.deps import (
-    get_agent_graph_service,
     get_agent_service,
     get_skill_tool_manager,
     get_workspace_service,
@@ -17,6 +15,7 @@ from backend.api.deps import (
 from backend.application.ports.agent_graph import GraphAgentDefinition
 from backend.application.service.agent_service import AgentService
 from backend.application.service.workspace_service import WorkspaceService
+from backend.domain.errors import NotFoundError
 from backend.domain.models import PlatformHook, Workspace
 from backend.domain.thirty_part.registry import get_processor
 from backend.domain.service.skill_tool_service import SkillToolManager
@@ -24,42 +23,6 @@ from backend.log import get_logger
 
 router = APIRouter(prefix="/webhook", tags=["webhook"])
 logger = get_logger(__name__)
-
-
-def _build_agent_defs(
-    workspace: Workspace,
-    agent_service: AgentService,
-    tool_manager: SkillToolManager,
-) -> list[GraphAgentDefinition]:
-    team_id = workspace.primary_team_id or (workspace.team_ids[0] if workspace.team_ids else None)
-    if not team_id:
-        return []
-    try:
-        team = agent_service._agent_repo.get  # fallback — use team service via agent service
-    except Exception:
-        pass
-
-    # Get agents from all workspace teams, prioritising primary team
-    agent_ids: list[str] = []
-    try:
-        from backend.infrastructure.repositories.json_files import JsonTeamRepository
-        # We rebuild via agent_service's underlying repos
-        team_repo = agent_service._team_repo if hasattr(agent_service, "_team_repo") else None
-    except Exception:
-        team_repo = None
-
-    # Direct approach: get agent IDs from workspace team_ids
-    # AgentService has a get_agent method; teams hold agent lists
-    # We'll use agent_service to resolve agents
-    try:
-        # Try to get team from agent service context (no direct team_service injected here)
-        # Fall back: collect all agent IDs from team_ids via agent service
-        pass
-    except Exception:
-        pass
-
-    defs: list[GraphAgentDefinition] = []
-    return defs
 
 
 async def _process_message(
@@ -137,13 +100,13 @@ async def _process_message(
         await processor.send_response(hook.config, chat_id, output)
 
     except Exception as exc:
-        logger.error(f"Webhook processing error [{platform}]: {exc}")
+        logger.exception(f"Webhook processing error [{platform}]: {exc}")
         try:
             proc = get_processor(platform)
             if proc:
                 await proc.send_response(hook.config, chat_id, f"⚠️ Error processing request: {str(exc)[:200]}")
         except Exception:
-            pass
+            logger.warning("Failed to deliver error notification to %s/%s", platform, chat_id)
 
 
 @router.get("/{platform}/{workspace_id}/{hook_id}")
@@ -157,7 +120,7 @@ async def webhook_verify(
     """Handle GET-based webhook verification (Facebook, Instagram, WhatsApp, WeChat)."""
     try:
         workspace = service.get_workspace(workspace_id)
-    except KeyError:
+    except (NotFoundError, KeyError):
         raise HTTPException(status_code=404, detail="Workspace not found")
 
     hook = next((h for h in workspace.platform_hooks if h.id == hook_id), None)
@@ -190,7 +153,7 @@ async def webhook_receive(
     """Receive incoming message from platform, process via agent graph, reply."""
     try:
         workspace = service.get_workspace(workspace_id)
-    except KeyError:
+    except (NotFoundError, KeyError):
         raise HTTPException(status_code=404, detail="Workspace not found")
 
     hook = next((h for h in workspace.platform_hooks if h.id == hook_id), None)
@@ -206,24 +169,41 @@ async def webhook_receive(
 
     # Parse body — handle XML (WeChat) or JSON
     raw_body = await request.body()
+
+    # Verify the webhook signature before doing any work. Processors that have
+    # a secret configured will reject forged/unsigned requests; those without a
+    # verification mechanism accept (and log nothing) as before.
+    if not processor.verify_request(dict(request.headers), raw_body, hook.config):
+        logger.warning("Webhook signature verification failed [%s/%s]", platform, hook_id)
+        raise HTTPException(status_code=403, detail="Invalid webhook signature")
+
     body: Dict[str, Any] = {}
     content_type = request.headers.get("content-type", "")
 
     if "xml" in content_type or raw_body.startswith(b"<"):
         try:
+            # defusedxml protects against XXE / billion-laughs on this
+            # externally-reachable endpoint.
             root = ET.fromstring(raw_body.decode("utf-8"))
             body = {child.tag: child.text for child in root}
         except Exception:
+            logger.warning("Failed to parse XML webhook body [%s/%s]", platform, hook_id)
             body = {}
     else:
         try:
             body = json.loads(raw_body) if raw_body else {}
         except Exception:
+            logger.warning("Failed to parse JSON webhook body [%s/%s]", platform, hook_id)
             body = {}
 
     # Slack URL verification challenge (POST body)
     if body.get("type") == "url_verification":
         return {"challenge": body.get("challenge")}
+
+    # Synchronous POST handshakes (e.g. Discord Interactions PING -> {"type": 1})
+    challenge = processor.post_challenge_response(body, hook.config)
+    if challenge is not None:
+        return challenge
 
     incoming = processor.extract_message(body)
     if not incoming:

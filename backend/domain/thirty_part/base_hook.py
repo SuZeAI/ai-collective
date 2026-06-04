@@ -1,11 +1,32 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import hashlib
+import hmac
 import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 from urllib import error, request as urllib_request
+
+
+def _header(headers: Dict[str, str], name: str) -> str:
+    """Case-insensitive header lookup (HTTP headers are case-insensitive)."""
+    name_lower = name.lower()
+    for key, value in headers.items():
+        if key.lower() == name_lower:
+            return value or ""
+    return ""
+
+
+def hmac_sha256_hex(secret: str, message: bytes) -> str:
+    return hmac.new(secret.encode("utf-8"), message, hashlib.sha256).hexdigest()
+
+
+def hmac_sha256_b64(secret: str, message: bytes) -> str:
+    digest = hmac.new(secret.encode("utf-8"), message, hashlib.sha256).digest()
+    return base64.b64encode(digest).decode("utf-8")
 
 
 @dataclass
@@ -45,6 +66,16 @@ class BaseHookProcessor(ABC):
     ) -> Optional[Dict[str, Any]]:
         """Handle GET-based verification challenges (Facebook, Instagram, WhatsApp).
         Return dict with 'content' key to send as plain text response, or None."""
+        return None
+
+    def post_challenge_response(
+        self,
+        body: Dict[str, Any],
+        config: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """Handle POST-based liveness/handshake challenges that must be answered
+        synchronously with a JSON body (e.g. Discord Interactions PING -> {"type": 1}).
+        Return the JSON dict to send back, or None to continue normal processing."""
         return None
 
 
