@@ -40,8 +40,11 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.cors_origin_list(),
         allow_credentials=True,
-        allow_methods=["*"] ,
-        allow_headers=["*"],
+        # Explicit method/header allow-lists instead of wildcards. With
+        # allow_credentials=True a wildcard is both insecure and ignored by the
+        # browser anyway.
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
     )
 
     @app.exception_handler(NotFoundError)
@@ -70,6 +73,11 @@ def create_app() -> FastAPI:
     static_dir = Path("static")
     static_dir.mkdir(exist_ok=True)
     app.mount("/static", StaticFiles(directory="static"), name="static")
+
+    @app.on_event("shutdown")
+    async def _shutdown_task_queue() -> None:
+        from backend.infrastructure import task_queue
+        task_queue.shutdown()
 
     return app
 

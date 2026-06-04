@@ -2,6 +2,14 @@ from __future__ import annotations
 
 import threading
 
+from backend.log import get_logger
+
+logger = get_logger(__name__)
+
+# Soft cap: registrations are always paired with unregister() in finally blocks,
+# so growth past this points to a leak (a forgotten unregister) worth flagging.
+_LEAK_WARN_THRESHOLD = 1000
+
 
 class _CancelFlag:
     __slots__ = ("_event",)
@@ -25,6 +33,12 @@ def register(task_id: str) -> _CancelFlag:
     flag = _CancelFlag()
     with _lock:
         _active[task_id] = flag
+        active_count = len(_active)
+    if active_count > _LEAK_WARN_THRESHOLD:
+        logger.warning(
+            "task_run_registry has %d active runs — possible leak (missing unregister)",
+            active_count,
+        )
     return flag
 
 

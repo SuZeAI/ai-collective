@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_DEFAULT_JWT_SECRET = "change-me-in-production-use-openssl-rand-hex-32"
 
 
 class Settings(BaseSettings):
@@ -9,6 +11,8 @@ class Settings(BaseSettings):
 
     # ── Application ───────────────────────────────────────────────────────────
     app_name: str = "ai-collective-backend"
+    # "development" | "production" — gates production safety checks below.
+    environment: str = "development"
     api_prefix: str = "/api/v1"
     cors_origins: str = (
         "http://localhost:5173,http://127.0.0.1:5173,"
@@ -80,7 +84,7 @@ class Settings(BaseSettings):
     sandbox_workspace: str | None = None
 
     # ── JWT / User auth ───────────────────────────────────────────────────────
-    jwt_secret_key: str = "change-me-in-production-use-openssl-rand-hex-32"
+    jwt_secret_key: str = _DEFAULT_JWT_SECRET
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
 
@@ -112,6 +116,19 @@ class Settings(BaseSettings):
 
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    def is_production(self) -> bool:
+        return self.environment.strip().lower() in ("production", "prod")
+
+    @model_validator(mode="after")
+    def _validate_production_secrets(self) -> "Settings":
+        if self.is_production():
+            if self.jwt_secret_key == _DEFAULT_JWT_SECRET or len(self.jwt_secret_key) < 32:
+                raise ValueError(
+                    "ENVIRONMENT=production requires a strong JWT_SECRET_KEY "
+                    "(>=32 chars, not the default). Generate one with: openssl rand -hex 32"
+                )
+        return self
 
 
 settings = Settings()
