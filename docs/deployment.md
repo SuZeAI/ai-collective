@@ -2,14 +2,21 @@
 
 ## Docker image
 
-`backend/Dockerfile` is a hardened multi-stage build:
+`backend/Dockerfile` is a multi-stage build:
 
-- **Builder stage** resolves dependencies with `uv` into `/app/.venv`.
-- **Runtime stage** copies only the venv + application code (no `uv` or build
-  cache in the final image), runs as a **non-root** `appuser`, sets
-  `PYTHONPATH=/app`, and invokes `uvicorn` directly so it is PID 1 and receives
-  `SIGTERM` for graceful shutdown.
+- **Builder stage** resolves dependencies with `uv` into `/app/.venv` (the
+  build cache and intermediate layers stay here and are not shipped).
+- **Runtime stage** copies the prebuilt venv + application code and keeps `uv`
+  on `PATH`. `uv` is required at runtime because both compose files invoke the
+  backend via `uv run uvicorn ...`, and the dev stack runs `uv sync` at startup
+  into a mounted venv volume. `PYTHONPATH=/app` makes `backend` importable.
 - A `HEALTHCHECK` hits `/api/v1/health`.
+
+> The default `CMD` is overridden by compose (dev: `--reload`, prod:
+> `--workers`). The container currently runs as **root** to match the compose
+> contract (dev writes to `/root/.cache/uv`; prod mounts the Docker socket).
+> Running as a non-root user is a possible follow-up but requires coordinated
+> changes to the compose `command`s and host volume ownership.
 
 ### Build
 
