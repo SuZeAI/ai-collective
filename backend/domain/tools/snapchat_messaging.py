@@ -9,6 +9,7 @@ from urllib import error, parse, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.domain.tools._messaging_http import request_json
 
 SNAPCHAT_ADS_API_BASE = "https://adsapi.snapchat.com/v1"
 
@@ -21,22 +22,10 @@ def _snap_request(
     timeout: int = 30,
 ) -> Dict[str, Any]:
     url = f"{SNAPCHAT_ADS_API_BASE}{path}"
-    payload = None
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json",
-    }
-    if data is not None:
-        payload = json.dumps(data).encode("utf-8")
-    req = request.Request(url=url, method=method, data=payload, headers=headers)
-    try:
-        with request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Snapchat API error {exc.code}: {body[:300]}") from exc
-    except (error.URLError, TimeoutError) as exc:
-        raise RuntimeError(f"Snapchat request failed: {exc}") from exc
+    return request_json(
+        method, url, service="Snapchat",
+        json_body=data, headers={"Authorization": f"Bearer {access_token}"}, timeout=timeout,
+    )
 
 
 class SnapchatMessagingToolkit(BaseToolkit):
