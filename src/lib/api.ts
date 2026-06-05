@@ -234,6 +234,9 @@ function getApiBase(): string {
   return ((import.meta as any).env?.VITE_API_BASE_URL as string) || "http://localhost:8000/api/v1";
 }
 
+// Backend Swagger docs URL, derived from the API base (strip /api/vN, append /docs).
+export const API_DOCS_URL = `${getApiBase().replace(/\/$/, "").replace(/\/api\/v\d+$/, "")}/docs`;
+
 function getAuthHeader(): Record<string, string> {
   try {
     const token = localStorage.getItem("ai-collective-token");

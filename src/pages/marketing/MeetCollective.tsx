@@ -4,6 +4,7 @@ import { ArrowRight, Bot, Brain, Shield, Zap, Network, Code2, ExternalLink, Chev
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { API_DOCS_URL } from "@/lib/api";
 
 const MODELS = [
   { key: "gemini-2.0-flash", color: "hsl(220 80% 55%)", desc: "Default speed engine, optimized for entity extraction and real-time knowledge graphs." },
@@ -72,7 +73,7 @@ export default function MeetCollective() {
               <Link to="/dashboard" className="inline-flex items-center gap-2 h-11 px-6 rounded-lg bg-foreground text-background font-semibold text-sm hover:opacity-90 transition-opacity">
                 {m.common.startBuilding} <ArrowRight className="w-4 h-4" />
               </Link>
-              <a href="http://localhost:2026/docs" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 h-11 px-6 rounded-lg border border-border text-foreground/80 font-semibold text-sm hover:bg-muted/30 transition-all">
+              <a href={API_DOCS_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 h-11 px-6 rounded-lg border border-border text-foreground/80 font-semibold text-sm hover:bg-muted/30 transition-all">
                 {m.common.devDocs} <ExternalLink className="w-4 h-4" />
               </a>
             </div>
@@ -106,7 +107,7 @@ export default function MeetCollective() {
               </div>
               <h3 className="text-xl font-semibold font-serif mb-2">{m.meet.product2Name}</h3>
               <p className="text-muted-foreground text-sm leading-relaxed mb-6">{m.meet.product2Desc}</p>
-              <a href="http://localhost:2026/docs" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent group-hover:gap-2.5 transition-all">
+              <a href={API_DOCS_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent group-hover:gap-2.5 transition-all">
                 {m.meet.product2Cta} <ExternalLink className="w-4 h-4" />
               </a>
             </div>
