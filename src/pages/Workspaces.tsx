@@ -401,7 +401,7 @@ function WorkspaceDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BrainCircuit className="h-4 w-4 text-teal-400" />
-              {existing ? "Edit Workspace" : "New Workspace"}
+              {existing ? "Edit Office" : "New Office"}
             </DialogTitle>
           </DialogHeader>
 
@@ -409,22 +409,22 @@ function WorkspaceDialog({
             {/* Name + Description */}
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
-                <Label className="text-xs">Workspace Name <span className="text-rose-400">*</span></Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My AI Workspace" />
+                <Label className="text-xs">Office Name <span className="text-rose-400">*</span></Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My AI Office" />
               </div>
               <div className="grid gap-1.5">
                 <Label className="text-xs">Description</Label>
-                <Input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="What this workspace does" />
+                <Input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="What this office does" />
               </div>
             </div>
 
             {/* Teams */}
             <div className="grid gap-2">
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-                Teams
+                Departments
               </Label>
               {teams.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No teams yet. Create teams first.</p>
+                <p className="text-xs text-muted-foreground">No departments yet. Create departments first.</p>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                   {teams.map((t) => {
@@ -449,7 +449,7 @@ function WorkspaceDialog({
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium truncate">{t.name}</p>
-                          <p className="text-[10px] text-muted-foreground">{t.agents.length} agents</p>
+                          <p className="text-[10px] text-muted-foreground">{t.agents.length} personnel</p>
                         </div>
                         {active && (
                           <button
@@ -533,7 +533,7 @@ function WorkspaceDialog({
                         )}
                         {!existing && (
                           <p className="mt-1.5 text-[10px] text-muted-foreground px-1">
-                            💡 Save workspace to get webhook URL
+                            💡 Save office to get webhook URL
                           </p>
                         )}
                       </div>
@@ -548,7 +548,7 @@ function WorkspaceDialog({
             <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
             <Button size="sm" onClick={submit} disabled={!name.trim()}
               className="bg-teal-600 hover:bg-teal-500">
-              {existing ? "Save Changes" : "Create Workspace"}
+              {existing ? "Save Changes" : "Create Office"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -634,9 +634,9 @@ function WorkspaceCard({
             <div className="border-t border-border/40 p-4 grid gap-4">
               {/* Teams */}
               <div>
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Teams</p>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Departments</p>
                 {wsTeams.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No teams assigned</p>
+                  <p className="text-xs text-muted-foreground">No departments assigned</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {wsTeams.map((t) => (
@@ -728,7 +728,7 @@ export default function Workspaces() {
     mutationFn: api.upsertWorkspace,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workspaces"] });
-      toast({ title: "Workspace saved" });
+      toast({ title: "Office saved" });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -737,7 +737,7 @@ export default function Workspaces() {
     mutationFn: api.deleteWorkspace,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workspaces"] });
-      toast({ title: "Workspace deleted" });
+      toast({ title: "Office deleted" });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -760,23 +760,23 @@ export default function Workspaces() {
               <BrainCircuit className="h-5 w-5 text-teal-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Workspaces</h1>
+              <h1 className="text-2xl font-bold tracking-tight">Offices</h1>
               <p className="text-sm text-muted-foreground">
-                Group teams + messaging platform hooks. Messages from any platform trigger your AI teams.
+                Group departments + messaging platform hooks. Messages from any platform trigger your departments.
               </p>
             </div>
           </div>
         </div>
         <Button onClick={openNew} className="gap-2 bg-teal-600 hover:bg-teal-500 shadow-lg shadow-teal-500/20">
           <Plus className="h-4 w-4" />
-          New Workspace
+          New Office
         </Button>
       </div>
 
       {/* Stats bar */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Workspaces", value: workspaces.length, icon: BrainCircuit, color: "text-teal-400" },
+          { label: "Offices", value: workspaces.length, icon: BrainCircuit, color: "text-teal-400" },
           { label: "Active Hooks", value: workspaces.reduce((s, w) => s + w.platformHooks.filter(h => h.enabled).length, 0), icon: Plug, color: "text-emerald-400" },
           { label: "Platforms", value: platforms.length, icon: Globe, color: "text-sky-400" },
         ].map(({ label, value, icon: Icon, color }) => (
@@ -811,7 +811,7 @@ export default function Workspaces() {
       {wsLoading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
           <RefreshCw className="h-5 w-5 animate-spin mr-2" />
-          Loading workspaces...
+          Loading offices...
         </div>
       ) : workspaces.length === 0 ? (
         <motion.div
@@ -822,13 +822,13 @@ export default function Workspaces() {
           <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br from-teal-500/10 to-cyan-600/10 border border-teal-500/20 mb-6">
             <BrainCircuit className="h-9 w-9 text-teal-400/60" />
           </div>
-          <h2 className="text-xl font-semibold mb-2">No workspaces yet</h2>
+          <h2 className="text-xl font-semibold mb-2">No offices yet</h2>
           <p className="text-sm text-muted-foreground max-w-sm mb-6">
-            Create a workspace to link your AI teams with messaging platforms like Telegram, Discord, Slack, WhatsApp, and more.
+            Create an office to link your departments with messaging platforms like Telegram, Discord, Slack, WhatsApp, and more.
           </p>
           <Button onClick={openNew} className="gap-2 bg-teal-600 hover:bg-teal-500">
             <Plus className="h-4 w-4" />
-            Create your first workspace
+            Create your first office
           </Button>
         </motion.div>
       ) : (
@@ -855,8 +855,8 @@ export default function Workspaces() {
           <div className="grid grid-cols-3 gap-4 text-xs text-muted-foreground">
             {[
               { icon: MessageCircle, step: "1. User sends message", desc: "A user messages your bot on any connected platform." },
-              { icon: Zap, step: "2. AI team processes it", desc: "Your workspace's primary team handles the request via the agent graph." },
-              { icon: CheckCheck, step: "3. Response is sent back", desc: "The AI response is automatically sent back to the user on the same platform." },
+              { icon: Zap, step: "2. Department processes it", desc: "Your office's primary department handles the request via the personnel graph." },
+              { icon: CheckCheck, step: "3. Response is sent back", desc: "The response is automatically sent back to the user on the same platform." },
             ].map(({ icon: Icon, step, desc }) => (
               <div key={step} className="flex gap-3">
                 <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">

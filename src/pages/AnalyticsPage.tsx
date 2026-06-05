@@ -192,13 +192,13 @@ export default function AnalyticsPage() {
       color: KPI_COLORS.primary,
     },
     {
-      label: "Team Efficiency",
+      label: "Department Efficiency",
       value: analytics ? `${analytics.teamEfficiency}%` : "—",
       icon: TrendingUp,
       color: KPI_COLORS.warning,
     },
     {
-      label: "Active Teams",
+      label: "Active Departments",
       value: String(teams.length),
       icon: Users,
       color: KPI_COLORS.info,
@@ -220,7 +220,7 @@ export default function AnalyticsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-1">Analytics</h1>
           <p className="text-muted-foreground text-sm">
-            Team performance metrics and productivity insights.
+            Department performance metrics and productivity insights.
           </p>
         </div>
         <Button
@@ -255,10 +255,10 @@ export default function AnalyticsPage() {
         <div className="glass-card p-5">
           <div className="flex items-center gap-2 mb-5">
             <Activity className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-semibold">Agent Productivity</h3>
+            <h3 className="text-sm font-semibold">Personnel Productivity</h3>
             {!loading && (
               <span className="ml-auto text-xs text-muted-foreground">
-                {productivityData.length} agents
+                {productivityData.length} members
               </span>
             )}
           </div>
@@ -278,7 +278,7 @@ export default function AnalyticsPage() {
           ) : productivityData.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-14 gap-3">
               <Award className="w-9 h-9 text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">No agent data yet</p>
+              <p className="text-sm text-muted-foreground">No personnel data yet</p>
             </div>
           ) : (
             <>
@@ -536,7 +536,7 @@ export default function AnalyticsPage() {
         <div className="glass-card p-5">
           <div className="flex items-center gap-2 mb-5">
             <Users className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-semibold">Teams</h3>
+            <h3 className="text-sm font-semibold">Departments</h3>
             {!loading && (
               <span className="ml-auto text-xs text-muted-foreground">
                 {teams.length} active
@@ -559,7 +559,7 @@ export default function AnalyticsPage() {
           ) : teams.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
               <Users className="w-9 h-9 text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">No teams yet</p>
+              <p className="text-sm text-muted-foreground">No departments yet</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -578,7 +578,7 @@ export default function AnalyticsPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold truncate">{team.name}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {team.agents.length} agent
+                      {team.agents.length} member
                       {team.agents.length !== 1 ? "s" : ""}
                       {team.activeTasks ? ` · ${team.activeTasks} active` : ""}
                     </p>

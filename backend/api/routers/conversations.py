@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Query
 
@@ -28,7 +28,7 @@ def add_message(req: CreateMessageRequest, service: ConversationService = Depend
         id=f"m_{uuid4().hex}",
         agent_id=req.agentId,
         content=req.content,
-        timestamp=datetime.utcnow().replace(microsecond=0),
+        timestamp=datetime.now(timezone.utc).replace(microsecond=0),
         task_id=req.taskId,
     )
     saved = service.add_message(message)

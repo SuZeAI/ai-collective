@@ -5,6 +5,7 @@ from typing import Any, Optional, Protocol
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.domain.tools._ssrf import validate_public_url
 
 
 class BrowserPort(Protocol):
@@ -66,6 +67,7 @@ class BrowserToolkit(BaseToolkit):
         Args:
             url: Complete URL to visit, including protocol.
         """
+        validate_public_url(url)
         return await self.browser.navigate(url)
 
     @tool(parse_docstring=True)
@@ -75,6 +77,7 @@ class BrowserToolkit(BaseToolkit):
         Args:
             url: Complete URL to visit after restart.
         """
+        validate_public_url(url)
         return await self.browser.restart(url)
 
     @tool(parse_docstring=True)

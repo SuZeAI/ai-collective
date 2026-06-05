@@ -465,7 +465,7 @@ export default function Skills() {
       <header className="mb-8 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Skills</h1>
-          <p className="text-muted-foreground mt-1">Create reusable skills and assign them to agents.</p>
+          <p className="text-muted-foreground mt-1">Create reusable skills and assign them to personnel.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
@@ -148,9 +148,9 @@ class User:
     id: str
     name: str
     email: str
-    hashed_password: str
+    hashed_password: str = field(repr=False)
     role: str = "user"
     joined_at: str = ""
     avatar: str = ""
     provider: str = "local"   # "local" | "google" | "github" | ...
-    provider_id: str = ""     # OAuth provider's unique user ID (e.g. Google sub)
+    provider_id: str = field(default="", repr=False)  # OAuth provider's unique user ID (e.g. Google sub)

@@ -1,15 +1,22 @@
 from __future__ import annotations
 
 import asyncio
+import hmac
 from typing import Any, Dict, Optional
 
 from backend.domain.thirty_part.base_hook import BaseHookProcessor, IncomingMessage, _http_post
+from backend.domain.thirty_part.whatsapp_hook import verify_meta_signature
 
 GRAPH_API = "https://graph.facebook.com/v19.0"
 
 
 class MessengerHookProcessor(BaseHookProcessor):
     platform = "facebook_messenger"
+
+    def verify_request(
+        self, headers: Dict[str, str], raw_body: bytes, config: Dict[str, Any]
+    ) -> bool:
+        return verify_meta_signature(headers, raw_body, config.get("app_secret", ""))
 
     def extract_message(self, body: Dict[str, Any]) -> Optional[IncomingMessage]:
         if body.get("object") != "page":
@@ -36,7 +43,8 @@ class MessengerHookProcessor(BaseHookProcessor):
         mode = query_params.get("hub.mode")
         token = query_params.get("hub.verify_token")
         challenge = query_params.get("hub.challenge")
-        if mode == "subscribe" and token == config.get("verify_token", "") and challenge:
+        verify_token = config.get("verify_token", "")
+        if mode == "subscribe" and challenge and verify_token and hmac.compare_digest(str(token or ""), str(verify_token)):
             return {"content": challenge}
         return None
 
@@ -44,10 +52,11 @@ class MessengerHookProcessor(BaseHookProcessor):
         access_token = config.get("page_access_token", "")
         if not access_token:
             raise ValueError("Missing page_access_token in Messenger hook config")
-        url = f"{GRAPH_API}/me/messages?access_token={access_token}"
+        url = f"{GRAPH_API}/me/messages"
+        headers = {"Authorization": f"Bearer {access_token}"}
         data = {
             "recipient": {"id": chat_id},
             "message": {"text": text[:2000]},
             "messaging_type": "RESPONSE",
         }
-        await asyncio.to_thread(_http_post, url, data, {})
+        await asyncio.to_thread(_http_post, url, data, headers)

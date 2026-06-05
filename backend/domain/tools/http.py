@@ -13,6 +13,18 @@ from urllib.parse import urlencode
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.domain.tools._ssrf import BlockedURLError, validate_public_url
+
+
+class _SSRFSafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Re-validate the target of every redirect to prevent redirect-based SSRF."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[override]
+        validate_public_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_SSRF_SAFE_OPENER = urllib.request.build_opener(_SSRFSafeRedirectHandler())
 
 DEFAULT_TIMEOUT = 30
 DEBUG = os.environ.get("LAST30DAYS_DEBUG", "").lower() in ("1", "true", "yes")
@@ -103,6 +115,9 @@ def request(
     encoded_params = urlencode({k: v for k, v in (params or {}).items() if v is not None}, doseq=True)
     request_url = f"{url}?{encoded_params}" if encoded_params else url
 
+    # SSRF guard: reject internal/metadata targets before issuing the request.
+    validate_public_url(request_url)
+
     body_bytes = None
     if json_data is not None:
         body_bytes = json.dumps(json_data).encode("utf-8")
@@ -122,7 +137,7 @@ def request(
     last_error: Optional[HTTPError] = None
     for attempt in range(retries):
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as response:
+            with _SSRF_SAFE_OPENER.open(req, timeout=timeout) as response:
                 body = response.read().decode("utf-8")
                 content_type = response.headers.get("Content-Type") if response.headers else None
                 log(f"Response: {response.status} ({len(body)} bytes)")

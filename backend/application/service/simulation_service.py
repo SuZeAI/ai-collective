@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import json
-
 from backend.application.ports.llm import LLMProvider
 from backend.domain.models import SimulationStep
+from backend.log import get_logger
+
+logger = get_logger(__name__)
 
 
 DEFAULT_STEPS: list[SimulationStep] = [
@@ -24,12 +25,16 @@ class SimulationService:
     def __init__(self, llm: LLMProvider | None = None):
         self._llm = llm
 
+    @staticmethod
+    def _default_steps(task_description: str) -> list[SimulationStep]:
+        return [
+            SimulationStep(agent=s.agent, msg=s.msg.format(task=task_description), delay_ms=s.delay_ms, phase=s.phase)
+            for s in DEFAULT_STEPS
+        ]
+
     async def plan(self, task_description: str) -> list[SimulationStep]:
         if not self._llm:
-            return [
-                SimulationStep(agent=s.agent, msg=s.msg.format(task=task_description), delay_ms=s.delay_ms, phase=s.phase)
-                for s in DEFAULT_STEPS
-            ]
+            return self._default_steps(task_description)
 
         system = (
             "You are a multi-agent workflow planner. "
@@ -61,8 +66,7 @@ class SimulationService:
                 raise ValueError("Too few valid steps")
             return steps
         except Exception:
-            # Fallback to default deterministic steps
-            return [
-                SimulationStep(agent=s.agent, msg=s.msg.format(task=task_description), delay_ms=s.delay_ms, phase=s.phase)
-                for s in DEFAULT_STEPS
-            ]
+            # Fallback to default deterministic steps — log so an LLM/provider
+            # misconfiguration is distinguishable from "model returned junk".
+            logger.warning("Simulation LLM planning failed; using default steps", exc_info=True)
+            return self._default_steps(task_description)

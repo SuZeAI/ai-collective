@@ -65,6 +65,7 @@ PLATFORM_CONFIG_FIELDS: Dict[str, list] = {
         {"key": "bot_token", "label": "Bot Token", "input": "text", "required": False, "placeholder": "Bot token (for reading messages)"},
         {"key": "webhook_url", "label": "Webhook URL", "input": "text", "required": False, "placeholder": "https://discord.com/api/webhooks/..."},
         {"key": "channel_id", "label": "Default Channel ID", "input": "text", "required": False},
+        {"key": "public_key", "label": "Application Public Key", "input": "text", "required": False, "placeholder": "Required for Interactions endpoint (Ed25519 verification)"},
     ],
     "slack": [
         {"key": "bot_token", "label": "Bot Token (xoxb-...)", "input": "text", "required": True},
@@ -77,14 +78,17 @@ PLATFORM_CONFIG_FIELDS: Dict[str, list] = {
         {"key": "access_token", "label": "Meta Access Token", "input": "text", "required": True},
         {"key": "phone_number_id", "label": "Phone Number ID", "input": "text", "required": True},
         {"key": "verify_token", "label": "Verify Token (custom secret)", "input": "text", "required": True, "placeholder": "Your custom secret for webhook verification"},
+        {"key": "app_secret", "label": "App Secret (for X-Hub-Signature-256)", "input": "text", "required": False, "placeholder": "Meta App Secret — enables payload signature verification"},
     ],
     "facebook_messenger": [
         {"key": "page_access_token", "label": "Page Access Token", "input": "text", "required": True},
         {"key": "verify_token", "label": "Verify Token", "input": "text", "required": True},
+        {"key": "app_secret", "label": "App Secret (for X-Hub-Signature-256)", "input": "text", "required": False},
     ],
     "instagram": [
         {"key": "page_access_token", "label": "Page Access Token", "input": "text", "required": True},
         {"key": "verify_token", "label": "Verify Token", "input": "text", "required": True},
+        {"key": "app_secret", "label": "App Secret (for X-Hub-Signature-256)", "input": "text", "required": False},
     ],
     "line_messaging": [
         {"key": "channel_access_token", "label": "Channel Access Token", "input": "text", "required": True},

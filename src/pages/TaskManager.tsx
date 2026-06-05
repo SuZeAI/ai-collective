@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -13,6 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { api, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
+import { cn } from "@/lib/utils";
 
 const statusIcons = {
   "pending": Circle,
@@ -189,8 +191,12 @@ export default function TaskManager() {
   const [loadingGraphTaskIds, setLoadingGraphTaskIds] = useState<Set<string>>(new Set());
   const [taskGraphViewports, setTaskGraphViewports] = useState<Record<string, GraphViewport>>({});
   const [taskGraphPositions, setTaskGraphPositions] = useState<Record<string, Record<string, GraphNodePosition>>>({});
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "completed" | "pending">("all");
   const [open, setOpen] = useState(false);
   const [viewTaskId, setViewTaskId] = useState<string | null>(null);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
   const [graphPanelVisible, setGraphPanelVisible] = useState(false);
   const [graphActivityCollapsed, setGraphActivityCollapsed] = useState(false);
   const graphSvgRef = useRef<SVGSVGElement | null>(null);
@@ -257,6 +263,57 @@ export default function TaskManager() {
     agentList.forEach((a) => map.set(a.id, a));
     return map;
   }, [agentList]);
+
+  const filteredTasks = useMemo(() => {
+    return taskList.filter((task) => {
+      const team = teamList.find((t) => t.id === task.teamId);
+      const matchesSearch =
+        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (task.description ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (team?.name ?? "").toLowerCase().includes(searchQuery.toLowerCase());
+
+      if (!matchesSearch) return false;
+
+      if (statusFilter === "all") return true;
+      if (statusFilter === "active") {
+        return task.status === "in-progress" || task.status === "paused";
+      }
+      if (statusFilter === "completed") {
+        return task.status === "completed";
+      }
+      if (statusFilter === "pending") {
+        return task.status === "pending" || task.status === "stopped";
+      }
+      return true;
+    });
+  }, [taskList, teamList, searchQuery, statusFilter]);
+
+  const taskIdParam = searchParams.get("id");
+
+  useEffect(() => {
+    if (taskIdParam && taskList.length > 0) {
+      const taskExists = taskList.some((t) => t.id === taskIdParam);
+      if (taskExists) {
+        setViewTaskId(taskIdParam);
+        setTaskGraphViewports((prev) => prev[taskIdParam] ? prev : { ...prev, [taskIdParam]: createDefaultViewport() });
+        void loadTaskGraphContext(taskIdParam);
+      }
+    } else if (!taskIdParam && taskList.length > 0 && !viewTaskId) {
+      setViewTaskId(taskList[0].id);
+      setTaskGraphViewports((prev) => prev[taskList[0].id] ? prev : { ...prev, [taskList[0].id]: createDefaultViewport() });
+      void loadTaskGraphContext(taskList[0].id);
+    }
+  }, [taskIdParam, taskList, viewTaskId]);
+
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [taskConversations, viewTaskId]);
+
+  const handleSelectTask = (taskId: string) => {
+    setSearchParams({ id: taskId });
+  };
 
   const toggleTaskExpanded = (taskId: string) => {
     setExpandedTaskIds((prev) => {
@@ -816,210 +873,330 @@ export default function TaskManager() {
         return next;
       });
     }
-  };
-
-  return (
-    <div>
-      <header className="mb-8 flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
-          <p className="text-muted-foreground mt-1">Manage and track team assignments.</p>
-        </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> New Task</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>{editingTaskId ? "Edit Task" : "Create Task"}</DialogTitle></DialogHeader>
-            <div className="space-y-4 pt-2">
-              <Input placeholder="Task title" value={title} onChange={(e) => setTitle(e.target.value)} />
-              <Textarea
-                placeholder="Description"
-                value={desc}
-                onChange={(e) => setDesc(e.target.value)}
-                className="min-h-[140px] max-h-[220px] overflow-y-auto resize-none"
-              />
-              <Select value={teamId} onValueChange={setTeamId}>
-                <SelectTrigger><SelectValue placeholder="Assign to team" /></SelectTrigger>
-                <SelectContent>
-                  {teamList.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Button onClick={saveTask} className="w-full" disabled={!title.trim() || !teamId}>
-                {editingTaskId ? "Save Changes" : "Create Task"}
-              </Button>
+  };  return (
+    <div className="h-full w-full flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-border bg-background overflow-hidden select-none">
+      {/* LEFT SIDEBAR PANEL: Task list (360px wide) */}
+      <div className="lg:w-[380px] w-full flex flex-col flex-shrink-0 bg-muted/5 h-full overflow-hidden">
+        {/* Left header */}
+        <div className="p-4 border-b border-border flex flex-col gap-3 flex-shrink-0 bg-background/50 backdrop-blur-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-bold tracking-tight text-foreground">Projects & Tasks</h1>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Manage AI department tasks</p>
             </div>
-          </DialogContent>
-        </Dialog>
-      </header>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" onClick={openCreateDialog} className="h-8 gap-1 text-xs">
+                  <Plus className="w-3.5 h-3.5" /> Task
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>{editingTaskId ? "Edit Task" : "Create Task"}</DialogTitle></DialogHeader>
+                <div className="space-y-4 pt-2">
+                  <Input placeholder="Task title" value={title} onChange={(e) => setTitle(e.target.value)} />
+                  <Textarea
+                    placeholder="Description"
+                    value={desc}
+                    onChange={(e) => setDesc(e.target.value)}
+                    className="min-h-[140px] max-h-[220px] overflow-y-auto resize-none"
+                  />
+                  <Select value={teamId} onValueChange={setTeamId}>
+                    <SelectTrigger><SelectValue placeholder="Assign to department" /></SelectTrigger>
+                    <SelectContent>
+                      {teamList.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={saveTask} className="w-full" disabled={!title.trim() || !teamId}>
+                    {editingTaskId ? "Save Changes" : "Create Task"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
 
-      <Dialog
-        open={!!viewTaskId}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) {
-            setViewTaskId(null);
-            graphDragRef.current = null;
-            graphNodeDragRef.current = null;
-          }
-        }}
-      >
-        <DialogContent showCloseButton={false} className="max-w-[1600px] w-[98vw] h-[90vh] p-0 gap-0 overflow-hidden">
-          {(() => {
-            const selectedTask = taskList.find((task) => task.id === viewTaskId);
-            if (!selectedTask) return null;
+          {/* Search box */}
+          <div className="relative">
+            <Input
+              type="text"
+              placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 text-xs pl-8 pr-3"
+            />
+            <svg
+              className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/75"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
 
-            const team = teamList.find((t) => t.id === selectedTask.teamId);
-            const messages = taskConversations[selectedTask.id] ?? [];
-            const visibleMessages = messages.slice(-50);
-            const maxRounds = team?.maxSteps ?? 6;
-            const calculatedProgress = selectedTask.status === "completed" ? 100 : Math.min(Math.round((messages.length / maxRounds) * 100), 99);
-            const startDate = parseTaskDate(selectedTask.startTime);
-            const endDate = parseTaskDate(selectedTask.endTime);
-            const completionDuration =
-              selectedTask.status === "completed" && startDate && endDate
-                ? formatDuration(endDate.getTime() - startDate.getTime())
-                : null;
-            const completionSummary = !startDate
-              ? "(No start time yet)"
-              : completionDuration ?? "(Not completed yet)";
-            const canStart = selectedTask.status === "pending" || selectedTask.status === "paused" || selectedTask.status === "stopped" || selectedTask.status === "completed";
-            const canPause = selectedTask.status === "in-progress";
-            const canStop = selectedTask.status === "in-progress" || selectedTask.status === "paused";
-            const isUpdating = updatingTaskIds.has(selectedTask.id);
-            const isConversationLoading = loadingConversationTaskIds.has(selectedTask.id);
-            const isRestart = selectedTask.status === "completed";
-            const Icon = statusIcons[selectedTask.status] ?? Circle;
-            const graphSnapshot = taskGraphSnapshots[selectedTask.id];
-            const graphHighlight = taskGraphHighlights[selectedTask.id];
-            const graphLoading = loadingGraphTaskIds.has(selectedTask.id);
-            const graphNodes = getGraphDisplayNodes(graphSnapshot, graphHighlight);
-            const graphLayout = getGraphLayout(graphNodes, 560, 300);
-            const graphLayoutById = new Map(graphLayout.map((entry) => [entry.node.id, entry]));
-            const graphPositions = taskGraphPositions[selectedTask.id] ?? createNodePositionMap(graphNodes, GRAPH_VIEWBOX_WIDTH, GRAPH_VIEWBOX_HEIGHT);
-            const activeNodeIds = new Set(graphHighlight?.nodeIds ?? []);
-            const activeEdgeIds = new Set(graphHighlight?.edgeIds ?? []);
-            const activeChunkIds = new Set(graphHighlight?.chunkIds ?? []);
-            const graphEdges = (graphSnapshot?.edges ?? [])
-              .filter((edge) => graphLayoutById.has(edge.src) && graphLayoutById.has(edge.dst))
-              .sort((left, right) => {
-                const leftActive = activeEdgeIds.has(left.id) ? 1 : 0;
-                const rightActive = activeEdgeIds.has(right.id) ? 1 : 0;
-                return rightActive - leftActive || right.weight - left.weight;
-              })
-              .slice(0, 24);
-            const graphNodeById = new Map((graphSnapshot?.nodes ?? []).map((node) => [node.id, node]));
-            const activeNodeLabels = Array.from(activeNodeIds)
-              .map((nodeId) => graphNodeById.get(nodeId)?.value || nodeId)
-              .slice(0, 6);
-            const viewport = taskGraphViewports[selectedTask.id] ?? createDefaultViewport();
+          {/* Status filtering tabs */}
+          <div className="grid grid-cols-4 gap-1 p-0.5 bg-muted/65 rounded-lg text-[10px] font-semibold">
+            {(["all", "active", "completed", "pending"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setStatusFilter(tab)}
+                className={cn(
+                  "py-1 px-1 rounded-md text-center transition-all capitalize",
+                  statusFilter === tab
+                    ? "bg-background text-foreground shadow-sm font-bold"
+                    : "text-muted-foreground hover:text-foreground/90"
+                )}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
 
+        {/* Task Cards list */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
+          {filteredTasks.length === 0 ? (
+            <div className="text-center py-10 text-xs text-muted-foreground">
+              No tasks found
+            </div>
+          ) : (
+            filteredTasks.map((task, i) => {
+              const Icon = statusIcons[task.status] ?? Circle;
+              const isSelected = viewTaskId === task.id;
+              const team = teamList.find((t) => t.id === task.teamId);
+              const messages = taskConversations[task.id] ?? [];
+              const progress = task.status === "completed" ? 100 : Math.min(Math.round((messages.length / (team?.maxSteps ?? 6)) * 100), 99);
+              return (
+                <div
+                  key={task.id}
+                  onClick={() => handleSelectTask(task.id)}
+                  className={cn(
+                    "p-3 rounded-xl border cursor-pointer transition-all duration-150 relative overflow-hidden group select-none",
+                    isSelected
+                      ? "bg-accent/40 border-accent-foreground/20 shadow-sm"
+                      : "bg-card/50 border-border/40 hover:bg-muted/35 hover:border-border/80"
+                  )}
+                >
+                  {/* Status Indicator Bar */}
+                  <div
+                    className={cn(
+                      "absolute left-0 top-0 bottom-0 w-[3px]",
+                      task.status === "in-progress" ? "bg-primary animate-pulse" : "",
+                      task.status === "completed" ? "bg-emerald-500" : "",
+                      task.status === "paused" ? "bg-amber-500" : "",
+                      task.status === "stopped" ? "bg-rose-500" : "",
+                      task.status === "pending" ? "bg-muted-foreground/30" : ""
+                    )}
+                  />
+                  <div className="pl-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className={cn("text-xs font-bold truncate flex-1", isSelected ? "text-foreground" : "text-foreground/80")}>
+                        {task.title}
+                      </h4>
+                      <Icon className={cn("w-3.5 h-3.5 shrink-0 mt-0.5", statusColors[task.status])} />
+                    </div>
+                    {task.description && (
+                      <p className="text-[10px] text-muted-foreground line-clamp-1 mt-1">
+                        {task.description}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-border/20">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <AgentAvatar
+                          agent={team || { avatar: "T", avatar_icon: "users" }}
+                          className="w-3.5 h-3.5 rounded-md text-[8px] shrink-0"
+                          iconClassName="w-2 h-2"
+                        />
+                        <span className="text-[9px] text-muted-foreground truncate">{team?.name || "No department"}</span>
+                      </div>
+                      <span className="text-[9px] font-semibold text-foreground/75 shrink-0">
+                        {progress}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* RIGHT WORKSPACE PANEL: Task detail + convo + graph */}
+      <div className="flex-1 h-full flex flex-col overflow-hidden bg-background">
+        {(() => {
+          if (!viewTaskId) {
             return (
-              <div className={`h-full min-h-0 grid grid-cols-1 ${graphPanelVisible ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,3fr)]" : "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]"}`}>
-                <div className="h-full min-h-0 border-r border-border bg-muted/25 overflow-y-auto p-5 space-y-5">
-                  <DialogHeader className="space-y-2 text-left">
-                    <div className="flex items-center justify-between gap-3">
-                      <DialogTitle className="text-xl leading-tight pr-2">{selectedTask.title}</DialogTitle>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => setViewTaskId(null)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Icon className={`w-4 h-4 ${statusColors[selectedTask.status]}`} />
-                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{selectedTask.status}</span>
-                    </div>
-                  </DialogHeader>
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-muted/5">
+                <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4 border border-border/40 shadow-sm">
+                  <CheckCircle2 className="w-7 h-7 text-muted-foreground/45" />
+                </div>
+                <h3 className="text-sm font-bold text-foreground mb-1">No Task Selected</h3>
+                <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
+                  Select a task from the list on the left to view its execution details, live agent conversations, and knowledge graphs.
+                </p>
+              </div>
+            );
+          }
 
-                  <div className="space-y-2">
+          const selectedTask = taskList.find((task) => task.id === viewTaskId);
+          if (!selectedTask) {
+            return (
+              <div className="flex-1 flex items-center justify-center p-8 text-center text-xs text-muted-foreground">
+                Task not found
+              </div>
+            );
+          }
+
+          const team = teamList.find((t) => t.id === selectedTask.teamId);
+          const messages = taskConversations[selectedTask.id] ?? [];
+          const visibleMessages = messages.slice(-50);
+          const maxRounds = team?.maxSteps ?? 6;
+          const calculatedProgress = selectedTask.status === "completed" ? 100 : Math.min(Math.round((messages.length / maxRounds) * 100), 99);
+          const startDate = parseTaskDate(selectedTask.startTime);
+          const endDate = parseTaskDate(selectedTask.endTime);
+          const completionDuration =
+            selectedTask.status === "completed" && startDate && endDate
+              ? formatDuration(endDate.getTime() - startDate.getTime())
+              : null;
+          const completionSummary = !startDate
+            ? "(No start time yet)"
+            : completionDuration ?? "(Not completed yet)";
+          const canStart = selectedTask.status === "pending" || selectedTask.status === "paused" || selectedTask.status === "stopped" || selectedTask.status === "completed";
+          const canPause = selectedTask.status === "in-progress";
+          const canStop = selectedTask.status === "in-progress" || selectedTask.status === "paused";
+          const isUpdating = updatingTaskIds.has(selectedTask.id);
+          const isConversationLoading = loadingConversationTaskIds.has(selectedTask.id);
+          const isRestart = selectedTask.status === "completed";
+          const Icon = statusIcons[selectedTask.status] ?? Circle;
+          const graphSnapshot = taskGraphSnapshots[selectedTask.id];
+          const graphHighlight = taskGraphHighlights[selectedTask.id];
+          const graphLoading = loadingGraphTaskIds.has(selectedTask.id);
+          const graphNodes = getGraphDisplayNodes(graphSnapshot, graphHighlight);
+          const graphLayout = getGraphLayout(graphNodes, 560, 300);
+          const graphLayoutById = new Map(graphLayout.map((entry) => [entry.node.id, entry]));
+          const graphPositions = taskGraphPositions[selectedTask.id] ?? createNodePositionMap(graphNodes, GRAPH_VIEWBOX_WIDTH, GRAPH_VIEWBOX_HEIGHT);
+          const activeNodeIds = new Set(graphHighlight?.nodeIds ?? []);
+          const activeEdgeIds = new Set(graphHighlight?.edgeIds ?? []);
+          const activeChunkIds = new Set(graphHighlight?.chunkIds ?? []);
+          const graphEdges = (graphSnapshot?.edges ?? [])
+            .filter((edge) => graphLayoutById.has(edge.src) && graphLayoutById.has(edge.dst))
+            .sort((left, right) => {
+              const leftActive = activeEdgeIds.has(left.id) ? 1 : 0;
+              const rightActive = activeEdgeIds.has(right.id) ? 1 : 0;
+              return rightActive - leftActive || right.weight - left.weight;
+            })
+            .slice(0, 24);
+          const graphNodeById = new Map((graphSnapshot?.nodes ?? []).map((node) => [node.id, node]));
+          const activeNodeLabels = Array.from(activeNodeIds)
+            .map((nodeId) => graphNodeById.get(nodeId)?.value || nodeId)
+            .slice(0, 6);
+          const viewport = taskGraphViewports[selectedTask.id] ?? createDefaultViewport();
+
+          return (
+            <div className="flex-1 h-full min-h-0 flex flex-col bg-background select-text">
+              {/* Detail Header bar */}
+              <div className="px-5 py-3 border-b border-border bg-background/50 backdrop-blur-sm flex items-center justify-between flex-shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Icon className={cn("w-4.5 h-4.5 shrink-0", statusColors[selectedTask.status])} />
+                  <h2 className="font-bold text-sm truncate text-foreground leading-none">{selectedTask.title}</h2>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs px-3"
+                    onClick={() => openEditDialog(selectedTask)}
+                    disabled={isUpdating}
+                  >
+                    <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 text-xs px-3 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                    onClick={() => deleteTask(selectedTask.id)}
+                    disabled={isUpdating}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
+                  </Button>
+                </div>
+              </div>
+
+              {/* Detail columns workspace */}
+              <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[280px_1fr_minmax(0,1.2fr)] divide-x divide-border">
+                {/* Panel 1: Settings / Metadata */}
+                <div className="h-full overflow-y-auto p-4 space-y-5 bg-muted/5 flex-shrink-0 scrollbar-thin">
+                  <div className="space-y-1.5">
                     <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Progress</span>
-                      <span className="font-semibold">{calculatedProgress}% ({messages.length} / {maxRounds})</span>
+                      <span className="text-muted-foreground font-medium">Progress</span>
+                      <span className="font-bold text-foreground">{calculatedProgress}%</span>
                     </div>
-                    <Progress value={calculatedProgress} className="h-2" />
+                    <Progress value={calculatedProgress} className="h-1.5" />
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-1.5">
                     <Button
                       size="sm"
+                      className="flex-1 h-8 text-xs font-semibold"
                       variant={selectedTask.status === "in-progress" ? "default" : "outline"}
                       onClick={() => updateTaskStatus(selectedTask, "in-progress")}
                       disabled={!canStart || isUpdating}
                     >
-                      <Play className="w-3.5 h-3.5 mr-1" />
+                      <Play className="w-3 h-3 mr-1.5 fill-current" />
                       {isRestart ? "Restart" : "Start"}
                     </Button>
                     <Button
                       size="sm"
-                      variant={selectedTask.status === "paused" ? "default" : "outline"}
+                      className="h-8 px-2.5"
+                      variant="outline"
                       onClick={() => updateTaskStatus(selectedTask, "paused")}
                       disabled={!canPause}
                     >
-                      <Pause className="w-3.5 h-3.5 mr-1" />
-                      Pause
+                      <Pause className="w-3.5 h-3.5" />
                     </Button>
                     <Button
                       size="sm"
-                      variant={selectedTask.status === "stopped" ? "destructive" : "outline"}
+                      className="h-8 px-2.5 hover:bg-rose-500/10 hover:border-rose-500/20"
+                      variant="outline"
                       onClick={() => updateTaskStatus(selectedTask, "stopped")}
                       disabled={!canStop}
                     >
-                      <Square className="w-3.5 h-3.5 mr-1" />
-                      Stop
+                      <Square className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
                     </Button>
                   </div>
 
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Description</label>
-                    <p className="text-sm text-foreground whitespace-pre-wrap">{selectedTask.description || "(No description)"}</p>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Description</label>
+                    <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">{selectedTask.description || "(No description)"}</p>
                   </div>
 
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Completion Time</label>
-                    <p className={`text-xs ${completionDuration ? "text-agent-dev font-semibold" : "text-muted-foreground"}`}>
-                      {completionSummary}
-                    </p>
-                    {startDate && (
-                      <div className="text-xs mt-2 space-y-1 text-foreground/85">
-                        <p>Start (UTC+7): {formatTaskDateTime(startDate)}</p>
-                        <p>End (UTC+7): {endDate ? formatTaskDateTime(endDate) : "(Not completed yet)"}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Assigned Team</label>
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-background text-xs font-semibold border border-border">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Department</label>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted text-xs font-semibold">
                       <AgentAvatar
-                        agent={
-                          team
-                            ? team
-                            : {
-                                avatar: "T",
-                                avatar_icon: "users",
-                              }
-                        }
-                        className={`w-5 h-5 rounded-md text-[10px] ${team?.avatar_color ? "" : "bg-primary/15 text-primary"}`}
-                        iconClassName="w-3 h-3"
+                        agent={team || { avatar: "D", avatar_icon: "users" }}
+                        className="w-4 h-4 rounded-md text-[9px]"
+                        iconClassName="w-2.5 h-2.5"
                       />
-                      {team?.name || selectedTask.teamId || "(No team)"}
+                      {team?.name || "(No team)"}
                     </div>
                   </div>
 
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Assigned Agents</label>
-                    <div className="flex flex-wrap gap-2">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Personnel</label>
+                    <div className="flex flex-wrap gap-1.5">
                       {selectedTask.assignedAgents.map((aid) => {
                         const agent = agentById.get(aid);
                         return agent ? (
-                          <span key={aid} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background text-xs font-medium border border-border">
+                          <span key={aid} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-background text-[11px] font-medium border border-border/60 shadow-sm">
                             <AgentAvatar
                               agent={agent}
-                              className={`w-5 h-5 rounded-md text-[10px] ${agent.avatar_color ? "" : getAgentRoleColor(agent.role)}`}
-                              iconClassName="w-3 h-3"
+                              className="w-4 h-4 rounded-md text-[8px]"
+                              iconClassName="w-2.5 h-2.5"
                             />
                             {agent.name}
                           </span>
@@ -1027,52 +1204,55 @@ export default function TaskManager() {
                       })}
                     </div>
                   </div>
+
+                  <div className="space-y-1.5 pt-3 border-t border-border/40">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Duration</label>
+                    <p className="text-xs font-semibold text-foreground">{completionSummary}</p>
+                    {startDate && (
+                      <div className="text-[10px] text-muted-foreground mt-1 space-y-0.5">
+                        <p>Started: {formatTaskDateTime(startDate)}</p>
+                        {endDate && <p>Ended: {formatTaskDateTime(endDate)}</p>}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="h-full min-h-0 p-5 flex flex-col border-r border-border bg-background/80 overflow-hidden">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                      Live Conversation
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => setGraphPanelVisible((v) => !v)}
-                        title={graphPanelVisible ? "Hide graph" : "Show graph"}
-                      >
-                        {graphPanelVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </Button>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        {selectedTask.status === "in-progress" && <span className="w-2 h-2 rounded-full bg-agent-dev animate-pulse" />}
-                        <span>{selectedTask.status === "in-progress" ? "Live" : "Recent"}</span>
-                      </div>
-                    </div>
+                {/* Panel 2: Live Chat/Conversation */}
+                <div className="h-full flex flex-col overflow-hidden bg-background">
+                  <div className="px-4 py-2 border-b border-border/40 bg-muted/5 flex items-center justify-between flex-shrink-0">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Live Chat Logs
+                    </span>
+                    <button
+                      onClick={() => setGraphPanelVisible(v => !v)}
+                      className="text-[10px] flex items-center gap-1 px-2.5 py-1 rounded bg-muted/65 hover:bg-muted text-muted-foreground transition-colors font-semibold border border-border/40"
+                    >
+                      {graphPanelVisible ? <EyeOff className="w-3 h-3 text-rose-400" /> : <Eye className="w-3 h-3 text-teal-450" />}
+                      {graphPanelVisible ? "Hide Graph" : "Show Graph"}
+                    </button>
                   </div>
-
-                  <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3.5 scrollbar-thin">
                     {isConversationLoading && messages.length === 0 && (thinkingAgents[selectedTask.id]?.size ?? 0) === 0 ? (
-                      <p className="text-sm text-muted-foreground animate-pulse">Loading conversation...</p>
+                      <p className="text-xs text-muted-foreground animate-pulse">Loading conversation...</p>
                     ) : visibleMessages.length > 0 || (thinkingAgents[selectedTask.id]?.size ?? 0) > 0 ? (
-                      <div className="space-y-3">
+                      <div className="space-y-3.5">
                         {visibleMessages.map((msg) => {
                           const agent = agentById.get(msg.agentId);
                           const ts = new Date(msg.timestamp);
                           return (
-                            <div key={msg.id} className="rounded-lg border border-border/70 p-3 bg-background hover:bg-muted/20 transition-colors">
+                            <div key={msg.id} className="rounded-xl border border-border/40 p-3.5 bg-card/45 hover:bg-muted/10 transition-colors shadow-sm">
                               <div className="flex items-center gap-2 mb-2">
                                 <AgentAvatar
                                   agent={agent || { avatar: "?" }}
-                                  className={`w-7 h-7 rounded-md text-[10px] shadow-sm ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
-                                  iconClassName="w-3.5 h-3.5"
+                                  className={`w-6.5 h-6.5 rounded-md text-[9px] shadow-sm shrink-0 ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
+                                  iconClassName="w-3 h-3"
                                 />
-                                <span className="text-sm font-semibold">{agent?.name ?? msg.agentId}</span>
-                                <span className="text-[11px] text-muted-foreground font-mono ml-auto">
+                                <span className="text-xs font-bold text-foreground">{agent?.name ?? msg.agentId}</span>
+                                <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto">
                                   {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                                 </span>
                               </div>
-                              <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:text-sm [&>p]:text-muted-foreground [&>p]:leading-relaxed [&>p:last-child]:mb-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_ul]:mb-2 [&_ol]:mb-2 [&_li]:mb-1">
+                              <div className="prose prose-sm dark:prose-invert max-w-none text-xs text-foreground/80 leading-relaxed [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4">
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                   {msg.content}
                                 </ReactMarkdown>
@@ -1080,486 +1260,169 @@ export default function TaskManager() {
                             </div>
                           );
                         })}
-                        
+
                         {/* Thinking indicators */}
                         {(thinkingAgents[selectedTask.id]?.size ?? 0) > 0 && (
                           Array.from(thinkingAgents[selectedTask.id] ?? []).map((agentId) => {
                             const agent = agentById.get(agentId);
                             return (
-                              <div key={`thinking-${agentId}`} className="rounded-lg border border-primary/20 p-3 bg-primary/8">
+                              <div key={`thinking-${agentId}`} className="rounded-xl border border-primary/20 p-3.5 bg-primary/5">
                                 <div className="flex items-center gap-2">
-                                  <div className="flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0.2s" }} />
-                                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0.4s" }} />
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0.2s" }} />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0.4s" }} />
                                   </div>
-                                  <span className="text-sm font-semibold text-primary">
-                                    {agent?.name ?? agentId} is thinking...
+                                  <span className="text-xs font-semibold text-primary/95">
+                                    {agent?.name ?? agentId} is processing...
                                   </span>
                                 </div>
                               </div>
                             );
                           })
                         )}
+                        <div ref={chatEndRef} />
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground">No conversation yet for this task.</p>
+                      <p className="text-xs text-muted-foreground text-center py-8">No messages yet for this task.</p>
                     )}
                   </div>
                 </div>
 
-                {graphPanelVisible && <div className="h-full min-h-0 p-5 flex flex-col overflow-hidden bg-card/80 text-foreground">
-                  <div className="flex items-start justify-between gap-4 border-b border-border pb-3 mb-3">
-                    <button
-                      className="flex items-center gap-2 text-left hover:opacity-75 transition-opacity"
-                      onClick={() => setGraphActivityCollapsed((v) => !v)}
-                      title={graphActivityCollapsed ? "Show knowledge graph activity / Hiện hoạt động đồ thị kiến thức" : "Hide knowledge graph activity / Ẩn hoạt động đồ thị kiến thức"}
-                    >
-                      {graphActivityCollapsed ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" /> : <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
+                {/* Panel 3: Knowledge Graph */}
+                {graphPanelVisible && (
+                  <div className="h-full flex flex-col overflow-hidden bg-background">
+                    <div className="px-4 py-2 border-b border-border/40 bg-muted/5 flex items-center justify-between flex-shrink-0">
                       <div>
-                        <div className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Graph context</div>
-                        <div className="mt-1 text-sm font-semibold text-foreground">Knowledge graph activity</div>
+                        <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Knowledge Graph</span>
                       </div>
-                    </button>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => setGraphPanelVisible(false)}
-                        title="Hide graph panel / Ẩn bảng đồ thị"
-                      >
-                        <EyeOff className="w-3.5 h-3.5" />
-                      </Button>
-                      <div className="text-right text-[11px] text-foreground/70">
-                        <div className="font-medium text-foreground">
-                          {graphHighlight?.agentName ?? (selectedTask.status === "in-progress" ? "Waiting for context" : "Idle")}
-                        </div>
-                        <div>{graphNodes.length} nodes · {graphEdges.length} edges</div>
-                      </div>
+                      <span className="text-[10px] text-muted-foreground/60 font-mono">
+                        {graphNodes.length} nodes · {graphEdges.length} edges
+                      </span>
                     </div>
-                  </div>
-
-                  {!graphActivityCollapsed && <div className="min-h-0 flex-1 p-0">
-                    {graphLoading && !graphSnapshot ? (
-                      <div className="flex h-full items-center justify-center rounded-xl border border-border bg-muted/20 text-sm text-muted-foreground animate-pulse">
-                        Loading graph context...
-                      </div>
-                    ) : graphNodes.length > 0 ? (
-                      <div className="flex h-full min-h-0 flex-col gap-3">
-                        <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-muted/10">
-                          <svg
-                            ref={graphSvgRef}
-                            viewBox={`0 0 ${GRAPH_VIEWBOX_WIDTH} ${GRAPH_VIEWBOX_HEIGHT}`}
-                            className="h-full w-full touch-none cursor-grab active:cursor-grabbing"
-                            preserveAspectRatio="xMidYMid meet"
-                            onWheel={(event) => wheelGraph(selectedTask.id, event)}
-                            onPointerDown={(event) => startGraphDrag(selectedTask.id, event)}
-                            onPointerMove={(event) => moveGraphDrag(selectedTask.id, event)}
-                            onPointerUp={(event) => endGraphDrag(selectedTask.id, event)}
-                            onPointerCancel={(event) => endGraphDrag(selectedTask.id, event)}
-                          >
-                            <defs>
-                              <filter id="graphGlow" x="-40%" y="-40%" width="180%" height="180%">
-                                <feGaussianBlur stdDeviation="6" result="blur" />
-                                <feColorMatrix
-                                  in="blur"
-                                  type="matrix"
-                                  values="1 0 0 0 0.2 0 1 0 0 0.55 0 0 1 0 0.95 0 0 0 0.85 0"
-                                />
-                                <feMerge>
-                                  <feMergeNode />
-                                  <feMergeNode in="SourceGraphic" />
-                                </feMerge>
-                              </filter>
-                            </defs>
-
-                            <g transform={`translate(${viewport.panX} ${viewport.panY}) scale(${viewport.scale})`} transformOrigin="280 150">
-                              {graphEdges.map((edge) => {
-                                const source = graphPositions[edge.src] ?? graphLayoutById.get(edge.src);
-                                const target = graphPositions[edge.dst] ?? graphLayoutById.get(edge.dst);
-                                if (!source || !target) return null;
-                                const isActive = activeEdgeIds.has(edge.id) || (activeNodeIds.has(edge.src) && activeNodeIds.has(edge.dst));
-                                return (
-                                  <line
-                                    key={edge.id}
-                                    x1={source.x}
-                                    y1={source.y}
-                                    x2={target.x}
-                                    y2={target.y}
-                                    stroke={isActive ? "rgba(96, 165, 250, 0.92)" : "rgba(148, 163, 184, 0.22)"}
-                                    strokeWidth={isActive ? 2.4 : 1.25}
-                                    strokeLinecap="round"
+                    <div className="flex-1 p-3 flex flex-col min-h-0 bg-muted/5">
+                      {graphLoading && !graphSnapshot ? (
+                        <div className="flex h-full items-center justify-center rounded-xl border border-border/40 bg-muted/20 text-xs text-muted-foreground animate-pulse">
+                          Loading graph context...
+                        </div>
+                      ) : graphNodes.length > 0 ? (
+                        <div className="flex-1 flex flex-col gap-3 min-h-0">
+                          <div className="relative flex-1 overflow-hidden rounded-xl border border-border/40 bg-muted/10">
+                            <svg
+                              ref={graphSvgRef}
+                              viewBox={`0 0 ${GRAPH_VIEWBOX_WIDTH} ${GRAPH_VIEWBOX_HEIGHT}`}
+                              className="h-full w-full touch-none cursor-grab active:cursor-grabbing"
+                              preserveAspectRatio="xMidYMid meet"
+                              onWheel={(event) => wheelGraph(selectedTask.id, event)}
+                              onPointerDown={(event) => startGraphDrag(selectedTask.id, event)}
+                              onPointerMove={(event) => moveGraphDrag(selectedTask.id, event)}
+                              onPointerUp={(event) => endGraphDrag(selectedTask.id, event)}
+                              onPointerCancel={(event) => endGraphDrag(selectedTask.id, event)}
+                            >
+                              <defs>
+                                <filter id="graphGlow" x="-40%" y="-40%" width="180%" height="180%">
+                                  <feGaussianBlur stdDeviation="6" result="blur" />
+                                  <feColorMatrix
+                                    in="blur"
+                                    type="matrix"
+                                    values="1 0 0 0 0.2 0 1 0 0 0.55 0 0 1 0 0.95 0 0 0 0.85 0"
                                   />
-                                );
-                              })}
+                                  <feMerge>
+                                    <feMergeNode />
+                                    <feMergeNode in="SourceGraphic" />
+                                  </feMerge>
+                                </filter>
+                              </defs>
 
-                              {graphLayout.map((entry) => {
-                                const isActive = activeNodeIds.has(entry.node.id);
-                                const position = graphPositions[entry.node.id] ?? entry;
-                                const nodeFill = isActive ? "rgba(96, 165, 250, 0.95)" : "rgba(15, 23, 42, 0.88)";
-                                const stroke = isActive ? "rgba(191, 219, 254, 0.98)" : "rgba(148, 163, 184, 0.4)";
-                                return (
-                                  <g
-                                    key={entry.node.id}
-                                    filter={isActive ? "url(#graphGlow)" : undefined}
-                                    style={{ cursor: "grab" }}
-                                    onPointerDown={(event) => startNodeDrag(selectedTask.id, entry.node.id, event)}
-                                    onPointerMove={(event) => moveNodeDrag(selectedTask.id, event)}
-                                    onPointerUp={(event) => endNodeDrag(selectedTask.id, event)}
-                                    onPointerCancel={(event) => endNodeDrag(selectedTask.id, event)}
-                                  >
-                                    <circle cx={position.x} cy={position.y} r={isActive ? 16 : 12} fill={nodeFill} stroke={stroke} strokeWidth={isActive ? 3 : 1.5} />
-                                    <circle cx={position.x} cy={position.y} r={isActive ? 24 : 18} fill={isActive ? "rgba(59, 130, 246, 0.12)" : "rgba(148, 163, 184, 0.08)"} />
-                                    <text
-                                      x={position.x}
-                                      y={position.y + 34}
-                                      textAnchor="middle"
-                                      fill="hsl(var(--foreground) / 0.9)"
-                                      fontSize="10"
-                                      fontWeight={600}
-                                    >
-                                      {ellipsis(entry.node.value, 18)}
-                                    </text>
-                                    <text
-                                      x={position.x}
-                                      y={position.y + 47}
-                                      textAnchor="middle"
-                                      fill="hsl(var(--muted-foreground))"
-                                      fontSize="8"
-                                      letterSpacing="0.08em"
-                                    >
-                                      {entry.node.type}
-                                    </text>
-                                  </g>
-                                );
-                              })}
-                            </g>
-                          </svg>
-                        </div>
-                        <div className="grid gap-2 rounded-xl border border-border bg-muted/10 p-3 text-xs text-foreground/80 sm:grid-cols-2">
-                          <div>
-                            <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Active nodes</div>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {activeNodeLabels.length > 0 ? (
-                                activeNodeLabels.map((label) => (
-                                  <span key={label} className="inline-flex items-center rounded-full border border-primary/30 bg-primary/15 px-2.5 py-1 text-[11px] text-primary">
-                                    {ellipsis(label, 20)}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="text-muted-foreground">No active highlight yet.</span>
-                              )}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Current update</div>
-                            <div className="mt-2 space-y-1 text-foreground/70">
-                              <div>{graphHighlight?.agentName ? `${graphHighlight.agentName} is loading context` : "Waiting for the next turn"}</div>
-                              <div>{activeChunkIds.size} chunk(s) highlighted</div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border bg-muted/10 px-4 text-center text-sm text-muted-foreground">
-                        No graph context yet. Start or restart the task to populate the knowledge graph.
-                      </div>
-                    )}
-                  </div>}
-                </div>}
-              </div>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
-
-      <div className="space-y-4">
-        {taskList.map((task, i) => {
-          const Icon = statusIcons[task.status] ?? Circle;
-          const isUpdating = updatingTaskIds.has(task.id);
-          const canStart = task.status === "pending" || task.status === "paused" || task.status === "stopped" || task.status === "completed";
-          const canPause = task.status === "in-progress";
-          const canStop = task.status === "in-progress" || task.status === "paused";
-          const messages = taskConversations[task.id] ?? [];
-          const isConversationLoading = loadingConversationTaskIds.has(task.id);
-          const visibleMessages = messages.slice(-8);
-          const isRestart = task.status === "completed";
-          const isExpanded = expandedTaskIds.has(task.id);
-          const team = teamList.find((t) => t.id === task.teamId);
-          const maxRounds = team?.maxSteps ?? 6;
-          const startDate = parseTaskDate(task.startTime);
-          const endDate = parseTaskDate(task.endTime);
-          const completionDuration =
-            task.status === "completed" && startDate && endDate
-              ? formatDuration(endDate.getTime() - startDate.getTime())
-              : null;
-          const completionSummary = !startDate
-            ? "(No start time yet)"
-            : completionDuration ?? "(Not completed yet)";
-          
-          // Calculate progress based on messages received
-          const calculatedProgress = task.status === "completed" ? 100 : Math.min(Math.round((messages.length / maxRounds) * 100), 99);
-          
-          return (
-            <motion.div
-              key={task.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              className="glass-card overflow-hidden"
-            >
-              {/* Compact View */}
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-4 mb-3">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Icon className={`w-5 h-5 flex-shrink-0 ${statusColors[task.status]}`} />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold truncate">{task.title}</h3>
-                      <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
-                        <AgentAvatar
-                          agent={
-                            team
-                              ? team
-                              : {
-                                  avatar: "T",
-                                  avatar_icon: "users",
-                                }
-                          }
-                          className={`w-4 h-4 rounded-md text-[9px] ${team?.avatar_color ? "" : "bg-primary/15 text-primary"}`}
-                          iconClassName="w-2.5 h-2.5"
-                        />
-                        <p className="text-xs text-muted-foreground truncate">{team?.name || "(No team)"}</p>
-                      </div>
-                      <p className={`text-[11px] mt-1 ${completionDuration ? "text-agent-dev" : "text-muted-foreground"}`}>
-                        Completion time: {completionSummary}
-                      </p>
-                    </div>
-                  </div>
-
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => toggleTaskExpanded(task.id)}
-                    className="p-1 h-auto flex-shrink-0"
-                  >
-                    {isExpanded ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-
-                {/* Progress Bar - Show when in-progress or has messages */}
-                {(task.status === "in-progress" || messages.length > 0) && (
-                  <div className="mb-3 space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground capitalize">{task.status}</span>
-                      <span className="font-bold">{calculatedProgress}%</span>
-                    </div>
-                    <Progress value={calculatedProgress} className="h-1.5" />
-                  </div>
-                )}
-
-                {/* Control Buttons - Always Visible */}
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant={task.status === "in-progress" ? "default" : "outline"}
-                    onClick={() => updateTaskStatus(task, "in-progress")}
-                    disabled={!canStart || isUpdating}
-                  >
-                    <Play className="w-3.5 h-3.5 mr-1" />
-                    {isRestart ? "Restart" : "Start"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={task.status === "paused" ? "default" : "outline"}
-                    onClick={() => updateTaskStatus(task, "paused")}
-                    disabled={!canPause}
-                  >
-                    <Pause className="w-3.5 h-3.5 mr-1" />
-                    Pause
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={task.status === "stopped" ? "destructive" : "outline"}
-                    onClick={() => updateTaskStatus(task, "stopped")}
-                    disabled={!canStop}
-                  >
-                    <Square className="w-3.5 h-3.5 mr-1" />
-                    Stop
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => openTaskView(task.id)}>
-                    <Eye className="w-3.5 h-3.5 mr-1" />
-                    View
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => openEditDialog(task)} disabled={isUpdating}>
-                    <Pencil className="w-3.5 h-3.5 mr-1" />
-                    Edit
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => deleteTask(task.id)} disabled={isUpdating}>
-                    <Trash2 className="w-3.5 h-3.5 mr-1" />
-                    Delete
-                  </Button>
-                </div>
-              </div>
-
-              {/* Expanded Details */}
-              {isExpanded && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="border-t border-border bg-muted/30 p-5 space-y-4"
-                >
-                  {/* Progress Bar */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs">
-                      <span className="font-medium capitalize">{task.status}</span>
-                      <span className="font-bold">{calculatedProgress}% ({messages.length} / {maxRounds} messages)</span>
-                    </div>
-                    <Progress value={calculatedProgress} className="h-1.5" />
-                  </div>
-
-                  {/* Description */}
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Description</label>
-                    <p className="text-sm text-foreground">{task.description || "(No description)"}</p>
-                  </div>
-
-                  {/* Completion Time */}
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Completion Time (UTC+7)</label>
-                    {startDate ? (
-                      <div className="text-xs space-y-1 text-foreground/90">
-                        <p>Start (UTC+7): {formatTaskDateTime(startDate)}</p>
-                        <p>End (UTC+7): {endDate ? formatTaskDateTime(endDate) : "(Not completed yet)"}</p>
-                        {completionDuration && <p className="font-semibold text-agent-dev">Duration: {completionDuration}</p>}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">(No start time yet)</p>
-                    )}
-                  </div>
-
-                  {/* Assigned Team */}
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Assigned Team</label>
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-background text-xs font-semibold border border-border">
-                      <AgentAvatar
-                        agent={
-                          team
-                            ? team
-                            : {
-                                avatar: "T",
-                                avatar_icon: "users",
-                              }
-                        }
-                        className={`w-5 h-5 rounded-md text-[10px] ${team?.avatar_color ? "" : "bg-primary/15 text-primary"}`}
-                        iconClassName="w-3 h-3"
-                      />
-                      {team?.name || task.teamId || "(No team)"}
-                    </div>
-                  </div>
-
-                  {/* Assigned Agents */}
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Assigned Agents</label>
-                    <div className="flex flex-wrap gap-2">
-                      {task.assignedAgents.map((aid) => {
-                        const agent = agentById.get(aid);
-                        return agent ? (
-                          <span key={aid} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background text-xs font-medium border border-border">
-                            <AgentAvatar
-                              agent={agent}
-                              className={`w-5 h-5 rounded-md text-[10px] ${agent.avatar_color ? "" : getAgentRoleColor(agent.role)}`}
-                              iconClassName="w-3 h-3"
-                            />
-                            {agent.name}
-                          </span>
-                        ) : null;
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Conversation Stream */}
-                  {(task.status === "in-progress" || messages.length > 0) && (
-                    <div className="border-t border-border pt-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          Conversation Stream
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                          {task.status === "in-progress" && <span className="w-1.5 h-1.5 rounded-full bg-agent-dev animate-pulse" />}
-                          <span>{task.status === "in-progress" ? "Live" : "Recent"}</span>
-                        </div>
-                      </div>
-
-                      {isConversationLoading && messages.length === 0 && (thinkingAgents[task.id]?.size ?? 0) === 0 ? (
-                        <p className="text-xs text-muted-foreground animate-pulse">...</p>
-                      ) : visibleMessages.length > 0 || (thinkingAgents[task.id]?.size ?? 0) > 0 ? (
-                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                          {visibleMessages.map((msg) => {
-                            const agent = agentById.get(msg.agentId);
-                            const ts = new Date(msg.timestamp);
-                            return (
-                              <div key={msg.id} className="rounded-md border border-border/60 p-2.5 bg-background hover:bg-muted/30 transition-colors">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <div
-                                      className="flex-shrink-0"
-                                  >
-                                    <AgentAvatar
-                                      agent={agent || { avatar: "?" }}
-                                      className={`w-6 h-6 rounded-md text-[10px] shadow-sm ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
-                                      iconClassName="w-3 h-3"
+                              <g transform={`translate(${viewport.panX} ${viewport.panY}) scale(${viewport.scale})`} transformOrigin="280 150">
+                                {graphEdges.map((edge) => {
+                                  const source = graphPositions[edge.src] ?? graphLayoutById.get(edge.src);
+                                  const target = graphPositions[edge.dst] ?? graphLayoutById.get(edge.dst);
+                                  if (!source || !target) return null;
+                                  const isActive = activeEdgeIds.has(edge.id) || (activeNodeIds.has(edge.src) && activeNodeIds.has(edge.dst));
+                                  return (
+                                    <line
+                                      key={edge.id}
+                                      x1={source.x}
+                                      y1={source.y}
+                                      x2={target.x}
+                                      y2={target.y}
+                                      stroke={isActive ? "rgba(20, 184, 166, 0.95)" : "rgba(148, 163, 184, 0.2)"}
+                                      strokeWidth={isActive ? 2.5 : 1.25}
+                                      strokeLinecap="round"
                                     />
-                                  </div>
-                                  <span className="text-xs font-semibold">{agent?.name ?? msg.agentId}</span>
-                                  <span className="text-[10px] text-muted-foreground font-mono ml-auto">
-                                    {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                                  </span>
-                                </div>
-                                <div className="prose prose-xs dark:prose-invert max-w-none [&>p]:text-xs [&>p]:text-muted-foreground [&>p]:leading-relaxed [&>p:last-child]:mb-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_ul]:mb-2 [&_ol]:mb-2 [&_li]:mb-1">
-                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                    {msg.content}
-                                  </ReactMarkdown>
-                                </div>
-                              </div>
-                            );
-                          })}
-                          
-                          {/* Thinking indicators - compact view */}
-                          {(thinkingAgents[task.id]?.size ?? 0) > 0 && (
-                            Array.from(thinkingAgents[task.id] ?? []).map((agentId) => {
-                              const agent = agentById.get(agentId);
-                              return (
-                                <div key={`thinking-${agentId}`} className="rounded-md border border-primary/20 p-2 bg-primary/8">
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="flex items-center gap-0.5">
-                                      <span className="w-1 h-1 rounded-full bg-primary animate-pulse" />
-                                      <span className="w-1 h-1 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0.2s" }} />
-                                      <span className="w-1 h-1 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0.4s" }} />
-                                    </div>
-                                    <span className="text-xs font-semibold text-primary">
-                                      {agent?.name ?? agentId} thinking...
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            })
+                                  );
+                                })}
+
+                                {graphLayout.map((entry) => {
+                                  const isActive = activeNodeIds.has(entry.node.id);
+                                  const position = graphPositions[entry.node.id] ?? entry;
+                                  const nodeFill = isActive ? "rgba(20, 184, 166, 0.95)" : "rgba(15, 23, 42, 0.9)";
+                                  const nodeStroke = isActive ? "rgba(20, 184, 166, 0.3)" : "rgba(148, 163, 184, 0.3)";
+                                  return (
+                                    <g
+                                      key={entry.node.id}
+                                      filter={isActive ? "url(#graphGlow)" : undefined}
+                                      style={{ cursor: "grab" }}
+                                      onPointerDown={(event) => startNodeDrag(selectedTask.id, entry.node.id, event)}
+                                      onPointerMove={(event) => moveNodeDrag(selectedTask.id, event)}
+                                      onPointerUp={(event) => endNodeDrag(selectedTask.id, event)}
+                                      onPointerCancel={(event) => endNodeDrag(selectedTask.id, event)}
+                                    >
+                                      <circle cx={position.x} cy={position.y} r={isActive ? 16 : 12} fill={nodeFill} stroke={nodeStroke} strokeWidth={isActive ? 3 : 1.5} />
+                                      <circle cx={position.x} cy={position.y} r={isActive ? 24 : 18} fill={isActive ? "rgba(20, 184, 166, 0.12)" : "rgba(148, 163, 184, 0.08)"} />
+                                      <text
+                                        x={position.x}
+                                        y={position.y + 34}
+                                        textAnchor="middle"
+                                        fill="hsl(var(--foreground) / 0.9)"
+                                        fontSize="10"
+                                        fontWeight={600}
+                                        pointerEvents="none"
+                                        className="select-none font-sans"
+                                      >
+                                        {ellipsis(entry.node.value, 18)}
+                                      </text>
+                                      <text
+                                        x={position.x}
+                                        y={position.y + 47}
+                                        textAnchor="middle"
+                                        fill="hsl(var(--muted-foreground))"
+                                        fontSize="8"
+                                        letterSpacing="0.08em"
+                                        pointerEvents="none"
+                                        className="select-none font-sans"
+                                      >
+                                        {entry.node.type}
+                                      </text>
+                                    </g>
+                                  );
+                                })}
+                              </g>
+                            </svg>
+                          </div>
+                          {activeNodeLabels.length > 0 && (
+                            <div className="p-2.5 rounded-xl border border-border/40 bg-card/30 flex flex-wrap gap-1.5 max-h-[85px] overflow-y-auto">
+                              {activeNodeLabels.map((lbl, idx) => (
+                                <span key={idx} className="px-2 py-0.5 rounded bg-teal-500/10 text-teal-400 border border-teal-500/20 text-[10px] font-semibold">
+                                  {lbl}
+                                </span>
+                              ))}
+                            </div>
                           )}
                         </div>
                       ) : (
-                        <p className="text-xs text-muted-foreground">No conversation yet for this task.</p>
+                        <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground border border-dashed border-border/40 rounded-xl p-4">
+                          No knowledge entities extracted yet
+                        </div>
                       )}
                     </div>
-                  )}
-                </motion.div>
-              )}
-            </motion.div>
+                  </div>
+                )}
+              </div>
+            </div>
           );
-        })}
+        })()}
       </div>
     </div>
   );

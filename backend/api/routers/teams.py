@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 from dataclasses import replace
-from datetime import datetime
+from datetime import datetime, timezone
 import time
 from fastapi import APIRouter, Depends
 
@@ -56,7 +56,7 @@ def _seed_team_kickoff_messages(team: Team, agent_service: AgentService, conv_se
                 id=f"m{base_ts + idx}",
                 agent_id=speaker.id,
                 content=text,
-                timestamp=datetime.utcnow().replace(microsecond=0),
+                timestamp=datetime.now(timezone.utc).replace(microsecond=0),
                 task_id=task_ref,
             )
         )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import math
 import re
 import json
@@ -437,10 +438,11 @@ class GraphContextService:
     ) -> GraphContextPack:
         graph = self._repo.get(conversation_id)
         if not graph:
+            # Do not log the raw query (user content / PII) at INFO; only IDs.
             logger.info(
-                "Graph context build snapshot | conversation_id=%s | graph=empty | query=%s",
+                "Graph context build snapshot | conversation_id=%s | graph=empty | query_len=%d",
                 conversation_id,
-                query,
+                len(query or ""),
             )
             return GraphContextPack(
                 text="",
@@ -494,12 +496,20 @@ class GraphContextService:
             lines.append(relation_line)
 
         if not lines:
+            # Log only counts, never the full graph (contains verbatim message text).
             logger.info(
-                "Graph context build snapshot | conversation_id=%s | method=%s | graph=%s",
+                "Graph context build snapshot | conversation_id=%s | method=%s | nodes=%d | edges=%d | no_relations",
                 conversation_id,
                 effective_config.retrieve_method,
-                json.dumps(asdict(graph), ensure_ascii=False),
+                len(graph.nodes),
+                len(graph.edges),
             )
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(
+                    "Full graph dump | conversation_id=%s | graph=%s",
+                    conversation_id,
+                    json.dumps(asdict(graph), ensure_ascii=False),
+                )
             return GraphContextPack(
                 text="",
                 node_ids=[],
@@ -1032,35 +1042,6 @@ class GraphContextService:
             scores[node_id] = score
 
         return dict(sorted(scores.items(), key=lambda x: x[1], reverse=True)[: config.top_k_nodes])
-
-    def _expand_nodes(
-        self,
-        graph: ConversationKnowledgeGraph,
-        seeds: dict[str, float],
-        config: GraphContextConfig,
-    ) -> list[str]:
-        if not seeds:
-            return []
-
-        selected = set(list(seeds.keys())[: config.top_k_nodes])
-        frontier = set(selected)
-
-        for _ in range(config.expand_hops):
-            next_frontier: set[str] = set()
-            for edge in graph.edges.values():
-                if edge.src in frontier and edge.dst not in selected:
-                    next_frontier.add(edge.dst)
-                if edge.dst in frontier and edge.src not in selected:
-                    next_frontier.add(edge.src)
-            if not next_frontier:
-                break
-            selected.update(next_frontier)
-            frontier = next_frontier
-            if len(selected) >= config.top_k_nodes:
-                break
-
-        ranked = sorted(selected, key=lambda node_id: seeds.get(node_id, 0.0), reverse=True)
-        return ranked[: config.top_k_nodes]
 
     def _related_edges(
         self,

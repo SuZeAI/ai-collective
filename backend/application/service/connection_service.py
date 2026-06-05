@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from backend.application.ports.repositories import ConnectionRepository
+from backend.domain.errors import NotFoundError
 from backend.domain.models import ThirdPartyConnection
-from backend.infrastructure.repositories.json_files import JsonConnectionRepository
 
 
 class ConnectionService:
-    def __init__(self, repo: JsonConnectionRepository):
+    def __init__(self, repo: ConnectionRepository):
         self._repo = repo
 
     def list_connections(self) -> list[ThirdPartyConnection]:
@@ -14,7 +15,7 @@ class ConnectionService:
     def get_connection(self, conn_id: str) -> ThirdPartyConnection:
         conn = self._repo.get(conn_id)
         if conn is None:
-            raise KeyError(f"Connection {conn_id!r} not found")
+            raise NotFoundError(f"Connection {conn_id!r} not found")
         return conn
 
     def upsert_connection(self, conn: ThirdPartyConnection) -> ThirdPartyConnection:

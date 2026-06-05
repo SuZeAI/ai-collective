@@ -25,12 +25,11 @@ def _build_agent_system_prompt(*, name: str, role: str, description: str) -> str
 
 @router.get("", response_model=list[AgentSchema])
 def list_agents(service: AgentService = Depends(get_agent_service)) -> list[AgentSchema]:
-    agents = service.list_agents()
-    result = []
-    for agent in agents:
-        skills = service.get_agent_skills(agent.id)
-        result.append(AgentSchema.from_domain(agent, skills))
-    return result
+    # Batch-load skills once instead of N+1 per-agent lookups.
+    return [
+        AgentSchema.from_domain(agent, skills)
+        for agent, skills in service.list_agents_with_skills()
+    ]
 
 
 @router.post("", response_model=AgentSchema)

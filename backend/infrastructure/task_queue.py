@@ -5,7 +5,7 @@ import json
 import threading
 from abc import ABC, abstractmethod
 from collections import deque
-from typing import Callable
+from typing import Callable, Optional
 
 from backend.log import get_logger
 
@@ -39,6 +39,13 @@ class ITaskQueue(ABC):
     @abstractmethod
     def status(self) -> dict:
         """Return a snapshot of the queue state."""
+
+    def shutdown(self) -> None:
+        """Stop background workers/consumers and release resources.
+
+        Default is a no-op; backends that own threads/connections override it.
+        """
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -151,6 +158,10 @@ class MemoryTaskQueue(ITaskQueue):
                 )
                 self._executor.submit(self._run_wrapped, next_id, next_fn)
 
+    def shutdown(self) -> None:
+        logger.info("[Queue/memory] shutting down executor")
+        self._executor.shutdown(wait=True)
+
 
 # ---------------------------------------------------------------------------
 # RabbitMQ backend
@@ -202,7 +213,12 @@ class RabbitMQTaskQueue(ITaskQueue):
             thread_name_prefix="task-worker-rmq",
         )
 
-        # Start consumer in background thread
+        # Graceful-shutdown signalling + active connection handle (used for
+        # thread-safe acks from worker threads).
+        self._stop_event = threading.Event()
+        self._connection = None
+
+        # Start consumer in background thread (non-daemon so shutdown can join it)
         self._consumer_thread = threading.Thread(
             target=self._consume_loop, daemon=True, name="rabbitmq-consumer"
         )
@@ -276,10 +292,12 @@ class RabbitMQTaskQueue(ITaskQueue):
     def _consume_loop(self) -> None:
         import pika
 
-        while True:
+        while not self._stop_event.is_set():
+            conn = None
             try:
                 params = pika.URLParameters(self._url)
                 conn = pika.BlockingConnection(params)
+                self._connection = conn
                 channel = conn.channel()
                 channel.queue_declare(queue=self._QUEUE_NAME, durable=True)
                 channel.basic_qos(prefetch_count=self._max_concurrent)
@@ -290,31 +308,63 @@ class RabbitMQTaskQueue(ITaskQueue):
                 logger.info("[Queue/rabbitmq] consumer started | queue=%s | max_concurrent=%d", self._QUEUE_NAME, self._max_concurrent)
                 channel.start_consuming()
             except Exception:
+                if self._stop_event.is_set():
+                    break
                 logger.exception("[Queue/rabbitmq] consumer connection lost — reconnecting in 5 s")
-                import time
-                time.sleep(5)
+                # Interruptible wait so shutdown doesn't block for 5s.
+                self._stop_event.wait(5)
+            finally:
+                self._connection = None
+                if conn is not None:
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
 
     def _on_message(self, channel, method, _properties, body: bytes) -> None:
+        delivery_tag = method.delivery_tag
         try:
             task_id = json.loads(body)["task_id"]
         except Exception:
             logger.warning("[Queue/rabbitmq] malformed message body, acking and skipping: %r", body[:200])
-            channel.basic_ack(delivery_tag=method.delivery_tag)
+            channel.basic_ack(delivery_tag=delivery_tag)
             return
 
         with self._registry_lock:
             fn = self._fn_registry.pop(task_id, None)
 
-        channel.basic_ack(delivery_tag=method.delivery_tag)
-
         if fn is None:
+            # Nothing to run (cancelled or already handled) — safe to ack now.
             logger.info("[Queue/rabbitmq] message received but task already CANCELLED | task_id=%s", task_id)
+            channel.basic_ack(delivery_tag=delivery_tag)
             return
 
         logger.info("[Queue/rabbitmq] dispatching task to executor | task_id=%s", task_id)
-        self._executor.submit(self._run_wrapped, task_id, fn)
 
-    def _run_wrapped(self, task_id: str, fn: Callable[[], None]) -> None:
+        # Defer the ack until the task actually completes, so a crash mid-task
+        # leaves the message unacked (redelivered on restart) rather than lost.
+        # pika channels are NOT thread-safe, so the ack must be scheduled back
+        # onto the connection's I/O thread via add_callback_threadsafe.
+        conn = self._connection
+
+        def _ack_on_done() -> None:
+            if conn is None or not getattr(conn, "is_open", False):
+                return
+            try:
+                conn.add_callback_threadsafe(
+                    lambda: channel.basic_ack(delivery_tag=delivery_tag)
+                )
+            except Exception:
+                logger.warning("[Queue/rabbitmq] failed to schedule ack | task_id=%s", task_id)
+
+        self._executor.submit(self._run_wrapped, task_id, fn, _ack_on_done)
+
+    def _run_wrapped(
+        self,
+        task_id: str,
+        fn: Callable[[], None],
+        on_done: Optional[Callable[[], None]] = None,
+    ) -> None:
         with self._running_lock:
             self._running.add(task_id)
         logger.info("[Queue/rabbitmq] worker ENTER | task_id=%s", task_id)
@@ -325,7 +375,22 @@ class RabbitMQTaskQueue(ITaskQueue):
         finally:
             with self._running_lock:
                 self._running.discard(task_id)
+            if on_done is not None:
+                on_done()
             logger.info("[Queue/rabbitmq] worker EXIT | task_id=%s | remaining_running=%d", task_id, len(self._running))
+
+    def shutdown(self) -> None:
+        logger.info("[Queue/rabbitmq] shutting down consumer + executor")
+        self._stop_event.set()
+        conn = self._connection
+        if conn is not None and getattr(conn, "is_open", False):
+            try:
+                conn.add_callback_threadsafe(conn.close)
+            except Exception:
+                pass
+        self._executor.shutdown(wait=True)
+        if self._consumer_thread.is_alive():
+            self._consumer_thread.join(timeout=10)
 
 
 # ---------------------------------------------------------------------------
@@ -387,3 +452,10 @@ def queue_position(task_id: str) -> int | None:
 
 def status() -> dict:
     return _get_queue().status()
+
+
+def shutdown() -> None:
+    """Gracefully stop the active queue (called on application shutdown)."""
+    global _queue
+    if _queue is not None:
+        _queue.shutdown()

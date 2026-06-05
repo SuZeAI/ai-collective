@@ -20,6 +20,7 @@ from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
+from backend.domain.agent._graph_runtime import recursion_config, run_to_final_state, safe_chat
 from backend.log import get_logger
 
 logger = get_logger(__name__)
@@ -184,7 +185,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             "rounds": 0,
         }
 
-        final_state = await graph.ainvoke(initial)
+        final_state = await run_to_final_state(graph, initial, max_rounds)
         turns = list(final_state.get("turns", []))
         final_response = final_state.get("final_response") or (
             turns[-1].content if turns else ""
@@ -306,7 +307,9 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         }
 
         # Stream custom events using stream_mode="custom"
-        async for event in graph.astream(initial, stream_mode="custom"):
+        async for event in graph.astream(
+            initial, config=recursion_config(max_rounds), stream_mode="custom"
+        ):
             if isinstance(event, dict):
                 yield event
 
@@ -363,7 +366,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             "last_action": "",
             "rounds": 0,
         }
-        final_state = await graph.ainvoke(initial)
+        final_state = await run_to_final_state(graph, initial, max_rounds)
         turns = list(final_state.get("turns", []))
         final_response = final_state.get("final_response") or (
             turns[-1].content if turns else ""
@@ -430,7 +433,9 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             "rounds": 0,
         }
 
-        async for event in graph.astream(initial, stream_mode="custom"):
+        async for event in graph.astream(
+            initial, config=recursion_config(max_rounds), stream_mode="custom"
+        ):
             if isinstance(event, dict):
                 yield event
 
@@ -645,7 +650,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             })
 
             logger.debug("[%s] mesh_node: invoking LLM...", agent.name)
-            response = await llm.chat(
+            response = await safe_chat(llm,
                 system=system_prompt_with_routing,
                 user=user_input,
                 tools=bound_tools or None,
@@ -691,10 +696,10 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 content=reasoning,
             )
 
-            new_history = conversation_history.copy()
-            if agent.name not in new_history:
-                new_history[agent.name] = []
-            new_history[agent.name].append(reasoning)
+            # Deep-copy the inner lists: dict.copy() is shallow and would mutate
+            # the previous state's list in place, corrupting LangGraph snapshots.
+            new_history = {k: list(v) for k, v in conversation_history.items()}
+            new_history.setdefault(agent.name, []).append(reasoning)
 
             discussion_ended = self._has_discussion_end_signal(action_payload)
             next_agent = self._extract_target_agent_from_message(

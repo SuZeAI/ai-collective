@@ -1,15 +1,44 @@
 from __future__ import annotations
 
 import asyncio
+import hmac
+import time
 from typing import Any, Dict, Optional
 
-from backend.domain.thirty_part.base_hook import BaseHookProcessor, IncomingMessage, _http_post
+from backend.domain.thirty_part.base_hook import (
+    BaseHookProcessor,
+    IncomingMessage,
+    _header,
+    _http_post,
+    hmac_sha256_hex,
+)
 
 SLACK_API = "https://slack.com/api"
 
 
 class SlackHookProcessor(BaseHookProcessor):
     platform = "slack"
+
+    def verify_request(
+        self, headers: Dict[str, str], raw_body: bytes, config: Dict[str, Any]
+    ) -> bool:
+        signing_secret = (config.get("signing_secret") or "").strip()
+        if not signing_secret:
+            # No secret configured — cannot verify; accept (legacy behaviour).
+            return True
+        timestamp = _header(headers, "X-Slack-Request-Timestamp")
+        signature = _header(headers, "X-Slack-Signature")
+        if not timestamp or not signature:
+            return False
+        # Reject replays older than 5 minutes.
+        try:
+            if abs(time.time() - int(timestamp)) > 60 * 5:
+                return False
+        except ValueError:
+            return False
+        basestring = f"v0:{timestamp}:".encode("utf-8") + raw_body
+        expected = "v0=" + hmac_sha256_hex(signing_secret, basestring)
+        return hmac.compare_digest(expected, signature)
 
     def extract_message(self, body: Dict[str, Any]) -> Optional[IncomingMessage]:
         # URL verification challenge
