@@ -1,16 +1,17 @@
 from __future__ import annotations
 
+import dataclasses
 import uuid
 from datetime import datetime, timezone
 
 from backend.api.security import hash_password, verify_password
+from backend.application.ports.repositories import UserRepository
 from backend.domain.errors import NotFoundError, ValidationError
 from backend.domain.models import User
-from backend.infrastructure.repositories.json_files import JsonUserRepository
 
 
 class UserService:
-    def __init__(self, repo: JsonUserRepository) -> None:
+    def __init__(self, repo: UserRepository) -> None:
         self._repo = repo
 
     def find_by_id(self, user_id: str) -> User:
@@ -47,13 +48,10 @@ class UserService:
             existing = self._repo.find_by_email(email)
             if existing and existing.id != user_id:
                 raise ValidationError("Email is already in use")
-        updated = User(
-            id=user.id,
+        updated = dataclasses.replace(
+            user,
             name=(name.strip() if name else user.name),
             email=(email.strip().lower() if email else user.email),
-            hashed_password=user.hashed_password,
-            role=user.role,
-            joined_at=user.joined_at,
             avatar=(avatar if avatar is not None else user.avatar),
         )
         return self._repo.save(updated)
@@ -111,12 +109,5 @@ class UserService:
         user = self.find_by_id(user_id)
         if not verify_password(current_password, user.hashed_password):
             raise ValidationError("Current password is incorrect")
-        updated = User(
-            id=user.id,
-            name=user.name,
-            email=user.email,
-            hashed_password=hash_password(new_password),
-            role=user.role,
-            joined_at=user.joined_at,
-        )
+        updated = dataclasses.replace(user, hashed_password=hash_password(new_password))
         self._repo.save(updated)

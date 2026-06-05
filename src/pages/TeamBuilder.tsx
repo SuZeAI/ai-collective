@@ -305,22 +305,22 @@ export default function TeamBuilder() {
     <div>
       <header className="mb-8 flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Teams</h1>
-          <p className="text-muted-foreground mt-1">Assemble agent teams for complex tasks.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Departments</h1>
+          <p className="text-muted-foreground mt-1">Assemble departments and project teams for corporate tasks.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> New Team</Button>
+            <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> New Department</Button>
           </DialogTrigger>
           <DialogContent className="max-w-6xl w-[96vw] max-h-[90vh] overflow-y-auto overflow-x-hidden p-6">
-            <DialogHeader><DialogTitle>{editingTeamId ? "Edit Team" : "Create Team"}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingTeamId ? "Edit Department" : "Create Department"}</DialogTitle></DialogHeader>
             <div className="pt-2 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] gap-4">
               <div className="space-y-4 min-w-0 pr-2 pb-1">
-                <Input placeholder="Team name" value={name} onChange={(e) => setName(e.target.value)} />
+                <Input placeholder="Department name" value={name} onChange={(e) => setName(e.target.value)} />
                 <Input placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
 
                 <div className="space-y-3">
-                  <div className="text-sm font-medium">Team Avatar</div>
+                  <div className="text-sm font-medium">Department Icon</div>
                   <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
                     <select
                       value={avatarMode}
@@ -382,26 +382,26 @@ export default function TeamBuilder() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Execution Mode</label>
+                  <label className="text-sm font-medium">Workflow Mode</label>
                   <select
                     value={mode}
                     onChange={(e) => setMode(e.target.value as "mesh" | "sequential" | "ring" | "supervisor" | "tree")}
                     className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
                   >
-                    <option value="sequential">Sequential (agents take turns)</option>
-                    <option value="mesh">Mesh (all agents interact simultaneously)</option>
-                    <option value="ring">Ring (agents loop in circular order)</option>
-                    <option value="supervisor">Supervisor (lead delegates to workers)</option>
-                    <option value="tree">Tree (root delegates down branches, leaves return to root)</option>
+                    <option value="sequential">Sequential Pipeline (members work in sequence)</option>
+                    <option value="mesh">Mesh Collaboration (all members interact)</option>
+                    <option value="ring">Circular Workflow (members pass work in a loop)</option>
+                    <option value="supervisor">Managerial Delegation (lead delegates to team)</option>
+                    <option value="tree">Hierarchical Tree (manager delegates down branches)</option>
                   </select>
                   {mode === "supervisor" && (
                     <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                      First agent in the order will be the <strong>lead</strong>. Remaining agents are <strong>workers</strong>.
+                      First member in the order will be the <strong>lead manager</strong>. Remaining members are workers.
                     </p>
                   )}
                   {mode === "tree" && selectedAgents.length > 0 && (
                     <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                      Agents arranged as a binary tree: <strong>{agentById.get(selectedAgents[0])?.name ?? "Agent 1"}</strong> is root.
+                      Members arranged as a hierarchy tree: <strong>{agentById.get(selectedAgents[0])?.name ?? "Member 1"}</strong> is root.
                       {selectedAgents.length > 1 && <> Children: <strong>{[selectedAgents[1], selectedAgents[2]].filter(Boolean).map(id => agentById.get(id)?.name).filter(Boolean).join(", ")}</strong>.</>}
                     </p>
                   )}
@@ -418,15 +418,15 @@ export default function TeamBuilder() {
                   />
                 </div>
                 <Button onClick={saveTeam} className="w-full" disabled={!name.trim() || selectedAgents.length === 0}>
-                  {editingTeamId ? "Save Changes" : "Create Team"}
+                  {editingTeamId ? "Save Changes" : "Create Department"}
                 </Button>
               </div>
 
               <div className="space-y-4 min-w-0 pr-2 pb-1">
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Select Agents</label>
-                    <p className="text-xs text-muted-foreground">Choose agents on the left, then reorder on the right.</p>
+                    <label className="text-sm font-medium">Select Personnel</label>
+                    <p className="text-xs text-muted-foreground">Choose personnel on the left, then reorder on the right.</p>
                     <div className="border border-input rounded-lg p-3 h-[320px] overflow-y-auto bg-muted/50">
                       <div className="space-y-2">
                         {agentList.map((a) => (
@@ -446,8 +446,8 @@ export default function TeamBuilder() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Agent Execution Order</label>
-                    <p className="text-xs text-muted-foreground">Drag to reorder agents. If the list is long, scroll here.</p>
+                    <label className="text-sm font-medium">Personnel Workflow Order</label>
+                    <p className="text-xs text-muted-foreground">Drag to reorder personnel. If the list is long, scroll here.</p>
                     <div className="border border-input rounded-lg p-3 h-[320px] overflow-y-auto bg-muted/50 space-y-2">
                       {selectedAgents.length > 0 ? (
                         selectedAgents.map((agentId, index) => {
@@ -479,7 +479,7 @@ export default function TeamBuilder() {
                               <button
                                 onClick={() => removeAgent(agentId)}
                                 className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                                title="Remove agent"
+                                title="Remove member"
                               >
                                 <X className="w-4 h-4" />
                               </button>
@@ -488,7 +488,7 @@ export default function TeamBuilder() {
                         })
                       ) : (
                         <div className="h-full flex items-center justify-center text-center text-xs text-muted-foreground px-4">
-                          Select agents from the left panel to start arranging execution order.
+                          Select personnel from the left panel to start arranging workflow order.
                         </div>
                       )}
                     </div>
@@ -511,10 +511,10 @@ export default function TeamBuilder() {
           <DialogHeader className="border-b pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <DialogTitle className="text-xl">Test Team Discussion</DialogTitle>
+                <DialogTitle className="text-xl">Test Department Discussion</DialogTitle>
                 {testingTeam && (
                   <p className="text-sm text-muted-foreground mt-1">
-                    {testingTeam.name} • {testingTeam.agents.length} agents • {testingTeam.mode}
+                    {testingTeam.name} • {testingTeam.agents.length} members • {testingTeam.mode}
                   </p>
                 )}
               </div>
@@ -543,7 +543,7 @@ export default function TeamBuilder() {
                 <Textarea
                   value={testPrompt}
                   onChange={(e) => setTestPrompt(e.target.value)}
-                  placeholder="What should this team discuss?"
+                  placeholder="What should this department discuss?"
                   className="min-h-[90px] text-sm resize-none border-2 border-border focus:border-primary"
                   disabled={isTesting}
                 />
@@ -644,7 +644,7 @@ export default function TeamBuilder() {
                                 <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0.4s" }} />
                               </div>
                               <span className="text-sm font-semibold text-primary">
-                                {agent?.name ?? agentId} is thinking...
+                                {agent?.name ?? agentId} is working/thinking...
                               </span>
                             </div>
                           </motion.div>
@@ -727,7 +727,7 @@ export default function TeamBuilder() {
             <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
               <span>{team.activeTasks} active tasks</span>
               <span className="px-2 py-1 rounded bg-muted/50">
-                {team.mode === "mesh" ? "🔗 Mesh" : team.mode === "ring" ? "🔄 Ring" : team.mode === "supervisor" ? "👑 Supervisor" : team.mode === "tree" ? "🌲 Tree" : "📋 Sequential"} • {team.maxSteps || 6} steps
+                {team.mode === "mesh" ? "🔗 Mesh" : team.mode === "ring" ? "🔄 Ring" : team.mode === "supervisor" ? "👑 Manager" : team.mode === "tree" ? "🌲 Tree" : "📋 Sequential"} • {team.maxSteps || 6} steps
               </span>
             </div>
           </motion.div>

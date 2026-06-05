@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import re
 from datetime import datetime, timedelta, timezone
@@ -425,7 +426,8 @@ async def upload_avatar(
     ext = Path(file.filename or "avatar.jpg").suffix.lower() or ".jpg"
     _AVATAR_DIR.mkdir(parents=True, exist_ok=True)
     dest = _AVATAR_DIR / f"{current_user.id}{ext}"
-    dest.write_bytes(content)
+    # Offload blocking disk write so it doesn't stall the event loop.
+    await asyncio.to_thread(dest.write_bytes, content)
     avatar_url = str(request.base_url).rstrip("/") + f"/static/avatars/{current_user.id}{ext}"
     updated = user_service.update_profile(current_user.id, avatar=avatar_url)
     return UserSchema.from_domain(updated)

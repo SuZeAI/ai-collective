@@ -9,6 +9,7 @@ from urllib import error, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.domain.tools._messaging_http import request_json
 
 SLACK_API_BASE = "https://slack.com/api"
 
@@ -20,20 +21,15 @@ def _slack_request(
     timeout: int = 30,
 ) -> Dict[str, Any]:
     url = f"{SLACK_API_BASE}/{method_name}"
-    payload = json.dumps(data).encode("utf-8")
-    headers = {
-        "Content-Type": "application/json; charset=utf-8",
-        "Authorization": f"Bearer {bot_token}",
-    }
-    req = request.Request(url=url, method="POST", data=payload, headers=headers)
-    try:
-        with request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Slack API error {exc.code}: {body[:300]}") from exc
-    except (error.URLError, TimeoutError) as exc:
-        raise RuntimeError(f"Slack request failed: {exc}") from exc
+    return request_json(
+        "POST", url, service="Slack",
+        json_body=data,
+        headers={
+            "Content-Type": "application/json; charset=utf-8",
+            "Authorization": f"Bearer {bot_token}",
+        },
+        timeout=timeout,
+    )
 
 
 class SlackMessagingToolkit(BaseToolkit):

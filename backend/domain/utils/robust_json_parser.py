@@ -137,8 +137,8 @@ class RobustJsonParser(Runnable[AIMessage, AIMessage]):
             result = parse_partial_json(raw)
             if isinstance(result, dict):
                 return result
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Stage 1 (partial_json) failed: %s", exc)
         return None
 
     # ------------------------------------------------------------------
@@ -151,8 +151,8 @@ class RobustJsonParser(Runnable[AIMessage, AIMessage]):
             result = parse_json_markdown(raw)
             if isinstance(result, dict):
                 return result
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Stage 2 (json_markdown) failed: %s", exc)
         return None
 
     # ------------------------------------------------------------------
@@ -165,8 +165,8 @@ class RobustJsonParser(Runnable[AIMessage, AIMessage]):
             result = await self._fixing_parser.aparse(raw)
             if isinstance(result, dict):
                 return result
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Stage 3 (LLM output-fixing) failed: %s", exc)
         return None
 
     # ------------------------------------------------------------------
@@ -232,9 +232,19 @@ class RobustJsonParser(Runnable[AIMessage, AIMessage]):
         config: Optional[RunnableConfig] = None,
         **kwargs: Any,
     ) -> AIMessage:
-        return asyncio.get_event_loop().run_until_complete(
-            self.ainvoke(input, config, **kwargs)
-        )
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            # No loop running in this thread: safe to drive one directly.
+            return asyncio.run(self.ainvoke(input, config, **kwargs))
+        # A loop is already running (e.g. inside an async request handler).
+        # run_until_complete would raise; offload to a worker thread instead.
+        import concurrent.futures
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            return pool.submit(
+                lambda: asyncio.run(self.ainvoke(input, config, **kwargs))
+            ).result()
 
     async def ainvoke(
         self,

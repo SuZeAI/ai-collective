@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import hmac
 import json
 import time
 from typing import Any, Dict, Optional
@@ -50,7 +51,7 @@ class WeChatHookProcessor(BaseHookProcessor):
         signature = query_params.get("signature", "")
         if token and timestamp and nonce and signature:
             check = hashlib.sha1("".join(sorted([token, timestamp, nonce])).encode()).hexdigest()
-            if check == signature and echo:
+            if hmac.compare_digest(check, signature) and echo:
                 return {"content": echo}
         return None
 

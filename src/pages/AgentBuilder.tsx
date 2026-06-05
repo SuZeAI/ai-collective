@@ -14,50 +14,46 @@ import { api, type Agent, type Skill } from "@/lib/api";
 import { getAgentDotColor, getAgentRoleColor } from "@/lib/agent-role-ui";
 
 const roles = [
-  "Other Agent",
+  "Other Position",
   "Project Manager",
-  "Research Agent",
-  "Developer Agent",
-  "Marketing Agent",
-  "Reviewer Agent",
-  "Support Agent",
-  "Community Agent",
-  "Sales Agent",
-  "HR Agent",
-  "Ops Agent",
-  "Finance Agent",
-  "Customer Service Agent",
-  "Product Manager Agent",
-  "QA Agent",
-  "UI/UX Designer Agent",
-  "Data Analyst Agent",
-  "Data Scientist Agent",
-  "Business Analyst Agent",
-  "Legal Advisor Agent",
-  "Compliance Agent",
-  "Procurement Agent",
-  "Logistics Agent",
-  "Supply Chain Agent",
-  "Recruiter Agent",
-  "Trainer Agent",
-  "Teacher Agent",
-  "Doctor Agent",
-  "Nurse Agent",
-  "Pharmacist Agent",
-  "Psychologist Agent",
-  "Architect Agent",
-  "Civil Engineer Agent",
-  "Mechanical Engineer Agent",
-  "Electrical Engineer Agent",
-  "Accountant Agent",
-  "Auditor Agent",
-  "Lawyer Agent",
-  "Journalist Agent",
-  "Content Creator Agent",
-  "Translator Agent",
-  "Event Planner Agent",
-  "Real Estate Agent",
-  "Travel Consultant Agent",
+  "Researcher",
+  "Software Developer",
+  "Marketing Specialist",
+  "Reviewer / QA Specialist",
+  "Support Specialist",
+  "Community Manager",
+  "Sales Representative",
+  "HR Specialist",
+  "Operations Coordinator",
+  "Finance Analyst",
+  "Customer Service Rep",
+  "Product Owner",
+  "QA Specialist",
+  "UI/UX Designer",
+  "Data Analyst",
+  "Data Scientist",
+  "Business Analyst",
+  "Legal Advisor",
+  "Compliance Officer",
+  "Procurement Specialist",
+  "Logistics Coordinator",
+  "Supply Chain Analyst",
+  "Recruiter",
+  "Trainer",
+  "Educator",
+  "Medical Consultant",
+  "Healthcare Advisor",
+  "Architect",
+  "Engineer",
+  "Accountant",
+  "Auditor",
+  "Lawyer",
+  "Journalist",
+  "Content Writer",
+  "Translator",
+  "Event Planner",
+  "Real Estate Advisor",
+  "Travel Consultant",
 ] as const;
 
 type AvatarMode = "initial" | "icon" | "image";
@@ -246,28 +242,28 @@ export default function AgentBuilder() {
     <div>
       <header className="mb-8 flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Agents</h1>
-          <p className="text-muted-foreground mt-1">Create and manage your AI agent roster.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Humans</h1>
+          <p className="text-muted-foreground mt-1">Hire and manage your company's personnel roster.</p>
         </div>
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button onClick={openCreateDialog}>
-              <Plus className="w-4 h-4 mr-2" /> New Agent
+              <Plus className="w-4 h-4 mr-2" /> New Human
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto overflow-x-hidden p-6">
             <DialogHeader>
-              <DialogTitle>{editingAgentId ? "Edit Agent" : "Create Agent"}</DialogTitle>
+              <DialogTitle>{editingAgentId ? "Edit Human Profile" : "Hire Human"}</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4 pt-2">
-              <Input placeholder="Agent name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Input placeholder="Human name" value={name} onChange={(e) => setName(e.target.value)} />
 
               <div className="space-y-1.5">
                 <Input
                   list="agent-role-options"
-                  placeholder="Type a role or pick from suggestions"
+                  placeholder="Type a position or pick from suggestions"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
                 />
@@ -276,7 +272,7 @@ export default function AgentBuilder() {
                     <option key={r} value={r} />
                   ))}
                 </datalist>
-                <p className="text-xs text-muted-foreground">You can type a custom role or select an existing one.</p>
+                <p className="text-xs text-muted-foreground">You can type a custom position or select an existing one.</p>
               </div>
 
               <Input placeholder="Description (optional)" value={desc} onChange={(e) => setDesc(e.target.value)} />
@@ -408,9 +404,9 @@ export default function AgentBuilder() {
               <div className="rounded-md border p-3">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-sm font-medium">Agent Mode (Subagents)</div>
+                    <div className="text-sm font-medium">Manager Mode (Sub-delegation)</div>
                     <p className="text-xs text-muted-foreground">
-                      Let this agent delegate work to subagents via the "task" tool and run multiple tools in parallel.
+                      Let this person delegate work to subordinate members via the "task" tool and run multiple tools in parallel.
                     </p>
                   </div>
                   <Switch checked={subagentEnabled} onCheckedChange={setSubagentEnabled} />
@@ -418,7 +414,7 @@ export default function AgentBuilder() {
               </div>
 
               <Button onClick={saveAgent} className="w-full" disabled={!name.trim() || !role}>
-                {editingAgentId ? "Save Changes" : "Create Agent"}
+                {editingAgentId ? "Save Changes" : "Hire Person"}
               </Button>
             </div>
           </DialogContent>
@@ -439,7 +435,7 @@ export default function AgentBuilder() {
           <DialogHeader className="border-b pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <DialogTitle className="text-xl">Test Agent</DialogTitle>
+                <DialogTitle className="text-xl">Test Capability</DialogTitle>
                 {testingAgent && (
                   <p className="text-sm text-muted-foreground mt-1">
                     {testingAgent.name} • {testingAgent.role}
@@ -473,7 +469,7 @@ export default function AgentBuilder() {
               <Textarea
                 value={testPrompt}
                 onChange={(e) => setTestPrompt(e.target.value)}
-                placeholder="Enter a prompt to test this agent..."
+                placeholder="Enter a prompt to test this person's capability..."
                 className="min-h-[90px] text-sm resize-none border-border focus:border-primary"
                 disabled={isTesting}
               />
@@ -559,7 +555,7 @@ export default function AgentBuilder() {
                   <span className="text-xs text-muted-foreground">{agent.role}</span>
                   {agent.subagent_enabled ? (
                     <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">
-                      Agent Mode
+                      Manager Mode
                     </Badge>
                   ) : null}
                 </div>

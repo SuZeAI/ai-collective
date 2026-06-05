@@ -1,8 +1,24 @@
+from __future__ import annotations
+
+import hashlib
+import json
 from typing import Optional, Dict, Any
 
 from backend.domain.models import Skill
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools.tool_registry import ToolRegistry
+
+
+def _cache_key(skill_id: str, tool_kwargs: Dict[str, Any]) -> str:
+    """Cache key combining the skill id with a digest of the build kwargs, so a
+    second bind with different kwargs does not silently return the first tool."""
+    try:
+        digest = hashlib.sha1(
+            json.dumps(tool_kwargs, sort_keys=True, default=str).encode("utf-8")
+        ).hexdigest()
+    except Exception:
+        digest = "nohash"
+    return f"{skill_id}::{digest}"
 
 
 class SkillToolBinder:
@@ -29,29 +45,35 @@ class SkillToolBinder:
         skill: Skill,
         **kwargs: Any
     ) -> Optional[BaseToolkit]:
-        if skill.id in self._bound_tools:
-            return self._bound_tools[skill.id]
-
         tool_name = self.get_tool_name(skill)
         if tool_name is None:
             return None
 
         tool_kwargs = self.get_tool_kwargs(skill, **kwargs)
+        key = _cache_key(skill.id, tool_kwargs)
+        cached = self._bound_tools.get(key)
+        if cached is not None:
+            return cached
+
         tool = ToolRegistry.create_tool(tool_name, **tool_kwargs)
         if tool is not None:
-            self._bound_tools[skill.id] = tool
+            self._bound_tools[key] = tool
             return tool
 
         return None
 
     def get_bound_tool(self, skill_id: str) -> Optional[BaseToolkit]:
-        return self._bound_tools.get(skill_id)
+        # Return the first tool bound for this skill, regardless of kwargs.
+        for key, tool in self._bound_tools.items():
+            if key.split("::", 1)[0] == skill_id:
+                return tool
+        return None
 
     def unbind_tool(self, skill_id: str) -> bool:
-        if skill_id in self._bound_tools:
-            del self._bound_tools[skill_id]
-            return True
-        return False
+        keys = [k for k in self._bound_tools if k.split("::", 1)[0] == skill_id]
+        for k in keys:
+            del self._bound_tools[k]
+        return bool(keys)
 
     def get_all_bound_tools(self) -> Dict[str, BaseToolkit]:
         return dict(self._bound_tools)

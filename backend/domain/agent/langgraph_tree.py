@@ -20,6 +20,7 @@ from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
+from backend.domain.agent._graph_runtime import recursion_config, run_to_final_state, safe_chat
 
 
 MAX_CONTEXT_TOKENS = max(1024, int(os.getenv("AGENT_CONTEXT_TOKEN_LIMIT", "12000")))
@@ -221,7 +222,7 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
         self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
         tree = _build_tree(agents)
         graph = self._build_graph(tree, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
-        final_state = await graph.ainvoke(self._initial_state(user_input))
+        final_state = await run_to_final_state(graph, self._initial_state(user_input), max_rounds)
 
         turns = list(final_state.get("turns", []))
         return GraphRunResult(
@@ -249,7 +250,11 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
         tree = _build_tree(agents)
         graph = self._build_graph(tree, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
 
-        async for event in graph.astream(self._initial_state(user_input), stream_mode="custom"):
+        async for event in graph.astream(
+            self._initial_state(user_input),
+            config=recursion_config(max_rounds),
+            stream_mode="custom",
+        ):
             if isinstance(event, dict):
                 yield event
 
@@ -492,7 +497,7 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
                 "llm_model": budget_result.model,
             })
 
-            raw_output = await llm.chat(
+            raw_output = await safe_chat(llm,
                 system=full_system,
                 user=user_input_text,
                 tools=bound_tools or None,

@@ -11,6 +11,7 @@ import logging
 import shlex
 import threading
 import uuid
+from collections import OrderedDict
 from typing import Any, Optional
 
 import requests
@@ -46,11 +47,22 @@ class AioSandbox(Sandbox):
         DELETE /v1/sandbox/shell/{id}     — kill process
     """
 
+    # Cap on retained per-session outputs. Each one-off command (read/write/ls)
+    # uses a fresh session id, so without a bound this map grows forever.
+    _MAX_RETAINED_OUTPUTS = 512
+
     def __init__(self, id: str, base_url: str):
         self._id = id
         self._base_url = base_url.rstrip("/")
         self._lock = threading.Lock()
-        self._last_output: dict[str, SandboxResult] = {}
+        self._last_output: "OrderedDict[str, SandboxResult]" = OrderedDict()
+
+    def _store_output(self, id: str, result: SandboxResult) -> None:
+        """Record a session's latest output, evicting the oldest beyond the cap."""
+        self._last_output[id] = result
+        self._last_output.move_to_end(id)
+        while len(self._last_output) > self._MAX_RETAINED_OUTPUTS:
+            self._last_output.popitem(last=False)
 
     @property
     def id(self) -> str:
@@ -78,7 +90,7 @@ class AioSandbox(Sandbox):
                     output = data.get("output", "")
 
                 result = SandboxResult(output=output or "(no output)", exit_code=data.get("exit_code"))
-                self._last_output[id] = result
+                self._store_output(id, result)
                 return result
             except SandboxAPIError as e:
                 logger.error("exec_command failed for session %s: %s", id, e)
@@ -97,7 +109,7 @@ class AioSandbox(Sandbox):
                 data = _post(self._base_url, f"/v1/sandbox/shell/{id}/write", {"input": text})
                 output = data.get("output", "")
                 if output:
-                    self._last_output[id] = SandboxResult(output=output)
+                    self._store_output(id, SandboxResult(output=output))
                 return output or "(wrote to process)"
             except SandboxAPIError as e:
                 logger.error("write_to_process failed for session %s: %s", id, e)

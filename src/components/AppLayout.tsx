@@ -1,10 +1,12 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
   BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit, Settings2,
-  LogOut, User, UserCircle,
+  LogOut, User, UserCircle, ChevronDown,
 } from "lucide-react";
+import { api, type Workspace } from "@/lib/api";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -20,17 +22,42 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-const NAV_CONFIG = [
-  { key: "dashboard" as const, url: "/dashboard", icon: Layout },
-  { key: "agents" as const, url: "/agents", icon: Cpu },
-  { key: "skills" as const, url: "/skills", icon: Wrench },
-  { key: "teams" as const, url: "/teams", icon: Users },
-  { key: "tasks" as const, url: "/tasks", icon: CheckCircle2 },
-  { key: "conversations" as const, url: "/conversations", icon: MessageSquare },
-  { key: "analytics" as const, url: "/analytics", icon: BarChart3 },
-  { key: "playground" as const, url: "/playground", icon: Play },
-  { key: "workspaces" as const, url: "/workspaces", icon: BrainCircuit },
-  { key: "settings" as const, url: "/settings", icon: Settings2 },
+const NAV_GROUPS = [
+  {
+    groupKey: "overviewGroup" as const,
+    items: [
+      { key: "dashboard" as const, url: "/dashboard", icon: Layout },
+      { key: "analytics" as const, url: "/analytics", icon: BarChart3 },
+    ]
+  },
+  {
+    groupKey: "operationsGroup" as const,
+    items: [
+      { key: "tasks" as const, url: "/tasks", icon: CheckCircle2 },
+      { key: "conversations" as const, url: "/conversations", icon: MessageSquare },
+    ]
+  },
+  {
+    groupKey: "orgGroup" as const,
+    items: [
+      { key: "teams" as const, url: "/teams", icon: Users },
+      { key: "agents" as const, url: "/agents", icon: Cpu },
+      { key: "skills" as const, url: "/skills", icon: Wrench },
+    ]
+  },
+  {
+    groupKey: "devGroup" as const,
+    items: [
+      { key: "playground" as const, url: "/playground", icon: Play },
+      { key: "workspaces" as const, url: "/workspaces", icon: BrainCircuit },
+    ]
+  },
+  {
+    groupKey: "systemGroup" as const,
+    items: [
+      { key: "settings" as const, url: "/settings", icon: Settings2 },
+    ]
+  }
 ];
 
 function UserAvatarButton({ name, src }: { name: string; src?: string }) {
@@ -61,85 +88,174 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { t } = useLanguage();
   const { user, logout, isGuest } = useAuth();
 
-  const navItems = NAV_CONFIG.map((item) => ({
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    api.listWorkspaces()
+      .then((data) => {
+        if (!active) return;
+        setWorkspaces(data);
+        if (data.length > 0) {
+          const storedId = localStorage.getItem("activeWorkspaceId");
+          const found = data.find((ws) => ws.id === storedId);
+          const current = found || data[0];
+          setActiveWorkspace(current);
+          localStorage.setItem("activeWorkspaceId", current.id);
+        }
+      })
+      .catch((err) => console.error("Error listing workspaces in sidebar:", err));
+    return () => { active = false; };
+  }, []);
+
+  // Listen to external workspace creations/deletes/updates to refresh dropdown list
+  useEffect(() => {
+    const handleWorkspaceRefresh = () => {
+      api.listWorkspaces()
+        .then((data) => {
+          setWorkspaces(data);
+          const storedId = localStorage.getItem("activeWorkspaceId");
+          const found = data.find((ws) => ws.id === storedId);
+          if (found) {
+            setActiveWorkspace(found);
+          } else if (data.length > 0) {
+            setActiveWorkspace(data[0]);
+            localStorage.setItem("activeWorkspaceId", data[0].id);
+          } else {
+            setActiveWorkspace(null);
+          }
+        })
+        .catch((err) => console.error("Error refreshing workspaces:", err));
+    };
+
+    window.addEventListener("workspaceChanged", handleWorkspaceRefresh);
+    return () => window.removeEventListener("workspaceChanged", handleWorkspaceRefresh);
+  }, []);
+
+  const handleSelectWorkspace = (ws: Workspace) => {
+    setActiveWorkspace(ws);
+    localStorage.setItem("activeWorkspaceId", ws.id);
+    window.dispatchEvent(new CustomEvent("activeWorkspaceChanged", { detail: ws.id }));
+  };
+
+  const allNavItems = NAV_GROUPS.flatMap((g) => g.items).map((item) => ({
     ...item,
     title: t.nav[item.key] as string,
   }));
 
-  const currentPage = navItems.find((n) => n.url === location.pathname);
+  const currentPage = allNavItems.find((n) => n.url === location.pathname);
+  const isFullBleed = location.pathname === "/tasks";
 
   return (
     <SidebarProvider>
       <div className="h-screen overflow-hidden flex w-full bg-transparent">
         <Sidebar collapsible="icon">
-          <SidebarContent className="flex flex-col h-full">
-            {/* Brand */}
-            <div className="px-3 py-3.5 flex items-center gap-2.5 border-b border-sidebar-border flex-shrink-0">
-              <Link to="/" className="flex items-center gap-2.5 flex-1 min-w-0">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 bg-sidebar-foreground/8 border border-sidebar-border p-1">
-                  <img
-                    src="/spider.png"
-                    alt="AI Collective"
-                    className="w-full h-full object-contain opacity-90"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                </div>
-                <div className="group-data-[collapsible=icon]:hidden min-w-0">
-                  <span className="block font-serif text-[15px] font-medium tracking-tight text-sidebar-foreground leading-none">
-                    AI Collective
-                  </span>
-                  <span className="block text-[10px] text-sidebar-foreground/40 font-medium mt-0.5 uppercase tracking-wider">
-                    {t.brand.subtitle}
-                  </span>
-                </div>
-              </Link>
+          <SidebarContent className="flex flex-col h-full bg-sidebar">
+            {/* Brand & Workspace Switcher dropdown */}
+            <div className="px-3 py-3 border-b border-sidebar-border flex-shrink-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2.5 w-full text-left rounded-lg p-1.5 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-colors focus-visible:outline-none select-none">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 bg-gradient-to-br from-teal-500 to-cyan-600 text-white font-bold shadow-md shadow-teal-500/10 text-sm">
+                      {activeWorkspace?.avatar || activeWorkspace?.name?.[0] || "A"}
+                    </div>
+                    <div className="flex-1 min-w-0 leading-tight group-data-[collapsible=icon]:hidden">
+                      <span className="block font-semibold text-[13px] text-sidebar-foreground truncate">
+                        {activeWorkspace?.name || "AI Collective"}
+                      </span>
+                      <span className="block text-[10px] text-sidebar-foreground/45 truncate mt-0.5">
+                        {activeWorkspace?.description || t.brand.subtitle}
+                      </span>
+                    </div>
+                    <ChevronDown className="w-3.5 h-3.5 text-sidebar-foreground/40 flex-shrink-0 group-data-[collapsible=icon]:hidden" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 align-start" side="bottom" align="start">
+                  <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Offices & Workspaces
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {workspaces.map((ws) => (
+                    <DropdownMenuItem
+                      key={ws.id}
+                      onClick={() => handleSelectWorkspace(ws)}
+                      className={cn(
+                        "flex items-center gap-2 text-xs py-2 cursor-pointer",
+                        activeWorkspace?.id === ws.id ? "bg-muted font-medium text-foreground" : "text-muted-foreground"
+                      )}
+                    >
+                      <div className="w-5 h-5 rounded-md flex items-center justify-center bg-gradient-to-br from-teal-500 to-cyan-600 text-white font-bold text-[10px] shrink-0">
+                        {ws.avatar || ws.name[0]}
+                      </div>
+                      <span className="truncate flex-1">{ws.name}</span>
+                      {activeWorkspace?.id === ws.id && <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />}
+                    </DropdownMenuItem>
+                  ))}
+                  {workspaces.length === 0 && (
+                    <div className="p-2 text-center text-[11px] text-muted-foreground">
+                      No offices found
+                    </div>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/workspaces")} className="text-xs text-primary font-medium cursor-pointer">
+                    <BrainCircuit className="w-3.5 h-3.5 mr-2 text-teal-400" />
+                    {t.nav.manageWorkspaces}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
-            {/* Navigation */}
-            <SidebarGroup className="flex-1 overflow-y-auto py-2">
-              <SidebarGroupLabel className="text-sidebar-foreground/30 text-[10px] font-semibold uppercase tracking-widest px-3 mb-1">
-                {t.nav.label}
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu className="gap-px">
-                  {navItems.map((item) => {
-                    const isActive = location.pathname === item.url;
-                    return (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={isActive}
-                          className={cn(
-                            "h-9 rounded-md transition-all duration-150 group/item",
-                          )}
-                        >
-                          <Link to={item.url} className="flex items-center gap-2.5 px-2">
-                            <span
+            {/* Navigation groups */}
+            <div className="flex-1 overflow-y-auto py-3 space-y-4">
+              {NAV_GROUPS.map((group) => (
+                <SidebarGroup key={group.groupKey} className="py-0">
+                  <SidebarGroupLabel className="text-sidebar-foreground/30 text-[10px] font-bold uppercase tracking-widest px-3 mb-1 group-data-[collapsible=icon]:hidden">
+                    {t.nav[group.groupKey]}
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu className="gap-px">
+                      {group.items.map((item) => {
+                        const isActive = location.pathname === item.url;
+                        const title = t.nav[item.key];
+                        return (
+                          <SidebarMenuItem key={item.key}>
+                            <SidebarMenuButton
+                              asChild
+                              isActive={isActive}
                               className={cn(
-                                "relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-all duration-150",
-                                isActive
-                                  ? "text-sidebar-primary-foreground bg-sidebar-primary"
-                                  : "text-sidebar-foreground/50",
+                                "h-9 rounded-md transition-all duration-150 group/item",
                               )}
                             >
-                              <item.icon className="h-3.5 w-3.5" strokeWidth={2} />
-                            </span>
-                            <span className={cn(
-                              "text-sm group-data-[collapsible=icon]:hidden",
-                              isActive ? "font-semibold text-sidebar-foreground" : "font-medium text-sidebar-foreground/60",
-                            )}>
-                              {item.title}
-                            </span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+                              <Link to={item.url} className="flex items-center gap-2.5 px-2">
+                                <span
+                                  className={cn(
+                                    "relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-all duration-150",
+                                    isActive
+                                      ? "text-sidebar-primary-foreground bg-sidebar-primary shadow-sm"
+                                      : "text-sidebar-foreground/50 group-hover/item:text-sidebar-foreground",
+                                  )}
+                                >
+                                  <item.icon className="h-3.5 w-3.5" strokeWidth={2} />
+                                </span>
+                                <span className={cn(
+                                  "text-[13px] group-data-[collapsible=icon]:hidden transition-colors",
+                                  isActive
+                                    ? "font-semibold text-sidebar-foreground"
+                                    : "font-medium text-sidebar-foreground/60 group-hover/item:text-sidebar-foreground/80",
+                                )}>
+                                  {title}
+                                </span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        );
+                      })}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              ))}
+            </div>
 
             {/* Sidebar footer */}
             <div className="px-3 py-3 border-t border-sidebar-border flex-shrink-0 group-data-[collapsible=icon]:px-2">
@@ -207,13 +323,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               )}
             </div>
           </header>
-          <main className="flex-1 min-h-0 overflow-auto scrollbar-thin bg-background">
+          <main className="flex-1 min-h-0 overflow-hidden bg-background">
             <motion.div
               key={location.pathname}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
-              className="p-6 md:p-8 max-w-7xl mx-auto"
+              className={cn("h-full w-full", !isFullBleed && "p-6 md:p-8 max-w-7xl mx-auto overflow-y-auto scrollbar-thin")}
             >
               {children}
             </motion.div>

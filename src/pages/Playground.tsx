@@ -93,7 +93,7 @@ export default function Playground() {
             </Badge>
           </div>
           <p className="text-muted-foreground text-sm">
-            Watch AI agents collaborate in real-time to complete complex tasks.
+            Watch company personnel collaborate in real-time to complete complex tasks.
           </p>
         </div>
         {messages.length > 0 && !isSimulating && (
@@ -133,7 +133,7 @@ export default function Playground() {
                 <Users className="w-3.5 h-3.5" />
                 <span>
                   <strong className="text-foreground">{uniqueAgents.length}</strong>{" "}
-                  agents active
+                  personnel active
                 </span>
               </div>
               <div className="h-3.5 w-px bg-border" />
@@ -176,7 +176,7 @@ export default function Playground() {
                 if (e.key === "Enter" && (e.metaKey || e.ctrlKey))
                   handleSubmit();
               }}
-              placeholder="Describe a task for the agent team to work on together…"
+              placeholder="Describe a task for the team to work on together…"
               className="min-h-[96px] resize-none text-sm bg-background/50 border-border/60 focus-visible:ring-1 focus-visible:ring-primary/30"
               disabled={isSimulating}
             />
@@ -188,7 +188,7 @@ export default function Playground() {
               {isSimulating ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Agents Working…
+                  Personnel Working…
                 </>
               ) : (
                 <>
@@ -270,7 +270,7 @@ export default function Playground() {
               className="glass-card p-4 space-y-3"
             >
               <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                Participating Agents
+                Participating Personnel
               </span>
               <div className="space-y-2.5">
                 {uniqueAgents.map((role) => {
@@ -388,7 +388,7 @@ export default function Playground() {
                   }`}
                 />
                 <span className="text-sm font-semibold">
-                  Agent Communication Stream
+                  Personnel Communication Stream
                 </span>
               </div>
               {messages.length > 0 && (
@@ -437,7 +437,7 @@ export default function Playground() {
                   <div>
                     <p className="text-sm font-medium mb-1">Ready to run</p>
                     <p className="text-xs text-muted-foreground max-w-[200px] leading-relaxed">
-                      Pick an example task or type your own to see agents
+                      Pick an example task or type your own to see the team
                       collaborate live.
                     </p>
                   </div>
@@ -449,7 +449,7 @@ export default function Playground() {
                 <div className="flex flex-col items-center justify-center h-full gap-3">
                   <Loader2 className="w-5 h-5 text-primary animate-spin" />
                   <p className="text-sm text-muted-foreground">
-                    Initializing agents…
+                    Initializing personnel…
                   </p>
                 </div>
               )}

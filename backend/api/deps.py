@@ -272,22 +272,6 @@ def get_agent_graph_service(mode: str = "sequential") -> AgentGraphService | Non
 # Auth dependency
 # ---------------------------------------------------------------------------
 
-def get_current_user(
-    authorization: str | None = None,
-    user_service: UserService = None,
-):
-    """Placeholder — import _current_user_dep for use in routers."""
-    pass
-
-
-def _current_user_dep(
-    authorization: str | None = None,
-    user_service: UserService = None,
-):
-    """Defined at module load; routers should use Depends(current_user_dep)."""
-    pass
-
-
 # Real implementation — defined here so the import is available.
 # Usage in routers:
 #   from backend.api.deps import current_user_dep

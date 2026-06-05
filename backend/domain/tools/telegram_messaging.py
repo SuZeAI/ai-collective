@@ -9,6 +9,7 @@ from urllib import error, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.domain.tools._messaging_http import request_json
 
 TELEGRAM_API_BASE = "https://api.telegram.org/bot{token}/{method}"
 
@@ -20,25 +21,8 @@ def _tg_request(
     timeout: int = 30,
 ) -> Dict[str, Any]:
     url = TELEGRAM_API_BASE.format(token=token, method=method)
-    payload = None
-    headers: Dict[str, str] = {}
-    if data is not None:
-        payload = json.dumps(data).encode("utf-8")
-        headers["Content-Type"] = "application/json"
-    req = request.Request(
-        url=url,
-        method="POST" if data is not None else "GET",
-        data=payload,
-        headers=headers,
-    )
-    try:
-        with request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Telegram API error {exc.code}: {body[:300]}") from exc
-    except (error.URLError, TimeoutError) as exc:
-        raise RuntimeError(f"Telegram request failed: {exc}") from exc
+    http_method = "POST" if data is not None else "GET"
+    return request_json(http_method, url, service="Telegram", json_body=data, timeout=timeout)
 
 
 class TelegramMessagingToolkit(BaseToolkit):

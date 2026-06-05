@@ -1,0 +1,40 @@
+# Version control & CI
+.git
+.gitignore
+.github
+
+# Python caches / build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Secrets & local config — must never be baked into the image
+.env
+.env.*
+secrets/
+*.pem
+*.key
+
+# Local runtime data & logs
+logs/
+storage/
+*.db
+*.sqlite3
+sandbox_workspace/
+static/avatars/
+
+# Frontend (the backend image does not need it)
+node_modules/
+src/
+dist/
+build/
+
+# Editor / OS cruft
+.vscode/
+.idea/
+.DS_Store

@@ -21,7 +21,7 @@
 
 ## 🤖 What is AI – Collective?
 
-**AI – Collective** is an open-source framework for modeling, orchestrating, and executing complex workflows through **Customizable Multi-Agent Teams**. Unlike standard chatbots, it enables the creation of an "AI Workforce" where agents possess specific skills, follow organizational topologies (Sequential, Ring, Mesh, or Supervisor), and collaborate to solve high-level objectives — with real-time streaming and human-in-the-loop support.
+**AI – Collective** is a source-available framework (free for educational and research use — see [License](#-license)) for modeling, orchestrating, and executing complex workflows through **Customizable Multi-Agent Teams**. Unlike standard chatbots, it enables the creation of an "AI Workforce" where agents possess specific skills, follow organizational topologies (Sequential, Ring, Mesh, or Supervisor), and collaborate to solve high-level objectives — with real-time streaming and human-in-the-loop support.
 
 ## ✨ Key Features
 
@@ -445,16 +445,50 @@ For production-grade scalability, the backend detaches long-running agent loops 
 - **Software Research**: Automated vulnerability detection and documentation generation.
 - **Parallel Task Execution**: Subagents processing independent subtasks concurrently.
 
+## 📚 Documentation
+
+Backend docs live in [`docs/`](docs/README.md): architecture, configuration
+(env reference), security, webhooks, agent orchestration, deployment, and the
+API reference.
+
 ## 🤝 Contributing
 
-We welcome contributions! Please follow the Clean Architecture patterns established in the backend and ensure all frontend components are modular and typed.
+We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) and the
+[Code of Conduct](CODE_OF_CONDUCT.md) first. Follow the ports-and-adapters
+patterns in the backend and keep frontend components modular and typed. For
+security reports, see [SECURITY.md](SECURITY.md).
 
-## 👨‍💻 Author
+> By contributing, you agree your contribution is provided under the project
+> license and may be relicensed/offered commercially by the copyright holder.
+
+## 📄 License
+
+AI – Collective is released under the **AI – Collective Non-Commercial /
+Academic License** — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+- ✅ **Free** for educational and research (non-commercial) use.
+- ⛔ **Commercial use** — products, services, SaaS, for-profit internal
+  operations, consulting, or redistribution under other terms — is **not**
+  granted by this license and requires a **separate written commercial
+  license**.
+
+To obtain a commercial license or request any other use, please contact the
+author (see below).
+
+## 👨‍💻 Author & Contact
 
 **SuZeAI (SuzeNith)** — AI Research Engineer focused on autonomous multi-agent systems.
+
+- 📧 Email: **suzeai545@gmail.com**
+- 🐙 GitHub: **[https://github.com/SuZeAI](https://github.com/SuZeAI)**
+
+For commercial licensing, partnerships, or permissions beyond educational and
+research use, please reach out by email.
 
 -----
 
 <p align="center">
-Released under the <a href="LICENSE">MIT License</a>.
+© 2026 SuZeAI (SuzeNith) — Released under the
+<a href="LICENSE">Non-Commercial / Academic License</a>.
+Commercial use requires permission: <a href="mailto:suzeai545@gmail.com">suzeai545@gmail.com</a>.
 </p>

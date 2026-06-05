@@ -18,6 +18,7 @@ from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
+from backend.domain.agent._graph_runtime import recursion_config, run_to_final_state, safe_chat
 
 
 MAX_CONTEXT_TOKENS = max(1024, int(os.getenv("AGENT_CONTEXT_TOKEN_LIMIT", "12000")))
@@ -81,7 +82,7 @@ class LangGraphRingOrchestrator(AgentGraphOrchestrator):
             graph_config=graph_config,
         )
         initial = self._make_initial_state(user_input)
-        final_state = await graph.ainvoke(initial)
+        final_state = await run_to_final_state(graph, initial, max_rounds)
 
         turns = list(final_state.get("turns", []))
         return GraphRunResult(
@@ -124,7 +125,9 @@ class LangGraphRingOrchestrator(AgentGraphOrchestrator):
         )
         initial = self._make_initial_state(user_input)
 
-        async for event in graph.astream(initial, stream_mode="custom"):
+        async for event in graph.astream(
+            initial, config=recursion_config(max_rounds), stream_mode="custom"
+        ):
             if isinstance(event, dict):
                 yield event
 
@@ -287,7 +290,7 @@ class LangGraphRingOrchestrator(AgentGraphOrchestrator):
                 "llm_model": budget_result.model,
             })
 
-            output = await llm.chat(
+            output = await safe_chat(llm,
                 system=agent.system_prompt,
                 user=user_input,
                 tools=bound_tools or None,
