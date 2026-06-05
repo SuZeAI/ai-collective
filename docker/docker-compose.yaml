@@ -171,7 +171,7 @@ services:
       dockerfile: backend/Dockerfile
       args:
         APT_MIRROR: ${APT_MIRROR:-}
-        UV_IMAGE: ${UV_IMAGE:-ghcr.io/astral-sh/uv:0.7.20}
+        UV_IMAGE: ${UV_IMAGE:-ghcr.io/astral-sh/uv:0.9.5}
         UV_INDEX_URL: ${UV_INDEX_URL:-}
     container_name: ai-collective-backend
     command: uv run uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --workers ${BACKEND_WORKERS:-4}

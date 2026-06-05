@@ -4,6 +4,7 @@ import { ExternalLink, Github, BookOpen, ArrowRight, Rss } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { API_DOCS_URL } from "@/lib/api";
 
 const GITHUB_URL = "https://github.com/SuZeAI/ai-collective";
 
@@ -32,7 +33,7 @@ export default function Resources() {
   const m = t.marketing;
 
   const RESOURCE_CARDS = [
-    { icon: BookOpen, label: m.resources.card1Label, title: m.resources.card1Title, desc: m.resources.card1Desc, href: "http://localhost:2026/docs", external: true, cta: m.resources.card1Cta },
+    { icon: BookOpen, label: m.resources.card1Label, title: m.resources.card1Title, desc: m.resources.card1Desc, href: API_DOCS_URL, external: true, cta: m.resources.card1Cta },
     { icon: Github, label: m.resources.card2Label, title: m.resources.card2Title, desc: m.resources.card2Desc, href: GITHUB_URL, external: true, cta: m.resources.card2Cta },
     { icon: Rss, label: m.resources.card3Label, title: m.resources.card3Title, desc: m.resources.card3Desc, href: "/changelog", external: false, cta: m.resources.card3Cta },
   ];
