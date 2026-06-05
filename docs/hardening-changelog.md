@@ -63,8 +63,11 @@ and why.
 
 ## Docker
 
-- Multi-stage build, non-root user, direct uvicorn (PID 1), `HEALTHCHECK`,
-  and a new `.dockerignore`. _Commit: docker hardening._
+- Multi-stage build (build cache kept out of the final image), `HEALTHCHECK`,
+  and a new `.dockerignore`. `uv` is retained in the runtime image and the
+  container runs as root, because both compose files drive the backend via
+  `uv run` (dev also runs `uv sync` at startup). Non-root execution is a
+  follow-up that requires compose changes. _Commit: docker hardening (+ fix)._
 
 ## New dependency
 

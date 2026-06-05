@@ -28,9 +28,10 @@ storage/
 sandbox_workspace/
 static/avatars/
 
-# Frontend (the backend image does not need it)
+# Build outputs / installable artifacts (regenerated inside the image).
+# NOTE: the build context (repo root) is shared by Dockerfile.frontend, which
+# needs src/ and the config files — do NOT ignore those here.
 node_modules/
-src/
 dist/
 build/
 

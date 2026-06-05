@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { type Language } from "@/locales";
+import { API_DOCS_URL } from "@/lib/api";
 
 const GITHUB_URL = "https://github.com/SuZeAI/ai-collective";
 const GITHUB_REPO = "SuZeAI/ai-collective";
@@ -1019,7 +1020,7 @@ export default function Landing() {
                       className="absolute top-full left-0 mt-3 w-52 bg-background border border-[#e8e6dc] dark:border-[#2e2e2d] rounded-xl shadow-xl py-2 z-50"
                     >
                       <Link to="/" className="flex items-center justify-between px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 transition-colors">{t.header.overview}</Link>
-                      <a href="http://localhost:2026/docs" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                      <a href={API_DOCS_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                         {t.header.devDocs} <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                       <Link to="/pricing" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">{t.header.pricing}</Link>
@@ -1106,7 +1107,7 @@ export default function Landing() {
                       <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                         GitHub <ExternalLink className="w-3.5 h-3.5" />
                       </a>
-                      <a href="http://localhost:2026/docs" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                      <a href={API_DOCS_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                         {t.header.devDocs} <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                       <div className="my-1 border-t border-[#e8e6dc] dark:border-[#2e2e2d]" />
@@ -1231,7 +1232,7 @@ export default function Landing() {
                   {t.hero.cta1}
                 </Link>
                 <a
-                  href="http://localhost:2026/docs"
+                  href={API_DOCS_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center h-11 px-6 rounded-lg border border-[#c4c2ba] dark:border-[#4d4d4b] bg-transparent text-foreground/80 font-semibold text-sm hover:bg-muted/30 transition-all shadow-xs"
