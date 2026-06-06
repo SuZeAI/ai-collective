@@ -60,6 +60,7 @@ class OfficeBuilderSessionSchema(BaseModel):
     createdAt: str
     updatedAt: str
     workspaceId: str = ""
+    owner_id: str = "default"
 
     @staticmethod
     def from_domain(s) -> "OfficeBuilderSessionSchema":
@@ -71,6 +72,7 @@ class OfficeBuilderSessionSchema(BaseModel):
             createdAt=s.created_at.isoformat(),
             updatedAt=s.updated_at.isoformat(),
             workspaceId=s.workspace_id,
+            owner_id=getattr(s, "owner_id", "default") or "default",
         )
 
 
@@ -82,6 +84,7 @@ class OfficeBuilderSessionSummarySchema(BaseModel):
     createdAt: str
     updatedAt: str
     workspaceId: str = ""
+    owner_id: str = "default"
 
     @staticmethod
     def from_domain(s) -> "OfficeBuilderSessionSummarySchema":
@@ -93,6 +96,7 @@ class OfficeBuilderSessionSummarySchema(BaseModel):
             createdAt=s.created_at.isoformat(),
             updatedAt=s.updated_at.isoformat(),
             workspaceId=s.workspace_id,
+            owner_id=getattr(s, "owner_id", "default") or "default",
         )
 
 

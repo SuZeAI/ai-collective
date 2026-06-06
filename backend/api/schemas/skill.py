@@ -18,6 +18,7 @@ class SkillSchema(BaseModel):
     avatar_color: str = ""
     avatar_url: str = ""
     code: str | None = None
+    owner_id: str = "default"
 
     @staticmethod
     def from_domain(s) -> "SkillSchema":
@@ -35,6 +36,7 @@ class SkillSchema(BaseModel):
             avatar_color=getattr(s, "avatar_color", "") or "",
             avatar_url=getattr(s, "avatar_url", "") or "",
             code=s.code,
+            owner_id=getattr(s, "owner_id", "default") or "default",
         )
 
 
