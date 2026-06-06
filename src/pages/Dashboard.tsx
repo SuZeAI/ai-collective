@@ -7,6 +7,20 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useAgentSimulation } from "@/hooks/use-agent-simulation";
 import { api, type Agent, type Analytics, type ActivityFeedItem, type Task } from "@/lib/api";
+import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
+
+// Client-side average completion time for office-scoped views (the backend
+// analytics endpoint aggregates globally).
+function avgCompletionOf(tasks: Task[]): string {
+  const durations = tasks
+    .filter((t) => t.status === "completed" && t.startTime && t.endTime)
+    .map((t) => new Date(t.endTime as string).getTime() - new Date(t.startTime as string).getTime())
+    .filter((ms) => Number.isFinite(ms) && ms > 0);
+  if (durations.length === 0) return "—";
+  const minutes = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length / 60000);
+  if (minutes < 60) return `${minutes}m`;
+  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+}
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -38,11 +52,26 @@ const statusVariant: Record<string, string> = {
 export default function Dashboard() {
   const navigate = useNavigate();
   useAgentSimulation();
+  const scope = useWorkspaceScope();
   const [isLoading, setIsLoading] = useState(true);
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [allAgents, setAgents] = useState<Agent[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [allActivityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
+  const [allTasks, setTasks] = useState<Task[]>([]);
+
+  // Office scoping: a specific office shows only its personnel/tasks/activity.
+  const agents = useMemo(
+    () => (scope.isOverall ? allAgents : allAgents.filter((a) => scope.agentIds.has(a.id))),
+    [allAgents, scope],
+  );
+  const tasks = useMemo(
+    () => (scope.isOverall ? allTasks : allTasks.filter((t) => scope.teamIds.has(t.teamId))),
+    [allTasks, scope],
+  );
+  const activityFeed = useMemo(
+    () => (scope.isOverall ? allActivityFeed : allActivityFeed.filter((f) => scope.agentIds.has(f.agentId))),
+    [allActivityFeed, scope],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -71,20 +100,30 @@ export default function Dashboard() {
 
   const agentById = useMemo(() => {
     const map = new Map<string, Agent>();
-    agents.forEach((a) => map.set(a.id, a));
+    allAgents.forEach((a) => map.set(a.id, a));
     return map;
-  }, [agents]);
+  }, [allAgents]);
 
   const activeAgentsCount = agents.filter((a) => a.status === "active").length;
   const activeTasks = tasks.filter((t) => t.status === "in-progress").length;
   const completedTasks = tasks.filter((t) => t.status === "completed").length;
+  // Global metrics come from the analytics endpoint; office-scoped ones are
+  // computed client-side from the scoped task list.
+  const efficiency = scope.isOverall
+    ? analytics?.teamEfficiency ?? 0
+    : tasks.length > 0
+      ? Math.round((completedTasks / tasks.length) * 100)
+      : 0;
+  const avgCompletion = scope.isOverall
+    ? analytics?.avgCompletionTime ?? "—"
+    : avgCompletionOf(tasks);
 
   const metricValues = [
     { value: String(completedTasks), trend: "+12%" },
     { value: String(activeTasks), trend: "in progress" },
-    { value: `${analytics?.teamEfficiency ?? 0}%`, trend: "+5%" },
+    { value: `${efficiency}%`, trend: "+5%" },
     { value: String(activeAgentsCount), trend: `of ${agents.length}` },
-    { value: analytics?.avgCompletionTime ?? "—", trend: "avg time" },
+    { value: avgCompletion, trend: "avg time" },
   ];
 
   return (
@@ -96,9 +135,13 @@ export default function Dashboard() {
     >
       {/* Page header */}
       <motion.div variants={itemVariants}>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Company Overview</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          {scope.workspace ? `${scope.workspace.name} — Overview` : "Company Overview"}
+        </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Overview of your company operations
+          {scope.workspace
+            ? `Operations of office "${scope.workspace.name}"`
+            : "Overview of your company operations across all offices"}
         </p>
       </motion.div>
 

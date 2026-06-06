@@ -6,12 +6,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { api, type Agent, type Message, type Task, type Team } from "@/lib/api";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
+import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 
 export default function Conversations() {
+  const scope = useWorkspaceScope();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [allAgents, setAgents] = useState<Agent[]>([]);
+  const [allTasks, setTasks] = useState<Task[]>([]);
+  const [allTeams, setTeams] = useState<Team[]>([]);
+
+  // Office scoping for the filter dropdowns.
+  const agents = useMemo(
+    () => (scope.isOverall ? allAgents : allAgents.filter((a) => scope.agentIds.has(a.id))),
+    [allAgents, scope],
+  );
+  const tasks = useMemo(
+    () => (scope.isOverall ? allTasks : allTasks.filter((t) => scope.teamIds.has(t.teamId))),
+    [allTasks, scope],
+  );
+  const teams = useMemo(
+    () => (scope.isOverall ? allTeams : allTeams.filter((t) => scope.teamIds.has(t.id))),
+    [allTeams, scope],
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -19,6 +35,13 @@ export default function Conversations() {
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const [selectedTaskId, setSelectedTaskId] = useState("");
   const [selectedTeamId, setSelectedTeamId] = useState("");
+
+  // Switching office invalidates any picked filter — reset them.
+  useEffect(() => {
+    setSelectedAgentId("");
+    setSelectedTaskId("");
+    setSelectedTeamId("");
+  }, [scope.workspace?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,25 +75,43 @@ export default function Conversations() {
 
   const agentById = useMemo(() => {
     const map = new Map<string, Agent>();
-    agents.forEach((a) => map.set(a.id, a));
+    allAgents.forEach((a) => map.set(a.id, a));
     return map;
-  }, [agents]);
+  }, [allAgents]);
 
   const taskById = useMemo(() => {
     const map = new Map<string, Task>();
-    tasks.forEach((t) => map.set(t.id, t));
+    allTasks.forEach((t) => map.set(t.id, t));
     return map;
-  }, [tasks]);
+  }, [allTasks]);
 
   const teamById = useMemo(() => {
     const map = new Map<string, Team>();
-    teams.forEach((tm) => map.set(tm.id, tm));
+    allTeams.forEach((tm) => map.set(tm.id, tm));
     return map;
-  }, [teams]);
+  }, [allTeams]);
 
   // Filter messages based on selected filters
   const filteredMessages = useMemo(() => {
+    if (!scope.isOverall && !scope.ready) return []; // membership still resolving
     return messages.filter((msg) => {
+      // Office scoping. The conversation's task decides which office a message
+      // belongs to; only personnel-membership is used as fallback when the
+      // message has no resolvable task (e.g. ad-hoc chats).
+      if (!scope.isOverall) {
+        const tid = msg.taskId || "";
+        const task = taskById.get(tid);
+        let inScope: boolean;
+        if (task) {
+          inScope = scope.teamIds.has(task.teamId);
+        } else if (tid.startsWith("team:")) {
+          // Department kickoff messages reference "team:<id>" instead of a task.
+          inScope = scope.teamIds.has(tid.slice("team:".length));
+        } else {
+          inScope = scope.agentIds.has(msg.agentId);
+        }
+        if (!inScope) return false;
+      }
       if (selectedAgentId && msg.agentId !== selectedAgentId) return false;
       if (selectedTaskId && msg.taskId !== selectedTaskId) return false;
       if (selectedTeamId) {
@@ -79,7 +120,7 @@ export default function Conversations() {
       }
       return true;
     });
-  }, [messages, selectedAgentId, selectedTaskId, selectedTeamId, taskById]);
+  }, [messages, selectedAgentId, selectedTaskId, selectedTeamId, taskById, scope]);
 
   const messageCount = filteredMessages.length;
 
@@ -87,7 +128,11 @@ export default function Conversations() {
     <div className="h-screen w-full flex flex-col overflow-hidden">
       <header className="flex-shrink-0 mb-4 px-1">
         <h1 className="text-4xl font-bold tracking-tight">Conversations</h1>
-        <p className="text-muted-foreground mt-2">Browse and filter all personnel communications across departments and tasks.</p>
+        <p className="text-muted-foreground mt-2">
+          {scope.workspace
+            ? <>Communications within office <span className="font-semibold text-foreground">{scope.workspace.name}</span>.</>
+            : "Browse and filter all personnel communications across departments and tasks."}
+        </p>
       </header>
 
       {loading && (

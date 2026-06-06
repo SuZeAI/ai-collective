@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { api, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
+import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
 import { cn } from "@/lib/utils";
 
@@ -184,6 +185,7 @@ const getGraphLayout = (nodes: GraphContextSnapshot["nodes"], width: number, hei
 };
 
 export default function TaskManager() {
+  const scope = useWorkspaceScope();
   const [taskList, setTaskList] = useState<Task[]>([]);
   const [teamList, setTeamList] = useState<Team[]>([]);
   const [agentList, setAgentList] = useState<Agent[]>([]);
@@ -291,6 +293,8 @@ export default function TaskManager() {
 
   const filteredTasks = useMemo(() => {
     return taskList.filter((task) => {
+      // Office scoping: only tasks of the selected office's departments.
+      if (!scope.isOverall && !scope.teamIds.has(task.teamId)) return false;
       const team = teamList.find((t) => t.id === task.teamId);
       const matchesSearch =
         task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -311,24 +315,43 @@ export default function TaskManager() {
       }
       return true;
     });
-  }, [taskList, teamList, searchQuery, statusFilter]);
+  }, [taskList, teamList, searchQuery, statusFilter, scope]);
 
   const taskIdParam = searchParams.get("id");
 
+  // A task is selectable only when it belongs to the active office (or Overall).
+  const isTaskInScope = (task: Task) => scope.isOverall || scope.teamIds.has(task.teamId);
+
   useEffect(() => {
+    if (!scope.ready) return; // wait until office membership is resolved
     if (taskIdParam && taskList.length > 0) {
-      const taskExists = taskList.some((t) => t.id === taskIdParam);
-      if (taskExists) {
+      const target = taskList.find((t) => t.id === taskIdParam);
+      if (target && isTaskInScope(target)) {
         setViewTaskId(taskIdParam);
         setTaskGraphViewports((prev) => prev[taskIdParam] ? prev : { ...prev, [taskIdParam]: createDefaultViewport() });
         void loadTaskGraphContext(taskIdParam);
       }
     } else if (!taskIdParam && taskList.length > 0 && !viewTaskId) {
-      setViewTaskId(taskList[0].id);
-      setTaskGraphViewports((prev) => prev[taskList[0].id] ? prev : { ...prev, [taskList[0].id]: createDefaultViewport() });
-      void loadTaskGraphContext(taskList[0].id);
+      const first = taskList.find(isTaskInScope);
+      if (first) {
+        setViewTaskId(first.id);
+        setTaskGraphViewports((prev) => prev[first.id] ? prev : { ...prev, [first.id]: createDefaultViewport() });
+        void loadTaskGraphContext(first.id);
+      }
     }
-  }, [taskIdParam, taskList, viewTaskId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskIdParam, taskList, viewTaskId, scope]);
+
+  // Switching office must never leave another office's task in the detail panel.
+  useEffect(() => {
+    if (!scope.ready || scope.isOverall || !viewTaskId) return;
+    const current = taskList.find((t) => t.id === viewTaskId);
+    if (current && !scope.teamIds.has(current.teamId)) {
+      const fallback = taskList.find((t) => scope.teamIds.has(t.teamId));
+      setViewTaskId(fallback ? fallback.id : null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope, viewTaskId, taskList]);
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -1273,7 +1296,8 @@ export default function TaskManager() {
                   <Select value={teamId} onValueChange={setTeamId}>
                     <SelectTrigger><SelectValue placeholder="Assign to department" /></SelectTrigger>
                     <SelectContent>
-                      {teamList.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                      {(scope.isOverall ? teamList : teamList.filter((t) => scope.teamIds.has(t.id)))
+                        .map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Button onClick={saveTask} className="w-full" disabled={!title.trim() || !teamId}>
