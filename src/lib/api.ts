@@ -299,8 +299,10 @@ export const DEFAULT_OWNER_ID = "default";
 export function getCurrentUserId(): string {
   try {
     const raw = localStorage.getItem("ai-collective-user");
-    const id = raw ? (JSON.parse(raw)?.id as string | undefined) : undefined;
-    return id || "guest";
+    const u = raw ? (JSON.parse(raw) as { id?: string; role?: string } | null) : null;
+    // Admins act in the shared "default" scope (mirrors the backend rule).
+    if (u?.role === "admin" || u?.role === "system") return DEFAULT_OWNER_ID;
+    return u?.id || "guest";
   } catch {
     return "guest";
   }

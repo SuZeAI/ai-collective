@@ -343,18 +343,21 @@ current_user_dep = _make_current_user_dep()
 
 # Optional-auth owner resolution: identifies which "owner scope" a request
 # belongs to. Valid Bearer token → that user's id; no token (guest mode in the
-# frontend sends none) → the shared GUEST_OWNER_ID scope. A token that is
-# present but expired/invalid is rejected so stale sessions don't silently
-# read another scope's data.
+# frontend sends none) → the shared GUEST_OWNER_ID scope. Users with the
+# "admin" (or legacy "system") role act in the shared DEFAULT_OWNER_ID scope:
+# everything they create is shared with everyone and they may delete shared
+# items. A token that is present but expired/invalid is rejected so stale
+# sessions don't silently read another scope's data.
 def _make_current_owner_id_dep():
-    from fastapi import Header, HTTPException, status
+    from fastapi import Depends, Header, HTTPException, status
 
     def dep(
         authorization: str | None = Header(default=None, alias="Authorization"),
+        user_service: UserService = Depends(get_user_service),
     ) -> str:
         import jwt as _jwt
         from backend.api.security import decode_access_token
-        from backend.domain.models import GUEST_OWNER_ID
+        from backend.domain.models import DEFAULT_OWNER_ID, GUEST_OWNER_ID
 
         if not authorization or not authorization.startswith("Bearer "):
             return GUEST_OWNER_ID
@@ -373,7 +376,16 @@ def _make_current_owner_id_dep():
                 detail="Invalid token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        return str(payload.get("sub", "")) or GUEST_OWNER_ID
+        user_id = str(payload.get("sub", ""))
+        if not user_id:
+            return GUEST_OWNER_ID
+        try:
+            user = user_service.find_by_id(user_id)
+        except Exception:
+            return user_id
+        if getattr(user, "role", "") in ("admin", "system"):
+            return DEFAULT_OWNER_ID
+        return user_id
 
     return dep
 
