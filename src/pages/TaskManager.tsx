@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X, Eye, EyeOff, Send, UserRound, Hand } from "lucide-react";
+import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X, Eye, EyeOff, Send, UserRound, Hand, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,6 +60,16 @@ const formatTaskDateTime = (date: Date) => {
     minute: "2-digit",
     second: "2-digit",
   });
+};
+
+// ask_user tool: an agent is blocked waiting for the user's answer.
+type UserInputRequest = {
+  requestId: string;
+  agentId?: string;
+  agentName?: string;
+  question: string;
+  options: string[];
+  allowFreeText: boolean;
 };
 
 type GraphHighlight = {
@@ -206,6 +216,11 @@ export default function TaskManager() {
   // can chat, plus in-flight flags for the pause/resume API calls.
   const [heldTaskIds, setHeldTaskIds] = useState<Set<string>>(new Set());
   const [holdTogglingTaskIds, setHoldTogglingTaskIds] = useState<Set<string>>(new Set());
+  // ask_user tool: open questions per task, free-text drafts and in-flight
+  // answers keyed by request id.
+  const [userInputRequests, setUserInputRequests] = useState<Record<string, UserInputRequest[]>>({});
+  const [userRequestDrafts, setUserRequestDrafts] = useState<Record<string, string>>({});
+  const [respondingRequestIds, setRespondingRequestIds] = useState<Set<string>>(new Set());
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const [graphPanelVisible, setGraphPanelVisible] = useState(false);
   const [graphActivityCollapsed, setGraphActivityCollapsed] = useState(false);
@@ -319,7 +334,7 @@ export default function TaskManager() {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [taskConversations, viewTaskId]);
+  }, [taskConversations, viewTaskId, userInputRequests]);
 
   const handleSelectTask = (taskId: string) => {
     setSearchParams({ id: taskId });
@@ -643,6 +658,11 @@ export default function TaskManager() {
             next.delete(updated.id);
             return next;
           });
+          setUserInputRequests((prev) => {
+            const next = { ...prev };
+            delete next[updated.id];
+            return next;
+          });
         }
         // paused → in-progress: keep existing conversations so progress is visible
 
@@ -703,6 +723,43 @@ export default function TaskManager() {
             }
             else if (eventType === "subagent_complete") {
               console.debug("subagent_complete", event.subagent_type, event.error);
+            }
+            // ask_user tool: an agent is blocked on a question — show the
+            // card (heartbeats re-announce the same request_id; dedupe).
+            else if (eventType === "user_input_request") {
+              const requestId = String(event.request_id ?? "");
+              if (!requestId) continue;
+              setUserInputRequests((prev) => {
+                const list = prev[updated.id] ?? [];
+                if (list.some((r) => r.requestId === requestId)) return prev;
+                return {
+                  ...prev,
+                  [updated.id]: [
+                    ...list,
+                    {
+                      requestId,
+                      agentId: agentId ? String(agentId) : undefined,
+                      agentName: event.agent_name ? String(event.agent_name) : undefined,
+                      question: String(event.question ?? ""),
+                      options: Array.isArray(event.options) ? event.options.map(String) : [],
+                      allowFreeText: event.allow_free_text !== false,
+                    },
+                  ],
+                };
+              });
+            }
+            // ask_user resolved (answered elsewhere, or timed out) — drop the card.
+            else if (eventType === "user_input_received") {
+              const requestId = String(event.request_id ?? "");
+              setUserInputRequests((prev) => {
+                const list = prev[updated.id];
+                if (!list) return prev;
+                const nextList = list.filter((r) => r.requestId !== requestId);
+                const next = { ...prev };
+                if (nextList.length > 0) next[updated.id] = nextList;
+                else delete next[updated.id];
+                return next;
+              });
             }
             // Interrupt/Resume: backend confirmed the hold state (also covers
             // heartbeats during a long hold — Set add/delete is idempotent).
@@ -866,7 +923,8 @@ export default function TaskManager() {
             delete next[updated.id];
             return next;
           });
-          // Run ended — anything still queued can no longer be injected
+          // Run ended — anything still queued can no longer be injected and
+          // open questions can no longer be answered
           setPendingInterjections((prev) => {
             const next = { ...prev };
             delete next[updated.id];
@@ -875,6 +933,11 @@ export default function TaskManager() {
           setHeldTaskIds((prev) => {
             const next = new Set(prev);
             next.delete(updated.id);
+            return next;
+          });
+          setUserInputRequests((prev) => {
+            const next = { ...prev };
+            delete next[updated.id];
             return next;
           });
           setLoadingConversationTaskIds((prev) => {
@@ -936,6 +999,11 @@ export default function TaskManager() {
       setHeldTaskIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
+        return next;
+      });
+      setUserInputRequests((prev) => {
+        const next = { ...prev };
+        delete next[id];
         return next;
       });
       if (editingTaskId === id) {
@@ -1004,6 +1072,67 @@ export default function TaskManager() {
       setSendingInterjectTaskIds((prev) => {
         const next = new Set(prev);
         next.delete(task.id);
+        return next;
+      });
+    }
+  };
+
+  // ask_user tool: deliver the user's answer to the blocked agent, render it
+  // as a chat message, and drop the question card.
+  const respondToAgentQuestion = async (task: Task, request: UserInputRequest, response: string) => {
+    const content = response.trim();
+    if (!content || respondingRequestIds.has(request.requestId)) return;
+    setRespondingRequestIds((prev) => new Set(prev).add(request.requestId));
+    setInterjectErrors((prev) => {
+      const next = { ...prev };
+      delete next[task.id];
+      return next;
+    });
+    try {
+      await api.respondAgentGraph({
+        conversation_id: task.id,
+        request_id: request.requestId,
+        response: content,
+      });
+      setUserInputRequests((prev) => {
+        const list = prev[task.id];
+        if (!list) return prev;
+        const nextList = list.filter((r) => r.requestId !== request.requestId);
+        const next = { ...prev };
+        if (nextList.length > 0) next[task.id] = nextList;
+        else delete next[task.id];
+        return next;
+      });
+      setUserRequestDrafts((prev) => {
+        const next = { ...prev };
+        delete next[request.requestId];
+        return next;
+      });
+      const message: Message = {
+        id: `${Date.now()}-answer-${request.requestId}`,
+        agentId: "user",
+        content,
+        timestamp: new Date().toISOString(),
+        taskId: task.id,
+      };
+      setTaskConversations((prev) => ({
+        ...prev,
+        [task.id]: [...(prev[task.id] ?? []), message],
+      }));
+      try {
+        await api.addConversation({ agentId: "user", content, taskId: task.id });
+      } catch (e) {
+        console.error("Failed to save user answer:", e);
+      }
+    } catch (e) {
+      setInterjectErrors((prev) => ({
+        ...prev,
+        [task.id]: e instanceof Error ? e.message : "Failed to send answer",
+      }));
+    } finally {
+      setRespondingRequestIds((prev) => {
+        const next = new Set(prev);
+        next.delete(request.requestId);
         return next;
       });
     }
@@ -1227,6 +1356,7 @@ export default function TaskManager() {
           const team = teamList.find((t) => t.id === selectedTask.teamId);
           const messages = taskConversations[selectedTask.id] ?? [];
           const visibleMessages = messages.slice(-50);
+          const openQuestions = userInputRequests[selectedTask.id] ?? [];
           const maxRounds = team?.maxSteps ?? 6;
           const calculatedProgress = selectedTask.status === "completed" ? 100 : Math.min(Math.round((messages.length / maxRounds) * 100), 99);
           const startDate = parseTaskDate(selectedTask.startTime);
@@ -1412,7 +1542,7 @@ export default function TaskManager() {
                   <div className="flex-1 overflow-y-auto p-4 space-y-3.5 scrollbar-thin">
                     {isConversationLoading && messages.length === 0 && (thinkingAgents[selectedTask.id]?.size ?? 0) === 0 ? (
                       <p className="text-xs text-muted-foreground animate-pulse">Loading conversation...</p>
-                    ) : visibleMessages.length > 0 || (thinkingAgents[selectedTask.id]?.size ?? 0) > 0 ? (
+                    ) : visibleMessages.length > 0 || (thinkingAgents[selectedTask.id]?.size ?? 0) > 0 || openQuestions.length > 0 ? (
                       <div className="space-y-3.5">
                         {visibleMessages.map((msg) => {
                           const ts = new Date(msg.timestamp);
@@ -1458,11 +1588,82 @@ export default function TaskManager() {
                                   {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                                 </span>
                               </div>
-                              <div className="prose prose-sm dark:prose-invert max-w-none text-xs text-foreground/80 leading-relaxed [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4">
+                              <div className="prose prose-sm dark:prose-invert max-w-none text-xs text-foreground/80 leading-relaxed [&_:not(pre)>code]:bg-muted [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:py-0.5 [&_:not(pre)>code]:rounded [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4">
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                   {msg.content}
                                 </ReactMarkdown>
                               </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* ask_user tool: agent question cards — the agent is
+                            blocked until the user answers (or times out) */}
+                        {openQuestions.map((request) => {
+                          const agent = request.agentId ? agentById.get(request.agentId) : undefined;
+                          const draft = userRequestDrafts[request.requestId] ?? "";
+                          const isResponding = respondingRequestIds.has(request.requestId);
+                          return (
+                            <div key={request.requestId} className="rounded-xl border border-violet-500/35 p-3.5 bg-violet-500/5 shadow-sm">
+                              <div className="flex items-center gap-2 mb-2">
+                                <AgentAvatar
+                                  agent={agent || { avatar: "?", avatar_icon: "circle-help" }}
+                                  className={`w-6.5 h-6.5 rounded-md text-[9px] shadow-sm shrink-0 ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
+                                  iconClassName="w-3 h-3"
+                                />
+                                <span className="text-xs font-bold text-foreground">
+                                  {agent?.name ?? request.agentName ?? "Agent"}
+                                </span>
+                                <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold border bg-violet-500/10 text-violet-400 border-violet-500/25 flex items-center gap-1">
+                                  <HelpCircle className="w-2.5 h-2.5" /> needs your input
+                                </span>
+                              </div>
+                              <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap mb-2.5">
+                                {request.question}
+                              </p>
+                              {request.options.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                  {request.options.map((opt) => (
+                                    <Button
+                                      key={opt}
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 px-2.5 text-[11px] font-semibold border-violet-500/30 hover:bg-violet-500/10"
+                                      onClick={() => void respondToAgentQuestion(selectedTask, request, opt)}
+                                      disabled={isResponding}
+                                    >
+                                      {opt}
+                                    </Button>
+                                  ))}
+                                </div>
+                              )}
+                              {request.allowFreeText && (
+                                <div className="flex items-end gap-2">
+                                  <Input
+                                    value={draft}
+                                    onChange={(e) =>
+                                      setUserRequestDrafts((prev) => ({ ...prev, [request.requestId]: e.target.value }))
+                                    }
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        void respondToAgentQuestion(selectedTask, request, draft);
+                                      }
+                                    }}
+                                    placeholder="Type your answer… (Enter to send)"
+                                    disabled={isResponding}
+                                    className="h-8 text-xs flex-1"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    className="h-8 px-2.5 shrink-0"
+                                    onClick={() => void respondToAgentQuestion(selectedTask, request, draft)}
+                                    disabled={!draft.trim() || isResponding}
+                                  >
+                                    <Send className="w-3.5 h-3.5" />
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           );
                         })}

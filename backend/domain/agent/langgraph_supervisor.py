@@ -367,6 +367,18 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
                 for toolkit in lead.tools.values():
                     bound_tools.extend(toolkit.get_tools())
 
+            # Default human-in-the-loop tool: the lead can interrupt and ask
+            # the user before deciding the next delegation/final answer.
+            if conversation_id:
+                from backend.domain.tools.ask_user import AskUserToolkit
+
+                bound_tools.extend(
+                    AskUserToolkit(
+                        conversation_id=conversation_id,
+                        agent_name=lead.name,
+                    ).get_tools()
+                )
+
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
                 "agent_name": lead.name,
@@ -515,6 +527,18 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             if worker.tools:
                 for toolkit in worker.tools.values():
                     bound_tools.extend(toolkit.get_tools())
+
+            # Default human-in-the-loop tool: workers can interrupt and ask
+            # the user a question mid-task.
+            if conversation_id:
+                from backend.domain.tools.ask_user import AskUserToolkit
+
+                bound_tools.extend(
+                    AskUserToolkit(
+                        conversation_id=conversation_id,
+                        agent_name=worker.name,
+                    ).get_tools()
+                )
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,

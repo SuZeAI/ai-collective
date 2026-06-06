@@ -24,13 +24,16 @@ class _RunHandle:
     of every subsequent agent turn.
     """
 
-    __slots__ = ("_event", "_messages", "_msg_lock", "_pause_event")
+    __slots__ = ("_event", "_messages", "_msg_lock", "_pause_event", "_requests")
 
     def __init__(self) -> None:
         self._event = threading.Event()
         self._messages: list[dict[str, str]] = []
         self._msg_lock = threading.Lock()
         self._pause_event = threading.Event()
+        # ask_user tool: open question slots, request_id -> answer (None until
+        # the user responds). Guarded by _msg_lock.
+        self._requests: dict[str, str | None] = {}
 
     def cancel(self) -> None:
         self._event.set()
@@ -66,6 +69,32 @@ class _RunHandle:
             pending = self._messages
             self._messages = []
             return pending
+
+    # -- ask_user tool: question/answer slots ---------------------------- #
+
+    def open_request(self, request_id: str) -> None:
+        with self._msg_lock:
+            self._requests[request_id] = None
+
+    def answer_request(self, request_id: str, response: str) -> bool:
+        """Record the user's answer. False when the request is unknown/closed."""
+        with self._msg_lock:
+            if request_id not in self._requests:
+                return False
+            self._requests[request_id] = response
+            return True
+
+    def take_response(self, request_id: str) -> str | None:
+        """Pop the answer if the user has responded; None while still waiting."""
+        with self._msg_lock:
+            response = self._requests.get(request_id)
+            if response is not None:
+                del self._requests[request_id]
+            return response
+
+    def close_request(self, request_id: str) -> None:
+        with self._msg_lock:
+            self._requests.pop(request_id, None)
 
 
 # Backwards-compatible alias: callers historically held a "_CancelFlag".
@@ -153,3 +182,52 @@ def drain_user_messages(task_id: str) -> list[dict[str, str]]:
     if not handle:
         return []
     return handle.drain_messages()
+
+
+def is_cancelled(task_id: str) -> bool:
+    """True when the run is gone or its cancel flag is set (waiters must exit)."""
+    with _lock:
+        handle = _active.get(task_id)
+    return handle is None or handle.cancelled
+
+
+# -- ask_user tool: question/answer slots -------------------------------- #
+
+def open_user_request(task_id: str, request_id: str) -> bool:
+    """Register an open ask_user question on an active run."""
+    with _lock:
+        handle = _active.get(task_id)
+    if not handle or handle.cancelled:
+        return False
+    handle.open_request(request_id)
+    return True
+
+
+def answer_user_request(task_id: str, request_id: str, response: str) -> str:
+    """Record the user's answer to an open question.
+
+    Returns ``"ok"``, ``"no_run"`` (run finished/stopped) or
+    ``"unknown_request"`` (request already answered, timed out, or never
+    existed) so the API can surface the right error.
+    """
+    with _lock:
+        handle = _active.get(task_id)
+    if not handle or handle.cancelled:
+        return "no_run"
+    return "ok" if handle.answer_request(request_id, response) else "unknown_request"
+
+
+def take_user_response(task_id: str, request_id: str) -> str | None:
+    """Pop the user's answer if present; None while still waiting/inactive."""
+    with _lock:
+        handle = _active.get(task_id)
+    if not handle:
+        return None
+    return handle.take_response(request_id)
+
+
+def close_user_request(task_id: str, request_id: str) -> None:
+    with _lock:
+        handle = _active.get(task_id)
+    if handle:
+        handle.close_request(request_id)

@@ -305,6 +305,18 @@ class LangGraphRingOrchestrator(AgentGraphOrchestrator):
                 for toolkit in agent.tools.values():
                     bound_tools.extend(toolkit.get_tools())
 
+            # Default human-in-the-loop tool: every agent can interrupt and ask
+            # the user a question mid-run.
+            if conversation_id:
+                from backend.domain.tools.ask_user import AskUserToolkit
+
+                bound_tools.extend(
+                    AskUserToolkit(
+                        conversation_id=conversation_id,
+                        agent_name=agent.name,
+                    ).get_tools()
+                )
+
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
                 "agent_name": agent.name,

@@ -642,6 +642,18 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 for toolkit in agent.tools.values():
                     bound_tools.extend(toolkit.get_tools())
 
+            # Default human-in-the-loop tool: every agent can interrupt and ask
+            # the user a question mid-run (subagents inherit it too).
+            if conversation_id:
+                from backend.domain.tools.ask_user import AskUserToolkit
+
+                bound_tools.extend(
+                    AskUserToolkit(
+                        conversation_id=conversation_id,
+                        agent_name=agent.name,
+                    ).get_tools()
+                )
+
             # Agent Mode: expose the `task` tool so this agent can delegate to
             # subagents (which inherit these tools minus `task`).
             if agent.subagent_enabled:

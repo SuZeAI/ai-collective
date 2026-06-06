@@ -123,6 +123,38 @@ async def interject_agent_graph(req: InterjectRequest) -> InterjectResponse:
     return InterjectResponse(queued=True, message_id=message_id)
 
 
+class UserResponseRequest(BaseModel):
+    """Answer to an agent's ask_user question on an active run."""
+
+    conversation_id: str = Field(min_length=1)
+    request_id: str = Field(min_length=1)
+    response: str = Field(min_length=1, max_length=8000)
+
+
+@router.post("/agent-graph/respond")
+async def respond_agent_graph(req: UserResponseRequest) -> dict:
+    """Deliver the user's answer to an agent blocked on the ask_user tool.
+
+    The tool's poll loop picks the answer up, emits ``user_input_received``
+    on the stream, and returns the answer to the LLM so it continues its turn.
+    """
+    response = req.response.strip()
+    if not response:
+        raise HTTPException(status_code=422, detail="response must not be blank")
+    status = task_run_registry.answer_user_request(req.conversation_id, req.request_id, response)
+    if status == "no_run":
+        raise HTTPException(
+            status_code=409,
+            detail="No active run for this conversation (it may have finished or been stopped)",
+        )
+    if status == "unknown_request":
+        raise HTTPException(
+            status_code=404,
+            detail="This question is no longer open (already answered or timed out)",
+        )
+    return {"delivered": True}
+
+
 class RunControlRequest(BaseModel):
     """Targets an actively streaming agent-graph run by conversation id."""
 

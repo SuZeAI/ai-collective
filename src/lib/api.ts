@@ -340,6 +340,12 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  // Answer an agent's ask_user question (the agent is blocked waiting on it).
+  respondAgentGraph: (payload: { conversation_id: string; request_id: string; response: string }) =>
+    apiFetch<{ delivered: boolean }>("/llm/agent-graph/respond", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 
   chat: (payload: ChatRequest, options?: { timeoutMs?: number }) =>
     apiFetch<ChatResponse>("/llm/chat", {
