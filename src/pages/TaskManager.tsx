@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { AgentAvatar } from "@/components/AgentAvatar";
-import { api, canDeleteItem, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
+import { api, canDeleteItem, canEditItem, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
 import { cn } from "@/lib/utils";
@@ -1510,15 +1510,17 @@ export default function TaskManager() {
                   <h2 className="font-bold text-sm truncate text-foreground leading-none">{selectedTask.title}</h2>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 text-xs px-3"
-                    onClick={() => openEditDialog(selectedTask)}
-                    disabled={isUpdating}
-                  >
-                    <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
-                  </Button>
+                  {canEditItem(selectedTask) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs px-3"
+                      onClick={() => openEditDialog(selectedTask)}
+                      disabled={isUpdating}
+                    >
+                      <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
+                    </Button>
+                  )}
                   {canDeleteItem(selectedTask) && (
                     <Button
                       size="sm"
@@ -1548,36 +1550,38 @@ export default function TaskManager() {
                     <Progress value={calculatedProgress} className="h-1.5" />
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      size="sm"
-                      className="flex-1 h-8 text-xs font-semibold"
-                      variant={selectedTask.status === "in-progress" ? "default" : "outline"}
-                      onClick={() => updateTaskStatus(selectedTask, "in-progress")}
-                      disabled={!canStart || isUpdating}
-                    >
-                      <Play className="w-3 h-3 mr-1.5 fill-current" />
-                      {isRestart ? "Restart" : "Start"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="h-8 px-2.5"
-                      variant="outline"
-                      onClick={() => updateTaskStatus(selectedTask, "paused")}
-                      disabled={!canPause}
-                    >
-                      <Pause className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="h-8 px-2.5 hover:bg-rose-500/10 hover:border-rose-500/20"
-                      variant="outline"
-                      onClick={() => updateTaskStatus(selectedTask, "stopped")}
-                      disabled={!canStop}
-                    >
-                      <Square className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-                    </Button>
-                  </div>
+                  {canEditItem(selectedTask) && (
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        size="sm"
+                        className="flex-1 h-8 text-xs font-semibold"
+                        variant={selectedTask.status === "in-progress" ? "default" : "outline"}
+                        onClick={() => updateTaskStatus(selectedTask, "in-progress")}
+                        disabled={!canStart || isUpdating}
+                      >
+                        <Play className="w-3 h-3 mr-1.5 fill-current" />
+                        {isRestart ? "Restart" : "Start"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="h-8 px-2.5"
+                        variant="outline"
+                        onClick={() => updateTaskStatus(selectedTask, "paused")}
+                        disabled={!canPause}
+                      >
+                        <Pause className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="h-8 px-2.5 hover:bg-rose-500/10 hover:border-rose-500/20"
+                        variant="outline"
+                        onClick={() => updateTaskStatus(selectedTask, "stopped")}
+                        disabled={!canStop}
+                      >
+                        <Square className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+                      </Button>
+                    </div>
+                  )}
 
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Description</label>
@@ -1802,7 +1806,10 @@ export default function TaskManager() {
                   {/* Human-in-the-loop composer: chat with the agents mid-run.
                       Messages are queued on the backend and injected into the
                       context of the next agent turn. Interrupt holds the run
-                      at the turn boundary; Resume releases it. */}
+                      at the turn boundary; Resume releases it.
+                      Hidden for shared default tasks — they are view-only for
+                      regular users (running them requires the admin account). */}
+                  {canEditItem(selectedTask) && (
                   <div className="border-t border-border/40 p-3 flex-shrink-0 bg-muted/5">
                     {selectedTask.status === "in-progress" && (
                       heldTaskIds.has(selectedTask.id) ? (
@@ -1878,6 +1885,7 @@ export default function TaskManager() {
                       </Button>
                     </div>
                   </div>
+                  )}
                 </div>
 
                 {/* Panel 3: Knowledge Graph */}

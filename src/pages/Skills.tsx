@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { AgentAvatar, skillAvatarIconOptions } from "@/components/AgentAvatar";
-import { api, canDeleteItem, type Skill, type SkillToolConfigField, type SkillToolPreset } from "@/lib/api";
+import { api, canDeleteItem, canEditItem, type Skill, type SkillToolConfigField, type SkillToolPreset } from "@/lib/api";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 
 type ToolName = string;
@@ -704,9 +704,11 @@ export default function Skills() {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" onClick={() => openEditDialog(s)} aria-label={`Edit ${s.name}`}>
-                  <Pencil className="w-4 h-4" />
-                </Button>
+                {canEditItem(s) && (
+                  <Button variant="ghost" size="icon" onClick={() => openEditDialog(s)} aria-label={`Edit ${s.name}`}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                )}
                 {canDeleteItem(s) && (
                   <Button variant="ghost" size="icon" onClick={() => deleteSkill(s.id)} aria-label={`Delete ${s.name}`}>
                     <Trash2 className="w-4 h-4" />

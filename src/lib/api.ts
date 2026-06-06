@@ -313,6 +313,9 @@ export function canDeleteItem(item: { owner_id?: string }): boolean {
   return (item.owner_id ?? DEFAULT_OWNER_ID) === getCurrentUserId();
 }
 
+/** Editing shared items follows the same ownership rule — only the owner sees the edit button. */
+export const canEditItem = canDeleteItem;
+
 export type AuthUser = {
   id: string;
   name: string;

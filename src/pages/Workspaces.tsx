@@ -6,7 +6,7 @@ import {
   BrainCircuit, Users, Webhook, Settings2, RefreshCw,
   MessageCircle, Zap, Globe, Link2,
 } from "lucide-react";
-import { api, canDeleteItem, type Workspace, type PlatformHook, type PlatformDef, type Team, type ThirdPartyConnection } from "@/lib/api";
+import { api, canDeleteItem, canEditItem, type Workspace, type PlatformHook, type PlatformDef, type Team, type ThirdPartyConnection } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -608,9 +608,11 @@ function WorkspaceCard({
             <Plug className="h-3 w-3 text-muted-foreground" />
             <span className="text-[11px] text-muted-foreground">{workspace.platformHooks.length}</span>
           </div>
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onEdit}>
-            <Settings2 className="h-3.5 w-3.5" />
-          </Button>
+          {canEditItem(workspace) && (
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onEdit}>
+              <Settings2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
           {canDeleteItem(workspace) && (
             <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-rose-400"
               onClick={onDelete}>

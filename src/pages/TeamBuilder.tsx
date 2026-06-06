@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AgentAvatar, teamAvatarIconOptions } from "@/components/AgentAvatar";
-import { api, canDeleteItem, type Agent, type Team } from "@/lib/api";
+import { api, canDeleteItem, canEditItem, type Agent, type Team } from "@/lib/api";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 
 type TeamTestMessage = {
@@ -734,9 +734,11 @@ export default function TeamBuilder() {
                 <Button variant="ghost" size="icon" onClick={() => openTestDialog(team)} aria-label={`Test ${team.name}`}>
                   <FlaskConical className="w-4 h-4" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => openEditDialog(team)} aria-label={`Edit ${team.name}`}>
-                  <Pencil className="w-4 h-4" />
-                </Button>
+                {canEditItem(team) && (
+                  <Button variant="ghost" size="icon" onClick={() => openEditDialog(team)} aria-label={`Edit ${team.name}`}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                )}
                 {canDeleteItem(team) && (
                   <Button variant="ghost" size="icon" onClick={() => deleteTeam(team.id)} aria-label={`Delete ${team.name}`}>
                     <Trash2 className="w-4 h-4" />
