@@ -28,6 +28,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
 import { api, type Agent, type Analytics, type Task, type Team } from "@/lib/api";
+import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
+
+// Client-side average completion for office-scoped views (backend aggregates globally).
+function avgCompletionOf(tasks: Task[]): string {
+  const durations = tasks
+    .filter((t) => t.status === "completed" && t.startTime && t.endTime)
+    .map((t) => new Date(t.endTime as string).getTime() - new Date(t.startTime as string).getTime())
+    .filter((ms) => Number.isFinite(ms) && ms > 0);
+  if (durations.length === 0) return "—";
+  const minutes = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length / 60000);
+  if (minutes < 60) return `${minutes}m`;
+  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+}
 
 const ROLE_COLORS: Record<string, string> = {
   manager: "hsl(350 75% 55%)",
@@ -114,12 +127,23 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function AnalyticsPage() {
+  const scope = useWorkspaceScope();
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [allTasks, setTasks] = useState<Task[]>([]);
+  const [allTeams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Office scoping: every chart below works off these lists.
+  const tasks = useMemo(
+    () => (scope.isOverall ? allTasks : allTasks.filter((t) => scope.teamIds.has(t.teamId))),
+    [allTasks, scope],
+  );
+  const teams = useMemo(
+    () => (scope.isOverall ? allTeams : allTeams.filter((t) => scope.teamIds.has(t.id))),
+    [allTeams, scope],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -160,6 +184,7 @@ export default function AnalyticsPage() {
 
   const productivityData = useMemo(() => {
     return Object.entries(analytics?.agentProductivity ?? {})
+      .filter(([agentId]) => scope.isOverall || scope.agentIds.has(agentId))
       .map(([agentId, value]) => {
         const agent = agentById.get(agentId);
         return {
@@ -181,19 +206,25 @@ export default function AnalyticsPage() {
   const kpiCards = [
     {
       label: "Tasks Completed",
-      value: String(analytics?.tasksCompleted ?? 0),
+      value: String(scope.isOverall ? analytics?.tasksCompleted ?? 0 : completedTasks),
       icon: CheckCircle2,
       color: KPI_COLORS.success,
     },
     {
       label: "Avg. Completion",
-      value: analytics?.avgCompletionTime ?? "—",
+      value: scope.isOverall ? analytics?.avgCompletionTime ?? "—" : avgCompletionOf(tasks),
       icon: Clock,
       color: KPI_COLORS.primary,
     },
     {
       label: "Department Efficiency",
-      value: analytics ? `${analytics.teamEfficiency}%` : "—",
+      value: scope.isOverall
+        ? analytics
+          ? `${analytics.teamEfficiency}%`
+          : "—"
+        : tasks.length > 0
+          ? `${Math.round((completedTasks / tasks.length) * 100)}%`
+          : "—",
       icon: TrendingUp,
       color: KPI_COLORS.warning,
     },
@@ -220,7 +251,9 @@ export default function AnalyticsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-1">Analytics</h1>
           <p className="text-muted-foreground text-sm">
-            Department performance metrics and productivity insights.
+            {scope.workspace
+              ? <>Performance metrics of office <span className="font-semibold text-foreground">{scope.workspace.name}</span>.</>
+              : "Department performance metrics and productivity insights across all offices."}
           </p>
         </div>
         <Button
