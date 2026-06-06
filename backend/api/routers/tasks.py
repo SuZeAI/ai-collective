@@ -6,9 +6,10 @@ from uuid import uuid4
 from dataclasses import replace
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from backend.api.deps import (
+    current_owner_id_dep,
     get_agent_service,
     get_conversation_service,
     get_graph_context_service,
@@ -24,7 +25,7 @@ from backend.application.service.team_service import TeamService
 from backend.domain.errors import NotFoundError
 from backend.domain.enums import AgentStatus
 from backend.domain.enums import TaskStatus
-from backend.domain.models import Task
+from backend.domain.models import Task, can_delete, is_visible_to
 from backend.infrastructure import task_run_registry
 from backend.infrastructure import task_queue
 from backend.log import get_logger
@@ -149,8 +150,15 @@ def get_queue_status() -> dict:
 
 
 @router.get("", response_model=list[TaskSchema])
-def list_tasks(service: TaskService = Depends(get_task_service)) -> list[TaskSchema]:
-    return [TaskSchema.from_domain(t) for t in service.list_tasks()]
+def list_tasks(
+    service: TaskService = Depends(get_task_service),
+    owner_id: str = Depends(current_owner_id_dep),
+) -> list[TaskSchema]:
+    return [
+        TaskSchema.from_domain(t)
+        for t in service.list_tasks()
+        if is_visible_to(owner_id, t.owner_id)
+    ]
 
 
 @router.post("", response_model=TaskSchema)
@@ -161,6 +169,7 @@ def upsert_task(
     agent_service: AgentService = Depends(get_agent_service),
     conv_service: ConversationService = Depends(get_conversation_service),
     graph_context_service: GraphContextService = Depends(get_graph_context_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ) -> TaskSchema:
     task_id = req.id or f"task_{uuid4().hex}"
     previous_task: Task | None = None
@@ -172,6 +181,8 @@ def upsert_task(
         except NotFoundError:
             previous_task = None
             previous_status = None
+    if previous_task is not None and not is_visible_to(owner_id, previous_task.owner_id):
+        raise NotFoundError(f"Task '{task_id}' not found")
 
     next_status = TaskStatus(req.status)
     now = datetime.now(timezone.utc).replace(microsecond=0)
@@ -225,6 +236,7 @@ def upsert_task(
         assigned_agents=list(req.assignedAgents),
         start_time=start_time,
         end_time=end_time,
+        owner_id=previous_task.owner_id if previous_task else owner_id,
     )
     saved = service.upsert_task(task)
     logger.info("[Task] upsert saved | task_id=%s | status=%s | progress=%s%%",
@@ -271,7 +283,13 @@ def delete_task(
     team_service: TeamService = Depends(get_team_service),
     agent_service: AgentService = Depends(get_agent_service),
     conv_service: ConversationService = Depends(get_conversation_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
+    existing = service._repo.get(task_id)
+    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
+        raise NotFoundError(f"Task '{task_id}' not found")
+    if existing is not None and not can_delete(owner_id, existing.owner_id):
+        raise HTTPException(status_code=403, detail="Only the default (admin) account can delete shared default items")
     service.delete_task(task_id)
     conv_service.delete_messages_by_task(task_id)
     _sync_runtime_state(service, team_service, agent_service)

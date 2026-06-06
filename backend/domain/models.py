@@ -6,6 +6,23 @@ from typing import Any
 
 from backend.domain.enums import AgentStatus, TaskStatus
 
+# Ownership scoping: every user-creatable entity carries an owner_id.
+# "default" marks shared/system-seeded items visible to everyone;
+# "guest" is the shared scope for unauthenticated (guest-mode) visitors.
+DEFAULT_OWNER_ID = "default"
+GUEST_OWNER_ID = "guest"
+
+
+def is_visible_to(owner_id: str, entity_owner_id: str) -> bool:
+    """An entity is visible to a user if it is shared ("default") or theirs."""
+    return entity_owner_id in (DEFAULT_OWNER_ID, owner_id)
+
+
+def can_delete(owner_id: str, entity_owner_id: str) -> bool:
+    """Deleting is owner-only: shared "default" items can only be deleted by
+    the default (admin) account itself — never by regular users or guests."""
+    return entity_owner_id == owner_id
+
 
 @dataclass(frozen=True, slots=True)
 class Skill:
@@ -21,6 +38,7 @@ class Skill:
     avatar_url: str = ""
     tool_name: str | None = None  # Linked tool (e.g. "websearch", "browser", "bash")
     code: str | None = None
+    owner_id: str = DEFAULT_OWNER_ID
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,6 +55,7 @@ class Agent:
     avatar_url: str = ""
     system_prompt: str = ""
     subagent_enabled: bool = False
+    owner_id: str = DEFAULT_OWNER_ID
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,6 +71,7 @@ class Team:
     avatar_url: str = ""
     mode: str = "sequential"  # "sequential" or "mesh"
     max_steps: int = 6
+    owner_id: str = DEFAULT_OWNER_ID
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +85,7 @@ class Task:
     assigned_agents: list[str]
     start_time: datetime | None = None
     end_time: datetime | None = None
+    owner_id: str = DEFAULT_OWNER_ID
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +136,7 @@ class Workspace:
     avatar_color: str = ""
     avatar_url: str = ""
     primary_team_id: str = ""
+    owner_id: str = DEFAULT_OWNER_ID
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,6 +149,7 @@ class OfficeBuilderSession:
     created_at: datetime
     updated_at: datetime
     workspace_id: str = ""           # set once the plan has been applied
+    owner_id: str = DEFAULT_OWNER_ID
 
 
 @dataclass(frozen=True, slots=True)

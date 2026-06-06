@@ -18,6 +18,7 @@ import pymongo
 
 from backend.domain.enums import AgentStatus, TaskStatus
 from backend.domain.models import (
+    DEFAULT_OWNER_ID,
     ActivityFeedItem,
     Agent,
     Analytics,
@@ -85,6 +86,7 @@ def _doc_to_agent(item: dict[str, Any]) -> Agent:
             )
         ),
         subagent_enabled=bool(item.get("subagent_enabled", False)),
+        owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
     )
 
 
@@ -104,6 +106,7 @@ def _agent_to_doc(a: Agent) -> dict[str, Any]:
         "system_prompt": a.system_prompt
         or _default_agent_system_prompt(name=a.name, role=a.role, description=a.description),
         "subagent_enabled": a.subagent_enabled,
+        "owner_id": a.owner_id,
     }
 
 
@@ -154,6 +157,7 @@ class MongoSkillRepository:
             avatar_url=str(item.get("avatar_url", "") or ""),
             tool_name=(str(item.get("tool_name")) if item.get("tool_name") is not None else None),
             code=(str(item.get("code")) if item.get("code") is not None else None),
+            owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
         )
 
     def _skill_to_doc(self, s: Skill) -> dict[str, Any]:
@@ -171,6 +175,7 @@ class MongoSkillRepository:
             "tool_name": s.tool_name,
             "config": dict(s.config or {}),
             "code": s.code,
+            "owner_id": s.owner_id,
         }
 
     def list(self) -> list[Skill]:
@@ -210,6 +215,7 @@ class MongoTeamRepository:
             avatar_url=str(item.get("avatar_url", "") or ""),
             mode=str(item.get("mode", "sequential")),
             max_steps=int(item.get("maxSteps", 6)),
+            owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
         )
 
     def _team_to_doc(self, t: Team) -> dict[str, Any]:
@@ -226,6 +232,7 @@ class MongoTeamRepository:
             "avatar_url": t.avatar_url,
             "mode": t.mode,
             "maxSteps": t.max_steps,
+            "owner_id": t.owner_id,
         }
 
     def list(self) -> list[Team]:
@@ -263,6 +270,7 @@ class MongoTaskRepository:
             assigned_agents=[str(x) for x in (item.get("assignedAgents") or [])],
             start_time=_parse_iso_utc(str(item["startTime"])) if item.get("startTime") else None,
             end_time=_parse_iso_utc(str(item["endTime"])) if item.get("endTime") else None,
+            owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
         )
 
     def _task_to_doc(self, t: Task) -> dict[str, Any]:
@@ -277,6 +285,7 @@ class MongoTaskRepository:
             "assignedAgents": list(t.assigned_agents),
             "startTime": t.start_time.isoformat() if t.start_time else None,
             "endTime": t.end_time.isoformat() if t.end_time else None,
+            "owner_id": t.owner_id,
         }
 
     def list(self) -> list[Task]:
@@ -562,6 +571,7 @@ class MongoWorkspaceRepository:
             avatar_color=str(item.get("avatar_color", "") or ""),
             avatar_url=str(item.get("avatar_url", "") or ""),
             primary_team_id=str(item.get("primaryTeamId", "")),
+            owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
         )
 
     def _workspace_to_doc(self, w: Workspace) -> dict[str, Any]:
@@ -588,6 +598,7 @@ class MongoWorkspaceRepository:
             "avatar_icon": w.avatar_icon,
             "avatar_color": w.avatar_color,
             "avatar_url": w.avatar_url,
+            "owner_id": w.owner_id,
         }
 
     def list(self) -> list[Workspace]:
@@ -632,6 +643,7 @@ class MongoOfficeBuilderSessionRepository:
             created_at=self._parse_dt(item.get("createdAt")),
             updated_at=self._parse_dt(item.get("updatedAt")),
             workspace_id=str(item.get("workspaceId", "") or ""),
+            owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
         )
 
     def _session_to_doc(self, s: OfficeBuilderSession) -> dict[str, Any]:
@@ -644,6 +656,7 @@ class MongoOfficeBuilderSessionRepository:
             "createdAt": s.created_at.isoformat(),
             "updatedAt": s.updated_at.isoformat(),
             "workspaceId": s.workspace_id,
+            "owner_id": s.owner_id,
         }
 
     def list(self) -> list[OfficeBuilderSession]:
