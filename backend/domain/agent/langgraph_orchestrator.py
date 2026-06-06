@@ -18,7 +18,13 @@ from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
-from backend.domain.agent._graph_runtime import recursion_config, run_to_final_state, safe_chat
+from backend.domain.agent._graph_runtime import (
+    drain_human_guidance,
+    recursion_config,
+    run_to_final_state,
+    safe_chat,
+    wait_while_paused,
+)
 
 
 MAX_CONTEXT_TOKENS = max(1024, int(os.getenv("AGENT_CONTEXT_TOKEN_LIMIT", "12000")))
@@ -175,6 +181,14 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
         async def node(state: MultiAgentState) -> MultiAgentState:
             stream_writer = get_stream_writer()
 
+            # Human-in-the-loop: if the user interrupted the run, hold here
+            # (before this agent starts) until they resume.
+            await wait_while_paused(
+                conversation_id=conversation_id,
+                stream_writer=stream_writer,
+                agent_name=agent.name,
+            )
+
             # Generate a unique thread_id for this agent turn.
             # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
             from backend.infrastructure.sandbox.sandbox_session import (
@@ -219,13 +233,22 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                 bound_tools.extend(task_toolkit.get_tools())
 
             user_input = state["input"]
-            
+
             # Stream: Building context
             stream_writer({
                 "type": EventType.CONTEXT_BUILDING.value,
                 "agent_name": agent.name,
             })
-            
+
+            # Human-in-the-loop: pick up any user messages posted mid-run so
+            # this agent (and every one after it) sees the latest guidance.
+            human_guidance = drain_human_guidance(
+                conversation_id=conversation_id,
+                stream_writer=stream_writer,
+                graph_context_provider=graph_context_provider,
+                graph_config=graph_config,
+            )
+
             if graph_context_provider and conversation_id:
                 pack = graph_context_provider.build_graph_context(
                     conversation_id=conversation_id,
@@ -242,6 +265,10 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                         "edge_ids": pack.edge_ids,
                         "chunk_ids": pack.chunk_ids,
                     })
+
+            # Prepend so the guidance survives tail-truncation by the token budget.
+            if human_guidance:
+                user_input = f"{human_guidance}\n\n{user_input}"
 
             budget_result = apply_context_token_budget(
                 llm=llm,

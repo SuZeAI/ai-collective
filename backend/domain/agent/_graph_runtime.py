@@ -23,6 +23,8 @@ except Exception:  # pragma: no cover
     class GraphRecursionError(Exception):  # type: ignore[no-redef]
         """Fallback if langgraph does not expose GraphRecursionError."""
 
+from backend.domain.event.schema import EventType
+
 logger = logging.getLogger(__name__)
 
 # Per-LLM-call wall-clock timeout and transient-failure retry policy.
@@ -61,6 +63,117 @@ async def safe_chat(llm: Any, *, agent_name: str = "", **chat_kwargs: Any) -> st
                     agent_name, LLM_MAX_RETRIES + 1,
                 )
     return f"[error] The model call failed after retries: {last_exc}"
+
+
+# How often a held run re-checks whether the user resumed it.
+PAUSE_POLL_SECONDS = 0.25
+
+
+async def wait_while_paused(
+    *,
+    conversation_id: str | None,
+    stream_writer: Any = None,
+    agent_name: str = "",
+) -> None:
+    """Human-in-the-loop hold gate, called at the start of every agent node.
+
+    When the user interrupts a run (``POST /llm/agent-graph/pause``), the
+    current agent finishes its turn and the *next* node parks here until the
+    user resumes (or stops) the run. ``run_paused``/``run_resumed`` events let
+    the UI show the hold state. Cancellation or unregistration releases the
+    wait so background graph tasks can never hang on a dead run.
+    """
+    if not conversation_id:
+        return
+    from backend.infrastructure import task_run_registry
+
+    if not task_run_registry.is_paused(conversation_id):
+        return
+    if stream_writer:
+        stream_writer({
+            "type": EventType.RUN_PAUSED.value,
+            "agent_name": agent_name,
+        })
+    polls = 0
+    heartbeat_every = max(1, int(15 / PAUSE_POLL_SECONDS))  # ~15s
+    while task_run_registry.is_paused(conversation_id):
+        await asyncio.sleep(PAUSE_POLL_SECONDS)
+        polls += 1
+        # Heartbeat so idle SSE connections survive proxy timeouts during a
+        # long hold. The UI treats repeated run_paused events as idempotent.
+        if stream_writer and polls % heartbeat_every == 0:
+            stream_writer({
+                "type": EventType.RUN_PAUSED.value,
+                "agent_name": agent_name,
+                "heartbeat": True,
+            })
+    if stream_writer:
+        stream_writer({
+            "type": EventType.RUN_RESUMED.value,
+            "agent_name": agent_name,
+        })
+
+
+def drain_human_guidance(
+    *,
+    conversation_id: str | None,
+    stream_writer: Any = None,
+    graph_context_provider: Any = None,
+    graph_config: Any = None,
+) -> str:
+    """Human-in-the-loop: consume user messages posted while the run streams.
+
+    Every topology calls this at the start of an agent node, before building
+    context. Pending messages (queued via ``POST /llm/agent-graph/interject``)
+    are:
+
+    1. ingested into the knowledge-graph context as ``user`` messages so they
+       persist for all later turns and retrieval,
+    2. announced on the stream (``user_message_injected``) so the UI can mark
+       them as delivered,
+    3. returned as a formatted high-priority block the node appends verbatim
+       to the current agent's prompt — guaranteeing the *next* agent sees the
+       guidance even if graph retrieval would miss it.
+
+    Returns an empty string when there is nothing pending.
+    """
+    if not conversation_id:
+        return ""
+    # Local import: the registry lives in infrastructure; nodes already cross
+    # this boundary for sandbox/session helpers, and importing lazily keeps
+    # domain importable without the full app wiring (e.g. in unit tests).
+    from backend.infrastructure import task_run_registry
+
+    pending = task_run_registry.drain_user_messages(conversation_id)
+    if not pending:
+        return ""
+
+    if graph_context_provider:
+        for msg in pending:
+            try:
+                graph_context_provider.ingest_message(
+                    conversation_id=conversation_id,
+                    message_id=f"user-interject-{msg['id']}",
+                    speaker="user",
+                    content=msg["content"],
+                    config=graph_config,
+                )
+            except Exception:  # noqa: BLE001 - guidance must still reach the prompt
+                logger.exception("Failed to ingest mid-run user message into graph context")
+
+    if stream_writer:
+        stream_writer({
+            "type": EventType.USER_MESSAGE_INJECTED.value,
+            "message_ids": [msg["id"] for msg in pending],
+            "messages": [msg["content"] for msg in pending],
+        })
+
+    lines = "\n".join(f"- {msg['content']}" for msg in pending)
+    return (
+        "[Human guidance received mid-run — the user interjected while agents were "
+        "working. Treat these as updated instructions that take priority over "
+        "earlier context]:\n" + lines
+    )
 
 
 def recursion_config(max_rounds: int) -> dict[str, Any]:

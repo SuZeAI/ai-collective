@@ -20,7 +20,13 @@ from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
-from backend.domain.agent._graph_runtime import recursion_config, run_to_final_state, safe_chat
+from backend.domain.agent._graph_runtime import (
+    drain_human_guidance,
+    recursion_config,
+    run_to_final_state,
+    safe_chat,
+    wait_while_paused,
+)
 from backend.log import get_logger
 
 logger = get_logger(__name__)
@@ -494,6 +500,13 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         async def mesh_node(state: MultiAgentMeshState) -> dict:
             stream_writer = get_stream_writer()
 
+            # Human-in-the-loop: hold at the turn boundary while interrupted.
+            await wait_while_paused(
+                conversation_id=conversation_id,
+                stream_writer=stream_writer,
+                agent_name=agent.name,
+            )
+
             # Generate a unique thread_id for this agent turn.
             # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
             from backend.infrastructure.sandbox.sandbox_session import (
@@ -532,6 +545,18 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 "type": EventType.CONTEXT_BUILDING.value,
                 "agent_name": agent.name,
             })
+
+            # Human-in-the-loop: pick up user messages posted mid-run so this
+            # turn (and graph retrieval for later turns) sees the guidance.
+            human_guidance = drain_human_guidance(
+                conversation_id=conversation_id,
+                stream_writer=stream_writer,
+                graph_context_provider=graph_context_provider,
+                graph_config=graph_config,
+            )
+            # First so the guidance survives tail-truncation by the token budget.
+            if human_guidance:
+                context_parts += [human_guidance, ""]
 
             all_recent_messages = []
             for other_agent_name in state["agent_names"]:

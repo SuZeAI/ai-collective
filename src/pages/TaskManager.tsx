@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X, Eye, EyeOff } from "lucide-react";
+import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X, Eye, EyeOff, Send, UserRound, Hand } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -196,6 +196,16 @@ export default function TaskManager() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "completed" | "pending">("all");
   const [open, setOpen] = useState(false);
   const [viewTaskId, setViewTaskId] = useState<string | null>(null);
+  // Human-in-the-loop: draft text, in-flight flag, queued-but-not-yet-injected
+  // message ids, and last send error — all keyed by task id.
+  const [humanInputs, setHumanInputs] = useState<Record<string, string>>({});
+  const [sendingInterjectTaskIds, setSendingInterjectTaskIds] = useState<Set<string>>(new Set());
+  const [pendingInterjections, setPendingInterjections] = useState<Record<string, Set<string>>>({});
+  const [interjectErrors, setInterjectErrors] = useState<Record<string, string>>({});
+  // Interrupt/Resume: tasks whose run is held at a turn boundary so the user
+  // can chat, plus in-flight flags for the pause/resume API calls.
+  const [heldTaskIds, setHeldTaskIds] = useState<Set<string>>(new Set());
+  const [holdTogglingTaskIds, setHoldTogglingTaskIds] = useState<Set<string>>(new Set());
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const [graphPanelVisible, setGraphPanelVisible] = useState(false);
   const [graphActivityCollapsed, setGraphActivityCollapsed] = useState(false);
@@ -618,6 +628,21 @@ export default function TaskManager() {
             delete next[updated.id];
             return next;
           });
+          setPendingInterjections((prev) => {
+            const next = { ...prev };
+            delete next[updated.id];
+            return next;
+          });
+          setInterjectErrors((prev) => {
+            const next = { ...prev };
+            delete next[updated.id];
+            return next;
+          });
+          setHeldTaskIds((prev) => {
+            const next = new Set(prev);
+            next.delete(updated.id);
+            return next;
+          });
         }
         // paused → in-progress: keep existing conversations so progress is visible
 
@@ -678,6 +703,33 @@ export default function TaskManager() {
             }
             else if (eventType === "subagent_complete") {
               console.debug("subagent_complete", event.subagent_type, event.error);
+            }
+            // Interrupt/Resume: backend confirmed the hold state (also covers
+            // heartbeats during a long hold — Set add/delete is idempotent).
+            else if (eventType === "run_paused") {
+              setHeldTaskIds((prev) => new Set(prev).add(updated.id));
+            }
+            else if (eventType === "run_resumed") {
+              setHeldTaskIds((prev) => {
+                const next = new Set(prev);
+                next.delete(updated.id);
+                return next;
+              });
+            }
+            // Human-in-the-loop: backend confirmed our queued messages were
+            // injected into the next agent's context — flip their badges.
+            else if (eventType === "user_message_injected") {
+              const injectedIds = Array.isArray(event.message_ids) ? event.message_ids.map(String) : [];
+              setPendingInterjections((prev) => {
+                const current = prev[updated.id];
+                if (!current) return prev;
+                const nextSet = new Set(current);
+                injectedIds.forEach((id) => nextSet.delete(id));
+                const next = { ...prev };
+                if (nextSet.size > 0) next[updated.id] = nextSet;
+                else delete next[updated.id];
+                return next;
+              });
             }
             // Highlight the graph context that was retrieved for this agent turn.
             else if (eventType === "context_retrieved") {
@@ -814,6 +866,17 @@ export default function TaskManager() {
             delete next[updated.id];
             return next;
           });
+          // Run ended — anything still queued can no longer be injected
+          setPendingInterjections((prev) => {
+            const next = { ...prev };
+            delete next[updated.id];
+            return next;
+          });
+          setHeldTaskIds((prev) => {
+            const next = new Set(prev);
+            next.delete(updated.id);
+            return next;
+          });
           setLoadingConversationTaskIds((prev) => {
             const next = new Set(prev);
             next.delete(updated.id);
@@ -855,6 +918,26 @@ export default function TaskManager() {
         delete next[id];
         return next;
       });
+      setPendingInterjections((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setHumanInputs((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setInterjectErrors((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setHeldTaskIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       if (editingTaskId === id) {
         resetForm();
         setOpen(false);
@@ -873,7 +956,97 @@ export default function TaskManager() {
         return next;
       });
     }
-  };  return (
+  };
+
+  // Human-in-the-loop: send a message while agents are running. The backend
+  // queues it and the next agent turn injects it into its context; the
+  // `user_message_injected` stream event flips the badge from queued → injected.
+  const sendHumanMessage = async (task: Task) => {
+    const content = (humanInputs[task.id] ?? "").trim();
+    if (!content || sendingInterjectTaskIds.has(task.id)) return;
+    setSendingInterjectTaskIds((prev) => new Set(prev).add(task.id));
+    setInterjectErrors((prev) => {
+      const next = { ...prev };
+      delete next[task.id];
+      return next;
+    });
+    try {
+      const res = await api.interjectAgentGraph({ conversation_id: task.id, content });
+      const messageId = res.message_id ?? `${Date.now()}-user`;
+      const message: Message = {
+        id: messageId,
+        agentId: "user",
+        content,
+        timestamp: new Date().toISOString(),
+        taskId: task.id,
+      };
+      setTaskConversations((prev) => ({
+        ...prev,
+        [task.id]: [...(prev[task.id] ?? []), message],
+      }));
+      setPendingInterjections((prev) => ({
+        ...prev,
+        [task.id]: new Set([...(prev[task.id] ?? []), messageId]),
+      }));
+      setHumanInputs((prev) => ({ ...prev, [task.id]: "" }));
+      // Persist alongside agent turns so it survives reloads
+      try {
+        await api.addConversation({ agentId: "user", content, taskId: task.id });
+      } catch (e) {
+        console.error("Failed to save user message:", e);
+      }
+    } catch (e) {
+      setInterjectErrors((prev) => ({
+        ...prev,
+        [task.id]: e instanceof Error ? e.message : "Failed to send message",
+      }));
+    } finally {
+      setSendingInterjectTaskIds((prev) => {
+        const next = new Set(prev);
+        next.delete(task.id);
+        return next;
+      });
+    }
+  };
+
+  // Interrupt: hold the run at the next turn boundary (current agent finishes
+  // its turn first). Resume: release it — the next agent picks up everything
+  // sent while held. The run never dies; the SSE stream stays open.
+  const toggleHoldTask = async (task: Task, hold: boolean) => {
+    if (holdTogglingTaskIds.has(task.id)) return;
+    setHoldTogglingTaskIds((prev) => new Set(prev).add(task.id));
+    setInterjectErrors((prev) => {
+      const next = { ...prev };
+      delete next[task.id];
+      return next;
+    });
+    try {
+      if (hold) {
+        await api.pauseAgentGraph({ conversation_id: task.id });
+        setHeldTaskIds((prev) => new Set(prev).add(task.id));
+      } else {
+        await api.resumeAgentGraph({ conversation_id: task.id });
+        setHeldTaskIds((prev) => {
+          const next = new Set(prev);
+          next.delete(task.id);
+          return next;
+        });
+      }
+    } catch (e) {
+      setInterjectErrors((prev) => ({
+        ...prev,
+        [task.id]: e instanceof Error ? e.message : "Failed to update run state",
+      }));
+    } finally {
+      setHoldTogglingTaskIds((prev) => {
+        const next = new Set(prev);
+        next.delete(task.id);
+        return next;
+      });
+    }
+  };
+
+  return (
     <div className="h-full w-full flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-border bg-background overflow-hidden select-none">
       {/* LEFT SIDEBAR PANEL: Task list (360px wide) */}
       <div className="lg:w-[380px] w-full flex flex-col flex-shrink-0 bg-muted/5 h-full overflow-hidden">
@@ -1242,8 +1415,36 @@ export default function TaskManager() {
                     ) : visibleMessages.length > 0 || (thinkingAgents[selectedTask.id]?.size ?? 0) > 0 ? (
                       <div className="space-y-3.5">
                         {visibleMessages.map((msg) => {
-                          const agent = agentById.get(msg.agentId);
                           const ts = new Date(msg.timestamp);
+                          // Human-in-the-loop message: distinct style + delivery badge
+                          if (msg.agentId === "user") {
+                            const isQueued = pendingInterjections[selectedTask.id]?.has(msg.id) ?? false;
+                            return (
+                              <div key={msg.id} className="rounded-xl border border-primary/30 p-3.5 bg-primary/10 ml-8 shadow-sm">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div className="w-6 h-6 rounded-md bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-sm">
+                                    <UserRound className="w-3.5 h-3.5" />
+                                  </div>
+                                  <span className="text-xs font-bold text-foreground">You</span>
+                                  <span
+                                    className={cn(
+                                      "text-[9px] px-1.5 py-0.5 rounded font-semibold border",
+                                      isQueued
+                                        ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                                        : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                    )}
+                                  >
+                                    {isQueued ? "Waiting for next agent…" : "Added to agent context"}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto">
+                                    {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                              </div>
+                            );
+                          }
+                          const agent = agentById.get(msg.agentId);
                           return (
                             <div key={msg.id} className="rounded-xl border border-border/40 p-3.5 bg-card/45 hover:bg-muted/10 transition-colors shadow-sm">
                               <div className="flex items-center gap-2 mb-2">
@@ -1291,6 +1492,84 @@ export default function TaskManager() {
                     ) : (
                       <p className="text-xs text-muted-foreground text-center py-8">No messages yet for this task.</p>
                     )}
+                  </div>
+
+                  {/* Human-in-the-loop composer: chat with the agents mid-run.
+                      Messages are queued on the backend and injected into the
+                      context of the next agent turn. Interrupt holds the run
+                      at the turn boundary; Resume releases it. */}
+                  <div className="border-t border-border/40 p-3 flex-shrink-0 bg-muted/5">
+                    {selectedTask.status === "in-progress" && (
+                      heldTaskIds.has(selectedTask.id) ? (
+                        <div className="flex items-center justify-between gap-2 mb-2 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25">
+                          <span className="text-[10px] font-semibold text-amber-500 flex items-center gap-1.5">
+                            <Hand className="w-3 h-3" />
+                            Agents are holding — send your guidance, then resume.
+                          </span>
+                          <Button
+                            size="sm"
+                            className="h-6 px-2.5 text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white"
+                            onClick={() => void toggleHoldTask(selectedTask, false)}
+                            disabled={holdTogglingTaskIds.has(selectedTask.id)}
+                          >
+                            <Play className="w-3 h-3 mr-1 fill-current" /> Resume
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end mb-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2.5 text-[10px] font-semibold text-amber-500 border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-600"
+                            onClick={() => void toggleHoldTask(selectedTask, true)}
+                            disabled={holdTogglingTaskIds.has(selectedTask.id)}
+                          >
+                            <Hand className="w-3 h-3 mr-1" /> Interrupt to chat
+                          </Button>
+                        </div>
+                      )
+                    )}
+                    {interjectErrors[selectedTask.id] && (
+                      <p className="text-[10px] text-rose-500 mb-1.5 font-medium">
+                        {interjectErrors[selectedTask.id]}
+                      </p>
+                    )}
+                    <div className="flex items-end gap-2">
+                      <Textarea
+                        value={humanInputs[selectedTask.id] ?? ""}
+                        onChange={(e) =>
+                          setHumanInputs((prev) => ({ ...prev, [selectedTask.id]: e.target.value }))
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            void sendHumanMessage(selectedTask);
+                          }
+                        }}
+                        placeholder={
+                          selectedTask.status !== "in-progress"
+                            ? "Start the task to chat with the agents"
+                            : heldTaskIds.has(selectedTask.id)
+                              ? "Run is holding — discuss freely, then press Resume… (Enter to send)"
+                              : "Guide the agents — your message becomes context for the next agent turn… (Enter to send)"
+                        }
+                        disabled={selectedTask.status !== "in-progress"}
+                        className="min-h-[38px] max-h-[110px] text-xs resize-none flex-1 py-2"
+                        rows={1}
+                      />
+                      <Button
+                        size="sm"
+                        className="h-9 px-3 shrink-0"
+                        onClick={() => void sendHumanMessage(selectedTask)}
+                        disabled={
+                          selectedTask.status !== "in-progress" ||
+                          !(humanInputs[selectedTask.id] ?? "").trim() ||
+                          sendingInterjectTaskIds.has(selectedTask.id)
+                        }
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 

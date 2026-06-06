@@ -90,6 +90,69 @@ async def chat(
     return ChatResponse(response=text)
 
 
+class InterjectRequest(BaseModel):
+    """Human-in-the-loop message posted while an agent-graph run is streaming."""
+
+    conversation_id: str = Field(min_length=1)
+    content: str = Field(min_length=1, max_length=8000)
+
+
+class InterjectResponse(BaseModel):
+    queued: bool
+    message_id: str | None = None
+
+
+@router.post("/agent-graph/interject", response_model=InterjectResponse)
+async def interject_agent_graph(req: InterjectRequest) -> InterjectResponse:
+    """Queue a user message for an active run.
+
+    The next agent turn drains the queue, injects the message into its context
+    (and into the knowledge graph), and emits a ``user_message_injected``
+    stream event. Returns 409 when the run is no longer active so the client
+    can tell the user their guidance was not consumed.
+    """
+    content = req.content.strip()
+    if not content:
+        raise HTTPException(status_code=422, detail="content must not be blank")
+    message_id = task_run_registry.post_user_message(req.conversation_id, content)
+    if message_id is None:
+        raise HTTPException(
+            status_code=409,
+            detail="No active run for this conversation (it may have finished or been stopped)",
+        )
+    return InterjectResponse(queued=True, message_id=message_id)
+
+
+class RunControlRequest(BaseModel):
+    """Targets an actively streaming agent-graph run by conversation id."""
+
+    conversation_id: str = Field(min_length=1)
+
+
+@router.post("/agent-graph/pause")
+async def pause_agent_graph(req: RunControlRequest) -> dict:
+    """Interrupt an active run: the current agent finishes its turn, then the
+    run holds at the turn boundary so the user can chat before resuming."""
+    if not task_run_registry.signal_pause(req.conversation_id):
+        raise HTTPException(
+            status_code=409,
+            detail="No active run for this conversation (it may have finished or been stopped)",
+        )
+    return {"paused": True}
+
+
+@router.post("/agent-graph/resume")
+async def resume_agent_graph(req: RunControlRequest) -> dict:
+    """Release a held run; the next agent turn proceeds (and picks up any
+    interjected messages queued during the hold)."""
+    if not task_run_registry.signal_resume(req.conversation_id):
+        raise HTTPException(
+            status_code=409,
+            detail="No active run for this conversation (it may have finished or been stopped)",
+        )
+    return {"resumed": True}
+
+
 @router.post("/agent-graph/run", response_model=GraphRunResponse)
 async def run_agent_graph(
     req: GraphRunRequest,
