@@ -250,6 +250,12 @@ export type OfficeBuilderChatResponse = {
   plan: OfficePlan | null;
 };
 
+export type OfficeBuilderStreamEvent =
+  | { type: "delta"; text: string }
+  | { type: "plan"; plan: OfficePlan }
+  | { type: "done"; reply: string }
+  | { type: "error"; detail: string };
+
 export type ApplyOfficePlanResponse = {
   workspace: Workspace;
   team_ids: string[];
@@ -521,6 +527,62 @@ export const api = {
       body: JSON.stringify(payload),
       timeoutMs: 300000,
     }),
+  // Streaming variant of officeBuilderChat — yields delta/plan/done/error events.
+  officeBuilderChatStream: async function* (payload: {
+    messages: OfficeChatMessage[];
+    plan?: OfficePlan | null;
+    signal?: AbortSignal;
+  }): AsyncGenerator<OfficeBuilderStreamEvent> {
+    const base = getApiBase().replace(/\/$/, "");
+    const res = await fetch(`${base}/office-builder/plan-stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeader() },
+      body: JSON.stringify({ messages: payload.messages, plan: payload.plan ?? null }),
+      signal: payload.signal,
+    });
+
+    if (!res.ok) {
+      let detail = `${res.status} ${res.statusText}`;
+      try {
+        const data = await res.json();
+        if (data?.detail) detail = String(data.detail);
+      } catch {
+        // ignore
+      }
+      throw new Error(detail);
+    }
+
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error("No response body");
+
+    const abortHandler = () => reader.cancel();
+    payload.signal?.addEventListener("abort", abortHandler);
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              yield JSON.parse(line.slice(6)) as OfficeBuilderStreamEvent;
+            } catch {
+              // ignore parse errors
+            }
+          }
+        }
+      }
+    } finally {
+      payload.signal?.removeEventListener("abort", abortHandler);
+      reader.releaseLock();
+    }
+  },
+
   listOfficeBuilderSessions: () =>
     apiFetch<OfficeBuilderSessionSummary[]>("/office-builder/sessions"),
   getOfficeBuilderSession: (id: string) =>

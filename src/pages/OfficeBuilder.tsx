@@ -107,6 +107,217 @@ function DepartmentCard({ dept }: { dept: OfficeDepartmentPlan }) {
   );
 }
 
+// ─── "AI is working" overlay shown on the preview while a plan is generated ──
+function GhostDepartmentCard({ index }: { index: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -14 }}
+      animate={{ opacity: [0, 1, 1, 0.5], x: [-14, 0, 0, 0] }}
+      transition={{
+        duration: 3.2,
+        times: [0, 0.15, 0.85, 1],
+        delay: index * 0.45,
+        repeat: Infinity,
+        repeatDelay: 0.6,
+        ease: "easeOut",
+      }}
+      className="w-full rounded-xl border border-border/50 bg-muted/30 p-3"
+    >
+      <div className="flex items-center gap-2.5">
+        <motion.div
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 1.3, repeat: Infinity, delay: index * 0.2 }}
+          className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-500/50 to-cyan-600/50 shrink-0"
+        />
+        <div className="flex-1 space-y-1.5 min-w-0">
+          <div className="h-2 w-2/3 rounded-full bg-foreground/15 animate-pulse" />
+          <div className="h-1.5 w-1/2 rounded-full bg-foreground/10 animate-pulse" />
+        </div>
+      </div>
+      <div className="mt-2.5 ml-3.5 pl-3 border-l-2 border-border/40 space-y-2">
+        {[0, 1].map((h) => (
+          <div key={h} className="flex items-center gap-2">
+            <motion.div
+              animate={{ opacity: [0.3, 0.9, 0.3] }}
+              transition={{ duration: 1.3, repeat: Infinity, delay: index * 0.2 + h * 0.3 + 0.2 }}
+              className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-500/50 to-purple-600/50 shrink-0"
+            />
+            <div className="h-1.5 flex-1 max-w-[60%] rounded-full bg-foreground/10 animate-pulse" />
+            <motion.div
+              animate={{ opacity: [0.2, 0.7, 0.2] }}
+              transition={{ duration: 1.3, repeat: Infinity, delay: index * 0.2 + h * 0.3 + 0.4 }}
+              className="h-3 w-10 rounded-full border border-border/50 bg-muted/40"
+            />
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function DesigningOverlay({ updating }: { updating: boolean }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 z-10 rounded-xl bg-background/85 backdrop-blur-sm flex flex-col items-center justify-center gap-4 px-8"
+    >
+      <div className="flex items-center gap-2">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+        >
+          <Sparkles className="h-4 w-4 text-teal-400" />
+        </motion.div>
+        <span className="text-xs font-semibold">
+          {updating ? "Updating the plan" : "Designing your office"}
+        </span>
+        <span className="flex gap-0.5">
+          {[0, 1, 2].map((d) => (
+            <motion.span
+              key={d}
+              animate={{ opacity: [0.2, 1, 0.2], y: [0, -2, 0] }}
+              transition={{ duration: 1, repeat: Infinity, delay: d * 0.2 }}
+              className="w-1 h-1 rounded-full bg-teal-400"
+            />
+          ))}
+        </span>
+      </div>
+
+      {/* Blueprint skeleton: ghost departments being sketched in */}
+      <div className="w-full max-w-xs space-y-2.5">
+        {[0, 1, 2].map((i) => (
+          <GhostDepartmentCard key={i} index={i} />
+        ))}
+      </div>
+
+      <p className="text-[10px] text-muted-foreground/70">
+        Departments → Humans → Skills & Tools
+      </p>
+    </motion.div>
+  );
+}
+
+// ─── "Under construction" overlay shown while the office is being created ────
+const BUILD_STEPS = [
+  { icon: Wrench, label: "Creating skills…" },
+  { icon: User, label: "Hiring humans…" },
+  { icon: Users, label: "Forming departments…" },
+  { icon: Building2, label: "Opening the office…" },
+];
+
+function ConstructionOverlay({ plan, done }: { plan: OfficePlan; done: boolean }) {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    if (done) return;
+    const id = setInterval(() => setStep((s) => (s + 1) % BUILD_STEPS.length), 1500);
+    return () => clearInterval(id);
+  }, [done]);
+
+  // One tower per department, height follows headcount.
+  const towers = plan.departments
+    .slice(0, 5)
+    .map((d) => Math.min(5, Math.max(2, d.humans.length + 1)));
+  const cycle = towers.length * 0.2 + 5 * 0.3 + 1.2;
+  const StepIcon = BUILD_STEPS[step].icon;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 z-10 rounded-xl bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center gap-5 px-6"
+    >
+      {done ? (
+        <motion.div
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 18 }}
+          className="flex flex-col items-center gap-3 text-center"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+            <CheckCircle2 className="h-7 w-7 text-white" />
+          </div>
+          <p className="text-sm font-bold">{plan.name} is open! 🎉</p>
+          <p className="text-xs text-muted-foreground">Taking you to your new office…</p>
+        </motion.div>
+      ) : (
+        <>
+          {/* Animated skyline: blocks stack up tower by tower, looping */}
+          <div className="flex items-end gap-2 h-32">
+            {towers.map((blocks, ti) => (
+              <div key={ti} className="flex flex-col-reverse gap-1">
+                {Array.from({ length: blocks }).map((_, bi) => (
+                  <motion.div
+                    key={bi}
+                    initial={{ opacity: 0, y: -18, scaleY: 0.3 }}
+                    animate={{ opacity: [0, 1, 1, 0], y: [-18, 0, 0, 0], scaleY: [0.3, 1, 1, 1] }}
+                    transition={{
+                      duration: cycle,
+                      times: [0, 0.15, 0.85, 1],
+                      delay: ti * 0.2 + bi * 0.3,
+                      repeat: Infinity,
+                      repeatDelay: 0.4,
+                      ease: "easeOut",
+                    }}
+                    className="w-9 h-5 rounded-sm bg-gradient-to-br from-teal-500 to-cyan-600 shadow-md shadow-teal-500/20 border border-white/10"
+                  />
+                ))}
+              </div>
+            ))}
+            <motion.div
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+              className="text-3xl ml-1 select-none"
+            >
+              🏗️
+            </motion.div>
+          </div>
+
+          {/* Cycling build step */}
+          <div className="h-6 flex items-center">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
+                className="flex items-center gap-2 text-xs font-medium text-foreground"
+              >
+                <StepIcon className="h-3.5 w-3.5 text-teal-400" />
+                {BUILD_STEPS[step].label}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Departments being assembled */}
+          <div className="flex flex-wrap items-center justify-center gap-1.5 max-w-sm">
+            {plan.departments.map((d, i) => (
+              <motion.div
+                key={`${d.name}-${i}`}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4 + i * 0.3 }}
+              >
+                <Badge variant="secondary" className="text-[9px] gap-1">
+                  <motion.span
+                    animate={{ opacity: [1, 0.35, 1] }}
+                    transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.3 }}
+                    className="inline-block w-1.5 h-1.5 rounded-full bg-teal-400"
+                  />
+                  {d.name}
+                </Badge>
+              </motion.div>
+            ))}
+          </div>
+        </>
+      )}
+    </motion.div>
+  );
+}
+
 function formatSessionTime(iso: string): string {
   try {
     const d = new Date(iso);
@@ -130,10 +341,15 @@ export default function OfficeBuilder() {
   const [messages, setMessages] = useState<OfficeChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [plan, setPlan] = useState<OfficePlan | null>(null);
-  const [thinking, setThinking] = useState(false);
+  const [planRev, setPlanRev] = useState(0); // bumped whenever a fresh plan lands → retriggers the reveal animation
+  const [thinking, setThinking] = useState(false); // waiting for the first token
+  const [streaming, setStreaming] = useState(false); // tokens are arriving
   const [creating, setCreating] = useState(false);
+  const [built, setBuilt] = useState(false);
   const [loadingSession, setLoadingSession] = useState(false);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+  const busy = thinking || streaming || creating;
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -156,13 +372,14 @@ export default function OfficeBuilder() {
   }, []);
 
   const openSession = async (id: string, opts?: { silent?: boolean }) => {
-    if (thinking || creating) return;
+    if (busy) return;
     setLoadingSession(true);
     try {
       const s = await api.getOfficeBuilderSession(id);
       setSessionId(s.id);
       setMessages(s.messages);
       setPlan(s.plan);
+      setPlanRev((v) => v + 1);
       setAppliedWorkspaceId(s.workspaceId || "");
       setInput("");
       localStorage.setItem(ACTIVE_SESSION_KEY, s.id);
@@ -179,7 +396,7 @@ export default function OfficeBuilder() {
   };
 
   const newChat = () => {
-    if (thinking || creating) return;
+    if (busy) return;
     setSessionId(null);
     setMessages([]);
     setPlan(null);
@@ -211,6 +428,7 @@ export default function OfficeBuilder() {
   };
 
   const removeSession = async (id: string) => {
+    if (busy) return;
     try {
       await api.deleteOfficeBuilderSession(id);
       if (id === sessionId) newChat();
@@ -223,26 +441,49 @@ export default function OfficeBuilder() {
 
   const send = async (text?: string) => {
     const content = (text ?? input).trim();
-    if (!content || thinking || creating) return;
+    if (!content || busy) return;
     const nextMessages: OfficeChatMessage[] = [...messages, { role: "user", content }];
     setMessages(nextMessages);
     setInput("");
     setThinking(true);
+
+    let assistantText = "";
+    let nextPlan: OfficePlan | null = plan;
+    const showAssistant = (t: string) => {
+      assistantText = t;
+      setMessages([...nextMessages, { role: "assistant", content: t }]);
+    };
+
     try {
-      const res = await api.officeBuilderChat({ messages: nextMessages, plan });
-      const withReply: OfficeChatMessage[] = [...nextMessages, { role: "assistant", content: res.reply }];
-      const nextPlan = res.plan ?? plan;
-      setMessages(withReply);
-      if (res.plan) setPlan(res.plan);
-      await persistSession(withReply, nextPlan);
+      for await (const ev of api.officeBuilderChatStream({ messages: nextMessages, plan })) {
+        if (ev.type === "delta") {
+          if (!assistantText) {
+            setThinking(false);
+            setStreaming(true);
+          }
+          showAssistant(assistantText + ev.text);
+        } else if (ev.type === "plan") {
+          nextPlan = ev.plan;
+          setPlan(ev.plan);
+          setPlanRev((v) => v + 1);
+        } else if (ev.type === "done") {
+          // The backend's canonical reply (trimmed, fence-free) wins.
+          if (ev.reply) showAssistant(ev.reply);
+        } else if (ev.type === "error") {
+          throw new Error(ev.detail);
+        }
+      }
+      if (!assistantText) showAssistant("…");
+      await persistSession([...nextMessages, { role: "assistant", content: assistantText }], nextPlan);
     } catch (err) {
       const detail = err instanceof Error ? err.message : "Plan generation failed";
       const withError: OfficeChatMessage[] = [...nextMessages, { role: "assistant", content: `⚠️ ${detail}` }];
       setMessages(withError);
       toast({ title: "Office Builder", description: detail, variant: "destructive" });
-      await persistSession(withError, plan);
+      await persistSession(withError, nextPlan);
     } finally {
       setThinking(false);
+      setStreaming(false);
     }
   };
 
@@ -258,6 +499,9 @@ export default function OfficeBuilder() {
       setAppliedWorkspaceId(res.workspace.id);
       // Keep the session in history, marked as applied.
       await persistSession(messages, plan, res.workspace.id);
+      // Let the "office is open" animation play before leaving the page.
+      setBuilt(true);
+      await new Promise((r) => setTimeout(r, 1600));
       // Refresh the sidebar workspace switcher and jump to the new office.
       localStorage.setItem("activeWorkspaceId", res.workspace.id);
       window.dispatchEvent(new CustomEvent("workspaceChanged"));
@@ -267,6 +511,7 @@ export default function OfficeBuilder() {
       toast({ title: "Office Builder", description: detail, variant: "destructive" });
     } finally {
       setCreating(false);
+      setBuilt(false);
     }
   };
 
@@ -418,6 +663,9 @@ export default function OfficeBuilder() {
                         <div className="prose prose-sm dark:prose-invert max-w-none text-xs [&_p]:my-1 [&_ul]:my-1 [&_li]:my-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
                         </div>
+                        {streaming && m.role === "assistant" && i === messages.length - 1 && (
+                          <span className="inline-block w-1.5 h-3.5 ml-0.5 align-middle bg-teal-400 animate-pulse rounded-[1px]" />
+                        )}
                       </div>
                     </motion.div>
                   ))}
@@ -449,13 +697,13 @@ export default function OfficeBuilder() {
                   }}
                   placeholder='e.g. "A content studio with research, writing and publishing departments"'
                   rows={2}
-                  disabled={thinking || creating}
+                  disabled={busy}
                   className="text-xs resize-none min-h-0"
                 />
                 <Button
                   size="icon"
                   onClick={() => send()}
-                  disabled={!input.trim() || thinking || creating}
+                  disabled={!input.trim() || busy}
                   className="shrink-0 h-9 w-9"
                 >
                   <Send className="h-4 w-4" />
@@ -465,7 +713,13 @@ export default function OfficeBuilder() {
           </div>
 
           {/* Plan preview panel */}
-          <div className="flex flex-col min-h-0 rounded-xl border border-border/50 bg-card/50">
+          <div className="relative flex flex-col min-h-0 rounded-xl border border-border/50 bg-card/50">
+            <AnimatePresence>
+              {(creating || built) && plan && <ConstructionOverlay plan={plan} done={built} />}
+              {(thinking || streaming) && !creating && (
+                <DesigningOverlay key="designing" updating={!!plan} />
+              )}
+            </AnimatePresence>
             <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
               <div className="flex items-center gap-2 min-w-0">
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shrink-0">
@@ -484,7 +738,7 @@ export default function OfficeBuilder() {
                 </Badge>
               )}
               {plan && !appliedWorkspaceId && (
-                <Button size="sm" onClick={createOffice} disabled={creating || thinking} className="text-xs gap-1.5 shrink-0">
+                <Button size="sm" onClick={createOffice} disabled={busy} className="text-xs gap-1.5 shrink-0">
                   {creating ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
@@ -502,10 +756,19 @@ export default function OfficeBuilder() {
                   <p className="text-[10px] opacity-70">Office → Departments → Humans → Skills & Tools</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <PlanStats plan={plan} />
+                <div key={planRev} className="space-y-3">
+                  <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+                    <PlanStats plan={plan} />
+                  </motion.div>
                   {plan.departments.map((d, i) => (
-                    <DepartmentCard key={`${d.name}-${i}`} dept={d} />
+                    <motion.div
+                      key={`${d.name}-${i}`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.08 + i * 0.1, duration: 0.3, ease: "easeOut" }}
+                    >
+                      <DepartmentCard dept={d} />
+                    </motion.div>
                   ))}
                 </div>
               )}

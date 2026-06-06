@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
+from langchain_core.messages import HumanMessage, SystemMessage
 
 from backend.api.deps import (
     get_agent_service,
@@ -47,7 +50,44 @@ TEAM_MODES = ("sequential", "mesh", "ring", "supervisor", "tree")
 
 # ─── Plan generation (chat) ─────────────────────────────────────────────────
 
-def _build_designer_system_prompt(tool_presets: list[dict]) -> str:
+_PLAN_SCHEMA_TEXT = (
+    "{\n"
+    '  "name": "<office name>",\n'
+    '  "description": "<office description>",\n'
+    '  "departments": [\n'
+    "    {\n"
+    '      "name": "<department name>",\n'
+    '      "description": "<department description>",\n'
+    '      "mode": "sequential|mesh|ring|supervisor|tree",\n'
+    '      "humans": [\n'
+    "        {\n"
+    '          "name": "<human-like name>",\n'
+    '          "role": "<job title>",\n'
+    '          "description": "<mission / responsibilities>",\n'
+    '          "skills": [\n'
+    '            {"name": "<skill name>", "description": "<what it does>", "tool_name": "<tool_name or null>"}\n'
+    "          ]\n"
+    "        }\n"
+    "      ]\n"
+    "    }\n"
+    "  ]\n"
+    "}"
+)
+
+_DESIGNER_RULES_TEXT = (
+    "Rules:\n"
+    "- Design a sensible org: typically 2-5 departments with 2-4 humans each and 1-3 skills "
+    "per human, unless the user specifies otherwise.\n"
+    "- tool_name MUST be one of the available tools above, or null.\n"
+    "- Prefer free tools (websearch, http, hackernews, youtube) over ones requiring API keys, "
+    "unless the user asks for a specific integration.\n"
+    "- When the user requests changes, return the FULL updated plan (never a partial diff).\n"
+    "- If a current draft plan is provided, treat it as the starting point and modify it.\n"
+    "- Keep the conversational reply concise; the plan itself is rendered separately in the UI."
+)
+
+
+def _designer_prompt_intro(tool_presets: list[dict]) -> str:
     tool_lines = "\n".join(
         f"- \"{p['tool_name']}\": {p['label']}" for p in tool_presets
     )
@@ -61,46 +101,40 @@ def _build_designer_system_prompt(tool_presets: list[dict]) -> str:
         "Department execution modes: \"sequential\" (pipeline, default), \"mesh\" (open "
         "collaboration), \"ring\" (round-robin), \"supervisor\" (one lead delegates), "
         "\"tree\" (hierarchical).\n\n"
-        "ALWAYS respond with a single JSON object and nothing else:\n"
+    )
+
+
+def _build_designer_system_prompt(tool_presets: list[dict]) -> str:
+    return (
+        _designer_prompt_intro(tool_presets)
+        + "ALWAYS respond with a single JSON object and nothing else:\n"
         "{\n"
         '  "reply": "<short conversational reply in the user\'s language, summarizing what you designed or asking targeted questions>",\n'
         '  "plan": <full office plan object, or null if you still need more information>\n'
         "}\n\n"
         "Plan JSON schema:\n"
-        "{\n"
-        '  "name": "<office name>",\n'
-        '  "description": "<office description>",\n'
-        '  "departments": [\n'
-        "    {\n"
-        '      "name": "<department name>",\n'
-        '      "description": "<department description>",\n'
-        '      "mode": "sequential|mesh|ring|supervisor|tree",\n'
-        '      "humans": [\n'
-        "        {\n"
-        '          "name": "<human-like name>",\n'
-        '          "role": "<job title>",\n'
-        '          "description": "<mission / responsibilities>",\n'
-        '          "skills": [\n'
-        '            {"name": "<skill name>", "description": "<what it does>", "tool_name": "<tool_name or null>"}\n'
-        "          ]\n"
-        "        }\n"
-        "      ]\n"
-        "    }\n"
-        "  ]\n"
-        "}\n\n"
-        "Rules:\n"
-        "- Design a sensible org: typically 2-5 departments with 2-4 humans each and 1-3 skills "
-        "per human, unless the user specifies otherwise.\n"
-        "- tool_name MUST be one of the available tools above, or null.\n"
-        "- Prefer free tools (websearch, http, hackernews, youtube) over ones requiring API keys, "
-        "unless the user asks for a specific integration.\n"
-        "- When the user requests changes, return the FULL updated plan (never a partial diff).\n"
-        "- If a current draft plan is provided, treat it as the starting point and modify it.\n"
-        "- Keep \"reply\" concise; the plan itself is rendered separately in the UI."
+        f"{_PLAN_SCHEMA_TEXT}\n\n"
+        f"{_DESIGNER_RULES_TEXT}"
     )
 
 
-def _serialize_conversation(req: OfficeBuilderChatRequest) -> str:
+def _build_streaming_designer_system_prompt(tool_presets: list[dict]) -> str:
+    return (
+        _designer_prompt_intro(tool_presets)
+        + "Respond in this EXACT format:\n"
+        "1. First, write a short conversational reply as plain text in the user's language "
+        "(summarize what you designed, or ask targeted questions). Do NOT use code fences in this part.\n"
+        "2. Then, if (and only if) you have a complete office plan, append it as a fenced block:\n"
+        "```json\n"
+        "<full office plan object>\n"
+        "```\n\n"
+        "Plan JSON schema:\n"
+        f"{_PLAN_SCHEMA_TEXT}\n\n"
+        f"{_DESIGNER_RULES_TEXT}"
+    )
+
+
+def _serialize_conversation(req: OfficeBuilderChatRequest, *, streaming: bool = False) -> str:
     parts: list[str] = []
     if req.plan is not None:
         parts.append(
@@ -110,9 +144,12 @@ def _serialize_conversation(req: OfficeBuilderChatRequest) -> str:
     for msg in req.messages:
         speaker = "User" if msg.role == "user" else "Assistant"
         parts.append(f"{speaker}: {msg.content}")
-    parts.append(
-        "Respond now with the JSON object ({\"reply\": ..., \"plan\": ...}) only."
-    )
+    if streaming:
+        parts.append("Respond now in the specified format (reply text, then optional ```json plan block).")
+    else:
+        parts.append(
+            "Respond now with the JSON object ({\"reply\": ..., \"plan\": ...}) only."
+        )
     return "\n\n".join(parts)
 
 
@@ -166,6 +203,110 @@ async def chat_office_plan(
             plan = req.plan  # keep the previous draft instead of losing it
 
     return OfficeBuilderChatResponse(reply=reply, plan=plan or req.plan)
+
+
+def _chunk_text(chunk) -> str:
+    """Extract plain text from a LangChain streamed message chunk."""
+    content = getattr(chunk, "content", "")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict):
+                text = block.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+        return "".join(parts)
+    return ""
+
+
+_FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)(?:```|\Z)", re.DOTALL)
+
+
+def _split_reply_and_plan(
+    full: str, available_tools: set[str]
+) -> tuple[str, OfficePlan | None]:
+    """Split streamed output into the visible reply and a sanitized plan (if any)."""
+    fence = full.find("```")
+    reply = (full[:fence] if fence != -1 else full).strip()
+    plan: OfficePlan | None = None
+    match = _FENCE_RE.search(full)
+    if match:
+        raw = match.group(1).strip()
+        try:
+            plan = _sanitize_plan(json.loads(raw), available_tools)
+        except Exception:
+            get_logger().exception("Office builder: streamed plan failed to parse/validate")
+    if not reply:
+        reply = "Here is the updated office plan." if plan else "Could you tell me more about the office you want?"
+    return reply, plan
+
+
+@router.post("/plan-stream")
+async def chat_office_plan_stream(
+    req: OfficeBuilderChatRequest,
+    llm_service: LLMService | None = Depends(get_llm_service),
+    skill_service: SkillService = Depends(get_skill_service),
+) -> StreamingResponse:
+    """Streaming variant of /plan.
+
+    SSE events:
+      {"type": "delta", "text": ...}   incremental reply text (plan block withheld)
+      {"type": "plan", "plan": {...}}  sanitized plan, once fully parsed
+      {"type": "done", "reply": ...}   final canonical reply text
+      {"type": "error", "detail": ...}
+    """
+    if llm_service is None:
+        raise HTTPException(status_code=503, detail="LLM provider is not configured")
+    if not req.messages:
+        raise HTTPException(status_code=422, detail="messages must not be empty")
+
+    presets = skill_service.list_tool_presets()
+    available = set(skill_service.list_available_tool_names())
+    system = _build_streaming_designer_system_prompt(presets)
+    user = _serialize_conversation(req, streaming=True)
+    model = llm_service.get_chat_model()
+
+    def _event(payload: dict) -> str:
+        return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+    async def event_generator():
+        full = ""
+        sent = 0
+        try:
+            async for chunk in model.astream(
+                [SystemMessage(content=system), HumanMessage(content=user)]
+            ):
+                text = _chunk_text(chunk)
+                if not text:
+                    continue
+                full += text
+                fence = full.find("```")
+                # Hold back the last few chars so a "```" fence split across
+                # chunks never leaks into the visible reply.
+                visible_end = fence if fence != -1 else len(full) - 3
+                visible_end = max(sent, visible_end)
+                if visible_end > sent:
+                    yield _event({"type": "delta", "text": full[sent:visible_end]})
+                    sent = visible_end
+
+            fence = full.find("```")
+            visible_end = max(sent, fence if fence != -1 else len(full))
+            if visible_end > sent:
+                yield _event({"type": "delta", "text": full[sent:visible_end]})
+
+            reply, plan = _split_reply_and_plan(full, available)
+            if plan is not None:
+                yield _event({"type": "plan", "plan": plan.model_dump()})
+            yield _event({"type": "done", "reply": reply})
+        except Exception as exc:
+            get_logger().exception("Office builder streaming plan generation failed")
+            yield _event({"type": "error", "detail": str(exc)})
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 # ─── Plan application (create skills → humans → departments → office) ───────
