@@ -609,6 +609,45 @@ export default function TaskManager() {
 
       // If starting the task, stream agent responses
       if (status === "in-progress" && updated.assignedAgents.length > 0) {
+        // Clear old run state only when restarting from completed/stopped (not from paused)
+        if (task.status === "completed" || task.status === "stopped") {
+          clearTaskRunState(updated.id);
+        }
+        // paused → in-progress: keep existing conversations so progress is visible
+
+        const formattedInput = `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}`;
+        await runTaskStream(updated, formattedInput);
+      }
+    } catch (e) {
+      if (!(e instanceof DOMException && e.name === "AbortError")) {
+        console.error(e);
+      }
+    } finally {
+      setUpdatingTaskIds((prev) => {
+        const next = new Set(prev);
+        next.delete(task.id);
+        return next;
+      });
+    }
+  };
+
+  // Clear per-task run state (used when restarting a task from scratch).
+  const clearTaskRunState = (taskId: string) => {
+    setTaskConversations((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setTaskGraphSnapshots((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setTaskGraphHighlights((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setTaskGraphPositions((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setPendingInterjections((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setInterjectErrors((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setHeldTaskIds((prev) => { const next = new Set(prev); next.delete(taskId); return next; });
+    setUserInputRequests((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+  };
+
+  // Shared stream runner: opens the SSE run stream for a task and feeds every
+  // event into UI state. Used by Start/Restart and by follow-up messages on a
+  // finished task (same conversation_id → the knowledge graph context
+  // persists, so agents continue with full awareness of the previous run).
+  const runTaskStream = async (updated: Task, formattedInput: string) => {
         const controller = new AbortController();
         activeStreamsRef.current.set(updated.id, controller);
 
@@ -621,51 +660,6 @@ export default function TaskManager() {
           return next;
         });
 
-        // Clear old conversations only when restarting from completed/stopped (not from paused)
-        if (task.status === "completed" || task.status === "stopped") {
-          setTaskConversations((prev) => {
-            const next = { ...prev };
-            delete next[updated.id];
-            return next;
-          });
-          setTaskGraphSnapshots((prev) => {
-            const next = { ...prev };
-            delete next[updated.id];
-            return next;
-          });
-          setTaskGraphHighlights((prev) => {
-            const next = { ...prev };
-            delete next[updated.id];
-            return next;
-          });
-          setTaskGraphPositions((prev) => {
-            const next = { ...prev };
-            delete next[updated.id];
-            return next;
-          });
-          setPendingInterjections((prev) => {
-            const next = { ...prev };
-            delete next[updated.id];
-            return next;
-          });
-          setInterjectErrors((prev) => {
-            const next = { ...prev };
-            delete next[updated.id];
-            return next;
-          });
-          setHeldTaskIds((prev) => {
-            const next = new Set(prev);
-            next.delete(updated.id);
-            return next;
-          });
-          setUserInputRequests((prev) => {
-            const next = { ...prev };
-            delete next[updated.id];
-            return next;
-          });
-        }
-        // paused → in-progress: keep existing conversations so progress is visible
-
         setLoadingConversationTaskIds((prev) => {
           const next = new Set(prev);
           next.add(updated.id);
@@ -677,7 +671,6 @@ export default function TaskManager() {
           const team = teamList.find((t) => t.id === updated.teamId);
           const teamMode = team?.mode ?? "sequential";
           const teamMaxSteps = team?.maxSteps ?? 6;
-          const formattedInput = `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}`;
 
           for await (const event of api.runAgentGraphStream({
             user_input: formattedInput,
@@ -946,10 +939,75 @@ export default function TaskManager() {
             return next;
           });
         }
+  };
+
+  // Follow-up on a finished task: the user reviews the result and sends a new
+  // message — the task relaunches in the SAME conversation (knowledge graph
+  // context preserved) with the message as the steering instruction, and the
+  // existing chat history stays visible.
+  const continueTaskWithMessage = async (task: Task) => {
+    const content = (humanInputs[task.id] ?? "").trim();
+    if (!content || updatingTaskIds.has(task.id) || activeStreamsRef.current.has(task.id)) return;
+    if (task.assignedAgents.length === 0) return;
+    setUpdatingTaskIds((prev) => new Set(prev).add(task.id));
+    setInterjectErrors((prev) => {
+      const next = { ...prev };
+      delete next[task.id];
+      return next;
+    });
+    try {
+      // Snapshot the recent transcript BEFORE appending the follow-up, so the
+      // new run sees verbatim what was said (the knowledge graph alone is a
+      // lossy, retrieval-based memory — it may miss prior conclusions).
+      const transcriptTail = (taskConversations[task.id] ?? [])
+        .slice(-10)
+        .map((m) => {
+          const speaker = m.agentId === "user" ? "User" : (agentById.get(m.agentId)?.name ?? m.agentId);
+          const text = m.content.length > 600 ? `${m.content.slice(0, 600)}…` : m.content;
+          return `${speaker}: ${text}`;
+        })
+        .join("\n---\n");
+
+      // Show + persist the follow-up message alongside the agent turns
+      const message: Message = {
+        id: `${Date.now()}-followup`,
+        agentId: "user",
+        content,
+        timestamp: new Date().toISOString(),
+        taskId: task.id,
+      };
+      setTaskConversations((prev) => ({
+        ...prev,
+        [task.id]: [...(prev[task.id] ?? []), message],
+      }));
+      setHumanInputs((prev) => ({ ...prev, [task.id]: "" }));
+      try {
+        await api.addConversation({ agentId: "user", content, taskId: task.id });
+      } catch (e) {
+        console.error("Failed to save follow-up message:", e);
       }
+
+      const updated = await api.upsertTask({ ...task, status: "in-progress" });
+      setTaskList((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+
+      // Follow-up instruction comes BEFORE the transcript: the token budget
+      // truncates from the tail, so the instruction must never be the part
+      // that gets cut.
+      const formattedInput =
+        `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}\n\n` +
+        `[User follow-up after reviewing the previous result — continue the task accordingly, ` +
+        `building on the work already done instead of starting over]: ${content}` +
+        (transcriptTail
+          ? `\n\n[Recent conversation from the previous run, for context]:\n${transcriptTail}`
+          : "");
+      await runTaskStream(updated, formattedInput);
     } catch (e) {
       if (!(e instanceof DOMException && e.name === "AbortError")) {
         console.error(e);
+        setInterjectErrors((prev) => ({
+          ...prev,
+          [task.id]: e instanceof Error ? e.message : "Failed to continue task",
+        }));
       }
     } finally {
       setUpdatingTaskIds((prev) => {
@@ -957,6 +1015,16 @@ export default function TaskManager() {
         next.delete(task.id);
         return next;
       });
+    }
+  };
+
+  // Composer dispatch: mid-run messages interject into the live run; messages
+  // on a finished task relaunch it as a follow-up run.
+  const handleComposerSend = (task: Task) => {
+    if (task.status === "in-progress") {
+      void sendHumanMessage(task);
+    } else if (task.status === "completed" || task.status === "stopped" || task.status === "paused") {
+      void continueTaskWithMessage(task);
     }
   };
 
@@ -1357,6 +1425,16 @@ export default function TaskManager() {
           const messages = taskConversations[selectedTask.id] ?? [];
           const visibleMessages = messages.slice(-50);
           const openQuestions = userInputRequests[selectedTask.id] ?? [];
+          // Finished tasks accept follow-up messages that relaunch the run in
+          // the same conversation (knowledge graph context preserved).
+          const canFollowUp =
+            (selectedTask.status === "completed" || selectedTask.status === "stopped" || selectedTask.status === "paused") &&
+            selectedTask.assignedAgents.length > 0;
+          const composerEnabled = selectedTask.status === "in-progress" || canFollowUp;
+          const composerBusy =
+            selectedTask.status === "in-progress"
+              ? sendingInterjectTaskIds.has(selectedTask.id)
+              : updatingTaskIds.has(selectedTask.id);
           const maxRounds = team?.maxSteps ?? 6;
           const calculatedProgress = selectedTask.status === "completed" ? 100 : Math.min(Math.round((messages.length / maxRounds) * 100), 99);
           const startDate = parseTaskDate(selectedTask.startTime);
@@ -1744,28 +1822,30 @@ export default function TaskManager() {
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
-                            void sendHumanMessage(selectedTask);
+                            handleComposerSend(selectedTask);
                           }
                         }}
                         placeholder={
-                          selectedTask.status !== "in-progress"
+                          !composerEnabled
                             ? "Start the task to chat with the agents"
-                            : heldTaskIds.has(selectedTask.id)
-                              ? "Run is holding — discuss freely, then press Resume… (Enter to send)"
-                              : "Guide the agents — your message becomes context for the next agent turn… (Enter to send)"
+                            : canFollowUp
+                              ? "Task finished — send a follow-up to continue the work with full context… (Enter to send)"
+                              : heldTaskIds.has(selectedTask.id)
+                                ? "Run is holding — discuss freely, then press Resume… (Enter to send)"
+                                : "Guide the agents — your message becomes context for the next agent turn… (Enter to send)"
                         }
-                        disabled={selectedTask.status !== "in-progress"}
+                        disabled={!composerEnabled || composerBusy}
                         className="min-h-[38px] max-h-[110px] text-xs resize-none flex-1 py-2"
                         rows={1}
                       />
                       <Button
                         size="sm"
                         className="h-9 px-3 shrink-0"
-                        onClick={() => void sendHumanMessage(selectedTask)}
+                        onClick={() => handleComposerSend(selectedTask)}
                         disabled={
-                          selectedTask.status !== "in-progress" ||
+                          !composerEnabled ||
                           !(humanInputs[selectedTask.id] ?? "").trim() ||
-                          sendingInterjectTaskIds.has(selectedTask.id)
+                          composerBusy
                         }
                       >
                         <Send className="w-3.5 h-3.5" />
