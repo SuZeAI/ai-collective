@@ -212,6 +212,72 @@ export type ChatResponse = {
   response: string;
 };
 
+// ─── Office Builder (chat to create office → departments → humans → skills) ──
+
+export type OfficeSkillPlan = {
+  name: string;
+  description: string;
+  tool_name?: string | null;
+};
+
+export type OfficeHumanPlan = {
+  name: string;
+  role: string;
+  description: string;
+  skills: OfficeSkillPlan[];
+};
+
+export type OfficeDepartmentPlan = {
+  name: string;
+  description: string;
+  mode: "sequential" | "mesh" | "ring" | "supervisor" | "tree" | string;
+  humans: OfficeHumanPlan[];
+};
+
+export type OfficePlan = {
+  name: string;
+  description: string;
+  departments: OfficeDepartmentPlan[];
+};
+
+export type OfficeChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+export type OfficeBuilderChatResponse = {
+  reply: string;
+  plan: OfficePlan | null;
+};
+
+export type ApplyOfficePlanResponse = {
+  workspace: Workspace;
+  team_ids: string[];
+  agent_ids: string[];
+  skill_ids: string[];
+  reused_skill_ids: string[];
+};
+
+export type OfficeBuilderSession = {
+  id: string;
+  title: string;
+  messages: OfficeChatMessage[];
+  plan: OfficePlan | null;
+  createdAt: string;
+  updatedAt: string;
+  workspaceId: string;
+};
+
+export type OfficeBuilderSessionSummary = {
+  id: string;
+  title: string;
+  messageCount: number;
+  hasPlan: boolean;
+  createdAt: string;
+  updatedAt: string;
+  workspaceId: string;
+};
+
 export type AuthUser = {
   id: string;
   name: string;
@@ -441,6 +507,39 @@ export const api = {
       reader.releaseLock();
     }
   },
+
+  // Office Builder: iterative plan generation + one-shot creation.
+  officeBuilderChat: (payload: { messages: OfficeChatMessage[]; plan?: OfficePlan | null }) =>
+    apiFetch<OfficeBuilderChatResponse>("/office-builder/plan", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      timeoutMs: 300000,
+    }),
+  applyOfficePlan: (payload: { plan: OfficePlan }) =>
+    apiFetch<ApplyOfficePlanResponse>("/office-builder/apply", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      timeoutMs: 300000,
+    }),
+  listOfficeBuilderSessions: () =>
+    apiFetch<OfficeBuilderSessionSummary[]>("/office-builder/sessions"),
+  getOfficeBuilderSession: (id: string) =>
+    apiFetch<OfficeBuilderSession>(`/office-builder/sessions/${encodeURIComponent(id)}`),
+  upsertOfficeBuilderSession: (payload: {
+    id?: string | null;
+    title?: string;
+    messages: OfficeChatMessage[];
+    plan?: OfficePlan | null;
+    workspaceId?: string;
+  }) =>
+    apiFetch<OfficeBuilderSession>("/office-builder/sessions", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  deleteOfficeBuilderSession: (id: string) =>
+    apiFetch<{ deleted: boolean }>(`/office-builder/sessions/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
 
   getAnalytics: () => apiFetch<Analytics>("/analytics"),
   listActivityFeed: () => apiFetch<ActivityFeedItem[]>("/activity-feed"),

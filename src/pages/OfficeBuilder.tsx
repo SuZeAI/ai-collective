@@ -1,0 +1,518 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import {
+  Building2, Users, User, Wrench, Send, Sparkles, Loader2,
+  CheckCircle2, RotateCcw, Bot, Workflow, Plus, Trash2, MessageSquare, History,
+} from "lucide-react";
+import {
+  api,
+  type OfficeChatMessage,
+  type OfficePlan,
+  type OfficeDepartmentPlan,
+  type OfficeHumanPlan,
+  type OfficeBuilderSessionSummary,
+} from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
+const EXAMPLE_PROMPTS = [
+  "Create a software company office with engineering, product and QA departments",
+  "Build a digital marketing agency: content, social media and analytics teams",
+  "Set up a market research office with web research and reporting departments",
+];
+
+// Remember which session the user was working on across visits.
+const ACTIVE_SESSION_KEY = "ai-collective-office-builder-session";
+
+function PlanStats({ plan }: { plan: OfficePlan }) {
+  const humans = plan.departments.reduce((n, d) => n + d.humans.length, 0);
+  const skills = plan.departments.reduce(
+    (n, d) => n + d.humans.reduce((m, h) => m + h.skills.length, 0),
+    0,
+  );
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <Badge variant="secondary" className="text-[10px] gap-1">
+        <Users className="h-3 w-3" /> {plan.departments.length} departments
+      </Badge>
+      <Badge variant="secondary" className="text-[10px] gap-1">
+        <User className="h-3 w-3" /> {humans} humans
+      </Badge>
+      <Badge variant="secondary" className="text-[10px] gap-1">
+        <Wrench className="h-3 w-3" /> {skills} skills
+      </Badge>
+    </div>
+  );
+}
+
+function HumanCard({ human }: { human: OfficeHumanPlan }) {
+  return (
+    <div className="rounded-lg border border-border/40 bg-background/60 p-3">
+      <div className="flex items-center gap-2.5">
+        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+          {human.name?.[0]?.toUpperCase() || "H"}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold truncate">{human.name}</p>
+          <p className="text-[10px] text-muted-foreground truncate">{human.role}</p>
+        </div>
+      </div>
+      {human.description && (
+        <p className="mt-1.5 text-[10px] text-muted-foreground/80 line-clamp-2">{human.description}</p>
+      )}
+      {human.skills.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {human.skills.map((s, i) => (
+            <Badge key={`${s.name}-${i}`} variant="outline" className="text-[9px] gap-1 px-1.5 py-0">
+              <Wrench className="h-2.5 w-2.5" />
+              {s.name}
+              {s.tool_name && <span className="text-muted-foreground/70 font-mono">· {s.tool_name}</span>}
+            </Badge>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DepartmentCard({ dept }: { dept: OfficeDepartmentPlan }) {
+  return (
+    <div className="rounded-xl border border-border/50 bg-muted/20 p-3">
+      <div className="flex items-center gap-2.5 mb-1">
+        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+          {dept.name?.[0]?.toUpperCase() || "D"}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold truncate">{dept.name}</p>
+          {dept.description && (
+            <p className="text-[10px] text-muted-foreground truncate">{dept.description}</p>
+          )}
+        </div>
+        <Badge variant="secondary" className="text-[9px] gap-1 shrink-0">
+          <Workflow className="h-2.5 w-2.5" /> {dept.mode}
+        </Badge>
+      </div>
+      <div className="mt-2 grid gap-2 pl-3 border-l-2 border-border/40 ml-3.5">
+        {dept.humans.map((h, i) => (
+          <HumanCard key={`${h.name}-${i}`} human={h} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function formatSessionTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const now = new Date();
+    const sameDay = d.toDateString() === now.toDateString();
+    return sameDay
+      ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      : d.toLocaleDateString([], { month: "short", day: "numeric" });
+  } catch {
+    return "";
+  }
+}
+
+export default function OfficeBuilder() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const [sessions, setSessions] = useState<OfficeBuilderSessionSummary[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [appliedWorkspaceId, setAppliedWorkspaceId] = useState<string>("");
+  const [messages, setMessages] = useState<OfficeChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [plan, setPlan] = useState<OfficePlan | null>(null);
+  const [thinking, setThinking] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [loadingSession, setLoadingSession] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, thinking]);
+
+  const refreshSessions = useCallback(async () => {
+    try {
+      setSessions(await api.listOfficeBuilderSessions());
+    } catch (err) {
+      console.error("Failed to list office builder sessions:", err);
+    }
+  }, []);
+
+  // Initial load: session list + restore the last active session.
+  useEffect(() => {
+    refreshSessions();
+    const storedId = localStorage.getItem(ACTIVE_SESSION_KEY);
+    if (storedId) void openSession(storedId, { silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const openSession = async (id: string, opts?: { silent?: boolean }) => {
+    if (thinking || creating) return;
+    setLoadingSession(true);
+    try {
+      const s = await api.getOfficeBuilderSession(id);
+      setSessionId(s.id);
+      setMessages(s.messages);
+      setPlan(s.plan);
+      setAppliedWorkspaceId(s.workspaceId || "");
+      setInput("");
+      localStorage.setItem(ACTIVE_SESSION_KEY, s.id);
+    } catch (err) {
+      // Session was deleted elsewhere — forget it quietly on restore.
+      localStorage.removeItem(ACTIVE_SESSION_KEY);
+      if (!opts?.silent) {
+        const detail = err instanceof Error ? err.message : "Failed to load session";
+        toast({ title: "Office Builder", description: detail, variant: "destructive" });
+      }
+    } finally {
+      setLoadingSession(false);
+    }
+  };
+
+  const newChat = () => {
+    if (thinking || creating) return;
+    setSessionId(null);
+    setMessages([]);
+    setPlan(null);
+    setAppliedWorkspaceId("");
+    setInput("");
+    localStorage.removeItem(ACTIVE_SESSION_KEY);
+  };
+
+  const persistSession = async (
+    nextMessages: OfficeChatMessage[],
+    nextPlan: OfficePlan | null,
+    workspaceId?: string,
+  ): Promise<string | null> => {
+    try {
+      const saved = await api.upsertOfficeBuilderSession({
+        id: sessionId,
+        messages: nextMessages,
+        plan: nextPlan,
+        workspaceId: workspaceId ?? appliedWorkspaceId,
+      });
+      setSessionId(saved.id);
+      localStorage.setItem(ACTIVE_SESSION_KEY, saved.id);
+      void refreshSessions();
+      return saved.id;
+    } catch (err) {
+      console.error("Failed to save office builder session:", err);
+      return null;
+    }
+  };
+
+  const removeSession = async (id: string) => {
+    try {
+      await api.deleteOfficeBuilderSession(id);
+      if (id === sessionId) newChat();
+      void refreshSessions();
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : "Failed to delete session";
+      toast({ title: "Office Builder", description: detail, variant: "destructive" });
+    }
+  };
+
+  const send = async (text?: string) => {
+    const content = (text ?? input).trim();
+    if (!content || thinking || creating) return;
+    const nextMessages: OfficeChatMessage[] = [...messages, { role: "user", content }];
+    setMessages(nextMessages);
+    setInput("");
+    setThinking(true);
+    try {
+      const res = await api.officeBuilderChat({ messages: nextMessages, plan });
+      const withReply: OfficeChatMessage[] = [...nextMessages, { role: "assistant", content: res.reply }];
+      const nextPlan = res.plan ?? plan;
+      setMessages(withReply);
+      if (res.plan) setPlan(res.plan);
+      await persistSession(withReply, nextPlan);
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : "Plan generation failed";
+      const withError: OfficeChatMessage[] = [...nextMessages, { role: "assistant", content: `⚠️ ${detail}` }];
+      setMessages(withError);
+      toast({ title: "Office Builder", description: detail, variant: "destructive" });
+      await persistSession(withError, plan);
+    } finally {
+      setThinking(false);
+    }
+  };
+
+  const createOffice = async () => {
+    if (!plan || creating) return;
+    setCreating(true);
+    try {
+      const res = await api.applyOfficePlan({ plan });
+      toast({
+        title: "Office created",
+        description: `"${res.workspace.name}" — ${res.team_ids.length} departments, ${res.agent_ids.length} humans, ${res.skill_ids.length} new skills.`,
+      });
+      setAppliedWorkspaceId(res.workspace.id);
+      // Keep the session in history, marked as applied.
+      await persistSession(messages, plan, res.workspace.id);
+      // Refresh the sidebar workspace switcher and jump to the new office.
+      localStorage.setItem("activeWorkspaceId", res.workspace.id);
+      window.dispatchEvent(new CustomEvent("workspaceChanged"));
+      navigate("/workspaces");
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : "Office creation failed";
+      toast({ title: "Office Builder", description: detail, variant: "destructive" });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-teal-400" />
+            Office Builder
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Describe your company — AI designs a full office with departments, humans, skills and tools.
+          </p>
+        </div>
+        {(messages.length > 0 || plan) && (
+          <Button size="sm" variant="ghost" onClick={newChat} className="text-xs gap-1.5">
+            <RotateCcw className="h-3.5 w-3.5" /> New chat
+          </Button>
+        )}
+      </div>
+
+      <div className="flex-1 min-h-0 flex gap-4">
+        {/* ── Chat history panel ── */}
+        <div className="hidden md:flex w-56 shrink-0 flex-col rounded-xl border border-border/50 bg-card/50">
+          <div className="p-2.5 border-b border-border/50">
+            <Button size="sm" variant="outline" onClick={newChat} className="w-full text-xs gap-1.5 h-8">
+              <Plus className="h-3.5 w-3.5" /> New chat
+            </Button>
+          </div>
+          <div className="px-3 pt-2.5 pb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <History className="h-3 w-3" /> History
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin px-2 pb-2 space-y-1">
+            {sessions.length === 0 && (
+              <p className="px-2 py-4 text-[11px] text-muted-foreground/70 text-center">
+                No chats yet. Your office-building conversations will appear here.
+              </p>
+            )}
+            {sessions.map((s) => (
+              <div
+                key={s.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => openSession(s.id)}
+                onKeyDown={(e) => e.key === "Enter" && openSession(s.id)}
+                className={cn(
+                  "group w-full rounded-lg px-2.5 py-2 cursor-pointer transition-colors border border-transparent",
+                  s.id === sessionId
+                    ? "bg-muted/70 border-border/60"
+                    : "hover:bg-muted/40",
+                )}
+              >
+                <div className="flex items-start gap-2">
+                  <MessageSquare className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-medium leading-snug line-clamp-2">{s.title}</p>
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <span className="text-[9px] text-muted-foreground">{formatSessionTime(s.updatedAt)}</span>
+                      {s.hasPlan && !s.workspaceId && (
+                        <Badge variant="outline" className="text-[8px] px-1 py-0">draft</Badge>
+                      )}
+                      {s.workspaceId && (
+                        <Badge variant="outline" className="text-[8px] px-1 py-0 text-emerald-500 border-emerald-500/40">
+                          created
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeSession(s.id);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-rose-400 shrink-0 mt-0.5"
+                    title="Delete chat"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Chat + preview panels ── */}
+        <div className="flex-1 min-w-0 grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Chat panel */}
+          <div className="flex flex-col min-h-0 rounded-xl border border-border/50 bg-card/50">
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-4 space-y-3">
+              {loadingSession && (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                </div>
+              )}
+              {!loadingSession && messages.length === 0 && (
+                <div className="h-full flex flex-col items-center justify-center text-center gap-4 px-4">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center">
+                    <Building2 className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">Chat to create a full office</p>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                      Tell me what kind of company you want. I'll design the departments,
+                      staff each one with humans, and equip every human with skills and tools.
+                    </p>
+                  </div>
+                  <div className="grid gap-2 w-full max-w-md">
+                    {EXAMPLE_PROMPTS.map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => send(p)}
+                        className="text-left text-xs rounded-lg border border-border/50 bg-muted/30 px-3 py-2 hover:bg-muted/60 hover:border-teal-500/40 transition-colors"
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {!loadingSession && (
+                <AnimatePresence initial={false}>
+                  {messages.map((m, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={cn("flex gap-2.5", m.role === "user" && "flex-row-reverse")}
+                    >
+                      <div
+                        className={cn(
+                          "w-7 h-7 rounded-full flex items-center justify-center shrink-0",
+                          m.role === "user"
+                            ? "bg-foreground text-background"
+                            : "bg-gradient-to-br from-teal-500 to-cyan-600 text-white",
+                        )}
+                      >
+                        {m.role === "user" ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
+                      </div>
+                      <div
+                        className={cn(
+                          "rounded-xl px-3 py-2 text-xs max-w-[85%] leading-relaxed",
+                          m.role === "user"
+                            ? "bg-foreground text-background"
+                            : "bg-muted/50 border border-border/40",
+                        )}
+                      >
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-xs [&_p]:my-1 [&_ul]:my-1 [&_li]:my-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              )}
+              {thinking && (
+                <div className="flex gap-2.5">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-teal-500 to-cyan-600 text-white flex items-center justify-center shrink-0">
+                    <Bot className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="rounded-xl px-3 py-2 text-xs bg-muted/50 border border-border/40 flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Designing your office…
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            <div className="border-t border-border/50 p-3">
+              <div className="flex gap-2 items-end">
+                <Textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      send();
+                    }
+                  }}
+                  placeholder='e.g. "A content studio with research, writing and publishing departments"'
+                  rows={2}
+                  disabled={thinking || creating}
+                  className="text-xs resize-none min-h-0"
+                />
+                <Button
+                  size="icon"
+                  onClick={() => send()}
+                  disabled={!input.trim() || thinking || creating}
+                  className="shrink-0 h-9 w-9"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Plan preview panel */}
+          <div className="flex flex-col min-h-0 rounded-xl border border-border/50 bg-card/50">
+            <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shrink-0">
+                  <Building2 className="h-3.5 w-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold truncate">{plan?.name || "Office preview"}</p>
+                  {plan?.description && (
+                    <p className="text-[10px] text-muted-foreground truncate">{plan.description}</p>
+                  )}
+                </div>
+              </div>
+              {plan && appliedWorkspaceId && (
+                <Badge variant="outline" className="text-[9px] gap-1 shrink-0 text-emerald-500 border-emerald-500/40">
+                  <CheckCircle2 className="h-2.5 w-2.5" /> Created
+                </Badge>
+              )}
+              {plan && !appliedWorkspaceId && (
+                <Button size="sm" onClick={createOffice} disabled={creating || thinking} className="text-xs gap-1.5 shrink-0">
+                  {creating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  )}
+                  {creating ? "Creating…" : "Create Office"}
+                </Button>
+              )}
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-4">
+              {!plan ? (
+                <div className="h-full flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
+                  <Building2 className="h-8 w-8 opacity-30" />
+                  <p className="text-xs">The generated org structure will appear here.</p>
+                  <p className="text-[10px] opacity-70">Office → Departments → Humans → Skills & Tools</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <PlanStats plan={plan} />
+                  {plan.departments.map((d, i) => (
+                    <DepartmentCard key={`${d.name}-${i}`} dept={d} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

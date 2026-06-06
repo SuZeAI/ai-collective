@@ -19,6 +19,7 @@ import Conversations from "@/pages/Conversations";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import Playground from "@/pages/Playground";
 import Workspaces from "@/pages/Workspaces";
+import OfficeBuilder from "@/pages/OfficeBuilder";
 import Settings from "@/pages/Settings";
 import Docs from "@/pages/Docs";
 import NotFound from "@/pages/NotFound";
@@ -70,6 +71,7 @@ const App = () => (
                 <Route path="/analytics" element={<WithLayout><AnalyticsPage /></WithLayout>} />
                 <Route path="/playground" element={<WithLayout><Playground /></WithLayout>} />
                 <Route path="/workspaces" element={<WithLayout><Workspaces /></WithLayout>} />
+                <Route path="/office-builder" element={<WithLayout><OfficeBuilder /></WithLayout>} />
                 <Route path="/settings" element={<WithLayout><Settings /></WithLayout>} />
                 <Route path="/profile" element={<WithLayout><Profile /></WithLayout>} />
                 <Route path="/docs" element={<Docs />} />
