@@ -25,7 +25,7 @@ from backend.application.service.team_service import TeamService
 from backend.domain.errors import NotFoundError
 from backend.domain.enums import AgentStatus
 from backend.domain.enums import TaskStatus
-from backend.domain.models import Task, can_delete, is_visible_to
+from backend.domain.models import Task, can_delete, can_modify, is_visible_to
 from backend.infrastructure import task_run_registry
 from backend.infrastructure import task_queue
 from backend.log import get_logger
@@ -183,6 +183,13 @@ def upsert_task(
             previous_status = None
     if previous_task is not None and not is_visible_to(owner_id, previous_task.owner_id):
         raise NotFoundError(f"Task '{task_id}' not found")
+    if previous_task is not None and not can_modify(owner_id, previous_task.owner_id):
+        # Shared default tasks are view-only for regular users: any change —
+        # including status transitions like start/pause/stop — is admin-only.
+        raise HTTPException(
+            status_code=403,
+            detail="Only the default (admin) account can edit or run shared default items",
+        )
 
     next_status = TaskStatus(req.status)
     now = datetime.now(timezone.utc).replace(microsecond=0)

@@ -13,7 +13,7 @@ from backend.application.service.conversation_service import ConversationService
 from backend.application.service.team_service import TeamService
 from backend.domain.enums import AgentStatus
 from backend.domain.errors import NotFoundError
-from backend.domain.models import Message, Team, can_delete, is_visible_to
+from backend.domain.models import Message, Team, can_delete, can_modify, is_visible_to
 
 
 router = APIRouter(prefix="/teams", tags=["teams"])
@@ -88,6 +88,8 @@ def upsert_team(
     existing = service._repo.get(team_id) if req.id else None
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):
         raise NotFoundError(f"Team '{team_id}' not found")
+    if existing is not None and not can_modify(owner_id, existing.owner_id):
+        raise HTTPException(status_code=403, detail="Only the default (admin) account can edit shared default items")
     active_tasks = req.activeTasks
     if is_new_team and req.agents:
         # A newly created team starts in active mode.

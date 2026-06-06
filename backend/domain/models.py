@@ -24,6 +24,11 @@ def can_delete(owner_id: str, entity_owner_id: str) -> bool:
     return entity_owner_id == owner_id
 
 
+# Editing shared "default" items follows the same owner-only rule as deleting.
+# (Task status transitions — start/pause/stop — are exempted at the router.)
+can_modify = can_delete
+
+
 @dataclass(frozen=True, slots=True)
 class Skill:
     id: str

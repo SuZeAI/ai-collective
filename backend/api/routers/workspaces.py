@@ -9,7 +9,7 @@ from backend.api.deps import current_owner_id_dep, get_workspace_service
 from backend.api.schemas.workspace import WorkspaceSchema, UpsertWorkspaceRequest
 from backend.application.service.workspace_service import WorkspaceService
 from backend.domain.errors import NotFoundError
-from backend.domain.models import PlatformHook, Workspace, can_delete, is_visible_to
+from backend.domain.models import PlatformHook, Workspace, can_delete, can_modify, is_visible_to
 from backend.domain.thirty_part.registry import list_platforms
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
@@ -48,6 +48,8 @@ def upsert_workspace(
     existing = service._repo.get(ws_id)
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):
         raise NotFoundError(f"Workspace {ws_id!r} not found")
+    if existing is not None and not can_modify(owner_id, existing.owner_id):
+        raise HTTPException(status_code=403, detail="Only the default (admin) account can edit shared default items")
     created_at = existing.created_at if existing else datetime.now(timezone.utc)
     workspace = Workspace(
         id=ws_id,

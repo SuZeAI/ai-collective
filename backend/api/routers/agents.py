@@ -9,7 +9,7 @@ from backend.application.service.agent_service import AgentService
 from backend.api.deps import current_owner_id_dep, get_agent_service
 from backend.domain.enums import AgentStatus
 from backend.domain.errors import NotFoundError
-from backend.domain.models import Agent, can_delete, is_visible_to
+from backend.domain.models import Agent, can_delete, can_modify, is_visible_to
 
 
 router = APIRouter(prefix="/agents", tags=["agents"])
@@ -47,6 +47,8 @@ def upsert_agent(
     existing = service._repo.get(agent_id) if req.id else None
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):
         raise NotFoundError(f"Agent '{agent_id}' not found")
+    if existing is not None and not can_modify(owner_id, existing.owner_id):
+        raise HTTPException(status_code=403, detail="Only the default (admin) account can edit shared default items")
     avatar = req.avatar or (req.name[:1].upper() if req.name else "A")
 
     agent = Agent(

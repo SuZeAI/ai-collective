@@ -40,7 +40,7 @@ from backend.application.service.skill_service import SkillService
 from backend.application.service.team_service import TeamService
 from backend.application.service.workspace_service import WorkspaceService
 from backend.domain.enums import AgentStatus
-from backend.domain.models import Agent, OfficeBuilderSession, Skill, Team, Workspace, can_delete, is_visible_to
+from backend.domain.models import Agent, OfficeBuilderSession, Skill, Team, Workspace, can_delete, can_modify, is_visible_to
 from backend.log import get_logger
 
 
@@ -501,6 +501,8 @@ def upsert_session(
     existing = service.get_session(req.id) if req.id else None
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):
         raise HTTPException(status_code=404, detail="Session not found")
+    if existing is not None and not can_modify(owner_id, existing.owner_id):
+        raise HTTPException(status_code=403, detail="Only the default (admin) account can edit shared default items")
     session = OfficeBuilderSession(
         id=req.id or f"obs_{uuid4().hex}",
         title=_derive_session_title(req),
