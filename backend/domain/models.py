@@ -118,6 +118,18 @@ class Workspace:
 
 
 @dataclass(frozen=True, slots=True)
+class OfficeBuilderSession:
+    """A saved Office Builder chat session (history + draft plan)."""
+    id: str
+    title: str
+    messages: list[dict[str, Any]]   # [{"role": "user"|"assistant", "content": str}]
+    plan: dict[str, Any] | None      # draft OfficePlan, if one has been generated
+    created_at: datetime
+    updated_at: datetime
+    workspace_id: str = ""           # set once the plan has been applied
+
+
+@dataclass(frozen=True, slots=True)
 class ThirdPartyConnection:
     id: str
     platform: str

@@ -11,6 +11,7 @@ from backend.domain.models import (
     Message,
     Analytics,
     ActivityFeedItem,
+    OfficeBuilderSession,
     ThirdPartyConnection,
     User,
     Workspace,
@@ -111,6 +112,20 @@ class ConnectionRepository(Protocol):
         ...
 
     def delete(self, conn_id: str) -> None:
+        ...
+
+
+class OfficeBuilderSessionRepository(Protocol):
+    def list(self) -> list[OfficeBuilderSession]:
+        ...
+
+    def get(self, session_id: str) -> OfficeBuilderSession | None:
+        ...
+
+    def upsert(self, session: OfficeBuilderSession) -> OfficeBuilderSession:
+        ...
+
+    def delete(self, session_id: str) -> None:
         ...
 
 
