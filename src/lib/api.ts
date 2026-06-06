@@ -12,6 +12,7 @@ export type Agent = {
   avatar_color?: string;
   avatar_url?: string;
   subagent_enabled?: boolean;
+  owner_id?: string;
 };
 
 export type Skill = {
@@ -27,6 +28,7 @@ export type Skill = {
   avatar_color?: string;
   avatar_url?: string;
   code?: string | null;
+  owner_id?: string;
 };
 
 export type SkillToolOption = {
@@ -80,6 +82,7 @@ export type Team = {
   avatar_url?: string;
   mode?: "mesh" | "sequential" | "ring" | "supervisor" | "tree";
   maxSteps?: number;
+  owner_id?: string;
 };
 
 export type Task = {
@@ -92,6 +95,7 @@ export type Task = {
   assignedAgents: string[];
   startTime?: string | null;
   endTime?: string | null;
+  owner_id?: string;
 };
 
 export type Message = {
@@ -161,6 +165,7 @@ export type Workspace = {
   avatar_icon?: string;
   avatar_color?: string;
   avatar_url?: string;
+  owner_id?: string;
 };
 
 export type ThirdPartyConnection = {
@@ -272,6 +277,7 @@ export type OfficeBuilderSession = {
   createdAt: string;
   updatedAt: string;
   workspaceId: string;
+  owner_id?: string;
 };
 
 export type OfficeBuilderSessionSummary = {
@@ -282,7 +288,28 @@ export type OfficeBuilderSessionSummary = {
   createdAt: string;
   updatedAt: string;
   workspaceId: string;
+  owner_id?: string;
 };
+
+// ─── Ownership helpers ───────────────────────────────────────────────────────
+// Items owned by "default" are shared with everyone; only the default (admin)
+// account may delete them. Other users/guests can only delete their own items.
+export const DEFAULT_OWNER_ID = "default";
+
+export function getCurrentUserId(): string {
+  try {
+    const raw = localStorage.getItem("ai-collective-user");
+    const id = raw ? (JSON.parse(raw)?.id as string | undefined) : undefined;
+    return id || "guest";
+  } catch {
+    return "guest";
+  }
+}
+
+/** True when the current user may delete this item (matches backend can_delete rule). */
+export function canDeleteItem(item: { owner_id?: string }): boolean {
+  return (item.owner_id ?? DEFAULT_OWNER_ID) === getCurrentUserId();
+}
 
 export type AuthUser = {
   id: string;

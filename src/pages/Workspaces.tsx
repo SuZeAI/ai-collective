@@ -6,7 +6,7 @@ import {
   BrainCircuit, Users, Webhook, Settings2, RefreshCw,
   MessageCircle, Zap, Globe, Link2,
 } from "lucide-react";
-import { api, type Workspace, type PlatformHook, type PlatformDef, type Team, type ThirdPartyConnection } from "@/lib/api";
+import { api, canDeleteItem, type Workspace, type PlatformHook, type PlatformDef, type Team, type ThirdPartyConnection } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -611,10 +611,12 @@ function WorkspaceCard({
           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onEdit}>
             <Settings2 className="h-3.5 w-3.5" />
           </Button>
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-rose-400"
-            onClick={onDelete}>
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          {canDeleteItem(workspace) && (
+            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-rose-400"
+              onClick={onDelete}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <Button size="icon" variant="ghost" className="h-7 w-7"
             onClick={() => setExpanded((v) => !v)}>
             {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}

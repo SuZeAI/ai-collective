@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { AgentAvatar, avatarIconOptions } from "@/components/AgentAvatar";
-import { api, type Agent, type Skill } from "@/lib/api";
+import { api, canDeleteItem, type Agent, type Skill } from "@/lib/api";
 import { getAgentDotColor, getAgentRoleColor } from "@/lib/agent-role-ui";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 
@@ -556,9 +556,11 @@ export default function AgentBuilder() {
                     <Button variant="ghost" size="icon" onClick={() => openEditDialog(agent)} aria-label={`Edit ${agent.name}`}>
                       <Pencil className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => deleteAgent(agent.id)} aria-label={`Delete ${agent.name}`}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {canDeleteItem(agent) && (
+                      <Button variant="ghost" size="icon" onClick={() => deleteAgent(agent.id)} aria-label={`Delete ${agent.name}`}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                     <div className="flex items-center gap-1.5">
                     <span
                       className={`w-2 h-2 rounded-full ${

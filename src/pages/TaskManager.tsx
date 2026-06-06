@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { AgentAvatar } from "@/components/AgentAvatar";
-import { api, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
+import { api, canDeleteItem, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
 import { cn } from "@/lib/utils";
@@ -1519,15 +1519,17 @@ export default function TaskManager() {
                   >
                     <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 text-xs px-3 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
-                    onClick={() => deleteTask(selectedTask.id)}
-                    disabled={isUpdating}
-                  >
-                    <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
-                  </Button>
+                  {canDeleteItem(selectedTask) && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs px-3 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                      onClick={() => deleteTask(selectedTask.id)}
+                      disabled={isUpdating}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
+                    </Button>
+                  )}
                 </div>
               </div>
 

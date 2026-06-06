@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { AgentAvatar, skillAvatarIconOptions } from "@/components/AgentAvatar";
-import { api, type Skill, type SkillToolConfigField, type SkillToolPreset } from "@/lib/api";
+import { api, canDeleteItem, type Skill, type SkillToolConfigField, type SkillToolPreset } from "@/lib/api";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 
 type ToolName = string;
@@ -707,9 +707,11 @@ export default function Skills() {
                 <Button variant="ghost" size="icon" onClick={() => openEditDialog(s)} aria-label={`Edit ${s.name}`}>
                   <Pencil className="w-4 h-4" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => deleteSkill(s.id)} aria-label={`Delete ${s.name}`}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                {canDeleteItem(s) && (
+                  <Button variant="ghost" size="icon" onClick={() => deleteSkill(s.id)} aria-label={`Delete ${s.name}`}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </motion.div>
