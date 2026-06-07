@@ -663,7 +663,12 @@ export default function OfficeBuilder() {
                             : "bg-muted/50 border border-border/40",
                         )}
                       >
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-xs [&_p]:my-1 [&_ul]:my-1 [&_li]:my-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4">
+                        <div
+                          className={cn(
+                            "prose prose-sm dark:prose-invert max-w-none text-xs [&_p]:my-1 [&_ul]:my-1 [&_li]:my-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4",
+                            m.role === "user" && "text-background [&_*]:text-background",
+                          )}
+                        >
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
                         </div>
                         {streaming && m.role === "assistant" && i === messages.length - 1 && (
