@@ -17,6 +17,7 @@ from backend.api.settings import settings
 from backend.domain.errors import NotFoundError, ValidationError
 from backend.api.routers import (
     activity_feed,
+    admin_monitoring,
     agents,
     analytics,
     auth,
@@ -36,6 +37,38 @@ from backend.api.routers import (
 
 def create_app() -> FastAPI:
     app = FastAPI(title=settings.app_name)
+
+    # Persist LLM token usage from the very first request (admin monitoring).
+    from backend.api.deps import init_usage_tracking
+    init_usage_tracking()
+
+    @app.middleware("http")
+    async def _monitoring_middleware(request, call_next):
+        """Attribute LLM usage to the calling user + collect request metrics."""
+        import time as _time
+
+        from backend.infrastructure.llm.usage_tracker import current_usage_user
+        from backend.infrastructure.monitoring import request_metrics
+
+        user_id = "guest"
+        authorization = request.headers.get("Authorization", "")
+        if authorization.startswith("Bearer "):
+            try:
+                from backend.api.security import decode_access_token
+                user_id = str(decode_access_token(authorization.split(" ", 1)[1]).get("sub") or "guest")
+            except Exception:
+                pass
+
+        token = current_usage_user.set(user_id)
+        start = _time.perf_counter()
+        status_code = 500
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+            return response
+        finally:
+            current_usage_user.reset(token)
+            request_metrics.record(status_code, (_time.perf_counter() - start) * 1000)
 
     app.add_middleware(
         CORSMiddleware,
@@ -71,6 +104,7 @@ def create_app() -> FastAPI:
     app.include_router(workspaces.router, prefix=settings.api_prefix)
     app.include_router(connections.router, prefix=settings.api_prefix)
     app.include_router(webhook.router, prefix=settings.api_prefix)
+    app.include_router(admin_monitoring.router, prefix=settings.api_prefix)
 
     static_dir = Path("static")
     static_dir.mkdir(exist_ok=True)

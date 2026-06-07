@@ -1,0 +1,143 @@
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from backend.api.deps import (
+    STORAGE_DIR,
+    _llm_provider,
+    current_user_dep,
+    get_monitoring_service,
+)
+from backend.api.schemas.admin import (
+    EntityCountsSchema,
+    LLMHealthSchema,
+    ModelPricingSchema,
+    RequestMetricsSchema,
+    StorageHealthSchema,
+    SystemHealthSchema,
+    UsageSummarySchema,
+    UserActivitySchema,
+)
+from backend.api.settings import settings
+from backend.application.service.monitoring_service import MonitoringService
+from backend.infrastructure.llm.factory import DEFAULT_PROVIDER_MODELS
+from backend.infrastructure.monitoring import request_metrics
+
+
+router = APIRouter(prefix="/admin/monitoring", tags=["admin"])
+
+
+def require_admin(user=Depends(current_user_dep)):
+    """Only users with the admin (or legacy system) role may hit /admin/*."""
+    if getattr(user, "role", "") not in ("admin", "system"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required",
+        )
+    return user
+
+
+@router.get("/usage", response_model=UsageSummarySchema)
+def get_usage(
+    days: int = Query(default=30, ge=1, le=365),
+    _: object = Depends(require_admin),
+    service: MonitoringService = Depends(get_monitoring_service),
+) -> UsageSummarySchema:
+    return UsageSummarySchema.from_summary(service.get_usage_summary(days))
+
+
+@router.get("/pricing", response_model=list[ModelPricingSchema])
+def list_pricing(
+    _: object = Depends(require_admin),
+    service: MonitoringService = Depends(get_monitoring_service),
+) -> list[ModelPricingSchema]:
+    return [ModelPricingSchema.from_domain(p) for p in service.list_pricing()]
+
+
+@router.put("/pricing", response_model=ModelPricingSchema)
+def upsert_pricing(
+    payload: ModelPricingSchema,
+    _: object = Depends(require_admin),
+    service: MonitoringService = Depends(get_monitoring_service),
+) -> ModelPricingSchema:
+    return ModelPricingSchema.from_domain(service.upsert_pricing(payload.to_domain()))
+
+
+# Model is a query param (not a path segment) because OpenRouter-style model
+# ids contain slashes (e.g. "qwen/qwen3...").
+@router.delete("/pricing")
+def delete_pricing(
+    model: str = Query(...),
+    _: object = Depends(require_admin),
+    service: MonitoringService = Depends(get_monitoring_service),
+) -> dict[str, bool]:
+    service.delete_pricing(model)
+    return {"deleted": True}
+
+
+@router.get("/users", response_model=list[UserActivitySchema])
+def get_user_activity(
+    days: int = Query(default=30, ge=1, le=365),
+    _: object = Depends(require_admin),
+    service: MonitoringService = Depends(get_monitoring_service),
+) -> list[UserActivitySchema]:
+    return [UserActivitySchema.from_activity(a) for a in service.get_user_activity(days)]
+
+
+def _check_storage() -> StorageHealthSchema:
+    backend = settings.storage_backend
+    if backend == "mongo":
+        try:
+            import pymongo
+
+            client = pymongo.MongoClient(settings.mongo_uri, serverSelectionTimeoutMS=2000)
+            client.admin.command("ping")
+            return StorageHealthSchema(backend="mongo", ok=True, detail=settings.mongo_db)
+        except Exception as e:
+            return StorageHealthSchema(backend="mongo", ok=False, detail=str(e))
+    try:
+        STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+        ok = STORAGE_DIR.is_dir()
+        return StorageHealthSchema(backend="json", ok=ok, detail=str(STORAGE_DIR))
+    except Exception as e:
+        return StorageHealthSchema(backend="json", ok=False, detail=str(e))
+
+
+@router.get("/health", response_model=SystemHealthSchema)
+def get_system_health(
+    _: object = Depends(require_admin),
+    service: MonitoringService = Depends(get_monitoring_service),
+) -> SystemHealthSchema:
+    storage = _check_storage()
+
+    try:
+        llm_configured = _llm_provider() is not None
+    except Exception:
+        llm_configured = False
+    llm = LLMHealthSchema(
+        provider=settings.llm_provider,
+        model=settings.llm_model
+        or DEFAULT_PROVIDER_MODELS.get(settings.llm_provider.strip().lower(), ""),
+        configured=llm_configured,
+    )
+
+    metrics = request_metrics.snapshot()
+    counts = service.get_entity_counts()
+    healthy = storage.ok and llm.configured
+
+    return SystemHealthSchema(
+        status="ok" if healthy else "degraded",
+        environment=settings.environment,
+        uptimeSeconds=metrics["uptime_seconds"],
+        requests=RequestMetricsSchema(
+            totalRequests=metrics["total_requests"],
+            errorRequests=metrics["error_requests"],
+            errorRate=metrics["error_rate"],
+            avgLatencyMs=metrics["avg_latency_ms"],
+        ),
+        storage=storage,
+        llm=llm,
+        taskQueueBackend=settings.task_queue_backend,
+        lockBackend=settings.lock_backend,
+        counts=EntityCountsSchema(**counts),
+    )
