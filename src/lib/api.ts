@@ -579,7 +579,8 @@ export const api = {
 
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // Auth header so backend can attribute LLM token usage to the caller.
+      headers: { "Content-Type": "application/json", ...getAuthHeader() },
       body,
       signal: payload.signal,
     });
