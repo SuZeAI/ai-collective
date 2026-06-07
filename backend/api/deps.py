@@ -29,6 +29,7 @@ from backend.infrastructure.repositories.json_files import (
     JsonAnalyticsRepository,
     JsonConnectionRepository,
     JsonConversationRepository,
+    JsonOfficeBuilderSessionRepository,
     JsonSkillRepository,
     JsonTaskRepository,
     JsonTeamRepository,
@@ -36,6 +37,7 @@ from backend.infrastructure.repositories.json_files import (
 )
 from backend.application.service.workspace_service import WorkspaceService
 from backend.application.service.connection_service import ConnectionService
+from backend.application.service.office_builder_session_service import OfficeBuilderSessionService
 from backend.application.service.user_service import UserService
 from backend.infrastructure.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
 from backend.infrastructure.repositories.json_files import JsonUserRepository
@@ -47,6 +49,7 @@ from backend.infrastructure.repositories.mongo_repositories import (
     MongoConnectionRepository,
     MongoConversationRepository,
     MongoGraphKnowledgeRepository,
+    MongoOfficeBuilderSessionRepository,
     MongoSkillRepository,
     MongoTaskRepository,
     MongoTeamRepository,
@@ -203,6 +206,20 @@ def get_workspace_service() -> WorkspaceService:
 def get_connection_service() -> ConnectionService:
     _, _, _, _, _, _, _, _, _, connections = _repos()
     return ConnectionService(connections)
+
+
+@lru_cache
+def _office_builder_session_store():
+    if settings.storage_backend == "mongo":
+        import pymongo
+        client = pymongo.MongoClient(settings.mongo_uri)
+        db = client[settings.mongo_db]
+        return MongoOfficeBuilderSessionRepository(db)
+    return JsonOfficeBuilderSessionRepository(_store("office_builder_sessions.json"))
+
+
+def get_office_builder_session_service() -> OfficeBuilderSessionService:
+    return OfficeBuilderSessionService(_office_builder_session_store())
 
 
 @lru_cache

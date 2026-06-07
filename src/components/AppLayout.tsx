@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
   BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit, Settings2,
-  LogOut, User, UserCircle, ChevronDown,
+  LogOut, User, UserCircle, ChevronDown, Sparkles,
 } from "lucide-react";
 import { api, type Workspace } from "@/lib/api";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -40,6 +40,7 @@ const NAV_GROUPS = [
   {
     groupKey: "orgGroup" as const,
     items: [
+      { key: "officeBuilder" as const, url: "/office-builder", icon: Sparkles },
       { key: "teams" as const, url: "/teams", icon: Users },
       { key: "agents" as const, url: "/agents", icon: Cpu },
       { key: "skills" as const, url: "/skills", icon: Wrench },
