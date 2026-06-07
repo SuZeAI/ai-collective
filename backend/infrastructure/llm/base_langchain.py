@@ -8,6 +8,7 @@ from typing import Any
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
 from backend.application.ports.llm import LLMProvider
+from backend.infrastructure.llm.usage_tracker import UsageTrackingCallback
 from backend.log import get_logger
 
 
@@ -30,6 +31,23 @@ class LangChainLLMProvider(LLMProvider):
         self._llm = llm
         self._provider_name = provider_name
         self._max_tool_rounds = max(1, max_tool_rounds)
+        # Attach a usage-tracking callback at the model level so every
+        # invocation — via chat(), bind_tools() or get_chat_model() — records
+        # its token usage for the admin monitoring page.
+        try:
+            model_name = next(
+                (
+                    str(getattr(llm, attr))
+                    for attr in ("model_name", "model", "model_id")
+                    if getattr(llm, attr, None)
+                ),
+                "",
+            )
+            callbacks = list(getattr(llm, "callbacks", None) or [])
+            callbacks.append(UsageTrackingCallback(provider=provider_name.lower(), model=model_name))
+            llm.callbacks = callbacks
+        except Exception:
+            get_logger().warning("Could not attach usage-tracking callback", exc_info=True)
         # 0 / None disables the per-tool timeout.
         self._tool_timeout = (
             tool_timeout_seconds if tool_timeout_seconds is not None else _default_tool_timeout()
