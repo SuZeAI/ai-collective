@@ -20,7 +20,13 @@ from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
-from backend.domain.agent._graph_runtime import recursion_config, run_to_final_state, safe_chat
+from backend.domain.agent._graph_runtime import (
+    drain_human_guidance,
+    recursion_config,
+    run_to_final_state,
+    safe_chat,
+    wait_while_paused,
+)
 
 
 MAX_CONTEXT_TOKENS = max(1024, int(os.getenv("AGENT_CONTEXT_TOKEN_LIMIT", "12000")))
@@ -385,6 +391,14 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
 
         async def tree_node_fn(state: TreeState) -> dict:
             stream_writer = get_stream_writer()
+
+            # Human-in-the-loop: hold at the turn boundary while interrupted.
+            await wait_while_paused(
+                conversation_id=conversation_id,
+                stream_writer=stream_writer,
+                agent_name=agent.name,
+            )
+
             rounds_used = state["rounds"]
             remaining = max(0, max_rounds - rounds_used)
 
@@ -397,6 +411,15 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
                 "tree_index": tree_node.index,
             })
             stream_writer({"type": EventType.CONTEXT_BUILDING.value, "agent_name": agent.name})
+
+            # Human-in-the-loop: pick up user messages posted mid-run so this
+            # turn (and graph retrieval for later turns) sees the guidance.
+            human_guidance = drain_human_guidance(
+                conversation_id=conversation_id,
+                stream_writer=stream_writer,
+                graph_context_provider=graph_context_provider,
+                graph_config=graph_config,
+            )
 
             # Knowledge graph context
             graph_ctx = ""
@@ -442,7 +465,11 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
             recent_log = state.get("tree_log", [])[-_TREE_LOG_WINDOW:]
             log_text = "\n".join(recent_log) if recent_log else "(none)"
 
-            context_parts: list[str] = [
+            context_parts: list[str] = []
+            # First so the guidance survives tail-truncation by the token budget.
+            if human_guidance:
+                context_parts += [human_guidance, ""]
+            context_parts += [
                 f"[Original request]: {state['original_input']}",
             ]
 
@@ -464,6 +491,18 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
             if agent.tools:
                 for toolkit in agent.tools.values():
                     bound_tools.extend(toolkit.get_tools())
+
+            # Default human-in-the-loop tool: every agent can interrupt and ask
+            # the user a question mid-run (subagents inherit it too).
+            if conversation_id:
+                from backend.domain.tools.ask_user import AskUserToolkit
+
+                bound_tools.extend(
+                    AskUserToolkit(
+                        conversation_id=conversation_id,
+                        agent_name=agent.name,
+                    ).get_tools()
+                )
 
             if agent.subagent_enabled:
                 from backend.domain.tools.task import TaskToolkit
@@ -517,6 +556,10 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
 
             # Decide what goes into the tree log
             new_log = list(state.get("tree_log", []))
+            # Keep mid-run human guidance visible in later tree turns (the
+            # interject queue is drained once, so persist it in the log).
+            if human_guidance:
+                new_log.append(f"[Turn {rounds_used + 1}] {human_guidance}")
             if tree_end:
                 new_log.append(f"[Turn {rounds_used + 1}] {agent.name} → TREE_END")
             elif target_child:

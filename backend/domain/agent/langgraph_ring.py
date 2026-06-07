@@ -18,7 +18,13 @@ from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
-from backend.domain.agent._graph_runtime import recursion_config, run_to_final_state, safe_chat
+from backend.domain.agent._graph_runtime import (
+    drain_human_guidance,
+    recursion_config,
+    run_to_final_state,
+    safe_chat,
+    wait_while_paused,
+)
 
 
 MAX_CONTEXT_TOKENS = max(1024, int(os.getenv("AGENT_CONTEXT_TOKEN_LIMIT", "12000")))
@@ -208,6 +214,14 @@ class LangGraphRingOrchestrator(AgentGraphOrchestrator):
 
         async def ring_node(state: MultiAgentRingState) -> dict:
             stream_writer = get_stream_writer()
+
+            # Human-in-the-loop: hold at the turn boundary while interrupted.
+            await wait_while_paused(
+                conversation_id=conversation_id,
+                stream_writer=stream_writer,
+                agent_name=agent.name,
+            )
+
             current_round = state["rounds"]
             pass_number = current_round // n + 1
             prev_agent_name = agents[(agent_index - 1) % n].name if current_round > 0 else "user"
@@ -224,6 +238,15 @@ class LangGraphRingOrchestrator(AgentGraphOrchestrator):
             })
 
             stream_writer({"type": EventType.CONTEXT_BUILDING.value, "agent_name": agent.name})
+
+            # Human-in-the-loop: surface user messages posted mid-run to this
+            # turn and to the shared ring history for later turns.
+            human_guidance = drain_human_guidance(
+                conversation_id=conversation_id,
+                stream_writer=stream_writer,
+                graph_context_provider=graph_context_provider,
+                graph_config=graph_config,
+            )
 
             graph_context_text = ""
             if graph_context_provider and conversation_id:
@@ -245,7 +268,11 @@ class LangGraphRingOrchestrator(AgentGraphOrchestrator):
             recent_history = state.get("conversation_history", [])[-_RING_HISTORY_WINDOW:]
             history_text = "\n".join(recent_history) if recent_history else "(none)"
 
-            context_parts: list[str] = [
+            context_parts: list[str] = []
+            # First so the guidance survives tail-truncation by the token budget.
+            if human_guidance:
+                context_parts += [human_guidance, ""]
+            context_parts += [
                 f"user input: {state['original_input']}",
                 f"ring topology | pass {pass_number} | position {agent_index + 1}/{n}",
                 f"previous speaker: {prev_agent_name}",
@@ -278,6 +305,18 @@ class LangGraphRingOrchestrator(AgentGraphOrchestrator):
                 for toolkit in agent.tools.values():
                     bound_tools.extend(toolkit.get_tools())
 
+            # Default human-in-the-loop tool: every agent can interrupt and ask
+            # the user a question mid-run.
+            if conversation_id:
+                from backend.domain.tools.ask_user import AskUserToolkit
+
+                bound_tools.extend(
+                    AskUserToolkit(
+                        conversation_id=conversation_id,
+                        agent_name=agent.name,
+                    ).get_tools()
+                )
+
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
                 "agent_name": agent.name,
@@ -309,7 +348,12 @@ class LangGraphRingOrchestrator(AgentGraphOrchestrator):
                 content=output,
             )
 
-            new_history = [*state.get("conversation_history", []), f"{agent.name}: {output}"]
+            new_history = [*state.get("conversation_history", [])]
+            # Keep mid-run human guidance visible to later ring turns (the
+            # interject queue is drained once, so persist it in history).
+            if human_guidance:
+                new_history.append(human_guidance)
+            new_history.append(f"{agent.name}: {output}")
 
             if graph_context_provider and conversation_id:
                 graph_context_provider.ingest_message(

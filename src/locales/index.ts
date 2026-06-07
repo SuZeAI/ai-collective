@@ -75,6 +75,7 @@ export type Translations = {
     analytics: string;
     playground: string;
     workspaces: string;
+    officeBuilder: string;
     settings: string;
     overviewGroup: string;
     operationsGroup: string;
@@ -364,6 +365,7 @@ export const translations: Record<Language, Translations> = {
       label: "Navigation", dashboard: "Company Overview", agents: "Humans",
       skills: "Skills & Tools", teams: "Departments", tasks: "Projects & Tasks",
       conversations: "Meetings & Discussions", analytics: "Analytics", playground: "Testing Lab", workspaces: "Offices",
+      officeBuilder: "Office Builder",
       settings: "Settings",
       overviewGroup: "Overview",
       operationsGroup: "Operations",
@@ -677,6 +679,7 @@ export const translations: Record<Language, Translations> = {
       label: "Điều hướng", dashboard: "Tổng quan công ty", agents: "Nhân sự",
       skills: "Kỹ năng & Công cụ", teams: "Phòng ban", tasks: "Dự án & Công việc",
       conversations: "Họp & Thảo luận", analytics: "Phân tích", playground: "Phòng thử nghiệm", workspaces: "Văn phòng",
+      officeBuilder: "Tạo văn phòng AI",
       settings: "Cài đặt",
       overviewGroup: "Tổng quan",
       operationsGroup: "Vận hành",
@@ -990,6 +993,7 @@ export const translations: Record<Language, Translations> = {
       label: "导航", dashboard: "公司概览", agents: "人员",
       skills: "技能与工具", teams: "部门", tasks: "项目与任务",
       conversations: "会议与讨论", analytics: "分析", playground: "测试实验室", workspaces: "办公室",
+      officeBuilder: "AI 办公室构建器",
       settings: "设置",
       overviewGroup: "概览",
       operationsGroup: "运营",
@@ -1303,6 +1307,7 @@ export const translations: Record<Language, Translations> = {
       label: "ナビゲーション", dashboard: "会社概要", agents: "人材",
       skills: "スキルとツール", teams: "部門", tasks: "プロジェクトとタスク",
       conversations: "会議とディスカッション", analytics: "分析", playground: "テストラボ", workspaces: "オフィス",
+      officeBuilder: "AIオフィスビルダー",
       settings: "設定",
       overviewGroup: "概要",
       operationsGroup: "オペレーション",

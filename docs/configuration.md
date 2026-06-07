@@ -50,6 +50,11 @@ openssl rand -hex 32
 | `GOOGLE_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | — | Provider keys |
 | `OPEN_WEIGHT_API_KEY` (alias `OPENROUTER_API_KEY`) | — | Open-weight / OpenRouter key |
 
+To route every request through the bundled [9Router](9ROUTER_SETUP.md) multi-provider
+proxy, set `LLM_PROVIDER=openai`, `LLM_API_BASE=http://nine-router:20128/v1`, and use
+a 9Router-issued key as `OPENAI_API_KEY`. Container knobs: `ROUTER_PORT`,
+`ROUTER_PUBLIC_URL`, `ROUTER_JWT_SECRET` (compose profile `router`).
+
 ## Agent / tools
 
 | Variable | Default | Description |

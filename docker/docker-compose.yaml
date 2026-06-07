@@ -264,10 +264,40 @@ services:
       retries: 5
       start_period: 15s
 
+  # ── 9Router — multi-provider LLM proxy (optional — profile: router) ────────
+  # OpenAI-compatible gateway that routes / falls back across 40+ LLM providers
+  # (Claude, OpenAI, Gemini, GLM…) and compresses tokens. https://github.com/decolua/9router
+  # Activate: docker compose --profile router up -d
+  # Open the dashboard at http://localhost:${ROUTER_PORT:-20128}/dashboard, add
+  # provider accounts, create a combo + API key, then point the backend at it in .env:
+  #   LLM_PROVIDER=openai
+  #   LLM_API_BASE=http://nine-router:20128/v1   # in-Docker service hostname
+  #   OPENAI_API_KEY=<api key generated in the 9router dashboard>
+  #   LLM_MODEL=<combo name or provider/model, e.g. cc/claude-opus-4-7>
+  nine-router:
+    image: decolua/9router:latest
+    container_name: ai-collective-9router
+    profiles: ["router"]
+    ports:
+      - "${ROUTER_PORT:-20128}:20128"
+    environment:
+      - PORT=20128
+      - HOSTNAME=0.0.0.0
+      - DATA_DIR=/app/data
+      - NODE_ENV=production
+      - JWT_SECRET=${ROUTER_JWT_SECRET:-change-me-use-openssl-rand-hex-32}
+      - NEXT_PUBLIC_BASE_URL=${ROUTER_PUBLIC_URL:-http://localhost:20128}
+    volumes:
+      - router_data:/app/data
+    networks:
+      - ai-collective
+    restart: unless-stopped
+
 volumes:
   mongo_data:
     driver: local
   sandbox-workspace:
+  router_data:
 
 networks:
   ai-collective:

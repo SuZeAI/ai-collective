@@ -3,26 +3,35 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backend.api.deps import get_workspace_service
+from backend.api.deps import current_owner_id_dep, get_workspace_service
 from backend.api.schemas.workspace import WorkspaceSchema, UpsertWorkspaceRequest
 from backend.application.service.workspace_service import WorkspaceService
-from backend.domain.models import PlatformHook, Workspace
+from backend.domain.errors import NotFoundError
+from backend.domain.models import PlatformHook, Workspace, can_delete, can_modify, is_visible_to
 from backend.domain.thirty_part.registry import list_platforms
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 
 
 @router.get("", response_model=list[WorkspaceSchema])
-def list_workspaces(service: WorkspaceService = Depends(get_workspace_service)):
-    return [WorkspaceSchema.from_domain(w) for w in service.list_workspaces()]
+def list_workspaces(
+    service: WorkspaceService = Depends(get_workspace_service),
+    owner_id: str = Depends(current_owner_id_dep),
+):
+    return [
+        WorkspaceSchema.from_domain(w)
+        for w in service.list_workspaces()
+        if is_visible_to(owner_id, w.owner_id)
+    ]
 
 
 @router.post("", response_model=WorkspaceSchema)
 def upsert_workspace(
     req: UpsertWorkspaceRequest,
     service: WorkspaceService = Depends(get_workspace_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ):
     ws_id = req.id or f"ws_{uuid4().hex}"
     hooks = [
@@ -37,6 +46,10 @@ def upsert_workspace(
         for h in (req.platformHooks or [])
     ]
     existing = service._repo.get(ws_id)
+    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
+        raise NotFoundError(f"Workspace {ws_id!r} not found")
+    if existing is not None and not can_modify(owner_id, existing.owner_id):
+        raise HTTPException(status_code=403, detail="Only the default (admin) account can edit shared default items")
     created_at = existing.created_at if existing else datetime.now(timezone.utc)
     workspace = Workspace(
         id=ws_id,
@@ -50,6 +63,7 @@ def upsert_workspace(
         avatar_icon=(req.avatar_icon or "").strip(),
         avatar_color=(req.avatar_color or "").strip(),
         avatar_url=(req.avatar_url or "").strip(),
+        owner_id=existing.owner_id if existing else owner_id,
     )
     saved = service.upsert_workspace(workspace)
     return WorkspaceSchema.from_domain(saved)
@@ -59,7 +73,13 @@ def upsert_workspace(
 def delete_workspace(
     workspace_id: str,
     service: WorkspaceService = Depends(get_workspace_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ):
+    existing = service._repo.get(workspace_id)
+    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
+        raise NotFoundError(f"Workspace {workspace_id!r} not found")
+    if existing is not None and not can_delete(owner_id, existing.owner_id):
+        raise HTTPException(status_code=403, detail="Only the default (admin) account can delete shared default items")
     service.delete_workspace(workspace_id)
     return {"deleted": True}
 
@@ -74,5 +94,9 @@ def get_platforms():
 def get_workspace(
     workspace_id: str,
     service: WorkspaceService = Depends(get_workspace_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ):
-    return WorkspaceSchema.from_domain(service.get_workspace(workspace_id))
+    workspace = service.get_workspace(workspace_id)
+    if not is_visible_to(owner_id, workspace.owner_id):
+        raise NotFoundError(f"Workspace {workspace_id!r} not found")
+    return WorkspaceSchema.from_domain(workspace)

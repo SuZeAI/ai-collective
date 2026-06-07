@@ -15,6 +15,7 @@ class TeamSchema(BaseModel):
     avatar_url: str = ""
     mode: str = "sequential"
     maxSteps: int = 6
+    owner_id: str = "default"
 
     @staticmethod
     def from_domain(t) -> "TeamSchema":
@@ -30,6 +31,7 @@ class TeamSchema(BaseModel):
             avatar_url=getattr(t, "avatar_url", "") or "",
             mode=t.mode,
             maxSteps=t.max_steps,
+            owner_id=getattr(t, "owner_id", "default") or "default",
         )
 
 

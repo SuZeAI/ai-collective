@@ -15,8 +15,17 @@ endif
 SHELL     := /bin/bash
 .DEFAULT_GOAL := help
 
-COMPOSE_DEV  := docker compose -f docker/docker-compose-dev.yaml
-COMPOSE_PROD := docker compose -f docker/docker-compose.yaml
+# Optional Docker Compose profiles to enable, space-separated.
+# Works with any target (dev/up/down/ps/logs…). Examples:
+#   make dev PROFILES=router
+#   make dev PROFILES="sandbox router"
+#   make up  PROFILES="router provisioner"
+# Available profiles: sandbox · provisioner · router · mongo-express · tools
+PROFILES ?=
+COMPOSE_PROFILES := $(foreach p,$(PROFILES),--profile $(p))
+
+COMPOSE_DEV  := docker compose -f docker/docker-compose-dev.yaml $(COMPOSE_PROFILES)
+COMPOSE_PROD := docker compose -f docker/docker-compose.yaml $(COMPOSE_PROFILES)
 
 BACKEND_PORT  ?= 8000
 FRONTEND_PORT ?= 8080
@@ -42,9 +51,9 @@ C_YELLOW := \033[33m
 # ── Phony declarations ────────────────────────────────────────────────────
 .PHONY: help \
         dev dev-down dev-stop dev-start dev-build dev-logs dev-ps dev-log-collect \
-        dev-sandbox dev-provisioner \
+        dev-sandbox dev-provisioner dev-router \
         up down stop start build restart ps logs logs-backend logs-frontend \
-        prod-sandbox prod-provisioner \
+        prod-sandbox prod-provisioner prod-router prod-all \
         backend frontend \
         infra infra-down \
         install install-backend install-frontend \
@@ -69,11 +78,12 @@ help: ## Show this help message
 	        printf "  \033[32m%-28s\033[0m %s\n", $$1, $$2 \
 	    }' $(MAKEFILE_LIST)
 	@printf "\n\033[1m\033[33m  Examples\033[0m\n"
-	@printf "  make dev              # Start full dev stack (Docker, hot-reload)\n"
-	@printf "  make backend          # Run backend locally (needs infra running)\n"
-	@printf "  make up               # Start production stack\n"
-	@printf "  make dev-sandbox      # Dev stack + AIO sandbox container\n"
-	@printf "  make prod-provisioner # Prod stack + K8s provisioner\n"
+	@printf "  make dev                          # Start full dev stack (Docker, hot-reload)\n"
+	@printf "  make dev PROFILES=router          # Dev stack + 9Router LLM proxy\n"
+	@printf "  make dev PROFILES=\"sandbox router\" # Dev stack + sandbox + 9Router\n"
+	@printf "  make up  PROFILES=router          # Prod stack + 9Router\n"
+	@printf "  make backend                      # Run backend locally (needs infra running)\n"
+	@printf "\n\033[1m\033[33m  Profiles$(C_RESET) (PROFILES=…)  sandbox · provisioner · router · mongo-express · tools\n"
 	@printf "\n"
 
 # ============================================================================
@@ -164,22 +174,24 @@ dev-restart: ## Restart all dev containers
 dev-restart-backend: ## Restart only the backend container
 	$(COMPOSE_DEV) restart backend
 
-# ── Dev with optional sandbox profiles ───────────────────────────────────
+# ── Dev with optional profiles (shortcuts for `make dev PROFILES=…`) ──────
 
-dev-sandbox: dirs env ## Dev stack + AIO sandbox container (set SANDBOX_MODE=remote in .env)
-	@printf "$(C_CYAN)Starting dev stack with sandbox…$(C_RESET)\n"
-	$(COMPOSE_DEV) up --build -d
-	@$(MAKE) --no-print-directory dev-log-collect
+dev-sandbox: ## Dev stack + AIO sandbox container (set SANDBOX_MODE=remote in .env)
+	@$(MAKE) --no-print-directory dev PROFILES="$(PROFILES) sandbox"
 	@printf "  Sandbox URL (internal): http://sandbox:8080\n"
 	@printf "  Sandbox URL (host):     http://localhost:8081\n"
 	@printf "$(C_YELLOW)  Tip: set SANDBOX_MODE=remote and SANDBOX_URL=http://sandbox:8080 in .env$(C_RESET)\n"
 
-dev-provisioner: dirs env ## Dev stack + AIO sandbox + K8s provisioner
-	@printf "$(C_CYAN)Starting dev stack with provisioner…$(C_RESET)\n"
-	$(COMPOSE_DEV) up --build -d
-	@$(MAKE) --no-print-directory dev-log-collect
+dev-provisioner: ## Dev stack + AIO sandbox + K8s provisioner
+	@$(MAKE) --no-print-directory dev PROFILES="$(PROFILES) sandbox provisioner"
 	@printf "  Provisioner: http://localhost:8002/health\n"
 	@printf "$(C_YELLOW)  Tip: set SANDBOX_MODE=remote and SANDBOX_PROVISIONER_URL=http://provisioner:8002 in .env$(C_RESET)\n"
+
+dev-router: ## Dev stack + 9Router multi-provider LLM proxy
+	@$(MAKE) --no-print-directory dev PROFILES="$(PROFILES) router"
+	@printf "  9Router dashboard: $(C_GREEN)http://localhost:$${ROUTER_PORT:-20128}/dashboard$(C_RESET)\n"
+	@printf "$(C_YELLOW)  Tip: set LLM_PROVIDER=openai, LLM_API_BASE=http://nine-router:20128/v1,$(C_RESET)\n"
+	@printf "$(C_YELLOW)       OPENAI_API_KEY=<dashboard key> in .env (see docs/9ROUTER_SETUP.md)$(C_RESET)\n"
 
 # ============================================================================
 # PRODUCTION
@@ -219,20 +231,23 @@ logs-backend: ## Tail only backend production logs
 logs-frontend: ## Tail only frontend production logs
 	$(COMPOSE_PROD) logs -f frontend
 
-# ── Production with optional sandbox profiles ─────────────────────────────
+# ── Production with optional profiles (shortcuts for `make up PROFILES=…`) ─
 
-prod-sandbox: dirs env ## Production stack + AIO sandbox container
-	@printf "$(C_CYAN)Starting production stack + sandbox…$(C_RESET)\n"
-	$(COMPOSE_PROD) --profile sandbox up -d
+prod-sandbox: ## Production stack + AIO sandbox container
+	@$(MAKE) --no-print-directory up PROFILES="$(PROFILES) sandbox"
 	@printf "$(C_GREEN)✓ Sandbox running.$(C_RESET)  Set SANDBOX_MODE=remote SANDBOX_URL=http://sandbox:8080 in .env\n"
 
-prod-provisioner: dirs env ## Production stack + K8s provisioner (needs kubeconfig)
-	@printf "$(C_CYAN)Starting production stack + provisioner…$(C_RESET)\n"
-	$(COMPOSE_PROD) --profile provisioner up -d
+prod-provisioner: ## Production stack + K8s provisioner (needs kubeconfig)
+	@$(MAKE) --no-print-directory up PROFILES="$(PROFILES) provisioner"
 	@printf "$(C_GREEN)✓ Provisioner running.$(C_RESET)  Set SANDBOX_MODE=remote SANDBOX_PROVISIONER_URL=http://provisioner:8002 in .env\n"
 
-prod-all: dirs env ## Production stack + sandbox + provisioner
-	$(COMPOSE_PROD) --profile sandbox --profile provisioner up -d
+prod-router: ## Production stack + 9Router multi-provider LLM proxy
+	@$(MAKE) --no-print-directory up PROFILES="$(PROFILES) router"
+	@printf "$(C_GREEN)✓ 9Router running.$(C_RESET)  Dashboard: http://localhost:$${ROUTER_PORT:-20128}/dashboard\n"
+	@printf "  Set LLM_PROVIDER=openai, LLM_API_BASE=http://nine-router:20128/v1, OPENAI_API_KEY=<key> in .env (docs/9ROUTER_SETUP.md)\n"
+
+prod-all: ## Production stack + sandbox + provisioner
+	@$(MAKE) --no-print-directory up PROFILES="$(PROFILES) sandbox provisioner"
 
 # ============================================================================
 # LOCAL DEVELOPMENT (without Docker — runs directly on host)

@@ -10,8 +10,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { AgentAvatar, avatarIconOptions } from "@/components/AgentAvatar";
-import { api, type Agent, type Skill } from "@/lib/api";
+import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
+import { api, canDeleteItem, canEditItem, type Agent, type Skill, type Team } from "@/lib/api";
 import { getAgentDotColor, getAgentRoleColor } from "@/lib/agent-role-ui";
+import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 
 const roles = [
   "Other Position",
@@ -63,8 +65,10 @@ function isHexColor(value: string): boolean {
 }
 
 export default function AgentBuilder() {
+  const scope = useWorkspaceScope();
   const [agentList, setAgentList] = useState<Agent[]>([]);
   const [skillCatalog, setSkillCatalog] = useState<Skill[]>([]);
+  const [teamList, setTeamList] = useState<Team[]>([]);
 
   const [open, setOpen] = useState(false);
   const [testOpen, setTestOpen] = useState(false);
@@ -89,10 +93,11 @@ export default function AgentBuilder() {
     let cancelled = false;
     (async () => {
       try {
-        const [agents, skills] = await Promise.all([api.listAgents(), api.listSkills()]);
+        const [agents, skills, teams] = await Promise.all([api.listAgents(), api.listSkills(), api.listTeams()]);
         if (cancelled) return;
         setAgentList(agents);
         setSkillCatalog(skills);
+        setTeamList(teams);
       } catch (e) {
         console.error(e);
       }
@@ -238,15 +243,73 @@ export default function AgentBuilder() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const visibleAgents = useMemo(
+    () => (scope.isOverall ? agentList : agentList.filter((a) => scope.agentIds.has(a.id))),
+    [agentList, scope],
+  );
+
   return (
     <div>
       <header className="mb-8 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Humans</h1>
-          <p className="text-muted-foreground mt-1">Hire and manage your company's personnel roster.</p>
+          <p className="text-muted-foreground mt-1">
+            {scope.workspace
+              ? <>Personnel of office <span className="font-semibold text-foreground">{scope.workspace.name}</span> (members of its departments).</>
+              : "Hire and manage your company's personnel roster."}
+          </p>
         </div>
 
-        <Dialog open={open} onOpenChange={setOpen}>
+        <div className="flex items-center gap-2">
+          {scope.workspace && (
+            <AppendFromOverallDialog
+              title={`Append humans to "${scope.workspace.name}"`}
+              description="Pick existing humans from Overall and add them to one of this office's departments."
+              items={agentList
+                .filter((a) => !scope.agentIds.has(a.id))
+                .map((a) => ({ id: a.id, name: a.name, sub: a.role }))}
+              emptyText="Every human from Overall is already part of this office."
+              targets={teamList
+                .filter((t) => scope.teamIds.has(t.id) && canEditItem(t))
+                .map((t) => ({ id: t.id, name: t.name }))}
+              targetLabel="Add to department"
+              noTargetText="No department in this office can be edited by you. Create your own department first."
+              copyLabel="Create independent copies for this office (edits to the copied humans won't affect Overall)."
+              onAppend={async (ids, targetId, makeCopy) => {
+                const team = teamList.find((t) => t.id === targetId);
+                if (!team) return;
+                let agentIdsToAdd = ids;
+                if (makeCopy) {
+                  agentIdsToAdd = [];
+                  for (const id of ids) {
+                    const src = agentList.find((a) => a.id === id);
+                    if (!src) continue;
+                    const copied = await api.upsertAgent({
+                      name: src.name,
+                      role: src.role,
+                      description: src.description,
+                      system_prompt: src.system_prompt,
+                      skill_ids: src.skill_ids || [],
+                      status: "idle",
+                      avatar: src.avatar,
+                      avatar_icon: src.avatar_icon,
+                      avatar_color: src.avatar_color,
+                      avatar_url: src.avatar_url,
+                      subagent_enabled: src.subagent_enabled,
+                    });
+                    setAgentList((prev) => [...prev, copied]);
+                    agentIdsToAdd.push(copied.id);
+                  }
+                }
+                const merged = [...new Set([...(team.agents || []), ...agentIdsToAdd])];
+                const saved = await api.upsertTeam({ ...team, agents: merged });
+                setTeamList((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
+                // Refresh the office scope so the new humans show up.
+                window.dispatchEvent(new CustomEvent("workspaceChanged"));
+              }}
+            />
+          )}
+          <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button onClick={openCreateDialog}>
               <Plus className="w-4 h-4 mr-2" /> New Human
@@ -418,7 +481,8 @@ export default function AgentBuilder() {
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </header>
 
       <Dialog
@@ -515,8 +579,17 @@ export default function AgentBuilder() {
         </DialogContent>
       </Dialog>
 
+      {visibleAgents.length === 0 && scope.ready && (
+        <div className="text-center py-16 text-muted-foreground">
+          <p className="text-sm">
+            {scope.workspace
+              ? `No humans in "${scope.workspace.name}" yet — add them to one of its departments, or switch to Overall.`
+              : "No humans yet. Hire your first one."}
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {agentList.map((agent, i) => (
+        {visibleAgents.map((agent, i) => (
           <motion.div
             key={agent.id}
             initial={{ opacity: 0, y: 12 }}
@@ -533,12 +606,16 @@ export default function AgentBuilder() {
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold truncate">{agent.name}</h3>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(agent)} aria-label={`Edit ${agent.name}`}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => deleteAgent(agent.id)} aria-label={`Delete ${agent.name}`}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {canEditItem(agent) && (
+                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(agent)} aria-label={`Edit ${agent.name}`}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {canDeleteItem(agent) && (
+                      <Button variant="ghost" size="icon" onClick={() => deleteAgent(agent.id)} aria-label={`Delete ${agent.name}`}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                     <div className="flex items-center gap-1.5">
                     <span
                       className={`w-2 h-2 rounded-full ${

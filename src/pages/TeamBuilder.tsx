@@ -7,7 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AgentAvatar, teamAvatarIconOptions } from "@/components/AgentAvatar";
-import { api, type Agent, type Team } from "@/lib/api";
+import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
+import { api, canDeleteItem, canEditItem, type Agent, type Team } from "@/lib/api";
+import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 
 type TeamTestMessage = {
   id: string;
@@ -24,6 +26,7 @@ function isHexColor(value: string): boolean {
 }
 
 export default function TeamBuilder() {
+  const scope = useWorkspaceScope();
   const [teamList, setTeamList] = useState<Team[]>([]);
   const [agentList, setAgentList] = useState<Agent[]>([]);
   const [name, setName] = useState("");
@@ -167,6 +170,19 @@ export default function TeamBuilder() {
         next[idx] = saved;
         return next;
       });
+      // A department created while a specific office is selected joins that
+      // office; ones created under "Overall" stay unattached (shared/default).
+      if (!editingTeamId && scope.workspace && !scope.workspace.teamIds.includes(saved.id)) {
+        try {
+          await api.upsertWorkspace({
+            ...scope.workspace,
+            teamIds: [...scope.workspace.teamIds, saved.id],
+          });
+          window.dispatchEvent(new CustomEvent("workspaceChanged"));
+        } catch (err) {
+          console.error("Failed to attach department to office:", err);
+        }
+      }
       resetForm();
       setOpen(false);
     } catch (e) {
@@ -301,14 +317,84 @@ export default function TeamBuilder() {
     }
   };
 
+  const visibleTeams = useMemo(
+    () => (scope.isOverall ? teamList : teamList.filter((t) => scope.teamIds.has(t.id))),
+    [teamList, scope],
+  );
+
   return (
     <div>
       <header className="mb-8 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Departments</h1>
-          <p className="text-muted-foreground mt-1">Assemble departments and project teams for corporate tasks.</p>
+          <p className="text-muted-foreground mt-1">
+            {scope.workspace
+              ? <>Departments of office <span className="font-semibold text-foreground">{scope.workspace.name}</span>. New departments join this office.</>
+              : "Assemble departments and project teams for corporate tasks."}
+          </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <div className="flex items-center gap-2">
+          {scope.workspace && canEditItem(scope.workspace) && (
+            <AppendFromOverallDialog
+              title={`Append departments to "${scope.workspace.name}"`}
+              description="Pick existing departments from Overall to join this office."
+              items={teamList
+                .filter((t) => !scope.teamIds.has(t.id))
+                .map((t) => ({ id: t.id, name: t.name, sub: t.description, badge: t.mode }))}
+              emptyText="Every department from Overall already belongs to this office."
+              copyLabel="Create independent copies for this office (the department and its humans are cloned, so edits here won't affect Overall)."
+              onAppend={async (ids, _targetId, makeCopy) => {
+                const ws = scope.workspace!;
+                let teamIdsToAdd = ids;
+                if (makeCopy) {
+                  teamIdsToAdd = [];
+                  for (const id of ids) {
+                    const src = teamList.find((t) => t.id === id);
+                    if (!src) continue;
+                    // Deep copy: clone the member humans too so the office can customize them.
+                    const memberIds: string[] = [];
+                    for (const agentId of src.agents || []) {
+                      const srcAgent = agentById.get(agentId);
+                      if (!srcAgent) continue;
+                      const copiedAgent = await api.upsertAgent({
+                        name: srcAgent.name,
+                        role: srcAgent.role,
+                        description: srcAgent.description,
+                        system_prompt: srcAgent.system_prompt,
+                        skill_ids: srcAgent.skill_ids || [],
+                        status: "idle",
+                        avatar: srcAgent.avatar,
+                        avatar_icon: srcAgent.avatar_icon,
+                        avatar_color: srcAgent.avatar_color,
+                        avatar_url: srcAgent.avatar_url,
+                        subagent_enabled: srcAgent.subagent_enabled,
+                      });
+                      memberIds.push(copiedAgent.id);
+                      setAgentList((prev) => [...prev, copiedAgent]);
+                    }
+                    const copiedTeam = await api.upsertTeam({
+                      name: src.name,
+                      description: src.description,
+                      agents: memberIds,
+                      activeTasks: 0,
+                      avatar: src.avatar || src.name[0]?.toUpperCase() || "T",
+                      avatar_icon: src.avatar_icon,
+                      avatar_color: src.avatar_color,
+                      avatar_url: src.avatar_url,
+                      mode: src.mode,
+                      maxSteps: src.maxSteps,
+                    });
+                    setTeamList((prev) => [...prev, copiedTeam]);
+                    teamIdsToAdd.push(copiedTeam.id);
+                  }
+                }
+                await api.upsertWorkspace({ ...ws, teamIds: [...ws.teamIds, ...teamIdsToAdd] });
+                // Refresh the office scope so the new departments show up.
+                window.dispatchEvent(new CustomEvent("workspaceChanged"));
+              }}
+            />
+          )}
+          <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> New Department</Button>
           </DialogTrigger>
@@ -497,7 +583,8 @@ export default function TeamBuilder() {
               </div>
             </div>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </header>
 
       <Dialog
@@ -677,8 +764,18 @@ export default function TeamBuilder() {
         </DialogContent>
       </Dialog>
 
+      {visibleTeams.length === 0 && scope.ready && (
+        <div className="text-center py-16 text-muted-foreground">
+          <Users className="w-8 h-8 mx-auto mb-3 opacity-30" />
+          <p className="text-sm">
+            {scope.workspace
+              ? `No departments in "${scope.workspace.name}" yet. Create one, or switch to Overall to see everything.`
+              : "No departments yet. Create your first department."}
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {teamList.map((team, i) => (
+        {visibleTeams.map((team, i) => (
           <motion.div
             key={team.id}
             initial={{ opacity: 0, y: 12 }}
@@ -700,12 +797,16 @@ export default function TeamBuilder() {
                 <Button variant="ghost" size="icon" onClick={() => openTestDialog(team)} aria-label={`Test ${team.name}`}>
                   <FlaskConical className="w-4 h-4" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => openEditDialog(team)} aria-label={`Edit ${team.name}`}>
-                  <Pencil className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => deleteTeam(team.id)} aria-label={`Delete ${team.name}`}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                {canEditItem(team) && (
+                  <Button variant="ghost" size="icon" onClick={() => openEditDialog(team)} aria-label={`Edit ${team.name}`}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                )}
+                {canDeleteItem(team) && (
+                  <Button variant="ghost" size="icon" onClick={() => deleteTeam(team.id)} aria-label={`Delete ${team.name}`}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             </div>
             <div className="flex flex-wrap gap-2 mb-4">

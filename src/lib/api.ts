@@ -12,6 +12,7 @@ export type Agent = {
   avatar_color?: string;
   avatar_url?: string;
   subagent_enabled?: boolean;
+  owner_id?: string;
 };
 
 export type Skill = {
@@ -27,6 +28,7 @@ export type Skill = {
   avatar_color?: string;
   avatar_url?: string;
   code?: string | null;
+  owner_id?: string;
 };
 
 export type SkillToolOption = {
@@ -80,6 +82,7 @@ export type Team = {
   avatar_url?: string;
   mode?: "mesh" | "sequential" | "ring" | "supervisor" | "tree";
   maxSteps?: number;
+  owner_id?: string;
 };
 
 export type Task = {
@@ -92,6 +95,7 @@ export type Task = {
   assignedAgents: string[];
   startTime?: string | null;
   endTime?: string | null;
+  owner_id?: string;
 };
 
 export type Message = {
@@ -161,6 +165,7 @@ export type Workspace = {
   avatar_icon?: string;
   avatar_color?: string;
   avatar_url?: string;
+  owner_id?: string;
 };
 
 export type ThirdPartyConnection = {
@@ -211,6 +216,105 @@ export type ChatRequest = {
 export type ChatResponse = {
   response: string;
 };
+
+// ─── Office Builder (chat to create office → departments → humans → skills) ──
+
+export type OfficeSkillPlan = {
+  name: string;
+  description: string;
+  tool_name?: string | null;
+};
+
+export type OfficeHumanPlan = {
+  name: string;
+  role: string;
+  description: string;
+  skills: OfficeSkillPlan[];
+};
+
+export type OfficeDepartmentPlan = {
+  name: string;
+  description: string;
+  mode: "sequential" | "mesh" | "ring" | "supervisor" | "tree" | string;
+  humans: OfficeHumanPlan[];
+};
+
+export type OfficePlan = {
+  name: string;
+  description: string;
+  departments: OfficeDepartmentPlan[];
+};
+
+export type OfficeChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+export type OfficeBuilderChatResponse = {
+  reply: string;
+  plan: OfficePlan | null;
+};
+
+export type OfficeBuilderStreamEvent =
+  | { type: "delta"; text: string }
+  | { type: "plan"; plan: OfficePlan }
+  | { type: "done"; reply: string }
+  | { type: "error"; detail: string };
+
+export type ApplyOfficePlanResponse = {
+  workspace: Workspace;
+  team_ids: string[];
+  agent_ids: string[];
+  skill_ids: string[];
+  reused_skill_ids: string[];
+};
+
+export type OfficeBuilderSession = {
+  id: string;
+  title: string;
+  messages: OfficeChatMessage[];
+  plan: OfficePlan | null;
+  createdAt: string;
+  updatedAt: string;
+  workspaceId: string;
+  owner_id?: string;
+};
+
+export type OfficeBuilderSessionSummary = {
+  id: string;
+  title: string;
+  messageCount: number;
+  hasPlan: boolean;
+  createdAt: string;
+  updatedAt: string;
+  workspaceId: string;
+  owner_id?: string;
+};
+
+// ─── Ownership helpers ───────────────────────────────────────────────────────
+// Items owned by "default" are shared with everyone; only the default (admin)
+// account may delete them. Other users/guests can only delete their own items.
+export const DEFAULT_OWNER_ID = "default";
+
+export function getCurrentUserId(): string {
+  try {
+    const raw = localStorage.getItem("ai-collective-user");
+    const u = raw ? (JSON.parse(raw) as { id?: string; role?: string } | null) : null;
+    // Admins act in the shared "default" scope (mirrors the backend rule).
+    if (u?.role === "admin" || u?.role === "system") return DEFAULT_OWNER_ID;
+    return u?.id || "guest";
+  } catch {
+    return "guest";
+  }
+}
+
+/** True when the current user may delete this item (matches backend can_delete rule). */
+export function canDeleteItem(item: { owner_id?: string }): boolean {
+  return (item.owner_id ?? DEFAULT_OWNER_ID) === getCurrentUserId();
+}
+
+/** Editing shared items follows the same ownership rule — only the owner sees the edit button. */
+export const canEditItem = canDeleteItem;
 
 export type AuthUser = {
   id: string;
@@ -321,6 +425,32 @@ export const api = {
   getTaskGraphContext: (taskId: string) => apiFetch<GraphContextSnapshot>(`/tasks/${encodeURIComponent(taskId)}/graph-context`),
   addConversation: (payload: { agentId: string; content: string; taskId?: string | null }) =>
     apiFetch<Message>("/conversations", { method: "POST", body: JSON.stringify(payload) }),
+  // Human-in-the-loop: queue a user message for an actively streaming run.
+  // The next agent turn picks it up and injects it into its context.
+  interjectAgentGraph: (payload: { conversation_id: string; content: string }) =>
+    apiFetch<{ queued: boolean; message_id: string | null }>("/llm/agent-graph/interject", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  // Interrupt an active run: current agent finishes its turn, then the run
+  // holds at the turn boundary so the user can chat before resuming.
+  pauseAgentGraph: (payload: { conversation_id: string }) =>
+    apiFetch<{ paused: boolean }>("/llm/agent-graph/pause", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  resumeAgentGraph: (payload: { conversation_id: string }) =>
+    apiFetch<{ resumed: boolean }>("/llm/agent-graph/resume", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  // Answer an agent's ask_user question (the agent is blocked waiting on it).
+  respondAgentGraph: (payload: { conversation_id: string; request_id: string; response: string }) =>
+    apiFetch<{ delivered: boolean }>("/llm/agent-graph/respond", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
   chat: (payload: ChatRequest, options?: { timeoutMs?: number }) =>
     apiFetch<ChatResponse>("/llm/chat", {
       method: "POST",
@@ -415,6 +545,95 @@ export const api = {
       reader.releaseLock();
     }
   },
+
+  // Office Builder: iterative plan generation + one-shot creation.
+  officeBuilderChat: (payload: { messages: OfficeChatMessage[]; plan?: OfficePlan | null }) =>
+    apiFetch<OfficeBuilderChatResponse>("/office-builder/plan", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      timeoutMs: 300000,
+    }),
+  applyOfficePlan: (payload: { plan: OfficePlan }) =>
+    apiFetch<ApplyOfficePlanResponse>("/office-builder/apply", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      timeoutMs: 300000,
+    }),
+  // Streaming variant of officeBuilderChat — yields delta/plan/done/error events.
+  officeBuilderChatStream: async function* (payload: {
+    messages: OfficeChatMessage[];
+    plan?: OfficePlan | null;
+    signal?: AbortSignal;
+  }): AsyncGenerator<OfficeBuilderStreamEvent> {
+    const base = getApiBase().replace(/\/$/, "");
+    const res = await fetch(`${base}/office-builder/plan-stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeader() },
+      body: JSON.stringify({ messages: payload.messages, plan: payload.plan ?? null }),
+      signal: payload.signal,
+    });
+
+    if (!res.ok) {
+      let detail = `${res.status} ${res.statusText}`;
+      try {
+        const data = await res.json();
+        if (data?.detail) detail = String(data.detail);
+      } catch {
+        // ignore
+      }
+      throw new Error(detail);
+    }
+
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error("No response body");
+
+    const abortHandler = () => reader.cancel();
+    payload.signal?.addEventListener("abort", abortHandler);
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              yield JSON.parse(line.slice(6)) as OfficeBuilderStreamEvent;
+            } catch {
+              // ignore parse errors
+            }
+          }
+        }
+      }
+    } finally {
+      payload.signal?.removeEventListener("abort", abortHandler);
+      reader.releaseLock();
+    }
+  },
+
+  listOfficeBuilderSessions: () =>
+    apiFetch<OfficeBuilderSessionSummary[]>("/office-builder/sessions"),
+  getOfficeBuilderSession: (id: string) =>
+    apiFetch<OfficeBuilderSession>(`/office-builder/sessions/${encodeURIComponent(id)}`),
+  upsertOfficeBuilderSession: (payload: {
+    id?: string | null;
+    title?: string;
+    messages: OfficeChatMessage[];
+    plan?: OfficePlan | null;
+    workspaceId?: string;
+  }) =>
+    apiFetch<OfficeBuilderSession>("/office-builder/sessions", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  deleteOfficeBuilderSession: (id: string) =>
+    apiFetch<{ deleted: boolean }>(`/office-builder/sessions/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
 
   getAnalytics: () => apiFetch<Analytics>("/analytics"),
   listActivityFeed: () => apiFetch<ActivityFeedItem[]>("/activity-feed"),

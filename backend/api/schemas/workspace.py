@@ -36,6 +36,7 @@ class WorkspaceSchema(BaseModel):
     avatar_icon: str = ""
     avatar_color: str = ""
     avatar_url: str = ""
+    owner_id: str = "default"
 
     @staticmethod
     def from_domain(w) -> "WorkspaceSchema":
@@ -51,6 +52,7 @@ class WorkspaceSchema(BaseModel):
             avatar_icon=w.avatar_icon or "",
             avatar_color=w.avatar_color or "",
             avatar_url=w.avatar_url or "",
+            owner_id=getattr(w, "owner_id", "default") or "default",
         )
 
 
