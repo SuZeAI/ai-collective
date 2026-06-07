@@ -3,7 +3,7 @@
 Each agent node invocation gets a unique thread_id that:
   - Scopes all sandbox bash sessions within that run (prevents cross-run pollution)
   - Creates an isolated workspace directory: {SANDBOX_WORKSPACE}/{thread_id}/
-  - Is persisted to storage/sandbox_threads.json for observability
+  - Is persisted to storage/sandbox_threads.json (json) or MongoDB (mongo)
   - Propagates automatically through async tool calls via ContextVar
 """
 from __future__ import annotations
@@ -117,6 +117,17 @@ def _persist_session(
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     try:
+        from backend.api.settings import settings
+        if settings.storage_backend == "mongo":
+            _persist_session_mongo(record)
+            return
+    except Exception:
+        pass
+    _persist_session_json(record)
+
+
+def _persist_session_json(record: dict) -> None:
+    try:
         with _storage_lock:
             sessions: list[dict] = []
             if os.path.exists(_STORAGE_PATH):
@@ -131,4 +142,18 @@ def _persist_session(
             with open(_STORAGE_PATH, "w", encoding="utf-8") as f:
                 json.dump(sessions, f, indent=2, ensure_ascii=False)
     except Exception as exc:
-        logger.warning("Failed to persist sandbox session record: %s", exc)
+        logger.warning("Failed to persist sandbox session (json): %s", exc)
+
+
+def _persist_session_mongo(record: dict) -> None:
+    try:
+        import pymongo
+        from backend.api.settings import settings
+        client = pymongo.MongoClient(settings.mongo_uri, serverSelectionTimeoutMS=2000)
+        db = client[settings.mongo_db]
+        doc = dict(record)
+        doc["_id"] = doc["thread_id"]
+        db.sandbox_threads.replace_one({"_id": doc["_id"]}, doc, upsert=True)
+    except Exception as exc:
+        logger.warning("Failed to persist sandbox session (mongo): %s", exc)
+        _persist_session_json(record)
