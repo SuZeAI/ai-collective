@@ -10,7 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { AgentAvatar, avatarIconOptions } from "@/components/AgentAvatar";
-import { api, canDeleteItem, canEditItem, type Agent, type Skill } from "@/lib/api";
+import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
+import { api, canDeleteItem, canEditItem, type Agent, type Skill, type Team } from "@/lib/api";
 import { getAgentDotColor, getAgentRoleColor } from "@/lib/agent-role-ui";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 
@@ -67,6 +68,7 @@ export default function AgentBuilder() {
   const scope = useWorkspaceScope();
   const [agentList, setAgentList] = useState<Agent[]>([]);
   const [skillCatalog, setSkillCatalog] = useState<Skill[]>([]);
+  const [teamList, setTeamList] = useState<Team[]>([]);
 
   const [open, setOpen] = useState(false);
   const [testOpen, setTestOpen] = useState(false);
@@ -91,10 +93,11 @@ export default function AgentBuilder() {
     let cancelled = false;
     (async () => {
       try {
-        const [agents, skills] = await Promise.all([api.listAgents(), api.listSkills()]);
+        const [agents, skills, teams] = await Promise.all([api.listAgents(), api.listSkills(), api.listTeams()]);
         if (cancelled) return;
         setAgentList(agents);
         setSkillCatalog(skills);
+        setTeamList(teams);
       } catch (e) {
         console.error(e);
       }
@@ -257,7 +260,56 @@ export default function AgentBuilder() {
           </p>
         </div>
 
-        <Dialog open={open} onOpenChange={setOpen}>
+        <div className="flex items-center gap-2">
+          {scope.workspace && (
+            <AppendFromOverallDialog
+              title={`Append humans to "${scope.workspace.name}"`}
+              description="Pick existing humans from Overall and add them to one of this office's departments."
+              items={agentList
+                .filter((a) => !scope.agentIds.has(a.id))
+                .map((a) => ({ id: a.id, name: a.name, sub: a.role }))}
+              emptyText="Every human from Overall is already part of this office."
+              targets={teamList
+                .filter((t) => scope.teamIds.has(t.id) && canEditItem(t))
+                .map((t) => ({ id: t.id, name: t.name }))}
+              targetLabel="Add to department"
+              noTargetText="No department in this office can be edited by you. Create your own department first."
+              copyLabel="Create independent copies for this office (edits to the copied humans won't affect Overall)."
+              onAppend={async (ids, targetId, makeCopy) => {
+                const team = teamList.find((t) => t.id === targetId);
+                if (!team) return;
+                let agentIdsToAdd = ids;
+                if (makeCopy) {
+                  agentIdsToAdd = [];
+                  for (const id of ids) {
+                    const src = agentList.find((a) => a.id === id);
+                    if (!src) continue;
+                    const copied = await api.upsertAgent({
+                      name: src.name,
+                      role: src.role,
+                      description: src.description,
+                      system_prompt: src.system_prompt,
+                      skill_ids: src.skill_ids || [],
+                      status: "idle",
+                      avatar: src.avatar,
+                      avatar_icon: src.avatar_icon,
+                      avatar_color: src.avatar_color,
+                      avatar_url: src.avatar_url,
+                      subagent_enabled: src.subagent_enabled,
+                    });
+                    setAgentList((prev) => [...prev, copied]);
+                    agentIdsToAdd.push(copied.id);
+                  }
+                }
+                const merged = [...new Set([...(team.agents || []), ...agentIdsToAdd])];
+                const saved = await api.upsertTeam({ ...team, agents: merged });
+                setTeamList((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
+                // Refresh the office scope so the new humans show up.
+                window.dispatchEvent(new CustomEvent("workspaceChanged"));
+              }}
+            />
+          )}
+          <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button onClick={openCreateDialog}>
               <Plus className="w-4 h-4 mr-2" /> New Human
@@ -429,7 +481,8 @@ export default function AgentBuilder() {
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </header>
 
       <Dialog

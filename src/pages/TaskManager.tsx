@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { AgentAvatar } from "@/components/AgentAvatar";
+import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
 import { api, canDeleteItem, canEditItem, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
@@ -1277,7 +1278,53 @@ export default function TaskManager() {
               <h1 className="text-lg font-bold tracking-tight text-foreground">Projects & Tasks</h1>
               <p className="text-[10px] text-muted-foreground mt-0.5">Manage AI department tasks</p>
             </div>
-            <Dialog open={open} onOpenChange={setOpen}>
+            <div className="flex items-center gap-1.5">
+              {scope.workspace && (
+                <AppendFromOverallDialog
+                  size="sm"
+                  title={`Append tasks to "${scope.workspace.name}"`}
+                  description="Pick existing tasks from Overall and assign them to one of this office's departments."
+                  items={taskList
+                    .filter((t) => !scope.teamIds.has(t.teamId))
+                    .map((t) => ({ id: t.id, name: t.title, sub: t.description, badge: t.status }))}
+                  emptyText="Every task from Overall already belongs to this office."
+                  targets={teamList
+                    .filter((t) => scope.teamIds.has(t.id))
+                    .map((t) => ({ id: t.id, name: t.name }))}
+                  targetLabel="Assign to department"
+                  noTargetText="This office has no departments yet. Add a department first."
+                  copyLabel="Create independent copies for this office (when unchecked, your own tasks are moved instead; shared tasks are always copied)."
+                  onAppend={async (ids, targetId, makeCopy) => {
+                    const team = teamList.find((t) => t.id === targetId);
+                    if (!team) return;
+                    for (const id of ids) {
+                      const task = taskList.find((t) => t.id === id);
+                      if (!task) continue;
+                      if (!makeCopy && canEditItem(task)) {
+                        // Own task → move it into the office's department.
+                        const updated = await api.upsertTask({
+                          ...task,
+                          teamId: team.id,
+                          assignedAgents: team.agents || [],
+                        });
+                        setTaskList((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+                      } else {
+                        // Copy requested, or shared (default) task → append a copy owned by the user.
+                        const copy = await api.upsertTask({
+                          title: task.title,
+                          description: task.description,
+                          teamId: team.id,
+                          status: "pending",
+                          progress: 0,
+                          assignedAgents: team.agents || [],
+                        });
+                        setTaskList((prev) => [...prev, copy]);
+                      }
+                    }
+                  }}
+                />
+              )}
+              <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" onClick={openCreateDialog} className="h-8 gap-1 text-xs">
                   <Plus className="w-3.5 h-3.5" /> Task
@@ -1305,7 +1352,8 @@ export default function TaskManager() {
                   </Button>
                 </div>
               </DialogContent>
-            </Dialog>
+              </Dialog>
+            </div>
           </div>
 
           {/* Search box */}

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AgentAvatar, teamAvatarIconOptions } from "@/components/AgentAvatar";
+import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
 import { api, canDeleteItem, canEditItem, type Agent, type Team } from "@/lib/api";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 
@@ -332,7 +333,68 @@ export default function TeamBuilder() {
               : "Assemble departments and project teams for corporate tasks."}
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <div className="flex items-center gap-2">
+          {scope.workspace && canEditItem(scope.workspace) && (
+            <AppendFromOverallDialog
+              title={`Append departments to "${scope.workspace.name}"`}
+              description="Pick existing departments from Overall to join this office."
+              items={teamList
+                .filter((t) => !scope.teamIds.has(t.id))
+                .map((t) => ({ id: t.id, name: t.name, sub: t.description, badge: t.mode }))}
+              emptyText="Every department from Overall already belongs to this office."
+              copyLabel="Create independent copies for this office (the department and its humans are cloned, so edits here won't affect Overall)."
+              onAppend={async (ids, _targetId, makeCopy) => {
+                const ws = scope.workspace!;
+                let teamIdsToAdd = ids;
+                if (makeCopy) {
+                  teamIdsToAdd = [];
+                  for (const id of ids) {
+                    const src = teamList.find((t) => t.id === id);
+                    if (!src) continue;
+                    // Deep copy: clone the member humans too so the office can customize them.
+                    const memberIds: string[] = [];
+                    for (const agentId of src.agents || []) {
+                      const srcAgent = agentById.get(agentId);
+                      if (!srcAgent) continue;
+                      const copiedAgent = await api.upsertAgent({
+                        name: srcAgent.name,
+                        role: srcAgent.role,
+                        description: srcAgent.description,
+                        system_prompt: srcAgent.system_prompt,
+                        skill_ids: srcAgent.skill_ids || [],
+                        status: "idle",
+                        avatar: srcAgent.avatar,
+                        avatar_icon: srcAgent.avatar_icon,
+                        avatar_color: srcAgent.avatar_color,
+                        avatar_url: srcAgent.avatar_url,
+                        subagent_enabled: srcAgent.subagent_enabled,
+                      });
+                      memberIds.push(copiedAgent.id);
+                      setAgentList((prev) => [...prev, copiedAgent]);
+                    }
+                    const copiedTeam = await api.upsertTeam({
+                      name: src.name,
+                      description: src.description,
+                      agents: memberIds,
+                      activeTasks: 0,
+                      avatar: src.avatar || src.name[0]?.toUpperCase() || "T",
+                      avatar_icon: src.avatar_icon,
+                      avatar_color: src.avatar_color,
+                      avatar_url: src.avatar_url,
+                      mode: src.mode,
+                      maxSteps: src.maxSteps,
+                    });
+                    setTeamList((prev) => [...prev, copiedTeam]);
+                    teamIdsToAdd.push(copiedTeam.id);
+                  }
+                }
+                await api.upsertWorkspace({ ...ws, teamIds: [...ws.teamIds, ...teamIdsToAdd] });
+                // Refresh the office scope so the new departments show up.
+                window.dispatchEvent(new CustomEvent("workspaceChanged"));
+              }}
+            />
+          )}
+          <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> New Department</Button>
           </DialogTrigger>
@@ -521,7 +583,8 @@ export default function TeamBuilder() {
               </div>
             </div>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </header>
 
       <Dialog
