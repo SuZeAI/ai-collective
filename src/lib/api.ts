@@ -321,6 +321,32 @@ export const api = {
   getTaskGraphContext: (taskId: string) => apiFetch<GraphContextSnapshot>(`/tasks/${encodeURIComponent(taskId)}/graph-context`),
   addConversation: (payload: { agentId: string; content: string; taskId?: string | null }) =>
     apiFetch<Message>("/conversations", { method: "POST", body: JSON.stringify(payload) }),
+  // Human-in-the-loop: queue a user message for an actively streaming run.
+  // The next agent turn picks it up and injects it into its context.
+  interjectAgentGraph: (payload: { conversation_id: string; content: string }) =>
+    apiFetch<{ queued: boolean; message_id: string | null }>("/llm/agent-graph/interject", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  // Interrupt an active run: current agent finishes its turn, then the run
+  // holds at the turn boundary so the user can chat before resuming.
+  pauseAgentGraph: (payload: { conversation_id: string }) =>
+    apiFetch<{ paused: boolean }>("/llm/agent-graph/pause", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  resumeAgentGraph: (payload: { conversation_id: string }) =>
+    apiFetch<{ resumed: boolean }>("/llm/agent-graph/resume", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  // Answer an agent's ask_user question (the agent is blocked waiting on it).
+  respondAgentGraph: (payload: { conversation_id: string; request_id: string; response: string }) =>
+    apiFetch<{ delivered: boolean }>("/llm/agent-graph/respond", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
   chat: (payload: ChatRequest, options?: { timeoutMs?: number }) =>
     apiFetch<ChatResponse>("/llm/chat", {
       method: "POST",

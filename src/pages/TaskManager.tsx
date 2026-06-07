@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X, Eye, EyeOff } from "lucide-react";
+import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X, Eye, EyeOff, Send, UserRound, Hand, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,6 +60,16 @@ const formatTaskDateTime = (date: Date) => {
     minute: "2-digit",
     second: "2-digit",
   });
+};
+
+// ask_user tool: an agent is blocked waiting for the user's answer.
+type UserInputRequest = {
+  requestId: string;
+  agentId?: string;
+  agentName?: string;
+  question: string;
+  options: string[];
+  allowFreeText: boolean;
 };
 
 type GraphHighlight = {
@@ -196,6 +206,21 @@ export default function TaskManager() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "completed" | "pending">("all");
   const [open, setOpen] = useState(false);
   const [viewTaskId, setViewTaskId] = useState<string | null>(null);
+  // Human-in-the-loop: draft text, in-flight flag, queued-but-not-yet-injected
+  // message ids, and last send error — all keyed by task id.
+  const [humanInputs, setHumanInputs] = useState<Record<string, string>>({});
+  const [sendingInterjectTaskIds, setSendingInterjectTaskIds] = useState<Set<string>>(new Set());
+  const [pendingInterjections, setPendingInterjections] = useState<Record<string, Set<string>>>({});
+  const [interjectErrors, setInterjectErrors] = useState<Record<string, string>>({});
+  // Interrupt/Resume: tasks whose run is held at a turn boundary so the user
+  // can chat, plus in-flight flags for the pause/resume API calls.
+  const [heldTaskIds, setHeldTaskIds] = useState<Set<string>>(new Set());
+  const [holdTogglingTaskIds, setHoldTogglingTaskIds] = useState<Set<string>>(new Set());
+  // ask_user tool: open questions per task, free-text drafts and in-flight
+  // answers keyed by request id.
+  const [userInputRequests, setUserInputRequests] = useState<Record<string, UserInputRequest[]>>({});
+  const [userRequestDrafts, setUserRequestDrafts] = useState<Record<string, string>>({});
+  const [respondingRequestIds, setRespondingRequestIds] = useState<Set<string>>(new Set());
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const [graphPanelVisible, setGraphPanelVisible] = useState(false);
   const [graphActivityCollapsed, setGraphActivityCollapsed] = useState(false);
@@ -309,7 +334,7 @@ export default function TaskManager() {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [taskConversations, viewTaskId]);
+  }, [taskConversations, viewTaskId, userInputRequests]);
 
   const handleSelectTask = (taskId: string) => {
     setSearchParams({ id: taskId });
@@ -584,6 +609,45 @@ export default function TaskManager() {
 
       // If starting the task, stream agent responses
       if (status === "in-progress" && updated.assignedAgents.length > 0) {
+        // Clear old run state only when restarting from completed/stopped (not from paused)
+        if (task.status === "completed" || task.status === "stopped") {
+          clearTaskRunState(updated.id);
+        }
+        // paused → in-progress: keep existing conversations so progress is visible
+
+        const formattedInput = `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}`;
+        await runTaskStream(updated, formattedInput);
+      }
+    } catch (e) {
+      if (!(e instanceof DOMException && e.name === "AbortError")) {
+        console.error(e);
+      }
+    } finally {
+      setUpdatingTaskIds((prev) => {
+        const next = new Set(prev);
+        next.delete(task.id);
+        return next;
+      });
+    }
+  };
+
+  // Clear per-task run state (used when restarting a task from scratch).
+  const clearTaskRunState = (taskId: string) => {
+    setTaskConversations((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setTaskGraphSnapshots((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setTaskGraphHighlights((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setTaskGraphPositions((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setPendingInterjections((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setInterjectErrors((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setHeldTaskIds((prev) => { const next = new Set(prev); next.delete(taskId); return next; });
+    setUserInputRequests((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+  };
+
+  // Shared stream runner: opens the SSE run stream for a task and feeds every
+  // event into UI state. Used by Start/Restart and by follow-up messages on a
+  // finished task (same conversation_id → the knowledge graph context
+  // persists, so agents continue with full awareness of the previous run).
+  const runTaskStream = async (updated: Task, formattedInput: string) => {
         const controller = new AbortController();
         activeStreamsRef.current.set(updated.id, controller);
 
@@ -596,31 +660,6 @@ export default function TaskManager() {
           return next;
         });
 
-        // Clear old conversations only when restarting from completed/stopped (not from paused)
-        if (task.status === "completed" || task.status === "stopped") {
-          setTaskConversations((prev) => {
-            const next = { ...prev };
-            delete next[updated.id];
-            return next;
-          });
-          setTaskGraphSnapshots((prev) => {
-            const next = { ...prev };
-            delete next[updated.id];
-            return next;
-          });
-          setTaskGraphHighlights((prev) => {
-            const next = { ...prev };
-            delete next[updated.id];
-            return next;
-          });
-          setTaskGraphPositions((prev) => {
-            const next = { ...prev };
-            delete next[updated.id];
-            return next;
-          });
-        }
-        // paused → in-progress: keep existing conversations so progress is visible
-
         setLoadingConversationTaskIds((prev) => {
           const next = new Set(prev);
           next.add(updated.id);
@@ -632,7 +671,6 @@ export default function TaskManager() {
           const team = teamList.find((t) => t.id === updated.teamId);
           const teamMode = team?.mode ?? "sequential";
           const teamMaxSteps = team?.maxSteps ?? 6;
-          const formattedInput = `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}`;
 
           for await (const event of api.runAgentGraphStream({
             user_input: formattedInput,
@@ -678,6 +716,70 @@ export default function TaskManager() {
             }
             else if (eventType === "subagent_complete") {
               console.debug("subagent_complete", event.subagent_type, event.error);
+            }
+            // ask_user tool: an agent is blocked on a question — show the
+            // card (heartbeats re-announce the same request_id; dedupe).
+            else if (eventType === "user_input_request") {
+              const requestId = String(event.request_id ?? "");
+              if (!requestId) continue;
+              setUserInputRequests((prev) => {
+                const list = prev[updated.id] ?? [];
+                if (list.some((r) => r.requestId === requestId)) return prev;
+                return {
+                  ...prev,
+                  [updated.id]: [
+                    ...list,
+                    {
+                      requestId,
+                      agentId: agentId ? String(agentId) : undefined,
+                      agentName: event.agent_name ? String(event.agent_name) : undefined,
+                      question: String(event.question ?? ""),
+                      options: Array.isArray(event.options) ? event.options.map(String) : [],
+                      allowFreeText: event.allow_free_text !== false,
+                    },
+                  ],
+                };
+              });
+            }
+            // ask_user resolved (answered elsewhere, or timed out) — drop the card.
+            else if (eventType === "user_input_received") {
+              const requestId = String(event.request_id ?? "");
+              setUserInputRequests((prev) => {
+                const list = prev[updated.id];
+                if (!list) return prev;
+                const nextList = list.filter((r) => r.requestId !== requestId);
+                const next = { ...prev };
+                if (nextList.length > 0) next[updated.id] = nextList;
+                else delete next[updated.id];
+                return next;
+              });
+            }
+            // Interrupt/Resume: backend confirmed the hold state (also covers
+            // heartbeats during a long hold — Set add/delete is idempotent).
+            else if (eventType === "run_paused") {
+              setHeldTaskIds((prev) => new Set(prev).add(updated.id));
+            }
+            else if (eventType === "run_resumed") {
+              setHeldTaskIds((prev) => {
+                const next = new Set(prev);
+                next.delete(updated.id);
+                return next;
+              });
+            }
+            // Human-in-the-loop: backend confirmed our queued messages were
+            // injected into the next agent's context — flip their badges.
+            else if (eventType === "user_message_injected") {
+              const injectedIds = Array.isArray(event.message_ids) ? event.message_ids.map(String) : [];
+              setPendingInterjections((prev) => {
+                const current = prev[updated.id];
+                if (!current) return prev;
+                const nextSet = new Set(current);
+                injectedIds.forEach((id) => nextSet.delete(id));
+                const next = { ...prev };
+                if (nextSet.size > 0) next[updated.id] = nextSet;
+                else delete next[updated.id];
+                return next;
+              });
             }
             // Highlight the graph context that was retrieved for this agent turn.
             else if (eventType === "context_retrieved") {
@@ -814,16 +916,98 @@ export default function TaskManager() {
             delete next[updated.id];
             return next;
           });
+          // Run ended — anything still queued can no longer be injected and
+          // open questions can no longer be answered
+          setPendingInterjections((prev) => {
+            const next = { ...prev };
+            delete next[updated.id];
+            return next;
+          });
+          setHeldTaskIds((prev) => {
+            const next = new Set(prev);
+            next.delete(updated.id);
+            return next;
+          });
+          setUserInputRequests((prev) => {
+            const next = { ...prev };
+            delete next[updated.id];
+            return next;
+          });
           setLoadingConversationTaskIds((prev) => {
             const next = new Set(prev);
             next.delete(updated.id);
             return next;
           });
         }
+  };
+
+  // Follow-up on a finished task: the user reviews the result and sends a new
+  // message — the task relaunches in the SAME conversation (knowledge graph
+  // context preserved) with the message as the steering instruction, and the
+  // existing chat history stays visible.
+  const continueTaskWithMessage = async (task: Task) => {
+    const content = (humanInputs[task.id] ?? "").trim();
+    if (!content || updatingTaskIds.has(task.id) || activeStreamsRef.current.has(task.id)) return;
+    if (task.assignedAgents.length === 0) return;
+    setUpdatingTaskIds((prev) => new Set(prev).add(task.id));
+    setInterjectErrors((prev) => {
+      const next = { ...prev };
+      delete next[task.id];
+      return next;
+    });
+    try {
+      // Snapshot the recent transcript BEFORE appending the follow-up, so the
+      // new run sees verbatim what was said (the knowledge graph alone is a
+      // lossy, retrieval-based memory — it may miss prior conclusions).
+      const transcriptTail = (taskConversations[task.id] ?? [])
+        .slice(-10)
+        .map((m) => {
+          const speaker = m.agentId === "user" ? "User" : (agentById.get(m.agentId)?.name ?? m.agentId);
+          const text = m.content.length > 600 ? `${m.content.slice(0, 600)}…` : m.content;
+          return `${speaker}: ${text}`;
+        })
+        .join("\n---\n");
+
+      // Show + persist the follow-up message alongside the agent turns
+      const message: Message = {
+        id: `${Date.now()}-followup`,
+        agentId: "user",
+        content,
+        timestamp: new Date().toISOString(),
+        taskId: task.id,
+      };
+      setTaskConversations((prev) => ({
+        ...prev,
+        [task.id]: [...(prev[task.id] ?? []), message],
+      }));
+      setHumanInputs((prev) => ({ ...prev, [task.id]: "" }));
+      try {
+        await api.addConversation({ agentId: "user", content, taskId: task.id });
+      } catch (e) {
+        console.error("Failed to save follow-up message:", e);
       }
+
+      const updated = await api.upsertTask({ ...task, status: "in-progress" });
+      setTaskList((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+
+      // Follow-up instruction comes BEFORE the transcript: the token budget
+      // truncates from the tail, so the instruction must never be the part
+      // that gets cut.
+      const formattedInput =
+        `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}\n\n` +
+        `[User follow-up after reviewing the previous result — continue the task accordingly, ` +
+        `building on the work already done instead of starting over]: ${content}` +
+        (transcriptTail
+          ? `\n\n[Recent conversation from the previous run, for context]:\n${transcriptTail}`
+          : "");
+      await runTaskStream(updated, formattedInput);
     } catch (e) {
       if (!(e instanceof DOMException && e.name === "AbortError")) {
         console.error(e);
+        setInterjectErrors((prev) => ({
+          ...prev,
+          [task.id]: e instanceof Error ? e.message : "Failed to continue task",
+        }));
       }
     } finally {
       setUpdatingTaskIds((prev) => {
@@ -831,6 +1015,16 @@ export default function TaskManager() {
         next.delete(task.id);
         return next;
       });
+    }
+  };
+
+  // Composer dispatch: mid-run messages interject into the live run; messages
+  // on a finished task relaunch it as a follow-up run.
+  const handleComposerSend = (task: Task) => {
+    if (task.status === "in-progress") {
+      void sendHumanMessage(task);
+    } else if (task.status === "completed" || task.status === "stopped" || task.status === "paused") {
+      void continueTaskWithMessage(task);
     }
   };
 
@@ -855,6 +1049,31 @@ export default function TaskManager() {
         delete next[id];
         return next;
       });
+      setPendingInterjections((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setHumanInputs((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setInterjectErrors((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setHeldTaskIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      setUserInputRequests((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       if (editingTaskId === id) {
         resetForm();
         setOpen(false);
@@ -873,7 +1092,158 @@ export default function TaskManager() {
         return next;
       });
     }
-  };  return (
+  };
+
+  // Human-in-the-loop: send a message while agents are running. The backend
+  // queues it and the next agent turn injects it into its context; the
+  // `user_message_injected` stream event flips the badge from queued → injected.
+  const sendHumanMessage = async (task: Task) => {
+    const content = (humanInputs[task.id] ?? "").trim();
+    if (!content || sendingInterjectTaskIds.has(task.id)) return;
+    setSendingInterjectTaskIds((prev) => new Set(prev).add(task.id));
+    setInterjectErrors((prev) => {
+      const next = { ...prev };
+      delete next[task.id];
+      return next;
+    });
+    try {
+      const res = await api.interjectAgentGraph({ conversation_id: task.id, content });
+      const messageId = res.message_id ?? `${Date.now()}-user`;
+      const message: Message = {
+        id: messageId,
+        agentId: "user",
+        content,
+        timestamp: new Date().toISOString(),
+        taskId: task.id,
+      };
+      setTaskConversations((prev) => ({
+        ...prev,
+        [task.id]: [...(prev[task.id] ?? []), message],
+      }));
+      setPendingInterjections((prev) => ({
+        ...prev,
+        [task.id]: new Set([...(prev[task.id] ?? []), messageId]),
+      }));
+      setHumanInputs((prev) => ({ ...prev, [task.id]: "" }));
+      // Persist alongside agent turns so it survives reloads
+      try {
+        await api.addConversation({ agentId: "user", content, taskId: task.id });
+      } catch (e) {
+        console.error("Failed to save user message:", e);
+      }
+    } catch (e) {
+      setInterjectErrors((prev) => ({
+        ...prev,
+        [task.id]: e instanceof Error ? e.message : "Failed to send message",
+      }));
+    } finally {
+      setSendingInterjectTaskIds((prev) => {
+        const next = new Set(prev);
+        next.delete(task.id);
+        return next;
+      });
+    }
+  };
+
+  // ask_user tool: deliver the user's answer to the blocked agent, render it
+  // as a chat message, and drop the question card.
+  const respondToAgentQuestion = async (task: Task, request: UserInputRequest, response: string) => {
+    const content = response.trim();
+    if (!content || respondingRequestIds.has(request.requestId)) return;
+    setRespondingRequestIds((prev) => new Set(prev).add(request.requestId));
+    setInterjectErrors((prev) => {
+      const next = { ...prev };
+      delete next[task.id];
+      return next;
+    });
+    try {
+      await api.respondAgentGraph({
+        conversation_id: task.id,
+        request_id: request.requestId,
+        response: content,
+      });
+      setUserInputRequests((prev) => {
+        const list = prev[task.id];
+        if (!list) return prev;
+        const nextList = list.filter((r) => r.requestId !== request.requestId);
+        const next = { ...prev };
+        if (nextList.length > 0) next[task.id] = nextList;
+        else delete next[task.id];
+        return next;
+      });
+      setUserRequestDrafts((prev) => {
+        const next = { ...prev };
+        delete next[request.requestId];
+        return next;
+      });
+      const message: Message = {
+        id: `${Date.now()}-answer-${request.requestId}`,
+        agentId: "user",
+        content,
+        timestamp: new Date().toISOString(),
+        taskId: task.id,
+      };
+      setTaskConversations((prev) => ({
+        ...prev,
+        [task.id]: [...(prev[task.id] ?? []), message],
+      }));
+      try {
+        await api.addConversation({ agentId: "user", content, taskId: task.id });
+      } catch (e) {
+        console.error("Failed to save user answer:", e);
+      }
+    } catch (e) {
+      setInterjectErrors((prev) => ({
+        ...prev,
+        [task.id]: e instanceof Error ? e.message : "Failed to send answer",
+      }));
+    } finally {
+      setRespondingRequestIds((prev) => {
+        const next = new Set(prev);
+        next.delete(request.requestId);
+        return next;
+      });
+    }
+  };
+
+  // Interrupt: hold the run at the next turn boundary (current agent finishes
+  // its turn first). Resume: release it — the next agent picks up everything
+  // sent while held. The run never dies; the SSE stream stays open.
+  const toggleHoldTask = async (task: Task, hold: boolean) => {
+    if (holdTogglingTaskIds.has(task.id)) return;
+    setHoldTogglingTaskIds((prev) => new Set(prev).add(task.id));
+    setInterjectErrors((prev) => {
+      const next = { ...prev };
+      delete next[task.id];
+      return next;
+    });
+    try {
+      if (hold) {
+        await api.pauseAgentGraph({ conversation_id: task.id });
+        setHeldTaskIds((prev) => new Set(prev).add(task.id));
+      } else {
+        await api.resumeAgentGraph({ conversation_id: task.id });
+        setHeldTaskIds((prev) => {
+          const next = new Set(prev);
+          next.delete(task.id);
+          return next;
+        });
+      }
+    } catch (e) {
+      setInterjectErrors((prev) => ({
+        ...prev,
+        [task.id]: e instanceof Error ? e.message : "Failed to update run state",
+      }));
+    } finally {
+      setHoldTogglingTaskIds((prev) => {
+        const next = new Set(prev);
+        next.delete(task.id);
+        return next;
+      });
+    }
+  };
+
+  return (
     <div className="h-full w-full flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-border bg-background overflow-hidden select-none">
       {/* LEFT SIDEBAR PANEL: Task list (360px wide) */}
       <div className="lg:w-[380px] w-full flex flex-col flex-shrink-0 bg-muted/5 h-full overflow-hidden">
@@ -1054,6 +1424,17 @@ export default function TaskManager() {
           const team = teamList.find((t) => t.id === selectedTask.teamId);
           const messages = taskConversations[selectedTask.id] ?? [];
           const visibleMessages = messages.slice(-50);
+          const openQuestions = userInputRequests[selectedTask.id] ?? [];
+          // Finished tasks accept follow-up messages that relaunch the run in
+          // the same conversation (knowledge graph context preserved).
+          const canFollowUp =
+            (selectedTask.status === "completed" || selectedTask.status === "stopped" || selectedTask.status === "paused") &&
+            selectedTask.assignedAgents.length > 0;
+          const composerEnabled = selectedTask.status === "in-progress" || canFollowUp;
+          const composerBusy =
+            selectedTask.status === "in-progress"
+              ? sendingInterjectTaskIds.has(selectedTask.id)
+              : updatingTaskIds.has(selectedTask.id);
           const maxRounds = team?.maxSteps ?? 6;
           const calculatedProgress = selectedTask.status === "completed" ? 100 : Math.min(Math.round((messages.length / maxRounds) * 100), 99);
           const startDate = parseTaskDate(selectedTask.startTime);
@@ -1239,11 +1620,39 @@ export default function TaskManager() {
                   <div className="flex-1 overflow-y-auto p-4 space-y-3.5 scrollbar-thin">
                     {isConversationLoading && messages.length === 0 && (thinkingAgents[selectedTask.id]?.size ?? 0) === 0 ? (
                       <p className="text-xs text-muted-foreground animate-pulse">Loading conversation...</p>
-                    ) : visibleMessages.length > 0 || (thinkingAgents[selectedTask.id]?.size ?? 0) > 0 ? (
+                    ) : visibleMessages.length > 0 || (thinkingAgents[selectedTask.id]?.size ?? 0) > 0 || openQuestions.length > 0 ? (
                       <div className="space-y-3.5">
                         {visibleMessages.map((msg) => {
-                          const agent = agentById.get(msg.agentId);
                           const ts = new Date(msg.timestamp);
+                          // Human-in-the-loop message: distinct style + delivery badge
+                          if (msg.agentId === "user") {
+                            const isQueued = pendingInterjections[selectedTask.id]?.has(msg.id) ?? false;
+                            return (
+                              <div key={msg.id} className="rounded-xl border border-primary/30 p-3.5 bg-primary/10 ml-8 shadow-sm">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div className="w-6 h-6 rounded-md bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-sm">
+                                    <UserRound className="w-3.5 h-3.5" />
+                                  </div>
+                                  <span className="text-xs font-bold text-foreground">You</span>
+                                  <span
+                                    className={cn(
+                                      "text-[9px] px-1.5 py-0.5 rounded font-semibold border",
+                                      isQueued
+                                        ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                                        : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                    )}
+                                  >
+                                    {isQueued ? "Waiting for next agent…" : "Added to agent context"}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto">
+                                    {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                              </div>
+                            );
+                          }
+                          const agent = agentById.get(msg.agentId);
                           return (
                             <div key={msg.id} className="rounded-xl border border-border/40 p-3.5 bg-card/45 hover:bg-muted/10 transition-colors shadow-sm">
                               <div className="flex items-center gap-2 mb-2">
@@ -1257,11 +1666,82 @@ export default function TaskManager() {
                                   {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                                 </span>
                               </div>
-                              <div className="prose prose-sm dark:prose-invert max-w-none text-xs text-foreground/80 leading-relaxed [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4">
+                              <div className="prose prose-sm dark:prose-invert max-w-none text-xs text-foreground/80 leading-relaxed [&_:not(pre)>code]:bg-muted [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:py-0.5 [&_:not(pre)>code]:rounded [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4">
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                   {msg.content}
                                 </ReactMarkdown>
                               </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* ask_user tool: agent question cards — the agent is
+                            blocked until the user answers (or times out) */}
+                        {openQuestions.map((request) => {
+                          const agent = request.agentId ? agentById.get(request.agentId) : undefined;
+                          const draft = userRequestDrafts[request.requestId] ?? "";
+                          const isResponding = respondingRequestIds.has(request.requestId);
+                          return (
+                            <div key={request.requestId} className="rounded-xl border border-violet-500/35 p-3.5 bg-violet-500/5 shadow-sm">
+                              <div className="flex items-center gap-2 mb-2">
+                                <AgentAvatar
+                                  agent={agent || { avatar: "?", avatar_icon: "circle-help" }}
+                                  className={`w-6.5 h-6.5 rounded-md text-[9px] shadow-sm shrink-0 ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
+                                  iconClassName="w-3 h-3"
+                                />
+                                <span className="text-xs font-bold text-foreground">
+                                  {agent?.name ?? request.agentName ?? "Agent"}
+                                </span>
+                                <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold border bg-violet-500/10 text-violet-400 border-violet-500/25 flex items-center gap-1">
+                                  <HelpCircle className="w-2.5 h-2.5" /> needs your input
+                                </span>
+                              </div>
+                              <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap mb-2.5">
+                                {request.question}
+                              </p>
+                              {request.options.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                  {request.options.map((opt) => (
+                                    <Button
+                                      key={opt}
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 px-2.5 text-[11px] font-semibold border-violet-500/30 hover:bg-violet-500/10"
+                                      onClick={() => void respondToAgentQuestion(selectedTask, request, opt)}
+                                      disabled={isResponding}
+                                    >
+                                      {opt}
+                                    </Button>
+                                  ))}
+                                </div>
+                              )}
+                              {request.allowFreeText && (
+                                <div className="flex items-end gap-2">
+                                  <Input
+                                    value={draft}
+                                    onChange={(e) =>
+                                      setUserRequestDrafts((prev) => ({ ...prev, [request.requestId]: e.target.value }))
+                                    }
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        void respondToAgentQuestion(selectedTask, request, draft);
+                                      }
+                                    }}
+                                    placeholder="Type your answer… (Enter to send)"
+                                    disabled={isResponding}
+                                    className="h-8 text-xs flex-1"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    className="h-8 px-2.5 shrink-0"
+                                    onClick={() => void respondToAgentQuestion(selectedTask, request, draft)}
+                                    disabled={!draft.trim() || isResponding}
+                                  >
+                                    <Send className="w-3.5 h-3.5" />
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -1291,6 +1771,86 @@ export default function TaskManager() {
                     ) : (
                       <p className="text-xs text-muted-foreground text-center py-8">No messages yet for this task.</p>
                     )}
+                  </div>
+
+                  {/* Human-in-the-loop composer: chat with the agents mid-run.
+                      Messages are queued on the backend and injected into the
+                      context of the next agent turn. Interrupt holds the run
+                      at the turn boundary; Resume releases it. */}
+                  <div className="border-t border-border/40 p-3 flex-shrink-0 bg-muted/5">
+                    {selectedTask.status === "in-progress" && (
+                      heldTaskIds.has(selectedTask.id) ? (
+                        <div className="flex items-center justify-between gap-2 mb-2 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25">
+                          <span className="text-[10px] font-semibold text-amber-500 flex items-center gap-1.5">
+                            <Hand className="w-3 h-3" />
+                            Agents are holding — send your guidance, then resume.
+                          </span>
+                          <Button
+                            size="sm"
+                            className="h-6 px-2.5 text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white"
+                            onClick={() => void toggleHoldTask(selectedTask, false)}
+                            disabled={holdTogglingTaskIds.has(selectedTask.id)}
+                          >
+                            <Play className="w-3 h-3 mr-1 fill-current" /> Resume
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end mb-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2.5 text-[10px] font-semibold text-amber-500 border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-600"
+                            onClick={() => void toggleHoldTask(selectedTask, true)}
+                            disabled={holdTogglingTaskIds.has(selectedTask.id)}
+                          >
+                            <Hand className="w-3 h-3 mr-1" /> Interrupt to chat
+                          </Button>
+                        </div>
+                      )
+                    )}
+                    {interjectErrors[selectedTask.id] && (
+                      <p className="text-[10px] text-rose-500 mb-1.5 font-medium">
+                        {interjectErrors[selectedTask.id]}
+                      </p>
+                    )}
+                    <div className="flex items-end gap-2">
+                      <Textarea
+                        value={humanInputs[selectedTask.id] ?? ""}
+                        onChange={(e) =>
+                          setHumanInputs((prev) => ({ ...prev, [selectedTask.id]: e.target.value }))
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleComposerSend(selectedTask);
+                          }
+                        }}
+                        placeholder={
+                          !composerEnabled
+                            ? "Start the task to chat with the agents"
+                            : canFollowUp
+                              ? "Task finished — send a follow-up to continue the work with full context… (Enter to send)"
+                              : heldTaskIds.has(selectedTask.id)
+                                ? "Run is holding — discuss freely, then press Resume… (Enter to send)"
+                                : "Guide the agents — your message becomes context for the next agent turn… (Enter to send)"
+                        }
+                        disabled={!composerEnabled || composerBusy}
+                        className="min-h-[38px] max-h-[110px] text-xs resize-none flex-1 py-2"
+                        rows={1}
+                      />
+                      <Button
+                        size="sm"
+                        className="h-9 px-3 shrink-0"
+                        onClick={() => handleComposerSend(selectedTask)}
+                        disabled={
+                          !composerEnabled ||
+                          !(humanInputs[selectedTask.id] ?? "").trim() ||
+                          composerBusy
+                        }
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 

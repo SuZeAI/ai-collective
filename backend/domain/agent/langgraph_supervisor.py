@@ -19,7 +19,13 @@ from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
-from backend.domain.agent._graph_runtime import recursion_config, run_to_final_state, safe_chat
+from backend.domain.agent._graph_runtime import (
+    drain_human_guidance,
+    recursion_config,
+    run_to_final_state,
+    safe_chat,
+    wait_while_paused,
+)
 
 
 MAX_CONTEXT_TOKENS = max(1024, int(os.getenv("AGENT_CONTEXT_TOKEN_LIMIT", "12000")))
@@ -272,6 +278,14 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
 
         async def lead_node(state: SupervisorState) -> dict:
             stream_writer = get_stream_writer()
+
+            # Human-in-the-loop: hold at the turn boundary while interrupted.
+            await wait_while_paused(
+                conversation_id=conversation_id,
+                stream_writer=stream_writer,
+                agent_name=lead.name,
+            )
+
             rounds_used = state["rounds"]
             remaining = max(0, max_rounds - rounds_used)
 
@@ -283,6 +297,15 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
                 "is_lead": True,
             })
             stream_writer({"type": EventType.CONTEXT_BUILDING.value, "agent_name": lead.name})
+
+            # Human-in-the-loop: the lead is the routing brain, so mid-run user
+            # guidance lands here and steers the next delegation/final answer.
+            human_guidance = drain_human_guidance(
+                conversation_id=conversation_id,
+                stream_writer=stream_writer,
+                graph_context_provider=graph_context_provider,
+                graph_config=graph_config,
+            )
 
             # Knowledge graph context
             graph_ctx = ""
@@ -313,7 +336,11 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
                 remaining=remaining,
             )
 
-            context_parts: list[str] = [
+            context_parts: list[str] = []
+            # First so the guidance survives tail-truncation by the token budget.
+            if human_guidance:
+                context_parts += [human_guidance, ""]
+            context_parts += [
                 f"[User request]: {state['original_input']}",
             ]
             if graph_ctx:
@@ -339,6 +366,18 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             if lead.tools:
                 for toolkit in lead.tools.values():
                     bound_tools.extend(toolkit.get_tools())
+
+            # Default human-in-the-loop tool: the lead can interrupt and ask
+            # the user before deciding the next delegation/final answer.
+            if conversation_id:
+                from backend.domain.tools.ask_user import AskUserToolkit
+
+                bound_tools.extend(
+                    AskUserToolkit(
+                        conversation_id=conversation_id,
+                        agent_name=lead.name,
+                    ).get_tools()
+                )
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
@@ -376,6 +415,10 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             )
 
             new_log = list(state.get("delegation_log", []))
+            # Keep mid-run human guidance visible in later lead turns (the
+            # interject queue is drained once, so persist it in the log).
+            if human_guidance:
+                new_log.append(f"[Turn {rounds_used + 1}] {human_guidance}")
             if target_worker and task_text:
                 new_log.append(f"[Turn {rounds_used + 1}] {lead.name} → {target_worker}: {task_text}")
 
@@ -422,6 +465,14 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
     ):
         async def worker_node(state: SupervisorState) -> dict:
             stream_writer = get_stream_writer()
+
+            # Human-in-the-loop: hold at the turn boundary while interrupted.
+            await wait_while_paused(
+                conversation_id=conversation_id,
+                stream_writer=stream_writer,
+                agent_name=worker.name,
+            )
+
             rounds_used = state["rounds"]
 
             stream_writer({
@@ -476,6 +527,18 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             if worker.tools:
                 for toolkit in worker.tools.values():
                     bound_tools.extend(toolkit.get_tools())
+
+            # Default human-in-the-loop tool: workers can interrupt and ask
+            # the user a question mid-task.
+            if conversation_id:
+                from backend.domain.tools.ask_user import AskUserToolkit
+
+                bound_tools.extend(
+                    AskUserToolkit(
+                        conversation_id=conversation_id,
+                        agent_name=worker.name,
+                    ).get_tools()
+                )
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
