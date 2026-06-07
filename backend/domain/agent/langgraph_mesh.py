@@ -22,10 +22,15 @@ from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
 from backend.domain.agent._graph_runtime import (
     drain_human_guidance,
+    ensure_working_memory,
+    memory_toolkit_tools,
+    record_guidance_in_memory,
+    record_turn_in_memory,
     recursion_config,
     run_to_final_state,
     safe_chat,
     wait_while_paused,
+    working_memory_block,
 )
 from backend.log import get_logger
 
@@ -558,6 +563,15 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             if human_guidance:
                 context_parts += [human_guidance, ""]
 
+            # Shared working memory: pin guidance, then inject the digest so
+            # prior findings survive history windows and truncation.
+            ensure_working_memory(conversation_id, state["original_input"])
+            if human_guidance:
+                record_guidance_in_memory(conversation_id, human_guidance)
+            memory_block = working_memory_block(conversation_id)
+            if memory_block:
+                context_parts += [memory_block, ""]
+
             all_recent_messages = []
             for other_agent_name in state["agent_names"]:
                 if other_agent_name != agent.name and conversation_history.get(other_agent_name):
@@ -653,6 +667,8 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                         agent_name=agent.name,
                     ).get_tools()
                 )
+            # Default memory tools: save/recall shared working-memory notes.
+            bound_tools.extend(memory_toolkit_tools(conversation_id, agent.name))
 
             # Agent Mode: expose the `task` tool so this agent can delegate to
             # subagents (which inherit these tools minus `task`).
@@ -709,6 +725,16 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             logger.debug(
                 "[%s] mesh_node: split — reasoning_chars=%d action_payload_chars=%d",
                 agent.name, len(reasoning), len(action_payload),
+            )
+
+            # Working memory: full-fidelity note outlives the 5-message
+            # rolling history window above.
+            record_turn_in_memory(
+                conversation_id,
+                agent_name=agent.name,
+                turn=state.get("rounds", 0) + 1,
+                content=reasoning,
+                kind="result",
             )
 
             if graph_context_provider and conversation_id:

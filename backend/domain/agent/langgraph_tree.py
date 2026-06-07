@@ -22,10 +22,15 @@ from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
 from backend.domain.agent._graph_runtime import (
     drain_human_guidance,
+    ensure_working_memory,
+    memory_toolkit_tools,
+    record_guidance_in_memory,
+    record_turn_in_memory,
     recursion_config,
     run_to_final_state,
     safe_chat,
     wait_while_paused,
+    working_memory_block,
 )
 
 
@@ -465,6 +470,13 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
             recent_log = state.get("tree_log", [])[-_TREE_LOG_WINDOW:]
             log_text = "\n".join(recent_log) if recent_log else "(none)"
 
+            # Shared working memory: pin guidance, then inject the digest so
+            # other branches' results survive the tree-log window and truncation.
+            ensure_working_memory(conversation_id, state["original_input"])
+            if human_guidance:
+                record_guidance_in_memory(conversation_id, human_guidance)
+            memory_block = working_memory_block(conversation_id)
+
             context_parts: list[str] = []
             # First so the guidance survives tail-truncation by the token budget.
             if human_guidance:
@@ -472,6 +484,8 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
             context_parts += [
                 f"[Original request]: {state['original_input']}",
             ]
+            if memory_block:
+                context_parts += ["", memory_block]
 
             # Show task if this node received a delegation
             current_task = state.get("current_task", "")
@@ -503,6 +517,8 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
                         agent_name=agent.name,
                     ).get_tools()
                 )
+            # Default memory tools: save/recall shared working-memory notes.
+            bound_tools.extend(memory_toolkit_tools(conversation_id, agent.name))
 
             if agent.subagent_enabled:
                 from backend.domain.tools.task import TaskToolkit
@@ -574,6 +590,25 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
                 agent_role=agent.role,
                 content=reasoning if reasoning else (tree_end or return_result or raw_output),
             )
+
+            # Working memory: keep delegations and branch results alive after
+            # the tree-log window rolls past them.
+            if target_child and task_text:
+                record_turn_in_memory(
+                    conversation_id,
+                    agent_name=agent.name,
+                    turn=rounds_used + 1,
+                    content=f"Delegated to {target_child}: {task_text}",
+                    kind="decision",
+                )
+            else:
+                record_turn_in_memory(
+                    conversation_id,
+                    agent_name=agent.name,
+                    turn=rounds_used + 1,
+                    content=tree_end or return_result or new_turn.content,
+                    kind="result",
+                )
 
             if graph_context_provider and conversation_id:
                 graph_context_provider.ingest_message(
