@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ExternalLink, GitCommit, Package, Wrench, Zap, Shield, Bug } from "lucide-react";
+import { ExternalLink, GitCommit, Package, Wrench, Zap, Shield, Bug, Tag } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const GITHUB_URL = "https://github.com/SuZeAI/ai-collective";
+const GITHUB_TAG_URL = (tag: string) => `${GITHUB_URL}/releases/tag/${tag}`;
 
 function FadeIn({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -28,7 +29,7 @@ interface Change {
 }
 
 interface Release {
-  version: string;
+  tag: string;
   date: string;
   label?: string;
   changes: Change[];
@@ -36,54 +37,85 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v0.9.0",
-    date: "June 2026",
+    tag: "aic_v3.0.3",
+    date: "June 7, 2026",
     label: "Latest",
     changes: [
-      { type: "feature", text: "Mobile navigation menu with accordion sections on Landing page." },
-      { type: "feature", text: "Vercel rewrites configured to serve index.html for all SPA paths." },
-      { type: "feature", text: "Docker multi-stage build with non-root user and .dockerignore for smaller, safer images." },
-      { type: "feature", text: "SSRF guard for all LLM-driven outbound HTTP and browser tool calls." },
-      { type: "security", text: "Webhook signature verification and hardened inbound webhook endpoint." },
-      { type: "feature", text: "Workspace selection and switching integrated into AppLayout and sidebar navigation." },
-      { type: "feature", text: "Marketing pages fully internationalized (EN/VI): ContactSales, SupportCenter, Pricing, Playground." },
-      { type: "improvement", text: "Spiderweb mesh animation replaces static node graphic on landing hero section." },
-      { type: "improvement", text: "Design system overhauled to Claude Platform aesthetic with Inter and Newsreader fonts." },
-      { type: "improvement", text: "Relicensed to Non-Commercial / Academic; commercial use requires contact." },
-      { type: "fix", text: "Fixed N+1 skill loading and kwargs-blind tool cache in agent execution." },
-      { type: "fix", text: "Durable task queue, graceful shutdown, and bounded caches for API reliability." },
-      { type: "fix", text: "Stopped leaking PII to logs and surfaced previously swallowed errors." },
-      { type: "fix", text: "Multi-agent orchestration made resilient; decoupled services from infrastructure layer." },
-      { type: "fix", text: "Centralized API documentation URL management across the codebase." },
+      { type: "feature", text: "owner_id on all entities; users see their own and shared-scope items only." },
+      { type: "feature", text: "can_modify function enforces shared item editing restrictions across agents, offices, skills, tasks, teams, and workspaces." },
+      { type: "feature", text: "canEditItem controls edit button visibility based on ownership across all views." },
+      { type: "feature", text: "9Router multi-provider LLM proxy integrated in development and production environments." },
+      { type: "feature", text: "AppendFromOverallDialog: unified dialog for managing items, skills, tasks, and departments across pages." },
     ],
   },
   {
-    version: "v0.8.0",
-    date: "June 2026",
+    tag: "aic_v3.0.2",
+    date: "June 7, 2026",
     changes: [
+      { type: "feature", text: "OfficeBuilder page with AI-generated office planning and real-time streaming overlays." },
+      { type: "feature", text: "OfficeBuilderSession model and repository for persistent session management." },
+      { type: "feature", text: "Structured office plan schema with department and role definitions." },
+      { type: "improvement", text: "Workspace/office scoping rolled out across Conversations, Dashboard, Skills, and TaskManager." },
+      { type: "improvement", text: "Distinct office view filtering and navigation enhancements." },
+    ],
+  },
+  {
+    tag: "aic_v3.0.1",
+    date: "June 7, 2026",
+    changes: [
+      { type: "feature", text: "Human-in-the-loop (HIL): ask_user tool lets agents pause and request input mid-run." },
+      { type: "feature", text: "HIL streaming support integrated into the agent-graph endpoint." },
+      { type: "feature", text: "MongoDB persistence for sandbox sessions; replaces in-memory store." },
+      { type: "feature", text: "JSON-to-MongoDB migration script for existing sandbox session data." },
+      { type: "improvement", text: "Task management: clear run-state handling and follow-up messaging improvements." },
+    ],
+  },
+  {
+    tag: "aic_v3.0",
+    date: "June 6, 2026",
+    changes: [
+      { type: "security", text: "SSRF guard for all LLM-driven outbound HTTP and browser tool calls." },
+      { type: "security", text: "Webhook signature verification and hardened inbound webhook endpoint." },
+      { type: "feature", text: "Docker multi-stage build with non-root user and .dockerignore." },
+      { type: "feature", text: "Workspace selection and switching integrated into AppLayout and sidebar navigation." },
+      { type: "feature", text: "Marketing pages fully internationalized (EN/VI): ContactSales, SupportCenter, Pricing, Playground." },
       { type: "feature", text: "Supervisor topology with dynamic subagent spawning and turn-limit enforcement." },
       { type: "feature", text: "Ring topology: multi-round agent debate with consensus formatting." },
       { type: "feature", text: "Tree mode added to GraphRunRequest for hierarchical agent execution." },
-      { type: "feature", text: "Subagent support with configurable limits and UI integration in TaskManager." },
-      { type: "improvement", text: "Enhanced development environment with structured logging configuration and log collection." },
-      { type: "improvement", text: "Makefile commands reorganized with categorized sections for clarity." },
+      { type: "improvement", text: "Design system overhauled to Claude Platform aesthetic (Inter + Newsreader fonts)." },
+      { type: "improvement", text: "Spiderweb mesh animation on landing hero; interactive dropdown navigation." },
+      { type: "improvement", text: "Relicensed to Non-Commercial / Academic — commercial use requires contact." },
+      { type: "fix", text: "Fixed N+1 skill loading and kwargs-blind tool cache in agent execution." },
+      { type: "fix", text: "Durable task queue, graceful shutdown, and bounded caches for API reliability." },
+      { type: "fix", text: "Stopped leaking PII to logs; surfaced previously swallowed errors." },
+      { type: "fix", text: "Multi-agent orchestration made resilient; services decoupled from infrastructure layer." },
     ],
   },
   {
-    version: "v0.7.0",
-    date: "May 2026",
+    tag: "aic_v2.4",
+    date: "June 3, 2026",
+    changes: [
+      { type: "feature", text: "Subagent support with configurable limits and UI integration in TaskManager." },
+      { type: "feature", text: "Supervisor and ring topology modes extended via GraphRunRequest." },
+      { type: "feature", text: "Tree execution mode added to multi-agent graph runs." },
+      { type: "improvement", text: "Enhanced dev environment with structured logging configuration and log collection." },
+      { type: "improvement", text: "Makefile commands reorganized with categorized help sections." },
+    ],
+  },
+  {
+    tag: "aic_v2.3",
+    date: "May 8, 2026",
     changes: [
       { type: "feature", text: "MongoDB repositories implemented for agents, skills, tasks, teams, and workspaces." },
       { type: "feature", text: "Kubernetes sandbox consolidated; deprecated remote sandbox adapter removed." },
       { type: "feature", text: "Redis Commander added to Docker Compose setup for cache inspection." },
-      { type: "feature", text: "LLM-based knowledge graph extraction mode added to llm.py pipeline." },
-      { type: "improvement", text: "Tool registry updated to validate sandbox type; TaskManager gains graph panel toggle." },
-      { type: "fix", text: "Pylint CI workflow trigger updated to target correct branches." },
+      { type: "feature", text: "LLM-based knowledge graph extraction mode added to the llm.py pipeline." },
+      { type: "improvement", text: "Tool registry validates sandbox type; TaskManager gains graph panel toggle." },
     ],
   },
   {
-    version: "v0.6.0",
-    date: "April 2026",
+    tag: "aic_v2.2",
+    date: "April 26, 2026",
     changes: [
       { type: "feature", text: "Google OAuth login with JWT-based workspace isolation." },
       { type: "feature", text: "Avatar upload functionality for user profiles." },
@@ -92,16 +124,31 @@ const RELEASES: Release[] = [
     ],
   },
   {
-    version: "v0.5.0",
-    date: "March 2026",
+    tag: "aic_v2.1",
+    date: "March 30, 2026",
     changes: [
-      { type: "feature", text: "Multi-agent orchestration with LangGraph: mesh, sequential, ring, and supervisor modes." },
-      { type: "feature", text: "Real-time SSE streaming events: agent_start, llm_request, subagent_complete." },
-      { type: "feature", text: "YouTube, Browser (Playwright), and Web Search (DuckDuckGo) toolkits." },
-      { type: "feature", text: "Xiaohongshu and TikTok search tool integrations." },
-      { type: "feature", text: "Agent and team avatar customization with color and icon options." },
-      { type: "feature", text: "PromptTool integration; drag-and-drop agent ordering in TeamBuilder." },
-      { type: "improvement", text: "Replaced time-based IDs with UUIDs across agents, messages, skills, and tasks." },
+      { type: "improvement", text: "All tool integrations tested end-to-end; API requirement notes added for Xiaohongshu and TikTok Search." },
+      { type: "fix", text: "Tool.md updated to reflect Drive status and correct API gating per provider." },
+    ],
+  },
+  {
+    tag: "aic_v2.0",
+    date: "March 29, 2026",
+    changes: [
+      { type: "improvement", text: "All services runnable end-to-end in a single docker-compose up." },
+      { type: "improvement", text: "Drive integration status documented." },
+    ],
+  },
+  {
+    tag: "aic_v1",
+    date: "March 28, 2026",
+    changes: [
+      { type: "feature", text: "Initial release: multi-agent orchestration with LangGraph (mesh and sequential modes)." },
+      { type: "feature", text: "WebSearch (DuckDuckGo), Prompt toolkit, YouTube, and Browser (Playwright) tool integrations." },
+      { type: "feature", text: "Xiaohongshu tool integration." },
+      { type: "feature", text: "Real-time SSE streaming: agent_start, llm_request, subagent_complete events." },
+      { type: "feature", text: "Agent and team avatar customization; drag-and-drop ordering in TeamBuilder." },
+      { type: "feature", text: "PromptTool integration; replaced time-based IDs with UUIDs across all entities." },
     ],
   },
 ];
@@ -160,21 +207,48 @@ export default function Changelog() {
 
           <div className="space-y-16">
             {RELEASES.map((release, ri) => (
-              <FadeIn key={release.version} delay={0.06 * ri}>
+              <FadeIn key={release.tag} delay={0.06 * ri}>
                 <div className="sm:pl-10 relative">
                   {/* Timeline dot */}
                   <div className="absolute left-0 top-1.5 w-3 h-3 rounded-full border-2 border-accent bg-background hidden sm:block" />
 
                   <div className="flex flex-wrap items-center gap-3 mb-5">
-                    <h2 className="text-2xl font-bold font-serif font-mono">{release.version}</h2>
+                    {/* Tag name + GitHub link */}
+                    <a
+                      href={GITHUB_TAG_URL(release.tag)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group inline-flex items-center gap-1.5"
+                    >
+                      <h2 className="text-2xl font-bold font-mono group-hover:text-accent transition-colors">
+                        {release.tag}
+                      </h2>
+                      <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-accent transition-colors opacity-0 group-hover:opacity-100" />
+                    </a>
+
                     {release.label && (
                       <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-accent/15 text-accent border border-accent/20">
                         {release.label}
                       </span>
                     )}
+
                     <span className="text-sm text-muted-foreground ml-auto flex items-center gap-1.5">
                       <GitCommit className="w-3.5 h-3.5" /> {release.date}
                     </span>
+                  </div>
+
+                  {/* GitHub tag badge */}
+                  <div className="mb-4">
+                    <a
+                      href={GITHUB_TAG_URL(release.tag)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1 rounded-md border border-border/60 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+                    >
+                      <Tag className="w-3 h-3" />
+                      {release.tag}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
                   </div>
 
                   <div className="space-y-3">
