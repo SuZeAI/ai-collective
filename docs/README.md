@@ -34,6 +34,7 @@ The API is served under the prefix `/api/v1` by default (`API_PREFIX`).
 
 ## Related docs
 
+- [9ROUTER_SETUP.md](9ROUTER_SETUP.md) — 9Router multi-provider LLM proxy setup
 - [GOOGLE_LOGIN_SETUP.md](GOOGLE_LOGIN_SETUP.md) — Google OAuth sign-in setup
 - [STREAMING_GUIDE.md](STREAMING_GUIDE.md) — server-sent event streaming
 - [K3S.md](K3S.md) — Kubernetes / k3s sandbox provisioner
