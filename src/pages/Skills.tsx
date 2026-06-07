@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { AgentAvatar, skillAvatarIconOptions } from "@/components/AgentAvatar";
-import { api, type Skill, type SkillToolConfigField, type SkillToolPreset } from "@/lib/api";
+import { api, canDeleteItem, canEditItem, type Skill, type SkillToolConfigField, type SkillToolPreset } from "@/lib/api";
+import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 
 type ToolName = string;
 type AvatarMode = "initial" | "icon" | "image";
@@ -169,6 +170,7 @@ function validateRequiredConfig(
 }
 
 export default function Skills() {
+  const scope = useWorkspaceScope();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [toolPresets, setToolPresets] = useState<SkillToolPreset[]>([]);
   const [open, setOpen] = useState(false);
@@ -460,12 +462,21 @@ export default function Skills() {
     setConfigValues((prev) => ({ ...prev, [field.key]: value }));
   };
 
+  const visibleSkills = useMemo(
+    () => (scope.isOverall ? skills : skills.filter((s) => scope.skillIds.has(s.id))),
+    [skills, scope],
+  );
+
   return (
     <div>
       <header className="mb-8 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Skills</h1>
-          <p className="text-muted-foreground mt-1">Create reusable skills and assign them to personnel.</p>
+          <p className="text-muted-foreground mt-1">
+            {scope.workspace
+              ? <>Skills used by personnel of office <span className="font-semibold text-foreground">{scope.workspace.name}</span>.</>
+              : "Create reusable skills and assign them to personnel."}
+          </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
@@ -646,8 +657,17 @@ export default function Skills() {
         </Dialog>
       </header>
 
+      {visibleSkills.length === 0 && scope.ready && (
+        <div className="text-center py-16 text-muted-foreground">
+          <p className="text-sm">
+            {scope.workspace
+              ? `No skills in use at "${scope.workspace.name}" yet — assign skills to its humans, or switch to Overall.`
+              : "No skills yet. Create your first skill."}
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {skills.map((s, i) => (
+        {visibleSkills.map((s, i) => (
           <motion.div
             key={s.id}
             initial={{ opacity: 0, y: 12 }}
@@ -684,12 +704,16 @@ export default function Skills() {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" onClick={() => openEditDialog(s)} aria-label={`Edit ${s.name}`}>
-                  <Pencil className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => deleteSkill(s.id)} aria-label={`Delete ${s.name}`}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                {canEditItem(s) && (
+                  <Button variant="ghost" size="icon" onClick={() => openEditDialog(s)} aria-label={`Edit ${s.name}`}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                )}
+                {canDeleteItem(s) && (
+                  <Button variant="ghost" size="icon" onClick={() => deleteSkill(s.id)} aria-label={`Delete ${s.name}`}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </motion.div>

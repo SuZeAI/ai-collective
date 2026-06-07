@@ -4,9 +4,10 @@ import { motion } from "framer-motion";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
   BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit, Settings2,
-  LogOut, User, UserCircle, ChevronDown, Sparkles,
+  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe,
 } from "lucide-react";
 import { api, type Workspace } from "@/lib/api";
+import { OVERALL_WORKSPACE_ID } from "@/hooks/use-workspace-scope";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -98,13 +99,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       .then((data) => {
         if (!active) return;
         setWorkspaces(data);
-        if (data.length > 0) {
-          const storedId = localStorage.getItem("activeWorkspaceId");
-          const found = data.find((ws) => ws.id === storedId);
-          const current = found || data[0];
-          setActiveWorkspace(current);
-          localStorage.setItem("activeWorkspaceId", current.id);
-        }
+        // Default is "Overall" (all offices); only restore a stored real office.
+        const storedId = localStorage.getItem("activeWorkspaceId");
+        const found = data.find((ws) => ws.id === storedId);
+        setActiveWorkspace(found || null);
+        if (!found) localStorage.setItem("activeWorkspaceId", OVERALL_WORKSPACE_ID);
       })
       .catch((err) => console.error("Error listing workspaces in sidebar:", err));
     return () => { active = false; };
@@ -118,14 +117,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           setWorkspaces(data);
           const storedId = localStorage.getItem("activeWorkspaceId");
           const found = data.find((ws) => ws.id === storedId);
-          if (found) {
-            setActiveWorkspace(found);
-          } else if (data.length > 0) {
-            setActiveWorkspace(data[0]);
-            localStorage.setItem("activeWorkspaceId", data[0].id);
-          } else {
-            setActiveWorkspace(null);
-          }
+          setActiveWorkspace(found || null);
+          if (!found) localStorage.setItem("activeWorkspaceId", OVERALL_WORKSPACE_ID);
         })
         .catch((err) => console.error("Error refreshing workspaces:", err));
     };
@@ -134,10 +127,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("workspaceChanged", handleWorkspaceRefresh);
   }, []);
 
-  const handleSelectWorkspace = (ws: Workspace) => {
+  // null → "Overall" (all offices, including items not attached to any office).
+  const handleSelectWorkspace = (ws: Workspace | null) => {
     setActiveWorkspace(ws);
-    localStorage.setItem("activeWorkspaceId", ws.id);
-    window.dispatchEvent(new CustomEvent("activeWorkspaceChanged", { detail: ws.id }));
+    localStorage.setItem("activeWorkspaceId", ws ? ws.id : OVERALL_WORKSPACE_ID);
+    window.dispatchEvent(new CustomEvent("activeWorkspaceChanged", { detail: ws?.id ?? null }));
   };
 
   const allNavItems = NAV_GROUPS.flatMap((g) => g.items).map((item) => ({
@@ -159,14 +153,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2.5 w-full text-left rounded-lg p-1.5 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-colors focus-visible:outline-none select-none">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 bg-gradient-to-br from-teal-500 to-cyan-600 text-white font-bold shadow-md shadow-teal-500/10 text-sm">
-                      {activeWorkspace?.avatar || activeWorkspace?.name?.[0] || "A"}
+                      {activeWorkspace ? (activeWorkspace.avatar || activeWorkspace.name?.[0] || "A") : <Globe className="w-4 h-4" />}
                     </div>
                     <div className="flex-1 min-w-0 leading-tight group-data-[collapsible=icon]:hidden">
                       <span className="block font-semibold text-[13px] text-sidebar-foreground truncate">
-                        {activeWorkspace?.name || "AI Collective"}
+                        {activeWorkspace?.name || "Overall"}
                       </span>
                       <span className="block text-[10px] text-sidebar-foreground/45 truncate mt-0.5">
-                        {activeWorkspace?.description || t.brand.subtitle}
+                        {activeWorkspace?.description || "All offices & shared items"}
                       </span>
                     </div>
                     <ChevronDown className="w-3.5 h-3.5 text-sidebar-foreground/40 flex-shrink-0 group-data-[collapsible=icon]:hidden" />
@@ -177,6 +171,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     Offices & Workspaces
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => handleSelectWorkspace(null)}
+                    className={cn(
+                      "flex items-center gap-2 text-xs py-2 cursor-pointer",
+                      !activeWorkspace ? "bg-muted font-medium text-foreground" : "text-muted-foreground"
+                    )}
+                  >
+                    <div className="w-5 h-5 rounded-md flex items-center justify-center bg-gradient-to-br from-slate-500 to-zinc-600 text-white shrink-0">
+                      <Globe className="w-3 h-3" />
+                    </div>
+                    <span className="truncate flex-1">Overall — all offices</span>
+                    {!activeWorkspace && <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />}
+                  </DropdownMenuItem>
                   {workspaces.map((ws) => (
                     <DropdownMenuItem
                       key={ws.id}

@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from backend.api.deps import (
+    current_owner_id_dep,
     get_agent_service,
     get_conversation_service,
     get_llm_service,
@@ -39,7 +40,7 @@ from backend.application.service.skill_service import SkillService
 from backend.application.service.team_service import TeamService
 from backend.application.service.workspace_service import WorkspaceService
 from backend.domain.enums import AgentStatus
-from backend.domain.models import Agent, OfficeBuilderSession, Skill, Team, Workspace
+from backend.domain.models import Agent, OfficeBuilderSession, Skill, Team, Workspace, can_delete, can_modify, is_visible_to
 from backend.log import get_logger
 
 
@@ -331,6 +332,7 @@ def apply_office_plan(
     team_service: TeamService = Depends(get_team_service),
     workspace_service: WorkspaceService = Depends(get_workspace_service),
     conv_service: ConversationService = Depends(get_conversation_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ) -> ApplyOfficePlanResponse:
     plan = req.plan
     if not plan.name.strip():
@@ -342,9 +344,12 @@ def apply_office_plan(
     presets_by_tool = {p["tool_name"]: p for p in skill_service.list_tool_presets()}
 
     # Reuse existing skills when name + tool match (case-insensitive), so repeated
-    # office generations don't pile up duplicate skills.
+    # office generations don't pile up duplicate skills. Only skills visible to
+    # the requesting user (shared defaults + their own) are candidates.
     existing_by_key = {
-        (s.name.strip().lower(), s.tool_name or ""): s for s in skill_service.list_skills()
+        (s.name.strip().lower(), s.tool_name or ""): s
+        for s in skill_service.list_skills()
+        if is_visible_to(owner_id, s.owner_id)
     }
     created_skill_ids: list[str] = []
     reused_skill_ids: list[str] = []
@@ -371,6 +376,7 @@ def apply_office_plan(
                 config=_preset_default_config(tool, presets_by_tool),
                 avatar=(name.strip()[:1] or "S").upper(),
                 tool_name=tool,
+                owner_id=owner_id,
             )
         )
         plan_skill_ids[key] = saved.id
@@ -401,6 +407,7 @@ def apply_office_plan(
                     system_prompt=_build_agent_system_prompt(
                         name=human.name, role=human.role, description=description
                     ),
+                    owner_id=owner_id,
                 )
             )
             dept_agent_ids.append(saved_agent.id)
@@ -416,6 +423,7 @@ def apply_office_plan(
                 active_tasks=1 if dept_agent_ids else 0,
                 avatar=(dept.name.strip()[:1] or "T").upper(),
                 mode=mode,
+                owner_id=owner_id,
             )
         )
         team_ids.append(saved_team.id)
@@ -433,6 +441,7 @@ def apply_office_plan(
             platform_hooks=[],
             created_at=datetime.now(timezone.utc),
             avatar=(plan.name.strip()[:1] or "W").upper(),
+            owner_id=owner_id,
         )
     )
 
@@ -461,17 +470,23 @@ def _derive_session_title(req: UpsertOfficeBuilderSessionRequest) -> str:
 @router.get("/sessions", response_model=list[OfficeBuilderSessionSummarySchema])
 def list_sessions(
     service: OfficeBuilderSessionService = Depends(get_office_builder_session_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ) -> list[OfficeBuilderSessionSummarySchema]:
-    return [OfficeBuilderSessionSummarySchema.from_domain(s) for s in service.list_sessions()]
+    return [
+        OfficeBuilderSessionSummarySchema.from_domain(s)
+        for s in service.list_sessions()
+        if is_visible_to(owner_id, s.owner_id)
+    ]
 
 
 @router.get("/sessions/{session_id}", response_model=OfficeBuilderSessionSchema)
 def get_session(
     session_id: str,
     service: OfficeBuilderSessionService = Depends(get_office_builder_session_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ) -> OfficeBuilderSessionSchema:
     session = service.get_session(session_id)
-    if session is None:
+    if session is None or not is_visible_to(owner_id, session.owner_id):
         raise HTTPException(status_code=404, detail="Session not found")
     return OfficeBuilderSessionSchema.from_domain(session)
 
@@ -480,9 +495,14 @@ def get_session(
 def upsert_session(
     req: UpsertOfficeBuilderSessionRequest,
     service: OfficeBuilderSessionService = Depends(get_office_builder_session_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ) -> OfficeBuilderSessionSchema:
     now = datetime.now(timezone.utc)
     existing = service.get_session(req.id) if req.id else None
+    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
+        raise HTTPException(status_code=404, detail="Session not found")
+    if existing is not None and not can_modify(owner_id, existing.owner_id):
+        raise HTTPException(status_code=403, detail="Only the default (admin) account can edit shared default items")
     session = OfficeBuilderSession(
         id=req.id or f"obs_{uuid4().hex}",
         title=_derive_session_title(req),
@@ -491,6 +511,7 @@ def upsert_session(
         created_at=existing.created_at if existing else now,
         updated_at=now,
         workspace_id=req.workspaceId or (existing.workspace_id if existing else ""),
+        owner_id=existing.owner_id if existing else owner_id,
     )
     saved = service.upsert_session(session)
     return OfficeBuilderSessionSchema.from_domain(saved)
@@ -500,6 +521,12 @@ def upsert_session(
 def delete_session(
     session_id: str,
     service: OfficeBuilderSessionService = Depends(get_office_builder_session_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
+    existing = service.get_session(session_id)
+    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
+        raise HTTPException(status_code=404, detail="Session not found")
+    if existing is not None and not can_delete(owner_id, existing.owner_id):
+        raise HTTPException(status_code=403, detail="Only the default (admin) account can delete shared default items")
     service.delete_session(session_id)
     return {"deleted": True}

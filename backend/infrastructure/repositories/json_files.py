@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from backend.domain.enums import AgentStatus, TaskStatus
-from backend.domain.models import Agent, Skill, Team, Task, Message, Analytics, ActivityFeedItem, OfficeBuilderSession, Workspace, PlatformHook, ThirdPartyConnection, User
+from backend.domain.models import DEFAULT_OWNER_ID, Agent, Skill, Team, Task, Message, Analytics, ActivityFeedItem, OfficeBuilderSession, Workspace, PlatformHook, ThirdPartyConnection, User
 from backend.infrastructure.repositories.json_store import JsonFileStore
 
 
@@ -60,6 +60,7 @@ class JsonAgentRepository:
                         )
                     ),
                     subagent_enabled=bool(item.get("subagent_enabled", False)),
+                    owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
                 )
                 self._items[agent.id] = agent
             except Exception:
@@ -82,6 +83,7 @@ class JsonAgentRepository:
                     "system_prompt": a.system_prompt
                     or _default_agent_system_prompt(name=a.name, role=a.role, description=a.description),
                     "subagent_enabled": a.subagent_enabled,
+                    "owner_id": a.owner_id,
                 }
                 for a in self._items.values()
             ]
@@ -130,6 +132,7 @@ class JsonSkillRepository:
                     avatar_url=str(item.get("avatar_url", "") or ""),
                     tool_name=(str(item.get("tool_name")) if item.get("tool_name") is not None else None),
                     code=(str(item.get("code")) if item.get("code") is not None else None),
+                    owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
                 )
                 self._items[s.id] = s
             except Exception:
@@ -151,6 +154,7 @@ class JsonSkillRepository:
                     "tool_name": s.tool_name,
                     "config": dict(s.config or {}),
                     "code": s.code,
+                    "owner_id": s.owner_id,
                 }
                 for s in self._items.values()
             ]
@@ -198,6 +202,7 @@ class JsonTeamRepository:
                     avatar_url=str(item.get("avatar_url", "") or ""),
                     mode=str(item.get("mode", "sequential")),
                     max_steps=int(item.get("maxSteps", 6)),
+                    owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
                 )
                 self._items[team.id] = team
             except Exception:
@@ -218,6 +223,7 @@ class JsonTeamRepository:
                     "avatar_url": t.avatar_url,
                     "mode": t.mode,
                     "maxSteps": t.max_steps,
+                    "owner_id": t.owner_id,
                 }
                 for t in self._items.values()
             ]
@@ -265,6 +271,7 @@ class JsonTaskRepository:
                     assigned_agents=[str(x) for x in (item.get("assignedAgents") or [])],
                     start_time=_parse_iso_utc(str(start_time_raw)) if start_time_raw else None,
                     end_time=_parse_iso_utc(str(end_time_raw)) if end_time_raw else None,
+                    owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
                 )
                 self._items[task.id] = task
             except Exception:
@@ -283,6 +290,7 @@ class JsonTaskRepository:
                     "assignedAgents": list(t.assigned_agents),
                     "startTime": t.start_time.isoformat() if t.start_time else None,
                     "endTime": t.end_time.isoformat() if t.end_time else None,
+                    "owner_id": t.owner_id,
                 }
                 for t in self._items.values()
             ]
@@ -432,6 +440,7 @@ class JsonWorkspaceRepository:
                     avatar_color=str(item.get("avatar_color", "") or ""),
                     avatar_url=str(item.get("avatar_url", "") or ""),
                     primary_team_id=str(item.get("primaryTeamId", "")),
+                    owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
                 )
                 self._items[ws.id] = ws
             except Exception:
@@ -461,6 +470,7 @@ class JsonWorkspaceRepository:
                 "avatar_icon": w.avatar_icon,
                 "avatar_color": w.avatar_color,
                 "avatar_url": w.avatar_url,
+                "owner_id": w.owner_id,
             }
             for w in self._items.values()
         ])
@@ -504,6 +514,7 @@ class JsonOfficeBuilderSessionRepository:
                     created_at=_parse_iso_utc(str(item.get("createdAt", ""))) or now,
                     updated_at=_parse_iso_utc(str(item.get("updatedAt", ""))) or now,
                     workspace_id=str(item.get("workspaceId", "") or ""),
+                    owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
                 )
                 self._items[session.id] = session
             except Exception:
@@ -519,6 +530,7 @@ class JsonOfficeBuilderSessionRepository:
                 "createdAt": s.created_at.isoformat(),
                 "updatedAt": s.updated_at.isoformat(),
                 "workspaceId": s.workspace_id,
+                "owner_id": s.owner_id,
             }
             for s in self._items.values()
         ])

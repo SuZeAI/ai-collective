@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import {
   api,
+  canDeleteItem,
   type OfficeChatMessage,
   type OfficePlan,
   type OfficeDepartmentPlan,
@@ -582,16 +583,18 @@ export default function OfficeBuilder() {
                       )}
                     </div>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeSession(s.id);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-rose-400 shrink-0 mt-0.5"
-                    title="Delete chat"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+                  {canDeleteItem(s) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeSession(s.id);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-rose-400 shrink-0 mt-0.5"
+                      title="Delete chat"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

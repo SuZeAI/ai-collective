@@ -15,6 +15,7 @@ class TaskSchema(BaseModel):
     assignedAgents: list[str]
     startTime: str | None = None
     endTime: str | None = None
+    owner_id: str = "default"
 
     @staticmethod
     def from_domain(t) -> "TaskSchema":
@@ -37,6 +38,7 @@ class TaskSchema(BaseModel):
             assignedAgents=list(t.assigned_agents),
             startTime=_to_utc_iso(t.start_time),
             endTime=_to_utc_iso(t.end_time),
+            owner_id=getattr(t, "owner_id", "default") or "default",
         )
 
 

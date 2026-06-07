@@ -16,6 +16,7 @@ class SkillSchema(BaseModel):
     avatar_color: str = ""
     avatar_url: str = ""
     code: str | None = None
+    owner_id: str = "default"
 
     @staticmethod
     def from_domain(s) -> "SkillSchema":
@@ -32,6 +33,7 @@ class SkillSchema(BaseModel):
             avatar_color=getattr(s, "avatar_color", "") or "",
             avatar_url=getattr(s, "avatar_url", "") or "",
             code=s.code,
+            owner_id=getattr(s, "owner_id", "default") or "default",
         )
 
 
@@ -49,6 +51,7 @@ class AgentSchema(BaseModel):
     avatar_url: str = ""
     system_prompt: str = ""
     subagent_enabled: bool = False
+    owner_id: str = "default"
 
     @staticmethod
     def from_domain(a, skills: list = None) -> "AgentSchema":
@@ -66,6 +69,7 @@ class AgentSchema(BaseModel):
             avatar_url=getattr(a, "avatar_url", "") or "",
             system_prompt=getattr(a, "system_prompt", "") or "",
             subagent_enabled=bool(getattr(a, "subagent_enabled", False)),
+            owner_id=getattr(a, "owner_id", "default") or "default",
         )
 
 

@@ -10,8 +10,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { AgentAvatar, avatarIconOptions } from "@/components/AgentAvatar";
-import { api, type Agent, type Skill } from "@/lib/api";
+import { api, canDeleteItem, canEditItem, type Agent, type Skill } from "@/lib/api";
 import { getAgentDotColor, getAgentRoleColor } from "@/lib/agent-role-ui";
+import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 
 const roles = [
   "Other Position",
@@ -63,6 +64,7 @@ function isHexColor(value: string): boolean {
 }
 
 export default function AgentBuilder() {
+  const scope = useWorkspaceScope();
   const [agentList, setAgentList] = useState<Agent[]>([]);
   const [skillCatalog, setSkillCatalog] = useState<Skill[]>([]);
 
@@ -238,12 +240,21 @@ export default function AgentBuilder() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const visibleAgents = useMemo(
+    () => (scope.isOverall ? agentList : agentList.filter((a) => scope.agentIds.has(a.id))),
+    [agentList, scope],
+  );
+
   return (
     <div>
       <header className="mb-8 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Humans</h1>
-          <p className="text-muted-foreground mt-1">Hire and manage your company's personnel roster.</p>
+          <p className="text-muted-foreground mt-1">
+            {scope.workspace
+              ? <>Personnel of office <span className="font-semibold text-foreground">{scope.workspace.name}</span> (members of its departments).</>
+              : "Hire and manage your company's personnel roster."}
+          </p>
         </div>
 
         <Dialog open={open} onOpenChange={setOpen}>
@@ -515,8 +526,17 @@ export default function AgentBuilder() {
         </DialogContent>
       </Dialog>
 
+      {visibleAgents.length === 0 && scope.ready && (
+        <div className="text-center py-16 text-muted-foreground">
+          <p className="text-sm">
+            {scope.workspace
+              ? `No humans in "${scope.workspace.name}" yet — add them to one of its departments, or switch to Overall.`
+              : "No humans yet. Hire your first one."}
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {agentList.map((agent, i) => (
+        {visibleAgents.map((agent, i) => (
           <motion.div
             key={agent.id}
             initial={{ opacity: 0, y: 12 }}
@@ -533,12 +553,16 @@ export default function AgentBuilder() {
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold truncate">{agent.name}</h3>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(agent)} aria-label={`Edit ${agent.name}`}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => deleteAgent(agent.id)} aria-label={`Delete ${agent.name}`}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {canEditItem(agent) && (
+                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(agent)} aria-label={`Edit ${agent.name}`}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {canDeleteItem(agent) && (
+                      <Button variant="ghost" size="icon" onClick={() => deleteAgent(agent.id)} aria-label={`Delete ${agent.name}`}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                     <div className="flex items-center gap-1.5">
                     <span
                       className={`w-2 h-2 rounded-full ${

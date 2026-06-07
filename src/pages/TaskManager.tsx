@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { AgentAvatar } from "@/components/AgentAvatar";
-import { api, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
+import { api, canDeleteItem, canEditItem, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
+import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
 import { cn } from "@/lib/utils";
 
@@ -184,6 +185,7 @@ const getGraphLayout = (nodes: GraphContextSnapshot["nodes"], width: number, hei
 };
 
 export default function TaskManager() {
+  const scope = useWorkspaceScope();
   const [taskList, setTaskList] = useState<Task[]>([]);
   const [teamList, setTeamList] = useState<Team[]>([]);
   const [agentList, setAgentList] = useState<Agent[]>([]);
@@ -291,6 +293,8 @@ export default function TaskManager() {
 
   const filteredTasks = useMemo(() => {
     return taskList.filter((task) => {
+      // Office scoping: only tasks of the selected office's departments.
+      if (!scope.isOverall && !scope.teamIds.has(task.teamId)) return false;
       const team = teamList.find((t) => t.id === task.teamId);
       const matchesSearch =
         task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -311,24 +315,43 @@ export default function TaskManager() {
       }
       return true;
     });
-  }, [taskList, teamList, searchQuery, statusFilter]);
+  }, [taskList, teamList, searchQuery, statusFilter, scope]);
 
   const taskIdParam = searchParams.get("id");
 
+  // A task is selectable only when it belongs to the active office (or Overall).
+  const isTaskInScope = (task: Task) => scope.isOverall || scope.teamIds.has(task.teamId);
+
   useEffect(() => {
+    if (!scope.ready) return; // wait until office membership is resolved
     if (taskIdParam && taskList.length > 0) {
-      const taskExists = taskList.some((t) => t.id === taskIdParam);
-      if (taskExists) {
+      const target = taskList.find((t) => t.id === taskIdParam);
+      if (target && isTaskInScope(target)) {
         setViewTaskId(taskIdParam);
         setTaskGraphViewports((prev) => prev[taskIdParam] ? prev : { ...prev, [taskIdParam]: createDefaultViewport() });
         void loadTaskGraphContext(taskIdParam);
       }
     } else if (!taskIdParam && taskList.length > 0 && !viewTaskId) {
-      setViewTaskId(taskList[0].id);
-      setTaskGraphViewports((prev) => prev[taskList[0].id] ? prev : { ...prev, [taskList[0].id]: createDefaultViewport() });
-      void loadTaskGraphContext(taskList[0].id);
+      const first = taskList.find(isTaskInScope);
+      if (first) {
+        setViewTaskId(first.id);
+        setTaskGraphViewports((prev) => prev[first.id] ? prev : { ...prev, [first.id]: createDefaultViewport() });
+        void loadTaskGraphContext(first.id);
+      }
     }
-  }, [taskIdParam, taskList, viewTaskId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskIdParam, taskList, viewTaskId, scope]);
+
+  // Switching office must never leave another office's task in the detail panel.
+  useEffect(() => {
+    if (!scope.ready || scope.isOverall || !viewTaskId) return;
+    const current = taskList.find((t) => t.id === viewTaskId);
+    if (current && !scope.teamIds.has(current.teamId)) {
+      const fallback = taskList.find((t) => scope.teamIds.has(t.teamId));
+      setViewTaskId(fallback ? fallback.id : null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope, viewTaskId, taskList]);
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -1273,7 +1296,8 @@ export default function TaskManager() {
                   <Select value={teamId} onValueChange={setTeamId}>
                     <SelectTrigger><SelectValue placeholder="Assign to department" /></SelectTrigger>
                     <SelectContent>
-                      {teamList.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                      {(scope.isOverall ? teamList : teamList.filter((t) => scope.teamIds.has(t.id)))
+                        .map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Button onClick={saveTask} className="w-full" disabled={!title.trim() || !teamId}>
@@ -1486,24 +1510,28 @@ export default function TaskManager() {
                   <h2 className="font-bold text-sm truncate text-foreground leading-none">{selectedTask.title}</h2>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 text-xs px-3"
-                    onClick={() => openEditDialog(selectedTask)}
-                    disabled={isUpdating}
-                  >
-                    <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 text-xs px-3 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
-                    onClick={() => deleteTask(selectedTask.id)}
-                    disabled={isUpdating}
-                  >
-                    <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
-                  </Button>
+                  {canEditItem(selectedTask) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs px-3"
+                      onClick={() => openEditDialog(selectedTask)}
+                      disabled={isUpdating}
+                    >
+                      <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
+                    </Button>
+                  )}
+                  {canDeleteItem(selectedTask) && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs px-3 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                      onClick={() => deleteTask(selectedTask.id)}
+                      disabled={isUpdating}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -1522,36 +1550,38 @@ export default function TaskManager() {
                     <Progress value={calculatedProgress} className="h-1.5" />
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      size="sm"
-                      className="flex-1 h-8 text-xs font-semibold"
-                      variant={selectedTask.status === "in-progress" ? "default" : "outline"}
-                      onClick={() => updateTaskStatus(selectedTask, "in-progress")}
-                      disabled={!canStart || isUpdating}
-                    >
-                      <Play className="w-3 h-3 mr-1.5 fill-current" />
-                      {isRestart ? "Restart" : "Start"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="h-8 px-2.5"
-                      variant="outline"
-                      onClick={() => updateTaskStatus(selectedTask, "paused")}
-                      disabled={!canPause}
-                    >
-                      <Pause className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="h-8 px-2.5 hover:bg-rose-500/10 hover:border-rose-500/20"
-                      variant="outline"
-                      onClick={() => updateTaskStatus(selectedTask, "stopped")}
-                      disabled={!canStop}
-                    >
-                      <Square className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-                    </Button>
-                  </div>
+                  {canEditItem(selectedTask) && (
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        size="sm"
+                        className="flex-1 h-8 text-xs font-semibold"
+                        variant={selectedTask.status === "in-progress" ? "default" : "outline"}
+                        onClick={() => updateTaskStatus(selectedTask, "in-progress")}
+                        disabled={!canStart || isUpdating}
+                      >
+                        <Play className="w-3 h-3 mr-1.5 fill-current" />
+                        {isRestart ? "Restart" : "Start"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="h-8 px-2.5"
+                        variant="outline"
+                        onClick={() => updateTaskStatus(selectedTask, "paused")}
+                        disabled={!canPause}
+                      >
+                        <Pause className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="h-8 px-2.5 hover:bg-rose-500/10 hover:border-rose-500/20"
+                        variant="outline"
+                        onClick={() => updateTaskStatus(selectedTask, "stopped")}
+                        disabled={!canStop}
+                      >
+                        <Square className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+                      </Button>
+                    </div>
+                  )}
 
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Description</label>
@@ -1776,7 +1806,10 @@ export default function TaskManager() {
                   {/* Human-in-the-loop composer: chat with the agents mid-run.
                       Messages are queued on the backend and injected into the
                       context of the next agent turn. Interrupt holds the run
-                      at the turn boundary; Resume releases it. */}
+                      at the turn boundary; Resume releases it.
+                      Hidden for shared default tasks — they are view-only for
+                      regular users (running them requires the admin account). */}
+                  {canEditItem(selectedTask) && (
                   <div className="border-t border-border/40 p-3 flex-shrink-0 bg-muted/5">
                     {selectedTask.status === "in-progress" && (
                       heldTaskIds.has(selectedTask.id) ? (
@@ -1852,6 +1885,7 @@ export default function TaskManager() {
                       </Button>
                     </div>
                   </div>
+                  )}
                 </div>
 
                 {/* Panel 3: Knowledge Graph */}
