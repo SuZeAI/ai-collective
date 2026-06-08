@@ -1159,42 +1159,6 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 			},
 		],
 	},
-	"gemini_generate": {
-		"label": "Gemini Generate (+ Google Search)",
-		"third_party": "Google Gemini",
-		"config_fields": [
-			{
-				"key": "api_key",
-				"label": "Gemini API Key",
-				"input": "text",
-				"required": False,
-				"default": "",
-				"placeholder": "Optional, fallback to GEMINI_API_KEY / GOOGLE_API_KEY",
-			},
-			{
-				"key": "model",
-				"label": "Model",
-				"input": "text",
-				"required": False,
-				"default": "gemini-2.0-flash",
-				"placeholder": "gemini-2.0-flash, gemini-2.5-pro, ...",
-			},
-			{
-				"key": "enable_search",
-				"label": "Ground with Google Search",
-				"input": "boolean",
-				"required": False,
-				"default": False,
-			},
-			{
-				"key": "base_url",
-				"label": "API Base URL",
-				"input": "text",
-				"required": False,
-				"default": "https://generativelanguage.googleapis.com/v1beta",
-			},
-		],
-	},
 }
 
 

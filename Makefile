@@ -315,7 +315,7 @@ env: ## Create .env from .env.example if it does not exist
 	fi
 
 dirs: ## Create required runtime directories
-	@mkdir -p storage logs sandbox_workspace
+	@mkdir -p storage logs .sandbox_workspace
 
 setup: install dirs env ## Full first-time project setup
 	@printf "$(C_GREEN)✓ Setup complete.$(C_RESET)  Edit .env then run:  make dev\n"

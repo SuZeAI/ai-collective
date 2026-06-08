@@ -1053,25 +1053,5 @@
     },
     "code": null,
     "instruction": "Paste your Gemini API key in 'api_key' (or set GEMINI_API_KEY / GOOGLE_API_KEY). Veo generation is async: the tool submits the job and polls until ready, then returns a 'video_uri' (downloadable with your API key). Note Veo access/quota depends on your Google account; tune 'max_wait_seconds' for longer renders."
-  },
-  {
-    "id": "skill_ch1a0d0001f04a1b9c0d0e0f000000015",
-    "name": "Gemini Generate (+ Google Search)",
-    "description": "Generate text/answers with Gemini, optionally grounded by live Google Search with cited sources.",
-    "third_party": "Google Gemini",
-    "kind": "integration",
-    "avatar": "G",
-    "avatar_icon": "sparkles",
-    "avatar_color": "#FBBC04",
-    "avatar_url": "",
-    "tool_name": "gemini_generate",
-    "config": {
-      "api_key": "",
-      "model": "gemini-2.0-flash",
-      "enable_search": false,
-      "base_url": "https://generativelanguage.googleapis.com/v1beta"
-    },
-    "code": null,
-    "instruction": "Paste your Gemini API key in 'api_key' (or set GEMINI_API_KEY / GOOGLE_API_KEY). Turn on 'enable_search' to ground answers with live Google Search (returns cited sources). Use this as a Gemini-powered research/writing tool; pick a 'model' like gemini-2.0-flash or gemini-2.5-pro."
   }
 ]

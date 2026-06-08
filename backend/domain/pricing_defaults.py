@@ -25,4 +25,11 @@ DEFAULT_MODEL_PRICING: list[ModelPricing] = [
     ModelPricing(model="gemini-2.5-flash-lite", provider="google", input_price_per_million=0.10, output_price_per_million=0.40),
     ModelPricing(model="gemini-2.0-flash", provider="google", input_price_per_million=0.10, output_price_per_million=0.40),
     ModelPricing(model="gemini-2.0-flash-lite", provider="google", input_price_per_million=0.075, output_price_per_million=0.30),
+    # Kimi (Moonshot AI)
+    ModelPricing(model="kimi-k2-0711-preview", provider="kimi", input_price_per_million=0.60, output_price_per_million=2.50),
+    ModelPricing(model="kimi-k2-turbo-preview", provider="kimi", input_price_per_million=1.15, output_price_per_million=8.00),
+    ModelPricing(model="kimi-latest", provider="kimi", input_price_per_million=0.60, output_price_per_million=2.50),
+    ModelPricing(model="moonshot-v1-8k", provider="kimi", input_price_per_million=0.20, output_price_per_million=2.00),
+    ModelPricing(model="moonshot-v1-32k", provider="kimi", input_price_per_million=1.00, output_price_per_million=3.00),
+    ModelPricing(model="moonshot-v1-128k", provider="kimi", input_price_per_million=2.00, output_price_per_million=6.00),
 ]

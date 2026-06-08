@@ -52,7 +52,6 @@ from backend.domain.tools.gemini import (
     GeminiImageToolkit,
     GeminiTTSToolkit,
     GeminiVideoToolkit,
-    GeminiGenerateToolkit,
 )
 
 
@@ -106,7 +105,6 @@ class ToolType(str, Enum):
     GEMINI_IMAGE = "gemini_image"
     GEMINI_TTS = "gemini_tts"
     GEMINI_VIDEO = "gemini_video"
-    GEMINI_GENERATE = "gemini_generate"
 
 
 TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
@@ -159,7 +157,6 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.GEMINI_IMAGE.value: GeminiImageToolkit,
     ToolType.GEMINI_TTS.value: GeminiTTSToolkit,
     ToolType.GEMINI_VIDEO.value: GeminiVideoToolkit,
-    ToolType.GEMINI_GENERATE.value: GeminiGenerateToolkit,
 }
 
 

@@ -33,6 +33,10 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("OPEN_WEIGHT_API_KEY", "OPENROUTER_API_KEY"),
     )
+    kimi_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("KIMI_API_KEY", "MOONSHOT_API_KEY"),
+    )
 
     # ── Storage ───────────────────────────────────────────────────────────────
     # backend: "json" (default, file-based) | "mongo" (MongoDB)

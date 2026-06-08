@@ -1,4 +1,4 @@
-"""Google Gemini toolkits (image, text-to-speech, video, grounded generation).
+"""Google Gemini media toolkits (image, text-to-speech, video).
 
 These wrap the Gemini Developer API (``https://generativelanguage.googleapis.com``)
 which has request/response shapes that differ from the OpenAI-compatible tools, so
@@ -6,10 +6,12 @@ each capability gets its own toolkit. Authentication uses the ``x-goog-api-key``
 header; supply your key via the skill ``api_key`` config or the ``GEMINI_API_KEY`` /
 ``GOOGLE_API_KEY`` environment variable.
 
-  - GeminiImageToolkit    -> Imagen ``:predict`` (text -> image)
-  - GeminiTTSToolkit      -> Gemini TTS ``:generateContent`` (text -> speech, PCM wrapped to WAV)
-  - GeminiVideoToolkit    -> Veo ``:predictLongRunning`` (text/image -> video, async + poll)
-  - GeminiGenerateToolkit -> Gemini ``:generateContent`` (text, optional Google Search grounding)
+  - GeminiImageToolkit -> Imagen ``:predict`` (text -> image)
+  - GeminiTTSToolkit   -> Gemini TTS ``:generateContent`` (text -> speech, PCM wrapped to WAV)
+  - GeminiVideoToolkit -> Veo ``:predictLongRunning`` (text/image -> video, async + poll)
+
+Note: plain text generation is intentionally NOT a tool here — that is the agent's
+own LLM job. Use Gemini as an agent LLM backend via ``infrastructure/llm`` instead.
 """
 
 from __future__ import annotations
@@ -32,7 +34,6 @@ DEFAULT_IMAGE_MODEL = "imagen-3.0-generate-002"
 DEFAULT_TTS_MODEL = "gemini-2.5-flash-preview-tts"
 DEFAULT_TTS_VOICE = "Kore"
 DEFAULT_VIDEO_MODEL = "veo-3.0-generate-preview"
-DEFAULT_TEXT_MODEL = "gemini-2.0-flash"
 
 
 def _resolve_key(explicit: Optional[str]) -> str:
@@ -327,75 +328,3 @@ class GeminiVideoToolkit(BaseToolkit):
         result.setdefault("model", self.model)
         result["note_download"] = "The video_uri requires your Gemini API key to download."
         return result
-
-
-class GeminiGenerateToolkit(BaseToolkit):
-    """Generate text with Gemini, optionally grounded with Google Search."""
-
-    name: str = "gemini_generate"
-
-    def __init__(
-        self,
-        api_key: Optional[str] = None,
-        model: str = DEFAULT_TEXT_MODEL,
-        base_url: str = DEFAULT_BASE_URL,
-        enable_search: bool = False,
-        **kwargs: Any,
-    ):
-        super().__init__(**kwargs)
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY", "")
-        self.model = (model or DEFAULT_TEXT_MODEL).strip() or DEFAULT_TEXT_MODEL
-        self.base_url = (base_url or DEFAULT_BASE_URL).strip() or DEFAULT_BASE_URL
-        self.enable_search = str(enable_search).strip().lower() in ("true", "1", "yes") if isinstance(enable_search, str) else bool(enable_search)
-
-    @tool(parse_docstring=True)
-    async def gemini_generate_text(
-        self,
-        prompt: str,
-        use_google_search: Optional[bool] = None,
-        model: Optional[str] = None,
-        api_key: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """Generate a text response with Gemini, optionally grounded by live Google Search.
-
-        Args:
-            prompt: The instruction or question for Gemini.
-            use_google_search: If true, ground the answer with Google Search (overrides skill default).
-            model: Optional model override (e.g. gemini-2.0-flash, gemini-2.5-pro).
-            api_key: Optional API key override.
-        """
-        key = _resolve_key(api_key or self.api_key)
-        selected_model = (model or self.model or DEFAULT_TEXT_MODEL).strip() or DEFAULT_TEXT_MODEL
-        grounded = self.enable_search if use_google_search is None else bool(use_google_search)
-
-        payload: Dict[str, Any] = {"contents": [{"parts": [{"text": prompt}]}]}
-        if grounded:
-            payload["tools"] = [{"google_search": {}}]
-
-        url = _model_url(self.base_url, selected_model, "generateContent")
-        response = await asyncio.to_thread(
-            request_json, "POST", url, service="Gemini Generate",
-            json_body=payload, headers=_headers(key), timeout=90,
-        )
-
-        text_parts: List[str] = []
-        sources: List[Dict[str, Any]] = []
-        try:
-            cand = response["candidates"][0]
-            for part in cand.get("content", {}).get("parts", []) or []:
-                if isinstance(part, dict) and part.get("text"):
-                    text_parts.append(part["text"])
-            grounding = cand.get("groundingMetadata") or {}
-            for chunk in grounding.get("groundingChunks", []) or []:
-                web = chunk.get("web") if isinstance(chunk, dict) else None
-                if web and web.get("uri"):
-                    sources.append({"title": web.get("title", ""), "uri": web["uri"]})
-        except (KeyError, IndexError, TypeError):
-            pass
-
-        return {
-            "model": selected_model,
-            "grounded": grounded,
-            "text": "\n".join(text_parts).strip(),
-            "sources": sources,
-        }
