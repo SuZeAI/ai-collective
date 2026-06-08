@@ -1,20 +1,5 @@
 [
   {
-    "id": "task_5b5dea02fb1e49d491c84982fd4b4422",
-    "title": "Bao Tin Minh Chau gold price in Hanoi today",
-    "description": "Bao Tin Minh Chau gold price in Hanoi today",
-    "teamId": "team_c401148000bb4a4a9dbbfe9d339212af",
-    "status": "completed",
-    "progress": 100,
-    "assignedAgents": [
-      "agent_0798e88decd74b9e876fb0b5e2d20aec",
-      "agent_179b3bd6e39c43cea40eadd3d5f6d695",
-      "agent_0e8154a6c17943ccb329cd5cc9f350b8"
-    ],
-    "startTime": "2026-04-22T16:40:14+00:00",
-    "endTime": "2026-04-22T16:47:42+00:00"
-  },
-  {
     "id": "task_9b6c8ee04d664b1d916d07960a616bda",
     "title": "Trend Adaptation Challenge",
     "description": "Generate a short, engaging story about a specific panda animal . The story should be emotional, easy to understand, and suitable for social media captions. (you must search and use instruction tool)\nwith about charactor:\nCaption: Bao Bao’s journey reminds us that sometimes, our greatest strengths are found in the most unexpected places. Don't be afraid to roll with it! 🐼💖 #PandaStory #UniqueTalent #FindYourPurpose #CuteAnimals #Inspiration\n\nHashtags: #PandaStory #UniqueTalent #FindYourPurpose #CuteAnimals #Inspiration #TikTokPanda #AnimalLover #WholesomeContent #FeelGood",
@@ -26,33 +11,6 @@
     ],
     "startTime": "2026-04-25T18:34:40+00:00",
     "endTime": "2026-04-25T18:35:00+00:00"
-  },
-  {
-    "id": "task_904f5fcb9a884d30a39747086bc689b2",
-    "title": "Analyze a repo",
-    "description": "Phân tích thông tin của repo github: https://github.com/666ghj/BettaFish.git",
-    "teamId": "team_4b94bfc530b64fc6b8534adf207acaee",
-    "status": "completed",
-    "progress": 100,
-    "assignedAgents": [
-      "agent_4aa2e6b617fb4375970e3a0110285993",
-      "agent_fc7267cfdc3149e3a1766805e4942b02"
-    ],
-    "startTime": "2026-04-22T16:48:12+00:00",
-    "endTime": "2026-04-22T16:49:16+00:00"
-  },
-  {
-    "id": "task_198e22a7ac7e488b8ae57fc1a89c4ba8",
-    "title": "coding agent",
-    "description": "code snake game use only html",
-    "teamId": "team_75da7550f6f24cafb003147e5ef71d10",
-    "status": "completed",
-    "progress": 100,
-    "assignedAgents": [
-      "agent_6a9b24bbb1014ae381c13bc5250087a1"
-    ],
-    "startTime": "2026-05-06T16:51:01+00:00",
-    "endTime": "2026-05-06T16:51:21+00:00"
   },
   {
     "id": "task_ch10d0001f04a1b9c0d0e0f0t0000001",
@@ -151,5 +109,22 @@
     ],
     "startTime": "2026-05-23T11:15:00+00:00",
     "endTime": "2026-05-23T12:05:00+00:00"
+  },
+  {
+    "id": "task_ch10d0001f04a1b9c0d0e0f0t0000007",
+    "title": "Fully automated reel: topic → character art → AI voiceover → AI video → auto-publish",
+    "description": "End-to-end media-generation demo. (1) Topic & Trend Scout picks a validated angle; (2) Character & Persona Designer designs the host and generates on-brand character art with the AI Image Generator; (3) Content Plan Strategist drafts the brief; (4) Video Producer writes the shot-by-shot script, synthesizes the voiceover with AI Voiceover (TTS), generates scene visuals and the thumbnail with the AI Image Generator, and renders the clip with the AI Video Generator; (5) Multi-Platform Publisher auto-publishes to TikTok, Facebook & YouTube and the Engagement Analyst reports day-1 performance. Definition of done: a fully machine-generated reel live on all 3 platforms with metrics captured.",
+    "teamId": "team_ch10d0001f04a1b9c0d0e0f0studio01",
+    "status": "pending",
+    "progress": 0,
+    "assignedAgents": [
+      "agent_ch10d0001f04a1b9c0d0e0f000000a1",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a2",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a3",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a4",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a5"
+    ],
+    "startTime": null,
+    "endTime": null
   }
 ]

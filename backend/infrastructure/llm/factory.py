@@ -5,6 +5,7 @@ from backend.infrastructure.llm.anthropic_langchain import AnthropicLangChainPro
 from backend.infrastructure.llm.google_langchain import GoogleLangChainProvider
 from backend.infrastructure.llm.open_weight_langchain import OpenWeightLangChainProvider
 from backend.infrastructure.llm.openai_langchain import OpenAILangChainProvider
+from backend.infrastructure.llm.kimi_langchain import KimiLangChainProvider
 
 
 DEFAULT_PROVIDER_MODELS = {
@@ -12,9 +13,10 @@ DEFAULT_PROVIDER_MODELS = {
     "openai": "gpt-4o",
     "google": "gemini-3-flash-preview",
     "open_weight": "qwen3.5-397B-A17B",
+    "kimi": "kimi-k2-0711-preview",
 }
 
-SUPPORTED_PROVIDERS = {"anthropic", "openai", "google", "open_weight"}
+SUPPORTED_PROVIDERS = {"anthropic", "openai", "google", "open_weight", "kimi"}
 
 
 def _normalize_provider(provider: str | None) -> str:
@@ -23,6 +25,8 @@ def _normalize_provider(provider: str | None) -> str:
         return "google"
     if normalized in {"openrouter", "open_router", "open_weight", "openweight"}:
         return "open_weight"
+    if normalized in {"moonshot", "moonshotai", "kimi"}:
+        return "kimi"
     return normalized
 
 
@@ -34,6 +38,7 @@ def create_llm_provider(
     anthropic_api_key: str | None = None,
     openai_api_key: str | None = None,
     open_weight_api_key: str | None = None,
+    kimi_api_key: str | None = None,
     max_tool_rounds: int = 6,
     tool_timeout_seconds: int | None = None,
     base_url: str | None = None,
@@ -70,6 +75,16 @@ def create_llm_provider(
         return OpenWeightLangChainProvider(
             model=resolved_model,
             api_key=open_weight_api_key,
+            base_url=base_url,
+            max_tool_rounds=max_tool_rounds,
+            tool_timeout_seconds=tool_timeout_seconds,
+        )
+    if resolved_provider == "kimi":
+        if not kimi_api_key:
+            return None
+        return KimiLangChainProvider(
+            model=resolved_model,
+            api_key=kimi_api_key,
             base_url=base_url,
             max_tool_rounds=max_tool_rounds,
             tool_timeout_seconds=tool_timeout_seconds,

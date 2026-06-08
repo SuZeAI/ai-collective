@@ -182,6 +182,7 @@ def get_conversation_service() -> ConversationService:
             anthropic_api_key=settings.anthropic_api_key,
             openai_api_key=settings.openai_api_key,
             open_weight_api_key=settings.open_weight_api_key,
+            kimi_api_key=settings.kimi_api_key,
             base_url=settings.llm_api_base,
         )
     return ConversationService(
@@ -215,6 +216,7 @@ def get_graph_context_service() -> GraphContextService:
             anthropic_api_key=settings.anthropic_api_key,
             openai_api_key=settings.openai_api_key,
             open_weight_api_key=settings.open_weight_api_key,
+            kimi_api_key=settings.kimi_api_key,
             base_url=settings.llm_api_base,
         )
     return GraphContextService(
@@ -473,6 +475,7 @@ def _llm_provider():
         anthropic_api_key=settings.anthropic_api_key,
         openai_api_key=settings.openai_api_key,
         open_weight_api_key=settings.open_weight_api_key,
+        kimi_api_key=settings.kimi_api_key,
         base_url=settings.llm_api_base,
         max_tool_rounds=settings.agent_max_tool_rounds,
         tool_timeout_seconds=settings.tool_timeout_seconds,

@@ -66,6 +66,7 @@ def upsert_skill(
         kind=req.kind or "integration",
         config=dict(req.config or {}),
         code=req.code,
+        instruction=(req.instruction or "").strip(),
         owner_id=existing.owner_id if existing else owner_id,
     )
     saved = service.upsert_skill(skill)
