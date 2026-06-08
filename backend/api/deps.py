@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -238,6 +239,108 @@ def _user_store():
 
 def get_user_service() -> UserService:
     return UserService(_user_store())
+
+
+def _env_bool(name: str, default: bool = True) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() not in ("0", "false", "no", "off", "")
+
+
+def seed_admin_user() -> None:
+    """Create/sync the bootstrap admin account from env on startup.
+
+    Reads ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_NAME straight from the
+    environment and writes the account into the configured users store (the
+    Mongo `users` collection, or users.json). Idempotent and resilient — a
+    failure here is logged but never blocks the app from starting.
+    """
+    if not _env_bool("ADMIN_AUTO_SEED", True):
+        return
+
+    email = (os.getenv("ADMIN_EMAIL") or "").strip()
+    password = os.getenv("ADMIN_PASSWORD") or ""
+    name = (os.getenv("ADMIN_NAME") or "Administrator").strip()
+
+    if not email or not password:
+        get_logger().info(
+            "Admin auto-seed skipped: set ADMIN_EMAIL and ADMIN_PASSWORD in .env to enable it"
+        )
+        return
+
+    try:
+        user, action = get_user_service().ensure_admin(email=email, password=password, name=name)
+        if action == "unchanged":
+            get_logger().info(f"Admin account already in sync: {user.email}")
+        else:
+            get_logger().info(f"Admin account {action} from env: {user.email} (id={user.id})")
+    except Exception as exc:  # never block startup on a seeding error
+        get_logger().error(f"Admin auto-seed failed: {exc}")
+
+
+# Bundled default catalog shipped in storage/*.json (committed to git), keyed by
+# the Mongo collection it feeds. Only these are auto-imported on startup.
+_DEFAULT_DATA_FILES = (
+    ("agents", "agents.json"),
+    ("skills", "skills.json"),
+    ("teams", "teams.json"),
+)
+
+
+def seed_default_data() -> None:
+    """Import the bundled default agents/skills/teams into the DB on startup.
+
+    So a fresh clone pointed at an empty Mongo comes up with the same default
+    ("default"-owned) catalog the repo ships in storage/*.json — no manual
+    migration step. Only meaningful for the Mongo backend: in JSON mode those
+    files ARE the database, so there is nothing to import. Items are inserted
+    only when no entity with the same id exists yet, so this never clobbers
+    changes made later inside the running DB.
+    """
+    if not _env_bool("SEED_DEFAULT_DATA", True):
+        return
+    if settings.storage_backend != "mongo":
+        return  # JSON mode: storage/*.json is already the live store
+
+    try:
+        import json
+
+        import pymongo
+
+        from backend.domain.models import DEFAULT_OWNER_ID
+
+        client = pymongo.MongoClient(settings.mongo_uri)
+        db = client[settings.mongo_db]
+
+        total_inserted = 0
+        for collection, filename in _DEFAULT_DATA_FILES:
+            path = STORAGE_DIR / filename
+            if not path.exists():
+                continue
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(data, list):
+                continue
+            inserted = 0
+            for rec in data:
+                doc_id = rec.get("id")
+                if not doc_id:
+                    continue
+                if db[collection].find_one({"_id": doc_id}, {"_id": 1}) is not None:
+                    continue  # already present — leave the DB copy untouched
+                doc = dict(rec)
+                doc["_id"] = doc_id
+                doc.setdefault("owner_id", DEFAULT_OWNER_ID)
+                db[collection].insert_one(doc)
+                inserted += 1
+            if inserted:
+                get_logger().info(f"Seeded {inserted} default {collection} into Mongo")
+            total_inserted += inserted
+
+        if total_inserted == 0:
+            get_logger().info("Default catalog already present — nothing to seed")
+    except Exception as exc:  # never block startup on a seeding error
+        get_logger().error(f"Default data seed failed: {exc}")
 
 
 def get_skill_tool_manager() -> SkillToolManager:

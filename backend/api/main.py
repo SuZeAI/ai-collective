@@ -42,6 +42,14 @@ def create_app() -> FastAPI:
     from backend.api.deps import init_usage_tracking
     init_usage_tracking()
 
+    @app.on_event("startup")
+    async def _bootstrap_store() -> None:
+        """Seed the admin (from ADMIN_* env) and the default agents/skills/teams
+        catalog into the store, so a fresh clone comes up ready to use."""
+        from backend.api.deps import seed_admin_user, seed_default_data
+        seed_admin_user()
+        seed_default_data()
+
     @app.middleware("http")
     async def _monitoring_middleware(request, call_next):
         """Attribute LLM usage to the calling user + collect request metrics."""
