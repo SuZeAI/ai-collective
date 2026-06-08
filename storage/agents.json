@@ -1,50 +1,5 @@
 [
   {
-    "id": "a1",
-    "name": "Gold Market Analyst",
-    "role": "Marketing Agent",
-    "description": "Analyzes gold market trends, prices, and provides market insights for investment decisions.",
-    "skillIds": [
-      "skill_websearch_ddg"
-    ],
-    "status": "idle",
-    "avatar": "G",
-    "avatar_icon": "megaphone",
-    "avatar_color": "#16A34A",
-    "avatar_url": "",
-    "system_prompt": "You are Gold Market Analyst, working as a Marketing Agent. Your mission: Analyzes gold market trends, prices, and provides market insights for investment decisions.. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
-  },
-  {
-    "id": "a2",
-    "name": "Gold Data Researcher",
-    "role": "Support Agent",
-    "description": "Researches gold prices, gathers data from multiple sources, and compiles comprehensive price reports.",
-    "skillIds": [
-      "skill_websearch_ddg"
-    ],
-    "status": "idle",
-    "avatar": "G",
-    "avatar_icon": "search",
-    "avatar_color": "#2563EB",
-    "avatar_url": "",
-    "system_prompt": "You are Gold Data Researcher, working as a Support Agent. Your mission: Researches gold prices, gathers data from multiple sources, and compiles comprehensive price reports.. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
-  },
-  {
-    "id": "a3",
-    "name": "Gold Reporting Specialist",
-    "role": "Community Agent",
-    "description": "Creates detailed gold market reports with analysis, charts, and investment recommendations.",
-    "skillIds": [
-      "skill_websearch_ddg"
-    ],
-    "status": "idle",
-    "avatar": "G",
-    "avatar_icon": "briefcase",
-    "avatar_color": "#F59E0B",
-    "avatar_url": "",
-    "system_prompt": "You are Gold Reporting Specialist, working as a Community Agent. Your mission: Creates detailed gold market reports with analysis, charts, and investment recommendations.. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
-  },
-  {
     "id": "agent_bccd2e8cd82f40ecb294a928eed4a89b",
     "name": "Research Content TikTok",
     "role": "Research Agent",

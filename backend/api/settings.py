@@ -37,8 +37,12 @@ class Settings(BaseSettings):
     # ── Storage ───────────────────────────────────────────────────────────────
     # backend: "json" (default, file-based) | "mongo" (MongoDB)
     storage_backend: str = "json"
-    # Absolute path for JSON storage files. Defaults to <project_root>/storage.
+    # Live database dir for JSON storage. Relative paths resolve against the
+    # project root; defaults to <project_root>/local_database.
     storage_dir: str | None = None
+    # Seed source: committed default catalog the startup seed copies FROM.
+    # Read-only; defaults to <project_root>/storage.
+    seed_dir: str | None = None
 
     # ── MongoDB ───────────────────────────────────────────────────────────────
     mongo_uri: str = "mongodb://admin:admin@localhost:27017/ai_collective?authSource=admin"

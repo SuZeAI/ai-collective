@@ -66,7 +66,28 @@ from backend.log import get_logger
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-STORAGE_DIR = Path(settings.storage_dir) if settings.storage_dir else PROJECT_ROOT / "storage"
+
+
+def _resolve_dir(value: str | None, default: Path) -> Path:
+    """Resolve a configured dir to an absolute path.
+
+    Relative values are resolved against the project root (not the process
+    CWD), so the app behaves the same no matter where it is launched from.
+    """
+    if not value:
+        return default
+    p = Path(value)
+    return p if p.is_absolute() else PROJECT_ROOT / p
+
+
+# Live database: where the app reads/writes runtime JSON data. Per-machine and
+# gitignored — defaults to <project_root>/local_database.
+STORAGE_DIR = _resolve_dir(settings.storage_dir, PROJECT_ROOT / "local_database")
+
+# Seed source: the bundled default catalog committed to git. Read-only — it is
+# the source the startup seed copies defaults FROM, never the live store.
+# Configured via SEED_DIR (settings.seed_dir); defaults to <project_root>/storage.
+SEED_DIR = _resolve_dir(settings.seed_dir, PROJECT_ROOT / "storage")
 
 
 @lru_cache
@@ -288,54 +309,81 @@ _DEFAULT_DATA_FILES = (
 )
 
 
-def seed_default_data() -> None:
-    """Import the bundled default agents/skills/teams into the DB on startup.
+def _load_seed_records(filename: str) -> list[dict]:
+    """Read a default-catalog file from the committed seed dir (storage/)."""
+    import json
 
-    So a fresh clone pointed at an empty Mongo comes up with the same default
-    ("default"-owned) catalog the repo ships in storage/*.json — no manual
-    migration step. Only meaningful for the Mongo backend: in JSON mode those
-    files ARE the database, so there is nothing to import. Items are inserted
-    only when no entity with the same id exists yet, so this never clobbers
-    changes made later inside the running DB.
+    path = SEED_DIR / filename
+    if not path.exists():
+        return []
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return data if isinstance(data, list) else []
+
+
+def seed_default_data() -> None:
+    """Seed the bundled default agents/skills/teams into the live DB on startup.
+
+    The committed catalog lives in the seed dir (``storage/``); the live data
+    lives in the local database (Mongo, or JSON files under ``local_database/``).
+    This copies any default entity that is missing from the live DB so a fresh
+    clone comes up with the starter catalog — without ever touching the seed
+    files or clobbering entities already present in the live DB.
     """
     if not _env_bool("SEED_DEFAULT_DATA", True):
         return
-    if settings.storage_backend != "mongo":
-        return  # JSON mode: storage/*.json is already the live store
 
     try:
-        import json
-
-        import pymongo
-
         from backend.domain.models import DEFAULT_OWNER_ID
 
-        client = pymongo.MongoClient(settings.mongo_uri)
-        db = client[settings.mongo_db]
-
         total_inserted = 0
-        for collection, filename in _DEFAULT_DATA_FILES:
-            path = STORAGE_DIR / filename
-            if not path.exists():
-                continue
-            data = json.loads(path.read_text(encoding="utf-8"))
-            if not isinstance(data, list):
-                continue
-            inserted = 0
-            for rec in data:
-                doc_id = rec.get("id")
-                if not doc_id:
+
+        if settings.storage_backend == "mongo":
+            import pymongo
+
+            db = pymongo.MongoClient(settings.mongo_uri)[settings.mongo_db]
+            for collection, filename in _DEFAULT_DATA_FILES:
+                inserted = 0
+                for rec in _load_seed_records(filename):
+                    doc_id = rec.get("id")
+                    if not doc_id:
+                        continue
+                    if db[collection].find_one({"_id": doc_id}, {"_id": 1}) is not None:
+                        continue  # already in the live DB — leave it untouched
+                    doc = dict(rec)
+                    doc["_id"] = doc_id
+                    doc.setdefault("owner_id", DEFAULT_OWNER_ID)
+                    db[collection].insert_one(doc)
+                    inserted += 1
+                if inserted:
+                    get_logger().info(f"Seeded {inserted} default {collection} into Mongo")
+                total_inserted += inserted
+        else:
+            # JSON mode: live store is local_database/*.json (≠ the seed dir).
+            for collection, filename in _DEFAULT_DATA_FILES:
+                seed_records = _load_seed_records(filename)
+                if not seed_records:
                     continue
-                if db[collection].find_one({"_id": doc_id}, {"_id": 1}) is not None:
-                    continue  # already present — leave the DB copy untouched
-                doc = dict(rec)
-                doc["_id"] = doc_id
-                doc.setdefault("owner_id", DEFAULT_OWNER_ID)
-                db[collection].insert_one(doc)
-                inserted += 1
-            if inserted:
-                get_logger().info(f"Seeded {inserted} default {collection} into Mongo")
-            total_inserted += inserted
+                store = JsonFileStore(STORAGE_DIR / filename)
+                live = store.read()
+                if not isinstance(live, list):
+                    live = []
+                existing_ids = {r.get("id") for r in live if isinstance(r, dict)}
+                added = 0
+                for rec in seed_records:
+                    doc_id = rec.get("id")
+                    if not doc_id or doc_id in existing_ids:
+                        continue
+                    rec = dict(rec)
+                    rec.setdefault("owner_id", DEFAULT_OWNER_ID)
+                    live.append(rec)
+                    existing_ids.add(doc_id)
+                    added += 1
+                if added:
+                    store.write(live)
+                    get_logger().info(
+                        f"Seeded {added} default {collection} into {STORAGE_DIR.name}/{filename}"
+                    )
+                total_inserted += added
 
         if total_inserted == 0:
             get_logger().info("Default catalog already present — nothing to seed")
