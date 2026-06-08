@@ -6,11 +6,9 @@ from backend.domain.tools.bash import BashToolkit
 from backend.domain.tools.sandbox_tools import SandboxToolkit
 from backend.domain.tools.brave_search import BraveSearchToolkit
 from backend.domain.tools.browser import BrowserToolkit
-from backend.domain.tools.dedupe_search import DedupeSearchToolkit
 from backend.domain.tools.http import HTTPToolkit
 from backend.domain.tools.mcp_toolkit import MCPToolkit
 from backend.domain.tools.promt_tool import PromtToolToolkit
-from backend.domain.tools.ui import UIToolkit
 from backend.domain.tools.websearch import WebSearchToolkit
 from backend.domain.tools.xai import XAIToolkit
 from backend.domain.tools.xiaohongshu import XiaohongshuToolkit
@@ -55,7 +53,6 @@ class ToolType(str, Enum):
     BRAVE_SEARCH = "brave_search"
     BROWSER = "browser"
     WEBSEARCH = "websearch"
-    DEDUPE_SEARCH = "dedupe_search"
     HTTP = "http"
     MCP = "mcp"
     XAI = "xai"
@@ -74,7 +71,6 @@ class ToolType(str, Enum):
     BLUESKY = "bluesky"
     BIRD_X = "bird_x"
     PROMT_TOOL = "promt_tool"
-    UI = "ui"
     SHEET = "sheet"
     DRIVE = "drive"
     DOCS = "docs"
@@ -103,7 +99,6 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.BRAVE_SEARCH.value: BraveSearchToolkit,
     ToolType.BROWSER.value: BrowserToolkit,
     ToolType.WEBSEARCH.value: WebSearchToolkit,
-    ToolType.DEDUPE_SEARCH.value: DedupeSearchToolkit,
     ToolType.HTTP.value: HTTPToolkit,
     ToolType.MCP.value: MCPToolkit,
     ToolType.XAI.value: XAIToolkit,
@@ -122,7 +117,6 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.BLUESKY.value: BlueskyToolkit,
     ToolType.BIRD_X.value: BirdXToolkit,
     ToolType.PROMT_TOOL.value: PromtToolToolkit,
-    ToolType.UI.value: UIToolkit,
     ToolType.SHEET.value: SheetToolkit,
     ToolType.DRIVE.value: DriveToolkit,
     ToolType.DOCS.value: DocsToolkit,

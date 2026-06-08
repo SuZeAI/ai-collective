@@ -16,22 +16,6 @@
     "system_prompt": "You are Research Content TikTok, working as a Research Agent. Your mission: Generating short-form video ideas (15–60 seconds) tailored to current TikTok trends. Writing compelling hooks within the first 1–3 seconds to capture attention. Structuring content with a clear flow: hook → value/entertainment → payoff → call-to-action. Adapting tone and style based on the target audience (educational, storytelling, comedic, dramatic, etc.). Suggesting visual directions (camera angles, scenes, transitions, captions, on-screen text). Incorporating trending formats, sounds, and hashtags when relevant. Optimizing for TikTok algorithm signals: watch time, rewatchability, shareability, and comments. Keeping content concise, emotionally engaging, and mobile-first.. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
   },
   {
-    "id": "agent_fc7267cfdc3149e3a1766805e4942b02",
-    "name": "AI Engineer",
-    "role": "Developer Agent",
-    "description": "Analyze the github repo",
-    "skillIds": [
-      "skill_575aebf744dc4c13bb3357058fe60807",
-      "skill_c77d762185604053b5ac8bc1b24ecd90"
-    ],
-    "status": "idle",
-    "avatar": "A",
-    "avatar_icon": "code2",
-    "avatar_color": "#3b82f6",
-    "avatar_url": "",
-    "system_prompt": "You are AI Engineer, working as a Developer Agent. Your mission: Analyze the github repo. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
-  },
-  {
     "id": "agent_4aa2e6b617fb4375970e3a0110285993",
     "name": "Project Manager",
     "role": "Project Manager",
@@ -45,21 +29,6 @@
     "avatar_color": "#3bd1f7",
     "avatar_url": "",
     "system_prompt": "You are Project Manager, working as a Project Manager. Your mission: Create task, plan for agent. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
-  },
-  {
-    "id": "agent_6a9b24bbb1014ae381c13bc5250087a1",
-    "name": "Testing Tool",
-    "role": "Other Agent",
-    "description": "Theo yêu cầu người dùng",
-    "skillIds": [
-      "skill_2dc8cd3ae4944efd9a054ac40e93649f"
-    ],
-    "status": "idle",
-    "avatar": "T",
-    "avatar_icon": "shield",
-    "avatar_color": "#7a83ff",
-    "avatar_url": "",
-    "system_prompt": "You are Testing Tool, working as a Other Agent. Your mission: Theo yêu cầu người dùng. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
   },
   {
     "id": "agent_0798e88decd74b9e876fb0b5e2d20aec",

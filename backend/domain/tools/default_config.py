@@ -96,11 +96,6 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 			},
 		],
 	},
-	"dedupe_search": {
-		"label": "Dedupe Search Results",
-		"third_party": "Search Utils",
-		"config_fields": [],
-	},
 	"http": {
 		"label": "HTTP Client",
 		"third_party": "Network",
@@ -292,44 +287,6 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 			},
 		],
 	},
-	"bird_x": {
-		"label": "X Search (Bird GraphQL)",
-		"third_party": "X (Bird)",
-		"config_fields": [
-			{
-				"key": "auth_token",
-				"label": "X AUTH_TOKEN",
-				"input": "text",
-				"required": False,
-				"default": "",
-				"placeholder": "Optional, fallback to AUTH_TOKEN",
-			},
-			{
-				"key": "ct0",
-				"label": "X CT0",
-				"input": "text",
-				"required": False,
-				"default": "",
-				"placeholder": "Optional, fallback to CT0",
-			},
-			{
-				"key": "bird_search_mjs",
-				"label": "bird-search.mjs Path",
-				"input": "text",
-				"required": False,
-				"default": "",
-				"placeholder": "Optional, fallback to BIRD_SEARCH_MJS or project default",
-			},
-			{
-				"key": "depth",
-				"label": "Search Depth",
-				"input": "select",
-				"required": True,
-				"default": "default",
-				"options": ["quick", "default", "deep"],
-			},
-		],
-	},
 	"xiaohongshu": {
 		"label": "Xiaohongshu Search",
 		"third_party": "Xiaohongshu",
@@ -393,6 +350,44 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 				"required": False,
 				"default": "",
 				"placeholder": "Optional, fallback to BSKY_APP_PASSWORD",
+			},
+			{
+				"key": "depth",
+				"label": "Search Depth",
+				"input": "select",
+				"required": True,
+				"default": "default",
+				"options": ["quick", "default", "deep"],
+			},
+		],
+	},
+	"bird_x": {
+		"label": "X Search (Bird GraphQL)",
+		"third_party": "X (Bird)",
+		"config_fields": [
+			{
+				"key": "auth_token",
+				"label": "X AUTH_TOKEN",
+				"input": "text",
+				"required": False,
+				"default": "",
+				"placeholder": "Optional, fallback to AUTH_TOKEN",
+			},
+			{
+				"key": "ct0",
+				"label": "X CT0",
+				"input": "text",
+				"required": False,
+				"default": "",
+				"placeholder": "Optional, fallback to CT0",
+			},
+			{
+				"key": "bird_search_mjs",
+				"label": "bird-search.mjs Path",
+				"input": "text",
+				"required": False,
+				"default": "",
+				"placeholder": "Optional, fallback to BIRD_SEARCH_MJS or project default",
 			},
 			{
 				"key": "depth",
@@ -555,11 +550,6 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 				"rows": 6,
 			},
 		],
-	},
-	"ui": {
-		"label": "UI Helper",
-		"third_party": "UI",
-		"config_fields": [],
 	},
 	"sheet": {
 		"label": "Google Sheets",

@@ -229,8 +229,8 @@
   },
   {
     "id": "skill_3430577f115c48efb9e41f9f7ef65afb",
-    "name": "Content Instruction",
-    "description": "TikTok Content Generation Agent",
+    "name": "TikTok Content Creator",
+    "description": "Generate viral-ready TikTok scripts with strong hooks, scene breakdowns, captions, and hashtags.",
     "third_party": "Prompt",
     "kind": "integration",
     "avatar": "C",
@@ -246,7 +246,7 @@
   {
     "id": "skill_eb2b06e4808247b88fe84b42c58aa05a",
     "name": "YouTube Search",
-    "description": "Skill for search information in Youtube",
+    "description": "Search YouTube for videos, channels, and topic research.",
     "third_party": "YouTube",
     "kind": "integration",
     "avatar": "Y",
@@ -262,7 +262,7 @@
   {
     "id": "skill_ef1f5d3c6fad41bab4080e4c671e5003",
     "name": "Xiaohongshu Search",
-    "description": "search as youtube",
+    "description": "Search Xiaohongshu (RED) posts and creators for trend and product research.",
     "third_party": "Xiaohongshu",
     "kind": "integration",
     "avatar": "X",
@@ -277,23 +277,9 @@
     "code": null
   },
   {
-    "id": "skill_fa3fc958d341461781901adab370a50c",
-    "name": "Dedupe Search Results",
-    "description": "Dedupe search results",
-    "third_party": "Search Utils",
-    "kind": "integration",
-    "avatar": "D",
-    "avatar_icon": "cpu",
-    "avatar_color": "#42f5c8",
-    "avatar_url": "",
-    "tool_name": "dedupe_search",
-    "config": {},
-    "code": null
-  },
-  {
     "id": "skill_5fb1c009d12a40feafb2273449d5aea6",
-    "name": "xAI X Search",
-    "description": "xAIX Search",
+    "name": "X Search (xAI Grok)",
+    "description": "Search X (Twitter) by topic or keyword using xAI Grok's live search. Requires a paid xAI API key.",
     "third_party": "X (xAI)",
     "kind": "integration",
     "avatar": "X",
@@ -302,30 +288,35 @@
     "avatar_url": "",
     "tool_name": "xai",
     "config": {
-      "api_key": "sdafasfsdgfshfs5edacfwfadsgadfg",
+      "api_key": "",
       "model": "grok-4-fast",
       "depth": "default"
     },
     "code": null
   },
   {
-    "id": "skill_b9da4830e3f44dc59585b7b4f6651602",
-    "name": "UI Helper",
-    "description": "UI Helper",
-    "third_party": "UI",
+    "id": "skill_5e843c13a58d440cae29a9d19553d2ed",
+    "name": "X Search (Bird GraphQL)",
+    "description": "Free topic/keyword search of X (Twitter) via a local Node.js scraper. Requires Node.js and X session cookies (AUTH_TOKEN/CT0).",
+    "third_party": "X (Bird)",
     "kind": "integration",
-    "avatar": "U",
-    "avatar_icon": "",
-    "avatar_color": "#489d71",
+    "avatar": "X",
+    "avatar_icon": "cpu",
+    "avatar_color": "#516d9a",
     "avatar_url": "",
-    "tool_name": "ui",
-    "config": {},
+    "tool_name": "bird_x",
+    "config": {
+      "auth_token": "",
+      "ct0": "",
+      "bird_search_mjs": "",
+      "depth": "default"
+    },
     "code": null
   },
   {
     "id": "skill_4b99379b64544c779ed7b6706e6f0892",
     "name": "Truth Social Search",
-    "description": "Truth Social Search",
+    "description": "Search Truth Social posts and accounts for public commentary and trends.",
     "third_party": "Truth Social",
     "kind": "integration",
     "avatar": "T",
@@ -342,7 +333,7 @@
   {
     "id": "skill_5db7f5fb0ea0427fadc5ebeb9dd983f8",
     "name": "TikTok Search (ScrapeCreators)",
-    "description": "TikTok Search (ScrapeCreators)",
+    "description": "Search TikTok videos, creators, and hashtags via ScrapeCreators for trend research.",
     "third_party": "TikTok",
     "kind": "integration",
     "avatar": "T",
@@ -359,7 +350,7 @@
   {
     "id": "skill_323ab24d9fe84653b0dbf6836c715498",
     "name": "X Search (ScrapeCreators)",
-    "description": "X Search (ScrapeCreators)",
+    "description": "Search X (Twitter) posts and profiles via ScrapeCreators for trends and sentiment.",
     "third_party": "X (ScrapeCreators)",
     "kind": "integration",
     "avatar": "X",
@@ -376,7 +367,7 @@
   {
     "id": "skill_143a294c61ff4d1f85c44ff2163a60b0",
     "name": "Reddit Search (ScrapeCreators)",
-    "description": "Reddit Search (ScrapeCreators)",
+    "description": "Search Reddit posts and subreddits via ScrapeCreators for discussions and opinions.",
     "third_party": "Reddit",
     "kind": "integration",
     "avatar": "R",
@@ -393,7 +384,7 @@
   {
     "id": "skill_fb6152d791f4447dbd28338325e15efe",
     "name": "Reddit Enrich (Thread Metrics)",
-    "description": "Reddit Enrich (Thread Metrics)",
+    "description": "Fetch detailed engagement metrics (scores, comments, awards) for Reddit threads.",
     "third_party": "Reddit",
     "kind": "integration",
     "avatar": "R",
@@ -410,7 +401,7 @@
   {
     "id": "skill_b30d83bd4f04454496a7ea3dd00b4c6e",
     "name": "Polymarket Search (Gamma API)",
-    "description": "Polymarket Search (Gamma API)",
+    "description": "Search Polymarket prediction markets via the Gamma API for live odds and event data.",
     "third_party": "Polymarket",
     "kind": "integration",
     "avatar": "P",
@@ -426,7 +417,7 @@
   {
     "id": "skill_cf411d90d3b04fd68ab1799f114cdd4e",
     "name": "Web Search (Parallel AI)",
-    "description": "Web Search (Parallel AI)",
+    "description": "Search and extract web content at scale via the Parallel AI search API.",
     "third_party": "Web",
     "kind": "integration",
     "avatar": "W",
@@ -443,7 +434,7 @@
   {
     "id": "skill_7c4b26f9b2b2427597a1f5928f1603a6",
     "name": "Web Search (OpenRouter Sonar)",
-    "description": "Web Search (OpenRouter Sonar)",
+    "description": "Search the web with cited answers via OpenRouter's Perplexity Sonar model.",
     "third_party": "Web",
     "kind": "integration",
     "avatar": "W",
@@ -460,7 +451,7 @@
   {
     "id": "skill_1763c25b94634541b6bb9b4c8aa5242f",
     "name": "Instagram Reels Search (ScrapeCreators)",
-    "description": "Instagram Reels Search (ScrapeCreators)",
+    "description": "Search Instagram Reels and creators via ScrapeCreators for short-video trends.",
     "third_party": "Instagram",
     "kind": "integration",
     "avatar": "I",
@@ -477,7 +468,7 @@
   {
     "id": "skill_aa21bdc1e4f141e2af5d58fb47e7290d",
     "name": "HTTP Client",
-    "description": "HTTP Client",
+    "description": "Send HTTP requests (GET, POST, etc.) to call REST APIs and fetch web resources.",
     "third_party": "Network",
     "kind": "integration",
     "avatar": "H",
@@ -495,7 +486,7 @@
   {
     "id": "skill_6d9d12dc61a047b3b00c2c7d0b7b934c",
     "name": "Hacker News Search (Algolia)",
-    "description": "Hacker News Search (Algolia)",
+    "description": "Search Hacker News stories and comments via the Algolia API for tech news and discussion.",
     "third_party": "Hacker News",
     "kind": "integration",
     "avatar": "H",
@@ -511,7 +502,7 @@
   {
     "id": "skill_3fc577ebcb614f0ba54ba686a647b3ef",
     "name": "Web Search (Brave Search)",
-    "description": "Web Search (Brave Search)",
+    "description": "Search the web via the Brave Search API for fresh, privacy-friendly results.",
     "third_party": "Web",
     "kind": "integration",
     "avatar": "W",
@@ -528,7 +519,7 @@
   {
     "id": "skill_0137b6075c51484aaab2c5d56215ec34",
     "name": "Bluesky Search",
-    "description": "Bluesky Search",
+    "description": "Search Bluesky posts and accounts for social trends and discussions.",
     "third_party": "Bluesky",
     "kind": "integration",
     "avatar": "B",
@@ -544,28 +535,9 @@
     "code": null
   },
   {
-    "id": "skill_5e843c13a58d440cae29a9d19553d2ed",
-    "name": "X Search (Bird GraphQL)",
-    "description": "X Search (Bird GraphQL)",
-    "third_party": "X (Bird)",
-    "kind": "integration",
-    "avatar": "X",
-    "avatar_icon": "cpu",
-    "avatar_color": "#516d9a",
-    "avatar_url": "",
-    "tool_name": "bird_x",
-    "config": {
-      "auth_token": "",
-      "ct0": "",
-      "bird_search_mjs": "",
-      "depth": "default"
-    },
-    "code": null
-  },
-  {
     "id": "skill_8aa319b75ab34b69b0fb2696c0f077c6",
     "name": "Google Sheets",
-    "description": "Google Sheets",
+    "description": "Read, write, and format data in Google Sheets spreadsheets.",
     "third_party": "Google",
     "kind": "integration",
     "avatar": "G",
@@ -603,7 +575,7 @@
   {
     "id": "skill_5f0170b96a7948b3a3d2ffa920c4c681",
     "name": "Google Docs",
-    "description": "Google Docs",
+    "description": "Create, read, and edit Google Docs documents.",
     "third_party": "Google",
     "kind": "integration",
     "avatar": "G",
@@ -622,7 +594,7 @@
   {
     "id": "skill_f18c6bd411ff4277962af9f413448b42",
     "name": "Google Slides",
-    "description": "Google Slides",
+    "description": "Create and edit Google Slides presentations.",
     "third_party": "Google",
     "kind": "integration",
     "avatar": "G",
@@ -641,7 +613,7 @@
   {
     "id": "skill_66b75bd4f016409ba3d9c4da67b9b330",
     "name": "Google Calendar",
-    "description": "Google Calendar",
+    "description": "Create, read, and manage Google Calendar events and schedules.",
     "third_party": "Google",
     "kind": "integration",
     "avatar": "G",
@@ -660,7 +632,7 @@
   {
     "id": "skill_e3f5c5569bd941dba23c84feb76add7d",
     "name": "Sandbox",
-    "description": "",
+    "description": "Run code and commands in an isolated sandbox for safe, reproducible execution.",
     "third_party": "Sandbox",
     "kind": "integration",
     "avatar": "S",

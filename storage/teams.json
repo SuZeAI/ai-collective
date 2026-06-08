@@ -15,23 +15,6 @@
     "maxSteps": 6
   },
   {
-    "id": "team_0ad3ac18aeca415fb1fa60e2ba10fe8d",
-    "name": "Analyze the golden price",
-    "description": "Analyze the golden price market and provide insights",
-    "agents": [
-      "agent_179b3bd6e39c43cea40eadd3d5f6d695",
-      "agent_0798e88decd74b9e876fb0b5e2d20aec",
-      "agent_0e8154a6c17943ccb329cd5cc9f350b8"
-    ],
-    "activeTasks": 0,
-    "avatar": "A",
-    "avatar_icon": "network",
-    "avatar_color": "#8B5CF6",
-    "avatar_url": "",
-    "mode": "mesh",
-    "maxSteps": 6
-  },
-  {
     "id": "team_c401148000bb4a4a9dbbfe9d339212af",
     "name": "Search gold price",
     "description": "Find everything related to gold",
@@ -46,37 +29,6 @@
     "avatar_color": "#EF4444",
     "avatar_url": "",
     "mode": "mesh",
-    "maxSteps": 6
-  },
-  {
-    "id": "team_4b94bfc530b64fc6b8534adf207acaee",
-    "name": "Github Repo",
-    "description": "everything github repo",
-    "agents": [
-      "agent_4aa2e6b617fb4375970e3a0110285993",
-      "agent_fc7267cfdc3149e3a1766805e4942b02"
-    ],
-    "activeTasks": 0,
-    "avatar": "G",
-    "avatar_icon": "network",
-    "avatar_color": "#dd76f9",
-    "avatar_url": "",
-    "mode": "mesh",
-    "maxSteps": 6
-  },
-  {
-    "id": "team_75da7550f6f24cafb003147e5ef71d10",
-    "name": "coding agent",
-    "description": " coding agent",
-    "agents": [
-      "agent_6a9b24bbb1014ae381c13bc5250087a1"
-    ],
-    "activeTasks": 0,
-    "avatar": "C",
-    "avatar_icon": "",
-    "avatar_color": "#0EA5E9",
-    "avatar_url": "",
-    "mode": "sequential",
     "maxSteps": 6
   },
   {
