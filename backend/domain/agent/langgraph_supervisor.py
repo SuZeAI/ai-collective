@@ -21,10 +21,15 @@ from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
 from backend.domain.agent._graph_runtime import (
     drain_human_guidance,
+    ensure_working_memory,
+    memory_toolkit_tools,
+    record_guidance_in_memory,
+    record_turn_in_memory,
     recursion_config,
     run_to_final_state,
     safe_chat,
     wait_while_paused,
+    working_memory_block,
 )
 
 
@@ -307,6 +312,13 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
                 graph_config=graph_config,
             )
 
+            # Shared working memory: pin guidance, then build the digest that
+            # keeps prior findings alive across log windows and truncation.
+            ensure_working_memory(conversation_id, state["original_input"])
+            if human_guidance:
+                record_guidance_in_memory(conversation_id, human_guidance)
+            memory_block = working_memory_block(conversation_id)
+
             # Knowledge graph context
             graph_ctx = ""
             if graph_context_provider and conversation_id:
@@ -343,6 +355,9 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             context_parts += [
                 f"[User request]: {state['original_input']}",
             ]
+            # Early so the shared memory survives tail-truncation.
+            if memory_block:
+                context_parts += ["", memory_block]
             if graph_ctx:
                 context_parts += ["", f"[Context]:\n{graph_ctx}"]
             if recent_log:
@@ -378,6 +393,8 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
                         agent_name=lead.name,
                     ).get_tools()
                 )
+            # Default memory tools: save/recall shared working-memory notes.
+            bound_tools.extend(memory_toolkit_tools(conversation_id, lead.name))
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
@@ -421,6 +438,25 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
                 new_log.append(f"[Turn {rounds_used + 1}] {human_guidance}")
             if target_worker and task_text:
                 new_log.append(f"[Turn {rounds_used + 1}] {lead.name} → {target_worker}: {task_text}")
+
+            # Working memory: keep the routing decision / final answer alive
+            # even after the delegation-log window rolls past it.
+            if target_worker and task_text:
+                record_turn_in_memory(
+                    conversation_id,
+                    agent_name=lead.name,
+                    turn=rounds_used + 1,
+                    content=f"Delegated to {target_worker}: {task_text}",
+                    kind="decision",
+                )
+            elif final_answer:
+                record_turn_in_memory(
+                    conversation_id,
+                    agent_name=lead.name,
+                    turn=rounds_used + 1,
+                    content=f"Final answer delivered: {final_answer}",
+                    kind="result",
+                )
 
             if graph_context_provider and conversation_id:
                 graph_context_provider.ingest_message(
@@ -493,6 +529,10 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
                 )
             )
 
+            # Shared working memory: workers see what the lead and sibling
+            # workers already found, instead of starting blind.
+            memory_block = working_memory_block(conversation_id)
+
             graph_ctx = ""
             if graph_context_provider and conversation_id:
                 pack = graph_context_provider.build_graph_context(
@@ -510,9 +550,13 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
                         "chunk_ids": pack.chunk_ids,
                     })
 
-            user_input_text = task_text
+            worker_context_parts = [task_text]
+            # Memory before graph context so it survives tail-truncation.
+            if memory_block:
+                worker_context_parts.append(memory_block)
             if graph_ctx:
-                user_input_text = f"{task_text}\n\n[Context]:\n{graph_ctx}"
+                worker_context_parts.append(f"[Context]:\n{graph_ctx}")
+            user_input_text = "\n\n".join(worker_context_parts)
 
             budget_result = apply_context_token_budget(
                 llm=llm,
@@ -539,6 +583,8 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
                         agent_name=worker.name,
                     ).get_tools()
                 )
+            # Default memory tools: save/recall shared working-memory notes.
+            bound_tools.extend(memory_toolkit_tools(conversation_id, worker.name))
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
@@ -573,6 +619,16 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
 
             new_log = list(state.get("delegation_log", []))
             new_log.append(f"[Turn {rounds_used + 1}] {worker.name} → Lead: {output[:300]}{'...' if len(output) > 300 else ''}")
+
+            # Working memory: the full-fidelity note outlives the windowed
+            # delegation log above (which only keeps the last few entries).
+            record_turn_in_memory(
+                conversation_id,
+                agent_name=worker.name,
+                turn=rounds_used + 1,
+                content=output,
+                kind="result",
+            )
 
             if graph_context_provider and conversation_id:
                 graph_context_provider.ingest_message(

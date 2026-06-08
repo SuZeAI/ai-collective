@@ -176,6 +176,102 @@ def drain_human_guidance(
     )
 
 
+# ------------------------------------------------------------------ #
+# Shared working memory (anti-context-loss layer)                       #
+#                                                                       #
+# Every helper below is best-effort: working memory must never break a #
+# run. See backend/domain/memory/working_memory.py for the model and   #
+# docs/AGENT_MEMORY.md for the design.                                  #
+# ------------------------------------------------------------------ #
+
+def ensure_working_memory(conversation_id: str | None, task: str) -> None:
+    """Idempotently record the run's original task in working memory."""
+    if not conversation_id:
+        return
+    try:
+        from backend.infrastructure import working_memory_store
+
+        working_memory_store.set_task(conversation_id, task)
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to init working memory for %s", conversation_id)
+
+
+def working_memory_block(conversation_id: str | None) -> str:
+    """Render the shared working-memory digest for prompt injection.
+
+    Inject it *early* in the user context (right after human guidance) so it
+    survives tail-truncation by the token budget. Returns '' when memory is
+    disabled, empty, or unavailable.
+    """
+    if not conversation_id:
+        return ""
+    try:
+        from backend.infrastructure import working_memory_store
+
+        return working_memory_store.render_digest(conversation_id)
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to render working memory for %s", conversation_id)
+        return ""
+
+
+def record_turn_in_memory(
+    conversation_id: str | None,
+    *,
+    agent_name: str,
+    turn: int,
+    content: str,
+    kind: str = "result",
+) -> None:
+    """Auto-capture a completed turn into working memory (compressed note).
+
+    This is the safety net that keeps context alive when windowed logs roll
+    over or the token budget truncates: the note (or its compacted summary
+    line) keeps flowing to every later agent via the digest.
+    """
+    if not conversation_id or not (content or "").strip():
+        return
+    try:
+        from backend.infrastructure import working_memory_store
+
+        working_memory_store.record_note(
+            conversation_id, agent=agent_name, content=content, kind=kind, turn=turn,
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to record turn in working memory for %s", conversation_id)
+
+
+def record_guidance_in_memory(conversation_id: str | None, guidance: str) -> None:
+    """Pin mid-run human guidance so no later agent can lose it."""
+    if not conversation_id or not (guidance or "").strip():
+        return
+    try:
+        from backend.infrastructure import working_memory_store
+
+        working_memory_store.record_note(
+            conversation_id, agent="user", content=guidance, kind="guidance", pinned=True,
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to record guidance in working memory for %s", conversation_id)
+
+
+def memory_toolkit_tools(conversation_id: str | None, agent_name: str) -> list[Any]:
+    """Build the default memory tools for an agent ([] when unavailable)."""
+    if not conversation_id:
+        return []
+    try:
+        from backend.domain.memory.working_memory import WORKING_MEMORY_ENABLED
+        from backend.domain.tools.memory_tool import MemoryToolkit
+
+        if not WORKING_MEMORY_ENABLED:
+            return []
+        return MemoryToolkit(
+            conversation_id=conversation_id, agent_name=agent_name
+        ).get_tools()
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to build memory toolkit for %s", conversation_id)
+        return []
+
+
 def recursion_config(max_rounds: int) -> dict[str, Any]:
     """Build a LangGraph config whose recursion limit honors ``max_rounds``.
 
