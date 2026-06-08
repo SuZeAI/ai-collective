@@ -302,10 +302,13 @@ def seed_admin_user() -> None:
 
 # Bundled default catalog shipped in storage/*.json (committed to git), keyed by
 # the Mongo collection it feeds. Only these are auto-imported on startup.
+# Order matters: agents/skills/teams are seeded before tasks so a seeded task's
+# referenced team and agents already exist in the live store.
 _DEFAULT_DATA_FILES = (
     ("agents", "agents.json"),
     ("skills", "skills.json"),
     ("teams", "teams.json"),
+    ("tasks", "tasks.json"),
 )
 
 
@@ -321,7 +324,7 @@ def _load_seed_records(filename: str) -> list[dict]:
 
 
 def seed_default_data() -> None:
-    """Seed the bundled default agents/skills/teams into the live DB on startup.
+    """Seed the bundled default agents/skills/teams/tasks into the live DB on startup.
 
     The committed catalog lives in the seed dir (``storage/``); the live data
     lives in the local database (Mongo, or JSON files under ``local_database/``).

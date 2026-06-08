@@ -53,5 +53,103 @@
     ],
     "startTime": "2026-05-06T16:51:01+00:00",
     "endTime": "2026-05-06T16:51:21+00:00"
+  },
+  {
+    "id": "task_ch10d0001f04a1b9c0d0e0f0t0000001",
+    "title": "Launch '60-Second Money Tips' series → auto-publish to TikTok, Facebook & YouTube",
+    "description": "Full content pipeline for the finance-education niche. Steps: (1) Topic & Trend Scout validates 5 trending money-saving topics for Gen-Z; (2) Character & Persona Designer creates the recurring host persona 'Penny'; (3) Content Plan Strategist builds a 2-week, 8-episode calendar with hooks, hashtags and KPIs; (4) Video Producer writes the shot-by-shot script + storyboard for episode 1 and exports the final asset; (5) Multi-Platform Publisher tailors metadata per platform and auto-uploads to TikTok, Facebook and YouTube. Definition of done: episode 1 live on all 3 platforms with links and a pinned comment.",
+    "teamId": "team_ch10d0001f04a1b9c0d0e0f0studio01",
+    "status": "completed",
+    "progress": 100,
+    "assignedAgents": [
+      "agent_ch10d0001f04a1b9c0d0e0f000000a1",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a2",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a3",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a4",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a5"
+    ],
+    "startTime": "2026-05-28T09:00:00+00:00",
+    "endTime": "2026-05-28T09:42:00+00:00"
+  },
+  {
+    "id": "task_ch10d0001f04a1b9c0d0e0f0t0000002",
+    "title": "Topic → Publish: 'AI study hacks for students' short-form video",
+    "description": "Produce one short-form video end-to-end from the topic 'AI study hacks for students'. Scout the angle, reuse the studio host persona, draft the content brief, write the script/storyboard, generate the asset, and schedule auto-publish across TikTok, Facebook and YouTube. Optimize the hook for the first 3 seconds and include platform-specific captions and hashtags.",
+    "teamId": "team_ch10d0001f04a1b9c0d0e0f0studio01",
+    "status": "in-progress",
+    "progress": 45,
+    "assignedAgents": [
+      "agent_ch10d0001f04a1b9c0d0e0f000000a1",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a2",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a3",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a4",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a5"
+    ],
+    "startTime": "2026-06-08T01:30:00+00:00",
+    "endTime": null
+  },
+  {
+    "id": "task_ch10d0001f04a1b9c0d0e0f0t0000003",
+    "title": "Company response: reduce mobile checkout abandonment by 30% in Q3",
+    "description": "A business problem assigned to the taskforce. Business Analyst frames the problem (stakeholders, current vs desired funnel, requirements, success metric = -30% mobile checkout abandonment by end of Q3). Solution Architect proposes 2-3 options with trade-offs and recommends a design + roadmap. AI Engineer scopes the implementation. QA Specialist defines acceptance criteria and a verification plan. Project Manager sequences the work and assigns owners. Deliverable: a prioritized, costed action plan with milestones.",
+    "teamId": "team_ch10d0001f04a1b9c0d0e0f0force01",
+    "status": "in-progress",
+    "progress": 60,
+    "assignedAgents": [
+      "agent_4aa2e6b617fb4375970e3a0110285993",
+      "agent_ch10d0001f04a1b9c0d0e0f000000b1",
+      "agent_ch10d0001f04a1b9c0d0e0f000000b2",
+      "agent_fc7267cfdc3149e3a1766805e4942b02",
+      "agent_ch10d0001f04a1b9c0d0e0f000000b3"
+    ],
+    "startTime": "2026-06-02T08:00:00+00:00",
+    "endTime": null
+  },
+  {
+    "id": "task_ch10d0001f04a1b9c0d0e0f0t0000004",
+    "title": "Post-mortem & fix plan: nightly data pipeline outage",
+    "description": "The company experienced a 6-hour outage of the nightly analytics pipeline. The taskforce runs a structured post-mortem: BA captures impact and requirements, Solution Architect proposes resilient redesign options and recommends one, AI Engineer details the fix, QA defines regression tests, PM produces the remediation timeline. Deliverable: incident report + prioritized fix plan with owners and dates.",
+    "teamId": "team_ch10d0001f04a1b9c0d0e0f0force01",
+    "status": "completed",
+    "progress": 100,
+    "assignedAgents": [
+      "agent_4aa2e6b617fb4375970e3a0110285993",
+      "agent_ch10d0001f04a1b9c0d0e0f000000b1",
+      "agent_ch10d0001f04a1b9c0d0e0f000000b2",
+      "agent_fc7267cfdc3149e3a1766805e4942b02",
+      "agent_ch10d0001f04a1b9c0d0e0f000000b3"
+    ],
+    "startTime": "2026-05-19T10:00:00+00:00",
+    "endTime": "2026-05-19T13:20:00+00:00"
+  },
+  {
+    "id": "task_ch10d0001f04a1b9c0d0e0f0t0000005",
+    "title": "Customer problem intake & analysis: 'SaaS onboarding too slow, churn rising'",
+    "description": "A customer reports that their SaaS onboarding takes too long and early-stage churn is climbing. Intake Specialist captures context, quantifies impact/urgency and logs clarifying questions; Problem & Root Cause Analyst diagnoses the underlying drivers (5-Whys / fishbone) using the provided data; Solution Advisor returns prioritized recommendations (quick wins + long-term fixes) and a customer-ready response plan. Deliverable: intake ticket + root-cause report + recommended action plan.",
+    "teamId": "team_ch10d0001f04a1b9c0d0e0f0desk0001",
+    "status": "in-progress",
+    "progress": 35,
+    "assignedAgents": [
+      "agent_ch10d0001f04a1b9c0d0e0f000000c1",
+      "agent_ch10d0001f04a1b9c0d0e0f000000c2",
+      "agent_ch10d0001f04a1b9c0d0e0f000000c3"
+    ],
+    "startTime": "2026-06-07T14:00:00+00:00",
+    "endTime": null
+  },
+  {
+    "id": "task_ch10d0001f04a1b9c0d0e0f0t0000006",
+    "title": "Analyze customer complaint: payment failures during peak hours",
+    "description": "A customer reports intermittent payment failures during peak traffic. The desk receives the problem, intakes the details and reproduction steps, performs root-cause analysis correlating failures with load and third-party gateway timeouts, and delivers a prioritized solution plan plus a clear response to send back to the customer. Deliverable: analyzed problem report with root cause and recommended mitigations.",
+    "teamId": "team_ch10d0001f04a1b9c0d0e0f0desk0001",
+    "status": "completed",
+    "progress": 100,
+    "assignedAgents": [
+      "agent_ch10d0001f04a1b9c0d0e0f000000c1",
+      "agent_ch10d0001f04a1b9c0d0e0f000000c2",
+      "agent_ch10d0001f04a1b9c0d0e0f000000c3"
+    ],
+    "startTime": "2026-05-23T11:15:00+00:00",
+    "endTime": "2026-05-23T12:05:00+00:00"
   }
 ]

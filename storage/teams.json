@@ -78,5 +78,60 @@
     "avatar_url": "",
     "mode": "sequential",
     "maxSteps": 6
+  },
+  {
+    "id": "team_ch10d0001f04a1b9c0d0e0f0studio01",
+    "name": "Content Production Studio",
+    "description": "End-to-end short-form content pipeline: topic -> character -> content plan -> video -> auto-publish to TikTok, Facebook & YouTube.",
+    "agents": [
+      "agent_ch10d0001f04a1b9c0d0e0f000000a1",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a2",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a3",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a4",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a5"
+    ],
+    "activeTasks": 0,
+    "avatar": "C",
+    "avatar_icon": "workflow",
+    "avatar_color": "#10B981",
+    "avatar_url": "",
+    "mode": "sequential",
+    "maxSteps": 8
+  },
+  {
+    "id": "team_ch10d0001f04a1b9c0d0e0f0force01",
+    "name": "Product Solutions Taskforce",
+    "description": "Cross-functional company team that takes a business problem and drives it from analysis to a delivered, verified solution.",
+    "agents": [
+      "agent_4aa2e6b617fb4375970e3a0110285993",
+      "agent_ch10d0001f04a1b9c0d0e0f000000b1",
+      "agent_ch10d0001f04a1b9c0d0e0f000000b2",
+      "agent_fc7267cfdc3149e3a1766805e4942b02",
+      "agent_ch10d0001f04a1b9c0d0e0f000000b3"
+    ],
+    "activeTasks": 0,
+    "avatar": "P",
+    "avatar_icon": "network",
+    "avatar_color": "#6366F1",
+    "avatar_url": "",
+    "mode": "mesh",
+    "maxSteps": 8
+  },
+  {
+    "id": "team_ch10d0001f04a1b9c0d0e0f0desk0001",
+    "name": "Customer Solutions Desk",
+    "description": "Receives a problem from a customer, then intakes, analyzes the root cause, and proposes a solution & response plan.",
+    "agents": [
+      "agent_ch10d0001f04a1b9c0d0e0f000000c1",
+      "agent_ch10d0001f04a1b9c0d0e0f000000c2",
+      "agent_ch10d0001f04a1b9c0d0e0f000000c3"
+    ],
+    "activeTasks": 0,
+    "avatar": "C",
+    "avatar_icon": "users",
+    "avatar_color": "#14B8A6",
+    "avatar_url": "",
+    "mode": "mesh",
+    "maxSteps": 8
   }
 ]
