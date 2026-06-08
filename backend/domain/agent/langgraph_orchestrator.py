@@ -20,10 +20,15 @@ from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
 from backend.domain.agent._graph_runtime import (
     drain_human_guidance,
+    ensure_working_memory,
+    memory_toolkit_tools,
+    record_guidance_in_memory,
+    record_turn_in_memory,
     recursion_config,
     run_to_final_state,
     safe_chat,
     wait_while_paused,
+    working_memory_block,
 )
 
 
@@ -230,6 +235,8 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                         agent_name=agent.name,
                     ).get_tools()
                 )
+            # Default memory tools: save/recall shared working-memory notes.
+            bound_tools.extend(memory_toolkit_tools(conversation_id, agent.name))
 
             # Agent Mode: expose the `task` tool so this agent can delegate to
             # subagents (which inherit these tools minus `task`).
@@ -278,6 +285,15 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                         "chunk_ids": pack.chunk_ids,
                     })
 
+            # Shared working memory: in a pipeline only the previous agent's
+            # output flows forward — the digest restores everything earlier.
+            ensure_working_memory(conversation_id, state["original_input"])
+            if human_guidance:
+                record_guidance_in_memory(conversation_id, human_guidance)
+            memory_block = working_memory_block(conversation_id)
+            if memory_block:
+                user_input = f"{memory_block}\n\n{user_input}"
+
             # Prepend so the guidance survives tail-truncation by the token budget.
             if human_guidance:
                 user_input = f"{human_guidance}\n\n{user_input}"
@@ -323,6 +339,16 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                 agent_name=agent.name,
                 agent_role=agent.role,
                 content=output,
+            )
+
+            # Working memory: keep this stage's result available to all later
+            # pipeline stages, not just the immediate next one.
+            record_turn_in_memory(
+                conversation_id,
+                agent_name=agent.name,
+                turn=state["rounds"] + 1,
+                content=output,
+                kind="result",
             )
 
             if graph_context_provider and conversation_id:
