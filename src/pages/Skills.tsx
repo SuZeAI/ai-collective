@@ -181,6 +181,7 @@ export default function Skills() {
   const [toolName, setToolName] = useState<ToolName>("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [instruction, setInstruction] = useState("");
   const [configValues, setConfigValues] = useState<Record<string, ToolConfigValue>>({});
 
   const [avatarMode, setAvatarMode] = useState<AvatarMode>("initial");
@@ -271,6 +272,7 @@ export default function Skills() {
     setToolName(defaultPreset?.tool_name ?? "");
     setName(defaultPreset?.label ?? "");
     setDescription("");
+    setInstruction("");
     setConfigValues(buildDefaultConfigValues(defaultPreset));
     setAvatarMode("initial");
     setAvatarIcon("wrench");
@@ -389,6 +391,7 @@ export default function Skills() {
     setToolName(inferredToolName);
     setName(skill.name ?? "");
     setDescription(skill.description ?? "");
+    setInstruction(skill.instruction ?? "");
     setConfigValues(buildConfigValuesForEdit(preset, (skill.config as Record<string, unknown> | undefined) ?? {}));
 
     setAvatarMode(skill.avatar_url ? "image" : skill.avatar_icon ? "icon" : "initial");
@@ -438,6 +441,7 @@ export default function Skills() {
         avatar_color: isHexColor(avatarColor) ? avatarColor : "",
         avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
         code: null,
+        instruction: instruction.trim(),
       });
       setSkills((prev) => {
         const idx = prev.findIndex((s) => s.id === saved.id);
@@ -514,6 +518,7 @@ export default function Skills() {
                       tool_name: src.tool_name,
                       config: src.config || {},
                       code: src.code,
+                      instruction: src.instruction,
                       avatar: src.avatar,
                       avatar_icon: src.avatar_icon,
                       avatar_color: src.avatar_color,
@@ -549,6 +554,19 @@ export default function Skills() {
 
               <Input placeholder="Skill name" value={name} onChange={(e) => setName(e.target.value)} />
               <Input placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+
+              <div className="space-y-1">
+                <div className="text-sm font-medium">Instructions</div>
+                <Textarea
+                  placeholder="Explain how to use this skill — e.g. where to get the API key/token, required accounts or local setup, and how to fill in the config above."
+                  value={instruction}
+                  onChange={(e) => setInstruction(e.target.value)}
+                  rows={4}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Shown to users so they know how to obtain credentials or enable this skill.
+                </p>
+              </div>
 
               <div className="space-y-3">
                 <div className="text-sm font-medium">Avatar</div>
@@ -743,6 +761,11 @@ export default function Skills() {
                     </div>
                     {s.description ? (
                       <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{s.description}</p>
+                    ) : null}
+                    {s.instruction ? (
+                      <p className="text-xs text-muted-foreground mt-2 line-clamp-3 whitespace-pre-line border-l-2 border-muted pl-2">
+                        {s.instruction}
+                      </p>
                     ) : null}
                     {getConfigVariableNames(s.config).length ? (
                       <p className="text-xs text-muted-foreground mt-2 line-clamp-2">

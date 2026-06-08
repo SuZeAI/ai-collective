@@ -15,7 +15,8 @@
       "region": "wt-wt",
       "safesearch": "moderate"
     },
-    "code": null
+    "code": null,
+    "instruction": "No API key required — DuckDuckGo is free and public. Just adjust 'region' (e.g. wt-wt for global, vn-vi for Vietnam) and 'safesearch' (off/moderate/strict) in the config, then assign the skill to an agent."
   },
   {
     "id": "skill_a8470bc781b345b99cf15fcbad77ad48",
@@ -33,7 +34,8 @@
       "cdp_url": "http://localhost:9222",
       "requires_runtime": true
     },
-    "code": null
+    "code": null,
+    "instruction": "No API key needed, but a Chromium-based browser must be running with remote debugging enabled. Launch it with: chrome --remote-debugging-port=9222 (or set the matching 'cdp_url'). Make sure that URL is reachable from the backend before running the agent."
   },
   {
     "id": "skill_2dc8cd3ae4944efd9a054ac40e93649f",
@@ -49,7 +51,8 @@
     "config": {
       "requires_runtime": true
     },
-    "code": null
+    "code": null,
+    "instruction": "No API key required — runs commands on the host/sandbox runtime where the backend executes. Only assign this to trusted agents, since it can run arbitrary shell commands."
   },
   {
     "id": "skill_93cd0344158c41f3b8527f49fc3b647c",
@@ -65,7 +68,8 @@
     "config": {
       "system_prompt": "You are a requirements clarification expert. For every new task: 1) summarize the objective in 1-2 sentences, 2) list missing input data, 3) identify technical constraints, 4) propose a clear definition of done. Keep responses concise, practical, and action-oriented."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. It just injects the system prompt into the agent. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_40ab114e0abe4b619ba12808b69378c3",
@@ -81,7 +85,8 @@
     "config": {
       "system_prompt": "You are an execution planner. Split the goal into 30-90 minute steps, label priority (high/medium/low), map dependencies, identify key risks and mitigations, and finish with a checklist that can be executed immediately."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_df9e759f63894673b5bb705a128e8cf3",
@@ -97,7 +102,8 @@
     "config": {
       "system_prompt": "You are a bug triage engineer. For each bug, provide: symptom summary, reproduction steps, severity (S1-S4), user impact, root cause hypothesis, and short-term plus long-term fixes. Always prioritize safety and include a rollback plan."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_6c9d08f965d84b2ba60fe66f75092d87",
@@ -113,7 +119,8 @@
     "config": {
       "system_prompt": "You are a strict but constructive reviewer. Evaluate in this order: 1) correctness, 2) security, 3) performance, 4) readability, 5) test coverage. Every comment must include priority and a concrete change suggestion. Avoid generic feedback."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_71c4e76fdbe74e06a8eea569951fe132",
@@ -129,7 +136,8 @@
     "config": {
       "system_prompt": "You are a QA engineer. Create test cases in a table with: test objective, input, execution steps, expected output, priority, and test type (unit/integration/e2e). Always include edge cases for null, empty values, timeouts, permissions, and abnormal data."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_8735dbd9627b40238ace5f620d82c432",
@@ -145,7 +153,8 @@
     "config": {
       "system_prompt": "You are a product discovery coach. From one idea, generate: target persona, core problem, highest-risk assumptions, user interview questions, and a small experiment to validate within one week. Prioritize approaches that save time and cost."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_f713ef946e784f83a2e860fd538e03b1",
@@ -161,7 +170,8 @@
     "config": {
       "system_prompt": "You are a decision advisor. For each option, build a decision matrix using criteria: cost, timeline, risk, scalability, and goal fit. Score each criterion from 1-5, provide brief reasoning, then conclude with a recommended option and conditions that would change the decision."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_b1b680e74e58497088e42e63ea305ee1",
@@ -177,7 +187,8 @@
     "config": {
       "system_prompt": "You are a data storytelling expert. Present results in this structure: context, key findings, data evidence, business impact, and recommended actions (short-term and long-term). Clearly state data limitations and confidence level."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_c77d762185604053b5ac8bc1b24ecd90",
@@ -193,7 +204,8 @@
     "config": {
       "system_prompt": "You are a technical writer. Produce concise, structured documentation with: goal, prerequisites, step-by-step instructions, runnable examples, common errors, and troubleshooting steps. Use short sentences, consistent terminology, and avoid ambiguity."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_0ad6c42208d842bfb46c0690067bd269",
@@ -209,7 +221,8 @@
     "config": {
       "system_prompt": "You are a meeting synthesis assistant. Output results in 4 sections: finalized decisions, action items, owner and deadline, and open issues. If information is missing, mark clear TODO items instead of guessing."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_f782a1d84873460980c93981191769a1",
@@ -225,7 +238,8 @@
     "config": {
       "system_prompt": "You are a learning coach. Design a 2-8 week roadmap with weekly goals, practice tasks, progress evaluation criteria, and review milestones. Maintain a 20 percent theory and 80 percent practice balance, with a fallback plan for limited learner time."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_3430577f115c48efb9e41f9f7ef65afb",
@@ -241,7 +255,8 @@
     "config": {
       "system_prompt": "**TikTok Content Generation Agent **\n\nYou are an AI agent specialized in creating high-performing TikTok content optimized for virality, retention, and engagement.\n\nYour responsibilities include:\n\n* Generating short-form video ideas (15–60 seconds) tailored to current TikTok trends.\n* Writing compelling hooks within the first 1–3 seconds to capture attention.\n* Structuring content with a clear flow: hook → value/entertainment → payoff → call-to-action.\n* Adapting tone and style based on the target audience (educational, storytelling, comedic, dramatic, etc.).\n* Suggesting visual directions (camera angles, scenes, transitions, captions, on-screen text).\n* Incorporating trending formats, sounds, and hashtags when relevant.\n* Optimizing for TikTok algorithm signals: watch time, rewatchability, shareability, and comments.\n* Keeping content concise, emotionally engaging, and mobile-first.\n\nConstraints:\n\n* Content must be platform-native (fast-paced, visually engaging, no long intros).\n* Avoid generic or low-retention phrasing.\n* Prioritize clarity, relatability, and strong emotional or informational impact.\n\nOutput format:\n\n* Hook\n* Script / Voiceover\n* Scene breakdown\n* Caption\n* Hashtags"
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_eb2b06e4808247b88fe84b42c58aa05a",
@@ -257,7 +272,8 @@
     "config": {
       "depth": "default"
     },
-    "code": null
+    "code": null,
+    "instruction": "No API key required for the default search. Set 'depth' to control how many results are fetched (default/deep). If you hit rate limits, search less aggressively or add your own YouTube Data API key in the config later."
   },
   {
     "id": "skill_ef1f5d3c6fad41bab4080e4c671e5003",
@@ -274,7 +290,8 @@
       "base_url": "",
       "depth": "default"
     },
-    "code": null
+    "code": null,
+    "instruction": "No API key required. If you run a self-hosted Xiaohongshu (RED) scraper/proxy, put its endpoint in 'base_url'; leave it blank to use the built-in default. Set 'depth' to control result volume."
   },
   {
     "id": "skill_5fb1c009d12a40feafb2273449d5aea6",
@@ -292,7 +309,8 @@
       "model": "grok-4-fast",
       "depth": "default"
     },
-    "code": null
+    "code": null,
+    "instruction": "Requires a PAID xAI API key. Sign in at https://console.x.ai, open API Keys, create a key, and paste it into 'api_key'. Keep 'model' as grok-4-fast (or another Grok model you have access to). Live X search is billed per request by xAI."
   },
   {
     "id": "skill_5e843c13a58d440cae29a9d19553d2ed",
@@ -311,7 +329,8 @@
       "bird_search_mjs": "",
       "depth": "default"
     },
-    "code": null
+    "code": null,
+    "instruction": "Free, but needs Node.js installed and your own X (Twitter) session cookies. 1) Log in to x.com in a browser. 2) Open DevTools → Application → Cookies → x.com. 3) Copy the 'auth_token' cookie value into 'auth_token' and the 'ct0' cookie value into 'ct0'. 4) Set 'bird_search_mjs' to the absolute path of your local bird_search.mjs scraper script. Cookies expire periodically — re-copy them if search stops working."
   },
   {
     "id": "skill_4b99379b64544c779ed7b6706e6f0892",
@@ -328,7 +347,8 @@
       "token": "",
       "depth": "default"
     },
-    "code": null
+    "code": null,
+    "instruction": "Requires a Truth Social access token. Obtain it from your Truth Social account/API session (e.g. the Bearer token from an authenticated session) and paste it into 'token'. Set 'depth' to control how many results are returned."
   },
   {
     "id": "skill_5db7f5fb0ea0427fadc5ebeb9dd983f8",
@@ -345,7 +365,8 @@
       "token": "tlFeXjKL6EcgSqLeoHuYa7JRnEo1",
       "depth": "default"
     },
-    "code": null
+    "code": null,
+    "instruction": "Requires a ScrapeCreators API key. Sign up at https://scrapecreators.com, open the dashboard, copy your API key, and paste it into 'token' (replace the placeholder). The same ScrapeCreators key works for the TikTok / X / Reddit / Instagram ScrapeCreators skills."
   },
   {
     "id": "skill_323ab24d9fe84653b0dbf6836c715498",
@@ -362,7 +383,8 @@
       "token": "tlFeXjKL6EcgSqLeoHuYa7JRnEo1",
       "depth": "default"
     },
-    "code": null
+    "code": null,
+    "instruction": "Requires a ScrapeCreators API key. Sign up at https://scrapecreators.com, copy your API key from the dashboard, and paste it into 'token' (replace the placeholder). One ScrapeCreators key is shared across all ScrapeCreators-based skills."
   },
   {
     "id": "skill_143a294c61ff4d1f85c44ff2163a60b0",
@@ -379,7 +401,8 @@
       "token": "tlFeXjKL6EcgSqLeoHuYa7JRnEo1",
       "depth": "default"
     },
-    "code": null
+    "code": null,
+    "instruction": "Requires a ScrapeCreators API key. Sign up at https://scrapecreators.com, copy your API key from the dashboard, and paste it into 'token' (replace the placeholder). One ScrapeCreators key is shared across all ScrapeCreators-based skills."
   },
   {
     "id": "skill_fb6152d791f4447dbd28338325e15efe",
@@ -396,7 +419,8 @@
       "token": "tlFeXjKL6EcgSqLeoHuYa7JRnEo1",
       "backend": "auto"
     },
-    "code": null
+    "code": null,
+    "instruction": "Requires a ScrapeCreators API key in 'token' (get it at https://scrapecreators.com → dashboard). Leave 'backend' as 'auto' to let it pick the best data source, or set it explicitly if you need a specific one."
   },
   {
     "id": "skill_b30d83bd4f04454496a7ea3dd00b4c6e",
@@ -412,7 +436,8 @@
     "config": {
       "depth": "default"
     },
-    "code": null
+    "code": null,
+    "instruction": "No API key required — the Polymarket Gamma API is public. Just set 'depth' to control how many markets/events are returned, then assign the skill to an agent."
   },
   {
     "id": "skill_cf411d90d3b04fd68ab1799f114cdd4e",
@@ -429,7 +454,8 @@
       "api_key": "PjHmr44dsEnMhZ-oietRpVJ1ruuDwNLrPY927Vgu",
       "beta_header": "search-extract-2025-10-10"
     },
-    "code": null
+    "code": null,
+    "instruction": "Requires a Parallel AI API key. Sign up at https://platform.parallel.ai, create an API key, and paste it into 'api_key' (replace any placeholder/shared key with your own). Keep 'beta_header' as provided unless Parallel AI tells you to change it."
   },
   {
     "id": "skill_7c4b26f9b2b2427597a1f5928f1603a6",
@@ -446,7 +472,8 @@
       "api_key": "",
       "model": "perplexity/sonar-pro"
     },
-    "code": null
+    "code": null,
+    "instruction": "Requires an OpenRouter API key. Create one at https://openrouter.ai/keys (you need credits/billing set up), then paste it into 'api_key'. Keep 'model' as perplexity/sonar-pro or pick another search-capable model from https://openrouter.ai/models."
   },
   {
     "id": "skill_1763c25b94634541b6bb9b4c8aa5242f",
@@ -463,7 +490,8 @@
       "token": "tlFeXjKL6EcgSqLeoHuYa7JRnEo1",
       "depth": "default"
     },
-    "code": null
+    "code": null,
+    "instruction": "Requires a ScrapeCreators API key. Sign up at https://scrapecreators.com, copy your API key from the dashboard, and paste it into 'token' (replace the placeholder). One ScrapeCreators key is shared across all ScrapeCreators-based skills."
   },
   {
     "id": "skill_aa21bdc1e4f141e2af5d58fb47e7290d",
@@ -481,7 +509,8 @@
       "retries": "5",
       "user_agent": "ai-collective/http-tool"
     },
-    "code": null
+    "code": null,
+    "instruction": "No API key required for the tool itself. Tune 'timeout' (seconds), 'retries', and 'user_agent' as needed. If a target API needs authentication, the agent must include the auth header/token in the request it sends."
   },
   {
     "id": "skill_6d9d12dc61a047b3b00c2c7d0b7b934c",
@@ -497,7 +526,8 @@
     "config": {
       "depth": "default"
     },
-    "code": null
+    "code": null,
+    "instruction": "No API key required — the HN Algolia search API is free and public. Just set 'depth' to control result volume, then assign the skill to an agent."
   },
   {
     "id": "skill_3fc577ebcb614f0ba54ba686a647b3ef",
@@ -514,7 +544,8 @@
       "api_key": "",
       "use_llm_context": false
     },
-    "code": null
+    "code": null,
+    "instruction": "Requires a Brave Search API key. Register at https://api-dashboard.search.brave.com, subscribe to a plan (a free tier is available), create a key, and paste it into 'api_key'. Set 'use_llm_context' to true if you want richer LLM-oriented result summaries."
   },
   {
     "id": "skill_0137b6075c51484aaab2c5d56215ec34",
@@ -532,7 +563,8 @@
       "app_password": "",
       "depth": "default"
     },
-    "code": null
+    "code": null,
+    "instruction": "Requires a Bluesky account and an app password (not your main password). In the Bluesky app go to Settings → Privacy and Security → App Passwords (https://bsky.app/settings/app-passwords) and create one. Put your handle (e.g. yourname.bsky.social) in 'handle' and the generated app password in 'app_password'."
   },
   {
     "id": "skill_8aa319b75ab34b69b0fb2696c0f077c6",
@@ -551,7 +583,8 @@
       "credentials_path": "",
       "service_account_path": ""
     },
-    "code": null
+    "code": null,
+    "instruction": "Needs Google authorization (OAuth). Easiest: open this skill in the editor and click 'Authenticate Google' to sign in and grant access — the token is saved to 'token_path'. For server/headless use instead, create OAuth client credentials or a service account in Google Cloud Console (with the Google Sheets API enabled) and set 'credentials_path' or 'service_account_path' to that JSON file. Enter the Google account email in 'auth_email'."
   },
   {
     "id": "skill_e901042144154de5984e93166aaa63c7",
@@ -570,7 +603,8 @@
       "credentials_path": "",
       "service_account_path": ""
     },
-    "code": null
+    "code": null,
+    "instruction": "Needs Google authorization (OAuth). Easiest: open this skill and click 'Authenticate Google' to sign in and grant Drive access — the token is saved to 'token_path'. For server/headless use, create OAuth client credentials or a service account in Google Cloud Console (with the Google Drive API enabled) and set 'credentials_path' or 'service_account_path'. Enter the Google account email in 'auth_email'."
   },
   {
     "id": "skill_5f0170b96a7948b3a3d2ffa920c4c681",
@@ -589,7 +623,8 @@
       "credentials_path": "",
       "service_account_path": ""
     },
-    "code": null
+    "code": null,
+    "instruction": "Needs Google authorization (OAuth). Easiest: open this skill and click 'Authenticate Google' to sign in and grant Docs access — the token is saved to 'token_path'. For server/headless use, create OAuth client credentials or a service account in Google Cloud Console (with the Google Docs API enabled) and set 'credentials_path' or 'service_account_path'. Enter the Google account email in 'auth_email'."
   },
   {
     "id": "skill_f18c6bd411ff4277962af9f413448b42",
@@ -608,7 +643,8 @@
       "credentials_path": "",
       "service_account_path": ""
     },
-    "code": null
+    "code": null,
+    "instruction": "Needs Google authorization (OAuth). Easiest: open this skill and click 'Authenticate Google' to sign in and grant Slides access — the token is saved to 'token_path'. For server/headless use, create OAuth client credentials or a service account in Google Cloud Console (with the Google Slides API enabled) and set 'credentials_path' or 'service_account_path'. Enter the Google account email in 'auth_email'."
   },
   {
     "id": "skill_66b75bd4f016409ba3d9c4da67b9b330",
@@ -627,7 +663,8 @@
       "credentials_path": "",
       "service_account_path": ""
     },
-    "code": null
+    "code": null,
+    "instruction": "Needs Google authorization (OAuth). Easiest: open this skill and click 'Authenticate Google' to sign in and grant Calendar access — the token is saved to 'token_path'. For server/headless use, create OAuth client credentials or a service account in Google Cloud Console (with the Google Calendar API enabled) and set 'credentials_path' or 'service_account_path'. Enter the Google account email in 'auth_email'."
   },
   {
     "id": "skill_e3f5c5569bd941dba23c84feb76add7d",
@@ -641,7 +678,8 @@
     "avatar_url": "",
     "tool_name": "sandbox",
     "config": {},
-    "code": null
+    "code": null,
+    "instruction": "No API key or extra config required — runs code/commands inside the platform's isolated sandbox runtime. Just assign it to an agent. Make sure the sandbox runtime is enabled/available in your deployment."
   },
   {
     "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000001",
@@ -657,7 +695,8 @@
     "config": {
       "system_prompt": "You are a character & persona designer for social content. From a topic and target audience, produce: 1) character name and one-line concept, 2) personality traits and tone of voice, 3) visual identity (look, outfit, color palette, signature props), 4) backstory and motivation, 5) 3-5 signature catchphrases, 6) how the character reacts on camera. Keep it consistent, recognizable, and brand-safe."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000002",
@@ -673,7 +712,8 @@
     "config": {
       "system_prompt": "You are a content strategist. From a topic and character, build a content plan: 1) content pillars, 2) a list of episodes/posts each with title, hook, key message, and CTA, 3) publishing cadence and best posting times per platform (TikTok, Facebook, YouTube), 4) hashtag/keyword sets per platform, 5) success KPIs (watch time, saves, shares, CTR). Output as a clear, executable calendar table."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000003",
@@ -689,7 +729,8 @@
     "config": {
       "system_prompt": "You are a short-form video director. From a content brief, produce a production-ready package: 1) hook (first 1-3 seconds), 2) full voiceover/script with timestamps, 3) shot-by-shot storyboard (scene, camera angle, on-screen text, b-roll, transition), 4) recommended music/sound style, 5) caption + hashtags, 6) thumbnail/cover idea. Keep pacing fast and mobile-first."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000004",
@@ -705,7 +746,8 @@
     "config": {
       "system_prompt": "You are a social publishing orchestrator. Given a finished video asset and metadata, produce and execute a publishing plan: 1) per-platform title/description/caption tailored to TikTok, Facebook, and YouTube, 2) platform-specific hashtags and tags, 3) thumbnail/cover selection, 4) scheduled publish times, 5) the upload steps/API or browser actions for each platform, 6) a post-publish checklist (links, pinned comment, cross-promotion). Confirm credentials/permissions before any live upload and report the result of each upload."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key of its own. It only plans/coordinates publishing. To actually upload, pair it on the same agent with the tools that have credentials (e.g. Browser Automation, HTTP Client, or platform-specific skills) and make sure those are authenticated first."
   },
   {
     "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000005",
@@ -721,7 +763,8 @@
     "config": {
       "system_prompt": "You are a senior business analyst. For a given problem, deliver: 1) problem statement and business context, 2) stakeholders and their goals, 3) current state vs desired state (gap analysis), 4) functional and non-functional requirements, 5) constraints and assumptions, 6) measurable success criteria/KPIs, 7) prioritized scope (MoSCoW). Be precise and avoid solutioning before the problem is well defined."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000006",
@@ -737,7 +780,8 @@
     "config": {
       "system_prompt": "You are a root-cause analysis expert. For an incident or problem: 1) restate the observed symptoms with evidence/data, 2) form hypotheses, 3) apply 5-Whys and a fishbone (people/process/tech/data/external), 4) identify the most probable root cause(s) with confidence level, 5) recommend immediate mitigations and long-term fixes, 6) define how to verify the cause was truly addressed. Distinguish symptoms from root causes."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000007",
@@ -753,7 +797,8 @@
     "config": {
       "system_prompt": "You are a solution architect. Given well-defined requirements, deliver: 1) 2-3 candidate solution options with pros/cons, cost, risk, and timeline, 2) a recommended option with justification, 3) a high-level architecture/approach, 4) key risks and mitigations, 5) a phased delivery roadmap with milestones and owners, 6) what to validate first. Tie every choice back to the success metrics."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   },
   {
     "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000008",
@@ -769,6 +814,7 @@
     "config": {
       "system_prompt": "You are a customer intake specialist. When a customer reports a problem: 1) acknowledge and summarize the request in your own words, 2) capture context (who/what/when/where, environment, affected users), 3) quantify impact and urgency (severity, frequency, business cost), 4) list the clarifying questions still needed, 5) record reproduction steps or examples, 6) produce a structured intake ticket ready for analysis. Be empathetic, neutral, and never guess missing facts."
     },
-    "code": null
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
   }
 ]

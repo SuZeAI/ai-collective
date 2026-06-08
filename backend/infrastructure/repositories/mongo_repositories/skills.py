@@ -26,6 +26,7 @@ class MongoSkillRepository:
             avatar_url=str(item.get("avatar_url", "") or ""),
             tool_name=(str(item.get("tool_name")) if item.get("tool_name") is not None else None),
             code=(str(item.get("code")) if item.get("code") is not None else None),
+            instruction=str(item.get("instruction", "") or ""),
             owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
         )
 
@@ -44,6 +45,7 @@ class MongoSkillRepository:
             "tool_name": s.tool_name,
             "config": dict(s.config or {}),
             "code": s.code,
+            "instruction": s.instruction,
             "owner_id": s.owner_id,
         }
 

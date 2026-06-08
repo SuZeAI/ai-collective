@@ -44,6 +44,7 @@ class Skill:
     tool_name: str | None = None  # Linked tool (e.g. "websearch", "browser", "bash")
     code: str | None = None
     owner_id: str = DEFAULT_OWNER_ID
+    instruction: str = ""  # User-facing guide: how to get an API key / enable / use this skill
 
 
 @dataclass(frozen=True, slots=True)
