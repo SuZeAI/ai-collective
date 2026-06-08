@@ -49,6 +49,10 @@ class JsonUserRepository:
             ]
         )
 
+    def list(self) -> list[User]:
+        with self._lock:
+            return list(self._items.values())
+
     def find_by_id(self, user_id: str) -> User | None:
         with self._lock:
             return self._items.get(user_id)

@@ -183,6 +183,28 @@ class SimulationStep:
     phase: int | None = None  # 1..4 (Planning/Execution/Review/Complete)
 
 
+@dataclass(frozen=True, slots=True)
+class TokenUsageRecord:
+    """One LLM invocation's token usage, recorded for admin monitoring."""
+    id: str
+    provider: str            # "anthropic" | "openai" | "google" | "open_weight"
+    model: str
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
+    user_id: str             # who triggered the call; "system" for background work
+    timestamp: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class ModelPricing:
+    """Admin-editable price card for one model (USD per 1M tokens)."""
+    model: str
+    provider: str
+    input_price_per_million: float
+    output_price_per_million: float
+
+
 @dataclass
 class User:
     id: str

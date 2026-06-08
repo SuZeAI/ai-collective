@@ -316,6 +316,92 @@ export function canDeleteItem(item: { owner_id?: string }): boolean {
 /** Editing shared items follows the same ownership rule — only the owner sees the edit button. */
 export const canEditItem = canDeleteItem;
 
+// ─── Admin monitoring ────────────────────────────────────────────────────────
+
+export type ModelPricing = {
+  model: string;
+  provider: string;
+  inputPricePerMillion: number;
+  outputPricePerMillion: number;
+};
+
+export type UsageTotals = {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  requests: number;
+  cost: number;
+};
+
+export type ModelUsage = {
+  model: string;
+  provider: string;
+  inputTokens: number;
+  outputTokens: number;
+  requests: number;
+  cost: number;
+  priced: boolean;
+};
+
+export type UserUsage = {
+  userId: string;
+  name: string;
+  inputTokens: number;
+  outputTokens: number;
+  requests: number;
+  cost: number;
+};
+
+export type DailyUsage = {
+  date: string;
+  inputTokens: number;
+  outputTokens: number;
+  requests: number;
+  cost: number;
+};
+
+export type UsageSummary = {
+  days: number;
+  totals: UsageTotals;
+  byModel: ModelUsage[];
+  byUser: UserUsage[];
+  byDay: DailyUsage[];
+};
+
+export type SystemHealth = {
+  status: "ok" | "degraded" | string;
+  environment: string;
+  uptimeSeconds: number;
+  requests: {
+    totalRequests: number;
+    errorRequests: number;
+    errorRate: number;
+    avgLatencyMs: number;
+  };
+  storage: { backend: string; ok: boolean; detail: string };
+  llm: { provider: string; model: string; configured: boolean };
+  taskQueueBackend: string;
+  lockBackend: string;
+  counts: { users: number; agents: number; teams: number; tasks: number; workspaces: number };
+};
+
+export type AdminUserActivity = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  provider: string;
+  joinedAt: string;
+  agents: number;
+  teams: number;
+  tasks: number;
+  workspaces: number;
+  inputTokens: number;
+  outputTokens: number;
+  requests: number;
+  cost: number;
+};
+
 export type AuthUser = {
   id: string;
   name: string;
@@ -493,7 +579,8 @@ export const api = {
 
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // Auth header so backend can attribute LLM token usage to the caller.
+      headers: { "Content-Type": "application/json", ...getAuthHeader() },
       body,
       signal: payload.signal,
     });
@@ -649,6 +736,22 @@ export const api = {
   upsertConnection: (payload: Partial<ThirdPartyConnection> & Pick<ThirdPartyConnection, "platform" | "name">) =>
     apiFetch<ThirdPartyConnection>("/connections", { method: "POST", body: JSON.stringify(payload) }),
   deleteConnection: (id: string) => apiFetch<{ deleted: boolean }>(`/connections/${id}`, { method: "DELETE" }),
+
+  // Admin monitoring (requires admin role)
+  getAdminUsage: (days = 30) => apiFetch<UsageSummary>(`/admin/monitoring/usage?days=${days}`),
+  getAdminHealth: () => apiFetch<SystemHealth>("/admin/monitoring/health"),
+  getAdminUsers: (days = 30) => apiFetch<AdminUserActivity[]>(`/admin/monitoring/users?days=${days}`),
+  listModelPricing: () => apiFetch<ModelPricing[]>("/admin/monitoring/pricing"),
+  upsertModelPricing: (payload: ModelPricing) =>
+    apiFetch<ModelPricing>("/admin/monitoring/pricing", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+  deleteModelPricing: (model: string) =>
+    apiFetch<{ deleted: boolean }>(
+      `/admin/monitoring/pricing?model=${encodeURIComponent(model)}`,
+      { method: "DELETE" },
+    ),
 
   // Auth
   login: (email: string, password: string) =>

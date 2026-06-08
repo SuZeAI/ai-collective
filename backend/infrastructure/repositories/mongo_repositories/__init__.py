@@ -23,12 +23,18 @@ from backend.infrastructure.repositories.mongo_repositories.conversations import
 from backend.infrastructure.repositories.mongo_repositories.graph_knowledge import (
     MongoGraphKnowledgeRepository,
 )
+from backend.infrastructure.repositories.mongo_repositories.model_pricing import (
+    MongoModelPricingRepository,
+)
 from backend.infrastructure.repositories.mongo_repositories.office_builder_sessions import (
     MongoOfficeBuilderSessionRepository,
 )
 from backend.infrastructure.repositories.mongo_repositories.skills import MongoSkillRepository
 from backend.infrastructure.repositories.mongo_repositories.tasks import MongoTaskRepository
 from backend.infrastructure.repositories.mongo_repositories.teams import MongoTeamRepository
+from backend.infrastructure.repositories.mongo_repositories.token_usage import (
+    MongoTokenUsageRepository,
+)
 from backend.infrastructure.repositories.mongo_repositories.users import MongoUserRepository
 from backend.infrastructure.repositories.mongo_repositories.workspaces import MongoWorkspaceRepository
 
@@ -39,10 +45,12 @@ __all__ = [
     "MongoConnectionRepository",
     "MongoConversationRepository",
     "MongoGraphKnowledgeRepository",
+    "MongoModelPricingRepository",
     "MongoOfficeBuilderSessionRepository",
     "MongoSkillRepository",
     "MongoTaskRepository",
     "MongoTeamRepository",
+    "MongoTokenUsageRepository",
     "MongoUserRepository",
     "MongoWorkspaceRepository",
 ]

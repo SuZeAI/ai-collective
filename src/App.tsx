@@ -21,6 +21,7 @@ import Playground from "@/pages/Playground";
 import Workspaces from "@/pages/Workspaces";
 import OfficeBuilder from "@/pages/OfficeBuilder";
 import Settings from "@/pages/Settings";
+import AdminMonitoring from "@/pages/AdminMonitoring";
 import Docs from "@/pages/Docs";
 import NotFound from "@/pages/NotFound";
 import AuthCallback from "@/pages/AuthCallback";
@@ -49,6 +50,23 @@ function WithLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Admin-only pages: authenticated AND role admin/system, else back to dashboard.
+function RequireAdmin({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const location = useLocation();
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
+  if (user.role !== "admin" && user.role !== "system") return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
+function WithAdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <RequireAdmin>
+      <AppLayout>{children}</AppLayout>
+    </RequireAdmin>
+  );
+}
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
     <LanguageProvider>
@@ -73,6 +91,7 @@ const App = () => (
                 <Route path="/workspaces" element={<WithLayout><Workspaces /></WithLayout>} />
                 <Route path="/office-builder" element={<WithLayout><OfficeBuilder /></WithLayout>} />
                 <Route path="/settings" element={<WithLayout><Settings /></WithLayout>} />
+                <Route path="/admin/monitoring" element={<WithAdminLayout><AdminMonitoring /></WithAdminLayout>} />
                 <Route path="/profile" element={<WithLayout><Profile /></WithLayout>} />
                 <Route path="/docs" element={<Docs />} />
                 {/* Marketing pages */}

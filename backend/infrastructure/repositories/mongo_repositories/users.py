@@ -40,6 +40,9 @@ class MongoUserRepository:
             "provider_id": u.provider_id,
         }
 
+    def list(self) -> list[User]:
+        return [self._doc_to_user(doc) for doc in self._col.find({})]
+
     def find_by_id(self, user_id: str) -> User | None:
         doc = self._col.find_one({"id": user_id})
         return self._doc_to_user(doc) if doc else None
