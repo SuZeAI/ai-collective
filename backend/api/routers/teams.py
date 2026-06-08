@@ -83,7 +83,7 @@ def upsert_team(
     conv_service: ConversationService = Depends(get_conversation_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> TeamSchema:
-    team_id = req.id or f"t_{uuid4().hex}"
+    team_id = req.id or f"team_{uuid4().hex}"
     is_new_team = req.id is None
     existing = service._repo.get(team_id) if req.id else None
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):

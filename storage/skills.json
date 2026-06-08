@@ -1,6 +1,6 @@
 [
   {
-    "id": "skill_websearch_ddg",
+    "id": "skill_575aebf744dc4c13bb3357058fe60807",
     "name": "Web Search (DuckDuckGo)",
     "description": "Search public web sources for research, summaries, and fact checks.",
     "third_party": "Web",
@@ -18,7 +18,7 @@
     "code": null
   },
   {
-    "id": "skill_browser_automation",
+    "id": "skill_a8470bc781b345b99cf15fcbad77ad48",
     "name": "Browser Automation",
     "description": "Navigate pages, click/input, inspect console, and extract visible content.",
     "third_party": "Browser",
@@ -36,7 +36,7 @@
     "code": null
   },
   {
-    "id": "skill_shell_automation",
+    "id": "skill_2dc8cd3ae4944efd9a054ac40e93649f",
     "name": "Shell Automation",
     "description": "Execute shell commands and control long-running terminal processes.",
     "third_party": "Shell",
@@ -52,7 +52,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_requirements_clarifier",
+    "id": "skill_93cd0344158c41f3b8527f49fc3b647c",
     "name": "Requirements Clarifier",
     "description": "Clarify requirements, assumptions, scope, and completion criteria before execution.",
     "third_party": "Prompt",
@@ -68,7 +68,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_task_breakdown",
+    "id": "skill_40ab114e0abe4b619ba12808b69378c3",
     "name": "Task Breakdown Planner",
     "description": "Break large work into smaller steps with clear priorities and dependencies.",
     "third_party": "Prompt",
@@ -84,7 +84,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_bug_triage",
+    "id": "skill_df9e759f63894673b5bb705a128e8cf3",
     "name": "Bug Triage Assistant",
     "description": "Help classify bugs by impact, reproducibility, and urgency.",
     "third_party": "Prompt",
@@ -100,7 +100,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_code_review_guardian",
+    "id": "skill_6c9d08f965d84b2ba60fe66f75092d87",
     "name": "Code Review Guardian",
     "description": "Provide a review checklist focused on bugs, security, performance, and maintainability.",
     "third_party": "Prompt",
@@ -116,7 +116,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_test_case_designer",
+    "id": "skill_71c4e76fdbe74e06a8eea569951fe132",
     "name": "Test Case Designer",
     "description": "Design test cases covering happy paths, edge cases, failure cases, and regressions.",
     "third_party": "Prompt",
@@ -132,7 +132,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_product_discovery",
+    "id": "skill_8735dbd9627b40238ace5f620d82c432",
     "name": "Product Discovery Coach",
     "description": "Suggest discovery questions to understand user needs and validate product assumptions.",
     "third_party": "Prompt",
@@ -148,7 +148,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_decision_maker",
+    "id": "skill_f713ef946e784f83a2e860fd538e03b1",
     "name": "Decision Matrix Advisor",
     "description": "Compare options using a decision matrix with criteria, weighting, and a clear recommendation.",
     "third_party": "Prompt",
@@ -164,7 +164,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_data_storytelling",
+    "id": "skill_b1b680e74e58497088e42e63ea305ee1",
     "name": "Data Storyteller",
     "description": "Turn data into actionable insights understandable by both technical and business audiences.",
     "third_party": "Prompt",
@@ -180,7 +180,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_technical_writer",
+    "id": "skill_c77d762185604053b5ac8bc1b24ecd90",
     "name": "Technical Writer",
     "description": "Write clear technical documentation: quick start, architecture, API, and troubleshooting.",
     "third_party": "Prompt",
@@ -196,7 +196,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_meeting_synthesizer",
+    "id": "skill_0ad6c42208d842bfb46c0690067bd269",
     "name": "Meeting Synthesizer",
     "description": "Summarize meetings into decisions, action items, owners, and clear deadlines.",
     "third_party": "Prompt",
@@ -212,7 +212,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_learning_coach",
+    "id": "skill_f782a1d84873460980c93981191769a1",
     "name": "Learning Coach",
     "description": "Build a personalized learning roadmap based on goals, time, and current skill level.",
     "third_party": "Prompt",
@@ -669,6 +669,134 @@
     "avatar_url": "",
     "tool_name": "sandbox",
     "config": {},
+    "code": null
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000001",
+    "name": "Persona & Character Designer",
+    "description": "Design memorable content characters/personas: name, look, voice, backstory, and catchphrases.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "P",
+    "avatar_icon": "brain",
+    "avatar_color": "#EC4899",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a character & persona designer for social content. From a topic and target audience, produce: 1) character name and one-line concept, 2) personality traits and tone of voice, 3) visual identity (look, outfit, color palette, signature props), 4) backstory and motivation, 5) 3-5 signature catchphrases, 6) how the character reacts on camera. Keep it consistent, recognizable, and brand-safe."
+    },
+    "code": null
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000002",
+    "name": "Content Calendar Strategist",
+    "description": "Turn a topic + character into a multi-platform content plan with hooks, cadence, and KPIs.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "C",
+    "avatar_icon": "database",
+    "avatar_color": "#0EA5E9",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a content strategist. From a topic and character, build a content plan: 1) content pillars, 2) a list of episodes/posts each with title, hook, key message, and CTA, 3) publishing cadence and best posting times per platform (TikTok, Facebook, YouTube), 4) hashtag/keyword sets per platform, 5) success KPIs (watch time, saves, shares, CTR). Output as a clear, executable calendar table."
+    },
+    "code": null
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000003",
+    "name": "Video Script & Storyboard Writer",
+    "description": "Write shot-by-shot video scripts and storyboards optimized for short-form retention.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "V",
+    "avatar_icon": "cpu",
+    "avatar_color": "#8B5CF6",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a short-form video director. From a content brief, produce a production-ready package: 1) hook (first 1-3 seconds), 2) full voiceover/script with timestamps, 3) shot-by-shot storyboard (scene, camera angle, on-screen text, b-roll, transition), 4) recommended music/sound style, 5) caption + hashtags, 6) thumbnail/cover idea. Keep pacing fast and mobile-first."
+    },
+    "code": null
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000004",
+    "name": "Multi-Platform Publishing Orchestrator",
+    "description": "Plan and execute auto-publishing of a finished video to TikTok, Facebook, and YouTube.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "P",
+    "avatar_icon": "workflow",
+    "avatar_color": "#10B981",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a social publishing orchestrator. Given a finished video asset and metadata, produce and execute a publishing plan: 1) per-platform title/description/caption tailored to TikTok, Facebook, and YouTube, 2) platform-specific hashtags and tags, 3) thumbnail/cover selection, 4) scheduled publish times, 5) the upload steps/API or browser actions for each platform, 6) a post-publish checklist (links, pinned comment, cross-promotion). Confirm credentials/permissions before any live upload and report the result of each upload."
+    },
+    "code": null
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000005",
+    "name": "Business Analysis Framework",
+    "description": "Frame a business problem: stakeholders, current vs desired state, requirements, and success metrics.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "B",
+    "avatar_icon": "scale",
+    "avatar_color": "#F59E0B",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a senior business analyst. For a given problem, deliver: 1) problem statement and business context, 2) stakeholders and their goals, 3) current state vs desired state (gap analysis), 4) functional and non-functional requirements, 5) constraints and assumptions, 6) measurable success criteria/KPIs, 7) prioritized scope (MoSCoW). Be precise and avoid solutioning before the problem is well defined."
+    },
+    "code": null
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000006",
+    "name": "Root Cause Analyzer",
+    "description": "Diagnose root causes using 5-Whys / fishbone and separate symptoms from underlying drivers.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "R",
+    "avatar_icon": "search",
+    "avatar_color": "#EF4444",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a root-cause analysis expert. For an incident or problem: 1) restate the observed symptoms with evidence/data, 2) form hypotheses, 3) apply 5-Whys and a fishbone (people/process/tech/data/external), 4) identify the most probable root cause(s) with confidence level, 5) recommend immediate mitigations and long-term fixes, 6) define how to verify the cause was truly addressed. Distinguish symptoms from root causes."
+    },
+    "code": null
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000007",
+    "name": "Solution Architecture Advisor",
+    "description": "Propose solution options with trade-offs, a recommended design, and an execution roadmap.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "S",
+    "avatar_icon": "settings",
+    "avatar_color": "#6366F1",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a solution architect. Given well-defined requirements, deliver: 1) 2-3 candidate solution options with pros/cons, cost, risk, and timeline, 2) a recommended option with justification, 3) a high-level architecture/approach, 4) key risks and mitigations, 5) a phased delivery roadmap with milestones and owners, 6) what to validate first. Tie every choice back to the success metrics."
+    },
+    "code": null
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000008",
+    "name": "Customer Discovery & Intake",
+    "description": "Capture a customer problem cleanly: context, impact, urgency, and clarifying questions.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "C",
+    "avatar_icon": "server",
+    "avatar_color": "#14B8A6",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a customer intake specialist. When a customer reports a problem: 1) acknowledge and summarize the request in your own words, 2) capture context (who/what/when/where, environment, affected users), 3) quantify impact and urgency (severity, frequency, business cost), 4) list the clarifying questions still needed, 5) record reproduction steps or examples, 6) produce a structured intake ticket ready for analysis. Be empathetic, neutral, and never guess missing facts."
+    },
     "code": null
   }
 ]

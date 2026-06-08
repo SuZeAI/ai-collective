@@ -416,7 +416,7 @@ def apply_office_plan(
         mode = dept.mode if dept.mode in TEAM_MODES else "sequential"
         saved_team = team_service.upsert_team(
             Team(
-                id=f"t_{uuid4().hex}",
+                id=f"team_{uuid4().hex}",
                 name=dept.name.strip() or "Department",
                 description=dept.description.strip() or f"{dept.name} department",
                 agents=dept_agent_ids,
