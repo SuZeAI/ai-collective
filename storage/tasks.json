@@ -3,13 +3,13 @@
     "id": "task_5b5dea02fb1e49d491c84982fd4b4422",
     "title": "Bao Tin Minh Chau gold price in Hanoi today",
     "description": "Bao Tin Minh Chau gold price in Hanoi today",
-    "teamId": "t_c401148000bb4a4a9dbbfe9d339212af",
+    "teamId": "team_c401148000bb4a4a9dbbfe9d339212af",
     "status": "completed",
     "progress": 100,
     "assignedAgents": [
-      "a1",
-      "a2",
-      "a3"
+      "agent_0798e88decd74b9e876fb0b5e2d20aec",
+      "agent_179b3bd6e39c43cea40eadd3d5f6d695",
+      "agent_0e8154a6c17943ccb329cd5cc9f350b8"
     ],
     "startTime": "2026-04-22T16:40:14+00:00",
     "endTime": "2026-04-22T16:47:42+00:00"
@@ -18,7 +18,7 @@
     "id": "task_9b6c8ee04d664b1d916d07960a616bda",
     "title": "Trend Adaptation Challenge",
     "description": "Generate a short, engaging story about a specific panda animal . The story should be emotional, easy to understand, and suitable for social media captions. (you must search and use instruction tool)\nwith about charactor:\nCaption: Bao Bao’s journey reminds us that sometimes, our greatest strengths are found in the most unexpected places. Don't be afraid to roll with it! 🐼💖 #PandaStory #UniqueTalent #FindYourPurpose #CuteAnimals #Inspiration\n\nHashtags: #PandaStory #UniqueTalent #FindYourPurpose #CuteAnimals #Inspiration #TikTokPanda #AnimalLover #WholesomeContent #FeelGood",
-    "teamId": "t1773677767766",
+    "teamId": "team_53036c843ea64a5d8562c25d730bc0e0",
     "status": "completed",
     "progress": 100,
     "assignedAgents": [
@@ -31,7 +31,7 @@
     "id": "task_904f5fcb9a884d30a39747086bc689b2",
     "title": "Analyze a repo",
     "description": "Phân tích thông tin của repo github: https://github.com/666ghj/BettaFish.git",
-    "teamId": "t_4b94bfc530b64fc6b8534adf207acaee",
+    "teamId": "team_4b94bfc530b64fc6b8534adf207acaee",
     "status": "completed",
     "progress": 100,
     "assignedAgents": [
@@ -45,7 +45,7 @@
     "id": "task_198e22a7ac7e488b8ae57fc1a89c4ba8",
     "title": "coding agent",
     "description": "code snake game use only html",
-    "teamId": "t_75da7550f6f24cafb003147e5ef71d10",
+    "teamId": "team_75da7550f6f24cafb003147e5ef71d10",
     "status": "completed",
     "progress": 100,
     "assignedAgents": [

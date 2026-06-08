@@ -1,6 +1,6 @@
 [
   {
-    "id": "skill_websearch_ddg",
+    "id": "skill_575aebf744dc4c13bb3357058fe60807",
     "name": "Web Search (DuckDuckGo)",
     "description": "Search public web sources for research, summaries, and fact checks.",
     "third_party": "Web",
@@ -18,7 +18,7 @@
     "code": null
   },
   {
-    "id": "skill_browser_automation",
+    "id": "skill_a8470bc781b345b99cf15fcbad77ad48",
     "name": "Browser Automation",
     "description": "Navigate pages, click/input, inspect console, and extract visible content.",
     "third_party": "Browser",
@@ -36,7 +36,7 @@
     "code": null
   },
   {
-    "id": "skill_shell_automation",
+    "id": "skill_2dc8cd3ae4944efd9a054ac40e93649f",
     "name": "Shell Automation",
     "description": "Execute shell commands and control long-running terminal processes.",
     "third_party": "Shell",
@@ -52,7 +52,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_requirements_clarifier",
+    "id": "skill_93cd0344158c41f3b8527f49fc3b647c",
     "name": "Requirements Clarifier",
     "description": "Clarify requirements, assumptions, scope, and completion criteria before execution.",
     "third_party": "Prompt",
@@ -68,7 +68,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_task_breakdown",
+    "id": "skill_40ab114e0abe4b619ba12808b69378c3",
     "name": "Task Breakdown Planner",
     "description": "Break large work into smaller steps with clear priorities and dependencies.",
     "third_party": "Prompt",
@@ -84,7 +84,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_bug_triage",
+    "id": "skill_df9e759f63894673b5bb705a128e8cf3",
     "name": "Bug Triage Assistant",
     "description": "Help classify bugs by impact, reproducibility, and urgency.",
     "third_party": "Prompt",
@@ -100,7 +100,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_code_review_guardian",
+    "id": "skill_6c9d08f965d84b2ba60fe66f75092d87",
     "name": "Code Review Guardian",
     "description": "Provide a review checklist focused on bugs, security, performance, and maintainability.",
     "third_party": "Prompt",
@@ -116,7 +116,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_test_case_designer",
+    "id": "skill_71c4e76fdbe74e06a8eea569951fe132",
     "name": "Test Case Designer",
     "description": "Design test cases covering happy paths, edge cases, failure cases, and regressions.",
     "third_party": "Prompt",
@@ -132,7 +132,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_product_discovery",
+    "id": "skill_8735dbd9627b40238ace5f620d82c432",
     "name": "Product Discovery Coach",
     "description": "Suggest discovery questions to understand user needs and validate product assumptions.",
     "third_party": "Prompt",
@@ -148,7 +148,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_decision_maker",
+    "id": "skill_f713ef946e784f83a2e860fd538e03b1",
     "name": "Decision Matrix Advisor",
     "description": "Compare options using a decision matrix with criteria, weighting, and a clear recommendation.",
     "third_party": "Prompt",
@@ -164,7 +164,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_data_storytelling",
+    "id": "skill_b1b680e74e58497088e42e63ea305ee1",
     "name": "Data Storyteller",
     "description": "Turn data into actionable insights understandable by both technical and business audiences.",
     "third_party": "Prompt",
@@ -180,7 +180,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_technical_writer",
+    "id": "skill_c77d762185604053b5ac8bc1b24ecd90",
     "name": "Technical Writer",
     "description": "Write clear technical documentation: quick start, architecture, API, and troubleshooting.",
     "third_party": "Prompt",
@@ -196,7 +196,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_meeting_synthesizer",
+    "id": "skill_0ad6c42208d842bfb46c0690067bd269",
     "name": "Meeting Synthesizer",
     "description": "Summarize meetings into decisions, action items, owners, and clear deadlines.",
     "third_party": "Prompt",
@@ -212,7 +212,7 @@
     "code": null
   },
   {
-    "id": "skill_prompt_learning_coach",
+    "id": "skill_f782a1d84873460980c93981191769a1",
     "name": "Learning Coach",
     "description": "Build a personalized learning roadmap based on goals, time, and current skill level.",
     "third_party": "Prompt",

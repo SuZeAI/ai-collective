@@ -1,40 +1,6 @@
 [
   {
-    "id": "t11",
-    "name": "Education & Training Studio",
-    "description": "Create onboarding docs, tutorials, quizzes, and internal playbooks.",
-    "agents": [
-      "a1",
-      "a2",
-      "a3"
-    ],
-    "activeTasks": 0,
-    "avatar": "E",
-    "avatar_icon": "layers",
-    "avatar_color": "#0EA5E9",
-    "avatar_url": "",
-    "mode": "mesh",
-    "maxSteps": 6
-  },
-  {
-    "id": "t12",
-    "name": "Research Lab",
-    "description": "Deep research, experiment notes, and decision memos for leaders.",
-    "agents": [
-      "a1",
-      "a2",
-      "a3"
-    ],
-    "activeTasks": 0,
-    "avatar": "R",
-    "avatar_icon": "target",
-    "avatar_color": "#F97316",
-    "avatar_url": "",
-    "mode": "sequential",
-    "maxSteps": 6
-  },
-  {
-    "id": "t1773677767766",
+    "id": "team_53036c843ea64a5d8562c25d730bc0e0",
     "name": "Content Tiktok",
     "description": "create content AI",
     "agents": [
@@ -49,13 +15,13 @@
     "maxSteps": 6
   },
   {
-    "id": "t1774110075739",
+    "id": "team_0ad3ac18aeca415fb1fa60e2ba10fe8d",
     "name": "Analyze the golden price",
     "description": "Analyze the golden price market and provide insights",
     "agents": [
-      "a2",
-      "a1",
-      "a3"
+      "agent_179b3bd6e39c43cea40eadd3d5f6d695",
+      "agent_0798e88decd74b9e876fb0b5e2d20aec",
+      "agent_0e8154a6c17943ccb329cd5cc9f350b8"
     ],
     "activeTasks": 0,
     "avatar": "A",
@@ -66,13 +32,13 @@
     "maxSteps": 6
   },
   {
-    "id": "t_c401148000bb4a4a9dbbfe9d339212af",
+    "id": "team_c401148000bb4a4a9dbbfe9d339212af",
     "name": "Search gold price",
     "description": "Find everything related to gold",
     "agents": [
-      "a1",
-      "a2",
-      "a3"
+      "agent_0798e88decd74b9e876fb0b5e2d20aec",
+      "agent_179b3bd6e39c43cea40eadd3d5f6d695",
+      "agent_0e8154a6c17943ccb329cd5cc9f350b8"
     ],
     "activeTasks": 0,
     "avatar": "S",
@@ -83,7 +49,7 @@
     "maxSteps": 6
   },
   {
-    "id": "t_4b94bfc530b64fc6b8534adf207acaee",
+    "id": "team_4b94bfc530b64fc6b8534adf207acaee",
     "name": "Github Repo",
     "description": "everything github repo",
     "agents": [
@@ -99,7 +65,7 @@
     "maxSteps": 6
   },
   {
-    "id": "t_75da7550f6f24cafb003147e5ef71d10",
+    "id": "team_75da7550f6f24cafb003147e5ef71d10",
     "name": "coding agent",
     "description": " coding agent",
     "agents": [
