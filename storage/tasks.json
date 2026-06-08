@@ -109,5 +109,22 @@
     ],
     "startTime": "2026-05-23T11:15:00+00:00",
     "endTime": "2026-05-23T12:05:00+00:00"
+  },
+  {
+    "id": "task_ch10d0001f04a1b9c0d0e0f0t0000007",
+    "title": "Fully automated reel: topic → character art → AI voiceover → AI video → auto-publish",
+    "description": "End-to-end media-generation demo. (1) Topic & Trend Scout picks a validated angle; (2) Character & Persona Designer designs the host and generates on-brand character art with the AI Image Generator; (3) Content Plan Strategist drafts the brief; (4) Video Producer writes the shot-by-shot script, synthesizes the voiceover with AI Voiceover (TTS), generates scene visuals and the thumbnail with the AI Image Generator, and renders the clip with the AI Video Generator; (5) Multi-Platform Publisher auto-publishes to TikTok, Facebook & YouTube and the Engagement Analyst reports day-1 performance. Definition of done: a fully machine-generated reel live on all 3 platforms with metrics captured.",
+    "teamId": "team_ch10d0001f04a1b9c0d0e0f0studio01",
+    "status": "pending",
+    "progress": 0,
+    "assignedAgents": [
+      "agent_ch10d0001f04a1b9c0d0e0f000000a1",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a2",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a3",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a4",
+      "agent_ch10d0001f04a1b9c0d0e0f000000a5"
+    ],
+    "startTime": null,
+    "endTime": null
   }
 ]

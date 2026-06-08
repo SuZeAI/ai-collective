@@ -816,5 +816,262 @@
     },
     "code": null,
     "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f000000009",
+    "name": "AI Image Generator",
+    "description": "Generate images (character art, scene visuals, thumbnails) from text prompts via an OpenAI-compatible image API.",
+    "third_party": "AI Media",
+    "kind": "integration",
+    "avatar": "I",
+    "avatar_icon": "image",
+    "avatar_color": "#F472B6",
+    "avatar_url": "",
+    "tool_name": "image_generation",
+    "config": {
+      "api_key": "",
+      "endpoint": "https://api.openai.com/v1/images/generations",
+      "model": "gpt-image-1",
+      "size": "1024x1024"
+    },
+    "code": null,
+    "instruction": "Provide an API key in 'api_key' (or set IMAGE_GEN_API_KEY / OPENAI_API_KEY on the backend). Works with any OpenAI-compatible image endpoint — change 'endpoint' and 'model' to use Azure OpenAI, OpenRouter, or a self-hosted gateway. 'size' sets the default output dimensions."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000000a",
+    "name": "AI Voiceover (Text-to-Speech)",
+    "description": "Convert script text into natural voiceover audio via an OpenAI-compatible TTS API; returns base64 audio (and a saved file path if configured).",
+    "third_party": "AI Media",
+    "kind": "integration",
+    "avatar": "V",
+    "avatar_icon": "mic",
+    "avatar_color": "#34D399",
+    "avatar_url": "",
+    "tool_name": "text_to_speech",
+    "config": {
+      "api_key": "",
+      "endpoint": "https://api.openai.com/v1/audio/speech",
+      "model": "gpt-4o-mini-tts",
+      "voice": "alloy",
+      "audio_format": "mp3",
+      "output_dir": ""
+    },
+    "code": null,
+    "instruction": "Provide an API key in 'api_key' (or set TTS_API_KEY / OPENAI_API_KEY on the backend). Pick a 'voice' and 'audio_format'. Point 'endpoint'/'model' at any OpenAI-compatible speech service. Optionally set 'output_dir' to also save audio files to disk and get back the path."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000000b",
+    "name": "AI Video Generator",
+    "description": "Render short-form video clips from a prompt (or animate an image) via a generic async create-then-poll video API.",
+    "third_party": "AI Media",
+    "kind": "integration",
+    "avatar": "V",
+    "avatar_icon": "film",
+    "avatar_color": "#A78BFA",
+    "avatar_url": "",
+    "tool_name": "video_generation",
+    "config": {
+      "api_key": "",
+      "create_endpoint": "",
+      "status_endpoint": "",
+      "model": "video-gen-1",
+      "poll_interval_seconds": "5",
+      "max_wait_seconds": "300"
+    },
+    "code": null,
+    "instruction": "Provider-agnostic. Set 'api_key' (or VIDEO_GEN_API_KEY) and 'create_endpoint' to your provider's job-creation URL. For async providers, set 'status_endpoint' with an {id} placeholder (e.g. https://api.provider.com/jobs/{id}); the tool submits the job then polls until the video URL is ready. Works with Replicate-style, Runway, Pika, Kling gateways, etc."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000000c",
+    "name": "MCP Connector (stdio)",
+    "description": "Connect to a local Model Context Protocol server over stdio to expose its tools to the agent.",
+    "third_party": "MCP",
+    "kind": "integration",
+    "avatar": "M",
+    "avatar_icon": "plug",
+    "avatar_color": "#60A5FA",
+    "avatar_url": "",
+    "tool_name": "mcp",
+    "config": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": "-y @modelcontextprotocol/server-filesystem /tmp",
+      "env": "",
+      "allowed_tools": "",
+      "timeout_seconds": "60"
+    },
+    "code": null,
+    "instruction": "Runs an MCP server as a local subprocess. Set 'command' (npx, uvx, python, ...) and 'args' to the server you want to launch; add 'env' (KEY=VALUE per line) for secrets. Use 'allowed_tools' to whitelist specific tool names. Great for plugging in third-party MCP servers (media generation, databases, file access) without writing code."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000000d",
+    "name": "MCP Connector (HTTP)",
+    "description": "Connect to a remote Model Context Protocol server over HTTP/SSE to expose its tools to the agent.",
+    "third_party": "MCP",
+    "kind": "integration",
+    "avatar": "M",
+    "avatar_icon": "plug",
+    "avatar_color": "#38BDF8",
+    "avatar_url": "",
+    "tool_name": "mcp",
+    "config": {
+      "transport": "streamable_http",
+      "url": "http://localhost:8000/mcp",
+      "headers": "",
+      "allowed_tools": "",
+      "timeout_seconds": "60"
+    },
+    "code": null,
+    "instruction": "Connects to a hosted MCP server. Set 'transport' (streamable_http or sse) and 'url' to the server endpoint; add auth via 'headers' (e.g. 'Authorization=Bearer xxx' per line). Use 'allowed_tools' to whitelist. Use this to attach external/remote MCP services to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000000e",
+    "name": "Art & Visual Director",
+    "description": "Craft precise image-generation prompts and a visual style guide for characters, scenes, and thumbnails.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "A",
+    "avatar_icon": "image",
+    "avatar_color": "#F472B6",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are an art director for short-form content. From a character/topic brief, produce: 1) a reusable visual style guide (palette, lighting, framing, art style), 2) ready-to-use image-generation prompts (subject, composition, style, negative cues) for character art, key scenes, and a thumbnail/cover, 3) the recommended aspect ratio/size per use, 4) consistency notes so every image matches the same character and brand. Then call the image generation tool with those prompts and review the results for on-brand consistency."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000000f",
+    "name": "Voiceover & Narration Director",
+    "description": "Turn a script into clean narration text and the right voice/pacing settings, then synthesize the voiceover.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "V",
+    "avatar_icon": "mic",
+    "avatar_color": "#34D399",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a voiceover director. From a video script, produce: 1) clean narration text broken into timed segments, 2) pronunciation/emphasis notes and pacing (words-per-minute) per segment, 3) the recommended voice and tone for the audience, 4) SSML or plain text ready for the text-to-speech tool. Then synthesize the voiceover with the TTS tool and verify it matches the target duration and energy. Keep narration tight and mobile-first."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f000000010",
+    "name": "Publishing & Engagement Analyst",
+    "description": "After publishing, track per-platform performance and recommend concrete optimizations for the next post.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "E",
+    "avatar_icon": "chart",
+    "avatar_color": "#10B981",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a social engagement analyst. Given post links and available metrics per platform (views, watch time, retention, likes, shares, comments, CTR), produce: 1) a performance summary per platform, 2) what worked vs underperformed (hook, length, caption, hashtags, posting time), 3) prioritized, concrete changes for the next post, 4) a short experiment to test the biggest hypothesis. Be specific and data-driven; state confidence and any missing metrics as TODOs."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f000000011",
+    "name": "Customer Response Composer",
+    "description": "Draft a clear, empathetic, customer-ready reply with the diagnosis, the plan, timelines, and next steps.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "R",
+    "avatar_icon": "message",
+    "avatar_color": "#14B8A6",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a customer communications specialist. From a root-cause report and recommended solutions, write a customer-ready response that: 1) acknowledges the problem with empathy, 2) explains what was found in plain language (no internal jargon), 3) states the action plan with owners and realistic timelines (quick wins + longer-term fixes), 4) sets clear expectations and next check-in, 5) offers a workaround if available. Provide both a concise version (chat/messaging) and a fuller email version. Keep the tone professional, honest, and reassuring."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f000000012",
+    "name": "Gemini Image (Imagen)",
+    "description": "Generate images with Google Imagen via your Gemini API key — character art, scenes, thumbnails.",
+    "third_party": "Google Gemini",
+    "kind": "integration",
+    "avatar": "G",
+    "avatar_icon": "image",
+    "avatar_color": "#4285F4",
+    "avatar_url": "",
+    "tool_name": "gemini_image",
+    "config": {
+      "api_key": "",
+      "model": "imagen-3.0-generate-002",
+      "aspect_ratio": "1:1",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta"
+    },
+    "code": null,
+    "instruction": "Paste your Gemini API key in 'api_key' (or set GEMINI_API_KEY / GOOGLE_API_KEY on the backend). Get a key at https://aistudio.google.com/apikey. Choose an Imagen 'model' and default 'aspect_ratio' (1:1, 9:16, 16:9, 3:4, 4:3). Returns base64 image bytes."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f000000013",
+    "name": "Gemini Text-to-Speech",
+    "description": "Generate natural voiceover audio (WAV) from text using Gemini TTS voices.",
+    "third_party": "Google Gemini",
+    "kind": "integration",
+    "avatar": "G",
+    "avatar_icon": "mic",
+    "avatar_color": "#34A853",
+    "avatar_url": "",
+    "tool_name": "gemini_tts",
+    "config": {
+      "api_key": "",
+      "model": "gemini-2.5-flash-preview-tts",
+      "voice": "Kore",
+      "output_dir": "",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta"
+    },
+    "code": null,
+    "instruction": "Paste your Gemini API key in 'api_key' (or set GEMINI_API_KEY / GOOGLE_API_KEY). Pick a prebuilt 'voice' (Kore, Puck, Charon, Aoede, ...). Audio is returned as base64 WAV; set 'output_dir' to also save WAV files to disk."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f000000014",
+    "name": "Gemini Video (Veo)",
+    "description": "Render short videos from a prompt with Google Veo via your Gemini API key (async; returns a video URI).",
+    "third_party": "Google Gemini",
+    "kind": "integration",
+    "avatar": "G",
+    "avatar_icon": "film",
+    "avatar_color": "#EA4335",
+    "avatar_url": "",
+    "tool_name": "gemini_video",
+    "config": {
+      "api_key": "",
+      "model": "veo-3.0-generate-preview",
+      "poll_interval_seconds": "10",
+      "max_wait_seconds": "300",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta"
+    },
+    "code": null,
+    "instruction": "Paste your Gemini API key in 'api_key' (or set GEMINI_API_KEY / GOOGLE_API_KEY). Veo generation is async: the tool submits the job and polls until ready, then returns a 'video_uri' (downloadable with your API key). Note Veo access/quota depends on your Google account; tune 'max_wait_seconds' for longer renders."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f000000015",
+    "name": "Gemini Generate (+ Google Search)",
+    "description": "Generate text/answers with Gemini, optionally grounded by live Google Search with cited sources.",
+    "third_party": "Google Gemini",
+    "kind": "integration",
+    "avatar": "G",
+    "avatar_icon": "sparkles",
+    "avatar_color": "#FBBC04",
+    "avatar_url": "",
+    "tool_name": "gemini_generate",
+    "config": {
+      "api_key": "",
+      "model": "gemini-2.0-flash",
+      "enable_search": false,
+      "base_url": "https://generativelanguage.googleapis.com/v1beta"
+    },
+    "code": null,
+    "instruction": "Paste your Gemini API key in 'api_key' (or set GEMINI_API_KEY / GOOGLE_API_KEY). Turn on 'enable_search' to ground answers with live Google Search (returns cited sources). Use this as a Gemini-powered research/writing tool; pick a 'model' like gemini-2.0-flash or gemini-2.5-pro."
   }
 ]

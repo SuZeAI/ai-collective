@@ -45,6 +45,15 @@ from backend.domain.tools.skype_messaging import SkypeMessagingToolkit
 from backend.domain.tools.wire_messaging import WireMessagingToolkit
 from backend.domain.tools.wechat_messaging import WeChatMessagingToolkit
 from backend.domain.tools.snapchat_messaging import SnapchatMessagingToolkit
+from backend.domain.tools.image_generation import ImageGenerationToolkit
+from backend.domain.tools.text_to_speech import TextToSpeechToolkit
+from backend.domain.tools.video_generation import VideoGenerationToolkit
+from backend.domain.tools.gemini import (
+    GeminiImageToolkit,
+    GeminiTTSToolkit,
+    GeminiVideoToolkit,
+    GeminiGenerateToolkit,
+)
 
 
 class ToolType(str, Enum):
@@ -91,6 +100,13 @@ class ToolType(str, Enum):
     WIRE_MESSAGING = "wire_messaging"
     WECHAT_MESSAGING = "wechat_messaging"
     SNAPCHAT_MESSAGING = "snapchat_messaging"
+    IMAGE_GENERATION = "image_generation"
+    TEXT_TO_SPEECH = "text_to_speech"
+    VIDEO_GENERATION = "video_generation"
+    GEMINI_IMAGE = "gemini_image"
+    GEMINI_TTS = "gemini_tts"
+    GEMINI_VIDEO = "gemini_video"
+    GEMINI_GENERATE = "gemini_generate"
 
 
 TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
@@ -137,6 +153,13 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.WIRE_MESSAGING.value: WireMessagingToolkit,
     ToolType.WECHAT_MESSAGING.value: WeChatMessagingToolkit,
     ToolType.SNAPCHAT_MESSAGING.value: SnapchatMessagingToolkit,
+    ToolType.IMAGE_GENERATION.value: ImageGenerationToolkit,
+    ToolType.TEXT_TO_SPEECH.value: TextToSpeechToolkit,
+    ToolType.VIDEO_GENERATION.value: VideoGenerationToolkit,
+    ToolType.GEMINI_IMAGE.value: GeminiImageToolkit,
+    ToolType.GEMINI_TTS.value: GeminiTTSToolkit,
+    ToolType.GEMINI_VIDEO.value: GeminiVideoToolkit,
+    ToolType.GEMINI_GENERATE.value: GeminiGenerateToolkit,
 }
 
 

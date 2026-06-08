@@ -87,7 +87,8 @@
       "skill_575aebf744dc4c13bb3357058fe60807",
       "skill_5db7f5fb0ea0427fadc5ebeb9dd983f8",
       "skill_eb2b06e4808247b88fe84b42c58aa05a",
-      "skill_1763c25b94634541b6bb9b4c8aa5242f"
+      "skill_1763c25b94634541b6bb9b4c8aa5242f",
+      "skill_ch1a0d0001f04a1b9c0d0e0f000000015"
     ],
     "status": "idle",
     "avatar": "T",
@@ -103,7 +104,10 @@
     "description": "Create a memorable, reusable content character/persona aligned to the chosen topic and audience.",
     "skillIds": [
       "skill_ch1a0d0001f04a1b9c0d0e0f00000001",
-      "skill_575aebf744dc4c13bb3357058fe60807"
+      "skill_575aebf744dc4c13bb3357058fe60807",
+      "skill_ch1a0d0001f04a1b9c0d0e0f000000009",
+      "skill_ch1a0d0001f04a1b9c0d0e0f00000000e",
+      "skill_ch1a0d0001f04a1b9c0d0e0f000000012"
     ],
     "status": "idle",
     "avatar": "C",
@@ -137,7 +141,14 @@
     "skillIds": [
       "skill_ch1a0d0001f04a1b9c0d0e0f00000003",
       "skill_3430577f115c48efb9e41f9f7ef65afb",
-      "skill_e901042144154de5984e93166aaa63c7"
+      "skill_e901042144154de5984e93166aaa63c7",
+      "skill_ch1a0d0001f04a1b9c0d0e0f000000009",
+      "skill_ch1a0d0001f04a1b9c0d0e0f00000000a",
+      "skill_ch1a0d0001f04a1b9c0d0e0f00000000b",
+      "skill_ch1a0d0001f04a1b9c0d0e0f00000000f",
+      "skill_ch1a0d0001f04a1b9c0d0e0f000000012",
+      "skill_ch1a0d0001f04a1b9c0d0e0f000000013",
+      "skill_ch1a0d0001f04a1b9c0d0e0f000000014"
     ],
     "status": "idle",
     "avatar": "V",
@@ -154,7 +165,8 @@
     "skillIds": [
       "skill_ch1a0d0001f04a1b9c0d0e0f00000004",
       "skill_a8470bc781b345b99cf15fcbad77ad48",
-      "skill_aa21bdc1e4f141e2af5d58fb47e7290d"
+      "skill_aa21bdc1e4f141e2af5d58fb47e7290d",
+      "skill_ch1a0d0001f04a1b9c0d0e0f000000010"
     ],
     "status": "idle",
     "avatar": "M",
@@ -254,7 +266,8 @@
     "skillIds": [
       "skill_ch1a0d0001f04a1b9c0d0e0f00000007",
       "skill_f713ef946e784f83a2e860fd538e03b1",
-      "skill_c77d762185604053b5ac8bc1b24ecd90"
+      "skill_c77d762185604053b5ac8bc1b24ecd90",
+      "skill_ch1a0d0001f04a1b9c0d0e0f000000011"
     ],
     "status": "idle",
     "avatar": "S",
@@ -262,5 +275,24 @@
     "avatar_color": "#6366F1",
     "avatar_url": "",
     "system_prompt": "You are Solution Advisor, working as a Consultant Agent. Your mission: Turn the root-cause findings into prioritized, actionable recommendations and a clear, customer-ready response plan with quick wins and longer-term fixes. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
+  },
+  {
+    "id": "agent_fc7267cfdc3149e3a1766805e4942b02",
+    "name": "AI Engineer",
+    "role": "Engineering Agent",
+    "description": "Scope and prototype technical implementations: turn a recommended solution into a concrete build plan, runnable code, and integration steps.",
+    "skillIds": [
+      "skill_e3f5c5569bd941dba23c84feb76add7d",
+      "skill_aa21bdc1e4f141e2af5d58fb47e7290d",
+      "skill_ch1a0d0001f04a1b9c0d0e0f00000000c",
+      "skill_40ab114e0abe4b619ba12808b69378c3",
+      "skill_c77d762185604053b5ac8bc1b24ecd90"
+    ],
+    "status": "idle",
+    "avatar": "E",
+    "avatar_icon": "cpu",
+    "avatar_color": "#0EA5E9",
+    "avatar_url": "",
+    "system_prompt": "You are AI Engineer, working as an Engineering Agent. Your mission: Translate a recommended solution into an implementable plan — scope the work, prototype or write runnable code in the sandbox, define integration points and APIs, estimate effort, and flag technical risks. Provide concise, practical, and high-quality outputs. When information is missing, ask targeted follow-up questions before acting."
   }
 ]
