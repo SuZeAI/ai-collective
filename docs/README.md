@@ -13,6 +13,8 @@ architecture, configuration, security model, and deployment.
 | [security.md](security.md) | Auth, JWT, CORS, SSRF guard, webhook signatures, logging hygiene |
 | [webhooks.md](webhooks.md) | Inbound messaging webhooks and per-platform verification |
 | [agent-orchestration.md](agent-orchestration.md) | LangGraph topologies and reliability controls |
+| [AGENT_MEMORY.md](AGENT_MEMORY.md) | Shared working memory — anti-context-loss layer for multi-agent runs |
+| [MCP_GUIDE.md](MCP_GUIDE.md) | Connecting MCP servers to agents as skills |
 | [deployment.md](deployment.md) | Docker image, task-queue/lock/sandbox backends, graceful shutdown |
 | [api-reference.md](api-reference.md) | REST surface grouped by router |
 | [hardening-changelog.md](hardening-changelog.md) | The security/reliability hardening pass (branch `fix/backend-hardening`) |

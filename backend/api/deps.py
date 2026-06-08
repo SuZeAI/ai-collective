@@ -29,10 +29,12 @@ from backend.infrastructure.repositories.json_files import (
     JsonAnalyticsRepository,
     JsonConnectionRepository,
     JsonConversationRepository,
+    JsonModelPricingRepository,
     JsonOfficeBuilderSessionRepository,
     JsonSkillRepository,
     JsonTaskRepository,
     JsonTeamRepository,
+    JsonTokenUsageRepository,
     JsonWorkspaceRepository,
 )
 from backend.application.service.workspace_service import WorkspaceService
@@ -49,10 +51,12 @@ from backend.infrastructure.repositories.mongo_repositories import (
     MongoConnectionRepository,
     MongoConversationRepository,
     MongoGraphKnowledgeRepository,
+    MongoModelPricingRepository,
     MongoOfficeBuilderSessionRepository,
     MongoSkillRepository,
     MongoTaskRepository,
     MongoTeamRepository,
+    MongoTokenUsageRepository,
     MongoUserRepository,
     MongoWorkspaceRepository,
 )
@@ -242,7 +246,72 @@ def get_skill_tool_manager() -> SkillToolManager:
 
 
 @lru_cache
+def _monitoring_stores():
+    """(TokenUsageRepository, ModelPricingRepository) for the configured backend."""
+    if settings.storage_backend == "mongo":
+        import pymongo
+        client = pymongo.MongoClient(settings.mongo_uri)
+        db = client[settings.mongo_db]
+        return MongoTokenUsageRepository(db), MongoModelPricingRepository(db)
+    return (
+        JsonTokenUsageRepository(_store("token_usage.json")),
+        JsonModelPricingRepository(_store("model_pricing.json")),
+    )
+
+
+@lru_cache
+def init_usage_tracking() -> bool:
+    """Register the global LLM usage recorder against the configured store.
+
+    Called from create_app() and lazily wherever an LLM provider is built, so
+    token usage is persisted no matter which entry point fires first.
+    """
+    import uuid
+    from datetime import datetime, timezone
+
+    from backend.domain.models import TokenUsageRecord
+    from backend.infrastructure.llm.usage_tracker import set_usage_recorder
+
+    usage_repo, _ = _monitoring_stores()
+
+    def _record(*, provider: str, model: str, input_tokens: int, output_tokens: int, user_id: str) -> None:
+        usage_repo.add(
+            TokenUsageRecord(
+                id=str(uuid.uuid4()),
+                provider=provider,
+                model=model,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=input_tokens + output_tokens,
+                user_id=user_id or "system",
+                timestamp=datetime.now(timezone.utc),
+            )
+        )
+
+    set_usage_recorder(_record)
+    return True
+
+
+def get_monitoring_service():
+    from backend.application.service.monitoring_service import MonitoringService
+
+    init_usage_tracking()
+    usage_repo, pricing_repo = _monitoring_stores()
+    agents, _, teams, tasks, _, _, _, _, workspaces, _ = _repos()
+    return MonitoringService(
+        usage=usage_repo,
+        pricing=pricing_repo,
+        users=_user_store(),
+        agents=agents,
+        teams=teams,
+        tasks=tasks,
+        workspaces=workspaces,
+    )
+
+
+@lru_cache
 def _llm_provider():
+    init_usage_tracking()
     return create_llm_provider(
         provider=settings.llm_provider,
         model=settings.llm_model,

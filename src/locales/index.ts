@@ -82,6 +82,8 @@ export type Translations = {
     orgGroup: string;
     devGroup: string;
     systemGroup: string;
+    adminGroup: string;
+    monitoring: string;
     manageWorkspaces: string;
   };
   status: { allSystemsOnline: string };
@@ -372,6 +374,8 @@ export const translations: Record<Language, Translations> = {
       orgGroup: "Organization",
       devGroup: "Developer Tools",
       systemGroup: "System",
+      adminGroup: "Administration",
+      monitoring: "System Monitoring",
       manageWorkspaces: "Manage Offices",
     },
     status: { allSystemsOnline: "All systems online" },
@@ -686,6 +690,8 @@ export const translations: Record<Language, Translations> = {
       orgGroup: "Tổ chức",
       devGroup: "Công cụ phát triển",
       systemGroup: "Hệ thống",
+      adminGroup: "Quản trị",
+      monitoring: "Giám sát hệ thống",
       manageWorkspaces: "Quản lý văn phòng",
     },
     status: { allSystemsOnline: "Tất cả hệ thống hoạt động" },
@@ -1000,6 +1006,8 @@ export const translations: Record<Language, Translations> = {
       orgGroup: "组织",
       devGroup: "开发者工具",
       systemGroup: "系统",
+      adminGroup: "管理",
+      monitoring: "系统监控",
       manageWorkspaces: "管理办公室",
     },
     status: { allSystemsOnline: "所有系统运行正常" },
@@ -1314,6 +1322,8 @@ export const translations: Record<Language, Translations> = {
       orgGroup: "組織",
       devGroup: "開発者ツール",
       systemGroup: "システム",
+      adminGroup: "管理",
+      monitoring: "システム監視",
       manageWorkspaces: "オフィス管理",
     },
     status: { allSystemsOnline: "全システム稼働中" },

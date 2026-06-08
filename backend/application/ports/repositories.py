@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Protocol
 
 from backend.domain.memory.knowledge_graph import ConversationKnowledgeGraph
@@ -11,8 +12,10 @@ from backend.domain.models import (
     Message,
     Analytics,
     ActivityFeedItem,
+    ModelPricing,
     OfficeBuilderSession,
     ThirdPartyConnection,
+    TokenUsageRecord,
     User,
     Workspace,
 )
@@ -144,6 +147,9 @@ class WorkspaceRepository(Protocol):
 
 
 class UserRepository(Protocol):
+    def list(self) -> list[User]:
+        ...
+
     def find_by_id(self, user_id: str) -> User | None:
         ...
 
@@ -154,6 +160,28 @@ class UserRepository(Protocol):
         ...
 
     def save(self, user: User) -> User:
+        ...
+
+
+class TokenUsageRepository(Protocol):
+    def add(self, record: TokenUsageRecord) -> TokenUsageRecord:
+        ...
+
+    def list(self, since: datetime | None = None) -> list[TokenUsageRecord]:
+        ...
+
+
+class ModelPricingRepository(Protocol):
+    def list(self) -> list[ModelPricing]:
+        ...
+
+    def get(self, model: str) -> ModelPricing | None:
+        ...
+
+    def upsert(self, pricing: ModelPricing) -> ModelPricing:
+        ...
+
+    def delete(self, model: str) -> None:
         ...
 
 

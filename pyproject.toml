@@ -19,6 +19,7 @@ dependencies = [
 	"langchain-google-genai>=1.0.7",
 	"langchain-openai>=0.3.0",
 	"langgraph>=0.2.34",
+	"mcp>=1.9.0",
 	"duckduckgo-search>=6.3.0",
 	"browser-use>=0.12.3",
 	"playwright>=1.58.0",

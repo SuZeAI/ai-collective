@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
   BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit, Settings2,
-  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe,
+  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck,
 } from "lucide-react";
 import { api, type Workspace } from "@/lib/api";
 import { OVERALL_WORKSPACE_ID } from "@/hooks/use-workspace-scope";
@@ -23,41 +23,59 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-const NAV_GROUPS = [
+type NavItemKey =
+  | "dashboard" | "analytics" | "tasks" | "conversations" | "officeBuilder"
+  | "teams" | "agents" | "skills" | "playground" | "workspaces" | "settings"
+  | "monitoring";
+
+type NavGroup = {
+  groupKey: "overviewGroup" | "operationsGroup" | "orgGroup" | "devGroup" | "systemGroup" | "adminGroup";
+  adminOnly?: boolean;
+  items: { key: NavItemKey; url: string; icon: React.ElementType }[];
+};
+
+const NAV_GROUPS: NavGroup[] = [
   {
-    groupKey: "overviewGroup" as const,
+    groupKey: "overviewGroup",
     items: [
-      { key: "dashboard" as const, url: "/dashboard", icon: Layout },
-      { key: "analytics" as const, url: "/analytics", icon: BarChart3 },
+      { key: "dashboard", url: "/dashboard", icon: Layout },
+      { key: "analytics", url: "/analytics", icon: BarChart3 },
     ]
   },
   {
-    groupKey: "operationsGroup" as const,
+    groupKey: "operationsGroup",
     items: [
-      { key: "tasks" as const, url: "/tasks", icon: CheckCircle2 },
-      { key: "conversations" as const, url: "/conversations", icon: MessageSquare },
+      { key: "tasks", url: "/tasks", icon: CheckCircle2 },
+      { key: "conversations", url: "/conversations", icon: MessageSquare },
     ]
   },
   {
-    groupKey: "orgGroup" as const,
+    groupKey: "orgGroup",
     items: [
-      { key: "officeBuilder" as const, url: "/office-builder", icon: Sparkles },
-      { key: "teams" as const, url: "/teams", icon: Users },
-      { key: "agents" as const, url: "/agents", icon: Cpu },
-      { key: "skills" as const, url: "/skills", icon: Wrench },
+      { key: "officeBuilder", url: "/office-builder", icon: Sparkles },
+      { key: "teams", url: "/teams", icon: Users },
+      { key: "agents", url: "/agents", icon: Cpu },
+      { key: "skills", url: "/skills", icon: Wrench },
     ]
   },
   {
-    groupKey: "devGroup" as const,
+    groupKey: "devGroup",
     items: [
-      { key: "playground" as const, url: "/playground", icon: Play },
-      { key: "workspaces" as const, url: "/workspaces", icon: BrainCircuit },
+      { key: "playground", url: "/playground", icon: Play },
+      { key: "workspaces", url: "/workspaces", icon: BrainCircuit },
     ]
   },
   {
-    groupKey: "systemGroup" as const,
+    groupKey: "systemGroup",
     items: [
-      { key: "settings" as const, url: "/settings", icon: Settings2 },
+      { key: "settings", url: "/settings", icon: Settings2 },
+    ]
+  },
+  {
+    groupKey: "adminGroup",
+    adminOnly: true,
+    items: [
+      { key: "monitoring", url: "/admin/monitoring", icon: ShieldCheck },
     ]
   }
 ];
@@ -134,7 +152,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     window.dispatchEvent(new CustomEvent("activeWorkspaceChanged", { detail: ws?.id ?? null }));
   };
 
-  const allNavItems = NAV_GROUPS.flatMap((g) => g.items).map((item) => ({
+  const isAdmin = user?.role === "admin" || user?.role === "system";
+  const navGroups = NAV_GROUPS.filter((group) => !group.adminOnly || isAdmin);
+
+  const allNavItems = navGroups.flatMap((g) => g.items).map((item) => ({
     ...item,
     title: t.nav[item.key] as string,
   }));
@@ -216,7 +237,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
             {/* Navigation groups */}
             <div className="flex-1 overflow-y-auto py-3 space-y-4">
-              {NAV_GROUPS.map((group) => (
+              {navGroups.map((group) => (
                 <SidebarGroup key={group.groupKey} className="py-0">
                   <SidebarGroupLabel className="text-sidebar-foreground/30 text-[10px] font-bold uppercase tracking-widest px-3 mb-1 group-data-[collapsible=icon]:hidden">
                     {t.nav[group.groupKey]}
