@@ -18,6 +18,7 @@ class SkillSchema(BaseModel):
     avatar_color: str = ""
     avatar_url: str = ""
     code: str | None = None
+    instruction: str = ""
     owner_id: str = "default"
 
     @staticmethod
@@ -36,6 +37,7 @@ class SkillSchema(BaseModel):
             avatar_color=getattr(s, "avatar_color", "") or "",
             avatar_url=getattr(s, "avatar_url", "") or "",
             code=s.code,
+            instruction=getattr(s, "instruction", "") or "",
             owner_id=getattr(s, "owner_id", "default") or "default",
         )
 
@@ -53,6 +55,7 @@ class UpsertSkillRequest(BaseModel):
     avatar_color: str | None = None
     avatar_url: str | None = None
     code: str | None = None
+    instruction: str | None = None
 
 
 class SkillToolConfigFieldSchema(BaseModel):

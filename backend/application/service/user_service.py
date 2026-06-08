@@ -105,6 +105,43 @@ class UserService:
         )
         return self._repo.save(new_user)
 
+    def ensure_admin(self, *, email: str, password: str, name: str = "Administrator") -> tuple[User, str]:
+        """Idempotently create or sync the bootstrap admin from env config.
+
+        Env is the source of truth: the account is forced to the ``admin`` role
+        and its password is reset whenever it no longer matches the configured
+        value. Returns ``(user, action)`` where action is one of
+        ``"created"`` | ``"updated"`` | ``"unchanged"`` so callers can log it.
+        """
+        email = email.strip().lower()
+        name = name.strip() or "Administrator"
+        existing = self._repo.find_by_email(email)
+
+        if not existing:
+            user = User(
+                id=str(uuid.uuid4()),
+                name=name,
+                email=email,
+                hashed_password=hash_password(password),
+                role="admin",
+                joined_at=datetime.now(timezone.utc).isoformat(),
+            )
+            return self._repo.save(user), "created"
+
+        password_matches = bool(existing.hashed_password) and verify_password(
+            password, existing.hashed_password
+        )
+        if existing.role == "admin" and existing.name == name and password_matches:
+            return existing, "unchanged"
+
+        updated = dataclasses.replace(
+            existing,
+            role="admin",
+            name=name,
+            hashed_password=existing.hashed_password if password_matches else hash_password(password),
+        )
+        return self._repo.save(updated), "updated"
+
     def change_password(self, user_id: str, current_password: str, new_password: str) -> None:
         user = self.find_by_id(user_id)
         if not verify_password(current_password, user.hashed_password):

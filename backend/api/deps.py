@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -65,7 +66,28 @@ from backend.log import get_logger
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-STORAGE_DIR = Path(settings.storage_dir) if settings.storage_dir else PROJECT_ROOT / "storage"
+
+
+def _resolve_dir(value: str | None, default: Path) -> Path:
+    """Resolve a configured dir to an absolute path.
+
+    Relative values are resolved against the project root (not the process
+    CWD), so the app behaves the same no matter where it is launched from.
+    """
+    if not value:
+        return default
+    p = Path(value)
+    return p if p.is_absolute() else PROJECT_ROOT / p
+
+
+# Live database: where the app reads/writes runtime JSON data. Per-machine and
+# gitignored — defaults to <project_root>/local_database.
+STORAGE_DIR = _resolve_dir(settings.storage_dir, PROJECT_ROOT / "local_database")
+
+# Seed source: the bundled default catalog committed to git. Read-only — it is
+# the source the startup seed copies defaults FROM, never the live store.
+# Configured via SEED_DIR (settings.seed_dir); defaults to <project_root>/storage.
+SEED_DIR = _resolve_dir(settings.seed_dir, PROJECT_ROOT / "storage")
 
 
 @lru_cache
@@ -160,6 +182,7 @@ def get_conversation_service() -> ConversationService:
             anthropic_api_key=settings.anthropic_api_key,
             openai_api_key=settings.openai_api_key,
             open_weight_api_key=settings.open_weight_api_key,
+            kimi_api_key=settings.kimi_api_key,
             base_url=settings.llm_api_base,
         )
     return ConversationService(
@@ -193,6 +216,7 @@ def get_graph_context_service() -> GraphContextService:
             anthropic_api_key=settings.anthropic_api_key,
             openai_api_key=settings.openai_api_key,
             open_weight_api_key=settings.open_weight_api_key,
+            kimi_api_key=settings.kimi_api_key,
             base_url=settings.llm_api_base,
         )
     return GraphContextService(
@@ -238,6 +262,138 @@ def _user_store():
 
 def get_user_service() -> UserService:
     return UserService(_user_store())
+
+
+def _env_bool(name: str, default: bool = True) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() not in ("0", "false", "no", "off", "")
+
+
+def seed_admin_user() -> None:
+    """Create/sync the bootstrap admin account from env on startup.
+
+    Reads ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_NAME straight from the
+    environment and writes the account into the configured users store (the
+    Mongo `users` collection, or users.json). Idempotent and resilient — a
+    failure here is logged but never blocks the app from starting.
+    """
+    if not _env_bool("ADMIN_AUTO_SEED", True):
+        return
+
+    email = (os.getenv("ADMIN_EMAIL") or "").strip()
+    password = os.getenv("ADMIN_PASSWORD") or ""
+    name = (os.getenv("ADMIN_NAME") or "Administrator").strip()
+
+    if not email or not password:
+        get_logger().info(
+            "Admin auto-seed skipped: set ADMIN_EMAIL and ADMIN_PASSWORD in .env to enable it"
+        )
+        return
+
+    try:
+        user, action = get_user_service().ensure_admin(email=email, password=password, name=name)
+        if action == "unchanged":
+            get_logger().info(f"Admin account already in sync: {user.email}")
+        else:
+            get_logger().info(f"Admin account {action} from env: {user.email} (id={user.id})")
+    except Exception as exc:  # never block startup on a seeding error
+        get_logger().error(f"Admin auto-seed failed: {exc}")
+
+
+# Bundled default catalog shipped in storage/*.json (committed to git), keyed by
+# the Mongo collection it feeds. Only these are auto-imported on startup.
+# Order matters: agents/skills/teams are seeded before tasks so a seeded task's
+# referenced team and agents already exist in the live store.
+_DEFAULT_DATA_FILES = (
+    ("agents", "agents.json"),
+    ("skills", "skills.json"),
+    ("teams", "teams.json"),
+    ("tasks", "tasks.json"),
+)
+
+
+def _load_seed_records(filename: str) -> list[dict]:
+    """Read a default-catalog file from the committed seed dir (storage/)."""
+    import json
+
+    path = SEED_DIR / filename
+    if not path.exists():
+        return []
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return data if isinstance(data, list) else []
+
+
+def seed_default_data() -> None:
+    """Seed the bundled default agents/skills/teams/tasks into the live DB on startup.
+
+    The committed catalog lives in the seed dir (``storage/``); the live data
+    lives in the local database (Mongo, or JSON files under ``local_database/``).
+    This copies any default entity that is missing from the live DB so a fresh
+    clone comes up with the starter catalog — without ever touching the seed
+    files or clobbering entities already present in the live DB.
+    """
+    if not _env_bool("SEED_DEFAULT_DATA", True):
+        return
+
+    try:
+        from backend.domain.models import DEFAULT_OWNER_ID
+
+        total_inserted = 0
+
+        if settings.storage_backend == "mongo":
+            import pymongo
+
+            db = pymongo.MongoClient(settings.mongo_uri)[settings.mongo_db]
+            for collection, filename in _DEFAULT_DATA_FILES:
+                inserted = 0
+                for rec in _load_seed_records(filename):
+                    doc_id = rec.get("id")
+                    if not doc_id:
+                        continue
+                    if db[collection].find_one({"_id": doc_id}, {"_id": 1}) is not None:
+                        continue  # already in the live DB — leave it untouched
+                    doc = dict(rec)
+                    doc["_id"] = doc_id
+                    doc.setdefault("owner_id", DEFAULT_OWNER_ID)
+                    db[collection].insert_one(doc)
+                    inserted += 1
+                if inserted:
+                    get_logger().info(f"Seeded {inserted} default {collection} into Mongo")
+                total_inserted += inserted
+        else:
+            # JSON mode: live store is local_database/*.json (≠ the seed dir).
+            for collection, filename in _DEFAULT_DATA_FILES:
+                seed_records = _load_seed_records(filename)
+                if not seed_records:
+                    continue
+                store = JsonFileStore(STORAGE_DIR / filename)
+                live = store.read()
+                if not isinstance(live, list):
+                    live = []
+                existing_ids = {r.get("id") for r in live if isinstance(r, dict)}
+                added = 0
+                for rec in seed_records:
+                    doc_id = rec.get("id")
+                    if not doc_id or doc_id in existing_ids:
+                        continue
+                    rec = dict(rec)
+                    rec.setdefault("owner_id", DEFAULT_OWNER_ID)
+                    live.append(rec)
+                    existing_ids.add(doc_id)
+                    added += 1
+                if added:
+                    store.write(live)
+                    get_logger().info(
+                        f"Seeded {added} default {collection} into {STORAGE_DIR.name}/{filename}"
+                    )
+                total_inserted += added
+
+        if total_inserted == 0:
+            get_logger().info("Default catalog already present — nothing to seed")
+    except Exception as exc:  # never block startup on a seeding error
+        get_logger().error(f"Default data seed failed: {exc}")
 
 
 def get_skill_tool_manager() -> SkillToolManager:
@@ -319,6 +475,7 @@ def _llm_provider():
         anthropic_api_key=settings.anthropic_api_key,
         openai_api_key=settings.openai_api_key,
         open_weight_api_key=settings.open_weight_api_key,
+        kimi_api_key=settings.kimi_api_key,
         base_url=settings.llm_api_base,
         max_tool_rounds=settings.agent_max_tool_rounds,
         tool_timeout_seconds=settings.tool_timeout_seconds,

@@ -6,11 +6,9 @@ from backend.domain.tools.bash import BashToolkit
 from backend.domain.tools.sandbox_tools import SandboxToolkit
 from backend.domain.tools.brave_search import BraveSearchToolkit
 from backend.domain.tools.browser import BrowserToolkit
-from backend.domain.tools.dedupe_search import DedupeSearchToolkit
 from backend.domain.tools.http import HTTPToolkit
 from backend.domain.tools.mcp_toolkit import MCPToolkit
 from backend.domain.tools.promt_tool import PromtToolToolkit
-from backend.domain.tools.ui import UIToolkit
 from backend.domain.tools.websearch import WebSearchToolkit
 from backend.domain.tools.xai import XAIToolkit
 from backend.domain.tools.xiaohongshu import XiaohongshuToolkit
@@ -47,6 +45,14 @@ from backend.domain.tools.skype_messaging import SkypeMessagingToolkit
 from backend.domain.tools.wire_messaging import WireMessagingToolkit
 from backend.domain.tools.wechat_messaging import WeChatMessagingToolkit
 from backend.domain.tools.snapchat_messaging import SnapchatMessagingToolkit
+from backend.domain.tools.image_generation import ImageGenerationToolkit
+from backend.domain.tools.text_to_speech import TextToSpeechToolkit
+from backend.domain.tools.video_generation import VideoGenerationToolkit
+from backend.domain.tools.gemini import (
+    GeminiImageToolkit,
+    GeminiTTSToolkit,
+    GeminiVideoToolkit,
+)
 
 
 class ToolType(str, Enum):
@@ -55,7 +61,6 @@ class ToolType(str, Enum):
     BRAVE_SEARCH = "brave_search"
     BROWSER = "browser"
     WEBSEARCH = "websearch"
-    DEDUPE_SEARCH = "dedupe_search"
     HTTP = "http"
     MCP = "mcp"
     XAI = "xai"
@@ -74,7 +79,6 @@ class ToolType(str, Enum):
     BLUESKY = "bluesky"
     BIRD_X = "bird_x"
     PROMT_TOOL = "promt_tool"
-    UI = "ui"
     SHEET = "sheet"
     DRIVE = "drive"
     DOCS = "docs"
@@ -95,6 +99,12 @@ class ToolType(str, Enum):
     WIRE_MESSAGING = "wire_messaging"
     WECHAT_MESSAGING = "wechat_messaging"
     SNAPCHAT_MESSAGING = "snapchat_messaging"
+    IMAGE_GENERATION = "image_generation"
+    TEXT_TO_SPEECH = "text_to_speech"
+    VIDEO_GENERATION = "video_generation"
+    GEMINI_IMAGE = "gemini_image"
+    GEMINI_TTS = "gemini_tts"
+    GEMINI_VIDEO = "gemini_video"
 
 
 TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
@@ -103,7 +113,6 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.BRAVE_SEARCH.value: BraveSearchToolkit,
     ToolType.BROWSER.value: BrowserToolkit,
     ToolType.WEBSEARCH.value: WebSearchToolkit,
-    ToolType.DEDUPE_SEARCH.value: DedupeSearchToolkit,
     ToolType.HTTP.value: HTTPToolkit,
     ToolType.MCP.value: MCPToolkit,
     ToolType.XAI.value: XAIToolkit,
@@ -122,7 +131,6 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.BLUESKY.value: BlueskyToolkit,
     ToolType.BIRD_X.value: BirdXToolkit,
     ToolType.PROMT_TOOL.value: PromtToolToolkit,
-    ToolType.UI.value: UIToolkit,
     ToolType.SHEET.value: SheetToolkit,
     ToolType.DRIVE.value: DriveToolkit,
     ToolType.DOCS.value: DocsToolkit,
@@ -143,6 +151,12 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.WIRE_MESSAGING.value: WireMessagingToolkit,
     ToolType.WECHAT_MESSAGING.value: WeChatMessagingToolkit,
     ToolType.SNAPCHAT_MESSAGING.value: SnapchatMessagingToolkit,
+    ToolType.IMAGE_GENERATION.value: ImageGenerationToolkit,
+    ToolType.TEXT_TO_SPEECH.value: TextToSpeechToolkit,
+    ToolType.VIDEO_GENERATION.value: VideoGenerationToolkit,
+    ToolType.GEMINI_IMAGE.value: GeminiImageToolkit,
+    ToolType.GEMINI_TTS.value: GeminiTTSToolkit,
+    ToolType.GEMINI_VIDEO.value: GeminiVideoToolkit,
 }
 
 

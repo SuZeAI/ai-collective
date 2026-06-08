@@ -28,6 +28,7 @@ export type Skill = {
   avatar_color?: string;
   avatar_url?: string;
   code?: string | null;
+  instruction?: string;
   owner_id?: string;
 };
 

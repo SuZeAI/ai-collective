@@ -29,6 +29,7 @@ class JsonSkillRepository:
                     avatar_url=str(item.get("avatar_url", "") or ""),
                     tool_name=(str(item.get("tool_name")) if item.get("tool_name") is not None else None),
                     code=(str(item.get("code")) if item.get("code") is not None else None),
+                    instruction=str(item.get("instruction", "") or ""),
                     owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
                 )
                 self._items[s.id] = s
@@ -51,6 +52,7 @@ class JsonSkillRepository:
                     "tool_name": s.tool_name,
                     "config": dict(s.config or {}),
                     "code": s.code,
+                    "instruction": s.instruction,
                     "owner_id": s.owner_id,
                 }
                 for s in self._items.values()

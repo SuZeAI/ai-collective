@@ -3,10 +3,8 @@ from backend.domain.tools.bash import BashToolkit
 from backend.infrastructure.sandbox import Sandbox as SandboxPort
 from backend.domain.tools.brave_search import BraveSearchToolkit
 from backend.domain.tools.browser import BrowserPort, BrowserToolkit
-from backend.domain.tools.dedupe_search import DedupeSearchResult, DedupeSearchToolkit
 from backend.domain.tools.http import HTTPToolkit
 from backend.domain.tools.promt_tool import PromtToolToolkit
-from backend.domain.tools.ui import UIToolkit
 from backend.domain.tools.websearch import WebSearchItem, WebSearchResult, WebSearchToolkit
 from backend.domain.tools.xai import XAIToolkit
 from backend.domain.tools.xiaohongshu import XiaohongshuToolkit
@@ -37,11 +35,8 @@ __all__ = [
     "BraveSearchToolkit",
     "BrowserToolkit",
     "BrowserPort",
-    "DedupeSearchToolkit",
-    "DedupeSearchResult",
     "HTTPToolkit",
     "PromtToolToolkit",
-    "UIToolkit",
     "WebSearchToolkit",
     "WebSearchResult",
     "WebSearchItem",
