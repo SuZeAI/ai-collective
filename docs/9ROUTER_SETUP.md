@@ -14,6 +14,15 @@ its existing **`openai`** provider — no backend code changes. You point
 AI Collective backend ──(OpenAI API)──► 9Router :20128 ──► Claude / OpenAI / Gemini / …
 ```
 
+> **9Router vs. built-in key rotation.** 9Router is one of two failover strategies,
+> selected by `LLM_FAILOVER_STRATEGY`. The other — `rotate` — cycles multiple keys
+> of a *single* provider with no extra service. See
+> [LLM_KEY_ROTATION.md](LLM_KEY_ROTATION.md) to compare. To use 9Router, set
+> `LLM_FAILOVER_STRATEGY=9router` (this turns the built-in rotation off).
+>
+> Note: 9Router (`decolua/9router`) is **not** openrouter.ai — the latter is the
+> separate `open_weight` provider configured via `OPENROUTER_API_KEY`.
+
 ---
 
 ## 1. Start the 9Router service
@@ -62,12 +71,19 @@ The service:
 | Data volume | `router_data` → `/app/data` (SQLite DB) | — |
 | Public URL | `http://localhost:20128` | `ROUTER_PUBLIC_URL` |
 | JWT secret | dev placeholder | `ROUTER_JWT_SECRET` (set in production!) |
+| Dashboard login password | `123456` | `ROUTER_INITIAL_PASSWORD` (change it!) |
 | In-Docker hostname | `nine-router` | — |
 
-Generate a real JWT secret before exposing it:
+The service binds `0.0.0.0:20128` inside the container and is published to the
+host as `localhost:${ROUTER_PORT}`, so the dashboard and API are reachable at
+**http://localhost:20128** straight away. A `healthcheck` reports readiness once
+the gateway responds.
+
+Before exposing it beyond localhost, change both secrets:
 
 ```bash
-openssl rand -hex 32   # paste into ROUTER_JWT_SECRET in .env
+openssl rand -hex 32          # → ROUTER_JWT_SECRET in .env
+# and set a strong ROUTER_INITIAL_PASSWORD (replaces the default 123456)
 ```
 
 ---
@@ -75,10 +91,12 @@ openssl rand -hex 32   # paste into ROUTER_JWT_SECRET in .env
 ## 2. Configure providers in the dashboard
 
 1. Open the dashboard: **http://localhost:20128/dashboard**
-2. Add one or more **provider accounts** (e.g. your Claude subscription, an OpenAI
+2. **Log in** with the first-login password — `ROUTER_INITIAL_PASSWORD` (default
+   `123456`). Change it after the first login.
+3. Add one or more **provider accounts** (e.g. your Claude subscription, an OpenAI
    key, a free GLM tier). Each provider exposes models as `provider/model-name`,
    e.g. `cc/claude-opus-4-7`, `glm/glm-5.1`, `kr/claude-sonnet-4.5`.
-3. *(Optional)* Create a **combo** — a named fallback chain — so a single model id
+4. *(Optional)* Create a **combo** — a named fallback chain — so a single model id
    tries several providers in order:
    ```
    Combo: premium-coding
@@ -96,6 +114,9 @@ openssl rand -hex 32   # paste into ROUTER_JWT_SECRET in .env
 Edit `.env` at the project root (copy from `.env.template` if you haven't):
 
 ```dotenv
+# Delegate failover to 9Router (turns off the built-in multi-key rotation)
+LLM_FAILOVER_STRATEGY=9router
+
 # Route the backend through 9Router using the OpenAI-compatible provider
 LLM_PROVIDER=openai
 LLM_API_BASE=http://nine-router:20128/v1
@@ -106,6 +127,7 @@ LLM_MODEL=premium-coding         # a combo name, or a provider/model like cc/cla
 ROUTER_PORT=20128
 ROUTER_PUBLIC_URL=http://localhost:20128
 ROUTER_JWT_SECRET=<openssl rand -hex 32>
+ROUTER_INITIAL_PASSWORD=<strong-password>   # dashboard login (default 123456)
 ```
 
 > **Which base URL?**
@@ -152,6 +174,7 @@ its fallback chain.
 | `Connection refused` to `nine-router:20128` | Service not started — add `--profile router` to your `up` command. |
 | Works from host but not from backend container | Use `http://nine-router:20128/v1` (service hostname), not `localhost`, inside Docker. |
 | `401` from 9Router | Bearer key doesn't match a key created in the dashboard. |
+| Can't log into the dashboard | Use `ROUTER_INITIAL_PASSWORD` (default `123456`). If changed after data was persisted, the stored password in the `router_data` volume wins — reset by recreating the volume. |
 | Model not found | `LLM_MODEL` must be a dashboard combo name or a valid `provider/model` id. |
 | Dashboard data lost after recreate | Ensure the `router_data` volume is intact; it holds `db/data.sqlite`. |
 
