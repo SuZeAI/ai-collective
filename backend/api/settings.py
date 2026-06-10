@@ -1,7 +1,19 @@
 from __future__ import annotations
 
+import dotenv
 from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from backend.api.config_loader import apply_config_yaml
+
+# Build the layered environment before any Settings() is constructed:
+#   code defaults  <  config.yml  <  .env  <  OS environment
+# 1. .env into os.environ (load_dotenv never overrides an existing OS var).
+# 2. config.yml fills any remaining gaps via setdefault (so .env / OS win).
+# Both feed os.environ, so values reach pydantic Settings *and* the modules
+# that read os.getenv directly (LLM rotation, MCP timeouts, …).
+dotenv.load_dotenv()
+apply_config_yaml()
 
 _DEFAULT_JWT_SECRET = "change-me-in-production-use-openssl-rand-hex-32"
 

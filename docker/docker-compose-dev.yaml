@@ -193,6 +193,8 @@ services:
       - ../secrets:/app/secrets
       - ../storage:/app/storage
       - ../logs:/app/logs
+      - ../config.yml:/app/config.yml:ro
+      - ../mcp.yml:/app/mcp.yml:ro
       - sandbox-workspace:/app/sandbox_workspace
       - backend-venv:/app/.venv
       - backend-uv-cache:/root/.cache/uv

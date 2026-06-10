@@ -1,0 +1,146 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# AI Collective — Non-secret configuration
+# ──────────────────────────────────────────────────────────────────────────────
+# This file holds NON-SECRET operational config (modes, timeouts, ports, URLs,
+# budgets). It is committed to git. Secrets (API keys, JWT secret, DB/router
+# credentials) live in .env — see .env.template.
+#
+# Layering, low → high priority:
+#     code defaults  <  config.yml  <  .env  <  OS environment
+# Anything set in .env or the shell overrides the value here. Section names
+# (app:, llm: …) are cosmetic grouping only; the UPPER_CASE leaf keys are the
+# canonical env-var names. Override the file location with CONFIG_FILE=...
+#
+# Env references: any value may embed ${VAR} or ${VAR:-default}, expanded from
+# the environment (.env / shell) at load time — e.g. LLM_MODEL: ${MY_MODEL:-gemini-3-flash-preview}.
+# Use this to pull a secret/host in without duplicating it. An unset var with no
+# default becomes empty.
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── Application ───────────────────────────────────────────────────────────────
+app:
+  ENVIRONMENT: development            # development | production (prod enforces a strong JWT secret)
+  API_PREFIX: /api/v1
+  CORS_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080,http://localhost:2026,http://127.0.0.1:2026"
+  FRONTEND_URL: http://localhost:8080
+  VITE_API_BASE_URL: http://localhost:8000/api/v1
+
+# ── Logging ─────────────────────────────────────────────────────────────────
+logging:
+  LOG_LEVEL: info                     # CRITICAL | ERROR | WARNING | INFO | DEBUG
+  LOG_CONSOLE: true
+  LOG_FILE: false
+  # LOG_MAX_BYTES: 10485760
+  # LOG_BACKUP_COUNT: 5
+
+# ── LLM providers ─────────────────────────────────────────────────────────────
+# API keys stay in .env (GOOGLE_API_KEY, ANTHROPIC_API_KEY, …).
+llm:
+  LLM_PROVIDER: google
+  LLM_MODEL: gemini-3-flash-preview
+  # LLM_API_BASE: http://localhost:11434/v1   # custom base URL (Ollama / LiteLLM)
+
+# ── LLM failover / key rotation ───────────────────────────────────────────────
+# rotate  → built-in multi-key rotation (list several keys in .env)
+# 9router → delegate to the 9Router gateway (aliases: router, nine-router, off)
+llm_failover:
+  LLM_FAILOVER_STRATEGY: rotate
+  LLM_ROTATE_MAX_REQUESTS_PER_MIN: 0  # per-key RPM budget, 0 = unlimited
+  LLM_ROTATE_MAX_TOKENS_PER_MIN: 0    # per-key TPM budget, 0 = unlimited
+  LLM_KEY_COOLDOWN_SECONDS: 60        # how long an errored key is skipped before retry
+
+# ── 9Router gateway (docker profile: router) ──────────────────────────────────
+# ROUTER_JWT_SECRET and ROUTER_INITIAL_PASSWORD are secrets → .env.
+router:
+  ROUTER_PORT: 20128
+  ROUTER_PUBLIC_URL: http://localhost:20128
+
+# ── Agent / tools ─────────────────────────────────────────────────────────────
+agent:
+  AGENT_MAX_TOOL_ROUNDS: 6            # max LLM<->tool rounds per agent turn
+  TOOL_TIMEOUT_SECONDS: 0             # per-tool timeout, 0 = disabled
+  SUBAGENT_MAX_CONCURRENT: 3
+  SUBAGENT_MAX_TURNS: 6
+  # AGENT_CONTEXT_TOKEN_LIMIT:
+  # AGENT_OUTPUT_TOKEN_RESERVE:
+  # AGENT_LLM_TIMEOUT_SECONDS:
+  # AGENT_LLM_MAX_RETRIES:
+  # AGENT_ASK_USER_TIMEOUT_SECONDS:
+
+# ── Storage ───────────────────────────────────────────────────────────────────
+storage:
+  STORAGE_BACKEND: json               # json (file) | mongo
+  STORAGE_DIR: local_database         # live DB dir (relative to project root)
+  # SEED_DIR: storage                 # read-only default catalog seeded FROM
+
+# ── MongoDB (used when STORAGE_BACKEND=mongo) ─────────────────────────────────
+# MONGO_URI contains credentials → keep it in .env.
+mongo:
+  MONGO_DB: ai_collective
+
+# ── Graph knowledge extraction ────────────────────────────────────────────────
+graph:
+  GRAPH_BUILD_MODE: static            # static (spaCy, no token cost) | llm
+  # GRAPH_LLM_PROVIDER: google
+  # GRAPH_LLM_MODEL: gemini-3-flash-preview
+
+# ── Task queue ────────────────────────────────────────────────────────────────
+# RABBITMQ_URL contains credentials → .env.
+task_queue:
+  TASK_QUEUE_BACKEND: memory          # memory (single instance) | rabbitmq
+  TASK_QUEUE_MAX_CONCURRENT: 3
+
+# ── Repository lock ───────────────────────────────────────────────────────────
+# REDIS_URL contains credentials → .env.
+lock:
+  LOCK_BACKEND: threading             # threading (single instance) | redis
+
+# ── Sandbox ───────────────────────────────────────────────────────────────────
+sandbox:
+  SANDBOX_MODE: local                 # local | docker | k8s
+  SANDBOX_TIMEOUT: 120
+  SANDBOX_HOST: localhost
+  # docker mode:
+  # SANDBOX_IMAGE: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
+  # SANDBOX_BASE_PORT: 8080
+  # SANDBOX_CONTAINER_PREFIX: ai-collective-sandbox
+  # SANDBOX_REPLICAS: 3
+  # SANDBOX_IDLE_TIMEOUT: 600
+  # k8s mode:
+  # SANDBOX_PROVISIONER_URL: http://provisioner:8002
+
+# ── Authentication / JWT ──────────────────────────────────────────────────────
+# JWT_SECRET_KEY and Google OAuth client id/secret are secrets → .env.
+auth:
+  JWT_ALGORITHM: HS256
+  JWT_ACCESS_TOKEN_EXPIRE_MINUTES: 10080   # 7 days
+  GOOGLE_LOGIN_REDIRECT_URI: http://127.0.0.1:8000/api/v1/auth/google/callback
+  GOOGLE_OAUTH_REDIRECT_URI: http://127.0.0.1:8000/api/v1/auth/oauth/callback
+
+# ── Agent working memory ──────────────────────────────────────────────────────
+working_memory:
+  WORKING_MEMORY_ENABLED: true
+  WORKING_MEMORY_MAX_NOTES: 40
+  WORKING_MEMORY_COMPACT_TOKENS: 1500
+  WORKING_MEMORY_NOTE_CHARS: 600
+  WORKING_MEMORY_SUMMARY_CHARS: 3000
+  WORKING_MEMORY_DIGEST_CHARS: 4000
+
+# ── MCP (Model Context Protocol) ──────────────────────────────────────────────
+# Per-server connection config is declared in mcp.yml (see that file).
+mcp:
+  MCP_DISCOVERY_TIMEOUT_SECONDS: 30   # list_tools handshake ceiling at bind time
+  MCP_CALL_TIMEOUT_SECONDS: 60        # default per-tool-call timeout
+  MCP_AUTO_SEED: true                 # seed enabled servers from mcp.yml on boot
+  MCP_CONFIG_FILE: mcp.yml            # path to the MCP declarations (relative to root)
+
+# ── Admin bootstrap ───────────────────────────────────────────────────────────
+# ADMIN_PASSWORD is a secret → .env.
+admin:
+  ADMIN_EMAIL: admin@aicollective.com
+  ADMIN_NAME: Administrator
+  ADMIN_AUTO_SEED: true
+
+# ── Default catalog seed ──────────────────────────────────────────────────────
+seed:
+  SEED_DEFAULT_DATA: true
