@@ -6,6 +6,21 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 _DEFAULT_JWT_SECRET = "change-me-in-production-use-openssl-rand-hex-32"
 
 
+def _split_keys(value: str | None) -> list[str]:
+    """Split a comma/whitespace-separated key string into a de-duplicated list."""
+    if not value:
+        return []
+    raw = value.replace("\n", ",").replace(" ", ",")
+    out: list[str] = []
+    seen: set[str] = set()
+    for part in raw.split(","):
+        key = part.strip()
+        if key and key not in seen:
+            seen.add(key)
+            out.append(key)
+    return out
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -26,17 +41,49 @@ class Settings(BaseSettings):
     llm_provider: str = "google"
     llm_model: str | None = None
     llm_api_base: str | None = None
-    google_api_key: str | None = None
-    anthropic_api_key: str | None = None
-    openai_api_key: str | None = None
+    # Each *_api_key may hold a single key OR several comma/whitespace-separated
+    # keys; when more than one is supplied the LLM layer rotates across them to
+    # dodge per-key rate/quota limits and to fail over on errors. The plural
+    # *_API_KEYS env vars are accepted as explicit aliases for the same purpose.
+    google_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("GOOGLE_API_KEY", "GOOGLE_API_KEYS", "GEMINI_API_KEY"),
+    )
+    anthropic_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("ANTHROPIC_API_KEY", "ANTHROPIC_API_KEYS"),
+    )
+    openai_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("OPENAI_API_KEY", "OPENAI_API_KEYS"),
+    )
     open_weight_api_key: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("OPEN_WEIGHT_API_KEY", "OPENROUTER_API_KEY"),
+        validation_alias=AliasChoices(
+            "OPEN_WEIGHT_API_KEY", "OPEN_WEIGHT_API_KEYS", "OPENROUTER_API_KEY", "OPENROUTER_API_KEYS"
+        ),
     )
     kimi_api_key: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("KIMI_API_KEY", "MOONSHOT_API_KEY"),
+        validation_alias=AliasChoices(
+            "KIMI_API_KEY", "KIMI_API_KEYS", "MOONSHOT_API_KEY", "MOONSHOT_API_KEYS"
+        ),
     )
+
+    def google_api_keys(self) -> list[str]:
+        return _split_keys(self.google_api_key)
+
+    def anthropic_api_keys(self) -> list[str]:
+        return _split_keys(self.anthropic_api_key)
+
+    def openai_api_keys(self) -> list[str]:
+        return _split_keys(self.openai_api_key)
+
+    def open_weight_api_keys(self) -> list[str]:
+        return _split_keys(self.open_weight_api_key)
+
+    def kimi_api_keys(self) -> list[str]:
+        return _split_keys(self.kimi_api_key)
 
     # ── Storage ───────────────────────────────────────────────────────────────
     # backend: "json" (default, file-based) | "mongo" (MongoDB)

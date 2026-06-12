@@ -287,8 +287,10 @@ services:
   # OpenAI-compatible gateway that routes / falls back across 40+ LLM providers
   # (Claude, OpenAI, Gemini, GLM…) and compresses tokens. https://github.com/decolua/9router
   # Activate: docker compose -f docker/docker-compose-dev.yaml --profile router up -d
-  # Open the dashboard at http://localhost:${ROUTER_PORT:-20128}/dashboard, add
-  # provider accounts, create a combo + API key, then point the backend at it in .env:
+  # 1. Open the dashboard:  http://localhost:${ROUTER_PORT:-20128}/dashboard
+  # 2. Log in with the first-login password (ROUTER_INITIAL_PASSWORD, default 123456).
+  # 3. Add provider accounts, create a combo + API key, then point the backend
+  #    at it in .env (also set LLM_FAILOVER_STRATEGY=9router to disable local key rotation):
   #   LLM_PROVIDER=openai
   #   LLM_API_BASE=http://nine-router:20128/v1   # in-Docker service hostname
   #   OPENAI_API_KEY=<api key generated in the 9router dashboard>
@@ -305,6 +307,7 @@ services:
       - DATA_DIR=/app/data
       - NODE_ENV=production
       - JWT_SECRET=${ROUTER_JWT_SECRET:-change-me-use-openssl-rand-hex-32}
+      - INITIAL_PASSWORD=${ROUTER_INITIAL_PASSWORD:-123456}
       - NEXT_PUBLIC_BASE_URL=${ROUTER_PUBLIC_URL:-http://localhost:20128}
     volumes:
       - router_data:/app/data
@@ -312,6 +315,12 @@ services:
       - ai-collective-dev
     restart: unless-stopped
     logging: *default-logging
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:20128/', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
 volumes:
   mongo_data:

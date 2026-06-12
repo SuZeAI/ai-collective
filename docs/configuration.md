@@ -47,13 +47,28 @@ openssl rand -hex 32
 | `LLM_PROVIDER` | `google` | `google` \| `anthropic` \| `openai` \| open-weight |
 | `LLM_MODEL` | — | Model id (provider default if unset) |
 | `LLM_API_BASE` | — | Custom base URL |
-| `GOOGLE_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | — | Provider keys |
-| `OPEN_WEIGHT_API_KEY` (alias `OPENROUTER_API_KEY`) | — | Open-weight / OpenRouter key |
+| `GOOGLE_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | — | Provider keys. May list **several keys** comma-separated to enable rotation (plural `*_API_KEYS` aliases also accepted). |
+| `OPEN_WEIGHT_API_KEY` (alias `OPENROUTER_API_KEY`) | — | Open-weight / [openrouter.ai](https://openrouter.ai) key (≠ the 9Router gateway) |
 
-To route every request through the bundled [9Router](9ROUTER_SETUP.md) multi-provider
-proxy, set `LLM_PROVIDER=openai`, `LLM_API_BASE=http://nine-router:20128/v1`, and use
-a 9Router-issued key as `OPENAI_API_KEY`. Container knobs: `ROUTER_PORT`,
-`ROUTER_PUBLIC_URL`, `ROUTER_JWT_SECRET` (compose profile `router`).
+### Key rotation & failover
+
+Survive per-key rate/quota limits — see [LLM_KEY_ROTATION.md](LLM_KEY_ROTATION.md) for the full guide.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LLM_FAILOVER_STRATEGY` | `rotate` | `rotate` (built-in multi-key rotation) \| `9router` (delegate to the gateway). Aliases: `router`, `nine-router`, `off`. |
+| `LLM_ROTATE_MAX_REQUESTS_PER_MIN` | `0` | Proactive per-key RPM budget (`0` = unlimited). Skip a key before it crosses this in a rolling 60s window. |
+| `LLM_ROTATE_MAX_TOKENS_PER_MIN` | `0` | Proactive per-key TPM budget (`0` = unlimited). |
+| `LLM_KEY_COOLDOWN_SECONDS` | `60` | How long an errored key is skipped before retry. |
+
+When `LLM_FAILOVER_STRATEGY=rotate` (default), rotation triggers reactively on
+429/quota/5xx/invalid-key errors **and** proactively on the RPM/TPM budgets above.
+
+To instead route every request through the bundled [9Router](9ROUTER_SETUP.md)
+multi-provider proxy, set `LLM_FAILOVER_STRATEGY=9router`, `LLM_PROVIDER=openai`,
+`LLM_API_BASE=http://nine-router:20128/v1`, and use a 9Router-issued key as
+`OPENAI_API_KEY`. Container knobs: `ROUTER_PORT`, `ROUTER_PUBLIC_URL`,
+`ROUTER_JWT_SECRET`, `ROUTER_INITIAL_PASSWORD` (compose profile `router`).
 
 ## Agent / tools
 
