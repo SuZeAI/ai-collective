@@ -1,7 +1,25 @@
 # Configuration
 
-All settings are environment variables, loaded from `.env` (see
-`backend/api/settings.py`). Names are case-insensitive; the column below uses
+Configuration is split across three layered sources, low → high priority:
+
+```
+code defaults  <  config.yml  <  .env  <  OS environment
+```
+
+- **`config.yml`** — **non-secret** operational config (provider/model, modes,
+  timeouts, ports, URLs, budgets). Committed to git. Organized into sections;
+  the `UPPER_CASE` leaf keys are the canonical env-var names. Edit this for
+  behavior changes. Relocate with `CONFIG_FILE=/path/to/config.yml`.
+- **`.env`** — **secrets only** (API keys, `JWT_SECRET_KEY`, DB/router
+  credentials). Gitignored. Copy from `.env.template`. Overrides `config.yml`,
+  so you can also pin an environment-specific value of any key here.
+- **OS environment** — overrides everything (e.g. values injected by Docker/CI).
+
+Both files are merged into the process environment at startup
+(`backend/api/config_loader.py`), so every value reaches the pydantic `Settings`
+object (`backend/api/settings.py`) **and** the modules that read `os.getenv`
+directly. MCP servers are declared separately in `mcp.yml` — see
+[MCP_GUIDE.md](MCP_GUIDE.md). Names are case-insensitive; the column below uses
 the canonical upper-case form.
 
 ## Application

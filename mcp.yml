@@ -1,0 +1,64 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# AI Collective — MCP server / extension declarations
+# ──────────────────────────────────────────────────────────────────────────────
+# Each enabled entry below is seeded into the skill store as an MCP skill
+# (tool_name = "mcp") on backend boot, so agents can attach it without clicking
+# through the UI. File-declared servers are upserted (this file is the source of
+# truth for them); servers you create in the UI are left untouched.
+#
+# Toggle seeding with MCP_AUTO_SEED (config.yml / .env). Point elsewhere with
+# MCP_CONFIG_FILE=/path/to/mcp.yml.
+#
+# Secrets: never inline tokens here. Reference an env var with ${VAR_NAME} and
+# define VAR_NAME in .env or the shell — it is expanded at seed time. A
+# reference to an unset var is left blank (and logged).
+#
+# Fields (mirror docs/MCP_GUIDE.md):
+#   name           required, unique. Shown in the UI; appended to tool names.
+#   enabled        default false. Only enabled servers are seeded.
+#   transport      stdio | streamable_http | sse        (default stdio)
+#   command, args  stdio: executable + arguments (args = string or list)
+#   env            stdio: extra env vars (map or KEY=VALUE lines)
+#   url, headers   http/sse: endpoint + headers (headers = map or lines)
+#   allowed_tools  optional whitelist (list or comma string); empty = all
+#   timeout_seconds per-call timeout (default 60)
+#   description / instruction  optional UI copy
+# ══════════════════════════════════════════════════════════════════════════════
+
+servers:
+  # ── Local filesystem (stdio via npx) ────────────────────────────────────────
+  - name: Filesystem (local)
+    enabled: false
+    transport: stdio
+    command: npx
+    args: -y @modelcontextprotocol/server-filesystem /tmp
+    timeout_seconds: 60
+    description: Local filesystem access (read/write) scoped to /tmp.
+    instruction: >-
+      Adjust the path in args to the directory you want the agent to access.
+      Only point it at directories you trust the agent with.
+
+  # ── GitHub (stdio, token via .env) ──────────────────────────────────────────
+  - name: GitHub
+    enabled: false
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
+    env:
+      GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_TOKEN}   # set GITHUB_TOKEN in .env
+    allowed_tools:
+      - search_repositories
+      - get_file_contents
+      - create_issue
+    timeout_seconds: 60
+    description: Search repos, read files and open issues on GitHub.
+
+  # ── Remote server (streamable HTTP with auth) ───────────────────────────────
+  - name: Remote Example
+    enabled: false
+    transport: streamable_http
+    url: https://mcp.example.com/mcp
+    headers:
+      Authorization: Bearer ${EXAMPLE_MCP_TOKEN}      # set EXAMPLE_MCP_TOKEN in .env
+    timeout_seconds: 60
+    description: Example remote MCP server reached over HTTP.

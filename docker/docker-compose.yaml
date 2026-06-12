@@ -178,6 +178,8 @@ services:
     volumes:
       - ../storage:/app/storage
       - ../logs:/app/logs
+      - ../config.yml:/app/config.yml:ro
+      - ../mcp.yml:/app/mcp.yml:ro
       - sandbox-workspace:/app/sandbox_workspace
       - /var/run/docker.sock:/var/run/docker.sock
     env_file:
