@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 import os
 import re
 from typing import TypedDict
@@ -20,18 +22,23 @@ from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
 from backend.domain.agent._graph_runtime import (
+    FANOUT_SYNTHESIS_GUIDANCE,
+    MESH_FANOUT_MAX_CONCURRENT,
     drain_human_guidance,
     ensure_working_memory,
     memory_toolkit_tools,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
+    run_fanout_wave,
     run_to_final_state,
     safe_chat,
     wait_while_paused,
     working_memory_block,
 )
 
+
+logger = logging.getLogger(__name__)
 
 MAX_CONTEXT_TOKENS = max(1024, int(os.getenv("AGENT_CONTEXT_TOKEN_LIMIT", "12000")))
 RESERVED_OUTPUT_TOKENS = max(256, int(os.getenv("AGENT_OUTPUT_TOKEN_RESERVE", "2000")))
@@ -48,6 +55,13 @@ You are the **lead agent**. Your job is to complete the user's request by either
   <DELEGATE_TO>ExactWorkerName</DELEGATE_TO>
   <TASK>Clear, self-contained task description for the worker</TASK>
   ```
+- Dispatch a PARALLEL wave (several workers at once, run concurrently):
+  ```
+  <FANOUT>
+  <DELEGATE_TO>WorkerA</DELEGATE_TO><TASK>independent self-contained task for A</TASK>
+  <DELEGATE_TO>WorkerB</DELEGATE_TO><TASK>independent self-contained task for B</TASK>
+  </FANOUT>
+  ```
 - Return final answer to user:
   ```
   <FINAL_ANSWER>Your complete answer here</FINAL_ANSWER>
@@ -55,7 +69,9 @@ You are the **lead agent**. Your job is to complete the user's request by either
 
 ### Rules:
 1. Write your reasoning first, then ONE control block at the very end.
-2. You may only delegate to one worker per turn.
+2. Delegate to one worker with `<DELEGATE_TO>`, OR dispatch 2 to {max_concurrent} workers
+   at once with `<FANOUT>` when their tasks are INDEPENDENT (no ordering dependency).
+   After a fan-out wave you receive all results together and synthesize them.
 3. Workers report directly back to you — you decide what to do next.
 4. When the task is complete (or rounds are nearly exhausted), output `<FINAL_ANSWER>`.
 5. Do not repeat work already done by workers — build on their results.
@@ -120,7 +136,16 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
         re.IGNORECASE | re.DOTALL,
     )
     _CONTROL_BLOCK_RE = re.compile(
-        r"<\s*(DELEGATE_TO|TASK|FINAL_ANSWER)\s*>.*?<\s*/\s*\1\s*>",
+        r"<\s*(FANOUT|DELEGATE_TO|TASK|FINAL_ANSWER)\s*>.*?<\s*/\s*\1\s*>",
+        re.IGNORECASE | re.DOTALL,
+    )
+    _FANOUT_RE = re.compile(
+        r"<\s*FANOUT\s*>(.*?)<\s*/\s*FANOUT\s*>",
+        re.IGNORECASE | re.DOTALL,
+    )
+    _FANOUT_PAIR_RE = re.compile(
+        r"<\s*DELEGATE_TO\s*>(.*?)<\s*/\s*DELEGATE_TO\s*>\s*"
+        r"<\s*TASK\s*>(.*?)<\s*/\s*TASK\s*>",
         re.IGNORECASE | re.DOTALL,
     )
 
@@ -346,6 +371,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
                 rounds_used=rounds_used,
                 max_rounds=max_rounds,
                 remaining=remaining,
+                max_concurrent=MESH_FANOUT_MAX_CONCURRENT,
             )
 
             context_parts: list[str] = []
@@ -421,6 +447,28 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             })
 
             reasoning, action = self._split_reasoning_and_action(raw_output)
+
+            # Parallel fan-out: lead may dispatch several workers at once.
+            fanout_pairs = self._parse_fanout(action, [w.name for w in workers], lead.name)
+            if fanout_pairs:
+                logger.debug(
+                    "lead_node: FANOUT -> %s", [n for n, _ in fanout_pairs]
+                )
+                return await self._execute_lead_fanout(
+                    lead=lead,
+                    workers=workers,
+                    fanout_pairs=fanout_pairs,
+                    lead_reasoning=reasoning,
+                    lead_system=full_system,
+                    state=state,
+                    llm=llm,
+                    stream_writer=stream_writer,
+                    conversation_id=conversation_id,
+                    graph_context_provider=graph_context_provider,
+                    graph_config=graph_config,
+                    human_guidance=human_guidance,
+                )
+
             final_answer = self._extract_final_answer(action)
             target_worker, task_text = self._extract_delegation(action)
 
@@ -685,6 +733,295 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
     def _extract_final_answer(self, action_payload: str) -> str:
         match = self._FINAL_ANSWER_RE.search(action_payload)
         return match.group(1).strip() if match else ""
+
+    # ------------------------------------------------------------------ #
+    # Parallel fan-out                                                     #
+    # ------------------------------------------------------------------ #
+
+    def _get_fanout_semaphore(self) -> asyncio.Semaphore:
+        """Lazily create the wave-concurrency semaphore on the active loop."""
+        sem = getattr(self, "_fanout_semaphore", None)
+        if sem is None:
+            sem = asyncio.Semaphore(MESH_FANOUT_MAX_CONCURRENT)
+            self._fanout_semaphore = sem
+        return sem
+
+    def _parse_fanout(
+        self,
+        action_payload: str,
+        worker_names: list[str],
+        lead_name: str,
+    ) -> list[tuple[str, str]]:
+        """Parse a `<FANOUT>` block into ordered (worker_name, task) pairs.
+
+        Returns [] (→ caller falls back to single delegation) unless at least
+        two distinct valid workers are found. Checked BEFORE single delegation
+        so the inner DELEGATE_TO tags are not misread as one delegation.
+        """
+        match = self._FANOUT_RE.search(action_payload)
+        if not match:
+            return []
+
+        normalized = {name.lower(): name for name in worker_names}
+        pairs: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for raw_name, raw_task in self._FANOUT_PAIR_RE.findall(match.group(1)):
+            candidate = raw_name.strip().strip("`\"'<>")
+            target = normalized.get(candidate.lower())
+            if not target or target.lower() == lead_name.lower() or target in seen:
+                continue
+            seen.add(target)
+            pairs.append((target, raw_task.strip()))
+
+        if len(pairs) < 2:
+            return []
+        return pairs[:MESH_FANOUT_MAX_CONCURRENT]
+
+    def _build_worker_chat_kwargs(
+        self,
+        *,
+        worker: GraphAgentDefinition,
+        task_text: str,
+        state: SupervisorState,
+        llm: LLMProvider,
+        conversation_id: str | None,
+        graph_context_provider: GraphContextProvider | None,
+        graph_config: GraphContextConfig | None,
+    ) -> dict:
+        """Assemble safe_chat kwargs for one fan-out worker (mirrors worker_node).
+
+        Built sequentially in the node (before the gather) so graph-context
+        reads are not raced across branches.
+        """
+        worker_system = (
+            f"{worker.system_prompt}\n\n"
+            + _WORKER_PROMPT.format(
+                task=task_text,
+                original_input=state["original_input"],
+            )
+        )
+        memory_block = working_memory_block(conversation_id)
+
+        graph_ctx = ""
+        if graph_context_provider and conversation_id:
+            pack = graph_context_provider.build_graph_context(
+                conversation_id=conversation_id,
+                query=task_text or state["original_input"],
+                config=graph_config,
+            )
+            graph_ctx = pack.text
+
+        worker_context_parts = [task_text]
+        if memory_block:
+            worker_context_parts.append(memory_block)
+        if graph_ctx:
+            worker_context_parts.append(f"[Context]:\n{graph_ctx}")
+        user_input_text = "\n\n".join(worker_context_parts)
+
+        budget_result = apply_context_token_budget(
+            llm=llm,
+            system_prompt=worker_system,
+            user_input=user_input_text,
+            max_context_tokens=MAX_CONTEXT_TOKENS,
+            reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
+        )
+        user_input_text = budget_result.text
+
+        bound_tools: list = []
+        if worker.tools:
+            for toolkit in worker.tools.values():
+                bound_tools.extend(toolkit.get_tools())
+        if conversation_id:
+            from backend.domain.tools.ask_user import AskUserToolkit
+
+            bound_tools.extend(
+                AskUserToolkit(
+                    conversation_id=conversation_id,
+                    agent_name=worker.name,
+                ).get_tools()
+            )
+        bound_tools.extend(memory_toolkit_tools(conversation_id, worker.name))
+
+        return {
+            "system": worker_system,
+            "user": user_input_text,
+            "tools": bound_tools or None,
+        }
+
+    async def _execute_lead_fanout(
+        self,
+        *,
+        lead: GraphAgentDefinition,
+        workers: list[GraphAgentDefinition],
+        fanout_pairs: list[tuple[str, str]],
+        lead_reasoning: str,
+        lead_system: str,
+        state: SupervisorState,
+        llm: LLMProvider,
+        stream_writer,
+        conversation_id: str | None,
+        graph_context_provider: GraphContextProvider | None,
+        graph_config: GraphContextConfig | None,
+        human_guidance: str,
+    ) -> dict:
+        """Run a parallel worker wave then synthesize, returning merged state.
+
+        Turn layout (1 superstep = 1 round):
+            lead (fan-out decision) | worker_1 .. worker_N | lead (synthesis)
+        """
+        turns = list(state["turns"])
+        worker_by_name = {w.name: w for w in workers}
+        base_turn = state["rounds"] + 1  # lead's fan-out decision turn
+
+        new_log = list(state.get("delegation_log", []))
+        if human_guidance:
+            new_log.append(f"[Turn {base_turn}] {human_guidance}")
+
+        # Lead's fan-out decision recorded as its own turn.
+        record_turn_in_memory(
+            conversation_id,
+            agent_name=lead.name,
+            turn=base_turn,
+            content=f"Dispatched parallel wave: {[n for n, _ in fanout_pairs]}",
+            kind="decision",
+        )
+        if graph_context_provider and conversation_id:
+            graph_context_provider.ingest_message(
+                conversation_id=conversation_id,
+                message_id=f"agent-{lead.name}-{uuid4().hex}",
+                speaker=lead.name,
+                content=lead_reasoning,
+                config=graph_config,
+            )
+        lead_turn = GraphTurn(
+            turn=base_turn,
+            agent_name=lead.name,
+            agent_role=lead.role,
+            content=lead_reasoning,
+        )
+        target_names = [n for n, _ in fanout_pairs]
+        new_log.append(f"[Turn {base_turn}] {lead.name} → FANOUT {target_names}")
+        stream_writer({
+            "type": EventType.TURN_COMPLETE.value,
+            "turn": lead_turn,
+            "fanout_dispatch": True,
+        })
+        stream_writer({
+            "type": EventType.FANOUT_START.value,
+            "agent_name": lead.name,
+            "targets": target_names,
+        })
+
+        prebuilt: dict[str, dict] = {}
+        branches: list[tuple[GraphAgentDefinition, str]] = []
+        for worker_name, task_text in fanout_pairs:
+            worker = worker_by_name[worker_name]
+            prebuilt[worker_name] = self._build_worker_chat_kwargs(
+                worker=worker,
+                task_text=task_text,
+                state=state,
+                llm=llm,
+                conversation_id=conversation_id,
+                graph_context_provider=graph_context_provider,
+                graph_config=graph_config,
+            )
+            branches.append((worker, task_text))
+
+        results = await run_fanout_wave(
+            branches=branches,
+            llm=llm,
+            build_branch_chat_kwargs=lambda w, _t: prebuilt[w.name],
+            semaphore=self._get_fanout_semaphore(),
+            stream_writer=stream_writer,
+            conversation_id=conversation_id,
+            graph_context_provider=graph_context_provider,
+            graph_config=graph_config,
+            base_turn_number=base_turn,
+            split_fn=None,
+        )
+
+        stream_writer({
+            "type": EventType.FANOUT_COMPLETE.value,
+            "agent_name": lead.name,
+            "targets": target_names,
+        })
+
+        worker_turns = []
+        for r in results:
+            worker_turns.append(
+                GraphTurn(
+                    turn=r.turn,
+                    agent_name=r.agent_name,
+                    agent_role=r.agent_role,
+                    content=r.content,
+                )
+            )
+            snippet = r.content[:300] + ("..." if len(r.content) > 300 else "")
+            new_log.append(f"[Turn {r.turn}] {r.agent_name} → Lead: {snippet}")
+
+        # Lead synthesizes the wave's results, then emits one control action.
+        synthesis_user = (
+            "Your parallel wave returned these worker results:\n\n"
+            + "\n\n".join(
+                f"### {r.agent_name} (task: {r.task})\n{r.content}" for r in results
+            )
+        )
+        synthesis_system = f"{lead_system}\n\n{FANOUT_SYNTHESIS_GUIDANCE}"
+        synth_raw = await safe_chat(
+            llm,
+            agent_name=lead.name,
+            system=synthesis_system,
+            user=synthesis_user,
+        )
+        synth_reasoning, synth_action = self._split_reasoning_and_action(synth_raw)
+        final_answer = self._extract_final_answer(synth_action)
+        target_worker, next_task = self._extract_delegation(synth_action)
+
+        synthesis_turn_number = base_turn + len(results) + 1
+        record_turn_in_memory(
+            conversation_id,
+            agent_name=lead.name,
+            turn=synthesis_turn_number,
+            content=final_answer or synth_reasoning,
+            kind="result" if final_answer else "decision",
+        )
+        if graph_context_provider and conversation_id:
+            graph_context_provider.ingest_message(
+                conversation_id=conversation_id,
+                message_id=f"agent-{lead.name}-{uuid4().hex}",
+                speaker=lead.name,
+                content=synth_reasoning,
+                config=graph_config,
+            )
+        synthesis_turn = GraphTurn(
+            turn=synthesis_turn_number,
+            agent_name=lead.name,
+            agent_role=lead.role,
+            content=synth_reasoning,
+        )
+        if target_worker and next_task:
+            new_log.append(
+                f"[Turn {synthesis_turn_number}] {lead.name} → {target_worker}: {next_task}"
+            )
+        stream_writer({
+            "type": EventType.TURN_COMPLETE.value,
+            "turn": synthesis_turn,
+            "delegate_to": target_worker,
+            "final_answer_reached": bool(final_answer),
+        })
+
+        return {
+            **state,
+            "input": final_answer or state["input"],
+            "turns": [*turns, lead_turn, *worker_turns, synthesis_turn],
+            "delegation_log": new_log,
+            "current_task": next_task or "",
+            "current_worker": target_worker,
+            "final_answer_reached": bool(final_answer),
+            "final_response": final_answer or synth_reasoning,
+            "final_agent": lead.name,
+            "rounds": base_turn,
+        }
 
     @staticmethod
     def _ingest_user_message(

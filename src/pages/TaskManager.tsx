@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X, Eye, EyeOff, Send, UserRound, Hand, HelpCircle } from "lucide-react";
+import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X, Eye, EyeOff, Send, UserRound, Hand, HelpCircle, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -199,6 +199,9 @@ export default function TaskManager() {
   const [loadingConversationTaskIds, setLoadingConversationTaskIds] = useState<Set<string>>(new Set());
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
   const [thinkingAgents, setThinkingAgents] = useState<Record<string, Set<string>>>({});
+  // Parallel fan-out: the coordinator dispatched a wave of agents that run
+  // concurrently. Keyed by task id; cleared on fanout_complete / run end.
+  const [activeFanouts, setActiveFanouts] = useState<Record<string, { coordinator?: string; targets: string[] }>>({});
   const [taskGraphSnapshots, setTaskGraphSnapshots] = useState<Record<string, GraphContextSnapshot>>({});
   const [taskGraphHighlights, setTaskGraphHighlights] = useState<Record<string, GraphHighlight>>({});
   const [loadingGraphTaskIds, setLoadingGraphTaskIds] = useState<Set<string>>(new Set());
@@ -665,6 +668,7 @@ export default function TaskManager() {
     setInterjectErrors((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
     setHeldTaskIds((prev) => { const next = new Set(prev); next.delete(taskId); return next; });
     setUserInputRequests((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setActiveFanouts((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
   };
 
   // Shared stream runner: opens the SSE run stream for a task and feeds every
@@ -740,6 +744,25 @@ export default function TaskManager() {
             }
             else if (eventType === "subagent_complete") {
               console.debug("subagent_complete", event.subagent_type, event.error);
+            }
+            // Parallel fan-out: the coordinator dispatched several agents to run
+            // concurrently — show a "parallel wave" banner until it completes.
+            else if (eventType === "fanout_start") {
+              const targets = Array.isArray(event.targets) ? event.targets.map(String) : [];
+              setActiveFanouts((prev) => ({
+                ...prev,
+                [updated.id]: {
+                  coordinator: event.agent_name ? String(event.agent_name) : (agentId ? String(agentId) : undefined),
+                  targets,
+                },
+              }));
+            }
+            else if (eventType === "fanout_complete") {
+              setActiveFanouts((prev) => {
+                const next = { ...prev };
+                delete next[updated.id];
+                return next;
+              });
             }
             // ask_user tool: an agent is blocked on a question — show the
             // card (heartbeats re-announce the same request_id; dedupe).
@@ -940,6 +963,12 @@ export default function TaskManager() {
             delete next[updated.id];
             return next;
           });
+          // A wave can never outlive the run.
+          setActiveFanouts((prev) => {
+            const next = { ...prev };
+            delete next[updated.id];
+            return next;
+          });
           // Run ended — anything still queued can no longer be injected and
           // open questions can no longer be answered
           setPendingInterjections((prev) => {
@@ -1094,6 +1123,11 @@ export default function TaskManager() {
         return next;
       });
       setUserInputRequests((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setActiveFanouts((prev) => {
         const next = { ...prev };
         delete next[id];
         return next;
@@ -1698,7 +1732,7 @@ export default function TaskManager() {
                   <div className="flex-1 overflow-y-auto p-4 space-y-3.5 scrollbar-thin">
                     {isConversationLoading && messages.length === 0 && (thinkingAgents[selectedTask.id]?.size ?? 0) === 0 ? (
                       <p className="text-xs text-muted-foreground animate-pulse">Loading conversation...</p>
-                    ) : visibleMessages.length > 0 || (thinkingAgents[selectedTask.id]?.size ?? 0) > 0 || openQuestions.length > 0 ? (
+                    ) : visibleMessages.length > 0 || (thinkingAgents[selectedTask.id]?.size ?? 0) > 0 || openQuestions.length > 0 || !!activeFanouts[selectedTask.id] ? (
                       <div className="space-y-3.5">
                         {visibleMessages.map((msg) => {
                           const ts = new Date(msg.timestamp);
@@ -1823,6 +1857,27 @@ export default function TaskManager() {
                             </div>
                           );
                         })}
+
+                        {/* Parallel fan-out banner: shown while a coordinator's
+                            wave of agents runs concurrently. */}
+                        {activeFanouts[selectedTask.id] && (
+                          <div className="rounded-xl border border-amber-500/30 p-3 bg-amber-500/5">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0 animate-pulse" />
+                              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                                Parallel wave — running concurrently:
+                              </span>
+                              {(activeFanouts[selectedTask.id]?.targets ?? []).map((t) => (
+                                <span
+                                  key={`fanout-${t}`}
+                                  className="text-[10px] px-1.5 py-0.5 rounded font-semibold border bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"
+                                >
+                                  {agentById.get(t)?.name ?? t}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Thinking indicators */}
                         {(thinkingAgents[selectedTask.id]?.size ?? 0) > 0 && (

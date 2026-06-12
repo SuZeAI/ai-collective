@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import re
 from typing import TypedDict
@@ -21,12 +22,15 @@ from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
 from backend.domain.agent._graph_runtime import (
+    FANOUT_SYNTHESIS_GUIDANCE,
+    MESH_FANOUT_MAX_CONCURRENT,
     drain_human_guidance,
     ensure_working_memory,
     memory_toolkit_tools,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
+    run_fanout_wave,
     run_to_final_state,
     safe_chat,
     wait_while_paused,
@@ -79,7 +83,16 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         re.IGNORECASE | re.DOTALL,
     )
     _CONTROL_BLOCK_RE = re.compile(
-        r"<\s*(ASK_NEXT_AGENT|NEXT_AGENT|DISCUSSION_END)\s*>.*?<\s*/\s*\1\s*>",
+        r"<\s*(ASK_NEXT_AGENT|NEXT_AGENT|DISCUSSION_END|FANOUT)\s*>.*?<\s*/\s*\1\s*>",
+        re.IGNORECASE | re.DOTALL,
+    )
+    _FANOUT_RE = re.compile(
+        r"<\s*FANOUT\s*>(.*?)<\s*/\s*FANOUT\s*>",
+        re.IGNORECASE | re.DOTALL,
+    )
+    _FANOUT_PAIR_RE = re.compile(
+        r"<\s*DELEGATE_TO\s*>(.*?)<\s*/\s*DELEGATE_TO\s*>\s*"
+        r"<\s*TASK\s*>(.*?)<\s*/\s*TASK\s*>",
         re.IGNORECASE | re.DOTALL,
     )
 
@@ -500,6 +513,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 agent.name,
                 hub_agent_name,
                 other_agent_profiles,
+                max_concurrent=MESH_FANOUT_MAX_CONCURRENT,
             )
 
         async def mesh_node(state: MultiAgentMeshState) -> dict:
@@ -727,6 +741,31 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 agent.name, len(reasoning), len(action_payload),
             )
 
+            # Parallel fan-out: if this agent dispatched a wave, run the named
+            # targets concurrently and synthesize, all within this node (one
+            # state update per channel — no reducer changes needed).
+            fanout_pairs = self._parse_fanout(
+                action_payload, state["agent_names"], agent.name
+            )
+            if fanout_pairs:
+                logger.debug(
+                    "[%s] mesh_node: FANOUT -> %s",
+                    agent.name, [n for n, _ in fanout_pairs],
+                )
+                return await self._execute_fanout(
+                    coordinator=agent,
+                    fanout_pairs=fanout_pairs,
+                    coordinator_reasoning=reasoning,
+                    coordinator_system=system_prompt_with_routing,
+                    state=state,
+                    llm=llm,
+                    all_agents=all_agents,
+                    stream_writer=stream_writer,
+                    conversation_id=conversation_id,
+                    graph_context_provider=graph_context_provider,
+                    graph_config=graph_config,
+                )
+
             # Working memory: full-fidelity note outlives the 5-message
             # rolling history window above.
             record_turn_in_memory(
@@ -934,6 +973,320 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             candidate, target,
         )
         return target
+
+    # ------------------------------------------------------------------ #
+    # Parallel fan-out                                                     #
+    # ------------------------------------------------------------------ #
+
+    def _get_fanout_semaphore(self) -> asyncio.Semaphore:
+        """Lazily create the wave-concurrency semaphore on the active loop."""
+        sem = getattr(self, "_fanout_semaphore", None)
+        if sem is None:
+            sem = asyncio.Semaphore(MESH_FANOUT_MAX_CONCURRENT)
+            self._fanout_semaphore = sem
+        return sem
+
+    def _parse_fanout(
+        self,
+        action_payload: str,
+        agent_names: list[str],
+        self_name: str,
+    ) -> list[tuple[str, str]]:
+        """Parse a `<FANOUT>` block into ordered (agent_name, task) pairs.
+
+        Returns [] (→ caller falls back to single-routing) unless at least two
+        distinct, valid, non-self target agents are found.
+        """
+        match = self._FANOUT_RE.search(action_payload)
+        if not match:
+            return []
+
+        normalized = {name.lower(): name for name in agent_names}
+        pairs: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for raw_name, raw_task in self._FANOUT_PAIR_RE.findall(match.group(1)):
+            candidate = raw_name.strip().strip("`\"'")
+            if candidate.startswith("<") and candidate.endswith(">"):
+                candidate = candidate[1:-1].strip()
+            target = normalized.get(candidate.lower())
+            if not target or target.lower() == self_name.lower() or target in seen:
+                continue
+            seen.add(target)
+            pairs.append((target, raw_task.strip()))
+
+        if len(pairs) < 2:
+            logger.debug(
+                "_parse_fanout: %d valid target(s) (< 2) — fall back to single routing",
+                len(pairs),
+            )
+            return []
+        # Respect the advertised cap so the model cannot over-fan.
+        return pairs[:MESH_FANOUT_MAX_CONCURRENT]
+
+    def _build_branch_chat_kwargs(
+        self,
+        *,
+        branch_agent: GraphAgentDefinition,
+        task_text: str,
+        state: MultiAgentMeshState,
+        llm: LLMProvider,
+        conversation_id: str | None,
+        graph_context_provider: GraphContextProvider | None,
+        graph_config: GraphContextConfig | None,
+    ) -> dict:
+        """Assemble safe_chat kwargs for one fan-out branch.
+
+        Branches do NOT carry routing guidance — they execute their delegated
+        sub-task and report back; the coordinator synthesizes and routes. Built
+        sequentially in the node (before the gather) so graph-context reads are
+        not raced across branches.
+        """
+        context_parts: list[str] = []
+        memory_block = working_memory_block(conversation_id)
+        if memory_block:
+            context_parts += [memory_block, ""]
+        context_parts.append(f"user input: {state['original_input']}")
+        context_parts.append(
+            "You have been delegated this sub-task as part of a parallel wave. "
+            "Work on it independently and report your findings:"
+        )
+        context_parts.append(task_text or "Continue with the highest-priority analysis.")
+
+        graph_context_text = ""
+        if graph_context_provider and conversation_id:
+            pack = graph_context_provider.build_graph_context(
+                conversation_id=conversation_id,
+                query=task_text or state.get("input", "") or state["original_input"],
+                config=graph_config,
+            )
+            graph_context_text = pack.text
+        context_parts.append("context:")
+        context_parts.append(graph_context_text or "(empty)")
+
+        user_input = "\n".join(context_parts)
+        budget_result = apply_context_token_budget(
+            llm=llm,
+            system_prompt=branch_agent.system_prompt,
+            user_input=user_input,
+            max_context_tokens=MAX_CONTEXT_TOKENS,
+            reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
+        )
+        user_input = budget_result.text
+
+        bound_tools: list = []
+        if branch_agent.tools:
+            for toolkit in branch_agent.tools.values():
+                bound_tools.extend(toolkit.get_tools())
+        if conversation_id:
+            from backend.domain.tools.ask_user import AskUserToolkit
+
+            bound_tools.extend(
+                AskUserToolkit(
+                    conversation_id=conversation_id,
+                    agent_name=branch_agent.name,
+                ).get_tools()
+            )
+        bound_tools.extend(memory_toolkit_tools(conversation_id, branch_agent.name))
+        if branch_agent.subagent_enabled:
+            from backend.domain.tools.task import TaskToolkit
+
+            task_toolkit = TaskToolkit(
+                llm=llm,
+                subagent_tools=list(bound_tools),
+                max_concurrent=SUBAGENT_MAX_CONCURRENT,
+                parent_agent_name=branch_agent.name,
+            )
+            bound_tools.extend(task_toolkit.get_tools())
+
+        return {
+            "system": branch_agent.system_prompt,
+            "user": user_input,
+            "tools": bound_tools or None,
+            "parallel_tools": branch_agent.subagent_enabled,
+        }
+
+    async def _execute_fanout(
+        self,
+        *,
+        coordinator: GraphAgentDefinition,
+        fanout_pairs: list[tuple[str, str]],
+        coordinator_reasoning: str,
+        coordinator_system: str,
+        state: MultiAgentMeshState,
+        llm: LLMProvider,
+        all_agents: list[GraphAgentDefinition],
+        stream_writer,
+        conversation_id: str | None,
+        graph_context_provider: GraphContextProvider | None,
+        graph_config: GraphContextConfig | None,
+    ) -> dict:
+        """Run a parallel wave then synthesize, returning the merged state dict.
+
+        Layout of appended turns (1 superstep = 1 round):
+            coordinator (fan-out decision) | branch_1 .. branch_N | synthesis
+        ``last_action`` is the synthesis action so the existing conditional
+        edge router keeps working unchanged — fan-out is invisible to the graph.
+        """
+        turns = state["turns"]
+        agent_by_name = {a.name: a for a in all_agents}
+        base_turn = len(turns) + 1  # coordinator's own turn number
+
+        # Record/ingest the coordinator's fan-out decision as its own turn.
+        record_turn_in_memory(
+            conversation_id,
+            agent_name=coordinator.name,
+            turn=base_turn,
+            content=coordinator_reasoning,
+            kind="decision",
+        )
+        if graph_context_provider and conversation_id:
+            graph_context_provider.ingest_message(
+                conversation_id=conversation_id,
+                message_id=f"agent-{coordinator.name}-{uuid4().hex}",
+                speaker=coordinator.name,
+                content=coordinator_reasoning,
+                config=graph_config,
+            )
+        coordinator_turn = GraphTurn(
+            turn=base_turn,
+            agent_name=coordinator.name,
+            agent_role=coordinator.role,
+            content=coordinator_reasoning,
+        )
+        stream_writer({
+            "type": EventType.TURN_COMPLETE.value,
+            "turn": coordinator_turn,
+            "fanout_dispatch": True,
+        })
+
+        target_names = [name for name, _ in fanout_pairs]
+        stream_writer({
+            "type": EventType.FANOUT_START.value,
+            "agent_name": coordinator.name,
+            "targets": target_names,
+        })
+
+        # Pre-build each branch's chat kwargs sequentially (graph reads not raced).
+        prebuilt: dict[str, dict] = {}
+        branches: list[tuple[GraphAgentDefinition, str]] = []
+        for target_name, task_text in fanout_pairs:
+            branch_agent = agent_by_name[target_name]
+            prebuilt[target_name] = self._build_branch_chat_kwargs(
+                branch_agent=branch_agent,
+                task_text=task_text,
+                state=state,
+                llm=llm,
+                conversation_id=conversation_id,
+                graph_context_provider=graph_context_provider,
+                graph_config=graph_config,
+            )
+            branches.append((branch_agent, task_text))
+
+        results = await run_fanout_wave(
+            branches=branches,
+            llm=llm,
+            build_branch_chat_kwargs=lambda a, _t: prebuilt[a.name],
+            semaphore=self._get_fanout_semaphore(),
+            stream_writer=stream_writer,
+            conversation_id=conversation_id,
+            graph_context_provider=graph_context_provider,
+            graph_config=graph_config,
+            base_turn_number=base_turn,
+            split_fn=self._split_reasoning_and_action,
+        )
+
+        stream_writer({
+            "type": EventType.FANOUT_COMPLETE.value,
+            "agent_name": coordinator.name,
+            "targets": target_names,
+        })
+
+        branch_turns = [
+            GraphTurn(
+                turn=r.turn,
+                agent_name=r.agent_name,
+                agent_role=r.agent_role,
+                content=r.content,
+            )
+            for r in results
+        ]
+
+        # Coordinator synthesizes the wave's results, then emits one control action.
+        synthesis_user = (
+            "You dispatched a parallel wave. Here are the specialists' results:\n\n"
+            + "\n\n".join(
+                f"### {r.agent_name} (sub-task: {r.task})\n{r.content}" for r in results
+            )
+        )
+        synthesis_system = f"{coordinator_system}\n\n{FANOUT_SYNTHESIS_GUIDANCE}"
+        synth_raw = await safe_chat(
+            llm,
+            agent_name=coordinator.name,
+            system=synthesis_system,
+            user=synthesis_user,
+        )
+        synth_reasoning, synth_action = self._split_reasoning_and_action(synth_raw)
+
+        synthesis_turn_number = base_turn + len(results) + 1
+        record_turn_in_memory(
+            conversation_id,
+            agent_name=coordinator.name,
+            turn=synthesis_turn_number,
+            content=synth_reasoning,
+            kind="result",
+        )
+        if graph_context_provider and conversation_id:
+            graph_context_provider.ingest_message(
+                conversation_id=conversation_id,
+                message_id=f"agent-{coordinator.name}-{uuid4().hex}",
+                speaker=coordinator.name,
+                content=synth_reasoning,
+                config=graph_config,
+            )
+        synthesis_turn = GraphTurn(
+            turn=synthesis_turn_number,
+            agent_name=coordinator.name,
+            agent_role=coordinator.role,
+            content=synth_reasoning,
+        )
+
+        discussion_ended = self._has_discussion_end_signal(synth_action)
+        next_agent = self._extract_target_agent_from_message(
+            synth_action, state["agent_names"], coordinator.name
+        )
+        next_input = ""
+        if not discussion_ended and next_agent:
+            questions = self._extract_questions_for_next_agent(synth_action)
+            if not questions:
+                questions = [
+                    "Please continue with the highest-priority next analysis and include concrete evidence."
+                ]
+            next_input = self._format_question_payload(questions)
+
+        stream_writer({
+            "type": EventType.TURN_COMPLETE.value,
+            "turn": synthesis_turn,
+            "next_agent": next_agent,
+            "discussion_ended": discussion_ended,
+        })
+
+        # Update conversation history with every turn produced this wave.
+        new_history = {k: list(v) for k, v in state.get("conversation_history", {}).items()}
+        new_history.setdefault(coordinator.name, []).append(coordinator_reasoning)
+        for r in results:
+            new_history.setdefault(r.agent_name, []).append(r.content)
+        new_history.setdefault(coordinator.name, []).append(synth_reasoning)
+
+        return {
+            "turns": [*turns, coordinator_turn, *branch_turns, synthesis_turn],
+            "conversation_history": new_history,
+            "input": next_input,
+            "current_agent": coordinator.name,
+            "final_response": synth_reasoning,
+            "last_action": synth_action,
+            "final_agent": coordinator.name,
+            "rounds": state.get("rounds", 0) + 1,
+        }
 
     def _has_discussion_end_signal(self, message: str) -> bool:
         """Return True when explicit `<DISCUSSION_END>...</DISCUSSION_END>` tag is present."""

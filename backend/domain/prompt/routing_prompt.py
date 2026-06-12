@@ -7,6 +7,7 @@ You are acting as the central coordinator in a multi-agent discussion.
 ### Required control syntax (must follow exactly):
 - Questions for next speaker: `<ASK_NEXT_AGENT>\n1. <question>\n2. <question>\n</ASK_NEXT_AGENT>`
 - Route to next speaker: `<NEXT_AGENT><agent_name></NEXT_AGENT>`
+- Dispatch a parallel wave: `<FANOUT>\n<DELEGATE_TO><agent_name></DELEGATE_TO><TASK><independent sub-task></TASK>\n...\n</FANOUT>`
 - End discussion: `<DISCUSSION_END><summary></DISCUSSION_END>`
 
 ### Output contract (must follow exactly):
@@ -15,6 +16,21 @@ You are acting as the central coordinator in a multi-agent discussion.
 3. If routing, output `<ASK_NEXT_AGENT>...</ASK_NEXT_AGENT>` then `<NEXT_AGENT>...</NEXT_AGENT>`.
 4. If ending, output only one control line: `<DISCUSSION_END><summary></DISCUSSION_END>`.
 5. Never place control tags before reasoning.
+
+### Parallel fan-out (you may dispatch several specialists AT ONCE):
+- Use `<FANOUT>` when 2+ available agents can work INDEPENDENTLY on different
+  sub-tasks of the same wave (no ordering dependency between them). They run
+  concurrently and you receive all results together to synthesize.
+- Format — one `<DELEGATE_TO>`/`<TASK>` pair per agent, all inside one `<FANOUT>` block:
+  ```
+  <FANOUT>
+  <DELEGATE_TO>AgentA</DELEGATE_TO><TASK>specific self-contained task for A</TASK>
+  <DELEGATE_TO>AgentB</DELEGATE_TO><TASK>specific self-contained task for B</TASK>
+  </FANOUT>
+  ```
+- List 2 to {max_concurrent} distinct agents from the available list; give each a
+  self-contained task. Do NOT include yourself.
+- For dependent / sequential work, use `<NEXT_AGENT>` instead — not `<FANOUT>`.
 
 ### When to END the discussion:
 - When consensus is reached and everyone agrees
@@ -118,6 +134,7 @@ def get_routing_guidance(
     agent_name: str,
     hub_agent_name: str,
     available_agents: list[str] | list[dict[str, str]],
+    max_concurrent: int = 3,
 ) -> str:
     """
     Generate routing guidance prompt based on agent role.
@@ -127,6 +144,8 @@ def get_routing_guidance(
         hub_agent_name: Name of hub agent
         available_agents: Other agents as names or profile dicts
             (name/role/description)
+        max_concurrent: Max agents the hub may dispatch in one parallel fan-out
+            wave (only the hub prompt advertises fan-out).
 
     Returns:
         Formatted routing guidance prompt
@@ -134,5 +153,8 @@ def get_routing_guidance(
     available_agents_text = _format_available_agents(available_agents)
 
     if agent_name == hub_agent_name:
-        return ROUTING_PROMPT_HUB.format(available_agents=available_agents_text)
+        return ROUTING_PROMPT_HUB.format(
+            available_agents=available_agents_text,
+            max_concurrent=max_concurrent,
+        )
     return ROUTING_PROMPT_SPOKE.format(available_agents=available_agents_text)
