@@ -108,6 +108,7 @@ def upsert_team(
         mode=req.mode or "sequential",
         max_steps=req.maxSteps or 6,
         owner_id=existing.owner_id if existing else owner_id,
+        flow=req.flow if req.flow is not None else (existing.flow if existing else None),
     )
     saved = service.upsert_team(team)
 

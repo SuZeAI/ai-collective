@@ -15,7 +15,7 @@ from backend.api.deps import (
     get_skill_tool_manager,
 )
 from backend.api.schemas.agent_graph import GraphRunRequest, GraphRunResponse, GraphTurnSchema
-from backend.application.ports.agent_graph import GraphAgentDefinition
+from backend.application.ports.agent_graph import CustomGraphSpec, GraphAgentDefinition
 from backend.application.service.agent_service import AgentService
 from backend.application.service.graph_context_service import GraphContextService
 from backend.application.service.llm_service import LLMService
@@ -185,6 +185,27 @@ async def resume_agent_graph(req: RunControlRequest) -> dict:
     return {"resumed": True}
 
 
+def _build_custom_graph_spec(
+    req: GraphRunRequest, agent_id_to_name: dict[str, str]
+) -> CustomGraphSpec | None:
+    """Translate the request's agent-id-based custom graph into a name-based
+    CustomGraphSpec the orchestrators understand. Returns None unless mode is
+    'custom' with a graph attached."""
+    if req.mode != "custom" or req.custom_graph is None:
+        return None
+    edges = tuple(
+        (agent_id_to_name[e.source], agent_id_to_name[e.target])
+        for e in req.custom_graph.edges
+        if e.source in agent_id_to_name and e.target in agent_id_to_name
+    )
+    entry = tuple(
+        agent_id_to_name[n]
+        for n in (req.custom_graph.entry or [])
+        if n in agent_id_to_name
+    )
+    return CustomGraphSpec(edges=edges, entry=entry)
+
+
 @router.post("/agent-graph/run", response_model=GraphRunResponse)
 async def run_agent_graph(
     req: GraphRunRequest,
@@ -198,10 +219,11 @@ async def run_agent_graph(
 
     # Fetch agents from database by ID and bind tools
     definitions = []
+    agent_id_to_name: dict[str, str] = {}  # for translating custom_graph ids -> names
     for agent_id in req.agents:
         try:
             agent = agent_service.get_agent(agent_id)
-            
+
             # Get tools for this agent's skills
             agent_tools = {}
             skills = agent_service.get_agent_skills(agent_id)
@@ -212,7 +234,7 @@ async def run_agent_graph(
                     logger.info(f"Bound tool '{skill.tool_name}' for skill '{skill.id}' (agent: {agent.name})")
                 else:
                     logger.debug(f"No tool available for skill '{skill.id}' (agent: {agent.name})")
-            
+
             definitions.append(
                 GraphAgentDefinition(
                     name=agent.name,
@@ -224,9 +246,10 @@ async def run_agent_graph(
                     subagent_enabled=bool(getattr(agent, "subagent_enabled", False)),
                 )
             )
+            agent_id_to_name[agent_id] = agent.name
         except Exception as e:
             raise HTTPException(
-                status_code=404, 
+                status_code=404,
                 detail=f"Agent '{agent_id}' not found: {str(e)}"
             )
 
@@ -240,6 +263,7 @@ async def run_agent_graph(
         conversation_id=conversation_id,
         graph_context_provider=graph_context_service,
         graph_config=graph_config,
+        custom_graph=_build_custom_graph_spec(req, agent_id_to_name),
     )
     return GraphRunResponse.from_result(result)
 
@@ -294,6 +318,8 @@ async def run_agent_graph_stream(
 
     graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
     conversation_id = req.conversation_id
+    agent_id_to_name = {agent_id: name for name, agent_id in agent_name_to_id.items()}
+    custom_graph_spec = _build_custom_graph_spec(req, agent_id_to_name)
 
     # Register a cancel flag so stop/pause can signal this stream to halt
     cancel_flag = task_run_registry.register(conversation_id) if conversation_id else None
@@ -308,6 +334,7 @@ async def run_agent_graph_stream(
                 conversation_id=conversation_id,
                 graph_context_provider=graph_context_service,
                 graph_config=graph_config,
+                custom_graph=custom_graph_spec,
             ):
                 # Check if stop/pause was requested via status update
                 if cancel_flag and cancel_flag.cancelled:
