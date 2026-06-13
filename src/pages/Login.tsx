@@ -119,7 +119,7 @@ export default function Login() {
     if (provider === "Google") {
       setGoogleLoading(true);
       try {
-        const base = ((import.meta as any).env?.VITE_API_BASE_URL as string || "http://localhost:8000/api/v1").replace(/\/$/, "");
+        const base = ((import.meta as any).env?.VITE_API_BASE_URL as string || "/api/v1").replace(/\/$/, "");
         const res = await fetch(`${base}/auth/google/login`);
         if (!res.ok) throw new Error("Failed to start Google login");
         const { authorize_url } = await res.json();

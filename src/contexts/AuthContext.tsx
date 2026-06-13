@@ -29,7 +29,9 @@ const USER_KEY = "ai-collective-user";
 const GUEST_KEY = "ai-collective-guest";
 
 function getApiBase(): string {
-  return ((import.meta as any).env?.VITE_API_BASE_URL as string) || "http://localhost:8000/api/v1";
+  // Same-origin relative default: requests flow through the nginx proxy to the
+  // backend (port 8000 is not published to the host). See src/lib/api.ts.
+  return ((import.meta as any).env?.VITE_API_BASE_URL as string) || "/api/v1";
 }
 
 async function authFetch<T>(path: string, options: RequestInit = {}): Promise<T> {

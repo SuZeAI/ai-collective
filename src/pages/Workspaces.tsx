@@ -21,7 +21,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-const API_BASE = ((import.meta as any).env?.VITE_API_BASE_URL as string) || "http://localhost:8000/api/v1";
+const API_BASE = ((import.meta as any).env?.VITE_API_BASE_URL as string) || "/api/v1";
 
 function getWebhookUrl(workspaceId: string, hookId: string, platform: string): string {
   return `${API_BASE}/webhook/${platform}/${workspaceId}/${hookId}`;
