@@ -14,14 +14,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+WORKDIR /app
+
+# Install Python dependencies (pinned in requirements.txt for reproducibility)
+COPY requirements.txt .
 RUN pip install --no-cache-dir \
     ${PIP_INDEX_URL:+--index-url "$PIP_INDEX_URL"} \
-    fastapi \
-    "uvicorn[standard]" \
-    kubernetes
+    -r requirements.txt
 
-WORKDIR /app
 COPY app.py .
 
 EXPOSE 8002

@@ -1,13 +1,14 @@
 import logging
-import os
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional
 
-# Rotation defaults (overridable via env): 10 MB per file, keep 5 backups.
-_LOG_MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", str(10 * 1024 * 1024)))
-_LOG_BACKUP_COUNT = int(os.getenv("LOG_BACKUP_COUNT", "5"))
+from backend.api.settings import settings
+
+# Rotation defaults (overridable via config.yml › logging / .env).
+_LOG_MAX_BYTES = settings.logging.log_max_bytes
+_LOG_BACKUP_COUNT = settings.logging.log_backup_count
 _VALID_LEVELS = {"CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"}
 
 
@@ -19,17 +20,15 @@ def get_logger(
     file_output: bool = True
 ) -> logging.Logger:
 
-    if os.getenv("LOG_CONSOLE") == "false":
+    if not settings.logging.log_console:
         console_output = False
-    if os.getenv("LOG_FILE") == "false":
+    if not settings.logging.log_file:
         file_output = False
-    env_level = os.getenv("LOG_LEVEL")
-    if env_level is not None:
-        candidate = env_level.strip().upper()
-        # Only accept real level names; ignore typos instead of resolving to a
-        # random logging attribute via getattr.
-        if candidate in _VALID_LEVELS:
-            level = getattr(logging, candidate)
+    candidate = (settings.logging.log_level or "").strip().upper()
+    # Only accept real level names; ignore typos instead of resolving to a
+    # random logging attribute via getattr.
+    if candidate in _VALID_LEVELS:
+        level = getattr(logging, candidate)
 
     if name is None:
         name = "ai_collective"

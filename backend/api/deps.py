@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -178,11 +177,11 @@ def get_conversation_service() -> ConversationService:
         graph_llm = create_llm_provider(
             provider=settings.graph_llm_provider or settings.llm_provider,
             model=settings.graph_llm_model or settings.llm_model,
-            google_api_key=settings.google_api_key,
-            anthropic_api_key=settings.anthropic_api_key,
-            openai_api_key=settings.openai_api_key,
-            open_weight_api_key=settings.open_weight_api_key,
-            kimi_api_key=settings.kimi_api_key,
+            google_api_key=settings.google_api_keys(),
+            anthropic_api_key=settings.anthropic_api_keys(),
+            openai_api_key=settings.openai_api_keys(),
+            open_weight_api_key=settings.open_weight_api_keys(),
+            kimi_api_key=settings.kimi_api_keys(),
             base_url=settings.llm_api_base,
         )
     return ConversationService(
@@ -212,11 +211,11 @@ def get_graph_context_service() -> GraphContextService:
         graph_llm = create_llm_provider(
             provider=settings.graph_llm_provider or settings.llm_provider,
             model=settings.graph_llm_model or settings.llm_model,
-            google_api_key=settings.google_api_key,
-            anthropic_api_key=settings.anthropic_api_key,
-            openai_api_key=settings.openai_api_key,
-            open_weight_api_key=settings.open_weight_api_key,
-            kimi_api_key=settings.kimi_api_key,
+            google_api_key=settings.google_api_keys(),
+            anthropic_api_key=settings.anthropic_api_keys(),
+            openai_api_key=settings.openai_api_keys(),
+            open_weight_api_key=settings.open_weight_api_keys(),
+            kimi_api_key=settings.kimi_api_keys(),
             base_url=settings.llm_api_base,
         )
     return GraphContextService(
@@ -264,13 +263,6 @@ def get_user_service() -> UserService:
     return UserService(_user_store())
 
 
-def _env_bool(name: str, default: bool = True) -> bool:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    return raw.strip().lower() not in ("0", "false", "no", "off", "")
-
-
 def seed_admin_user() -> None:
     """Create/sync the bootstrap admin account from env on startup.
 
@@ -279,12 +271,12 @@ def seed_admin_user() -> None:
     Mongo `users` collection, or users.json). Idempotent and resilient — a
     failure here is logged but never blocks the app from starting.
     """
-    if not _env_bool("ADMIN_AUTO_SEED", True):
+    if not settings.admin.auto_seed:
         return
 
-    email = (os.getenv("ADMIN_EMAIL") or "").strip()
-    password = os.getenv("ADMIN_PASSWORD") or ""
-    name = (os.getenv("ADMIN_NAME") or "Administrator").strip()
+    email = (settings.admin.email or "").strip()
+    password = settings.admin.password or ""
+    name = (settings.admin.name or "Administrator").strip()
 
     if not email or not password:
         get_logger().info(
@@ -334,7 +326,7 @@ def seed_default_data() -> None:
     clone comes up with the starter catalog — without ever touching the seed
     files or clobbering entities already present in the live DB.
     """
-    if not _env_bool("SEED_DEFAULT_DATA", True):
+    if not settings.seed.default_data:
         return
 
     try:

@@ -26,6 +26,38 @@ Agent ──▶ Skill (tool_name = "mcp") ──▶ MCPToolkit ──▶ MCP ser
 The same can be done via API: `POST /api/v1/skills` with
 `{"tool_name": "mcp", "config": {...}}`.
 
+### Declarative alternative — `mcp.yml`
+
+Instead of clicking through the UI, you can declare servers in **`mcp.yml`** at
+the project root. Every `enabled: true` entry is seeded as an MCP skill on
+backend boot, so a fresh clone (or a redeploy) comes up with your servers
+already attached.
+
+```yaml
+# mcp.yml
+servers:
+  - name: GitHub
+    enabled: true
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
+    env:
+      GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_TOKEN}   # define GITHUB_TOKEN in .env
+    allowed_tools: [search_repositories, get_file_contents]
+    timeout_seconds: 60
+```
+
+- **File is the source of truth** for the servers it declares: their skill
+  records are upserted on every boot (ids prefixed `skill_mcpext_`). Servers you
+  create in the UI are never touched, so the two coexist.
+- **Secrets stay out of the file.** `${VAR}` references are expanded from the
+  environment (`.env` / shell) at seed time; an unset var resolves to blank and
+  is logged.
+- **Toggles** (in `config.yml` › `mcp`, overridable in `.env`):
+  `MCP_AUTO_SEED` (default `true`) turns seeding on/off; `MCP_CONFIG_FILE`
+  points at a different file. Set `enabled: false` to keep an entry as a
+  template without seeding it.
+
 ## 2. Config fields
 
 | Field | Used by | Description |

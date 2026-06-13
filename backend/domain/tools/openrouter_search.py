@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import re
 from typing import Any, Dict, List, Optional
 from urllib import error, request
@@ -11,6 +10,7 @@ from urllib.parse import urlparse
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.api.settings import settings
 
 try:
     import requests as _requests
@@ -249,7 +249,7 @@ class OpenRouterSearchToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY", "")
+        self.api_key = api_key or settings.tools.openrouter_api_key
         self.model = model or DEFAULT_MODEL
 
     @tool(parse_docstring=True)

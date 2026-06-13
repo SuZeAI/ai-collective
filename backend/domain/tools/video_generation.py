@@ -14,7 +14,6 @@ skipped. Used by the Video Producer agent to render short-form clips.
 from __future__ import annotations
 
 import asyncio
-import os
 import time
 from typing import Any, Dict, Optional
 
@@ -22,6 +21,7 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
+from backend.api.settings import settings
 
 DEFAULT_MODEL = "video-gen-1"
 DONE_STATES = {"succeeded", "success", "completed", "complete", "done", "finished", "ready"}
@@ -85,10 +85,10 @@ class VideoGenerationToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or os.getenv("VIDEO_GEN_API_KEY", "")
-        self.create_endpoint = (create_endpoint or os.getenv("VIDEO_GEN_CREATE_ENDPOINT") or "").strip()
+        self.api_key = api_key or settings.tools.video_gen_api_key
+        self.create_endpoint = (create_endpoint or settings.tools.video_gen_create_endpoint or "").strip()
         # status_endpoint may contain a {id} placeholder, e.g. https://api.x/v1/jobs/{id}
-        self.status_endpoint = (status_endpoint or os.getenv("VIDEO_GEN_STATUS_ENDPOINT") or "").strip()
+        self.status_endpoint = (status_endpoint or settings.tools.video_gen_status_endpoint or "").strip()
         self.model = (model or DEFAULT_MODEL).strip() or DEFAULT_MODEL
         self.poll_interval_seconds = max(1, int(poll_interval_seconds or 5))
         self.max_wait_seconds = max(10, int(max_wait_seconds or 300))

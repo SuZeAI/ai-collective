@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 from typing import Any, Dict, List, Optional
 from urllib import error, parse, request
 
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.api.settings import settings
 
 ZALO_API_BASE = "https://openapi.zalo.me/v2.0/oa"
 
@@ -53,7 +53,7 @@ class ZaloMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.access_token = access_token or os.getenv("ZALO_OA_ACCESS_TOKEN", "")
+        self.access_token = access_token or settings.tools.zalo_oa_access_token
 
     def _token(self) -> str:
         if not self.access_token:

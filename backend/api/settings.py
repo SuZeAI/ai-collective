@@ -1,142 +1,618 @@
+"""Typed application configuration (single source of truth).
+
+Every configuration value the app reads flows through here. The layering is built
+in ``config_loader`` and ``dotenv`` *before* any ``Settings()`` is constructed:
+
+    code defaults  <  config.yml  <  .env  <  OS environment
+
+1. ``dotenv.load_dotenv()`` reads ``.env`` into ``os.environ`` (never overriding
+   an existing OS var).
+2. ``apply_config_yaml()`` flattens ``config.yml``, expands ``${VAR}`` references
+   and ``setdefault``-s each leaf into ``os.environ`` (so ``.env`` / OS win).
+
+Because every value lands in ``os.environ`` by the time ``Settings()`` runs, each
+nested ``BaseSettings`` sub-model below reads its own fields straight from the
+environment via ``validation_alias`` (the canonical UPPER_CASE env-var name).
+
+Access is **nested**, grouped by config.yml section, e.g.::
+
+    settings.llm.provider
+    settings.agent.context_token_limit
+    settings.tools.slack_bot_token
+
+A set of flat ``@property`` delegates is kept on the root for backward
+compatibility with existing call-sites (``settings.llm_provider`` …).
+"""
+
 from __future__ import annotations
 
+import dotenv
 from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from backend.api.config_loader import apply_config_yaml
+
+# Build the layered environment before any Settings() is constructed.
+dotenv.load_dotenv()
+apply_config_yaml()
+
 _DEFAULT_JWT_SECRET = "change-me-in-production-use-openssl-rand-hex-32"
 
+# Shared config for every section: read os.environ case-insensitively, accept the
+# python field name too, and ignore unrelated env vars.
+_SECTION_CONFIG = SettingsConfigDict(
+    extra="ignore",
+    case_sensitive=False,
+    populate_by_name=True,
+)
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    # ── Application ───────────────────────────────────────────────────────────
-    app_name: str = "ai-collective-backend"
-    # "development" | "production" — gates production safety checks below.
-    environment: str = "development"
-    api_prefix: str = "/api/v1"
-    cors_origins: str = (
-        "http://localhost:5173,http://127.0.0.1:5173,"
-        "http://localhost:8080,http://127.0.0.1:8080,"
-        "http://localhost:2026,http://127.0.0.1:2026"
+def _split_keys(value: str | None) -> list[str]:
+    """Split a comma/whitespace-separated key string into a de-duplicated list."""
+    if not value:
+        return []
+    raw = value.replace("\n", ",").replace(" ", ",")
+    out: list[str] = []
+    seen: set[str] = set()
+    for part in raw.split(","):
+        key = part.strip()
+        if key and key not in seen:
+            seen.add(key)
+            out.append(key)
+    return out
+
+
+def _alias(*names: str) -> AliasChoices:
+    return AliasChoices(*names)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Section sub-models (one per config.yml section)
+# ══════════════════════════════════════════════════════════════════════════════
+class AppSettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    app_name: str = Field(default="ai-collective-backend", validation_alias=_alias("APP_NAME"))
+    # "development" | "production" — gates the production safety checks on the root.
+    environment: str = Field(default="development", validation_alias=_alias("ENVIRONMENT"))
+    api_prefix: str = Field(default="/api/v1", validation_alias=_alias("API_PREFIX"))
+    cors_origins: str = Field(
+        default=(
+            "http://localhost:5173,http://127.0.0.1:5173,"
+            "http://localhost:8080,http://127.0.0.1:8080,"
+            "http://localhost:2026,http://127.0.0.1:2026"
+        ),
+        validation_alias=_alias("CORS_ORIGINS"),
     )
-    frontend_url: str = "http://localhost:8080"
-    log_level: str = "info"
-
-    # ── LLM providers ─────────────────────────────────────────────────────────
-    llm_provider: str = "google"
-    llm_model: str | None = None
-    llm_api_base: str | None = None
-    google_api_key: str | None = None
-    anthropic_api_key: str | None = None
-    openai_api_key: str | None = None
-    open_weight_api_key: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices("OPEN_WEIGHT_API_KEY", "OPENROUTER_API_KEY"),
+    frontend_url: str = Field(default="http://localhost:8080", validation_alias=_alias("FRONTEND_URL"))
+    vite_api_base_url: str = Field(
+        default="http://localhost:8000/api/v1", validation_alias=_alias("VITE_API_BASE_URL")
     )
-    kimi_api_key: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices("KIMI_API_KEY", "MOONSHOT_API_KEY"),
-    )
-
-    # ── Storage ───────────────────────────────────────────────────────────────
-    # backend: "json" (default, file-based) | "mongo" (MongoDB)
-    storage_backend: str = "json"
-    # Live database dir for JSON storage. Relative paths resolve against the
-    # project root; defaults to <project_root>/local_database.
-    storage_dir: str | None = None
-    # Seed source: committed default catalog the startup seed copies FROM.
-    # Read-only; defaults to <project_root>/storage.
-    seed_dir: str | None = None
-
-    # ── MongoDB ───────────────────────────────────────────────────────────────
-    mongo_uri: str = "mongodb://admin:admin@localhost:27017/ai_collective?authSource=admin"
-    mongo_db: str = "ai_collective"
-
-    # ── Agent / tools ─────────────────────────────────────────────────────────
-    # Max LLM<->tool rounds per agent turn (the bounded tool-calling loop).
-    agent_max_tool_rounds: int = 6
-    # Per-tool execution timeout in seconds. 0 disables the timeout (default),
-    # since some tools (browser, bash) may legitimately run long.
-    tool_timeout_seconds: int = 0
-    # Subagent (Agent Mode) limits.
-    subagent_max_concurrent: int = 3
-    subagent_max_turns: int = 6
-
-    # ── Task queue ────────────────────────────────────────────────────────────
-    # backend: "memory" (default, single-instance) | "rabbitmq" (multi-instance)
-    task_queue_backend: str = "memory"
-    task_queue_max_concurrent: int = 3
-    rabbitmq_url: str | None = None
-
-    # ── Repository lock ───────────────────────────────────────────────────────
-    # backend: "threading" (default, single-instance) | "redis" (multi-instance)
-    lock_backend: str = "threading"
-    redis_url: str | None = None
-
-    # ── Sandbox ───────────────────────────────────────────────────────────────
-    # mode: "local"  — commands run directly on the host (default, dev-only)
-    #       "docker" — commands run inside local Docker containers
-    #       "k8s"    — commands run inside K8s/k3s pods via provisioner service
-    sandbox_mode: str = "local"
-    # Docker mode: container image and lifecycle settings
-    sandbox_image: str = "enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest"
-    sandbox_base_port: int = 8080
-    sandbox_container_prefix: str = "ai-collective-sandbox"
-    sandbox_replicas: int = 3
-    sandbox_idle_timeout: int = 600
-    sandbox_host: str = "localhost"
-    # K8s mode: provisioner service URL (required when sandbox_mode=k8s)
-    sandbox_provisioner_url: str | None = None
-    # Shared settings
-    sandbox_timeout: int = 120
-    sandbox_workspace: str | None = None
-
-    # ── JWT / User auth ───────────────────────────────────────────────────────
-    jwt_secret_key: str = _DEFAULT_JWT_SECRET
-    jwt_algorithm: str = "HS256"
-    jwt_access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
-
-    # ── Google OAuth (social sign-in) ─────────────────────────────────────────
-    google_login_client_id: str | None = None
-    google_login_client_secret: str | None = None
-    google_login_redirect_uri: str = "http://127.0.0.1:8000/api/v1/auth/google/callback"
-
-    # ── Google OAuth (tool/workspace integration) ─────────────────────────────
-    google_oauth_redirect_uri: str = "http://127.0.0.1:8000/api/v1/auth/oauth/callback"
-
-    # ── Browser automation (agent browser tools) ──────────────────────────────
-    model_name: str = "gemini-2.0-flash"
-    model_provider: str = "google_genai"
-    temperature: float = 0.0
-    max_tokens: int = 1024
-    api_base: str | None = None
-    extra_headers: dict | None = None
-
-    # Graph knowledge extraction mode:
-    # "static" - rule-based / spaCy pipeline (fast, no LLM calls)
-    # "llm"    - LLM-based entity & relation extraction (richer, costs tokens)
-    graph_build_mode: str = "static"
-
-    # Optional dedicated LLM config for graph extraction.
-    # Falls back to the agent LLM (llm_provider / llm_model) when not set.
-    graph_llm_provider: str | None = None
-    graph_llm_model: str | None = None
 
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
+
+class LoggingSettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    log_level: str = Field(default="info", validation_alias=_alias("LOG_LEVEL"))
+    log_console: bool = Field(default=True, validation_alias=_alias("LOG_CONSOLE"))
+    log_file: bool = Field(default=False, validation_alias=_alias("LOG_FILE"))
+    log_max_bytes: int = Field(default=10 * 1024 * 1024, validation_alias=_alias("LOG_MAX_BYTES"))
+    log_backup_count: int = Field(default=5, validation_alias=_alias("LOG_BACKUP_COUNT"))
+
+
+class LLMSettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    provider: str = Field(default="google", validation_alias=_alias("LLM_PROVIDER"))
+    model: str | None = Field(default=None, validation_alias=_alias("LLM_MODEL"))
+    api_base: str | None = Field(default=None, validation_alias=_alias("LLM_API_BASE"))
+
+    # Optional middleware knobs (previously read raw in infrastructure/llm/middleware.py)
+    tool_retry_max: int = Field(default=2, validation_alias=_alias("LLM_TOOL_RETRY_MAX"))
+    fallback_models: str | None = Field(default=None, validation_alias=_alias("LLM_FALLBACK_MODELS"))
+    summarization_enabled: bool = Field(
+        default=False, validation_alias=_alias("LLM_SUMMARIZATION_ENABLED")
+    )
+    summarization_model: str | None = Field(
+        default=None, validation_alias=_alias("LLM_SUMMARIZATION_MODEL")
+    )
+    summarization_trigger_tokens: int = Field(
+        default=8000, validation_alias=_alias("LLM_SUMMARIZATION_TRIGGER_TOKENS")
+    )
+    summarization_keep_messages: int = Field(
+        default=20, validation_alias=_alias("LLM_SUMMARIZATION_KEEP_MESSAGES")
+    )
+
+    def fallback_model_list(self) -> list[str]:
+        raw = self.fallback_models or ""
+        return [p.strip() for p in raw.replace("\n", ",").split(",") if p.strip()]
+
+
+class LLMKeysSettings(BaseSettings):
+    """LLM provider API keys (secrets). Each may hold a single key OR several
+    comma/whitespace-separated keys; the LLM layer rotates across them."""
+
+    model_config = _SECTION_CONFIG
+
+    google_api_key: str | None = Field(
+        default=None,
+        validation_alias=_alias("GOOGLE_API_KEY", "GOOGLE_API_KEYS", "GEMINI_API_KEY"),
+    )
+    anthropic_api_key: str | None = Field(
+        default=None, validation_alias=_alias("ANTHROPIC_API_KEY", "ANTHROPIC_API_KEYS")
+    )
+    openai_api_key: str | None = Field(
+        default=None, validation_alias=_alias("OPENAI_API_KEY", "OPENAI_API_KEYS")
+    )
+    open_weight_api_key: str | None = Field(
+        default=None,
+        validation_alias=_alias(
+            "OPEN_WEIGHT_API_KEY", "OPEN_WEIGHT_API_KEYS", "OPENROUTER_API_KEY", "OPENROUTER_API_KEYS"
+        ),
+    )
+    kimi_api_key: str | None = Field(
+        default=None,
+        validation_alias=_alias("KIMI_API_KEY", "KIMI_API_KEYS", "MOONSHOT_API_KEY", "MOONSHOT_API_KEYS"),
+    )
+
+    def google_api_keys(self) -> list[str]:
+        return _split_keys(self.google_api_key)
+
+    def anthropic_api_keys(self) -> list[str]:
+        return _split_keys(self.anthropic_api_key)
+
+    def openai_api_keys(self) -> list[str]:
+        return _split_keys(self.openai_api_key)
+
+    def open_weight_api_keys(self) -> list[str]:
+        return _split_keys(self.open_weight_api_key)
+
+    def kimi_api_keys(self) -> list[str]:
+        return _split_keys(self.kimi_api_key)
+
+
+class FailoverSettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    strategy: str = Field(default="rotate", validation_alias=_alias("LLM_FAILOVER_STRATEGY"))
+    rotate_max_requests_per_min: int = Field(
+        default=0, validation_alias=_alias("LLM_ROTATE_MAX_REQUESTS_PER_MIN")
+    )
+    rotate_max_tokens_per_min: int = Field(
+        default=0, validation_alias=_alias("LLM_ROTATE_MAX_TOKENS_PER_MIN")
+    )
+    key_cooldown_seconds: float = Field(
+        default=60.0, validation_alias=_alias("LLM_KEY_COOLDOWN_SECONDS")
+    )
+
+
+class RouterSettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    port: int = Field(default=20128, validation_alias=_alias("ROUTER_PORT"))
+    public_url: str = Field(default="http://localhost:20128", validation_alias=_alias("ROUTER_PUBLIC_URL"))
+    jwt_secret: str | None = Field(default=None, validation_alias=_alias("ROUTER_JWT_SECRET"))
+    initial_password: str | None = Field(default=None, validation_alias=_alias("ROUTER_INITIAL_PASSWORD"))
+
+
+class AgentSettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    max_tool_rounds: int = Field(default=6, validation_alias=_alias("AGENT_MAX_TOOL_ROUNDS"))
+    # Per-tool execution timeout in seconds. 0 disables the timeout.
+    tool_timeout_seconds: int = Field(default=0, validation_alias=_alias("TOOL_TIMEOUT_SECONDS"))
+    subagent_max_concurrent: int = Field(default=3, validation_alias=_alias("SUBAGENT_MAX_CONCURRENT"))
+    subagent_max_turns: int = Field(default=6, validation_alias=_alias("SUBAGENT_MAX_TURNS"))
+    # Context budgeting (langgraph_*).
+    context_token_limit: int = Field(default=12000, validation_alias=_alias("AGENT_CONTEXT_TOKEN_LIMIT"))
+    output_token_reserve: int = Field(default=2000, validation_alias=_alias("AGENT_OUTPUT_TOKEN_RESERVE"))
+    # Per-call LLM timeout / retries (_graph_runtime).
+    llm_timeout_seconds: int = Field(default=120, validation_alias=_alias("AGENT_LLM_TIMEOUT_SECONDS"))
+    llm_max_retries: int = Field(default=2, validation_alias=_alias("AGENT_LLM_MAX_RETRIES"))
+    ask_user_timeout_seconds: int = Field(
+        default=600, validation_alias=_alias("AGENT_ASK_USER_TIMEOUT_SECONDS")
+    )
+    # Mesh fan-out concurrency (falls back to subagent_max_concurrent when unset).
+    mesh_fanout_max_concurrent: int | None = Field(
+        default=None, validation_alias=_alias("MESH_FANOUT_MAX_CONCURRENT")
+    )
+
+
+class StorageSettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    backend: str = Field(default="json", validation_alias=_alias("STORAGE_BACKEND"))
+    dir: str | None = Field(default=None, validation_alias=_alias("STORAGE_DIR"))
+    seed_dir: str | None = Field(default=None, validation_alias=_alias("SEED_DIR"))
+
+
+class MongoSettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    uri: str = Field(
+        default="mongodb://admin:admin@localhost:27017/ai_collective?authSource=admin",
+        validation_alias=_alias("MONGO_URI"),
+    )
+    db: str = Field(default="ai_collective", validation_alias=_alias("MONGO_DB"))
+
+
+class GraphSettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    build_mode: str = Field(default="static", validation_alias=_alias("GRAPH_BUILD_MODE"))
+    llm_provider: str | None = Field(default=None, validation_alias=_alias("GRAPH_LLM_PROVIDER"))
+    llm_model: str | None = Field(default=None, validation_alias=_alias("GRAPH_LLM_MODEL"))
+
+
+class TaskQueueSettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    backend: str = Field(default="memory", validation_alias=_alias("TASK_QUEUE_BACKEND"))
+    max_concurrent: int = Field(default=3, validation_alias=_alias("TASK_QUEUE_MAX_CONCURRENT"))
+    rabbitmq_url: str | None = Field(default=None, validation_alias=_alias("RABBITMQ_URL"))
+
+
+class LockSettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    backend: str = Field(default="threading", validation_alias=_alias("LOCK_BACKEND"))
+    redis_url: str | None = Field(default=None, validation_alias=_alias("REDIS_URL"))
+
+
+class SandboxSettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    mode: str = Field(default="local", validation_alias=_alias("SANDBOX_MODE"))
+    image: str = Field(
+        default="enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest",
+        validation_alias=_alias("SANDBOX_IMAGE"),
+    )
+    base_port: int = Field(default=8080, validation_alias=_alias("SANDBOX_BASE_PORT"))
+    container_prefix: str = Field(
+        default="ai-collective-sandbox", validation_alias=_alias("SANDBOX_CONTAINER_PREFIX")
+    )
+    replicas: int = Field(default=3, validation_alias=_alias("SANDBOX_REPLICAS"))
+    idle_timeout: int = Field(default=600, validation_alias=_alias("SANDBOX_IDLE_TIMEOUT"))
+    host: str = Field(default="localhost", validation_alias=_alias("SANDBOX_HOST"))
+    provisioner_url: str | None = Field(default=None, validation_alias=_alias("SANDBOX_PROVISIONER_URL"))
+    timeout: int = Field(default=120, validation_alias=_alias("SANDBOX_TIMEOUT"))
+    workspace: str | None = Field(default=None, validation_alias=_alias("SANDBOX_WORKSPACE"))
+
+
+class AuthSettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    jwt_secret_key: str = Field(default=_DEFAULT_JWT_SECRET, validation_alias=_alias("JWT_SECRET_KEY"))
+    jwt_algorithm: str = Field(default="HS256", validation_alias=_alias("JWT_ALGORITHM"))
+    jwt_access_token_expire_minutes: int = Field(
+        default=60 * 24 * 7, validation_alias=_alias("JWT_ACCESS_TOKEN_EXPIRE_MINUTES")
+    )
+    google_login_client_id: str | None = Field(
+        default=None, validation_alias=_alias("GOOGLE_LOGIN_CLIENT_ID")
+    )
+    google_login_client_secret: str | None = Field(
+        default=None, validation_alias=_alias("GOOGLE_LOGIN_CLIENT_SECRET")
+    )
+    google_login_redirect_uri: str = Field(
+        default="http://127.0.0.1:8000/api/v1/auth/google/callback",
+        validation_alias=_alias("GOOGLE_LOGIN_REDIRECT_URI"),
+    )
+    google_oauth_redirect_uri: str = Field(
+        default="http://127.0.0.1:8000/api/v1/auth/oauth/callback",
+        validation_alias=_alias("GOOGLE_OAUTH_REDIRECT_URI"),
+    )
+    # OAuth client-secret / credentials file locations (workspace tools).
+    google_oauth_client_secret_path: str | None = Field(
+        default=None, validation_alias=_alias("GOOGLE_OAUTH_CLIENT_SECRET_PATH")
+    )
+    credentials_path: str | None = Field(default=None, validation_alias=_alias("CREDENTIALS_PATH"))
+    service_account_path: str | None = Field(
+        default=None, validation_alias=_alias("SERVICE_ACCOUNT_PATH")
+    )
+
+
+class WorkingMemorySettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    enabled: bool = Field(default=True, validation_alias=_alias("WORKING_MEMORY_ENABLED"))
+    max_notes: int = Field(default=40, validation_alias=_alias("WORKING_MEMORY_MAX_NOTES"))
+    compact_tokens: int = Field(default=1500, validation_alias=_alias("WORKING_MEMORY_COMPACT_TOKENS"))
+    note_chars: int = Field(default=600, validation_alias=_alias("WORKING_MEMORY_NOTE_CHARS"))
+    summary_chars: int = Field(default=3000, validation_alias=_alias("WORKING_MEMORY_SUMMARY_CHARS"))
+    digest_chars: int = Field(default=4000, validation_alias=_alias("WORKING_MEMORY_DIGEST_CHARS"))
+
+
+class McpSettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    discovery_timeout_seconds: int = Field(
+        default=30, validation_alias=_alias("MCP_DISCOVERY_TIMEOUT_SECONDS")
+    )
+    call_timeout_seconds: int = Field(default=60, validation_alias=_alias("MCP_CALL_TIMEOUT_SECONDS"))
+    auto_seed: bool = Field(default=True, validation_alias=_alias("MCP_AUTO_SEED"))
+    config_file: str = Field(default="mcp.yml", validation_alias=_alias("MCP_CONFIG_FILE"))
+
+
+class AdminSettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    email: str = Field(default="admin@aicollective.com", validation_alias=_alias("ADMIN_EMAIL"))
+    name: str = Field(default="Administrator", validation_alias=_alias("ADMIN_NAME"))
+    auto_seed: bool = Field(default=True, validation_alias=_alias("ADMIN_AUTO_SEED"))
+    password: str | None = Field(default=None, validation_alias=_alias("ADMIN_PASSWORD"))
+
+
+class SeedSettings(BaseSettings):
+    model_config = _SECTION_CONFIG
+
+    default_data: bool = Field(default=True, validation_alias=_alias("SEED_DEFAULT_DATA"))
+
+
+class BrowserSettings(BaseSettings):
+    """LLM config used by the agent browser-automation tools."""
+
+    model_config = _SECTION_CONFIG
+
+    model_name: str = Field(default="gemini-2.0-flash", validation_alias=_alias("MODEL_NAME"))
+    model_provider: str = Field(default="google_genai", validation_alias=_alias("MODEL_PROVIDER"))
+    temperature: float = Field(default=0.0, validation_alias=_alias("TEMPERATURE"))
+    max_tokens: int = Field(default=1024, validation_alias=_alias("MAX_TOKENS"))
+    api_base: str | None = Field(default=None, validation_alias=_alias("API_BASE"))
+    extra_headers: dict | None = Field(default=None, validation_alias=_alias("EXTRA_HEADERS"))
+
+
+class ToolsSettings(BaseSettings):
+    """Per-tool credentials / endpoints (secrets). Constructor args still take
+    precedence; these are the env-backed fallbacks every toolkit reads."""
+
+    model_config = _SECTION_CONFIG
+
+    # ── Search / scraping ──────────────────────────────────────────────────────
+    brave_search_api_key: str = Field(default="", validation_alias=_alias("BRAVE_SEARCH_API_KEY"))
+    parallel_api_key: str = Field(default="", validation_alias=_alias("PARALLEL_API_KEY"))
+    openrouter_api_key: str = Field(default="", validation_alias=_alias("OPENROUTER_API_KEY"))
+    scrapecreators_api_key: str = Field(default="", validation_alias=_alias("SCRAPECREATORS_API_KEY"))
+    truthsocial_token: str = Field(default="", validation_alias=_alias("TRUTHSOCIAL_TOKEN"))
+    xiaohongshu_api_base_url: str = Field(default="", validation_alias=_alias("XIAOHONGSHU_API_BASE_URL"))
+    # bird_x (X scraping via local .mjs)
+    auth_token: str = Field(default="", validation_alias=_alias("AUTH_TOKEN"))
+    ct0: str = Field(default="", validation_alias=_alias("CT0"))
+    bird_search_mjs: str = Field(default="", validation_alias=_alias("BIRD_SEARCH_MJS"))
+
+    # ── X / xAI ────────────────────────────────────────────────────────────────
+    xai_api_key: str = Field(default="", validation_alias=_alias("XAI_API_KEY"))
+    xai_model: str = Field(default="grok-4-fast", validation_alias=_alias("XAI_MODEL"))
+
+    # ── Bluesky ──────────────────────────────────────────────────────────────
+    bsky_handle: str = Field(default="", validation_alias=_alias("BSKY_HANDLE"))
+    bsky_app_password: str = Field(default="", validation_alias=_alias("BSKY_APP_PASSWORD"))
+
+    # ── Messaging ──────────────────────────────────────────────────────────────
+    slack_bot_token: str = Field(default="", validation_alias=_alias("SLACK_BOT_TOKEN"))
+    slack_default_channel: str = Field(default="", validation_alias=_alias("SLACK_DEFAULT_CHANNEL"))
+    discord_bot_token: str = Field(default="", validation_alias=_alias("DISCORD_BOT_TOKEN"))
+    discord_webhook_url: str = Field(default="", validation_alias=_alias("DISCORD_WEBHOOK_URL"))
+    discord_channel_id: str = Field(default="", validation_alias=_alias("DISCORD_CHANNEL_ID"))
+    telegram_bot_token: str = Field(default="", validation_alias=_alias("TELEGRAM_BOT_TOKEN"))
+    telegram_chat_id: str = Field(default="", validation_alias=_alias("TELEGRAM_CHAT_ID"))
+    teams_webhook_url: str = Field(default="", validation_alias=_alias("TEAMS_WEBHOOK_URL"))
+    signal_phone_number: str = Field(default="", validation_alias=_alias("SIGNAL_PHONE_NUMBER"))
+    signal_callmebot_api_key: str = Field(default="", validation_alias=_alias("SIGNAL_CALLMEBOT_API_KEY"))
+    skype_bot_app_id: str = Field(default="", validation_alias=_alias("SKYPE_BOT_APP_ID"))
+    skype_bot_app_password: str = Field(default="", validation_alias=_alias("SKYPE_BOT_APP_PASSWORD"))
+    skype_service_url: str = Field(default="", validation_alias=_alias("SKYPE_SERVICE_URL"))
+    skype_conversation_id: str = Field(default="", validation_alias=_alias("SKYPE_CONVERSATION_ID"))
+    snapchat_access_token: str = Field(default="", validation_alias=_alias("SNAPCHAT_ACCESS_TOKEN"))
+    snapchat_ad_account_id: str = Field(default="", validation_alias=_alias("SNAPCHAT_AD_ACCOUNT_ID"))
+    whatsapp_access_token: str = Field(default="", validation_alias=_alias("WHATSAPP_ACCESS_TOKEN"))
+    whatsapp_phone_number_id: str = Field(default="", validation_alias=_alias("WHATSAPP_PHONE_NUMBER_ID"))
+    wechat_app_id: str = Field(default="", validation_alias=_alias("WECHAT_APP_ID"))
+    wechat_app_secret: str = Field(default="", validation_alias=_alias("WECHAT_APP_SECRET"))
+    viber_auth_token: str = Field(default="", validation_alias=_alias("VIBER_AUTH_TOKEN"))
+    viber_sender_name: str = Field(default="AI Assistant", validation_alias=_alias("VIBER_SENDER_NAME"))
+    wire_bearer_token: str = Field(default="", validation_alias=_alias("WIRE_BEARER_TOKEN"))
+    wire_conversation_id: str = Field(default="", validation_alias=_alias("WIRE_CONVERSATION_ID"))
+    zalo_oa_access_token: str = Field(default="", validation_alias=_alias("ZALO_OA_ACCESS_TOKEN"))
+    line_channel_access_token: str = Field(default="", validation_alias=_alias("LINE_CHANNEL_ACCESS_TOKEN"))
+    messenger_page_access_token: str = Field(
+        default="", validation_alias=_alias("MESSENGER_PAGE_ACCESS_TOKEN")
+    )
+    instagram_page_access_token: str = Field(
+        default="", validation_alias=_alias("INSTAGRAM_PAGE_ACCESS_TOKEN")
+    )
+    instagram_user_id: str = Field(default="", validation_alias=_alias("INSTAGRAM_USER_ID"))
+
+    # ── Media generation ─────────────────────────────────────────────────────
+    gemini_api_key: str = Field(default="", validation_alias=_alias("GEMINI_API_KEY"))
+    image_gen_api_key: str = Field(default="", validation_alias=_alias("IMAGE_GEN_API_KEY"))
+    video_gen_api_key: str = Field(default="", validation_alias=_alias("VIDEO_GEN_API_KEY"))
+    video_gen_create_endpoint: str = Field(default="", validation_alias=_alias("VIDEO_GEN_CREATE_ENDPOINT"))
+    video_gen_status_endpoint: str = Field(default="", validation_alias=_alias("VIDEO_GEN_STATUS_ENDPOINT"))
+    tts_api_key: str = Field(default="", validation_alias=_alias("TTS_API_KEY"))
+    tts_output_dir: str = Field(default="", validation_alias=_alias("TTS_OUTPUT_DIR"))
+
+    # ── Google workspace token paths ───────────────────────────────────────────
+    google_calendar_token_path: str = Field(
+        default="", validation_alias=_alias("GOOGLE_CALENDAR_TOKEN_PATH")
+    )
+    google_docs_token_path: str = Field(default="", validation_alias=_alias("GOOGLE_DOCS_TOKEN_PATH"))
+    google_drive_token_path: str = Field(default="", validation_alias=_alias("GOOGLE_DRIVE_TOKEN_PATH"))
+    google_sheets_token_path: str = Field(default="", validation_alias=_alias("GOOGLE_SHEETS_TOKEN_PATH"))
+    google_slides_token_path: str = Field(default="", validation_alias=_alias("GOOGLE_SLIDES_TOKEN_PATH"))
+
+    # ── Tool runtime flags ─────────────────────────────────────────────────────
+    allow_private_http: bool = Field(default=False, validation_alias=_alias("ALLOW_PRIVATE_HTTP"))
+    last30days_debug: bool = Field(default=False, validation_alias=_alias("LAST30DAYS_DEBUG"))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Root settings — composes every section + backward-compatible flat delegates
+# ══════════════════════════════════════════════════════════════════════════════
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    app: AppSettings = Field(default_factory=AppSettings)
+    logging: LoggingSettings = Field(default_factory=LoggingSettings)
+    llm: LLMSettings = Field(default_factory=LLMSettings)
+    llm_keys: LLMKeysSettings = Field(default_factory=LLMKeysSettings)
+    llm_failover: FailoverSettings = Field(default_factory=FailoverSettings)
+    router: RouterSettings = Field(default_factory=RouterSettings)
+    agent: AgentSettings = Field(default_factory=AgentSettings)
+    storage: StorageSettings = Field(default_factory=StorageSettings)
+    mongo: MongoSettings = Field(default_factory=MongoSettings)
+    graph: GraphSettings = Field(default_factory=GraphSettings)
+    task_queue: TaskQueueSettings = Field(default_factory=TaskQueueSettings)
+    lock: LockSettings = Field(default_factory=LockSettings)
+    sandbox: SandboxSettings = Field(default_factory=SandboxSettings)
+    auth: AuthSettings = Field(default_factory=AuthSettings)
+    working_memory: WorkingMemorySettings = Field(default_factory=WorkingMemorySettings)
+    mcp: McpSettings = Field(default_factory=McpSettings)
+    admin: AdminSettings = Field(default_factory=AdminSettings)
+    seed: SeedSettings = Field(default_factory=SeedSettings)
+    browser: BrowserSettings = Field(default_factory=BrowserSettings)
+    tools: ToolsSettings = Field(default_factory=ToolsSettings)
+
+    # ── Root helpers ────────────────────────────────────────────────────────
     def is_production(self) -> bool:
-        return self.environment.strip().lower() in ("production", "prod")
+        return self.app.environment.strip().lower() in ("production", "prod")
+
+    def cors_origin_list(self) -> list[str]:
+        return self.app.cors_origin_list()
 
     @model_validator(mode="after")
     def _validate_production_secrets(self) -> "Settings":
         if self.is_production():
-            if self.jwt_secret_key == _DEFAULT_JWT_SECRET or len(self.jwt_secret_key) < 32:
+            secret = self.auth.jwt_secret_key
+            if secret == _DEFAULT_JWT_SECRET or len(secret) < 32:
                 raise ValueError(
                     "ENVIRONMENT=production requires a strong JWT_SECRET_KEY "
                     "(>=32 chars, not the default). Generate one with: openssl rand -hex 32"
                 )
         return self
+
+    # ── Backward-compatible flat delegates ──────────────────────────────────
+    # App
+    @property
+    def app_name(self) -> str: return self.app.app_name
+    @property
+    def environment(self) -> str: return self.app.environment
+    @property
+    def api_prefix(self) -> str: return self.app.api_prefix
+    @property
+    def frontend_url(self) -> str: return self.app.frontend_url
+    # LLM
+    @property
+    def llm_provider(self) -> str: return self.llm.provider
+    @property
+    def llm_model(self) -> str | None: return self.llm.model
+    @property
+    def llm_api_base(self) -> str | None: return self.llm.api_base
+    # LLM keys
+    @property
+    def google_api_key(self) -> str | None: return self.llm_keys.google_api_key
+    @property
+    def anthropic_api_key(self) -> str | None: return self.llm_keys.anthropic_api_key
+    @property
+    def openai_api_key(self) -> str | None: return self.llm_keys.openai_api_key
+    @property
+    def open_weight_api_key(self) -> str | None: return self.llm_keys.open_weight_api_key
+    @property
+    def kimi_api_key(self) -> str | None: return self.llm_keys.kimi_api_key
+
+    def google_api_keys(self) -> list[str]: return self.llm_keys.google_api_keys()
+    def anthropic_api_keys(self) -> list[str]: return self.llm_keys.anthropic_api_keys()
+    def openai_api_keys(self) -> list[str]: return self.llm_keys.openai_api_keys()
+    def open_weight_api_keys(self) -> list[str]: return self.llm_keys.open_weight_api_keys()
+    def kimi_api_keys(self) -> list[str]: return self.llm_keys.kimi_api_keys()
+
+    # Storage
+    @property
+    def storage_backend(self) -> str: return self.storage.backend
+    @property
+    def storage_dir(self) -> str | None: return self.storage.dir
+    @property
+    def seed_dir(self) -> str | None: return self.storage.seed_dir
+    # Mongo
+    @property
+    def mongo_uri(self) -> str: return self.mongo.uri
+    @property
+    def mongo_db(self) -> str: return self.mongo.db
+    # Agent
+    @property
+    def agent_max_tool_rounds(self) -> int: return self.agent.max_tool_rounds
+    @property
+    def tool_timeout_seconds(self) -> int: return self.agent.tool_timeout_seconds
+    @property
+    def subagent_max_concurrent(self) -> int: return self.agent.subagent_max_concurrent
+    # Task queue
+    @property
+    def task_queue_backend(self) -> str: return self.task_queue.backend
+    @property
+    def task_queue_max_concurrent(self) -> int: return self.task_queue.max_concurrent
+    @property
+    def rabbitmq_url(self) -> str | None: return self.task_queue.rabbitmq_url
+    # Lock
+    @property
+    def lock_backend(self) -> str: return self.lock.backend
+    @property
+    def redis_url(self) -> str | None: return self.lock.redis_url
+    # Sandbox
+    @property
+    def sandbox_mode(self) -> str: return self.sandbox.mode
+    @property
+    def sandbox_image(self) -> str: return self.sandbox.image
+    @property
+    def sandbox_base_port(self) -> int: return self.sandbox.base_port
+    @property
+    def sandbox_container_prefix(self) -> str: return self.sandbox.container_prefix
+    @property
+    def sandbox_replicas(self) -> int: return self.sandbox.replicas
+    @property
+    def sandbox_idle_timeout(self) -> int: return self.sandbox.idle_timeout
+    @property
+    def sandbox_provisioner_url(self) -> str | None: return self.sandbox.provisioner_url
+    @property
+    def sandbox_timeout(self) -> int: return self.sandbox.timeout
+    @property
+    def sandbox_workspace(self) -> str | None: return self.sandbox.workspace
+    # Auth
+    @property
+    def jwt_secret_key(self) -> str: return self.auth.jwt_secret_key
+    @property
+    def jwt_algorithm(self) -> str: return self.auth.jwt_algorithm
+    @property
+    def jwt_access_token_expire_minutes(self) -> int: return self.auth.jwt_access_token_expire_minutes
+    @property
+    def google_login_client_id(self) -> str | None: return self.auth.google_login_client_id
+    @property
+    def google_login_client_secret(self) -> str | None: return self.auth.google_login_client_secret
+    @property
+    def google_login_redirect_uri(self) -> str: return self.auth.google_login_redirect_uri
+    @property
+    def google_oauth_redirect_uri(self) -> str: return self.auth.google_oauth_redirect_uri
+    # Graph
+    @property
+    def graph_build_mode(self) -> str: return self.graph.build_mode
+    @property
+    def graph_llm_provider(self) -> str | None: return self.graph.llm_provider
+    @property
+    def graph_llm_model(self) -> str | None: return self.graph.llm_model
+    # Browser automation
+    @property
+    def model_name(self) -> str: return self.browser.model_name
+    @property
+    def model_provider(self) -> str: return self.browser.model_provider
+    @property
+    def temperature(self) -> float: return self.browser.temperature
+    @property
+    def max_tokens(self) -> int: return self.browser.max_tokens
+    @property
+    def api_base(self) -> str | None: return self.browser.api_base
+    @property
+    def extra_headers(self) -> dict | None: return self.browser.extra_headers
 
 
 settings = Settings()

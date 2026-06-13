@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 from typing import Any, Dict, Optional
 from urllib import error, request
 
@@ -10,6 +9,7 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
+from backend.api.settings import settings
 
 VIBER_API_BASE = "https://chatapi.viber.com/pa"
 
@@ -39,8 +39,8 @@ class ViberMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.auth_token = auth_token or os.getenv("VIBER_AUTH_TOKEN", "")
-        self.sender_name = sender_name or os.getenv("VIBER_SENDER_NAME", "AI Assistant")
+        self.auth_token = auth_token or settings.tools.viber_auth_token
+        self.sender_name = sender_name or settings.tools.viber_sender_name
 
     def _token(self) -> str:
         if not self.auth_token:

@@ -89,10 +89,10 @@ def _get_token_path_for_email(email: str, tool_name: str) -> str:
 
 
 def _resolve_client_secret_path() -> str:
-    """Get Google OAuth credentials file path from env or default."""
+    """Get Google OAuth credentials file path from settings or default."""
     return (
-        os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET_PATH")
-        or os.environ.get("CREDENTIALS_PATH")
+        settings.auth.google_oauth_client_secret_path
+        or settings.auth.credentials_path
         or "credentials.json"
     )
 

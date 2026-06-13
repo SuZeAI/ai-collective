@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 from typing import Any, Dict, List, Optional
 from urllib import error, request
 
 from langchain.tools import tool
 
+from backend.api.settings import settings
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
 
@@ -44,8 +44,8 @@ class SlackMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.bot_token = bot_token or os.getenv("SLACK_BOT_TOKEN", "")
-        self.default_channel = default_channel or os.getenv("SLACK_DEFAULT_CHANNEL", "")
+        self.bot_token = bot_token or settings.tools.slack_bot_token
+        self.default_channel = default_channel or settings.tools.slack_default_channel
 
     def _token(self) -> str:
         if not self.bot_token:

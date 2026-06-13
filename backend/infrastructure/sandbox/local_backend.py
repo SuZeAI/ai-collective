@@ -8,6 +8,7 @@ import subprocess
 from datetime import datetime
 from typing import Optional
 
+from backend.api.settings import settings
 from .backend import SandboxBackend
 from .sandbox_info import SandboxInfo
 
@@ -100,7 +101,7 @@ class LocalContainerBackend(SandboxBackend):
         else:
             raise RuntimeError("Could not start sandbox: all candidate ports are allocated")
 
-        sandbox_host = os.environ.get("SANDBOX_HOST", "localhost")
+        sandbox_host = settings.sandbox.host
         return SandboxInfo(
             sandbox_id=sandbox_id,
             sandbox_url=f"http://{sandbox_host}:{port}",
@@ -132,7 +133,7 @@ class LocalContainerBackend(SandboxBackend):
         port = self._get_container_port(container_name)
         if port is None:
             return None
-        sandbox_host = os.environ.get("SANDBOX_HOST", "localhost")
+        sandbox_host = settings.sandbox.host
         return SandboxInfo(
             sandbox_id=sandbox_id,
             sandbox_url=f"http://{sandbox_host}:{port}",
@@ -167,7 +168,7 @@ class LocalContainerBackend(SandboxBackend):
             return []
 
         infos: list[SandboxInfo] = []
-        sandbox_host = os.environ.get("SANDBOX_HOST", "localhost")
+        sandbox_host = settings.sandbox.host
         for entry in entries:
             name = (entry.get("Name") or "").lstrip("/")
             if not name.startswith(self._container_prefix + "-"):

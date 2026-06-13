@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 from typing import Any, Dict, Optional
 from urllib import error, request
 
@@ -10,6 +9,7 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
+from backend.api.settings import settings
 
 TELEGRAM_API_BASE = "https://api.telegram.org/bot{token}/{method}"
 
@@ -37,8 +37,8 @@ class TelegramMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.bot_token = bot_token or os.getenv("TELEGRAM_BOT_TOKEN", "")
-        self.default_chat_id = default_chat_id or os.getenv("TELEGRAM_CHAT_ID", "")
+        self.bot_token = bot_token or settings.tools.telegram_bot_token
+        self.default_chat_id = default_chat_id or settings.tools.telegram_chat_id
 
     def _token(self) -> str:
         if not self.bot_token:

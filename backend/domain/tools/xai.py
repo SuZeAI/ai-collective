@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import re
 from typing import Any, Dict, List, Optional
 from urllib import error, request
@@ -10,6 +9,7 @@ from urllib import error, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.api.settings import settings
 
 XAI_RESPONSES_URL = "https://api.x.ai/v1/responses"
 
@@ -237,8 +237,8 @@ class XAIToolkit(BaseToolkit):
 
     def __init__(self, api_key: Optional[str] = None, model: str = "grok-4-fast", **kwargs: Any):
         super().__init__(**kwargs)
-        self.api_key = api_key or os.getenv("XAI_API_KEY", "")
-        self.model = model or os.getenv("XAI_MODEL", "grok-4-fast")
+        self.api_key = api_key or settings.tools.xai_api_key
+        self.model = model or settings.tools.xai_model
 
     @tool(parse_docstring=True)
     async def xai_x_search(

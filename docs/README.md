@@ -36,6 +36,7 @@ The API is served under the prefix `/api/v1` by default (`API_PREFIX`).
 
 ## Related docs
 
+- [LLM_KEY_ROTATION.md](LLM_KEY_ROTATION.md) — multi-key rotation & failover (RPM/TPM budgets); `rotate` vs `9router`
 - [9ROUTER_SETUP.md](9ROUTER_SETUP.md) — 9Router multi-provider LLM proxy setup
 - [GOOGLE_LOGIN_SETUP.md](GOOGLE_LOGIN_SETUP.md) — Google OAuth sign-in setup
 - [STREAMING_GUIDE.md](STREAMING_GUIDE.md) — server-sent event streaming

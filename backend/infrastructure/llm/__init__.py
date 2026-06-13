@@ -1,8 +1,10 @@
 """LLM adapters."""
 
+from backend.infrastructure.llm.agent_builder import build_chat_agent
 from backend.infrastructure.llm.anthropic_langchain import AnthropicLangChainProvider
 from backend.infrastructure.llm.factory import create_llm_provider
 from backend.infrastructure.llm.google_langchain import GoogleLangChainProvider
+from backend.infrastructure.llm.middleware import build_default_middleware
 from backend.infrastructure.llm.open_weight_langchain import OpenWeightLangChainProvider
 from backend.infrastructure.llm.openai_langchain import OpenAILangChainProvider
 from backend.infrastructure.llm.kimi_langchain import KimiLangChainProvider
@@ -14,4 +16,6 @@ __all__ = [
 	"OpenWeightLangChainProvider",
 	"KimiLangChainProvider",
 	"create_llm_provider",
+	"build_chat_agent",
+	"build_default_middleware",
 ]

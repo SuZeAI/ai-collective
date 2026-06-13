@@ -1,0 +1,69 @@
+name: CI
+
+# Chỉ chạy khi main có commit mới hoặc khi PR được merge vào main.
+# (Push trực tiếp lên main và merge PR đều tạo ra một push event trên nhánh main.)
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {} # cho phép chạy thủ công từ tab Actions
+
+# Hủy lần chạy cũ nếu có commit mới trên cùng nhánh để tiết kiệm runner.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend · pytest (Python 3.11)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Run pytest
+        run: uv run pytest test/ -v
+        env:
+          PYTHONPATH: .
+
+  frontend:
+    name: Frontend · vitest + build (Node 20)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Lint không chặn CI (codebase còn nhiều cảnh báo/lỗi lint hiện hữu),
+      # vẫn hiển thị kết quả để dần dọn dẹp.
+      - name: Lint (non-blocking)
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Run vitest
+        run: npm run test
+
+      - name: Build
+        run: npm run build

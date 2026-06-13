@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 from typing import Any, Dict, Optional
 from urllib import error, parse, request
 
@@ -10,6 +9,7 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
+from backend.api.settings import settings
 
 SNAPCHAT_ADS_API_BASE = "https://adsapi.snapchat.com/v1"
 
@@ -44,8 +44,8 @@ class SnapchatMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.access_token = access_token or os.getenv("SNAPCHAT_ACCESS_TOKEN", "")
-        self.ad_account_id = ad_account_id or os.getenv("SNAPCHAT_AD_ACCOUNT_ID", "")
+        self.access_token = access_token or settings.tools.snapchat_access_token
+        self.ad_account_id = ad_account_id or settings.tools.snapchat_ad_account_id
 
     def _token(self) -> str:
         if not self.access_token:

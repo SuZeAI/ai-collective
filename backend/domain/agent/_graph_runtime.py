@@ -13,8 +13,9 @@ tree, mesh, sequential orchestrator) needs:
 from __future__ import annotations
 
 import asyncio
-import os
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Callable
+from uuid import uuid4
 import logging
 
 try:  # pragma: no cover - import shape differs slightly across langgraph versions
@@ -23,14 +24,25 @@ except Exception:  # pragma: no cover
     class GraphRecursionError(Exception):  # type: ignore[no-redef]
         """Fallback if langgraph does not expose GraphRecursionError."""
 
+from backend.api.settings import settings
+from backend.application.ports.agent_graph import GraphAgentDefinition, GraphTurn
 from backend.domain.event.schema import EventType
 
 logger = logging.getLogger(__name__)
 
 # Per-LLM-call wall-clock timeout and transient-failure retry policy.
-LLM_TIMEOUT_SECONDS = max(10, int(os.getenv("AGENT_LLM_TIMEOUT_SECONDS", "120")))
-LLM_MAX_RETRIES = max(0, int(os.getenv("AGENT_LLM_MAX_RETRIES", "2")))
+LLM_TIMEOUT_SECONDS = max(10, settings.agent.llm_timeout_seconds)
+LLM_MAX_RETRIES = max(0, settings.agent.llm_max_retries)
 _LLM_RETRY_BASE_DELAY = 1.5
+
+# How many fan-out branches (named agents dispatched in one parallel wave) may
+# run concurrently. Falls back to the subagent cap so a single env var can tune
+# both layers; both are independent semaphores, so the worst-case simultaneous
+# llm.chat count is MESH_FANOUT_MAX_CONCURRENT * SUBAGENT_MAX_CONCURRENT.
+MESH_FANOUT_MAX_CONCURRENT = max(
+    1,
+    settings.agent.mesh_fanout_max_concurrent or settings.agent.subagent_max_concurrent,
+)
 
 
 async def safe_chat(llm: Any, *, agent_name: str = "", **chat_kwargs: Any) -> str:
@@ -281,6 +293,159 @@ def recursion_config(max_rounds: int) -> dict[str, Any]:
     (mesh/supervisor route back through a coordinator) and the START edge.
     """
     return {"recursion_limit": max(25, int(max_rounds) * 2 + 10)}
+
+
+# ------------------------------------------------------------------ #
+# Parallel fan-out (topology-level multi-worker)                        #
+#                                                                       #
+# Lets a coordinator (mesh hub / supervisor lead) dispatch ONE wave of  #
+# work to several NAMED agents that run concurrently, then synthesize.  #
+# Concurrency is asyncio.gather inside a single graph node, so the node #
+# still returns exactly one state update per channel — no state-reducer #
+# changes and no InvalidUpdateError that native fan-out edges would hit.#
+# Mirrors the proven task.py subagent semaphore pattern.                #
+# ------------------------------------------------------------------ #
+
+FANOUT_SYNTHESIS_GUIDANCE = """
+## PARALLEL WAVE SYNTHESIS
+You dispatched a parallel wave: several specialists worked concurrently on the
+sub-tasks below and reported back. Your job now:
+1. Merge their findings into one coherent result, attributing key points to the
+   agent that produced them.
+2. Resolve any disagreements explicitly; note unresolved gaps.
+3. Do NOT simply concatenate — integrate and de-duplicate.
+4. Then emit exactly ONE control action at the very end (route to the next
+   agent, dispatch another wave, or end), following the control syntax above.
+"""
+
+
+@dataclass
+class FanoutBranchResult:
+    """Outcome of one agent in a parallel fan-out wave."""
+
+    agent_name: str
+    agent_role: str
+    task: str
+    content: str
+    error: bool = False
+    turn: int = 0
+
+
+async def run_fanout_wave(
+    *,
+    branches: list[tuple[GraphAgentDefinition, str]],
+    llm: Any,
+    build_branch_chat_kwargs: Callable[[GraphAgentDefinition, str], dict],
+    semaphore: asyncio.Semaphore,
+    stream_writer: Any = None,
+    conversation_id: str | None = None,
+    graph_context_provider: Any = None,
+    graph_config: Any = None,
+    base_turn_number: int,
+    split_fn: Callable[[str], tuple[str, str]] | None = None,
+) -> list[FanoutBranchResult]:
+    """Run ``branches`` ((agent_def, task_text) pairs) concurrently.
+
+    Each branch calls ``safe_chat`` (which never raises — it returns an
+    ``[error] ...`` string on failure) under ``semaphore`` so at most N run at
+    once. ``build_branch_chat_kwargs`` is supplied by the caller because mesh
+    and supervisor assemble context/prompt/tools differently.
+
+    Concurrency is confined to the ``llm.chat`` calls. Turn numbering, working
+    memory recording, knowledge-graph ingestion and ``TURN_COMPLETE`` events are
+    done *after* the gather, sequentially in branch order, so numbering is
+    deterministic and the (not coroutine-safe) graph provider is never raced.
+
+    Returns one ``FanoutBranchResult`` per branch, in the input order, with
+    ``turn`` assigned as ``base_turn_number + i`` (1-based).
+    """
+
+    async def _run_branch(agent_def: GraphAgentDefinition, task_text: str) -> FanoutBranchResult:
+        name = agent_def.name
+        if stream_writer:
+            stream_writer({
+                "type": EventType.AGENT_TURN_START.value,
+                "agent_name": name,
+                "agent_role": agent_def.role,
+                "parallel": True,
+            })
+            stream_writer({
+                "type": EventType.LLM_REQUEST_START.value,
+                "agent_name": name,
+                "parallel": True,
+            })
+        async with semaphore:
+            chat_kwargs = build_branch_chat_kwargs(agent_def, task_text)
+            raw = await safe_chat(llm, agent_name=name, **chat_kwargs)
+        if stream_writer:
+            stream_writer({
+                "type": EventType.LLM_RESPONSE_COMPLETE.value,
+                "agent_name": name,
+                "response_length": len(raw),
+                "parallel": True,
+            })
+        content, _ = split_fn(raw) if split_fn else (raw, "")
+        return FanoutBranchResult(
+            agent_name=name,
+            agent_role=agent_def.role,
+            task=task_text,
+            content=content,
+            error=raw.startswith("[error]"),
+        )
+
+    raw_results = await asyncio.gather(
+        *[_run_branch(a, t) for a, t in branches],
+        return_exceptions=True,
+    )
+
+    results: list[FanoutBranchResult] = []
+    for (agent_def, task_text), r in zip(branches, raw_results):
+        if isinstance(r, asyncio.CancelledError):
+            raise r
+        if isinstance(r, BaseException):
+            logger.exception("Fan-out branch '%s' crashed", agent_def.name, exc_info=r)
+            r = FanoutBranchResult(
+                agent_name=agent_def.name,
+                agent_role=agent_def.role,
+                task=task_text,
+                content=f"[error] branch crashed: {r}",
+                error=True,
+            )
+        results.append(r)
+
+    # Post-gather, sequential: deterministic numbering + recording + streaming.
+    for offset, res in enumerate(results, start=1):
+        res.turn = base_turn_number + offset
+        record_turn_in_memory(
+            conversation_id,
+            agent_name=res.agent_name,
+            turn=res.turn,
+            content=res.content,
+            kind="result",
+        )
+        if graph_context_provider and conversation_id and not res.error:
+            try:
+                graph_context_provider.ingest_message(
+                    conversation_id=conversation_id,
+                    message_id=f"agent-{res.agent_name}-{uuid4().hex}",
+                    speaker=res.agent_name,
+                    content=res.content,
+                    config=graph_config,
+                )
+            except Exception:  # noqa: BLE001 - ingestion must not break the wave
+                logger.exception("Fan-out ingest failed for %s", res.agent_name)
+        if stream_writer:
+            stream_writer({
+                "type": EventType.TURN_COMPLETE.value,
+                "turn": GraphTurn(
+                    turn=res.turn,
+                    agent_name=res.agent_name,
+                    agent_role=res.agent_role,
+                    content=res.content,
+                ),
+                "parallel": True,
+            })
+    return results
 
 
 async def run_to_final_state(graph: Any, initial: dict, max_rounds: int) -> dict:

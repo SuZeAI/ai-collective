@@ -28,6 +28,7 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
+from backend.api.settings import settings
 
 DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_IMAGE_MODEL = "imagen-3.0-generate-002"
@@ -37,7 +38,7 @@ DEFAULT_VIDEO_MODEL = "veo-3.0-generate-preview"
 
 
 def _resolve_key(explicit: Optional[str]) -> str:
-    key = (explicit or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()
+    key = (explicit or settings.tools.gemini_api_key or settings.llm_keys.google_api_key or "").strip()
     if not key:
         raise ValueError(
             "Gemini API key required. Set GEMINI_API_KEY / GOOGLE_API_KEY or configure api_key on the skill."
@@ -89,7 +90,7 @@ class GeminiImageToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY", "")
+        self.api_key = api_key or settings.tools.gemini_api_key or (settings.llm_keys.google_api_key or "")
         self.model = (model or DEFAULT_IMAGE_MODEL).strip() or DEFAULT_IMAGE_MODEL
         self.base_url = (base_url or DEFAULT_BASE_URL).strip() or DEFAULT_BASE_URL
         self.aspect_ratio = (aspect_ratio or "1:1").strip() or "1:1"
@@ -160,11 +161,11 @@ class GeminiTTSToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY", "")
+        self.api_key = api_key or settings.tools.gemini_api_key or (settings.llm_keys.google_api_key or "")
         self.model = (model or DEFAULT_TTS_MODEL).strip() or DEFAULT_TTS_MODEL
         self.base_url = (base_url or DEFAULT_BASE_URL).strip() or DEFAULT_BASE_URL
         self.voice = (voice or DEFAULT_TTS_VOICE).strip() or DEFAULT_TTS_VOICE
-        self.output_dir = (output_dir or os.getenv("TTS_OUTPUT_DIR") or "").strip()
+        self.output_dir = (output_dir or settings.tools.tts_output_dir or "").strip()
 
     @tool(parse_docstring=True)
     async def gemini_synthesize_speech(
@@ -251,7 +252,7 @@ class GeminiVideoToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY", "")
+        self.api_key = api_key or settings.tools.gemini_api_key or (settings.llm_keys.google_api_key or "")
         self.model = (model or DEFAULT_VIDEO_MODEL).strip() or DEFAULT_VIDEO_MODEL
         self.base_url = (base_url or DEFAULT_BASE_URL).strip() or DEFAULT_BASE_URL
         self.poll_interval_seconds = max(1, int(poll_interval_seconds or 10))

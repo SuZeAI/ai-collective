@@ -21,12 +21,12 @@ judgement instead of dying.
 from __future__ import annotations
 
 import asyncio
-import os
 from typing import Any
 from uuid import uuid4
 
 from langchain.tools import tool
 
+from backend.api.settings import settings
 from backend.domain.event.schema import EventType
 from backend.domain.tools.base import BaseToolkit
 from backend.log import get_logger
@@ -35,7 +35,7 @@ logger = get_logger(__name__)
 
 # How long ask_user waits for an answer before giving up, and how often it
 # re-checks the response slot.
-ASK_USER_TIMEOUT_SECONDS = max(30, int(os.getenv("AGENT_ASK_USER_TIMEOUT_SECONDS", "600")))
+ASK_USER_TIMEOUT_SECONDS = max(30, settings.agent.ask_user_timeout_seconds)
 _POLL_SECONDS = 0.25
 _HEARTBEAT_EVERY_POLLS = max(1, int(15 / _POLL_SECONDS))  # ~15s, keeps SSE alive
 

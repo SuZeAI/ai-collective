@@ -17,20 +17,21 @@
 #   rabbitmq-mgmt  — RabbitMQ Mgmt UI     (profile: tools, port 15672)
 #                  Enable: docker compose --profile tools up -d
 #
-#   sandbox    — AIO sandbox container for isolated code execution
+#   sandbox    — standalone AIO sandbox container (manual/debug; not auto-wired)
 #                Enable: docker compose --profile sandbox up -d
-#                Then set in .env: SANDBOX_MODE=remote  SANDBOX_URL=http://sandbox:8080
+#                Reach it at http://localhost:8081 on the host.
 #
 #   provisioner — K8s sandbox provisioner (creates per-request sandbox Pods)
 #                Enable: docker compose --profile provisioner up -d
-#                Then set in .env: SANDBOX_MODE=remote  SANDBOX_PROVISIONER_URL=http://provisioner:8002
+#                Then set in .env: SANDBOX_MODE=k8s  SANDBOX_PROVISIONER_URL=http://provisioner:8002
 #
-# Sandbox modes:
-#   1. Local Docker (default): backend uses Docker-in-Docker to start sandbox containers.
-#      Requires the Docker socket mount (already configured). Set SANDBOX_MODE=local.
-#   2. Remote AIO sandbox: activate profile "sandbox". Set SANDBOX_MODE=remote SANDBOX_URL=http://sandbox:8080.
-#   3. Kubernetes mode: activate profile "provisioner". Set SANDBOX_MODE=remote SANDBOX_PROVISIONER_URL=http://provisioner:8002.
-#      Requires ~/.kube/config pointing to a valid Kubernetes cluster.
+# Sandbox modes (SANDBOX_MODE, see docs/SANDBOX.md):
+#   local  (default) — run commands in-process on the backend (no isolation).
+#   docker           — backend starts its own sandbox containers via the mounted
+#                      Docker socket (already configured here). No `sandbox` profile needed.
+#   k8s              — activate profile "provisioner"; sandboxes run as k3s Pods.
+#                      Set SANDBOX_PROVISIONER_URL=http://provisioner:8002 and provide a
+#                      kubeconfig (see docs/K3S.md).
 #
 # Key environment variables (set in .env at project root):
 #   LLM_PROVIDER / LLM_MODEL              — LLM provider & model
@@ -38,9 +39,8 @@
 #   RABBITMQ_USER / RABBITMQ_PASS         — RabbitMQ credentials (default: guest/guest)
 #   MONGO_USER / MONGO_PASS               — MongoDB credentials (default: admin/admin)
 #   STORAGE_BACKEND                       — "json" (default) | "mongo"
-#   SANDBOX_MODE                          — "local" (default) | "remote"
-#   SANDBOX_URL                           — http://sandbox:8080 (if profile sandbox is active)
-#   SANDBOX_PROVISIONER_URL               — http://provisioner:8002 (if profile provisioner is active)
+#   SANDBOX_MODE                          — "local" (default) | "docker" | "k8s"
+#   SANDBOX_PROVISIONER_URL               — http://provisioner:8002 (if SANDBOX_MODE=k8s)
 #   SANDBOX_TIMEOUT                       — command timeout in seconds (default: 60)
 #   STORAGE_DIR                           — override storage directory path
 #   PORT                                  — public port (default: 2026)
@@ -178,6 +178,8 @@ services:
     volumes:
       - ../storage:/app/storage
       - ../logs:/app/logs
+      - ../config.yml:/app/config.yml:ro
+      - ../mcp.yml:/app/mcp.yml:ro
       - sandbox-workspace:/app/sandbox_workspace
       - /var/run/docker.sock:/var/run/docker.sock
     env_file:
@@ -188,8 +190,8 @@ services:
       - STORAGE_BACKEND=${STORAGE_BACKEND:-json}
       - MONGO_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-admin}@mongodb:27017/ai_collective?authSource=admin
       - MONGO_DB=${MONGO_DB:-ai_collective}
+      # SANDBOX_MODE: local | docker | k8s (see docs/SANDBOX.md).
       - SANDBOX_MODE=${SANDBOX_MODE:-local}
-      - SANDBOX_URL=${SANDBOX_URL:-}
       - SANDBOX_PROVISIONER_URL=${SANDBOX_PROVISIONER_URL:-}
       - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-60}
       - SANDBOX_WORKSPACE=/app/sandbox_workspace
@@ -207,9 +209,10 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  # ── AIO Sandbox Container (optional — profile: sandbox) ───────────────────
+  # ── Standalone AIO Sandbox Container (optional — profile: sandbox) ────────
+  # Manual / debug container; NOT auto-wired to any SANDBOX_MODE (`docker` mode
+  # spawns its own containers, `k8s` mode uses the provisioner).
   # Activate: docker compose --profile sandbox up -d
-  # Then set in .env: SANDBOX_MODE=remote  SANDBOX_URL=http://sandbox:8080
   sandbox:
     image: ${SANDBOX_IMAGE:-enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest}
     container_name: ai-collective-sandbox
@@ -226,10 +229,10 @@ services:
       retries: 5
       start_period: 10s
 
-  # ── Sandbox Provisioner (optional — profile: provisioner) ─────────────────
-  # Activate: docker compose --profile provisioner up -d
-  # Then set in .env: SANDBOX_MODE=remote  SANDBOX_PROVISIONER_URL=http://provisioner:8002
-  # Requires: kubectl context available at KUBECONFIG_PATH
+  # ── Sandbox Provisioner — K8s/k3s pod manager (optional — profile: provisioner)
+  # Used by SANDBOX_MODE=k8s. Activate: docker compose --profile provisioner up -d
+  # Then set in .env: SANDBOX_MODE=k8s  SANDBOX_PROVISIONER_URL=http://provisioner:8002
+  # Requires: a kubeconfig (see docs/K3S.md)
   provisioner:
     build:
       context: ./provisioner
@@ -241,13 +244,18 @@ services:
     environment:
       - K8S_NAMESPACE=${K8S_NAMESPACE:-ai-collective}
       - SANDBOX_IMAGE=${SANDBOX_IMAGE:-enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest}
+      # How the backend container reaches NodePort services on the host node.
       - NODE_HOST=${NODE_HOST:-host.docker.internal}
-      - K8S_API_SERVER=${K8S_API_SERVER:-}
+      # The kubeconfig points at 127.0.0.1:6443 (container loopback); override
+      # so the client reaches the host's k3s API instead.
+      - K8S_API_SERVER=${K8S_API_SERVER:-https://host.docker.internal:6443}
       - KUBECONFIG_PATH=/root/.kube/config
+      # hostPath dirs on the k3s NODE (must already exist, else Pods FailedMount).
       - SKILLS_HOST_PATH=${SKILLS_HOST_PATH:-/skills}
       - THREADS_HOST_PATH=${THREADS_HOST_PATH:-/.ai-collective/threads}
     volumes:
-      - ${KUBECONFIG:-~/.kube}:/root/.kube:ro
+      # Mount the kubeconfig FILE (compose does not expand `~`, so use $HOME).
+      - ${KUBECONFIG:-${HOME}/.kube/config}:/root/.kube/config:ro
     env_file:
       - ../.env
     extra_hosts:
@@ -268,8 +276,10 @@ services:
   # OpenAI-compatible gateway that routes / falls back across 40+ LLM providers
   # (Claude, OpenAI, Gemini, GLM…) and compresses tokens. https://github.com/decolua/9router
   # Activate: docker compose --profile router up -d
-  # Open the dashboard at http://localhost:${ROUTER_PORT:-20128}/dashboard, add
-  # provider accounts, create a combo + API key, then point the backend at it in .env:
+  # 1. Open the dashboard:  http://localhost:${ROUTER_PORT:-20128}/dashboard
+  # 2. Log in with the first-login password (ROUTER_INITIAL_PASSWORD, default 123456).
+  # 3. Add provider accounts, create a combo + API key, then point the backend
+  #    at it in .env (also set LLM_FAILOVER_STRATEGY=9router to disable local key rotation):
   #   LLM_PROVIDER=openai
   #   LLM_API_BASE=http://nine-router:20128/v1   # in-Docker service hostname
   #   OPENAI_API_KEY=<api key generated in the 9router dashboard>
@@ -286,12 +296,19 @@ services:
       - DATA_DIR=/app/data
       - NODE_ENV=production
       - JWT_SECRET=${ROUTER_JWT_SECRET:-change-me-use-openssl-rand-hex-32}
+      - INITIAL_PASSWORD=${ROUTER_INITIAL_PASSWORD:-123456}
       - NEXT_PUBLIC_BASE_URL=${ROUTER_PUBLIC_URL:-http://localhost:20128}
     volumes:
       - router_data:/app/data
     networks:
       - ai-collective
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:20128/', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
 volumes:
   mongo_data:

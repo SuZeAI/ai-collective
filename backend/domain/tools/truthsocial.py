@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import json
 import math
-import os
 import re
 from typing import Any, Dict, List, Optional
 from urllib import error, parse, request
@@ -11,6 +10,7 @@ from urllib import error, parse, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.api.settings import settings
 
 TRUTHSOCIAL_SEARCH_URL = "https://truthsocial.com/api/v2/search"
 
@@ -204,7 +204,7 @@ class TruthSocialToolkit(BaseToolkit):
 
     def __init__(self, token: Optional[str] = None, **kwargs: Any):
         super().__init__(**kwargs)
-        self.token = token or os.getenv("TRUTHSOCIAL_TOKEN", "")
+        self.token = token or settings.tools.truthsocial_token
 
     @tool(parse_docstring=True)
     async def truthsocial_search(
