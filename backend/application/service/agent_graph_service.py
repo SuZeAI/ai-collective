@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from backend.application.ports.agent_graph import (
     AgentGraphOrchestrator,
+    CustomGraphSpec,
     GraphAgentDefinition,
     GraphContextProvider,
     GraphRunResult,
@@ -24,6 +25,7 @@ class AgentGraphService:
         conversation_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
+        custom_graph: CustomGraphSpec | None = None,
     ) -> GraphRunResult:
         if not user_input.strip():
             raise ValueError("user_input must not be empty")
@@ -37,6 +39,7 @@ class AgentGraphService:
             conversation_id=conversation_id,
             graph_context_provider=graph_context_provider,
             graph_config=graph_config,
+            custom_graph=custom_graph,
         )
 
     async def run_stream_with_definitions(
@@ -48,6 +51,7 @@ class AgentGraphService:
         conversation_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
+        custom_graph: CustomGraphSpec | None = None,
     ):
         """Stream agent responses as they are generated"""
         if not user_input.strip():
@@ -62,5 +66,6 @@ class AgentGraphService:
             conversation_id=conversation_id,
             graph_context_provider=graph_context_provider,
             graph_config=graph_config,
+            custom_graph=custom_graph,
         ):
             yield turn
