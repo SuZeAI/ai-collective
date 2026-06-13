@@ -76,6 +76,7 @@ export type Translations = {
     playground: string;
     workspaces: string;
     officeBuilder: string;
+    virtualOffice: string;
     settings: string;
     overviewGroup: string;
     operationsGroup: string;
@@ -368,6 +369,7 @@ export const translations: Record<Language, Translations> = {
       skills: "Skills & Tools", teams: "Departments", tasks: "Projects & Tasks",
       conversations: "Meetings & Discussions", analytics: "Analytics", playground: "Testing Lab", workspaces: "Offices",
       officeBuilder: "Office Builder",
+      virtualOffice: "Virtual Office",
       settings: "Settings",
       overviewGroup: "Overview",
       operationsGroup: "Operations",
@@ -684,6 +686,7 @@ export const translations: Record<Language, Translations> = {
       skills: "Kỹ năng & Công cụ", teams: "Phòng ban", tasks: "Dự án & Công việc",
       conversations: "Họp & Thảo luận", analytics: "Phân tích", playground: "Phòng thử nghiệm", workspaces: "Văn phòng",
       officeBuilder: "Tạo văn phòng AI",
+      virtualOffice: "Văn phòng ảo",
       settings: "Cài đặt",
       overviewGroup: "Tổng quan",
       operationsGroup: "Vận hành",
@@ -1000,6 +1003,7 @@ export const translations: Record<Language, Translations> = {
       skills: "技能与工具", teams: "部门", tasks: "项目与任务",
       conversations: "会议与讨论", analytics: "分析", playground: "测试实验室", workspaces: "办公室",
       officeBuilder: "AI 办公室构建器",
+      virtualOffice: "虚拟办公室",
       settings: "设置",
       overviewGroup: "概览",
       operationsGroup: "运营",
@@ -1316,6 +1320,7 @@ export const translations: Record<Language, Translations> = {
       skills: "スキルとツール", teams: "部門", tasks: "プロジェクトとタスク",
       conversations: "会議とディスカッション", analytics: "分析", playground: "テストラボ", workspaces: "オフィス",
       officeBuilder: "AIオフィスビルダー",
+      virtualOffice: "バーチャルオフィス",
       settings: "設定",
       overviewGroup: "概要",
       operationsGroup: "オペレーション",
