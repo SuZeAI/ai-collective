@@ -27,7 +27,7 @@ class _SSRFSafeRedirectHandler(urllib.request.HTTPRedirectHandler):
 _SSRF_SAFE_OPENER = urllib.request.build_opener(_SSRFSafeRedirectHandler())
 
 DEFAULT_TIMEOUT = 30
-DEBUG = settings.tools.last30days_debug
+DEBUG = settings.security.last30days_debug
 MAX_RETRIES = 5
 RETRY_DELAY = 2.0
 USER_AGENT = "ai-collective/http-tool"
