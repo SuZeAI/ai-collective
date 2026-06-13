@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import json
 from dataclasses import asdict
 
@@ -298,21 +300,61 @@ async def run_agent_graph_stream(
     # Register a cancel flag so stop/pause can signal this stream to halt
     cancel_flag = task_run_registry.register(conversation_id) if conversation_id else None
 
+    # How often we re-check the cancel flag while parked waiting for the next
+    # event, so a Stop aborts an in-flight turn (LLM call / tool / web search)
+    # instead of waiting for the whole turn to finish.
+    cancel_poll_seconds = 0.2
+
+    def _is_cancelled() -> bool:
+        return bool(cancel_flag and cancel_flag.cancelled)
+
     async def event_generator():
-        """Generate Server-Sent Events for agent turns and intermediate events"""
+        """Generate Server-Sent Events for agent turns and intermediate events.
+
+        Stop/pause sets the run's cancel flag (see tasks.py). We poll it both
+        between events and *while waiting* for the next event, and on cancel we
+        abort the in-flight step and ``aclose()`` the underlying graph stream so
+        the backend stops doing work (no further LLM calls, tools or searches)
+        rather than running the current turn to completion.
+        """
+        agen = service.run_stream_with_definitions(
+            user_input=req.user_input,
+            definitions=definitions,
+            max_rounds=req.max_rounds,
+            conversation_id=conversation_id,
+            graph_context_provider=graph_context_service,
+            graph_config=graph_config,
+        ).__aiter__()
+        cancelled = False
         try:
-            async for event in service.run_stream_with_definitions(
-                user_input=req.user_input,
-                definitions=definitions,
-                max_rounds=req.max_rounds,
-                conversation_id=conversation_id,
-                graph_context_provider=graph_context_service,
-                graph_config=graph_config,
-            ):
-                # Check if stop/pause was requested via status update
-                if cancel_flag and cancel_flag.cancelled:
-                    yield f"data: {json.dumps({'type': 'cancelled'})}\n\n"
-                    return
+            while True:
+                # Already stopped before fetching the next event.
+                if _is_cancelled():
+                    cancelled = True
+                    break
+
+                next_task = asyncio.ensure_future(agen.__anext__())
+                # Race the next event against the cancel signal.
+                while True:
+                    done, _ = await asyncio.wait({next_task}, timeout=cancel_poll_seconds)
+                    if next_task in done:
+                        break
+                    if _is_cancelled():
+                        # Abort the in-flight step: cancelling propagates a
+                        # CancelledError into the graph's current await (LLM/tool
+                        # call), and aclose() (in finally) tears the stream down.
+                        next_task.cancel()
+                        with contextlib.suppress(asyncio.CancelledError, StopAsyncIteration, Exception):
+                            await next_task
+                        cancelled = True
+                        break
+                if cancelled:
+                    break
+
+                try:
+                    event = next_task.result()
+                except StopAsyncIteration:
+                    break
 
                 # Handle both custom events (dicts) and GraphTurn objects
                 if isinstance(event, dict):
@@ -343,8 +385,16 @@ async def run_agent_graph_stream(
                     )
                     yield f"data: {json.dumps(turn_schema.model_dump())}\n\n"
 
+            if cancelled:
+                logger.info(
+                    "[AgentGraph] STOP — run cancelled, aborting in-flight work | conversation_id=%s",
+                    conversation_id,
+                )
+                yield f"data: {json.dumps({'type': 'cancelled'})}\n\n"
+                return
+
             # Only build graph context if stream completed naturally (not cancelled)
-            if conversation_id and not (cancel_flag and cancel_flag.cancelled):
+            if conversation_id and not _is_cancelled():
                 pack = graph_context_service.build_graph_context(
                     conversation_id=conversation_id,
                     query=req.user_input,
@@ -355,6 +405,10 @@ async def run_agent_graph_stream(
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
         finally:
+            # Tear down the underlying graph stream so any in-flight LLM/tool
+            # await is cancelled and the backend stops working on this run.
+            with contextlib.suppress(Exception):
+                await agen.aclose()
             if conversation_id:
                 task_run_registry.unregister(conversation_id)
 
