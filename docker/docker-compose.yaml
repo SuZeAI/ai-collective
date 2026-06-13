@@ -176,7 +176,10 @@ services:
     container_name: ai-collective-backend
     command: uv run uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --workers ${BACKEND_WORKERS:-4}
     volumes:
+      # storage/ is the committed read-only seed catalog (SEED_DIR);
+      # local_database/ is the per-machine live store (STORAGE_DIR, gitignored).
       - ../storage:/app/storage
+      - ../local_database:/app/local_database
       - ../logs:/app/logs
       - ../config.yml:/app/config.yml:ro
       - ../mcp.yml:/app/mcp.yml:ro
@@ -187,7 +190,9 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379/0
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
-      - STORAGE_BACKEND=${STORAGE_BACKEND:-json}
+      # STORAGE_BACKEND is owned by config.yml (storage.STORAGE_BACKEND). Do NOT
+      # set it here — an env var would override config.yml. Override per-machine
+      # via .env (STORAGE_BACKEND=...) if needed.
       - MONGO_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-admin}@mongodb:27017/ai_collective?authSource=admin
       - MONGO_DB=${MONGO_DB:-ai_collective}
       # SANDBOX_MODE: local | docker | k8s (see docs/SANDBOX.md).
@@ -195,7 +200,9 @@ services:
       - SANDBOX_PROVISIONER_URL=${SANDBOX_PROVISIONER_URL:-}
       - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-60}
       - SANDBOX_WORKSPACE=/app/sandbox_workspace
-      - STORAGE_DIR=/app/storage
+      # Live store lives in local_database/ (gitignored), separate from the
+      # committed storage/ seed catalog. Used by json mode + json fallbacks.
+      - STORAGE_DIR=/app/local_database
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

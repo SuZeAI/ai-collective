@@ -19,7 +19,7 @@ export function useAgentSimulation() {
 
     type BackendStep = { agent: string; msg: string; delay_ms: number; phase?: number | null };
 
-    const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+    const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || "/api/v1";
     try {
       const res = await fetch(`${apiBase}/simulations/run`, {
         method: "POST",
