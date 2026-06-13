@@ -1,0 +1,4 @@
+# Sandbox provisioner runtime dependencies (pinned for reproducible builds).
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+kubernetes==31.0.0

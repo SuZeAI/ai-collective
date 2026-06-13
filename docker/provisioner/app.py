@@ -64,6 +64,12 @@ SKILLS_PVC_NAME = os.environ.get("SKILLS_PVC_NAME", "")
 USERDATA_PVC_NAME = os.environ.get("USERDATA_PVC_NAME", "")
 SAFE_THREAD_ID_PATTERN = r"^[A-Za-z0-9_\-]+$"
 
+# ``sandbox_id`` becomes part of K8s object names (``sandbox-{id}``,
+# ``sandbox-{id}-svc``) and label selectors, so it must be a DNS-1123 label:
+# lowercase alphanumerics + hyphens, starting/ending with an alphanumeric.
+# Capped at 51 chars so ``sandbox-{id}-svc`` stays within the 63-char limit.
+SAFE_SANDBOX_ID_PATTERN = r"^[a-z0-9]([a-z0-9-]{0,49}[a-z0-9])?$"
+
 # Path to the kubeconfig *inside* the provisioner container.
 # Typically the host's ~/.kube/config is mounted here.
 KUBECONFIG_PATH = os.environ.get("KUBECONFIG_PATH", "/root/.kube/config")
@@ -101,6 +107,24 @@ def _validate_thread_id(thread_id: str) -> str:
             "Invalid thread_id: only alphanumeric characters, hyphens, and underscores are allowed."
         )
     return thread_id
+
+
+def _validate_sandbox_id(sandbox_id: str) -> str:
+    """Validate a sandbox_id supplied via a path parameter.
+
+    The request body is validated by Pydantic, but path params (DELETE/GET)
+    bypass the model, so reject malformed ids here with a clean 422 instead of
+    letting an invalid K8s name surface as a cryptic API error.
+    """
+    if not re.match(SAFE_SANDBOX_ID_PATTERN, sandbox_id):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Invalid sandbox_id: must be a DNS-1123 label "
+                "(lowercase alphanumerics and hyphens, ≤51 chars)."
+            ),
+        )
+    return sandbox_id
 
 
 # ── K8s client setup ────────────────────────────────────────────────────
@@ -219,7 +243,9 @@ app = FastAPI(title="AI Collective Sandbox Provisioner", lifespan=lifespan)
 
 
 class CreateSandboxRequest(BaseModel):
-    sandbox_id: str
+    sandbox_id: str = Field(
+        pattern=SAFE_SANDBOX_ID_PATTERN, min_length=1, max_length=51
+    )
     thread_id: str = Field(pattern=SAFE_THREAD_ID_PATTERN)
 
 
@@ -260,7 +286,9 @@ def _build_volumes(thread_id: str) -> list[k8s_client.V1Volume]:
             name="skills",
             host_path=k8s_client.V1HostPathVolumeSource(
                 path=SKILLS_HOST_PATH,
-                type="Directory",
+                # DirectoryOrCreate so a not-yet-created SKILLS_HOST_PATH does
+                # not crash the Pod with FailedMount (it just mounts empty).
+                type="DirectoryOrCreate",
             ),
         )
 
@@ -432,7 +460,13 @@ def _get_pod_phase(sandbox_id: str) -> str:
 
 @app.get("/health")
 async def health():
-    """Provisioner health check."""
+    """Provisioner health check.
+
+    Reports ``ok`` only once the Kubernetes client has been initialized by the
+    lifespan startup, so the Compose healthcheck reflects real readiness.
+    """
+    if core_v1 is None:
+        raise HTTPException(status_code=503, detail="k8s client not initialized")
     return {"status": "ok"}
 
 
@@ -507,6 +541,7 @@ async def create_sandbox(req: CreateSandboxRequest):
 @app.delete("/api/sandboxes/{sandbox_id}")
 async def destroy_sandbox(sandbox_id: str):
     """Destroy a sandbox Pod + Service."""
+    _validate_sandbox_id(sandbox_id)
     errors: list[str] = []
 
     # Delete Service
@@ -536,6 +571,7 @@ async def destroy_sandbox(sandbox_id: str):
 @app.get("/api/sandboxes/{sandbox_id}", response_model=SandboxResponse)
 async def get_sandbox(sandbox_id: str):
     """Return current status and URL for a sandbox."""
+    _validate_sandbox_id(sandbox_id)
     node_port = _get_node_port(sandbox_id)
     if not node_port:
         raise HTTPException(status_code=404, detail=f"Sandbox '{sandbox_id}' not found")
