@@ -8,8 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Checkbox } from "@/components/ui/checkbox";
 import { AgentAvatar, teamAvatarIconOptions } from "@/components/AgentAvatar";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
-import { api, canDeleteItem, canEditItem, type Agent, type Team } from "@/lib/api";
+import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Agent, type CustomFlow, type Team, type TeamMode } from "@/lib/api";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
+import CustomFlowEditor from "@/components/team/CustomFlowEditor";
 
 type TeamTestMessage = {
   id: string;
@@ -32,7 +33,8 @@ export default function TeamBuilder() {
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
-  const [mode, setMode] = useState<"mesh" | "sequential" | "ring" | "supervisor" | "tree">("sequential");
+  const [mode, setMode] = useState<TeamMode>("sequential");
+  const [flow, setFlow] = useState<CustomFlow | null>(null);
   const [maxSteps, setMaxSteps] = useState("6");
   const [avatarMode, setAvatarMode] = useState<AvatarMode>("initial");
   const [avatarIcon, setAvatarIcon] = useState("users");
@@ -85,6 +87,7 @@ export default function TeamBuilder() {
     setDesc("");
     setSelectedAgents([]);
     setMode("sequential");
+    setFlow(null);
     setMaxSteps("6");
     setAvatarMode("initial");
     setAvatarIcon("users");
@@ -135,7 +138,8 @@ export default function TeamBuilder() {
     setName(team.name);
     setDesc(team.description ?? "");
     setSelectedAgents(team.agents || []);
-    setMode((team.mode as "mesh" | "sequential" | "ring" | "supervisor" | "tree") ?? "sequential");
+    setMode((team.mode as TeamMode) ?? "sequential");
+    setFlow(team.flow ?? null);
     setMaxSteps(String(team.maxSteps ?? 6));
     setAvatarMode(team.avatar_url ? "image" : team.avatar_icon ? "icon" : "initial");
     setAvatarIcon(team.avatar_icon || "users");
@@ -162,6 +166,7 @@ export default function TeamBuilder() {
         avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
         mode: mode,
         maxSteps: finalSteps,
+        flow: mode === "custom" ? flow : null,
       });
       setTeamList((prev) => {
         const idx = prev.findIndex((t) => t.id === saved.id);
@@ -243,11 +248,14 @@ export default function TeamBuilder() {
 
     try {
       let stepCounter = 0;
+      const customGraph = buildCustomGraphPayload(testingTeam);
+      const testMode = testingTeam.mode === "custom" && !customGraph ? "sequential" : (testingTeam.mode ?? "sequential");
       for await (const event of api.runAgentGraphStream({
         user_input: testPrompt.trim() || "Coordinate a team execution plan.",
         agents: testingTeam.agents,
         max_rounds: stepLimit,
-        mode: testingTeam.mode ?? "sequential",
+        mode: testMode,
+        custom_graph: customGraph,
         conversation_id: testingTeam.id,
       })) {
         if (stopTestRef.current) break;
@@ -383,6 +391,7 @@ export default function TeamBuilder() {
                       avatar_url: src.avatar_url,
                       mode: src.mode,
                       maxSteps: src.maxSteps,
+                      flow: src.flow ?? null,
                     });
                     setTeamList((prev) => [...prev, copiedTeam]);
                     teamIdsToAdd.push(copiedTeam.id);
@@ -471,7 +480,7 @@ export default function TeamBuilder() {
                   <label className="text-sm font-medium">Workflow Mode</label>
                   <select
                     value={mode}
-                    onChange={(e) => setMode(e.target.value as "mesh" | "sequential" | "ring" | "supervisor" | "tree")}
+                    onChange={(e) => setMode(e.target.value as TeamMode)}
                     className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
                   >
                     <option value="sequential">Sequential Pipeline (members work in sequence)</option>
@@ -479,7 +488,13 @@ export default function TeamBuilder() {
                     <option value="ring">Circular Workflow (members pass work in a loop)</option>
                     <option value="supervisor">Managerial Delegation (lead delegates to team)</option>
                     <option value="tree">Hierarchical Tree (manager delegates down branches)</option>
+                    <option value="custom">Custom Flow (drag-and-drop your own routing)</option>
                   </select>
+                  {mode === "custom" && (
+                    <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                      Draw the flow on the right: connect nodes to route work. Branch one node into several to run them in parallel, merge several back into one, or loop back (bounded by Max Steps).
+                    </p>
+                  )}
                   {mode === "supervisor" && (
                     <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                       First member in the order will be the <strong>lead manager</strong>. Remaining members are workers.
@@ -509,7 +524,7 @@ export default function TeamBuilder() {
               </div>
 
               <div className="space-y-4 min-w-0 pr-2 pb-1">
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                <div className={mode === "custom" ? "space-y-4" : "grid grid-cols-1 xl:grid-cols-2 gap-4"}>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Select Personnel</label>
                     <p className="text-xs text-muted-foreground">Choose personnel on the left, then reorder on the right.</p>
@@ -531,6 +546,17 @@ export default function TeamBuilder() {
                     </div>
                   </div>
 
+                  {mode === "custom" ? (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Custom Flow</label>
+                      <p className="text-xs text-muted-foreground">Drag from a node's right handle to another node's left handle to route work. Move nodes freely; select an edge and press Delete to remove it.</p>
+                      <CustomFlowEditor
+                        agents={selectedAgents.map((id) => agentById.get(id)).filter((a): a is Agent => Boolean(a))}
+                        initialFlow={flow}
+                        onChange={setFlow}
+                      />
+                    </div>
+                  ) : (
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Personnel Workflow Order</label>
                     <p className="text-xs text-muted-foreground">Drag to reorder personnel. If the list is long, scroll here.</p>
@@ -579,6 +605,7 @@ export default function TeamBuilder() {
                       )}
                     </div>
                   </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -828,7 +855,7 @@ export default function TeamBuilder() {
             <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
               <span>{team.activeTasks} active tasks</span>
               <span className="px-2 py-1 rounded bg-muted/50">
-                {team.mode === "mesh" ? "🔗 Mesh" : team.mode === "ring" ? "🔄 Ring" : team.mode === "supervisor" ? "👑 Manager" : team.mode === "tree" ? "🌲 Tree" : "📋 Sequential"} • {team.maxSteps || 6} steps
+                {team.mode === "mesh" ? "🔗 Mesh" : team.mode === "ring" ? "🔄 Ring" : team.mode === "supervisor" ? "👑 Manager" : team.mode === "tree" ? "🌲 Tree" : team.mode === "custom" ? "🧩 Custom" : "📋 Sequential"} • {team.maxSteps || 6} steps
               </span>
             </div>
           </motion.div>

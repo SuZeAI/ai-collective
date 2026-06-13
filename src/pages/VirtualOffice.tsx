@@ -10,7 +10,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useTheme } from "next-themes";
 import { AgentAvatar } from "@/components/AgentAvatar";
-import { api, type Agent, type Task, type Team, type Message } from "@/lib/api";
+import { api, buildCustomGraphPayload, type Agent, type Task, type Team, type Message } from "@/lib/api";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -312,11 +312,14 @@ export default function VirtualOffice() {
 
       (async () => {
         try {
+          const customGraph = buildCustomGraphPayload(team);
+          const runMode = team.mode === "custom" && !customGraph ? "sequential" : (team.mode ?? "sequential");
           for await (const event of api.runAgentGraphStream({
             user_input: formattedInput,
             agents: updatedTask.assignedAgents,
             max_rounds: team.maxSteps ?? 6,
-            mode: team.mode ?? "sequential",
+            mode: runMode,
+            custom_graph: customGraph,
             conversation_id: updatedTask.id,
             signal: controller.signal
           })) {

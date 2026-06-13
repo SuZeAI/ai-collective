@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
-import { api, canDeleteItem, canEditItem, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
+import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
 import { cn } from "@/lib/utils";
@@ -697,14 +697,18 @@ export default function TaskManager() {
         try {
           const messages: Message[] = [];
           const team = teamList.find((t) => t.id === updated.teamId);
-          const teamMode = team?.mode ?? "sequential";
           const teamMaxSteps = team?.maxSteps ?? 6;
+          // Custom mode runs the user-drawn flow; if it was never wired, fall
+          // back to sequential so the task still executes.
+          const customGraph = team ? buildCustomGraphPayload(team) : undefined;
+          const teamMode = team?.mode === "custom" && !customGraph ? "sequential" : (team?.mode ?? "sequential");
 
           for await (const event of api.runAgentGraphStream({
             user_input: formattedInput,
             agents: updated.assignedAgents,
             max_rounds: teamMaxSteps,
             mode: teamMode,
+            custom_graph: customGraph,
             conversation_id: updated.id,
             signal: controller.signal,
           })) {
