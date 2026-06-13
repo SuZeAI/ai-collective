@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import json
 import math
-import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from urllib import error, parse, request
@@ -11,6 +10,7 @@ from urllib import error, parse, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.api.settings import settings
 
 BSKY_SESSION_URL = "https://bsky.social/xrpc/com.atproto.server.createSession"
 BSKY_SEARCH_URL = "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts"
@@ -310,8 +310,8 @@ class BlueskyToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.handle = handle or os.getenv("BSKY_HANDLE", "")
-        self.app_password = app_password or os.getenv("BSKY_APP_PASSWORD", "")
+        self.handle = handle or settings.tools.bsky_handle
+        self.app_password = app_password or settings.tools.bsky_app_password
 
     @tool(parse_docstring=True)
     async def bluesky_search(

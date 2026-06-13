@@ -23,6 +23,7 @@ from urllib import error, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.api.settings import settings
 
 DEFAULT_ENDPOINT = "https://api.openai.com/v1/audio/speech"
 DEFAULT_MODEL = "gpt-4o-mini-tts"
@@ -72,12 +73,12 @@ class TextToSpeechToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or os.getenv("TTS_API_KEY") or os.getenv("OPENAI_API_KEY", "")
+        self.api_key = api_key or settings.tools.tts_api_key or (settings.llm_keys.openai_api_key or "")
         self.endpoint = (endpoint or DEFAULT_ENDPOINT).strip() or DEFAULT_ENDPOINT
         self.model = (model or DEFAULT_MODEL).strip() or DEFAULT_MODEL
         self.voice = (voice or DEFAULT_VOICE).strip() or DEFAULT_VOICE
         self.audio_format = (audio_format or DEFAULT_FORMAT).strip() or DEFAULT_FORMAT
-        self.output_dir = (output_dir or os.getenv("TTS_OUTPUT_DIR") or "").strip()
+        self.output_dir = (output_dir or settings.tools.tts_output_dir or "").strip()
 
     def _key(self) -> str:
         key = (self.api_key or "").strip()

@@ -42,29 +42,15 @@ implementation:
 
 from __future__ import annotations
 
-import os
 import time
 from collections import deque
 from dataclasses import dataclass
 from typing import Any, Callable
 
+from backend.api.settings import settings
 from backend.log import get_logger
 
 _WINDOW_SECONDS = 60.0
-
-
-def _env_float(name: str, default: float) -> float:
-    try:
-        return float(os.getenv(name, str(default)))
-    except (TypeError, ValueError):
-        return default
-
-
-def _env_int(name: str, default: int) -> int:
-    try:
-        return int(float(os.getenv(name, str(default))))
-    except (TypeError, ValueError):
-        return default
 
 
 @dataclass(frozen=True)
@@ -78,12 +64,12 @@ class RotationConfig:
 
     @classmethod
     def from_env(cls) -> "RotationConfig":
-        strategy = (os.getenv("LLM_FAILOVER_STRATEGY") or "rotate").strip().lower()
+        fo = settings.llm_failover
         return cls(
-            strategy=strategy,
-            cooldown_seconds=_env_float("LLM_KEY_COOLDOWN_SECONDS", 60.0),
-            max_requests_per_min=max(0, _env_int("LLM_ROTATE_MAX_REQUESTS_PER_MIN", 0)),
-            max_tokens_per_min=max(0, _env_int("LLM_ROTATE_MAX_TOKENS_PER_MIN", 0)),
+            strategy=(fo.strategy or "rotate").strip().lower(),
+            cooldown_seconds=fo.key_cooldown_seconds,
+            max_requests_per_min=max(0, fo.rotate_max_requests_per_min),
+            max_tokens_per_min=max(0, fo.rotate_max_tokens_per_min),
         )
 
     @property

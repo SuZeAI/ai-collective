@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from urllib import error, request
@@ -10,6 +9,7 @@ from urllib import error, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.api.settings import settings
 
 _DEFAULT_TIMEOUT_SECONDS = 20
 _DEFAULT_RETRIES = 2
@@ -207,7 +207,7 @@ class XiaohongshuToolkit(BaseToolkit):
 
     def __init__(self, base_url: Optional[str] = None, **kwargs: Any):
         super().__init__(**kwargs)
-        self.base_url = base_url or os.getenv("XIAOHONGSHU_API_BASE_URL", "")
+        self.base_url = base_url or settings.tools.xiaohongshu_api_base_url
 
     @tool(parse_docstring=True)
     async def xiaohongshu_search(

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import sys
 import time
 import urllib.error
@@ -14,6 +13,7 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._ssrf import BlockedURLError, validate_public_url
+from backend.api.settings import settings
 
 
 class _SSRFSafeRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -27,7 +27,7 @@ class _SSRFSafeRedirectHandler(urllib.request.HTTPRedirectHandler):
 _SSRF_SAFE_OPENER = urllib.request.build_opener(_SSRFSafeRedirectHandler())
 
 DEFAULT_TIMEOUT = 30
-DEBUG = os.environ.get("LAST30DAYS_DEBUG", "").lower() in ("1", "true", "yes")
+DEBUG = settings.tools.last30days_debug
 MAX_RETRIES = 5
 RETRY_DELAY = 2.0
 USER_AGENT = "ai-collective/http-tool"

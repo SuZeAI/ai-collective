@@ -10,6 +10,7 @@ from typing import Any, Optional
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.api.settings import settings
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -49,19 +50,19 @@ class SheetToolkit(BaseToolkit):
 
         resolved_credentials = (
             self.credentials_path
-            or os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET_PATH")
-            or os.environ.get("CREDENTIALS_PATH")
+            or settings.auth.google_oauth_client_secret_path
+            or settings.auth.credentials_path
             or "credentials.json"
         )
 
-        resolved_service_account = self.service_account_path or os.environ.get("SERVICE_ACCOUNT_PATH")
+        resolved_service_account = self.service_account_path or settings.auth.service_account_path
 
         if self.token_path:
             resolved_token = self.token_path
         elif self.auth_email:
             resolved_token = str(default_storage_dir / f"token_{_sanitize_email(self.auth_email)}.json")
         else:
-            resolved_token = os.environ.get("GOOGLE_SHEETS_TOKEN_PATH") or str(default_storage_dir / "token_default.json")
+            resolved_token = settings.tools.google_sheets_token_path or str(default_storage_dir / "token_default.json")
 
         return resolved_credentials, resolved_token, resolved_service_account
 

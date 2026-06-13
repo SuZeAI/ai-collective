@@ -13,11 +13,11 @@ time, so tokens stay in ``.env`` and out of the committed ``mcp.yml``.
 from __future__ import annotations
 
 import hashlib
-import os
 from pathlib import Path
 from typing import Any
 
 from backend.api.config_loader import expand_env
+from backend.api.settings import settings
 from backend.log import get_logger
 
 logger = get_logger(__name__)
@@ -25,17 +25,10 @@ logger = get_logger(__name__)
 _MANAGED_ID_PREFIX = "skill_mcpext_"
 
 
-def _env_bool(name: str, default: bool) -> bool:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    return raw.strip().lower() in ("1", "true", "yes", "on")
-
-
 def _config_path() -> Path:
     from backend.api.config_loader import PROJECT_ROOT
 
-    raw = os.getenv("MCP_CONFIG_FILE") or "mcp.yml"
+    raw = settings.mcp.config_file or "mcp.yml"
     p = Path(raw)
     return p if p.is_absolute() else PROJECT_ROOT / p
 
@@ -100,7 +93,7 @@ def _load_entries() -> list[dict[str, Any]]:
 
 def seed_mcp_extensions() -> None:
     """Upsert enabled mcp.yml servers into the skill store. Never blocks boot."""
-    if not _env_bool("MCP_AUTO_SEED", True):
+    if not settings.mcp.auto_seed:
         return
 
     try:

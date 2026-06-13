@@ -30,7 +30,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import shlex
 import threading
 from contextlib import asynccontextmanager
@@ -39,15 +38,16 @@ from typing import Any
 from langchain.messages import ToolMessage
 from langchain.tools import BaseTool
 
+from backend.api.settings import settings
 from backend.domain.tools.base import BaseToolkit
 from backend.log import get_logger
 
 logger = get_logger(__name__)
 
 # Wall-clock ceiling for the initial list_tools handshake at bind time.
-MCP_DISCOVERY_TIMEOUT_SECONDS = max(5, int(os.getenv("MCP_DISCOVERY_TIMEOUT_SECONDS", "30")))
+MCP_DISCOVERY_TIMEOUT_SECONDS = max(5, settings.mcp.discovery_timeout_seconds)
 # Default per-tool-call timeout (overridable per skill via `timeout_seconds`).
-MCP_CALL_TIMEOUT_SECONDS = max(5, int(os.getenv("MCP_CALL_TIMEOUT_SECONDS", "60")))
+MCP_CALL_TIMEOUT_SECONDS = max(5, settings.mcp.call_timeout_seconds)
 
 _VALID_TRANSPORTS = ("stdio", "streamable_http", "sse")
 

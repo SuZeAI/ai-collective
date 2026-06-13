@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-import os
 from typing import Any, Dict, Optional
 from urllib import error, parse, request
 
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.api.settings import settings
 
 CALLMEBOT_SIGNAL_URL = "https://signal.callmebot.com/signal/send.php"
 
@@ -47,8 +47,8 @@ class SignalMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.phone_number = phone_number or os.getenv("SIGNAL_PHONE_NUMBER", "")
-        self.api_key = api_key or os.getenv("SIGNAL_CALLMEBOT_API_KEY", "")
+        self.phone_number = phone_number or settings.tools.signal_phone_number
+        self.api_key = api_key or settings.tools.signal_callmebot_api_key
 
     def _validate(self) -> None:
         if not self.phone_number:

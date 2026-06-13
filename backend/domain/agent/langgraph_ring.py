@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from typing import TypedDict
 from uuid import uuid4
 
@@ -32,8 +31,10 @@ from backend.domain.agent._graph_runtime import (
 )
 
 
-MAX_CONTEXT_TOKENS = max(1024, int(os.getenv("AGENT_CONTEXT_TOKEN_LIMIT", "12000")))
-RESERVED_OUTPUT_TOKENS = max(256, int(os.getenv("AGENT_OUTPUT_TOKEN_RESERVE", "2000")))
+from backend.api.settings import settings
+
+MAX_CONTEXT_TOKENS = max(1024, settings.agent.context_token_limit)
+RESERVED_OUTPUT_TOKENS = max(256, settings.agent.output_token_reserve)
 
 # Max recent history entries kept in ring state to limit token growth
 _RING_HISTORY_WINDOW = 8

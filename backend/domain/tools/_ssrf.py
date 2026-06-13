@@ -12,9 +12,9 @@ against internal services).
 from __future__ import annotations
 
 import ipaddress
-import os
 import socket
 from urllib.parse import urlparse
+from backend.api.settings import settings
 
 
 class BlockedURLError(ValueError):
@@ -22,7 +22,7 @@ class BlockedURLError(ValueError):
 
 
 def _guard_disabled() -> bool:
-    return os.environ.get("ALLOW_PRIVATE_HTTP", "").lower() in ("1", "true", "yes")
+    return settings.tools.allow_private_http
 
 
 def _is_blocked_ip(ip: str) -> bool:

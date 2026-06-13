@@ -22,7 +22,6 @@ All knobs are read from environment variables in the same spirit as
 from __future__ import annotations
 
 import asyncio
-import os
 from collections.abc import Awaitable, Callable
 
 from langchain_core.messages import ToolMessage
@@ -37,34 +36,13 @@ from langchain.agents.middleware import (
     ToolRetryMiddleware,
 )
 
+from backend.api.settings import settings
 from backend.log import get_logger
 
 
 def _default_tool_timeout() -> int:
-    """Per-tool timeout in seconds (0 disables). Mirrors the old helper."""
-    try:
-        return max(0, int(os.getenv("TOOL_TIMEOUT_SECONDS", "0")))
-    except ValueError:
-        return 0
-
-
-def _env_int(name: str, default: int) -> int:
-    try:
-        return int(float(os.getenv(name, str(default))))
-    except (TypeError, ValueError):
-        return default
-
-
-def _env_bool(name: str, default: bool = False) -> bool:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    return raw.strip().lower() in ("1", "true", "yes", "on")
-
-
-def _env_list(name: str) -> list[str]:
-    raw = os.getenv(name) or ""
-    return [part.strip() for part in raw.replace("\n", ",").split(",") if part.strip()]
+    """Per-tool timeout in seconds (0 disables)."""
+    return max(0, settings.agent.tool_timeout_seconds)
 
 
 class ToolTimeoutMiddleware(AgentMiddleware):
@@ -122,7 +100,7 @@ def build_default_middleware(
         ModelCallLimitMiddleware(run_limit=max(1, max_tool_rounds), exit_behavior="end"),
     ]
 
-    retry_max = _env_int("LLM_TOOL_RETRY_MAX", 2)
+    retry_max = settings.llm.tool_retry_max
     if retry_max > 0:
         middleware.append(
             ToolRetryMiddleware(max_retries=retry_max, on_failure="return_message")
@@ -130,18 +108,18 @@ def build_default_middleware(
 
     middleware.append(ToolTimeoutMiddleware(timeout=tool_timeout))
 
-    fallback_models = _env_list("LLM_FALLBACK_MODELS")
+    fallback_models = settings.llm.fallback_model_list()
     if fallback_models:
         middleware.append(ModelFallbackMiddleware(*fallback_models))
 
-    if _env_bool("LLM_SUMMARIZATION_ENABLED"):
-        summary_model = os.getenv("LLM_SUMMARIZATION_MODEL")
+    if settings.llm.summarization_enabled:
+        summary_model = settings.llm.summarization_model
         if summary_model:
             middleware.append(
                 SummarizationMiddleware(
                     model=summary_model,
-                    trigger=("tokens", _env_int("LLM_SUMMARIZATION_TRIGGER_TOKENS", 8000)),
-                    keep=("messages", _env_int("LLM_SUMMARIZATION_KEEP_MESSAGES", 20)),
+                    trigger=("tokens", settings.llm.summarization_trigger_tokens),
+                    keep=("messages", settings.llm.summarization_keep_messages),
                 )
             )
         else:

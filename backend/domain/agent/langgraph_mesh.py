@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import re
 from typing import TypedDict
 from uuid import uuid4
@@ -36,13 +35,14 @@ from backend.domain.agent._graph_runtime import (
     wait_while_paused,
     working_memory_block,
 )
+from backend.api.settings import settings
 from backend.log import get_logger
 
 logger = get_logger(__name__)
 
-MAX_CONTEXT_TOKENS = max(1024, int(os.getenv("AGENT_CONTEXT_TOKEN_LIMIT", "12000")))
-RESERVED_OUTPUT_TOKENS = max(256, int(os.getenv("AGENT_OUTPUT_TOKEN_RESERVE", "2000")))
-SUBAGENT_MAX_CONCURRENT = max(1, int(os.getenv("SUBAGENT_MAX_CONCURRENT", "3")))
+MAX_CONTEXT_TOKENS = max(1024, settings.agent.context_token_limit)
+RESERVED_OUTPUT_TOKENS = max(256, settings.agent.output_token_reserve)
+SUBAGENT_MAX_CONCURRENT = max(1, settings.agent.subagent_max_concurrent)
 
 
 class MultiAgentMeshState(TypedDict):

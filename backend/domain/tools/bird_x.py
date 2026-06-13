@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.api.settings import settings
 
 DEPTH_CONFIG: dict[str, int] = {
     "quick": 12,
@@ -289,9 +290,9 @@ class BirdXToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.auth_token = (auth_token or os.getenv("AUTH_TOKEN", "")).strip()
-        self.ct0 = (ct0 or os.getenv("CT0", "")).strip()
-        configured_path = (bird_search_mjs or os.getenv("BIRD_SEARCH_MJS", "")).strip()
+        self.auth_token = (auth_token or settings.tools.auth_token).strip()
+        self.ct0 = (ct0 or settings.tools.ct0).strip()
+        configured_path = (bird_search_mjs or settings.tools.bird_search_mjs).strip()
         self.bird_search_mjs = Path(configured_path) if configured_path else _default_bird_search_mjs()
 
     @tool(parse_docstring=True)

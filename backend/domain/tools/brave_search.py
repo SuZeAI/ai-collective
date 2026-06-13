@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import html
-import os
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
@@ -10,6 +9,7 @@ from urllib.parse import urlencode, urlparse
 
 from langchain.tools import tool
 
+from backend.api.settings import settings
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools.http import request
 
@@ -253,7 +253,7 @@ class BraveSearchToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or os.getenv("BRAVE_SEARCH_API_KEY", "")
+        self.api_key = api_key or settings.tools.brave_search_api_key
         self.use_llm_context = use_llm_context
 
     @tool(parse_docstring=True)

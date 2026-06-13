@@ -24,30 +24,29 @@ registry live in ``backend.infrastructure.working_memory_store``.
 from __future__ import annotations
 
 import math
-import os
 import re
 from dataclasses import dataclass, field
 from typing import Any
 
-# ── Tunables (env-overridable) ────────────────────────────────────────────────
-WORKING_MEMORY_ENABLED = os.getenv("WORKING_MEMORY_ENABLED", "true").strip().lower() in (
-    "1", "true", "yes", "on",
-)
+from backend.api.settings import settings
+
+# ── Tunables (config.yml › working_memory / .env) ─────────────────────────────
+WORKING_MEMORY_ENABLED = settings.working_memory.enabled
 # Max structured notes kept verbatim before compaction folds the oldest into
 # the rolling summary.
-WORKING_MEMORY_MAX_NOTES = max(4, int(os.getenv("WORKING_MEMORY_MAX_NOTES", "40")))
+WORKING_MEMORY_MAX_NOTES = max(4, settings.working_memory.max_notes)
 # Token ceiling for the verbatim notes: when the estimated token size of all
 # notes exceeds this, the oldest unpinned notes are summarized away until the
 # memory fits again (count cap above still applies independently).
-WORKING_MEMORY_COMPACT_TOKENS = max(200, int(os.getenv("WORKING_MEMORY_COMPACT_TOKENS", "1500")))
+WORKING_MEMORY_COMPACT_TOKENS = max(200, settings.working_memory.compact_tokens)
 # Conservative chars-per-token estimate, matching token_budget's claude family.
 _CHARS_PER_TOKEN = 3.2
 # Per-note content clip — notes are telegrams, not transcripts.
-WORKING_MEMORY_NOTE_CHARS = max(80, int(os.getenv("WORKING_MEMORY_NOTE_CHARS", "600")))
+WORKING_MEMORY_NOTE_CHARS = max(80, settings.working_memory.note_chars)
 # Cap on the rolling summary; oldest summary lines drop first when exceeded.
-WORKING_MEMORY_SUMMARY_CHARS = max(400, int(os.getenv("WORKING_MEMORY_SUMMARY_CHARS", "3000")))
+WORKING_MEMORY_SUMMARY_CHARS = max(400, settings.working_memory.summary_chars)
 # Cap on the rendered digest injected into prompts.
-WORKING_MEMORY_DIGEST_CHARS = max(400, int(os.getenv("WORKING_MEMORY_DIGEST_CHARS", "4000")))
+WORKING_MEMORY_DIGEST_CHARS = max(400, settings.working_memory.digest_chars)
 
 NOTE_KINDS = ("finding", "decision", "artifact", "todo", "guidance", "result")
 

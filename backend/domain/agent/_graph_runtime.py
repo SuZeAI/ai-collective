@@ -13,7 +13,6 @@ tree, mesh, sequential orchestrator) needs:
 from __future__ import annotations
 
 import asyncio
-import os
 from dataclasses import dataclass
 from typing import Any, Callable
 from uuid import uuid4
@@ -25,14 +24,15 @@ except Exception:  # pragma: no cover
     class GraphRecursionError(Exception):  # type: ignore[no-redef]
         """Fallback if langgraph does not expose GraphRecursionError."""
 
+from backend.api.settings import settings
 from backend.application.ports.agent_graph import GraphAgentDefinition, GraphTurn
 from backend.domain.event.schema import EventType
 
 logger = logging.getLogger(__name__)
 
 # Per-LLM-call wall-clock timeout and transient-failure retry policy.
-LLM_TIMEOUT_SECONDS = max(10, int(os.getenv("AGENT_LLM_TIMEOUT_SECONDS", "120")))
-LLM_MAX_RETRIES = max(0, int(os.getenv("AGENT_LLM_MAX_RETRIES", "2")))
+LLM_TIMEOUT_SECONDS = max(10, settings.agent.llm_timeout_seconds)
+LLM_MAX_RETRIES = max(0, settings.agent.llm_max_retries)
 _LLM_RETRY_BASE_DELAY = 1.5
 
 # How many fan-out branches (named agents dispatched in one parallel wave) may
@@ -41,7 +41,7 @@ _LLM_RETRY_BASE_DELAY = 1.5
 # llm.chat count is MESH_FANOUT_MAX_CONCURRENT * SUBAGENT_MAX_CONCURRENT.
 MESH_FANOUT_MAX_CONCURRENT = max(
     1,
-    int(os.getenv("MESH_FANOUT_MAX_CONCURRENT", os.getenv("SUBAGENT_MAX_CONCURRENT", "3"))),
+    settings.agent.mesh_fanout_max_concurrent or settings.agent.subagent_max_concurrent,
 )
 
 
