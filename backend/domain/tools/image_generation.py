@@ -13,13 +13,13 @@ video thumbnails.
 from __future__ import annotations
 
 import asyncio
-import os
 from typing import Any, Dict, List, Optional
 
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
+from backend.api.settings import settings
 
 DEFAULT_ENDPOINT = "https://api.openai.com/v1/images/generations"
 DEFAULT_MODEL = "gpt-image-1"
@@ -62,7 +62,7 @@ class ImageGenerationToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or os.getenv("IMAGE_GEN_API_KEY") or os.getenv("OPENAI_API_KEY", "")
+        self.api_key = api_key or settings.tools.image_gen_api_key or (settings.llm_keys.openai_api_key or "")
         self.endpoint = (endpoint or DEFAULT_ENDPOINT).strip() or DEFAULT_ENDPOINT
         self.model = (model or DEFAULT_MODEL).strip() or DEFAULT_MODEL
         self.size = (size or DEFAULT_SIZE).strip() or DEFAULT_SIZE

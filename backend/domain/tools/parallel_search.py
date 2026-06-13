@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 from typing import Any, Dict, List, Optional
 from urllib import error, request
 from urllib.parse import urlparse
@@ -10,6 +9,7 @@ from urllib.parse import urlparse
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.api.settings import settings
 
 try:
     import requests as _requests
@@ -181,7 +181,7 @@ class ParallelSearchToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or os.getenv("PARALLEL_API_KEY", "")
+        self.api_key = api_key or settings.tools.parallel_api_key
         self.beta_header = beta_header or DEFAULT_BETA_HEADER
 
     @tool(parse_docstring=True)

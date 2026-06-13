@@ -15,6 +15,8 @@ class EventType(str, Enum):
 	MESSAGE_INGESTED = "message_ingested"
 	SUBAGENT_START = "subagent_start"
 	SUBAGENT_COMPLETE = "subagent_complete"
+	FANOUT_START = "fanout_start"
+	FANOUT_COMPLETE = "fanout_complete"
 	TURN_COMPLETE = "turn_complete"
 	USER_MESSAGE_INJECTED = "user_message_injected"
 	RUN_PAUSED = "run_paused"

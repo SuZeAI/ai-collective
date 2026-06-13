@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 from typing import Any, Dict, List, Optional
 from urllib import error, request
 
@@ -10,6 +9,7 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
+from backend.api.settings import settings
 
 LINE_API_BASE = "https://api.line.me/v2/bot"
 
@@ -40,9 +40,7 @@ class LINEMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.channel_access_token = channel_access_token or os.getenv(
-            "LINE_CHANNEL_ACCESS_TOKEN", ""
-        )
+        self.channel_access_token = channel_access_token or settings.tools.line_channel_access_token
 
     def _token(self) -> str:
         if not self.channel_access_token:

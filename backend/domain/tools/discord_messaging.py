@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 from typing import Any, Dict, List, Optional
 from urllib import error, request
 
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.api.settings import settings
 
 DISCORD_API_BASE = "https://discord.com/api/v10"
 
@@ -67,9 +67,9 @@ class DiscordMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.bot_token = bot_token or os.getenv("DISCORD_BOT_TOKEN", "")
-        self.webhook_url = webhook_url or os.getenv("DISCORD_WEBHOOK_URL", "")
-        self.default_channel_id = default_channel_id or os.getenv("DISCORD_CHANNEL_ID", "")
+        self.bot_token = bot_token or settings.tools.discord_bot_token
+        self.webhook_url = webhook_url or settings.tools.discord_webhook_url
+        self.default_channel_id = default_channel_id or settings.tools.discord_channel_id
 
     @tool(parse_docstring=True)
     async def discord_send_message(

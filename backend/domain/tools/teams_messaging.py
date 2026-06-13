@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 from typing import Any, Dict, List, Optional
 from urllib import error, request
 
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.api.settings import settings
 
 
 def _webhook_post(webhook_url: str, data: Dict, timeout: int = 30) -> Dict[str, Any]:
@@ -37,7 +37,7 @@ class TeamsMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.webhook_url = webhook_url or os.getenv("TEAMS_WEBHOOK_URL", "")
+        self.webhook_url = webhook_url or settings.tools.teams_webhook_url
 
     def _webhook(self) -> str:
         if not self.webhook_url:

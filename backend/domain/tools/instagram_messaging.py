@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 from typing import Any, Dict, Optional
 from urllib import error, request
 
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.api.settings import settings
 
 IG_API_BASE = "https://graph.facebook.com/v19.0"
 
@@ -49,10 +49,8 @@ class InstagramMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.page_access_token = page_access_token or os.getenv(
-            "INSTAGRAM_PAGE_ACCESS_TOKEN", ""
-        )
-        self.ig_user_id = ig_user_id or os.getenv("INSTAGRAM_USER_ID", "")
+        self.page_access_token = page_access_token or settings.tools.instagram_page_access_token
+        self.ig_user_id = ig_user_id or settings.tools.instagram_user_id
 
     def _token(self) -> str:
         if not self.page_access_token:

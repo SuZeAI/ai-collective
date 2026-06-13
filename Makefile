@@ -27,6 +27,12 @@ COMPOSE_PROFILES := $(foreach p,$(PROFILES),--profile $(p))
 COMPOSE_DEV  := docker compose -f docker/docker-compose-dev.yaml $(COMPOSE_PROFILES)
 COMPOSE_PROD := docker compose -f docker/docker-compose.yaml $(COMPOSE_PROFILES)
 
+# All-profiles variants — used by teardown targets so `make down`/`make dev-down`
+# stop EVERY service (including profile-gated ones: sandbox, provisioner, router),
+# regardless of which PROFILES were used to start them.
+COMPOSE_DEV_ALL  := docker compose -f docker/docker-compose-dev.yaml --profile "*"
+COMPOSE_PROD_ALL := docker compose -f docker/docker-compose.yaml --profile "*"
+
 BACKEND_PORT  ?= 8000
 FRONTEND_PORT ?= 8080
 BACKEND_WORKERS ?= 1
@@ -127,19 +133,19 @@ dev: dirs env ## Start full development stack (hot-reload, all services)
 dev-build: ## Rebuild all dev images without cache
 	$(COMPOSE_DEV) build --no-cache
 
-dev-down: ## Stop and remove dev containers (removes containers + networks)
+dev-down: ## Stop and remove ALL dev containers incl. profiles (sandbox/provisioner/router) + networks
 	@if [ -f $(LOG_DIR)/.collector.pids ]; then \
 	    xargs -r kill < $(LOG_DIR)/.collector.pids 2>/dev/null || true; \
 	    rm -f $(LOG_DIR)/.collector.pids; \
 	fi
-	$(COMPOSE_DEV) down
+	$(COMPOSE_DEV_ALL) down --remove-orphans
 
-dev-stop: ## Stop dev containers without removing them (preserves state for restart)
+dev-stop: ## Stop ALL dev containers incl. profiles without removing them (preserves state)
 	@if [ -f $(LOG_DIR)/.collector.pids ]; then \
 	    xargs -r kill < $(LOG_DIR)/.collector.pids 2>/dev/null || true; \
 	    rm -f $(LOG_DIR)/.collector.pids; \
 	fi
-	$(COMPOSE_DEV) stop
+	$(COMPOSE_DEV_ALL) stop
 
 dev-start: ## Start stopped dev containers (use after dev-stop)
 	$(COMPOSE_DEV) start
@@ -176,16 +182,15 @@ dev-restart-backend: ## Restart only the backend container
 
 # ── Dev with optional profiles (shortcuts for `make dev PROFILES=…`) ──────
 
-dev-sandbox: ## Dev stack + AIO sandbox container (set SANDBOX_MODE=remote in .env)
+dev-sandbox: ## Dev stack + standalone AIO sandbox container (manual/debug)
 	@$(MAKE) --no-print-directory dev PROFILES="$(PROFILES) sandbox"
-	@printf "  Sandbox URL (internal): http://sandbox:8080\n"
-	@printf "  Sandbox URL (host):     http://localhost:8081\n"
-	@printf "$(C_YELLOW)  Tip: set SANDBOX_MODE=remote and SANDBOX_URL=http://sandbox:8080 in .env$(C_RESET)\n"
+	@printf "  Sandbox URL (host): http://localhost:8081\n"
+	@printf "$(C_YELLOW)  Note: standalone container for manual use; not auto-wired to a SANDBOX_MODE (see docs/SANDBOX.md)$(C_RESET)\n"
 
-dev-provisioner: ## Dev stack + AIO sandbox + K8s provisioner
-	@$(MAKE) --no-print-directory dev PROFILES="$(PROFILES) sandbox provisioner"
+dev-provisioner: ## Dev stack + K8s provisioner (sandbox runs as a k3s Pod)
+	@$(MAKE) --no-print-directory dev PROFILES="$(PROFILES) provisioner"
 	@printf "  Provisioner: http://localhost:8002/health\n"
-	@printf "$(C_YELLOW)  Tip: set SANDBOX_MODE=remote and SANDBOX_PROVISIONER_URL=http://provisioner:8002 in .env$(C_RESET)\n"
+	@printf "$(C_YELLOW)  Tip: set SANDBOX_MODE=k8s and SANDBOX_PROVISIONER_URL=http://provisioner:8002 in .env (see docs/K3S.md)$(C_RESET)\n"
 
 dev-router: ## Dev stack + 9Router multi-provider LLM proxy
 	@$(MAKE) --no-print-directory dev PROFILES="$(PROFILES) router"
@@ -204,11 +209,11 @@ up: dirs env ## Start production stack (detached)
 	$(COMPOSE_PROD) up -d
 	@printf "$(C_GREEN)✓ Production stack up:$(C_RESET) http://localhost:2026\n"
 
-down: ## Stop and remove production containers (removes containers + networks)
-	$(COMPOSE_PROD) down
+down: ## Stop and remove ALL production containers incl. profiles (sandbox/provisioner/router) + networks
+	$(COMPOSE_PROD_ALL) down --remove-orphans
 
-stop: ## Stop production containers without removing them (preserves state for restart)
-	$(COMPOSE_PROD) stop
+stop: ## Stop ALL production containers incl. profiles without removing them (preserves state)
+	$(COMPOSE_PROD_ALL) stop
 
 start: ## Start stopped production containers (use after stop)
 	$(COMPOSE_PROD) start
@@ -233,13 +238,13 @@ logs-frontend: ## Tail only frontend production logs
 
 # ── Production with optional profiles (shortcuts for `make up PROFILES=…`) ─
 
-prod-sandbox: ## Production stack + AIO sandbox container
+prod-sandbox: ## Production stack + standalone AIO sandbox container (manual/debug)
 	@$(MAKE) --no-print-directory up PROFILES="$(PROFILES) sandbox"
-	@printf "$(C_GREEN)✓ Sandbox running.$(C_RESET)  Set SANDBOX_MODE=remote SANDBOX_URL=http://sandbox:8080 in .env\n"
+	@printf "$(C_GREEN)✓ Sandbox running.$(C_RESET)  Standalone container (not auto-wired to a SANDBOX_MODE); see docs/SANDBOX.md\n"
 
 prod-provisioner: ## Production stack + K8s provisioner (needs kubeconfig)
 	@$(MAKE) --no-print-directory up PROFILES="$(PROFILES) provisioner"
-	@printf "$(C_GREEN)✓ Provisioner running.$(C_RESET)  Set SANDBOX_MODE=remote SANDBOX_PROVISIONER_URL=http://provisioner:8002 in .env\n"
+	@printf "$(C_GREEN)✓ Provisioner running.$(C_RESET)  Set SANDBOX_MODE=k8s SANDBOX_PROVISIONER_URL=http://provisioner:8002 in .env\n"
 
 prod-router: ## Production stack + 9Router multi-provider LLM proxy
 	@$(MAKE) --no-print-directory up PROFILES="$(PROFILES) router"
@@ -374,8 +379,8 @@ clean: clean-docker ## Remove build artefacts and cache files
 	@printf "$(C_GREEN)✓ Clean complete.$(C_RESET)\n"
 
 clean-docker: ## Remove stopped containers and dangling images
-	$(COMPOSE_DEV) down --remove-orphans 2>/dev/null || true
-	$(COMPOSE_PROD) down --remove-orphans 2>/dev/null || true
+	$(COMPOSE_DEV_ALL) down --remove-orphans 2>/dev/null || true
+	$(COMPOSE_PROD_ALL) down --remove-orphans 2>/dev/null || true
 	docker image prune -f 2>/dev/null || true
 
 clean-venv: ## Remove the .venv directory

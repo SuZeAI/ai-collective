@@ -1,0 +1,26 @@
+[
+  {
+    "thread_id": "03f7933837374b3b9b56a47c837bad53",
+    "agent_name": "Hub",
+    "taskId": null,
+    "run_id": "44b7158fd67f4e099a908e49af3f5376",
+    "workspace_path": "/home/suzeai/Documents/suzeai/W_SUZERAIN_W5/Projects/ai-collective/.sandbox_workspace/03f7933837374b3b9b56a47c837bad53",
+    "created_at": "2026-06-13T03:17:51.482217+00:00"
+  },
+  {
+    "thread_id": "3611636390164626869fc521b7fca684",
+    "agent_name": "Hub",
+    "taskId": null,
+    "run_id": "df5294810cb849bba6449033676c7860",
+    "workspace_path": "/home/suzeai/Documents/suzeai/W_SUZERAIN_W5/Projects/ai-collective/.sandbox_workspace/3611636390164626869fc521b7fca684",
+    "created_at": "2026-06-13T03:17:53.620330+00:00"
+  },
+  {
+    "thread_id": "d1a1599c91d64a449218a98bb698a622",
+    "agent_name": "Bob",
+    "taskId": null,
+    "run_id": "f53792fcc57c442683da243afc3b0883",
+    "workspace_path": "/home/suzeai/Documents/suzeai/W_SUZERAIN_W5/Projects/ai-collective/.sandbox_workspace/d1a1599c91d64a449218a98bb698a622",
+    "created_at": "2026-06-13T03:17:55.626146+00:00"
+  }
+]

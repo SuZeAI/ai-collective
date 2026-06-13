@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import time
 from typing import Any, Dict, List, Optional
 from urllib import error, request
@@ -10,6 +9,7 @@ from urllib import error, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
+from backend.api.settings import settings
 
 WECHAT_API_BASE = "https://api.weixin.qq.com/cgi-bin"
 
@@ -81,8 +81,8 @@ class WeChatMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.app_id = app_id or os.getenv("WECHAT_APP_ID", "")
-        self.app_secret = app_secret or os.getenv("WECHAT_APP_SECRET", "")
+        self.app_id = app_id or settings.tools.wechat_app_id
+        self.app_secret = app_secret or settings.tools.wechat_app_secret
 
     def _get_token(self) -> str:
         if not self.app_id or not self.app_secret:
