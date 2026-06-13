@@ -3,7 +3,9 @@
 Each agent node invocation gets a unique thread_id that:
   - Scopes all sandbox bash sessions within that run (prevents cross-run pollution)
   - Creates an isolated workspace directory: {SANDBOX_WORKSPACE}/{thread_id}/
-  - Is persisted to storage/sandbox_threads.json (json) or MongoDB (mongo)
+  - Is persisted to MongoDB (mongo) or, in json mode, to
+    {STORAGE_DIR}/sandbox_threads.json (the gitignored live store, NOT the
+    committed storage/ seed dir)
   - Propagates automatically through async tool calls via ContextVar
 """
 from __future__ import annotations
@@ -13,6 +15,7 @@ import os
 import threading
 from contextvars import ContextVar
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
@@ -23,10 +26,24 @@ logger = get_logger(__name__)
 # Per-asyncio-task context variable — set once per agent node run.
 _current_thread_id: ContextVar[Optional[str]] = ContextVar("sandbox_thread_id", default=None)
 
-_STORAGE_PATH = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), "../../../storage/sandbox_threads.json")
-)
 _storage_lock = threading.Lock()
+
+
+def _storage_path() -> Path:
+    """Resolve the live sandbox-threads file under the configured STORAGE_DIR.
+
+    Live session data belongs in STORAGE_DIR (the gitignored ``local_database/``
+    store), never the committed ``storage/`` seed catalog. Falls back to the
+    ``STORAGE_DIR`` env var / ``storage`` so it stays usable without full app
+    wiring (mirrors ``working_memory_store._storage_dir``).
+    """
+    try:
+        from backend.api.settings import settings
+
+        base = settings.storage_dir or "storage"
+    except Exception:  # noqa: BLE001 - usable without full app wiring (tests)
+        base = os.getenv("STORAGE_DIR", "storage")
+    return Path(base) / "sandbox_threads.json"
 
 
 def get_current_thread_id() -> Optional[str]:
@@ -128,24 +145,28 @@ def _persist_session(
 
 def _persist_session_json(record: dict) -> None:
     try:
+        path = _storage_path()
         with _storage_lock:
             sessions: list[dict] = []
-            if os.path.exists(_STORAGE_PATH):
+            if path.exists():
                 try:
-                    with open(_STORAGE_PATH, "r", encoding="utf-8") as f:
-                        sessions = json.load(f)
+                    sessions = json.loads(path.read_text(encoding="utf-8"))
                     if not isinstance(sessions, list):
                         sessions = []
                 except (json.JSONDecodeError, OSError):
                     sessions = []
             sessions.append(record)
-            with open(_STORAGE_PATH, "w", encoding="utf-8") as f:
-                json.dump(sessions, f, indent=2, ensure_ascii=False)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                json.dumps(sessions, indent=2, ensure_ascii=False), encoding="utf-8"
+            )
     except Exception as exc:
         logger.warning("Failed to persist sandbox session (json): %s", exc)
 
 
 def _persist_session_mongo(record: dict) -> None:
+    # Pure-Mongo: a transient Mongo failure logs and skips; it must NOT write a
+    # JSON file in mongo mode (session tracking is best-effort metadata).
     try:
         import pymongo
         from backend.api.settings import settings
@@ -156,4 +177,3 @@ def _persist_session_mongo(record: dict) -> None:
         db.sandbox_threads.replace_one({"_id": doc["_id"]}, doc, upsert=True)
     except Exception as exc:
         logger.warning("Failed to persist sandbox session (mongo): %s", exc)
-        _persist_session_json(record)

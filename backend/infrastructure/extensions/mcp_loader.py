@@ -103,8 +103,6 @@ def seed_mcp_extensions() -> None:
             logger.info("MCP extensions: no enabled servers in mcp.yml — nothing to seed")
             return
 
-        from backend.api.settings import settings
-
         if settings.storage_backend == "mongo":
             _upsert_mongo(records)
         else:

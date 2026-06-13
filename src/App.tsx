@@ -20,6 +20,7 @@ import AnalyticsPage from "@/pages/AnalyticsPage";
 import Playground from "@/pages/Playground";
 import Workspaces from "@/pages/Workspaces";
 import OfficeBuilder from "@/pages/OfficeBuilder";
+import VirtualOffice from "@/pages/VirtualOffice";
 import Settings from "@/pages/Settings";
 import AdminMonitoring from "@/pages/AdminMonitoring";
 import Docs from "@/pages/Docs";
@@ -90,6 +91,7 @@ const App = () => (
                 <Route path="/playground" element={<WithLayout><Playground /></WithLayout>} />
                 <Route path="/workspaces" element={<WithLayout><Workspaces /></WithLayout>} />
                 <Route path="/office-builder" element={<WithLayout><OfficeBuilder /></WithLayout>} />
+                <Route path="/virtual-office" element={<WithLayout><VirtualOffice /></WithLayout>} />
                 <Route path="/settings" element={<WithLayout><Settings /></WithLayout>} />
                 <Route path="/admin/monitoring" element={<WithAdminLayout><AdminMonitoring /></WithAdminLayout>} />
                 <Route path="/profile" element={<WithLayout><Profile /></WithLayout>} />

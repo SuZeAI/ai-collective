@@ -421,12 +421,17 @@ export type LoginResponse = {
 type ApiOptions = RequestInit & { timeoutMs?: number };
 
 function getApiBase(): string {
-  // Default matches backend README.
-  return ((import.meta as any).env?.VITE_API_BASE_URL as string) || "http://localhost:8000/api/v1";
+  // Default to a same-origin relative path so requests flow through the nginx
+  // reverse proxy (http://localhost:2026 → /api/v1/ → backend). The backend's
+  // port 8000 is not published to the host in the dev/prod compose setups, so
+  // an absolute http://localhost:8000 base would fail with ERR_CONNECTION_REFUSED.
+  // Override with VITE_API_BASE_URL when the API lives on a different origin.
+  return ((import.meta as any).env?.VITE_API_BASE_URL as string) || "/api/v1";
 }
 
-// Backend Swagger docs URL, derived from the API base (strip /api/vN, append /docs).
-export const API_DOCS_URL = `${getApiBase().replace(/\/$/, "").replace(/\/api\/v\d+$/, "")}/docs`;
+// Backend Swagger docs URL. nginx maps /api/v1/docs → backend /docs, while bare
+// /docs is owned by the frontend, so append /docs to the (possibly relative) base.
+export const API_DOCS_URL = `${getApiBase().replace(/\/$/, "")}/docs`;
 
 function getAuthHeader(): Record<string, string> {
   try {
