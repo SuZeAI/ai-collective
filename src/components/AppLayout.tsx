@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
   BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit, Settings2,
-  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck,
+  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building,
 } from "lucide-react";
 import { api, type Workspace } from "@/lib/api";
 import { OVERALL_WORKSPACE_ID } from "@/hooks/use-workspace-scope";
@@ -24,7 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 
 type NavItemKey =
-  | "dashboard" | "analytics" | "tasks" | "conversations" | "officeBuilder"
+  | "dashboard" | "analytics" | "tasks" | "conversations" | "officeBuilder" | "virtualOffice"
   | "teams" | "agents" | "skills" | "playground" | "workspaces" | "settings"
   | "monitoring";
 
@@ -52,6 +52,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     groupKey: "orgGroup",
     items: [
+      { key: "virtualOffice", url: "/virtual-office", icon: Building },
       { key: "officeBuilder", url: "/office-builder", icon: Sparkles },
       { key: "teams", url: "/teams", icon: Users },
       { key: "agents", url: "/agents", icon: Cpu },
@@ -161,7 +162,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }));
 
   const currentPage = allNavItems.find((n) => n.url === location.pathname);
-  const isFullBleed = location.pathname === "/tasks";
+  const isFullBleed = location.pathname === "/tasks" || location.pathname === "/virtual-office";
 
   return (
     <SidebarProvider>
