@@ -11,7 +11,6 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { type Language } from "@/locales";
-import { API_DOCS_URL } from "@/lib/api";
 
 const GITHUB_URL = "https://github.com/SuZeAI/ai-collective";
 const GITHUB_REPO = "SuZeAI/ai-collective";
@@ -1032,9 +1031,9 @@ export default function Landing() {
                       className="absolute top-full left-0 mt-3 w-52 bg-background border border-[#e8e6dc] dark:border-[#2e2e2d] rounded-xl shadow-xl py-2 z-50"
                     >
                       <Link to="/" className="flex items-center justify-between px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 transition-colors">{t.header.overview}</Link>
-                      <a href={API_DOCS_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
-                        {t.header.devDocs} <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
+                      <Link to="/docs" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                        {t.header.devDocs}
+                      </Link>
                       <Link to="/pricing" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">{t.header.pricing}</Link>
                       <div className="my-1 border-t border-[#e8e6dc] dark:border-[#2e2e2d]" />
                       <Link to="/dashboard" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
@@ -1119,9 +1118,9 @@ export default function Landing() {
                       <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                         GitHub <ExternalLink className="w-3.5 h-3.5" />
                       </a>
-                      <a href={API_DOCS_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
-                        {t.header.devDocs} <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
+                      <Link to="/docs" className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                        {t.header.devDocs}
+                      </Link>
                       <div className="my-1 border-t border-[#e8e6dc] dark:border-[#2e2e2d]" />
                       <Link to="/changelog" className="flex items-center px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer transition-colors">{t.header.changelog}</Link>
                     </motion.div>
@@ -1270,9 +1269,9 @@ export default function Landing() {
                       className="overflow-hidden pl-4 border-l border-[#e8e6dc] dark:border-[#2e2e2d] space-y-2 py-2 mt-1 flex flex-col"
                     >
                       <Link to="/" onClick={() => setMobileMenuOpen(false)} className="text-sm text-foreground hover:text-accent transition-colors">{t.header.overview}</Link>
-                      <a href={API_DOCS_URL} target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="text-sm text-muted-foreground hover:text-foreground flex items-center justify-between pr-4 transition-colors">
-                        {t.header.devDocs} <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
+                      <Link to="/docs" onClick={() => setMobileMenuOpen(false)} className="text-sm text-muted-foreground hover:text-foreground flex items-center justify-between pr-4 transition-colors">
+                        {t.header.devDocs}
+                      </Link>
                       <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">{t.header.pricing}</Link>
                       <div className="my-1 border-t border-[#e8e6dc]/40 dark:border-[#2e2e2d]/40" />
                       <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="text-sm text-muted-foreground hover:text-foreground flex items-center justify-between pr-4 transition-colors">
@@ -1367,9 +1366,9 @@ export default function Landing() {
                       <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="text-sm text-muted-foreground hover:text-foreground flex items-center justify-between pr-4 transition-colors">
                         GitHub <ExternalLink className="w-3.5 h-3.5" />
                       </a>
-                      <a href={API_DOCS_URL} target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="text-sm text-muted-foreground hover:text-foreground flex items-center justify-between pr-4 transition-colors">
-                        {t.header.devDocs} <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
+                      <Link to="/docs" onClick={() => setMobileMenuOpen(false)} className="text-sm text-muted-foreground hover:text-foreground flex items-center justify-between pr-4 transition-colors">
+                        {t.header.devDocs}
+                      </Link>
                       <div className="my-1 border-t border-[#e8e6dc]/40 dark:border-[#2e2e2d]/40" />
                       <Link to="/changelog" onClick={() => setMobileMenuOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">{t.header.changelog}</Link>
                     </motion.div>
@@ -1429,14 +1428,12 @@ export default function Landing() {
                 >
                   {t.hero.cta1}
                 </Link>
-                <a
-                  href={API_DOCS_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  to="/docs"
                   className="inline-flex items-center justify-center h-11 px-6 rounded-lg border border-[#c4c2ba] dark:border-[#4d4d4b] bg-transparent text-foreground/80 font-semibold text-sm hover:bg-muted/30 transition-all shadow-xs"
                 >
                   {t.hero.cta2}
-                </a>
+                </Link>
               </div>
             </FadeIn>
           </div>

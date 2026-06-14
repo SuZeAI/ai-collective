@@ -165,6 +165,7 @@ services:
       - ../postcss.config.js:/app/postcss.config.js:ro
       - ../tsconfig.json:/app/tsconfig.json:ro
       - ../tsconfig.app.json:/app/tsconfig.app.json:ro
+      - ../tsconfig.node.json:/app/tsconfig.node.json:ro
       - ../components.json:/app/components.json:ro
     env_file:
       - ../.env

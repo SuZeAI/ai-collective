@@ -227,6 +227,7 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
         conversation_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
+        custom_graph=None,  # accepted for protocol parity; ignored by this mode
     ) -> GraphRunResult:
         if not agents:
             raise ValueError("At least one agent definition is required")
@@ -254,6 +255,7 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
         conversation_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
+        custom_graph=None,  # accepted for protocol parity; ignored by this mode
     ):
         if not agents:
             raise ValueError("At least one agent definition is required")

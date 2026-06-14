@@ -106,6 +106,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         conversation_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
+        custom_graph=None,  # accepted for protocol parity; ignored by this mode
     ) -> GraphRunResult:
         """
         Execute multi-agent mesh graph where all agents can connect to each other.
@@ -236,6 +237,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         conversation_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
+        custom_graph=None,  # accepted for protocol parity; ignored by this mode
     ):
         """Streaming version using get_stream_writer for real-time custom events"""
         if not agents:

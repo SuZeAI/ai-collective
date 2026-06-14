@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
-import { api, canDeleteItem, canEditItem, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
+import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
 import { useRunEngine, type GraphHighlight, type UserInputRequest } from "@/contexts/RunEngineContext";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
@@ -276,7 +276,11 @@ export default function TaskManager() {
   // The engine is team-agnostic; the page supplies the team's run config.
   const teamRunOpts = (task: Task) => {
     const team = teamList.find((t) => t.id === task.teamId);
-    return { mode: team?.mode ?? "sequential", maxSteps: team?.maxSteps ?? 6 };
+    // Custom mode runs the user-drawn flow; if it was never wired, fall back to
+    // sequential so the task still executes.
+    const customGraph = team ? buildCustomGraphPayload(team) : undefined;
+    const mode = team?.mode === "custom" && !customGraph ? "sequential" : (team?.mode ?? "sequential");
+    return { mode, maxSteps: team?.maxSteps ?? 6, customGraph };
   };
 
   const filteredTasks = useMemo(() => {

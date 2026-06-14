@@ -75,9 +75,13 @@ class Team:
     avatar_icon: str = ""
     avatar_color: str = ""
     avatar_url: str = ""
-    mode: str = "sequential"  # "sequential" or "mesh"
+    mode: str = "sequential"  # "sequential" | "mesh" | "ring" | "supervisor" | "tree" | "custom"
     max_steps: int = 6
     owner_id: str = DEFAULT_OWNER_ID
+    # For mode == "custom": the user-drawn flow graph (React Flow nodes/edges +
+    # positions). Stored opaquely so the editor can restore the layout, and the
+    # edges drive the custom orchestrator. None for every other mode.
+    flow: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True, slots=True)

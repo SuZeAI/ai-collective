@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { FlaskConical, Pencil, Plus, Trash2, X, Copy, Check } from "lucide-react";
+import { FlaskConical, Pencil, Plus, Trash2, X, Copy, Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -88,6 +88,25 @@ export default function AgentBuilder() {
   const [isTesting, setIsTesting] = useState(false);
   const [testError, setTestError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [skillSearch, setSkillSearch] = useState("");
+
+  const filteredRoles = useMemo(() => {
+    const term = role.trim().toLowerCase();
+    if (!term) return roles;
+    return roles.filter((r) => r.toLowerCase().includes(term));
+  }, [role]);
+
+  const filteredSkillCatalog = useMemo(() => {
+    const term = skillSearch.trim().toLowerCase();
+    if (!term) return skillCatalog;
+    return skillCatalog.filter(
+      (s) =>
+        s.name.toLowerCase().includes(term) ||
+        s.kind.toLowerCase().includes(term) ||
+        (s.third_party || "").toLowerCase().includes(term)
+    );
+  }, [skillCatalog, skillSearch]);
 
   useEffect(() => {
     let cancelled = false;
@@ -320,162 +339,205 @@ export default function AgentBuilder() {
               <DialogTitle>{editingAgentId ? "Edit Human Profile" : "Hire Human"}</DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-4 pt-2">
-              <Input placeholder="Human name" value={name} onChange={(e) => setName(e.target.value)} />
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-6 pt-2">
+              {/* Left Column: Profile Attributes */}
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Full Name</label>
+                  <Input placeholder="Human name" value={name} onChange={(e) => setName(e.target.value)} />
+                </div>
 
-              <div className="space-y-1.5">
-                <Input
-                  list="agent-role-options"
-                  placeholder="Type a position or pick from suggestions"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                />
-                <datalist id="agent-role-options">
-                  {roles.map((r) => (
-                    <option key={r} value={r} />
-                  ))}
-                </datalist>
-                <p className="text-xs text-muted-foreground">You can type a custom position or select an existing one.</p>
-              </div>
+                <div className="space-y-1.5 relative">
+                  <label className="text-sm font-medium">Position / Role</label>
+                  <div className="relative">
+                    <Input
+                      placeholder="Type a position or pick from suggestions"
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      onFocus={() => setShowSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground/60">
+                      <ChevronDown className="h-4 w-4" />
+                    </div>
+                  </div>
+                  {showSuggestions && filteredRoles.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-md border bg-popover/95 backdrop-blur-md text-popover-foreground shadow-lg p-1 space-y-0.5">
+                      {filteredRoles.map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          className="w-full text-left px-2.5 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors font-medium"
+                          onMouseDown={() => {
+                            setRole(r);
+                            setShowSuggestions(false);
+                          }}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-muted-foreground leading-normal">You can type a custom position or select an existing one.</p>
+                </div>
 
-              <Input placeholder="Description (optional)" value={desc} onChange={(e) => setDesc(e.target.value)} />
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Description</label>
+                  <Input placeholder="Description (optional)" value={desc} onChange={(e) => setDesc(e.target.value)} />
+                </div>
 
-              <div className="space-y-3">
-                <div className="text-sm font-medium">Avatar</div>
-                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
-                  <Select value={avatarMode} onValueChange={(v) => setAvatarMode(v as AvatarMode)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Avatar style" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="initial">Initials</SelectItem>
-                      <SelectItem value="icon">Icon</SelectItem>
-                      <SelectItem value="image">Image URL</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-3 border rounded-lg p-3 bg-muted/10">
+                  <div className="text-sm font-medium">Avatar Customization</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+                    <Select value={avatarMode} onValueChange={(v) => setAvatarMode(v as AvatarMode)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Avatar style" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="initial">Initials</SelectItem>
+                        <SelectItem value="icon">Icon</SelectItem>
+                        <SelectItem value="image">Image URL</SelectItem>
+                      </SelectContent>
+                    </Select>
 
-                  <div className="flex items-center gap-2 justify-start sm:justify-end">
-                    <span className="text-xs text-muted-foreground">Preview</span>
-                    <AgentAvatar
-                      agent={{
-                        avatar: name.trim()[0]?.toUpperCase() || "A",
-                        avatar_icon: avatarMode === "icon" ? avatarIcon : "",
-                        avatar_color: isHexColor(avatarColor) ? avatarColor : "",
-                        avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
-                      }}
-                      className="w-10 h-10"
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Preview</span>
+                      <AgentAvatar
+                        agent={{
+                          avatar: name.trim()[0]?.toUpperCase() || "A",
+                          avatar_icon: avatarMode === "icon" ? avatarIcon : "",
+                          avatar_color: isHexColor(avatarColor) ? avatarColor : "",
+                          avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
+                        }}
+                        className="w-10 h-10"
+                      />
+                    </div>
+                  </div>
+
+                  {avatarMode === "icon" ? (
+                    <Select value={avatarIcon} onValueChange={setAvatarIcon}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pick icon" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {avatarIconOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : null}
+
+                  {avatarMode === "image" ? (
+                    <Input
+                      placeholder="https://example.com/avatar.png"
+                      value={avatarUrl}
+                      onChange={(e) => setAvatarUrl(e.target.value)}
+                    />
+                  ) : null}
+
+                  <div className="flex items-center gap-3">
+                    <Input
+                      type="color"
+                      value={isHexColor(avatarColor) ? avatarColor : "#3b82f6"}
+                      onChange={(e) => setAvatarColor(e.target.value)}
+                      className="w-14 p-1 h-10 cursor-pointer"
+                    />
+                    <Input
+                      placeholder="#3b82f6"
+                      value={avatarColor}
+                      onChange={(e) => setAvatarColor(e.target.value)}
                     />
                   </div>
                 </div>
 
-                {avatarMode === "icon" ? (
-                  <Select value={avatarIcon} onValueChange={setAvatarIcon}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pick icon" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {avatarIconOptions.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : null}
-
-                {avatarMode === "image" ? (
-                  <Input
-                    placeholder="https://example.com/avatar.png"
-                    value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
-                  />
-                ) : null}
-
-                <div className="flex items-center gap-3">
-                  <Input
-                    type="color"
-                    value={isHexColor(avatarColor) ? avatarColor : "#3b82f6"}
-                    onChange={(e) => setAvatarColor(e.target.value)}
-                    className="w-14 p-1 h-10"
-                  />
-                  <Input
-                    placeholder="#3b82f6"
-                    value={avatarColor}
-                    onChange={(e) => setAvatarColor(e.target.value)}
-                  />
+                <div className="rounded-md border p-3 bg-muted/5">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Manager Mode</div>
+                      <p className="text-[10px] text-muted-foreground leading-normal mt-0.5">
+                        Delegate work to other team members via subagents and run tools in parallel.
+                      </p>
+                    </div>
+                    <Switch checked={subagentEnabled} onCheckedChange={setSubagentEnabled} />
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Skills</div>
+              {/* Right Column: Skills Assignment */}
+              <div className="space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Skills Assignment</label>
 
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                  <div className="rounded-md border p-3 space-y-2 bg-muted/30">
-                    <div className="text-xs font-medium text-muted-foreground">Select skills to assign</div>
-                    {skillCatalog.length ? (
-                      <div className="space-y-2 max-h-56 overflow-auto pr-1">
-                        {skillCatalog.map((s) => (
-                          <label
-                            key={s.id}
-                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer"
-                          >
-                            <Checkbox
-                              checked={selectedSkillIds.includes(s.id)}
-                              onCheckedChange={() => toggleSkill(s.id)}
-                            />
-                            <span className="text-sm font-medium">{s.name}</span>
-                            <span className="text-xs text-muted-foreground ml-auto">
-                              ({s.kind}
-                              {s.third_party ? ` • ${s.third_party}` : ""})
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">No skills yet. Create skills in the Skills page.</p>
-                    )}
-                  </div>
-
-                  <div className="rounded-md border p-3 space-y-2 bg-muted/20">
-                    <div className="text-xs font-medium text-muted-foreground">Selected skills</div>
-                    <div className="max-h-56 overflow-auto pr-1">
-                      {selectedSkills.length ? (
-                        <div className="flex flex-wrap gap-2">
-                          {selectedSkills.map((s) => (
-                            <Badge key={s.id} variant="secondary" className="inline-flex items-center gap-1 max-w-full">
-                              <span className="truncate max-w-[180px]">{s.name}</span>
-                              {s.third_party ? <span className="text-muted-foreground">({s.third_party})</span> : null}
-                              <button
-                                type="button"
-                                onClick={() => removeSelectedSkill(s.id)}
-                                className="ml-1 inline-flex items-center justify-center"
-                                aria-label={`Remove ${s.name}`}
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="rounded-lg border p-3 bg-muted/30 h-[450px] flex flex-col">
+                      <div className="text-xs font-medium text-muted-foreground mb-2">Available Skills</div>
+                      {skillCatalog.length ? (
+                        <>
+                          <Input
+                            placeholder="Search skills..."
+                            value={skillSearch}
+                            onChange={(e) => setSkillSearch(e.target.value)}
+                            className="h-8 text-xs mb-2 bg-background/50 shrink-0"
+                          />
+                          <div className="space-y-1.5 overflow-y-auto pr-1 flex-1">
+                            {filteredSkillCatalog.length ? (
+                              filteredSkillCatalog.map((s) => (
+                                <label
+                                  key={s.id}
+                                  className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                                >
+                                  <Checkbox
+                                    checked={selectedSkillIds.includes(s.id)}
+                                    onCheckedChange={() => toggleSkill(s.id)}
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-medium truncate">{s.name}</p>
+                                    <p className="text-[9px] text-muted-foreground truncate">{s.kind}{s.third_party ? ` • ${s.third_party}` : ""}</p>
+                                  </div>
+                                </label>
+                              ))
+                            ) : (
+                              <p className="text-xs text-muted-foreground py-4 text-center">No matching skills found.</p>
+                            )}
+                          </div>
+                        </>
                       ) : (
-                        <p className="text-xs text-muted-foreground">No skills selected yet.</p>
+                        <p className="text-xs text-muted-foreground py-4 text-center">No skills registered yet.</p>
                       )}
+                    </div>
+
+                    <div className="rounded-lg border p-3 bg-muted/20 h-[450px] flex flex-col">
+                      <div className="text-xs font-medium text-muted-foreground mb-2">Equipped Skills</div>
+                      <div className="overflow-y-auto pr-1 flex-1">
+                        {selectedSkills.length ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {selectedSkills.map((s) => (
+                              <Badge key={s.id} variant="secondary" className="inline-flex items-center gap-1 max-w-full text-[10px]">
+                                <span className="truncate max-w-[120px]">{s.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeSelectedSkill(s.id)}
+                                  className="ml-1 inline-flex items-center justify-center text-muted-foreground hover:text-foreground"
+                                  aria-label={`Remove ${s.name}`}
+                                >
+                                  <X className="w-2.5 h-2.5" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground py-4 text-center">No skills selected.</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div className="rounded-md border p-3">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <div className="text-sm font-medium">Manager Mode (Sub-delegation)</div>
-                    <p className="text-xs text-muted-foreground">
-                      Let this person delegate work to subordinate members via the "task" tool and run multiple tools in parallel.
-                    </p>
-                  </div>
-                  <Switch checked={subagentEnabled} onCheckedChange={setSubagentEnabled} />
-                </div>
-              </div>
-
+            <div className="pt-4 border-t mt-4">
               <Button onClick={saveAgent} className="w-full" disabled={!name.trim() || !role}>
                 {editingAgentId ? "Save Changes" : "Hire Person"}
               </Button>
