@@ -36,6 +36,18 @@ class GraphRunResult:
     rounds: int
 
 
+@dataclass(frozen=True, slots=True)
+class CustomGraphSpec:
+    """A user-drawn directed graph over agent NAMES (not ids).
+
+    edges: (source_name, target_name) pairs. entry: explicit start nodes; when
+    empty the orchestrator infers roots (nodes with no incoming edge).
+    """
+
+    edges: tuple[tuple[str, str], ...]
+    entry: tuple[str, ...] = ()
+
+
 class GraphContextProvider(Protocol):
     def ingest_message(
         self,
@@ -69,6 +81,7 @@ class AgentGraphOrchestrator(Protocol):
         conversation_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
+        custom_graph: CustomGraphSpec | None = None,
     ) -> GraphRunResult:
         ...
 
@@ -82,6 +95,7 @@ class AgentGraphOrchestrator(Protocol):
         conversation_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
+        custom_graph: CustomGraphSpec | None = None,
     ):
         """Streaming version that yields GraphTurn events as agents process"""
         ...

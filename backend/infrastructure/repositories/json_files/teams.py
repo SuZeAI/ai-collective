@@ -29,6 +29,7 @@ class JsonTeamRepository:
                     mode=str(item.get("mode", "sequential")),
                     max_steps=int(item.get("maxSteps", 6)),
                     owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
+                    flow=item.get("flow") if isinstance(item.get("flow"), dict) else None,
                 )
                 self._items[team.id] = team
             except Exception:
@@ -50,6 +51,7 @@ class JsonTeamRepository:
                     "mode": t.mode,
                     "maxSteps": t.max_steps,
                     "owner_id": t.owner_id,
+                    "flow": t.flow,
                 }
                 for t in self._items.values()
             ]

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -16,6 +18,7 @@ class TeamSchema(BaseModel):
     mode: str = "sequential"
     maxSteps: int = 6
     owner_id: str = "default"
+    flow: dict[str, Any] | None = None
 
     @staticmethod
     def from_domain(t) -> "TeamSchema":
@@ -32,6 +35,7 @@ class TeamSchema(BaseModel):
             mode=t.mode,
             maxSteps=t.max_steps,
             owner_id=getattr(t, "owner_id", "default") or "default",
+            flow=getattr(t, "flow", None),
         )
 
 
@@ -47,3 +51,4 @@ class UpsertTeamRequest(BaseModel):
     avatar_url: str | None = None
     mode: str = "sequential"
     maxSteps: int = 6
+    flow: dict[str, Any] | None = None

@@ -8,8 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Checkbox } from "@/components/ui/checkbox";
 import { AgentAvatar, teamAvatarIconOptions } from "@/components/AgentAvatar";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
-import { api, canDeleteItem, canEditItem, type Agent, type Team } from "@/lib/api";
+import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Agent, type CustomFlow, type Team, type TeamMode } from "@/lib/api";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
+import CustomFlowEditor from "@/components/team/CustomFlowEditor";
+import { cn } from "@/lib/utils";
 
 type TeamTestMessage = {
   id: string;
@@ -32,7 +34,8 @@ export default function TeamBuilder() {
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
-  const [mode, setMode] = useState<"mesh" | "sequential" | "ring" | "supervisor" | "tree">("sequential");
+  const [mode, setMode] = useState<TeamMode>("sequential");
+  const [flow, setFlow] = useState<CustomFlow | null>(null);
   const [maxSteps, setMaxSteps] = useState("6");
   const [avatarMode, setAvatarMode] = useState<AvatarMode>("initial");
   const [avatarIcon, setAvatarIcon] = useState("users");
@@ -51,6 +54,18 @@ export default function TeamBuilder() {
   const [open, setOpen] = useState(false);
   const stopTestRef = useRef(false);
   const [copied, setCopied] = useState(false);
+  const [personnelSearch, setPersonnelSearch] = useState("");
+
+  const filteredAgents = useMemo(() => {
+    const term = personnelSearch.trim().toLowerCase();
+    if (!term) return agentList;
+    return agentList.filter(
+      (a) =>
+        a.name.toLowerCase().includes(term) ||
+        (a.role || "").toLowerCase().includes(term) ||
+        (a.skills || []).some((s) => s.name.toLowerCase().includes(term))
+    );
+  }, [agentList, personnelSearch]);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,11 +100,13 @@ export default function TeamBuilder() {
     setDesc("");
     setSelectedAgents([]);
     setMode("sequential");
+    setFlow(null);
     setMaxSteps("6");
     setAvatarMode("initial");
     setAvatarIcon("users");
     setAvatarColor("#0EA5E9");
     setAvatarUrl("");
+    setPersonnelSearch("");
   };
 
   const handleDragStart = (agentId: string) => {
@@ -135,7 +152,8 @@ export default function TeamBuilder() {
     setName(team.name);
     setDesc(team.description ?? "");
     setSelectedAgents(team.agents || []);
-    setMode((team.mode as "mesh" | "sequential" | "ring" | "supervisor" | "tree") ?? "sequential");
+    setMode((team.mode as TeamMode) ?? "sequential");
+    setFlow(team.flow ?? null);
     setMaxSteps(String(team.maxSteps ?? 6));
     setAvatarMode(team.avatar_url ? "image" : team.avatar_icon ? "icon" : "initial");
     setAvatarIcon(team.avatar_icon || "users");
@@ -162,6 +180,7 @@ export default function TeamBuilder() {
         avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
         mode: mode,
         maxSteps: finalSteps,
+        flow: mode === "custom" ? flow : null,
       });
       setTeamList((prev) => {
         const idx = prev.findIndex((t) => t.id === saved.id);
@@ -243,11 +262,14 @@ export default function TeamBuilder() {
 
     try {
       let stepCounter = 0;
+      const customGraph = buildCustomGraphPayload(testingTeam);
+      const testMode = testingTeam.mode === "custom" && !customGraph ? "sequential" : (testingTeam.mode ?? "sequential");
       for await (const event of api.runAgentGraphStream({
         user_input: testPrompt.trim() || "Coordinate a team execution plan.",
         agents: testingTeam.agents,
         max_rounds: stepLimit,
-        mode: testingTeam.mode ?? "sequential",
+        mode: testMode,
+        custom_graph: customGraph,
         conversation_id: testingTeam.id,
       })) {
         if (stopTestRef.current) break;
@@ -322,6 +344,44 @@ export default function TeamBuilder() {
     [teamList, scope],
   );
 
+  const selectPersonnelNode = (
+    <div className="space-y-2">
+      <label className="text-sm font-medium">Select Personnel</label>
+      <p className="text-xs text-muted-foreground">Choose personnel to add to this department.</p>
+      {agentList.length > 0 && (
+        <Input
+          placeholder="Search personnel..."
+          value={personnelSearch}
+          onChange={(e) => setPersonnelSearch(e.target.value)}
+          className="h-8 text-xs bg-background/50"
+        />
+      )}
+      <div className={cn(
+        "border border-input rounded-lg p-3 overflow-y-auto bg-muted/50 transition-all",
+        mode === "custom" ? "h-[200px]" : "h-[320px]"
+      )}>
+        <div className="space-y-2 pb-8">
+          {filteredAgents.length ? (
+            filteredAgents.map((a) => (
+              <label key={a.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-background cursor-pointer">
+                <Checkbox checked={selectedAgents.includes(a.id)} onCheckedChange={() => toggleAgent(a.id)} />
+                <span className="text-sm font-medium">{a.name}</span>
+                <span className="text-xs text-muted-foreground">({a.role})</span>
+                {a.skill_ids?.length ? (
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    • {a.skills?.map((s) => s.name).join(", ")}
+                  </span>
+                ) : null}
+              </label>
+            ))
+          ) : (
+            <p className="text-xs text-muted-foreground py-4 text-center">No matching personnel found.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div>
       <header className="mb-8 flex justify-between items-end">
@@ -383,6 +443,7 @@ export default function TeamBuilder() {
                       avatar_url: src.avatar_url,
                       mode: src.mode,
                       maxSteps: src.maxSteps,
+                      flow: src.flow ?? null,
                     });
                     setTeamList((prev) => [...prev, copiedTeam]);
                     teamIdsToAdd.push(copiedTeam.id);
@@ -400,7 +461,12 @@ export default function TeamBuilder() {
           </DialogTrigger>
           <DialogContent className="max-w-6xl w-[96vw] max-h-[90vh] overflow-y-auto overflow-x-hidden p-6">
             <DialogHeader><DialogTitle>{editingTeamId ? "Edit Department" : "Create Department"}</DialogTitle></DialogHeader>
-            <div className="pt-2 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] gap-4">
+            <div className={cn(
+              "pt-2 grid grid-cols-1 gap-6",
+              mode === "custom"
+                ? "xl:grid-cols-[360px_1fr]"
+                : "xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]"
+            )}>
               <div className="space-y-4 min-w-0 pr-2 pb-1">
                 <Input placeholder="Department name" value={name} onChange={(e) => setName(e.target.value)} />
                 <Input placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
@@ -471,7 +537,7 @@ export default function TeamBuilder() {
                   <label className="text-sm font-medium">Workflow Mode</label>
                   <select
                     value={mode}
-                    onChange={(e) => setMode(e.target.value as "mesh" | "sequential" | "ring" | "supervisor" | "tree")}
+                    onChange={(e) => setMode(e.target.value as TeamMode)}
                     className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
                   >
                     <option value="sequential">Sequential Pipeline (members work in sequence)</option>
@@ -479,7 +545,13 @@ export default function TeamBuilder() {
                     <option value="ring">Circular Workflow (members pass work in a loop)</option>
                     <option value="supervisor">Managerial Delegation (lead delegates to team)</option>
                     <option value="tree">Hierarchical Tree (manager delegates down branches)</option>
+                    <option value="custom">Custom Flow (drag-and-drop your own routing)</option>
                   </select>
+                  {mode === "custom" && (
+                    <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                      Draw the flow on the right: connect nodes to route work. Branch one node into several to run them in parallel, merge several back into one, or loop back (bounded by Max Steps).
+                    </p>
+                  )}
                   {mode === "supervisor" && (
                     <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                       First member in the order will be the <strong>lead manager</strong>. Remaining members are workers.
@@ -503,83 +575,84 @@ export default function TeamBuilder() {
                     placeholder="Default: 6"
                   />
                 </div>
+                {mode === "custom" && (
+                  <div className="pt-2">
+                    {selectPersonnelNode}
+                  </div>
+                )}
                 <Button onClick={saveTeam} className="w-full" disabled={!name.trim() || selectedAgents.length === 0}>
                   {editingTeamId ? "Save Changes" : "Create Department"}
                 </Button>
               </div>
 
               <div className="space-y-4 min-w-0 pr-2 pb-1">
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                {mode === "custom" ? (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Select Personnel</label>
-                    <p className="text-xs text-muted-foreground">Choose personnel on the left, then reorder on the right.</p>
-                    <div className="border border-input rounded-lg p-3 h-[320px] overflow-y-auto bg-muted/50">
-                      <div className="space-y-2">
-                        {agentList.map((a) => (
-                          <label key={a.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-background cursor-pointer">
-                            <Checkbox checked={selectedAgents.includes(a.id)} onCheckedChange={() => toggleAgent(a.id)} />
-                            <span className="text-sm font-medium">{a.name}</span>
-                            <span className="text-xs text-muted-foreground">({a.role})</span>
-                            {a.skill_ids?.length ? (
-                              <span className="text-xs text-muted-foreground ml-auto">
-                                • {a.skills?.map((s) => s.name).join(", ")}
-                              </span>
-                            ) : null}
-                          </label>
-                        ))}
+                    <label className="text-sm font-medium">Custom Flow</label>
+                    <p className="text-xs text-muted-foreground font-medium">
+                      Drag from a node's right handle to another node's left handle to route work. Move nodes freely; select an edge and press Delete to remove it.
+                    </p>
+                    <CustomFlowEditor
+                      agents={selectedAgents.map((id) => agentById.get(id)).filter((a): a is Agent => Boolean(a))}
+                      initialFlow={flow}
+                      onChange={setFlow}
+                    />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    {selectPersonnelNode}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Personnel Workflow Order</label>
+                      <p className="text-xs text-muted-foreground">Drag to reorder personnel. If the list is long, scroll here.</p>
+                      <div className="border border-input rounded-lg p-3 h-[320px] overflow-y-auto bg-muted/50">
+                        <div className="space-y-2 pb-8">
+                          {selectedAgents.length > 0 ? (
+                            selectedAgents.map((agentId, index) => {
+                              const agent = agentById.get(agentId);
+                              if (!agent) return null;
+                              return (
+                                <div
+                                  key={agentId}
+                                  draggable
+                                  onDragStart={() => handleDragStart(agentId)}
+                                  onDragOver={handleDragOver}
+                                  onDrop={() => handleDrop(agentId)}
+                                  className={`flex items-center gap-3 p-3 rounded-lg border-2 border-dashed transition-all cursor-move ${
+                                    draggedAgent === agentId
+                                      ? "border-primary bg-primary/8 opacity-50"
+                                      : "border-transparent bg-card hover:bg-muted/30 hover:border-border"
+                                  }`}
+                                >
+                                  <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-xs font-bold text-primary">
+                                        {index + 1}
+                                      </span>
+                                      <span className="text-sm font-medium">{agent.name}</span>
+                                      <span className="text-xs text-muted-foreground">({agent.role})</span>
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => removeAgent(agentId)}
+                                    className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                                    title="Remove member"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div className="h-full flex items-center justify-center text-center text-xs text-muted-foreground px-4 py-8">
+                              Select personnel from the left panel to start arranging workflow order.
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Personnel Workflow Order</label>
-                    <p className="text-xs text-muted-foreground">Drag to reorder personnel. If the list is long, scroll here.</p>
-                    <div className="border border-input rounded-lg p-3 h-[320px] overflow-y-auto bg-muted/50 space-y-2">
-                      {selectedAgents.length > 0 ? (
-                        selectedAgents.map((agentId, index) => {
-                          const agent = agentById.get(agentId);
-                          if (!agent) return null;
-                          return (
-                            <div
-                              key={agentId}
-                              draggable
-                              onDragStart={() => handleDragStart(agentId)}
-                              onDragOver={handleDragOver}
-                              onDrop={() => handleDrop(agentId)}
-                              className={`flex items-center gap-3 p-3 rounded-lg border-2 border-dashed transition-all cursor-move ${
-                                draggedAgent === agentId
-                                  ? "border-primary bg-primary/8 opacity-50"
-                                  : "border-transparent bg-card hover:bg-muted/30 hover:border-border"
-                              }`}
-                            >
-                              <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-xs font-bold text-primary">
-                                    {index + 1}
-                                  </span>
-                                  <span className="text-sm font-medium">{agent.name}</span>
-                                  <span className="text-xs text-muted-foreground">({agent.role})</span>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => removeAgent(agentId)}
-                                className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                                title="Remove member"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <div className="h-full flex items-center justify-center text-center text-xs text-muted-foreground px-4">
-                          Select personnel from the left panel to start arranging workflow order.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </DialogContent>
@@ -828,7 +901,7 @@ export default function TeamBuilder() {
             <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
               <span>{team.activeTasks} active tasks</span>
               <span className="px-2 py-1 rounded bg-muted/50">
-                {team.mode === "mesh" ? "🔗 Mesh" : team.mode === "ring" ? "🔄 Ring" : team.mode === "supervisor" ? "👑 Manager" : team.mode === "tree" ? "🌲 Tree" : "📋 Sequential"} • {team.maxSteps || 6} steps
+                {team.mode === "mesh" ? "🔗 Mesh" : team.mode === "ring" ? "🔄 Ring" : team.mode === "supervisor" ? "👑 Manager" : team.mode === "tree" ? "🌲 Tree" : team.mode === "custom" ? "🧩 Custom" : "📋 Sequential"} • {team.maxSteps || 6} steps
               </span>
             </div>
           </motion.div>

@@ -7,18 +7,51 @@ from pydantic import BaseModel, Field, model_validator
 from backend.application.ports.agent_graph import GraphRunResult
 
 
+class CustomGraphEdge(BaseModel):
+    source: str = Field(min_length=1)  # agent id
+    target: str = Field(min_length=1)  # agent id
+
+
+class CustomGraphSchema(BaseModel):
+    """User-drawn directed graph for mode == "custom".
+
+    Node ids equal agent ids (one node per agent). Edges define routing; a node
+    with several outgoing edges fans out (runs successors in parallel), several
+    incoming edges fan in (merge), and a cycle loops until max_rounds.
+    """
+
+    edges: list[CustomGraphEdge] = Field(default_factory=list)
+    entry: list[str] | None = None  # agent ids to start at; None => infer roots
+
+
 class GraphRunRequest(BaseModel):
     user_input: str = Field(min_length=1)
     max_rounds: int = Field(default=6, ge=1, le=20)
     agents: list[str] = Field(min_length=1)
-    mode: Literal["mesh", "sequential", "ring", "supervisor", "tree"] = Field(default="sequential")
+    mode: Literal["mesh", "sequential", "ring", "supervisor", "tree", "custom"] = Field(default="sequential")
     conversation_id: str | None = Field(default=None, min_length=1)
     graph_config: "GraphConfigSchema | None" = None
+    custom_graph: "CustomGraphSchema | None" = None
 
     @model_validator(mode="after")
     def validate_unique_agent_ids(self) -> "GraphRunRequest":
         if len(self.agents) != len(set(self.agents)):
             raise ValueError("Agent IDs must be unique")
+        return self
+
+    @model_validator(mode="after")
+    def validate_custom_graph(self) -> "GraphRunRequest":
+        if self.mode != "custom":
+            return self
+        if self.custom_graph is None:
+            raise ValueError("custom_graph is required when mode is 'custom'")
+        agent_set = set(self.agents)
+        for edge in self.custom_graph.edges:
+            if edge.source not in agent_set or edge.target not in agent_set:
+                raise ValueError("custom_graph edges must reference agents in the agents list")
+        for node_id in self.custom_graph.entry or []:
+            if node_id not in agent_set:
+                raise ValueError("custom_graph entry must reference agents in the agents list")
         return self
 
 

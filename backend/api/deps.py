@@ -22,6 +22,7 @@ from backend.infrastructure.lock_provider import create_lock_provider
 from backend.domain.agent.langgraph_ring import LangGraphRingOrchestrator
 from backend.domain.agent.langgraph_supervisor import LangGraphSupervisorOrchestrator
 from backend.domain.agent.langgraph_tree import LangGraphTreeOrchestrator
+from backend.domain.agent.langgraph_custom import LangGraphCustomOrchestrator
 from backend.infrastructure.llm.factory import create_llm_provider
 from backend.infrastructure.repositories.json_files import (
     JsonActivityFeedRepository,
@@ -497,6 +498,8 @@ def get_agent_graph_service(mode: str = "sequential") -> AgentGraphService | Non
         orchestrator = LangGraphSupervisorOrchestrator()
     elif mode == "tree":
         orchestrator = LangGraphTreeOrchestrator()
+    elif mode == "custom":
+        orchestrator = LangGraphCustomOrchestrator()
     else:
         orchestrator = LangGraphAgentOrchestrator()
     get_logger().info(f"{orchestrator.__class__.__name__} selected for mode='{mode}'")

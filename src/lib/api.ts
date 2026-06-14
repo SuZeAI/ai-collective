@@ -71,6 +71,17 @@ export type GoogleSheetOAuthStatusResponse = {
   error: string;
 };
 
+export type TeamMode = "mesh" | "sequential" | "ring" | "supervisor" | "tree" | "custom";
+
+// For mode === "custom": the user-drawn flow graph. Node ids equal agent ids
+// (one node per agent); positions are kept so the editor can restore the layout.
+export type CustomFlowNode = { id: string; position: { x: number; y: number } };
+export type CustomFlowEdge = { id: string; source: string; target: string };
+export type CustomFlow = {
+  nodes: CustomFlowNode[];
+  edges: CustomFlowEdge[];
+};
+
 export type Team = {
   id: string;
   name: string;
@@ -81,9 +92,10 @@ export type Team = {
   avatar_icon?: string;
   avatar_color?: string;
   avatar_url?: string;
-  mode?: "mesh" | "sequential" | "ring" | "supervisor" | "tree";
+  mode?: TeamMode;
   maxSteps?: number;
   owner_id?: string;
+  flow?: CustomFlow | null;
 };
 
 export type Task = {
@@ -236,9 +248,21 @@ export type OfficeHumanPlan = {
 export type OfficeDepartmentPlan = {
   name: string;
   description: string;
-  mode: "sequential" | "mesh" | "ring" | "supervisor" | "tree" | string;
+  mode: TeamMode | string;
   humans: OfficeHumanPlan[];
 };
+
+// Build the run-stream custom_graph payload from a team's saved flow. Returns
+// undefined unless the team is in custom mode with at least one wired edge, so
+// callers can fall back to another mode when the flow was never drawn.
+export function buildCustomGraphPayload(
+  team: Pick<Team, "mode" | "flow">,
+): { edges: { source: string; target: string }[] } | undefined {
+  if (team.mode !== "custom" || !team.flow?.edges?.length) return undefined;
+  return {
+    edges: team.flow.edges.map((e) => ({ source: e.source, target: e.target })),
+  };
+}
 
 export type OfficePlan = {
   name: string;
@@ -554,9 +578,14 @@ export const api = {
     user_input: string;
     agents: string[];
     max_rounds?: number;
-    mode?: "mesh" | "sequential" | "ring" | "supervisor" | "tree";
+    mode?: TeamMode;
     conversation_id?: string;
     signal?: AbortSignal;
+    // For mode === "custom": the directed flow over agent ids drawn by the user.
+    custom_graph?: {
+      edges: { source: string; target: string }[];
+      entry?: string[];
+    };
     graph_config?: {
       build_method?: "rule" | "embedding" | "ie";
       entity_method?: "keyword" | "capitalized" | "hybrid";
@@ -580,6 +609,7 @@ export const api = {
       max_rounds: payload.max_rounds ?? 6,
       mode: payload.mode ?? "sequential",
       conversation_id: payload.conversation_id,
+      custom_graph: payload.custom_graph,
       graph_config: payload.graph_config,
     });
 

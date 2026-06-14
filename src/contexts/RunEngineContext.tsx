@@ -33,9 +33,11 @@ type EventListener = (event: EngineEvent) => void;
 
 // Team config the caller passes at start time — the engine is team-agnostic.
 type RunOpts = {
-  mode?: "mesh" | "sequential" | "ring" | "supervisor" | "tree";
+  mode?: "mesh" | "sequential" | "ring" | "supervisor" | "tree" | "custom";
   maxSteps?: number;
   formattedInput?: string;
+  // User-drawn flow for custom mode (built via buildCustomGraphPayload).
+  customGraph?: { edges: { source: string; target: string }[] };
 };
 
 export type RunEngineValue = {
@@ -218,6 +220,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         agents: updated.assignedAgents,
         max_rounds: opts.maxSteps ?? 6,
         mode: opts.mode ?? "sequential",
+        custom_graph: opts.customGraph,
         conversation_id: updated.id,
         signal: controller.signal,
       })) {

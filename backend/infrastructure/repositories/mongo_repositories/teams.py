@@ -26,6 +26,7 @@ class MongoTeamRepository:
             mode=str(item.get("mode", "sequential")),
             max_steps=int(item.get("maxSteps", 6)),
             owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
+            flow=item.get("flow") if isinstance(item.get("flow"), dict) else None,
         )
 
     def _team_to_doc(self, t: Team) -> dict[str, Any]:
@@ -43,6 +44,7 @@ class MongoTeamRepository:
             "mode": t.mode,
             "maxSteps": t.max_steps,
             "owner_id": t.owner_id,
+            "flow": t.flow,
         }
 
     def list(self) -> list[Team]:
