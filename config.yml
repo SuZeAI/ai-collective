@@ -13,14 +13,14 @@
 # leaf to its canonical env-var name and never clobbers a value already set by
 # .env / the shell. Override the file location with CONFIG_FILE=...
 #
-# ENV REFERENCES: any value may embed `$var`, `${var}` or `${var:-default}`,
+# ENV REFERENCES: any value may embed `$VAR`, `${VAR}` or `${VAR:-default}`,
 # expanded from the environment (.env / shell) at load time. Reference names are
-# resolved case-insensitively — `$mongo_uri` here pulls MONGO_URI from .env. Use
+# resolved case-insensitively — `$MONGO_URI` here pulls MONGO_URI from .env. Use
 # this to pull a secret/host in without duplicating it. An unset var with no
 # default becomes empty.
 #
 # SECRETS: real secret VALUES live in .env. They are declared in one place — the
-# `secrets:` block at the bottom — and pulled in via ${var}; LLM provider keys
+# `secrets:` block at the bottom — and pulled in via ${VAR}; LLM provider keys
 # stay grouped under `llm_keys:`. Nothing secret is hard-coded here.
 #
 # TOOLS / SKILLS: per-tool credentials are NO LONGER configured here. Each skill
@@ -48,7 +48,7 @@ logging:
   log_backup_count: 5
 
 # ── LLM provider ──────────────────────────────────────────────────────────────
-# API keys live in `llm_keys:` below (pulled from .env via $var).
+# API keys live in `llm_keys:` below (pulled from .env via $VAR).
 llm:
   provider: google
   model: gemini-3-flash-preview
@@ -73,11 +73,11 @@ llm:
 # Each value may hold ONE key or SEVERAL comma-separated keys (enables rotation).
 # Values are pulled from .env so the secret never touches git.
 llm_keys:
-  google_api_key: $google_api_key
-  anthropic_api_key: $anthropic_api_key
-  openai_api_key: $openai_api_key
-  open_weight_api_key: $openrouter_api_key
-  kimi_api_key: $kimi_api_key
+  google_api_key: $GOOGLE_API_KEY
+  anthropic_api_key: $ANTHROPIC_API_KEY
+  openai_api_key: $OPENAI_API_KEY
+  open_weight_api_key: $OPENROUTER_API_KEY
+  kimi_api_key: $KIMI_API_KEY
 
 # ── 9Router gateway (docker profile: router) ──────────────────────────────────
 # router_jwt_secret / router_initial_password are secrets → see `secrets:` block.
@@ -200,86 +200,86 @@ security:
 # empty, which simply leaves that tool disabled until configured.
 tools:
   # ── Search / scraping ──
-  brave_search_api_key: ${brave_search_api_key}
-  parallel_api_key: ${parallel_api_key}
-  openrouter_api_key: ${openrouter_api_key}
-  scrapecreators_api_key: ${scrapecreators_api_key}
-  truthsocial_token: ${truthsocial_token}
-  xiaohongshu_api_base_url: ${xiaohongshu_api_base_url}
-  auth_token: ${auth_token}             # bird_x — X auth_token cookie
-  ct0: ${ct0}                           # bird_x — X ct0 cookie
-  bird_search_mjs: ${bird_search_mjs}
+  brave_search_api_key: ${BRAVE_SEARCH_API_KEY}
+  parallel_api_key: ${PARALLEL_API_KEY}
+  openrouter_api_key: ${OPENROUTER_API_KEY}
+  scrapecreators_api_key: ${SCRAPECREATORS_API_KEY}
+  truthsocial_token: ${TRUTHSOCIAL_TOKEN}
+  xiaohongshu_api_base_url: ${XIAOHONGSHU_API_BASE_URL}
+  auth_token: ${AUTH_TOKEN}             # bird_x — X auth_token cookie
+  ct0: ${CT0}                           # bird_x — X ct0 cookie
+  bird_search_mjs: ${BIRD_SEARCH_MJS}
   # ── X / xAI ──
-  xai_api_key: ${xai_api_key}
+  xai_api_key: ${XAI_API_KEY}
   xai_model: grok-4-fast
   # ── Bluesky ──
-  bsky_handle: ${bsky_handle}
-  bsky_app_password: ${bsky_app_password}
+  bsky_handle: ${BSKY_HANDLE}
+  bsky_app_password: ${BSKY_APP_PASSWORD}
   # ── Messaging ──
-  slack_bot_token: ${slack_bot_token}
-  slack_default_channel: ${slack_default_channel}
-  discord_bot_token: ${discord_bot_token}
-  discord_webhook_url: ${discord_webhook_url}
-  discord_channel_id: ${discord_channel_id}
-  telegram_bot_token: ${telegram_bot_token}
-  telegram_chat_id: ${telegram_chat_id}
-  teams_webhook_url: ${teams_webhook_url}
-  signal_phone_number: ${signal_phone_number}
-  signal_callmebot_api_key: ${signal_callmebot_api_key}
-  skype_bot_app_id: ${skype_bot_app_id}
-  skype_bot_app_password: ${skype_bot_app_password}
-  skype_service_url: ${skype_service_url}
-  skype_conversation_id: ${skype_conversation_id}
-  snapchat_access_token: ${snapchat_access_token}
-  snapchat_ad_account_id: ${snapchat_ad_account_id}
-  whatsapp_access_token: ${whatsapp_access_token}
-  whatsapp_phone_number_id: ${whatsapp_phone_number_id}
-  wechat_app_id: ${wechat_app_id}
-  wechat_app_secret: ${wechat_app_secret}
-  viber_auth_token: ${viber_auth_token}
+  slack_bot_token: ${SLACK_BOT_TOKEN}
+  slack_default_channel: ${SLACK_DEFAULT_CHANNEL}
+  discord_bot_token: ${DISCORD_BOT_TOKEN}
+  discord_webhook_url: ${DISCORD_WEBHOOK_URL}
+  discord_channel_id: ${DISCORD_CHANNEL_ID}
+  telegram_bot_token: ${TELEGRAM_BOT_TOKEN}
+  telegram_chat_id: ${TELEGRAM_CHAT_ID}
+  teams_webhook_url: ${TEAMS_WEBHOOK_URL}
+  signal_phone_number: ${SIGNAL_PHONE_NUMBER}
+  signal_callmebot_api_key: ${SIGNAL_CALLMEBOT_API_KEY}
+  skype_bot_app_id: ${SKYPE_BOT_APP_ID}
+  skype_bot_app_password: ${SKYPE_BOT_APP_PASSWORD}
+  skype_service_url: ${SKYPE_SERVICE_URL}
+  skype_conversation_id: ${SKYPE_CONVERSATION_ID}
+  snapchat_access_token: ${SNAPCHAT_ACCESS_TOKEN}
+  snapchat_ad_account_id: ${SNAPCHAT_AD_ACCOUNT_ID}
+  whatsapp_access_token: ${WHATSAPP_ACCESS_TOKEN}
+  whatsapp_phone_number_id: ${WHATSAPP_PHONE_NUMBER_ID}
+  wechat_app_id: ${WECHAT_APP_ID}
+  wechat_app_secret: ${WECHAT_APP_SECRET}
+  viber_auth_token: ${VIBER_AUTH_TOKEN}
   viber_sender_name: AI Assistant
-  wire_bearer_token: ${wire_bearer_token}
-  wire_conversation_id: ${wire_conversation_id}
-  zalo_oa_access_token: ${zalo_oa_access_token}
-  line_channel_access_token: ${line_channel_access_token}
-  messenger_page_access_token: ${messenger_page_access_token}
-  instagram_page_access_token: ${instagram_page_access_token}
-  instagram_user_id: ${instagram_user_id}
+  wire_bearer_token: ${WIRE_BEARER_TOKEN}
+  wire_conversation_id: ${WIRE_CONVERSATION_ID}
+  zalo_oa_access_token: ${ZALO_OA_ACCESS_TOKEN}
+  line_channel_access_token: ${LINE_CHANNEL_ACCESS_TOKEN}
+  messenger_page_access_token: ${MESSENGER_PAGE_ACCESS_TOKEN}
+  instagram_page_access_token: ${INSTAGRAM_PAGE_ACCESS_TOKEN}
+  instagram_user_id: ${INSTAGRAM_USER_ID}
   # ── Media generation ──
-  gemini_api_key: ${gemini_api_key}
-  image_gen_api_key: ${image_gen_api_key}
-  video_gen_api_key: ${video_gen_api_key}
-  video_gen_create_endpoint: ${video_gen_create_endpoint}
-  video_gen_status_endpoint: ${video_gen_status_endpoint}
-  tts_api_key: ${tts_api_key}
-  tts_output_dir: ${tts_output_dir}
+  gemini_api_key: ${GEMINI_API_KEY}
+  image_gen_api_key: ${IMAGE_GEN_API_KEY}
+  video_gen_api_key: ${VIDEO_GEN_API_KEY}
+  video_gen_create_endpoint: ${VIDEO_GEN_CREATE_ENDPOINT}
+  video_gen_status_endpoint: ${VIDEO_GEN_STATUS_ENDPOINT}
+  tts_api_key: ${TTS_API_KEY}
+  tts_output_dir: ${TTS_OUTPUT_DIR}
   # ── Google workspace token paths ──
-  google_calendar_token_path: ${google_calendar_token_path}
-  google_docs_token_path: ${google_docs_token_path}
-  google_drive_token_path: ${google_drive_token_path}
-  google_sheets_token_path: ${google_sheets_token_path}
-  google_slides_token_path: ${google_slides_token_path}
+  google_calendar_token_path: ${GOOGLE_CALENDAR_TOKEN_PATH}
+  google_docs_token_path: ${GOOGLE_DOCS_TOKEN_PATH}
+  google_drive_token_path: ${GOOGLE_DRIVE_TOKEN_PATH}
+  google_sheets_token_path: ${GOOGLE_SHEETS_TOKEN_PATH}
+  google_slides_token_path: ${GOOGLE_SLIDES_TOKEN_PATH}
 
 # ============================================================================
-# Secrets — declared here, VALUES live in .env and are pulled in via ${var}.
+# Secrets — declared here, VALUES live in .env and are pulled in via ${VAR}.
 # Single declaration point for every non-LLM secret (LLM provider keys stay
 # grouped under `llm_keys:` above). Keys are lowercase env-var names. An unset
 # var expands to empty and .env / OS env still win (loader uses setdefault).
 # ============================================================================
 secrets:
   # Auth / JWT
-  jwt_secret_key: ${jwt_secret_key}
-  google_login_client_id: ${google_login_client_id}
-  google_login_client_secret: ${google_login_client_secret}
-  google_oauth_client_secret_path: ${google_oauth_client_secret_path}
-  credentials_path: ${credentials_path}
-  service_account_path: ${service_account_path}
+  jwt_secret_key: ${JWT_SECRET_KEY}
+  google_login_client_id: ${GOOGLE_LOGIN_CLIENT_ID}
+  google_login_client_secret: ${GOOGLE_LOGIN_CLIENT_SECRET}
+  google_oauth_client_secret_path: ${GOOGLE_OAUTH_CLIENT_SECRET_PATH}
+  credentials_path: ${CREDENTIALS_PATH}
+  service_account_path: ${SERVICE_ACCOUNT_PATH}
   # 9Router gateway
-  router_jwt_secret: ${router_jwt_secret}
-  router_initial_password: ${router_initial_password}
+  router_jwt_secret: ${ROUTER_JWT_SECRET}
+  router_initial_password: ${ROUTER_INITIAL_PASSWORD}
   # Datastores (credentials embedded in the URI)
-  mongo_uri: ${mongo_uri}
-  rabbitmq_url: ${rabbitmq_url}
-  redis_url: ${redis_url}
+  mongo_uri: ${MONGO_URI}
+  rabbitmq_url: ${RABBITMQ_URL}
+  redis_url: ${REDIS_URL}
   # Admin bootstrap
-  admin_password: ${admin_password}
+  admin_password: ${ADMIN_PASSWORD}
