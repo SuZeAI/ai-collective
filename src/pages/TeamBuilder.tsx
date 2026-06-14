@@ -11,6 +11,7 @@ import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
 import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Agent, type CustomFlow, type Team, type TeamMode } from "@/lib/api";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 import CustomFlowEditor from "@/components/team/CustomFlowEditor";
+import { cn } from "@/lib/utils";
 
 type TeamTestMessage = {
   id: string;
@@ -53,6 +54,18 @@ export default function TeamBuilder() {
   const [open, setOpen] = useState(false);
   const stopTestRef = useRef(false);
   const [copied, setCopied] = useState(false);
+  const [personnelSearch, setPersonnelSearch] = useState("");
+
+  const filteredAgents = useMemo(() => {
+    const term = personnelSearch.trim().toLowerCase();
+    if (!term) return agentList;
+    return agentList.filter(
+      (a) =>
+        a.name.toLowerCase().includes(term) ||
+        (a.role || "").toLowerCase().includes(term) ||
+        (a.skills || []).some((s) => s.name.toLowerCase().includes(term))
+    );
+  }, [agentList, personnelSearch]);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,6 +106,7 @@ export default function TeamBuilder() {
     setAvatarIcon("users");
     setAvatarColor("#0EA5E9");
     setAvatarUrl("");
+    setPersonnelSearch("");
   };
 
   const handleDragStart = (agentId: string) => {
@@ -330,6 +344,44 @@ export default function TeamBuilder() {
     [teamList, scope],
   );
 
+  const selectPersonnelNode = (
+    <div className="space-y-2">
+      <label className="text-sm font-medium">Select Personnel</label>
+      <p className="text-xs text-muted-foreground">Choose personnel to add to this department.</p>
+      {agentList.length > 0 && (
+        <Input
+          placeholder="Search personnel..."
+          value={personnelSearch}
+          onChange={(e) => setPersonnelSearch(e.target.value)}
+          className="h-8 text-xs bg-background/50"
+        />
+      )}
+      <div className={cn(
+        "border border-input rounded-lg p-3 overflow-y-auto bg-muted/50 transition-all",
+        mode === "custom" ? "h-[200px]" : "h-[320px]"
+      )}>
+        <div className="space-y-2 pb-8">
+          {filteredAgents.length ? (
+            filteredAgents.map((a) => (
+              <label key={a.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-background cursor-pointer">
+                <Checkbox checked={selectedAgents.includes(a.id)} onCheckedChange={() => toggleAgent(a.id)} />
+                <span className="text-sm font-medium">{a.name}</span>
+                <span className="text-xs text-muted-foreground">({a.role})</span>
+                {a.skill_ids?.length ? (
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    • {a.skills?.map((s) => s.name).join(", ")}
+                  </span>
+                ) : null}
+              </label>
+            ))
+          ) : (
+            <p className="text-xs text-muted-foreground py-4 text-center">No matching personnel found.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div>
       <header className="mb-8 flex justify-between items-end">
@@ -409,7 +461,12 @@ export default function TeamBuilder() {
           </DialogTrigger>
           <DialogContent className="max-w-6xl w-[96vw] max-h-[90vh] overflow-y-auto overflow-x-hidden p-6">
             <DialogHeader><DialogTitle>{editingTeamId ? "Edit Department" : "Create Department"}</DialogTitle></DialogHeader>
-            <div className="pt-2 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] gap-4">
+            <div className={cn(
+              "pt-2 grid grid-cols-1 gap-6",
+              mode === "custom"
+                ? "xl:grid-cols-[360px_1fr]"
+                : "xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]"
+            )}>
               <div className="space-y-4 min-w-0 pr-2 pb-1">
                 <Input placeholder="Department name" value={name} onChange={(e) => setName(e.target.value)} />
                 <Input placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
@@ -518,95 +575,84 @@ export default function TeamBuilder() {
                     placeholder="Default: 6"
                   />
                 </div>
+                {mode === "custom" && (
+                  <div className="pt-2">
+                    {selectPersonnelNode}
+                  </div>
+                )}
                 <Button onClick={saveTeam} className="w-full" disabled={!name.trim() || selectedAgents.length === 0}>
                   {editingTeamId ? "Save Changes" : "Create Department"}
                 </Button>
               </div>
 
               <div className="space-y-4 min-w-0 pr-2 pb-1">
-                <div className={mode === "custom" ? "space-y-4" : "grid grid-cols-1 xl:grid-cols-2 gap-4"}>
+                {mode === "custom" ? (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Select Personnel</label>
-                    <p className="text-xs text-muted-foreground">Choose personnel on the left, then reorder on the right.</p>
-                    <div className="border border-input rounded-lg p-3 h-[320px] overflow-y-auto bg-muted/50">
-                      <div className="space-y-2">
-                        {agentList.map((a) => (
-                          <label key={a.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-background cursor-pointer">
-                            <Checkbox checked={selectedAgents.includes(a.id)} onCheckedChange={() => toggleAgent(a.id)} />
-                            <span className="text-sm font-medium">{a.name}</span>
-                            <span className="text-xs text-muted-foreground">({a.role})</span>
-                            {a.skill_ids?.length ? (
-                              <span className="text-xs text-muted-foreground ml-auto">
-                                • {a.skills?.map((s) => s.name).join(", ")}
-                              </span>
-                            ) : null}
-                          </label>
-                        ))}
+                    <label className="text-sm font-medium">Custom Flow</label>
+                    <p className="text-xs text-muted-foreground font-medium">
+                      Drag from a node's right handle to another node's left handle to route work. Move nodes freely; select an edge and press Delete to remove it.
+                    </p>
+                    <CustomFlowEditor
+                      agents={selectedAgents.map((id) => agentById.get(id)).filter((a): a is Agent => Boolean(a))}
+                      initialFlow={flow}
+                      onChange={setFlow}
+                    />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    {selectPersonnelNode}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Personnel Workflow Order</label>
+                      <p className="text-xs text-muted-foreground">Drag to reorder personnel. If the list is long, scroll here.</p>
+                      <div className="border border-input rounded-lg p-3 h-[320px] overflow-y-auto bg-muted/50">
+                        <div className="space-y-2 pb-8">
+                          {selectedAgents.length > 0 ? (
+                            selectedAgents.map((agentId, index) => {
+                              const agent = agentById.get(agentId);
+                              if (!agent) return null;
+                              return (
+                                <div
+                                  key={agentId}
+                                  draggable
+                                  onDragStart={() => handleDragStart(agentId)}
+                                  onDragOver={handleDragOver}
+                                  onDrop={() => handleDrop(agentId)}
+                                  className={`flex items-center gap-3 p-3 rounded-lg border-2 border-dashed transition-all cursor-move ${
+                                    draggedAgent === agentId
+                                      ? "border-primary bg-primary/8 opacity-50"
+                                      : "border-transparent bg-card hover:bg-muted/30 hover:border-border"
+                                  }`}
+                                >
+                                  <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-xs font-bold text-primary">
+                                        {index + 1}
+                                      </span>
+                                      <span className="text-sm font-medium">{agent.name}</span>
+                                      <span className="text-xs text-muted-foreground">({agent.role})</span>
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => removeAgent(agentId)}
+                                    className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                                    title="Remove member"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div className="h-full flex items-center justify-center text-center text-xs text-muted-foreground px-4 py-8">
+                              Select personnel from the left panel to start arranging workflow order.
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-
-                  {mode === "custom" ? (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Custom Flow</label>
-                      <p className="text-xs text-muted-foreground">Drag from a node's right handle to another node's left handle to route work. Move nodes freely; select an edge and press Delete to remove it.</p>
-                      <CustomFlowEditor
-                        agents={selectedAgents.map((id) => agentById.get(id)).filter((a): a is Agent => Boolean(a))}
-                        initialFlow={flow}
-                        onChange={setFlow}
-                      />
-                    </div>
-                  ) : (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Personnel Workflow Order</label>
-                    <p className="text-xs text-muted-foreground">Drag to reorder personnel. If the list is long, scroll here.</p>
-                    <div className="border border-input rounded-lg p-3 h-[320px] overflow-y-auto bg-muted/50 space-y-2">
-                      {selectedAgents.length > 0 ? (
-                        selectedAgents.map((agentId, index) => {
-                          const agent = agentById.get(agentId);
-                          if (!agent) return null;
-                          return (
-                            <div
-                              key={agentId}
-                              draggable
-                              onDragStart={() => handleDragStart(agentId)}
-                              onDragOver={handleDragOver}
-                              onDrop={() => handleDrop(agentId)}
-                              className={`flex items-center gap-3 p-3 rounded-lg border-2 border-dashed transition-all cursor-move ${
-                                draggedAgent === agentId
-                                  ? "border-primary bg-primary/8 opacity-50"
-                                  : "border-transparent bg-card hover:bg-muted/30 hover:border-border"
-                              }`}
-                            >
-                              <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-xs font-bold text-primary">
-                                    {index + 1}
-                                  </span>
-                                  <span className="text-sm font-medium">{agent.name}</span>
-                                  <span className="text-xs text-muted-foreground">({agent.role})</span>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => removeAgent(agentId)}
-                                className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                                title="Remove member"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <div className="h-full flex items-center justify-center text-center text-xs text-muted-foreground px-4">
-                          Select personnel from the left panel to start arranging workflow order.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  )}
-                </div>
+                )}
               </div>
             </div>
           </DialogContent>

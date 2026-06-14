@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ExternalLink, Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { ExternalLink, Pencil, Plus, ShieldCheck, Trash2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -204,10 +204,29 @@ export default function Skills() {
     return new Map(toolPresets.map((preset) => [preset.tool_name, preset]));
   }, [toolPresets]);
 
+  const [showPresetSuggestions, setShowPresetSuggestions] = useState(false);
+  const [presetSearch, setPresetSearch] = useState("");
+
+  const filteredPresets = useMemo(() => {
+    const term = presetSearch.trim().toLowerCase();
+    if (!term) return toolPresets;
+    return toolPresets.filter(
+      (p) =>
+        p.label.toLowerCase().includes(term) ||
+        p.tool_name.toLowerCase().includes(term)
+    );
+  }, [toolPresets, presetSearch]);
+
   const selectedPreset = useMemo(() => {
     if (!toolName) return null;
     return presetByTool.get(toolName) ?? toToolPreset(toolName);
   }, [presetByTool, toolName]);
+
+  useEffect(() => {
+    if (selectedPreset) {
+      setPresetSearch(selectedPreset.label || "");
+    }
+  }, [selectedPreset]);
 
   const handleToolChange = (nextToolName: ToolName) => {
     setToolName(nextToolName);
@@ -537,194 +556,247 @@ export default function Skills() {
             />
           )}
           <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> New Skill</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>{editingSkillId ? "Edit Skill" : "Create Skill"}</DialogTitle></DialogHeader>
-            <div className="space-y-3 pt-2">
-              <Select value={toolName} onValueChange={handleToolChange}>
-                <SelectTrigger><SelectValue placeholder="Preset" /></SelectTrigger>
-                <SelectContent>
-                  {toolPresets.map((p) => (
-                    <SelectItem key={p.tool_name} value={p.tool_name}>{p.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <DialogTrigger asChild>
+              <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> New Skill</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto overflow-x-hidden p-6">
+              <DialogHeader>
+                <DialogTitle>{editingSkillId ? "Edit Skill" : "Create Skill"}</DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6 pt-2">
+                {/* Left Column: Metadata & Styling */}
+                <div className="space-y-4">
+                  <div className="space-y-1.5 relative">
+                    <label className="text-sm font-medium">Preset Tool Type</label>
+                    <div className="relative">
+                      <Input
+                        placeholder="Search preset tools..."
+                        value={presetSearch}
+                        onChange={(e) => setPresetSearch(e.target.value)}
+                        onFocus={() => setShowPresetSuggestions(true)}
+                        onBlur={() => {
+                          setTimeout(() => {
+                            setShowPresetSuggestions(false);
+                            if (selectedPreset) {
+                              setPresetSearch(selectedPreset.label || "");
+                            }
+                          }, 200);
+                        }}
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground/60">
+                        <ChevronDown className="h-4 w-4" />
+                      </div>
+                    </div>
+                    {showPresetSuggestions && filteredPresets.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-md border bg-popover/95 backdrop-blur-md text-popover-foreground shadow-lg p-1 space-y-0.5">
+                        {filteredPresets.map((p) => (
+                          <button
+                            key={p.tool_name}
+                            type="button"
+                            className="w-full text-left px-2.5 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors font-medium"
+                            onMouseDown={() => {
+                              handleToolChange(p.tool_name);
+                              setPresetSearch(p.label);
+                              setShowPresetSuggestions(false);
+                            }}
+                          >
+                            {p.label} <span className="text-[10px] text-muted-foreground ml-1">({p.tool_name})</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
-              <Input placeholder="Skill name" value={name} onChange={(e) => setName(e.target.value)} />
-              <Input placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Skill Name</label>
+                    <Input placeholder="Skill name" value={name} onChange={(e) => setName(e.target.value)} />
+                  </div>
 
-              <div className="space-y-1">
-                <div className="text-sm font-medium">Instructions</div>
-                <Textarea
-                  placeholder="Explain how to use this skill — e.g. where to get the API key/token, required accounts or local setup, and how to fill in the config above."
-                  value={instruction}
-                  onChange={(e) => setInstruction(e.target.value)}
-                  rows={4}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Shown to users so they know how to obtain credentials or enable this skill.
-                </p>
-              </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Description</label>
+                    <Input placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+                  </div>
 
-              <div className="space-y-3">
-                <div className="text-sm font-medium">Avatar</div>
-                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
-                  <Select value={avatarMode} onValueChange={(value) => setAvatarMode(value as AvatarMode)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Avatar style" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="initial">Initials</SelectItem>
-                      <SelectItem value="icon">Icon</SelectItem>
-                      <SelectItem value="image">Image URL</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <div className="flex items-center gap-2 justify-start sm:justify-end">
-                    <span className="text-xs text-muted-foreground">Preview</span>
-                    <AgentAvatar
-                      agent={{
-                        avatar: name.trim()[0]?.toUpperCase() || "S",
-                        avatar_icon: avatarMode === "icon" ? avatarIcon : "",
-                        avatar_color: isHexColor(avatarColor) ? avatarColor : "",
-                        avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
-                      }}
-                      className="w-10 h-10"
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Instructions</label>
+                    <Textarea
+                      placeholder="Explain how to use this skill — e.g. where to get the API key/token, required accounts or local setup, and how to fill in the config."
+                      value={instruction}
+                      onChange={(e) => setInstruction(e.target.value)}
+                      rows={3}
                     />
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Shown to users to explain credentials setup.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 border rounded-lg p-3 bg-muted/10">
+                    <div className="text-sm font-medium">Avatar Customization</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+                      <Select value={avatarMode} onValueChange={(value) => setAvatarMode(value as AvatarMode)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Avatar style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="initial">Initials</SelectItem>
+                          <SelectItem value="icon">Icon</SelectItem>
+                          <SelectItem value="image">Image URL</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Preview</span>
+                        <AgentAvatar
+                          agent={{
+                            avatar: name.trim()[0]?.toUpperCase() || "S",
+                            avatar_icon: avatarMode === "icon" ? avatarIcon : "",
+                            avatar_color: isHexColor(avatarColor) ? avatarColor : "",
+                            avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
+                          }}
+                          className="w-10 h-10"
+                        />
+                      </div>
+                    </div>
+
+                    {avatarMode === "icon" ? (
+                      <Select value={avatarIcon} onValueChange={setAvatarIcon}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pick icon" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {skillAvatarIconOptions.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : null}
+
+                    {avatarMode === "image" ? (
+                      <Input
+                        placeholder="https://example.com/skill-avatar.png"
+                        value={avatarUrl}
+                        onChange={(e) => setAvatarUrl(e.target.value)}
+                      />
+                    ) : null}
+
+                    <div className="flex items-center gap-3">
+                      <Input
+                        type="color"
+                        value={isHexColor(avatarColor) ? avatarColor : "#3b82f6"}
+                        onChange={(e) => setAvatarColor(e.target.value)}
+                        className="w-14 p-1 h-10 cursor-pointer"
+                      />
+                      <Input
+                        placeholder="#3b82f6"
+                        value={avatarColor}
+                        onChange={(e) => setAvatarColor(e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {avatarMode === "icon" ? (
-                  <Select value={avatarIcon} onValueChange={setAvatarIcon}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pick icon" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {skillAvatarIconOptions.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : null}
+                {/* Right Column: Configuration fields */}
+                <div className="space-y-4">
+                  <div className="rounded-lg border p-4 bg-muted/30 space-y-3 h-full flex flex-col justify-between">
+                    <div className="space-y-3">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tool Integration Config</div>
+                      {selectedPreset && selectedPreset.config_fields.length > 0 ? (
+                        <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                          {selectedPreset.config_fields.map((field) => {
+                            const fieldValue = configValues[field.key];
 
-                {avatarMode === "image" ? (
-                  <Input
-                    placeholder="https://example.com/skill-avatar.png"
-                    value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
-                  />
-                ) : null}
+                            if (field.input === "select") {
+                              const current = String(fieldValue ?? field.default ?? "");
+                              return (
+                                <div key={field.key} className="space-y-1">
+                                  <div className="text-xs font-medium text-foreground">{field.label}</div>
+                                  <Select value={current} onValueChange={(value) => updateConfigValue(field, value)}>
+                                    <SelectTrigger><SelectValue placeholder={field.placeholder || field.label} /></SelectTrigger>
+                                    <SelectContent>
+                                      {(field.options || []).map((option) => (
+                                        <SelectItem key={option} value={option}>{option}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  {field.description ? <p className="text-[10px] text-muted-foreground leading-normal">{field.description}</p> : null}
+                                </div>
+                              );
+                            }
 
-                <div className="flex items-center gap-3">
-                  <Input
-                    type="color"
-                    value={isHexColor(avatarColor) ? avatarColor : "#3b82f6"}
-                    onChange={(e) => setAvatarColor(e.target.value)}
-                    className="w-14 p-1 h-10"
-                  />
-                  <Input
-                    placeholder="#3b82f6"
-                    value={avatarColor}
-                    onChange={(e) => setAvatarColor(e.target.value)}
-                  />
-                </div>
-              </div>
+                            if (field.input === "boolean") {
+                              return (
+                                <label key={field.key} className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer py-1">
+                                  <input
+                                    type="checkbox"
+                                    checked={Boolean(fieldValue)}
+                                    onChange={(e) => updateConfigValue(field, e.target.checked)}
+                                    className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+                                  />
+                                  {field.label}
+                                </label>
+                              );
+                            }
 
-              <div className="rounded-md border p-3 space-y-2">
-                <div className="text-xs font-medium text-muted-foreground">Tool Config</div>
-                {selectedPreset && selectedPreset.config_fields.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-2">
-                    {selectedPreset.config_fields.map((field) => {
-                      const fieldValue = configValues[field.key];
+                            if (field.input === "textarea") {
+                              return (
+                                <div key={field.key} className="space-y-1">
+                                  <div className="text-xs font-medium text-foreground">{field.label}</div>
+                                  <Textarea
+                                    placeholder={field.placeholder || field.label}
+                                    value={String(fieldValue ?? "")}
+                                    onChange={(e) => updateConfigValue(field, e.target.value)}
+                                    rows={2}
+                                    className="text-xs"
+                                  />
+                                  {field.description ? <p className="text-[10px] text-muted-foreground leading-normal">{field.description}</p> : null}
+                                </div>
+                              );
+                            }
 
-                      if (field.input === "select") {
-                        const current = String(fieldValue ?? field.default ?? "");
-                        return (
-                          <div key={field.key} className="space-y-1">
-                            <div className="text-sm">{field.label}</div>
-                            <Select value={current} onValueChange={(value) => updateConfigValue(field, value)}>
-                              <SelectTrigger><SelectValue placeholder={field.placeholder || field.label} /></SelectTrigger>
-                              <SelectContent>
-                                {(field.options || []).map((option) => (
-                                  <SelectItem key={option} value={option}>{option}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {field.description ? <p className="text-xs text-muted-foreground">{field.description}</p> : null}
-                          </div>
-                        );
-                      }
-
-                      if (field.input === "boolean") {
-                        return (
-                          <label key={field.key} className="flex items-center gap-2 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={Boolean(fieldValue)}
-                              onChange={(e) => updateConfigValue(field, e.target.checked)}
-                            />
-                            {field.label}
-                          </label>
-                        );
-                      }
-
-                      if (field.input === "textarea") {
-                        return (
-                          <div key={field.key} className="space-y-1">
-                            <div className="text-sm">{field.label}</div>
-                            <Textarea
-                              placeholder={field.placeholder || field.label}
-                              value={String(fieldValue ?? "")}
-                              onChange={(e) => updateConfigValue(field, e.target.value)}
-                              rows={field.rows || 4}
-                            />
-                            {field.description ? <p className="text-xs text-muted-foreground">{field.description}</p> : null}
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div key={field.key} className="space-y-1">
-                          <div className="text-sm">{field.label}</div>
-                          <Input
-                            placeholder={field.placeholder || field.label}
-                            value={String(fieldValue ?? "")}
-                            onChange={(e) => updateConfigValue(field, e.target.value)}
-                          />
-                          {field.description ? <p className="text-xs text-muted-foreground">{field.description}</p> : null}
+                            return (
+                              <div key={field.key} className="space-y-1">
+                                <div className="text-xs font-medium text-foreground">{field.label}</div>
+                                <Input
+                                  placeholder={field.placeholder || field.label}
+                                  value={String(fieldValue ?? "")}
+                                  onChange={(e) => updateConfigValue(field, e.target.value)}
+                                  className="h-8 text-xs"
+                                />
+                                {field.description ? <p className="text-[10px] text-muted-foreground leading-normal">{field.description}</p> : null}
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">This tool has no configurable fields.</p>
-                )}
+                      ) : (
+                        <p className="text-xs text-muted-foreground py-4">This tool integration does not require any custom configurations.</p>
+                      )}
+                    </div>
 
-                {GOOGLE_TOOL_NAMES.has(toolName) ? (
-                  <div className="pt-2 border-t">
-                    <Button type="button" variant="secondary" className="w-full" onClick={startGoogleSheetAuth}>
-                      <ShieldCheck className="w-4 h-4 mr-2" />
-                      Authenticate Google
-                    </Button>
-                    {oauthStatus === "authorized" ? (
-                      <p className="text-xs text-emerald-600 mt-2">{oauthMessage}</p>
-                    ) : null}
-                    {oauthStatus === "error" ? (
-                      <p className="text-xs text-red-600 mt-2">{oauthMessage}</p>
+                    {GOOGLE_TOOL_NAMES.has(toolName) ? (
+                      <div className="pt-3 border-t mt-3">
+                        <Button type="button" variant="secondary" className="w-full text-xs h-9" onClick={startGoogleSheetAuth}>
+                          <ShieldCheck className="w-4 h-4 mr-2 text-primary" />
+                          Authenticate Google Services
+                        </Button>
+                        {oauthStatus === "authorized" ? (
+                          <p className="text-xs font-medium text-emerald-600 mt-2">{oauthMessage}</p>
+                        ) : null}
+                        {oauthStatus === "error" ? (
+                          <p className="text-xs font-medium text-red-600 mt-2">{oauthMessage}</p>
+                        ) : null}
+                      </div>
                     ) : null}
                   </div>
-                ) : null}
+                </div>
               </div>
-
-              <Button className="w-full" onClick={saveSkill} disabled={!isValid()}>
-                {editingSkillId ? "Save Changes" : "Create Skill"}
-              </Button>
-            </div>
-          </DialogContent>
+              <div className="pt-4 border-t mt-4">
+                <Button className="w-full" onClick={saveSkill} disabled={!isValid()}>
+                  {editingSkillId ? "Save Changes" : "Create Skill"}
+                </Button>
+              </div>
+            </DialogContent>
           </Dialog>
         </div>
       </header>
