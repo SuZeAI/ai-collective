@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { RunEngineProvider } from "@/contexts/RunEngineContext";
 import { AppLayout } from "@/components/AppLayout";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
@@ -76,6 +77,8 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
+            {/* Lives above the router so in-flight task runs survive navigation. */}
+            <RunEngineProvider>
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Landing />} />
@@ -107,6 +110,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
+            </RunEngineProvider>
           </TooltipProvider>
         </QueryClientProvider>
       </AuthProvider>
