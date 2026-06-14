@@ -46,6 +46,15 @@ llm:
   # LLM_SUMMARIZATION_MODEL: gemini-2.0-flash
   LLM_SUMMARIZATION_TRIGGER_TOKENS: 8000
   LLM_SUMMARIZATION_KEEP_MESSAGES: 20
+  # ── Loop detection ── breaks an agent that repeats the same tool call (name+args)
+  LLM_LOOP_DETECTION_ENABLED: true    # soft-nudge ToolMessage, never re-executes the repeated call
+  LLM_LOOP_DETECTION_MAX_REPEATS: 3   # identical calls allowed before short-circuiting
+  # ── Extra backstops (off by default) ──
+  LLM_TOOL_CALL_LIMIT: 0              # ToolCallLimitMiddleware run-level cap, 0 = disabled
+  LLM_MODEL_RETRY_MAX: 0              # ModelRetryMiddleware retries on model errors, 0 = disabled
+  LLM_CONTEXT_EDITING_ENABLED: false  # ContextEditingMiddleware: prune old tool outputs when input grows
+  LLM_CONTEXT_EDITING_TRIGGER_TOKENS: 100000
+  LLM_CONTEXT_EDITING_KEEP: 3         # most recent tool results to keep when pruning
 
 # ── LLM failover / key rotation ───────────────────────────────────────────────
 # rotate  → built-in multi-key rotation (list several keys in .env)
