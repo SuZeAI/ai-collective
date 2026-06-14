@@ -8,6 +8,7 @@ from backend.domain.tools.brave_search import BraveSearchToolkit
 from backend.domain.tools.browser import BrowserToolkit
 from backend.domain.tools.http import HTTPToolkit
 from backend.domain.tools.mcp_toolkit import MCPToolkit
+from backend.domain.tools.a2a_toolkit import A2AToolkit
 from backend.domain.tools.promt_tool import PromtToolToolkit
 from backend.domain.tools.websearch import WebSearchToolkit
 from backend.domain.tools.xai import XAIToolkit
@@ -63,6 +64,7 @@ class ToolType(str, Enum):
     WEBSEARCH = "websearch"
     HTTP = "http"
     MCP = "mcp"
+    A2A = "a2a"
     XAI = "xai"
     XIAOHONGSHU = "xiaohongshu"
     TRUTHSOCIAL = "truthsocial"
@@ -115,6 +117,7 @@ TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.WEBSEARCH.value: WebSearchToolkit,
     ToolType.HTTP.value: HTTPToolkit,
     ToolType.MCP.value: MCPToolkit,
+    ToolType.A2A.value: A2AToolkit,
     ToolType.XAI.value: XAIToolkit,
     ToolType.XIAOHONGSHU.value: XiaohongshuToolkit,
     ToolType.TRUTHSOCIAL.value: TruthSocialToolkit,

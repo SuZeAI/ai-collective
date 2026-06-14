@@ -11,6 +11,7 @@ import remarkGfm from "remark-gfm";
 import { useTheme } from "next-themes";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { api, type Agent, type Task, type Team, type Message } from "@/lib/api";
+import { useRunEngine } from "@/contexts/RunEngineContext";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -35,10 +36,20 @@ export default function VirtualOffice() {
   const { theme } = useTheme();
   const isDark = theme !== "light";
 
+  // Shared run engine (lives above the router): owns the streaming loop, task
+  // list, conversations and thinking-state so runs survive navigation and stay
+  // in sync with the Task Manager page.
+  const engine = useRunEngine();
+  const {
+    tasks: taskList,
+    conversations: messages,
+    thinkingAgents,
+    isStreaming,
+  } = engine;
+
   // Data lists
   const [agents, setAgents] = useState<Agent[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [taskList, setTaskList] = useState<Task[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
@@ -47,10 +58,7 @@ export default function VirtualOffice() {
   const [taskDesc, setTaskDesc] = useState("");
   const [selectedTeamId, setSelectedTeamId] = useState("");
 
-  // Real-time task execution
-  const [activeStreams, setActiveStreams] = useState<Record<string, AbortController>>({});
-  const [messages, setMessages] = useState<Record<string, Message[]>>({});
-  const [thinkingAgents, setThinkingAgents] = useState<Record<string, Set<string>>>({});
+  // Office-map animation layer (presentation only, derived from engine events).
   const [agentRealtimeStates, setAgentRealtimeStates] = useState<Record<string, AgentState>>({});
   
   // Direct chat with individual agent
@@ -81,13 +89,15 @@ export default function VirtualOffice() {
         if (!active) return;
         setAgents(aData);
         setTeams(tData);
-        setTaskList(tasksData);
+        // Reconcile into the engine — keeps live status for any streaming task.
+        engine.ingestTasks(tasksData);
       } catch (err) {
         console.error("Error loading simulation data:", err);
       }
     };
     loadData();
     return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scope.workspace?.id]);
 
   // Filter agents and teams by workspace scope
@@ -121,17 +131,19 @@ export default function VirtualOffice() {
     }
   }, [filteredTasks, selectedTaskId]);
 
-  // Fetch past messages for selected task
+  // Fetch past messages for selected task — seed the engine only if it has no
+  // live transcript (never clobber a run in progress).
   useEffect(() => {
     if (!selectedTaskId) return;
     let active = true;
     api.listConversations(selectedTaskId)
       .then((data) => {
         if (!active) return;
-        setMessages((prev) => ({ ...prev, [selectedTaskId]: data }));
+        engine.ingestConversations(selectedTaskId, data);
       })
       .catch((e) => console.error("Error listing conversations:", e));
     return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTaskId]);
 
   // FILTER AGENTS SHOWN ON MAP: If a task is selected, ONLY show the department (team) of that task!
@@ -287,179 +299,76 @@ export default function VirtualOffice() {
     return positions;
   }, [visibleAgents, thinkingAgents, selectedTaskId, agentRealtimeStates]);
 
-  // Start task stream
-  const runTaskStream = async (task: Task) => {
-    if (activeStreams[task.id]) return;
+  // Latest canvas positions / visible agents for the event listener (avoids
+  // stale closures without resubscribing on every render).
+  const canvasPosRef = useRef(agentCanvasPositions);
+  canvasPosRef.current = agentCanvasPositions;
+  const visibleAgentsRef = useRef(visibleAgents);
+  visibleAgentsRef.current = visibleAgents;
 
+  // Drive the office-map animations from engine stream events. The engine owns
+  // the run loop and conversation/thinking state; here we only translate events
+  // into agent emotes and flying-document handoffs. Subscribing to "*" means a
+  // run started on the Task Manager page animates here too.
+  useEffect(() => {
+    const unsubscribe = engine.subscribe("*", (event: any) => {
+      const eventType = event.type;
+      const agentId = event.agent_id || event.agentId || event.agent_name || event.agentName;
+
+      if (eventType === "llm_request_start") {
+        if (!agentId) return;
+        const senderId = lastActiveAgentIdRef.current;
+        const receiverId = agentId;
+        const positions = canvasPosRef.current;
+        if (senderId && receiverId && senderId !== receiverId) {
+          const senderPos = positions[senderId];
+          const receiverPos = positions[receiverId];
+          if (senderPos && receiverPos) {
+            setFlyingDocs((prev) => [
+              ...prev,
+              { id: `${Date.now()}-${prev.length}`, fromX: senderPos.left, fromY: senderPos.top, toX: receiverPos.left, toY: receiverPos.top },
+            ]);
+          }
+        }
+        lastActiveAgentIdRef.current = receiverId;
+        setAgentRealtimeStates((prev) => {
+          const ag = prev[agentId];
+          if (!ag) return prev;
+          return { ...prev, [agentId]: { ...ag, status: "thinking", emote: "\ud83d\udcad", message: "Developing software solutions..." } };
+        });
+      } else if (eventType === "turn_complete" && event.turn) {
+        const turn = event.turn;
+        const turnAgentId = turn.agent_id || turn.agentId || turn.agent_name || turn.agentName;
+        if (!turnAgentId) return;
+        lastActiveAgentIdRef.current = turnAgentId;
+        setAgentRealtimeStates((prev) => {
+          const ag = prev[turnAgentId];
+          if (!ag) return prev;
+          return { ...prev, [turnAgentId]: { ...ag, status: "collaborating", emote: "\ud83d\udcac", message: "Reviewing code outputs" } };
+        });
+      } else if (eventType === "run_ended") {
+        lastActiveAgentIdRef.current = null;
+        setAgentRealtimeStates((prev) => {
+          const next = { ...prev };
+          for (const a of visibleAgentsRef.current) {
+            const ag = next[a.id];
+            if (ag) next[a.id] = { ...ag, status: "idle", emote: "\ud83d\udca4", message: "" };
+          }
+          return next;
+        });
+      }
+    });
+    return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Start (or restart) a task run through the shared engine.
+  const runTask = (task: Task) => {
+    if (isStreaming(task.id)) return;
     const team = teams.find((t) => t.id === task.teamId);
     if (!team) return;
-
-    try {
-      const updatedTask = await api.upsertTask({
-        ...task,
-        status: "in-progress"
-      });
-      setTaskList((prev) => prev.map((t) => (t.id === updatedTask.id ? updatedTask : t)));
-
-      const controller = new AbortController();
-      setActiveStreams((prev) => ({ ...prev, [task.id]: controller }));
-
-      setMessages((prev) => ({ ...prev, [task.id]: [] }));
-      setThinkingAgents((prev) => ({ ...prev, [task.id]: new Set() }));
-      lastActiveAgentIdRef.current = null; // Reset document transfer ref
-
-      const formattedInput = `Task title: ${updatedTask.title}; description: ${updatedTask.description || "Execute this task."}`;
-
-      (async () => {
-        try {
-          for await (const event of api.runAgentGraphStream({
-            user_input: formattedInput,
-            agents: updatedTask.assignedAgents,
-            max_rounds: team.maxSteps ?? 6,
-            mode: team.mode ?? "sequential",
-            conversation_id: updatedTask.id,
-            signal: controller.signal
-          })) {
-            if (controller.signal.aborted) break;
-            if (event.type === "cancelled") break;
-            if (event.error) {
-              console.error(event.error);
-              break;
-            }
-
-            const agentId = event.agent_id || event.agentId || event.agent_name || event.agentName;
-
-            if (event.type === "llm_request_start") {
-              if (agentId) {
-                // Trigger context document transfer animation if there was a previous active agent
-                const senderId = lastActiveAgentIdRef.current;
-                const receiverId = agentId;
-                if (senderId && receiverId && senderId !== receiverId) {
-                  const senderPos = agentCanvasPositions[senderId];
-                  const receiverPos = agentCanvasPositions[receiverId];
-                  if (senderPos && receiverPos) {
-                    setFlyingDocs((prev) => [
-                      ...prev,
-                      {
-                        id: `${Date.now()}-${Math.random()}`,
-                        fromX: senderPos.left,
-                        fromY: senderPos.top,
-                        toX: receiverPos.left,
-                        toY: receiverPos.top
-                      }
-                    ]);
-                  }
-                }
-                lastActiveAgentIdRef.current = receiverId;
-
-                setThinkingAgents((prev) => {
-                  const set = new Set(prev[task.id] ?? []);
-                  set.add(agentId);
-                  return { ...prev, [task.id]: set };
-                });
-
-                setAgentRealtimeStates((prev) => {
-                  const ag = prev[agentId];
-                  if (!ag) return prev;
-                  return {
-                    ...prev,
-                    [agentId]: {
-                      ...ag,
-                      status: "thinking",
-                      emote: "💭",
-                      message: "Developing software solutions..."
-                    }
-                  };
-                });
-              }
-            } else if (event.type === "turn_complete" && event.turn) {
-              const turn = event.turn;
-              const turnAgentId = turn.agent_id || turn.agentId || turn.agent_name || turn.agentName;
-
-              if (turnAgentId) {
-                lastActiveAgentIdRef.current = turnAgentId;
-
-                const msg: Message = {
-                  id: `${Date.now()}-${turnAgentId}`,
-                  agentId: turnAgentId,
-                  content: turn.content || "",
-                  timestamp: new Date().toISOString(),
-                  taskId: task.id
-                };
-
-                setMessages((prev) => ({
-                  ...prev,
-                  [task.id]: [...(prev[task.id] ?? []), msg]
-                }));
-
-                setThinkingAgents((prev) => {
-                  const set = new Set(prev[task.id] ?? []);
-                  set.delete(turnAgentId);
-                  return { ...prev, [task.id]: set };
-                });
-
-                setAgentRealtimeStates((prev) => {
-                  const ag = prev[turnAgentId];
-                  if (!ag) return prev;
-                  return {
-                    ...prev,
-                    [turnAgentId]: {
-                      ...ag,
-                      status: "collaborating",
-                      emote: "💬",
-                      message: "Reviewing code outputs"
-                    }
-                  };
-                });
-              }
-            } else if (event.type === "llm_response_complete") {
-              if (agentId) {
-                setThinkingAgents((prev) => {
-                  const set = new Set(prev[task.id] ?? []);
-                  set.delete(agentId);
-                  return { ...prev, [task.id]: set };
-                });
-              }
-            }
-          }
-
-          const completedTask = await api.upsertTask({
-            ...updatedTask,
-            status: "completed",
-            progress: 100
-          });
-          setTaskList((prev) => prev.map((t) => (t.id === completedTask.id ? completedTask : t)));
-
-          // Reset agent states
-          visibleAgents.forEach((a) => {
-            setAgentRealtimeStates((prev) => {
-              const ag = prev[a.id];
-              if (!ag) return prev;
-              return {
-                ...prev,
-                [a.id]: {
-                  ...ag,
-                  status: "idle",
-                  emote: "💤",
-                  message: ""
-                }
-              };
-            });
-          });
-
-        } catch (e) {
-          console.error("Stream running error:", e);
-        } finally {
-          setActiveStreams((prev) => {
-            const next = { ...prev };
-            delete next[task.id];
-            return next;
-          });
-        }
-      })();
-    } catch (e) {
-      console.error("Failed to run task:", e);
-    }
+    lastActiveAgentIdRef.current = null;
+    void engine.startTask(task, { mode: team.mode ?? "sequential", maxSteps: team.maxSteps ?? 6 });
   };
 
   const handleCreateAndRunTask = async () => {
@@ -469,7 +378,7 @@ export default function VirtualOffice() {
     if (!team) return;
 
     try {
-      const newTask = await api.upsertTask({
+      const newTask = await engine.upsertTask({
         title: taskTitle.trim(),
         description: taskDesc,
         teamId: selectedTeamId,
@@ -478,34 +387,13 @@ export default function VirtualOffice() {
         assignedAgents: team.agents
       });
 
-      setTaskList((prev) => [newTask, ...prev]);
       setSelectedTaskId(newTask.id);
       setTaskTitle("");
       setTaskDesc("");
 
-      await runTaskStream(newTask);
+      runTask(newTask);
     } catch (e) {
       console.error("Failed to create task:", e);
-    }
-  };
-
-  const handleStopStream = (taskId: string) => {
-    const controller = activeStreams[taskId];
-    if (controller) {
-      controller.abort();
-      setActiveStreams((prev) => {
-        const next = { ...prev };
-        delete next[taskId];
-        return next;
-      });
-
-      const task = taskList.find((t) => t.id === taskId);
-      if (task) {
-        api.upsertTask({ ...task, status: "stopped" })
-          .then((updated) => {
-            setTaskList((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-          });
-      }
     }
   };
 
@@ -874,7 +762,7 @@ export default function VirtualOffice() {
             <div className="space-y-2">
               {filteredTasks.map((t) => {
                 const isActive = selectedTaskId === t.id;
-                const isStreaming = activeStreams[t.id] !== undefined;
+                const streaming = isStreaming(t.id);
 
                 return (
                   <div
@@ -890,7 +778,7 @@ export default function VirtualOffice() {
                       <span className="font-semibold text-[11px] text-slate-800 dark:text-slate-100 truncate max-w-[170px]">
                         📁 {t.title}
                       </span>
-                      {isStreaming && (
+                      {streaming && (
                         <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping shrink-0" />
                       )}
                     </div>
@@ -899,16 +787,16 @@ export default function VirtualOffice() {
                     {isActive && (
                       <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-200 dark:border-slate-800/50 pt-2">
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono capitalize">{t.status}</span>
-                        {isStreaming ? (
+                        {streaming ? (
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleStopStream(t.id); }}
+                            onClick={(e) => { e.stopPropagation(); void engine.stopTask(t); }}
                             className="text-[9px] px-2 py-0.5 bg-red-600 text-white rounded hover:bg-red-700"
                           >
                             Stop
                           </button>
                         ) : (
                           <button
-                            onClick={(e) => { e.stopPropagation(); runTaskStream(t); }}
+                            onClick={(e) => { e.stopPropagation(); runTask(t); }}
                             className="text-[9px] px-2 py-0.5 bg-teal-500 text-black font-bold rounded hover:bg-teal-600"
                           >
                             Start
@@ -1044,7 +932,7 @@ export default function VirtualOffice() {
                   Select a task to view collaboration logs.
                 </div>
               )}
-              {selectedTaskId && activeStreams[selectedTaskId] && (
+              {selectedTaskId && isStreaming(selectedTaskId) && (
                 <div className="text-[10px] text-teal-500 dark:text-teal-400 font-semibold animate-pulse">
                   System: Tuning in to active agent channel...
                 </div>

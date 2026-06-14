@@ -190,7 +190,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379/0
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
-      # STORAGE_BACKEND is owned by config.yml (storage.STORAGE_BACKEND). Do NOT
+      # STORAGE_BACKEND is owned by config.yml (storage.backend → STORAGE_BACKEND). Do NOT
       # set it here — an env var would override config.yml. Override per-machine
       # via .env (STORAGE_BACKEND=...) if needed.
       - MONGO_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-admin}@mongodb:27017/ai_collective?authSource=admin
