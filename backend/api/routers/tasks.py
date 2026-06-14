@@ -79,70 +79,6 @@ def _sync_runtime_state(task_service: TaskService, team_service: TeamService, ag
             agent_service.upsert_agent(replace(agent, status=AgentStatus.idle))
 
 
-def _run_team_conversation_loop(
-    task: Task,
-    task_service: TaskService,
-    team_service: TeamService,
-    agent_service: AgentService,
-    cancel_flag=None,
-) -> Task:
-    if task.status != TaskStatus.in_progress:
-        return task
-
-    try:
-        team = team_service.get_team(task.team_id)
-        team_agent_ids = [aid for aid in team.agents]
-    except Exception:
-        team_agent_ids = []
-
-    participants: list[str] = []
-    for aid in team_agent_ids:
-        try:
-            agent_service.get_agent(aid)
-            participants.append(aid)
-        except Exception:
-            continue
-    if not participants:
-        participants = [aid for aid in task.assigned_agents if aid]
-    if not participants:
-        return task
-
-    max_steps = 10
-    progress = max(0, min(100, int(task.progress)))
-    logger.info("[Loop] starting | task_id=%s | participants=%d | initial_progress=%d%%",
-                task.id, len(participants), progress)
-
-    for step in range(max_steps):
-        if progress >= 100:
-            break
-        if cancel_flag is not None and cancel_flag.cancelled:
-            logger.info("[Loop] CANCELLED | task_id=%s | at_step=%d | progress_so_far=%d%%",
-                        task.id, step, progress)
-            break
-        remaining_steps = max_steps - step
-        increment = max(8, (100 - progress + remaining_steps - 1) // remaining_steps)
-        progress = min(100, progress + increment)
-
-    status = task.status
-    if progress >= 100:
-        status = TaskStatus.completed
-        logger.info("[Loop] COMPLETED | task_id=%s | final_progress=%d%%", task.id, progress)
-
-    if cancel_flag is not None and cancel_flag.cancelled:
-        # Don't overwrite the user-set stopped/paused status that triggered cancellation.
-        logger.info("[Loop] preserving user status after cancel | task_id=%s", task.id)
-        try:
-            return task_service.get_task(task.id)
-        except Exception:
-            return task
-
-    updated = replace(task, progress=progress, status=status)
-    saved = task_service.upsert_task(updated)
-    logger.info("[Loop] DB write | task_id=%s | status=%s | progress=%d%%",
-                task.id, saved.status.value, saved.progress)
-    return saved
-
-
 @router.get("/queue/status")
 def get_queue_status() -> dict:
     """Return current task queue state: running/waiting task IDs and concurrency limits."""
@@ -251,34 +187,13 @@ def upsert_task(
 
     _sync_runtime_state(service, team_service, agent_service)
 
-    # Submit background execution when task becomes active.
-    if next_status == TaskStatus.in_progress:
-        # Register the cancel flag NOW — before submit — so that a concurrent
-        # stop/pause request can signal it even before the worker thread starts.
-        cancel_flag = task_run_registry.register(task_id)
-        logger.info("[Task] cancel_flag registered | task_id=%s", task_id)
-
-        _svc = service
-        _tsvc = team_service
-        _asvc = agent_service
-        _csvc = conv_service
-        _snap = saved
-
-        def _background_run() -> None:
-            try:
-                if cancel_flag.cancelled:
-                    logger.info("[Task] background_run skipped (already cancelled before start) | task_id=%s", _snap.id)
-                    return
-                logger.info("[Task] background_run START | task_id=%s", _snap.id)
-                _run_team_conversation_loop(_snap, _svc, _tsvc, _asvc, cancel_flag)
-                logger.info("[Task] background_run END | task_id=%s", _snap.id)
-            finally:
-                task_run_registry.unregister(_snap.id)
-                _sync_runtime_state(_svc, _tsvc, _asvc)
-
-        position = task_queue.submit(task_id, _background_run)
-        if position > 0:
-            logger.info("[Task] QUEUED (waiting for slot) | task_id=%s | queue_position=%d", task_id, position)
+    # NOTE: the actual agent run is driven entirely by the SSE endpoint
+    # POST /llm/agent-graph/run-stream, which registers its own control handle
+    # under conversation_id (== task_id), holds it for the run's lifetime, and
+    # writes completion when the stream ends. Starting a parallel background
+    # job here would register/unregister the same registry key and clobber the
+    # live run's handle (breaking pause/interject/ask_user intermittently) and
+    # persist a premature "completed" status — so we deliberately do not.
 
     return TaskSchema.from_domain(saved)
 

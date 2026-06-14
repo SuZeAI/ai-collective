@@ -22,7 +22,7 @@ class BlockedURLError(ValueError):
 
 
 def _guard_disabled() -> bool:
-    return settings.tools.allow_private_http
+    return settings.security.allow_private_http
 
 
 def _is_blocked_ip(ip: str) -> bool:

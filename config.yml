@@ -1,261 +1,285 @@
-# ══════════════════════════════════════════════════════════════════════════════
+# ============================================================================
 # AI Collective — Non-secret configuration
-# ──────────────────────────────────────────────────────────────────────────────
+# ============================================================================
 # This file holds NON-SECRET operational config (modes, timeouts, ports, URLs,
-# budgets). It is committed to git. Secrets (API keys, JWT secret, DB/router
-# credentials) live in .env — see .env.template.
+# budgets) plus references to secrets. It is committed to git.
 #
 # Layering, low → high priority:
 #     code defaults  <  config.yml  <  .env  <  OS environment
-# Anything set in .env or the shell overrides the value here. Section names
-# (app:, llm: …) are cosmetic grouping only; the UPPER_CASE leaf keys are the
-# canonical env-var names. Override the file location with CONFIG_FILE=...
+# Anything set in .env or the shell overrides the value here.
 #
-# Env references: any value may embed ${VAR} or ${VAR:-default}, expanded from
-# the environment (.env / shell) at load time — e.g. LLM_MODEL: ${MY_MODEL:-gemini-3-flash-preview}.
-# Use this to pull a secret/host in without duplicating it. An unset var with no
+# STRUCTURE: nested, lowercase keys. Each top-level section maps to one settings
+# group; each leaf key is that group's field name. The loader resolves every
+# leaf to its canonical env-var name and never clobbers a value already set by
+# .env / the shell. Override the file location with CONFIG_FILE=...
+#
+# ENV REFERENCES: any value may embed `$var`, `${var}` or `${var:-default}`,
+# expanded from the environment (.env / shell) at load time. Reference names are
+# resolved case-insensitively — `$mongo_uri` here pulls MONGO_URI from .env. Use
+# this to pull a secret/host in without duplicating it. An unset var with no
 # default becomes empty.
-# ══════════════════════════════════════════════════════════════════════════════
+#
+# SECRETS: real secret VALUES live in .env. They are declared in one place — the
+# `secrets:` block at the bottom — and pulled in via ${var}; LLM provider keys
+# stay grouped under `llm_keys:`. Nothing secret is hard-coded here.
+#
+# TOOLS / SKILLS: per-tool credentials are NO LONGER configured here. Each skill
+# stores its own config (API keys, tokens, endpoints) in MongoDB, edited via the
+# UI. Only the global tool flags under `security:` remain.
+# ============================================================================
+
+# Bump when the schema changes (renamed/moved sections). Currently informational.
+config_version: 1
 
 # ── Application ───────────────────────────────────────────────────────────────
 app:
-  ENVIRONMENT: development            # development | production (prod enforces a strong JWT secret)
-  API_PREFIX: /api/v1
-  CORS_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080,http://localhost:2026,http://127.0.0.1:2026"
-  FRONTEND_URL: http://localhost:2026
-  VITE_API_BASE_URL: http://localhost:2026/api/v1
+  environment: development            # development | production (prod enforces a strong JWT secret)
+  api_prefix: /api/v1
+  cors_origins: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080,http://localhost:2026,http://127.0.0.1:2026"
+  frontend_url: http://localhost:2026
+  vite_api_base_url: http://localhost:2026/api/v1
 
 # ── Logging ─────────────────────────────────────────────────────────────────
 logging:
-  LOG_LEVEL: debug                    # CRITICAL | ERROR | WARNING | INFO | DEBUG
-  LOG_CONSOLE: true
-  LOG_FILE: true
-  LOG_MAX_BYTES: 10485760
-  LOG_BACKUP_COUNT: 5
+  log_level: debug                    # critical | error | warning | info | debug
+  log_console: true
+  log_file: true
+  log_max_bytes: 10485760
+  log_backup_count: 5
 
-# ── LLM providers ─────────────────────────────────────────────────────────────
-# API keys stay in .env and are surfaced through the `secrets:` section below.
+# ── LLM provider ──────────────────────────────────────────────────────────────
+# API keys live in `llm_keys:` below (pulled from .env via $var).
 llm:
-  LLM_PROVIDER: google
-  LLM_MODEL: gemini-3-flash-preview
-  # LLM_API_BASE: http://localhost:11434/v1   # custom base URL (Ollama / LiteLLM)
+  provider: google
+  model: gemini-3-flash-preview
+  # api_base: http://localhost:11434/v1   # custom base URL (Ollama / LiteLLM)
   # ── Optional middleware knobs ──
-  LLM_TOOL_RETRY_MAX: 2               # retries for transient tool failures
-  # LLM_FALLBACK_MODELS: gemini-2.0-flash,gpt-4o-mini   # ModelFallbackMiddleware
-  LLM_SUMMARIZATION_ENABLED: false    # SummarizationMiddleware on/off
-  # LLM_SUMMARIZATION_MODEL: gemini-2.0-flash
-  LLM_SUMMARIZATION_TRIGGER_TOKENS: 8000
-  LLM_SUMMARIZATION_KEEP_MESSAGES: 20
+  tool_retry_max: 2                   # retries for transient tool failures
+  # fallback_models: gemini-2.0-flash,gpt-4o-mini   # ModelFallbackMiddleware
+  summarization_enabled: false        # SummarizationMiddleware on/off
+  # summarization_model: gemini-2.0-flash
+  summarization_trigger_tokens: 8000
+  summarization_keep_messages: 20
+  # ── Failover / key rotation ──
+  # rotate  → built-in multi-key rotation (list several keys per provider below)
+  # 9router → delegate to the 9Router gateway (aliases: router, nine-router, off)
+  failover:
+    strategy: rotate
+    rotate_max_requests_per_min: 0    # per-key RPM budget, 0 = unlimited
+    rotate_max_tokens_per_min: 0      # per-key TPM budget, 0 = unlimited
+    key_cooldown_seconds: 60          # how long an errored key is skipped before retry
 
-# ── LLM failover / key rotation ───────────────────────────────────────────────
-# rotate  → built-in multi-key rotation (list several keys in .env)
-# 9router → delegate to the 9Router gateway (aliases: router, nine-router, off)
-llm_failover:
-  LLM_FAILOVER_STRATEGY: rotate
-  LLM_ROTATE_MAX_REQUESTS_PER_MIN: 0  # per-key RPM budget, 0 = unlimited
-  LLM_ROTATE_MAX_TOKENS_PER_MIN: 0    # per-key TPM budget, 0 = unlimited
-  LLM_KEY_COOLDOWN_SECONDS: 60        # how long an errored key is skipped before retry
+# ── LLM provider API keys (secrets) ───────────────────────────────────────────
+# Each value may hold ONE key or SEVERAL comma-separated keys (enables rotation).
+# Values are pulled from .env so the secret never touches git.
+llm_keys:
+  google_api_key: $google_api_key
+  anthropic_api_key: $anthropic_api_key
+  openai_api_key: $openai_api_key
+  open_weight_api_key: $openrouter_api_key
+  kimi_api_key: $kimi_api_key
 
 # ── 9Router gateway (docker profile: router) ──────────────────────────────────
-# ROUTER_JWT_SECRET and ROUTER_INITIAL_PASSWORD are secrets → .env.
+# router_jwt_secret / router_initial_password are secrets → see `secrets:` block.
 router:
-  ROUTER_PORT: 20128
-  ROUTER_PUBLIC_URL: http://localhost:20128
+  port: 20128
+  public_url: http://localhost:20128
 
 # ── Agent / tools ─────────────────────────────────────────────────────────────
 agent:
-  AGENT_MAX_TOOL_ROUNDS: 6            # max LLM<->tool rounds per agent turn
-  TOOL_TIMEOUT_SECONDS: 0             # per-tool timeout, 0 = disabled
-  SUBAGENT_MAX_CONCURRENT: 3
-  SUBAGENT_MAX_TURNS: 6
-  AGENT_CONTEXT_TOKEN_LIMIT: 12000    # context budget per agent turn
-  AGENT_OUTPUT_TOKEN_RESERVE: 2000    # tokens reserved for the model's reply
-  AGENT_LLM_TIMEOUT_SECONDS: 120      # per LLM call timeout
-  AGENT_LLM_MAX_RETRIES: 2            # per LLM call retries
-  AGENT_ASK_USER_TIMEOUT_SECONDS: 600 # how long an ask_user prompt waits
-  # MESH_FANOUT_MAX_CONCURRENT:        # mesh fan-out cap (defaults to SUBAGENT_MAX_CONCURRENT)
+  max_tool_rounds: 6                  # max LLM<->tool rounds per agent turn
+  tool_timeout_seconds: 0             # per-tool timeout, 0 = disabled
+  subagent_max_concurrent: 3
+  subagent_max_turns: 6
+  context_token_limit: 12000          # context budget per agent turn
+  output_token_reserve: 2000          # tokens reserved for the model's reply
+  llm_timeout_seconds: 120            # per LLM call timeout
+  llm_max_retries: 2                  # per LLM call retries
+  ask_user_timeout_seconds: 600       # how long an ask_user prompt waits
+  # mesh_fanout_max_concurrent:        # mesh fan-out cap (defaults to subagent_max_concurrent)
 
 # ── Storage ───────────────────────────────────────────────────────────────────
 storage:
-  STORAGE_BACKEND: mongo              # json (file) | mongo
-  STORAGE_DIR: local_database         # live DB dir (relative to project root)
-  SEED_DIR: storage                   # read-only default catalog seeded FROM
+  backend: mongo                      # json (file) | mongo
+  dir: local_database                 # live DB dir (relative to project root)
+  seed_dir: storage                   # read-only default catalog seeded FROM
 
-# ── MongoDB (used when STORAGE_BACKEND=mongo) ─────────────────────────────────
-# MONGO_URI contains credentials → keep it in .env.
+# ── MongoDB (used when storage.backend=mongo) ─────────────────────────────────
+# mongo_uri (contains credentials) is a secret → see `secrets:` block.
 mongo:
-  MONGO_DB: ai_collective
+  db: ai_collective
 
 # ── Graph knowledge extraction ────────────────────────────────────────────────
 graph:
-  GRAPH_BUILD_MODE: static            # static (spaCy, no token cost) | llm
-  # GRAPH_LLM_PROVIDER: google
-  # GRAPH_LLM_MODEL: gemini-3-flash-preview
+  build_mode: static                  # static (spaCy, no token cost) | llm
+  # llm_provider: google
+  # llm_model: gemini-3-flash-preview
 
 # ── Task queue ────────────────────────────────────────────────────────────────
-# RABBITMQ_URL contains credentials → .env.
+# rabbitmq_url (contains credentials) is a secret → see `secrets:` block.
 task_queue:
-  TASK_QUEUE_BACKEND: rabbitmq        # memory (single instance) | rabbitmq
-  TASK_QUEUE_MAX_CONCURRENT: 3
+  backend: rabbitmq                   # memory (single instance) | rabbitmq
+  max_concurrent: 3
 
 # ── Repository lock ───────────────────────────────────────────────────────────
-# REDIS_URL contains credentials → .env.
+# redis_url (contains credentials) is a secret → see `secrets:` block.
 lock:
-  LOCK_BACKEND: redis                 # threading (single instance) | redis
+  backend: redis                      # threading (single instance) | redis
 
 # ── Sandbox ───────────────────────────────────────────────────────────────────
 sandbox:
-  SANDBOX_MODE: local                 # local | docker | k8s
-  SANDBOX_TIMEOUT: 120
-  SANDBOX_HOST: localhost
+  mode: local                         # local | docker | k8s
+  timeout: 120
+  host: localhost
   # docker mode:
-  # SANDBOX_IMAGE: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
-  # SANDBOX_BASE_PORT: 8080
-  # SANDBOX_CONTAINER_PREFIX: ai-collective-sandbox
-  # SANDBOX_REPLICAS: 3
-  # SANDBOX_IDLE_TIMEOUT: 600
+  # image: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
+  # base_port: 8080
+  # container_prefix: ai-collective-sandbox
+  # replicas: 3
+  # idle_timeout: 600
   # k8s mode:
-  # SANDBOX_PROVISIONER_URL: http://provisioner:8002
+  # provisioner_url: http://provisioner:8002
 
 # ── Authentication / JWT ──────────────────────────────────────────────────────
-# JWT_SECRET_KEY and Google OAuth client id/secret are secrets → .env.
+# jwt_secret_key, google_login_client_id/secret, and the OAuth/credentials file
+# paths are secrets → see `secrets:` block.
 auth:
-  JWT_ALGORITHM: HS256
-  JWT_ACCESS_TOKEN_EXPIRE_MINUTES: 10080   # 7 days
-  GOOGLE_LOGIN_REDIRECT_URI: http://127.0.0.1:2026/api/v1/auth/google/callback
-  GOOGLE_OAUTH_REDIRECT_URI: http://127.0.0.1:2026/api/v1/auth/oauth/callback
+  jwt_algorithm: HS256
+  jwt_access_token_expire_minutes: 10080   # 7 days
+  google_login_redirect_uri: http://127.0.0.1:2026/api/v1/auth/google/callback
+  google_oauth_redirect_uri: http://127.0.0.1:2026/api/v1/auth/oauth/callback
 
 # ── Agent working memory ──────────────────────────────────────────────────────
 working_memory:
-  WORKING_MEMORY_ENABLED: true
-  WORKING_MEMORY_MAX_NOTES: 40
-  WORKING_MEMORY_COMPACT_TOKENS: 1500
-  WORKING_MEMORY_NOTE_CHARS: 600
-  WORKING_MEMORY_SUMMARY_CHARS: 3000
-  WORKING_MEMORY_DIGEST_CHARS: 4000
+  enabled: true
+  max_notes: 40
+  compact_tokens: 1500
+  note_chars: 600
+  summary_chars: 3000
+  digest_chars: 4000
 
 # ── MCP (Model Context Protocol) ──────────────────────────────────────────────
 # Per-server connection config is declared in mcp.yml (see that file).
 mcp:
-  MCP_DISCOVERY_TIMEOUT_SECONDS: 30   # list_tools handshake ceiling at bind time
-  MCP_CALL_TIMEOUT_SECONDS: 60        # default per-tool-call timeout
-  MCP_AUTO_SEED: true                 # seed enabled servers from mcp.yml on boot
-  MCP_CONFIG_FILE: mcp.yml            # path to the MCP declarations (relative to root)
+  discovery_timeout_seconds: 30       # list_tools handshake ceiling at bind time
+  call_timeout_seconds: 60            # default per-tool-call timeout
+  auto_seed: true                     # seed enabled servers from mcp.yml on boot
+  config_file: mcp.yml                # path to the MCP declarations (relative to root)
 
 # ── Admin bootstrap ───────────────────────────────────────────────────────────
-# ADMIN_PASSWORD is a secret → .env.
+# admin_password is a secret → see `secrets:` block.
 admin:
-  ADMIN_EMAIL: admin@aicollective.com
-  ADMIN_NAME: Administrator
-  ADMIN_AUTO_SEED: true
+  email: admin@aicollective.com
+  name: Administrator
+  auto_seed: true
 
 # ── Default catalog seed ──────────────────────────────────────────────────────
 seed:
-  SEED_DEFAULT_DATA: true
+  default_data: true
 
 # ── Browser automation (agent browser tools) ──────────────────────────────────
 browser:
-  MODEL_NAME: gemini-2.0-flash
-  MODEL_PROVIDER: google_genai
-  TEMPERATURE: 0.0
-  MAX_TOKENS: 1024
-  # API_BASE:
+  model_name: gemini-2.0-flash
+  model_provider: google_genai
+  temperature: 0.0
+  max_tokens: 1024
+  # api_base:
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Secrets — declared here, VALUES live in .env and are pulled in via ${VAR}.
-# This keeps config.yml the single declaration point for every config key while
-# the actual secret never touches git. If a var is unset it expands to empty and
-# .env / OS env still win (loader uses setdefault).
-# ══════════════════════════════════════════════════════════════════════════════
-secrets:
-  # LLM provider API keys (one or several comma-separated → enables rotation)
-  GOOGLE_API_KEY: ${GOOGLE_API_KEY}
-  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-  OPENAI_API_KEY: ${OPENAI_API_KEY}
-  OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-  KIMI_API_KEY: ${KIMI_API_KEY}
-  # Auth / JWT
-  JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-  GOOGLE_LOGIN_CLIENT_ID: ${GOOGLE_LOGIN_CLIENT_ID}
-  GOOGLE_LOGIN_CLIENT_SECRET: ${GOOGLE_LOGIN_CLIENT_SECRET}
-  GOOGLE_OAUTH_CLIENT_SECRET_PATH: ${GOOGLE_OAUTH_CLIENT_SECRET_PATH}
-  CREDENTIALS_PATH: ${CREDENTIALS_PATH}
-  SERVICE_ACCOUNT_PATH: ${SERVICE_ACCOUNT_PATH}
-  # 9Router gateway
-  ROUTER_JWT_SECRET: ${ROUTER_JWT_SECRET}
-  ROUTER_INITIAL_PASSWORD: ${ROUTER_INITIAL_PASSWORD}
-  # Datastores (credentials embedded in the URI)
-  MONGO_URI: ${MONGO_URI}
-  RABBITMQ_URL: ${RABBITMQ_URL}
-  REDIS_URL: ${REDIS_URL}
-  # Admin bootstrap
-  ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+# ── Tool runtime flags (global, NOT per-skill) ────────────────────────────────
+# Per-tool credentials are configured in the UI and stored in MongoDB. Only
+# these process-wide flags remain in the file.
+security:
+  allow_private_http: false           # allow tools to reach private/loopback IPs
+  last30days_debug: false             # verbose HTTP debug logging
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Tool credentials / endpoints — same ${VAR} pattern. Non-secret defaults are set
-# inline; secret tokens are pulled from .env. A tool whose token is empty simply
-# stays disabled until configured.
-# ══════════════════════════════════════════════════════════════════════════════
+# ── Tool credential fallbacks ─────────────────────────────────────────────────
+# Per-tool credentials are PRIMARILY set per-skill in the UI (stored in MongoDB)
+# and passed to each toolkit. The entries below are env-backed FALLBACKS, used
+# only when a skill leaves a field empty — values pulled from .env. Non-secret
+# defaults (xai_model, viber_sender_name) are inline. An unset var expands to
+# empty, which simply leaves that tool disabled until configured.
 tools:
   # ── Search / scraping ──
-  BRAVE_SEARCH_API_KEY: ${BRAVE_SEARCH_API_KEY}
-  PARALLEL_API_KEY: ${PARALLEL_API_KEY}
-  SCRAPECREATORS_API_KEY: ${SCRAPECREATORS_API_KEY}
-  TRUTHSOCIAL_TOKEN: ${TRUTHSOCIAL_TOKEN}
-  XIAOHONGSHU_API_BASE_URL: ${XIAOHONGSHU_API_BASE_URL}
-  AUTH_TOKEN: ${AUTH_TOKEN}             # bird_x — X auth_token cookie
-  CT0: ${CT0}                           # bird_x — X ct0 cookie
-  BIRD_SEARCH_MJS: ${BIRD_SEARCH_MJS}
+  brave_search_api_key: ${brave_search_api_key}
+  parallel_api_key: ${parallel_api_key}
+  openrouter_api_key: ${openrouter_api_key}
+  scrapecreators_api_key: ${scrapecreators_api_key}
+  truthsocial_token: ${truthsocial_token}
+  xiaohongshu_api_base_url: ${xiaohongshu_api_base_url}
+  auth_token: ${auth_token}             # bird_x — X auth_token cookie
+  ct0: ${ct0}                           # bird_x — X ct0 cookie
+  bird_search_mjs: ${bird_search_mjs}
   # ── X / xAI ──
-  XAI_API_KEY: ${XAI_API_KEY}
-  XAI_MODEL: grok-4-fast
+  xai_api_key: ${xai_api_key}
+  xai_model: grok-4-fast
   # ── Bluesky ──
-  BSKY_HANDLE: ${BSKY_HANDLE}
-  BSKY_APP_PASSWORD: ${BSKY_APP_PASSWORD}
+  bsky_handle: ${bsky_handle}
+  bsky_app_password: ${bsky_app_password}
   # ── Messaging ──
-  SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
-  SLACK_DEFAULT_CHANNEL: ${SLACK_DEFAULT_CHANNEL}
-  DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
-  DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
-  DISCORD_CHANNEL_ID: ${DISCORD_CHANNEL_ID}
-  TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-  TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
-  TEAMS_WEBHOOK_URL: ${TEAMS_WEBHOOK_URL}
-  SIGNAL_PHONE_NUMBER: ${SIGNAL_PHONE_NUMBER}
-  SIGNAL_CALLMEBOT_API_KEY: ${SIGNAL_CALLMEBOT_API_KEY}
-  SKYPE_BOT_APP_ID: ${SKYPE_BOT_APP_ID}
-  SKYPE_BOT_APP_PASSWORD: ${SKYPE_BOT_APP_PASSWORD}
-  SKYPE_SERVICE_URL: ${SKYPE_SERVICE_URL}
-  SKYPE_CONVERSATION_ID: ${SKYPE_CONVERSATION_ID}
-  SNAPCHAT_ACCESS_TOKEN: ${SNAPCHAT_ACCESS_TOKEN}
-  SNAPCHAT_AD_ACCOUNT_ID: ${SNAPCHAT_AD_ACCOUNT_ID}
-  WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN}
-  WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID}
-  WECHAT_APP_ID: ${WECHAT_APP_ID}
-  WECHAT_APP_SECRET: ${WECHAT_APP_SECRET}
-  VIBER_AUTH_TOKEN: ${VIBER_AUTH_TOKEN}
-  VIBER_SENDER_NAME: AI Assistant
-  WIRE_BEARER_TOKEN: ${WIRE_BEARER_TOKEN}
-  WIRE_CONVERSATION_ID: ${WIRE_CONVERSATION_ID}
-  ZALO_OA_ACCESS_TOKEN: ${ZALO_OA_ACCESS_TOKEN}
-  LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN}
-  MESSENGER_PAGE_ACCESS_TOKEN: ${MESSENGER_PAGE_ACCESS_TOKEN}
-  INSTAGRAM_PAGE_ACCESS_TOKEN: ${INSTAGRAM_PAGE_ACCESS_TOKEN}
-  INSTAGRAM_USER_ID: ${INSTAGRAM_USER_ID}
+  slack_bot_token: ${slack_bot_token}
+  slack_default_channel: ${slack_default_channel}
+  discord_bot_token: ${discord_bot_token}
+  discord_webhook_url: ${discord_webhook_url}
+  discord_channel_id: ${discord_channel_id}
+  telegram_bot_token: ${telegram_bot_token}
+  telegram_chat_id: ${telegram_chat_id}
+  teams_webhook_url: ${teams_webhook_url}
+  signal_phone_number: ${signal_phone_number}
+  signal_callmebot_api_key: ${signal_callmebot_api_key}
+  skype_bot_app_id: ${skype_bot_app_id}
+  skype_bot_app_password: ${skype_bot_app_password}
+  skype_service_url: ${skype_service_url}
+  skype_conversation_id: ${skype_conversation_id}
+  snapchat_access_token: ${snapchat_access_token}
+  snapchat_ad_account_id: ${snapchat_ad_account_id}
+  whatsapp_access_token: ${whatsapp_access_token}
+  whatsapp_phone_number_id: ${whatsapp_phone_number_id}
+  wechat_app_id: ${wechat_app_id}
+  wechat_app_secret: ${wechat_app_secret}
+  viber_auth_token: ${viber_auth_token}
+  viber_sender_name: AI Assistant
+  wire_bearer_token: ${wire_bearer_token}
+  wire_conversation_id: ${wire_conversation_id}
+  zalo_oa_access_token: ${zalo_oa_access_token}
+  line_channel_access_token: ${line_channel_access_token}
+  messenger_page_access_token: ${messenger_page_access_token}
+  instagram_page_access_token: ${instagram_page_access_token}
+  instagram_user_id: ${instagram_user_id}
   # ── Media generation ──
-  GEMINI_API_KEY: ${GEMINI_API_KEY}
-  IMAGE_GEN_API_KEY: ${IMAGE_GEN_API_KEY}
-  VIDEO_GEN_API_KEY: ${VIDEO_GEN_API_KEY}
-  VIDEO_GEN_CREATE_ENDPOINT: ${VIDEO_GEN_CREATE_ENDPOINT}
-  VIDEO_GEN_STATUS_ENDPOINT: ${VIDEO_GEN_STATUS_ENDPOINT}
-  TTS_API_KEY: ${TTS_API_KEY}
-  TTS_OUTPUT_DIR: ${TTS_OUTPUT_DIR}
+  gemini_api_key: ${gemini_api_key}
+  image_gen_api_key: ${image_gen_api_key}
+  video_gen_api_key: ${video_gen_api_key}
+  video_gen_create_endpoint: ${video_gen_create_endpoint}
+  video_gen_status_endpoint: ${video_gen_status_endpoint}
+  tts_api_key: ${tts_api_key}
+  tts_output_dir: ${tts_output_dir}
   # ── Google workspace token paths ──
-  GOOGLE_CALENDAR_TOKEN_PATH: ${GOOGLE_CALENDAR_TOKEN_PATH}
-  GOOGLE_DOCS_TOKEN_PATH: ${GOOGLE_DOCS_TOKEN_PATH}
-  GOOGLE_DRIVE_TOKEN_PATH: ${GOOGLE_DRIVE_TOKEN_PATH}
-  GOOGLE_SHEETS_TOKEN_PATH: ${GOOGLE_SHEETS_TOKEN_PATH}
-  GOOGLE_SLIDES_TOKEN_PATH: ${GOOGLE_SLIDES_TOKEN_PATH}
-  # ── Tool runtime flags ──
-  ALLOW_PRIVATE_HTTP: false            # allow tools to reach private/loopback IPs
-  LAST30DAYS_DEBUG: false
+  google_calendar_token_path: ${google_calendar_token_path}
+  google_docs_token_path: ${google_docs_token_path}
+  google_drive_token_path: ${google_drive_token_path}
+  google_sheets_token_path: ${google_sheets_token_path}
+  google_slides_token_path: ${google_slides_token_path}
+
+# ============================================================================
+# Secrets — declared here, VALUES live in .env and are pulled in via ${var}.
+# Single declaration point for every non-LLM secret (LLM provider keys stay
+# grouped under `llm_keys:` above). Keys are lowercase env-var names. An unset
+# var expands to empty and .env / OS env still win (loader uses setdefault).
+# ============================================================================
+secrets:
+  # Auth / JWT
+  jwt_secret_key: ${jwt_secret_key}
+  google_login_client_id: ${google_login_client_id}
+  google_login_client_secret: ${google_login_client_secret}
+  google_oauth_client_secret_path: ${google_oauth_client_secret_path}
+  credentials_path: ${credentials_path}
+  service_account_path: ${service_account_path}
+  # 9Router gateway
+  router_jwt_secret: ${router_jwt_secret}
+  router_initial_password: ${router_initial_password}
+  # Datastores (credentials embedded in the URI)
+  mongo_uri: ${mongo_uri}
+  rabbitmq_url: ${rabbitmq_url}
+  redis_url: ${redis_url}
+  # Admin bootstrap
+  admin_password: ${admin_password}

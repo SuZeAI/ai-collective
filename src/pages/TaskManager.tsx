@@ -14,6 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
 import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
+import { useRunEngine, type GraphHighlight, type UserInputRequest } from "@/contexts/RunEngineContext";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
 import { cn } from "@/lib/utils";
@@ -62,25 +63,6 @@ const formatTaskDateTime = (date: Date) => {
     minute: "2-digit",
     second: "2-digit",
   });
-};
-
-// ask_user tool: an agent is blocked waiting for the user's answer.
-type UserInputRequest = {
-  requestId: string;
-  agentId?: string;
-  agentName?: string;
-  question: string;
-  options: string[];
-  allowFreeText: boolean;
-};
-
-type GraphHighlight = {
-  nodeIds: string[];
-  edgeIds: string[];
-  chunkIds: string[];
-  agentId?: string;
-  agentName?: string;
-  updatedAt: string;
 };
 
 type GraphViewport = {
@@ -187,24 +169,37 @@ const getGraphLayout = (nodes: GraphContextSnapshot["nodes"], width: number, hei
 
 export default function TaskManager() {
   const scope = useWorkspaceScope();
-  const [taskList, setTaskList] = useState<Task[]>([]);
+  // Shared run engine (lives above the router): owns the streaming loop and all
+  // run-state so a task keeps running and stays in sync when navigating away.
+  const engine = useRunEngine();
+  const {
+    tasks: taskList,
+    conversations: taskConversations,
+    thinkingAgents,
+    activeFanouts,
+    graphSnapshots: taskGraphSnapshots,
+    graphHighlights: taskGraphHighlights,
+    loadingGraphTaskIds,
+    heldTaskIds,
+    pendingInterjections,
+    userInputRequests,
+    loadingConversationTaskIds,
+    updatingTaskIds,
+    sendingInterjectTaskIds,
+    holdTogglingTaskIds,
+    respondingRequestIds,
+    interjectErrors,
+    isStreaming,
+  } = engine;
+
   const [teamList, setTeamList] = useState<Team[]>([]);
   const [agentList, setAgentList] = useState<Agent[]>([]);
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [teamId, setTeamId] = useState("");
-  const [updatingTaskIds, setUpdatingTaskIds] = useState<Set<string>>(new Set());
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [taskConversations, setTaskConversations] = useState<Record<string, Message[]>>({});
-  const [loadingConversationTaskIds, setLoadingConversationTaskIds] = useState<Set<string>>(new Set());
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
-  const [thinkingAgents, setThinkingAgents] = useState<Record<string, Set<string>>>({});
-  // Parallel fan-out: the coordinator dispatched a wave of agents that run
-  // concurrently. Keyed by task id; cleared on fanout_complete / run end.
-  const [activeFanouts, setActiveFanouts] = useState<Record<string, { coordinator?: string; targets: string[] }>>({});
-  const [taskGraphSnapshots, setTaskGraphSnapshots] = useState<Record<string, GraphContextSnapshot>>({});
-  const [taskGraphHighlights, setTaskGraphHighlights] = useState<Record<string, GraphHighlight>>({});
-  const [loadingGraphTaskIds, setLoadingGraphTaskIds] = useState<Set<string>>(new Set());
+  // Graph viewport/layout are per-viewer presentation over engine-owned snapshots.
   const [taskGraphViewports, setTaskGraphViewports] = useState<Record<string, GraphViewport>>({});
   const [taskGraphPositions, setTaskGraphPositions] = useState<Record<string, Record<string, GraphNodePosition>>>({});
   const [searchParams, setSearchParams] = useSearchParams();
@@ -212,21 +207,9 @@ export default function TaskManager() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "completed" | "pending">("all");
   const [open, setOpen] = useState(false);
   const [viewTaskId, setViewTaskId] = useState<string | null>(null);
-  // Human-in-the-loop: draft text, in-flight flag, queued-but-not-yet-injected
-  // message ids, and last send error — all keyed by task id.
+  // Human-in-the-loop composer draft and ask_user free-text drafts (UI-local).
   const [humanInputs, setHumanInputs] = useState<Record<string, string>>({});
-  const [sendingInterjectTaskIds, setSendingInterjectTaskIds] = useState<Set<string>>(new Set());
-  const [pendingInterjections, setPendingInterjections] = useState<Record<string, Set<string>>>({});
-  const [interjectErrors, setInterjectErrors] = useState<Record<string, string>>({});
-  // Interrupt/Resume: tasks whose run is held at a turn boundary so the user
-  // can chat, plus in-flight flags for the pause/resume API calls.
-  const [heldTaskIds, setHeldTaskIds] = useState<Set<string>>(new Set());
-  const [holdTogglingTaskIds, setHoldTogglingTaskIds] = useState<Set<string>>(new Set());
-  // ask_user tool: open questions per task, free-text drafts and in-flight
-  // answers keyed by request id.
-  const [userInputRequests, setUserInputRequests] = useState<Record<string, UserInputRequest[]>>({});
   const [userRequestDrafts, setUserRequestDrafts] = useState<Record<string, string>>({});
-  const [respondingRequestIds, setRespondingRequestIds] = useState<Set<string>>(new Set());
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const [graphPanelVisible, setGraphPanelVisible] = useState(false);
   const [graphActivityCollapsed, setGraphActivityCollapsed] = useState(false);
@@ -244,8 +227,6 @@ export default function TaskManager() {
     startPoint: { x: number; y: number };
     startPositions: Record<string, GraphNodePosition>;
   } | null>(null);
-  // Track active SSE stream controllers so stop/pause can cancel them immediately
-  const activeStreamsRef = useRef<Map<string, AbortController>>(new Map());
 
 
 
@@ -255,7 +236,9 @@ export default function TaskManager() {
       try {
         const [tasks, teams, agents] = await Promise.all([api.listTasks(), api.listTeams(), api.listAgents()]);
         if (cancelled) return;
-        setTaskList(tasks);
+        // Reconcile with the engine: it keeps the lead for any task it's actively
+        // streaming, and seeds conversations only where it has no live transcript.
+        engine.ingestTasks(tasks);
         setTeamList(teams);
         setAgentList(agents);
 
@@ -266,15 +249,9 @@ export default function TaskManager() {
               tasks.map(async (task) => ({ id: task.id, messages: await api.listConversations(task.id) }))
             );
             if (!cancelled) {
-              setTaskConversations((prev) => {
-                const next = { ...prev };
-                for (const item of results) {
-                  if (item.messages.length > 0) {
-                    next[item.id] = item.messages;
-                  }
-                }
-                return next;
-              });
+              for (const item of results) {
+                engine.ingestConversations(item.id, item.messages);
+              }
             }
           } catch (e) {
             console.error("Failed to load conversations:", e);
@@ -287,6 +264,7 @@ export default function TaskManager() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const agentById = useMemo(() => {
@@ -294,6 +272,16 @@ export default function TaskManager() {
     agentList.forEach((a) => map.set(a.id, a));
     return map;
   }, [agentList]);
+
+  // The engine is team-agnostic; the page supplies the team's run config.
+  const teamRunOpts = (task: Task) => {
+    const team = teamList.find((t) => t.id === task.teamId);
+    // Custom mode runs the user-drawn flow; if it was never wired, fall back to
+    // sequential so the task still executes.
+    const customGraph = team ? buildCustomGraphPayload(team) : undefined;
+    const mode = team?.mode === "custom" && !customGraph ? "sequential" : (team?.mode ?? "sequential");
+    return { mode, maxSteps: team?.maxSteps ?? 6, customGraph };
+  };
 
   const filteredTasks = useMemo(() => {
     return taskList.filter((task) => {
@@ -422,33 +410,17 @@ export default function TaskManager() {
     });
   };
 
-  const loadTaskGraphContext = async (taskId: string) => {
-    setLoadingGraphTaskIds((prev) => {
-      const next = new Set(prev);
-      next.add(taskId);
-      return next;
-    });
-    try {
-      const snapshot = await api.getTaskGraphContext(taskId);
-      setTaskGraphSnapshots((prev) => ({
-        ...prev,
-        [taskId]: snapshot,
-      }));
-      syncTaskGraphPositions(taskId, snapshot);
-    } catch (e) {
-      console.error("Failed to load task graph context:", e);
-    } finally {
-      setLoadingGraphTaskIds((prev) => {
-        const next = new Set(prev);
-        next.delete(taskId);
-        return next;
-      });
+  // Snapshots are owned by the engine; keep the local layout positions in sync
+  // whenever a snapshot changes (engine.loadGraph / live message_ingested events).
+  useEffect(() => {
+    for (const taskId of Object.keys(taskGraphSnapshots)) {
+      syncTaskGraphPositions(taskId, taskGraphSnapshots[taskId]);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskGraphSnapshots]);
 
-  const refreshTaskGraphContext = (taskId: string) => {
-    void loadTaskGraphContext(taskId);
-  };
+  const loadTaskGraphContext = (taskId: string) => engine.loadGraph(taskId);
+  const refreshTaskGraphContext = (taskId: string) => engine.refreshGraph(taskId);
 
   const updateGraphViewport = (taskId: string, updater: (current: GraphViewport) => GraphViewport) => {
     setTaskGraphViewports((prev) => {
@@ -588,7 +560,7 @@ export default function TaskManager() {
     const existing = editingTaskId ? taskList.find((t) => t.id === editingTaskId) : undefined;
     const team = teamList.find((t) => t.id === teamId);
     try {
-      const saved = await api.upsertTask({
+      await engine.upsertTask({
         id: editingTaskId ?? undefined,
         title: title.trim(),
         description: desc,
@@ -597,13 +569,6 @@ export default function TaskManager() {
         progress: existing?.progress ?? 0,
         assignedAgents: team?.agents || [],
       });
-      setTaskList((prev) => {
-        const idx = prev.findIndex((t) => t.id === saved.id);
-        if (idx === -1) return [...prev, saved];
-        const next = [...prev];
-        next[idx] = saved;
-        return next;
-      });
       resetForm();
       setOpen(false);
     } catch (e) {
@@ -611,468 +576,44 @@ export default function TaskManager() {
     }
   };
 
-  const updateTaskStatus = async (task: Task, status: Task["status"]) => {
+  // Dispatch the detail-panel status buttons to the shared engine. Start/restart
+  // opens the run stream (which lives in the engine, so it survives navigation);
+  // the engine aborts on stop/pause and clears run state when restarting.
+  const updateTaskStatus = (task: Task, status: Task["status"]) => {
     if (task.status === status) return;
-
-    // Stop/pause: cancel the active stream immediately before anything else
-    if (status === "stopped" || status === "paused") {
-      const controller = activeStreamsRef.current.get(task.id);
-      if (controller) {
-        controller.abort();
-        activeStreamsRef.current.delete(task.id);
-      }
-    } else if (updatingTaskIds.has(task.id)) {
-      // For other transitions, prevent concurrent updates
-      return;
+    if (status === "in-progress") {
+      openTaskView(task.id);
+      void engine.startTask(task, teamRunOpts(task));
+    } else if (status === "stopped") {
+      void engine.stopTask(task);
+    } else if (status === "paused") {
+      void engine.pauseTask(task);
     }
-
-    setUpdatingTaskIds((prev) => new Set(prev).add(task.id));
-    try {
-      const updated = await api.upsertTask({
-        ...task,
-        status,
-      });
-      setTaskList((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
-
-      // If starting the task, stream agent responses
-      if (status === "in-progress" && updated.assignedAgents.length > 0) {
-        // Clear old run state only when restarting from completed/stopped (not from paused)
-        if (task.status === "completed" || task.status === "stopped") {
-          clearTaskRunState(updated.id);
-        }
-        // paused → in-progress: keep existing conversations so progress is visible
-
-        const formattedInput = `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}`;
-        await runTaskStream(updated, formattedInput);
-      }
-    } catch (e) {
-      if (!(e instanceof DOMException && e.name === "AbortError")) {
-        console.error(e);
-      }
-    } finally {
-      setUpdatingTaskIds((prev) => {
-        const next = new Set(prev);
-        next.delete(task.id);
-        return next;
-      });
-    }
-  };
-
-  // Clear per-task run state (used when restarting a task from scratch).
-  const clearTaskRunState = (taskId: string) => {
-    setTaskConversations((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
-    setTaskGraphSnapshots((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
-    setTaskGraphHighlights((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
-    setTaskGraphPositions((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
-    setPendingInterjections((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
-    setInterjectErrors((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
-    setHeldTaskIds((prev) => { const next = new Set(prev); next.delete(taskId); return next; });
-    setUserInputRequests((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
-    setActiveFanouts((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
-  };
-
-  // Shared stream runner: opens the SSE run stream for a task and feeds every
-  // event into UI state. Used by Start/Restart and by follow-up messages on a
-  // finished task (same conversation_id → the knowledge graph context
-  // persists, so agents continue with full awareness of the previous run).
-  const runTaskStream = async (updated: Task, formattedInput: string) => {
-        const controller = new AbortController();
-        activeStreamsRef.current.set(updated.id, controller);
-
-        openTaskView(updated.id);
-
-        // Reset thinking state for a fresh start/restart.
-        setThinkingAgents((prev) => {
-          const next = { ...prev };
-          delete next[updated.id];
-          return next;
-        });
-
-        setLoadingConversationTaskIds((prev) => {
-          const next = new Set(prev);
-          next.add(updated.id);
-          return next;
-        });
-
-        try {
-          const messages: Message[] = [];
-          const team = teamList.find((t) => t.id === updated.teamId);
-          const teamMaxSteps = team?.maxSteps ?? 6;
-          // Custom mode runs the user-drawn flow; if it was never wired, fall
-          // back to sequential so the task still executes.
-          const customGraph = team ? buildCustomGraphPayload(team) : undefined;
-          const teamMode = team?.mode === "custom" && !customGraph ? "sequential" : (team?.mode ?? "sequential");
-
-          for await (const event of api.runAgentGraphStream({
-            user_input: formattedInput,
-            agents: updated.assignedAgents,
-            max_rounds: teamMaxSteps,
-            mode: teamMode,
-            custom_graph: customGraph,
-            conversation_id: updated.id,
-            signal: controller.signal,
-          })) {
-            // Stream was aborted (stop/pause from user)
-            if (controller.signal.aborted) break;
-
-            // Backend signalled cancellation (stop/pause arrived via status update)
-            if (event.type === "cancelled") break;
-
-            if (event.error) {
-              console.error(event.error);
-              break;
-            }
-
-            // Handle different event types
-            const eventType = event.type;
-            const agentId = event.agent_id || event.agentId || event.agent_name || event.agentName;
-
-            // Handle thinking state (LLM request start)
-            if (eventType === "llm_request_start") {
-              if (!agentId) continue;
-              setThinkingAgents((prev) => ({
-                ...prev,
-                [updated.id]: new Set([...(prev[updated.id] ?? []), agentId]),
-              }));
-            }
-            // Subagent (Agent Mode) delegation: keep the parent agent's
-            // thinking indicator active while its subagent runs.
-            else if (eventType === "subagent_start") {
-              if (agentId) {
-                setThinkingAgents((prev) => ({
-                  ...prev,
-                  [updated.id]: new Set([...(prev[updated.id] ?? []), agentId]),
-                }));
-              }
-              console.debug("subagent_start", event.subagent_type, event.description);
-            }
-            else if (eventType === "subagent_complete") {
-              console.debug("subagent_complete", event.subagent_type, event.error);
-            }
-            // Parallel fan-out: the coordinator dispatched several agents to run
-            // concurrently — show a "parallel wave" banner until it completes.
-            else if (eventType === "fanout_start") {
-              const targets = Array.isArray(event.targets) ? event.targets.map(String) : [];
-              setActiveFanouts((prev) => ({
-                ...prev,
-                [updated.id]: {
-                  coordinator: event.agent_name ? String(event.agent_name) : (agentId ? String(agentId) : undefined),
-                  targets,
-                },
-              }));
-            }
-            else if (eventType === "fanout_complete") {
-              setActiveFanouts((prev) => {
-                const next = { ...prev };
-                delete next[updated.id];
-                return next;
-              });
-            }
-            // ask_user tool: an agent is blocked on a question — show the
-            // card (heartbeats re-announce the same request_id; dedupe).
-            else if (eventType === "user_input_request") {
-              const requestId = String(event.request_id ?? "");
-              if (!requestId) continue;
-              setUserInputRequests((prev) => {
-                const list = prev[updated.id] ?? [];
-                if (list.some((r) => r.requestId === requestId)) return prev;
-                return {
-                  ...prev,
-                  [updated.id]: [
-                    ...list,
-                    {
-                      requestId,
-                      agentId: agentId ? String(agentId) : undefined,
-                      agentName: event.agent_name ? String(event.agent_name) : undefined,
-                      question: String(event.question ?? ""),
-                      options: Array.isArray(event.options) ? event.options.map(String) : [],
-                      allowFreeText: event.allow_free_text !== false,
-                    },
-                  ],
-                };
-              });
-            }
-            // ask_user resolved (answered elsewhere, or timed out) — drop the card.
-            else if (eventType === "user_input_received") {
-              const requestId = String(event.request_id ?? "");
-              setUserInputRequests((prev) => {
-                const list = prev[updated.id];
-                if (!list) return prev;
-                const nextList = list.filter((r) => r.requestId !== requestId);
-                const next = { ...prev };
-                if (nextList.length > 0) next[updated.id] = nextList;
-                else delete next[updated.id];
-                return next;
-              });
-            }
-            // Interrupt/Resume: backend confirmed the hold state (also covers
-            // heartbeats during a long hold — Set add/delete is idempotent).
-            else if (eventType === "run_paused") {
-              setHeldTaskIds((prev) => new Set(prev).add(updated.id));
-            }
-            else if (eventType === "run_resumed") {
-              setHeldTaskIds((prev) => {
-                const next = new Set(prev);
-                next.delete(updated.id);
-                return next;
-              });
-            }
-            // Human-in-the-loop: backend confirmed our queued messages were
-            // injected into the next agent's context — flip their badges.
-            else if (eventType === "user_message_injected") {
-              const injectedIds = Array.isArray(event.message_ids) ? event.message_ids.map(String) : [];
-              setPendingInterjections((prev) => {
-                const current = prev[updated.id];
-                if (!current) return prev;
-                const nextSet = new Set(current);
-                injectedIds.forEach((id) => nextSet.delete(id));
-                const next = { ...prev };
-                if (nextSet.size > 0) next[updated.id] = nextSet;
-                else delete next[updated.id];
-                return next;
-              });
-            }
-            // Highlight the graph context that was retrieved for this agent turn.
-            else if (eventType === "context_retrieved") {
-              setTaskGraphHighlights((prev) => ({
-                ...prev,
-                [updated.id]: {
-                  nodeIds: Array.isArray(event.node_ids) ? event.node_ids.map(String) : [],
-                  edgeIds: Array.isArray(event.edge_ids) ? event.edge_ids.map(String) : [],
-                  chunkIds: Array.isArray(event.chunk_ids) ? event.chunk_ids.map(String) : [],
-                  agentId: agentId ? String(agentId) : undefined,
-                  agentName: event.agent_name ? String(event.agent_name) : agentId ? String(agentId) : undefined,
-                  updatedAt: new Date().toISOString(),
-                },
-              }));
-            }
-            else if (eventType === "message_ingested" || eventType === "graph_context") {
-              refreshTaskGraphContext(updated.id);
-              if (eventType === "graph_context") {
-                setTaskGraphHighlights((prev) => ({
-                  ...prev,
-                  [updated.id]: {
-                    nodeIds: Array.isArray(event.node_ids) ? event.node_ids.map(String) : [],
-                    edgeIds: Array.isArray(event.edge_ids) ? event.edge_ids.map(String) : [],
-                    chunkIds: Array.isArray(event.chunk_ids) ? event.chunk_ids.map(String) : [],
-                    agentId: agentId ? String(agentId) : undefined,
-                    agentName: event.agent_name ? String(event.agent_name) : agentId ? String(agentId) : undefined,
-                    updatedAt: new Date().toISOString(),
-                  },
-                }));
-              }
-            }
-            // Remove thinking state (LLM response complete)
-            else if (eventType === "llm_response_complete") {
-              if (!agentId) continue;
-              setThinkingAgents((prev) => {
-                const next = { ...prev };
-                if (next[updated.id]) {
-                  const newSet = new Set(next[updated.id]);
-                  newSet.delete(agentId);
-                  if (newSet.size > 0) {
-                    next[updated.id] = newSet;
-                  } else {
-                    delete next[updated.id];
-                  }
-                }
-                return next;
-              });
-            }
-            // Only add message when turn is complete
-            else if (eventType === "turn_complete" && event.turn) {
-              const turn = event.turn;
-              const turnAgentId = turn.agent_id || turn.agentId || turn.agent_name || turn.agentName;
-              if (!turnAgentId) continue;
-              const message: Message = {
-                id: `${Date.now()}-${turnAgentId}-${turn.turn}`,
-                agentId: turnAgentId,
-                content: turn.content || "",
-                timestamp: new Date().toISOString(),
-                taskId: updated.id,
-              };
-              setThinkingAgents((prev) => {
-                const next = { ...prev };
-                if (next[updated.id]) {
-                  const newSet = new Set(next[updated.id]);
-                  newSet.delete(turnAgentId);
-                  if (newSet.size > 0) next[updated.id] = newSet;
-                  else delete next[updated.id];
-                }
-                return next;
-              });
-              messages.push(message);
-              setTaskConversations((prev) => ({
-                ...prev,
-                [updated.id]: [...(prev[updated.id] ?? []), message],
-              }));
-              refreshTaskGraphContext(updated.id);
-              // Save message to backend
-              try {
-                await api.addConversation({
-                  agentId: message.agentId,
-                  content: message.content,
-                  taskId: message.taskId,
-                });
-              } catch (e) {
-                console.error("Failed to save message:", e);
-              }
-            }
-            // Fallback for old-style turn objects (if not wrapped in turn_complete event)
-            else if (event.content && !eventType) {
-              if (!agentId) continue;
-              const message: Message = {
-                id: `${Date.now()}-${agentId}-${event.turn}`,
-                agentId: agentId,
-                content: event.content || "",
-                timestamp: new Date().toISOString(),
-                taskId: updated.id,
-              };
-              messages.push(message);
-              setTaskConversations((prev) => ({
-                ...prev,
-                [updated.id]: [...(prev[updated.id] ?? []), message],
-              }));
-              refreshTaskGraphContext(updated.id);
-              try {
-                await api.addConversation({
-                  agentId: message.agentId,
-                  content: message.content,
-                  taskId: message.taskId,
-                });
-              } catch (e) {
-                console.error("Failed to save message:", e);
-              }
-            }
-          }
-
-          // Auto-complete only when stream finished naturally (not cancelled by stop/pause)
-          if (messages.length > 0 && !controller.signal.aborted) {
-            const completed = await api.upsertTask({
-              ...updated,
-              status: "completed",
-              progress: 100,
-            });
-            setTaskList((prev) => prev.map((item) => (item.id === completed.id ? completed : item)));
-          }
-        } catch (e) {
-          // AbortError is expected when stop/pause cancels the stream
-          if (!(e instanceof DOMException && e.name === "AbortError")) {
-            console.error("Stream error:", e);
-          }
-        } finally {
-          activeStreamsRef.current.delete(updated.id);
-          setThinkingAgents((prev) => {
-            const next = { ...prev };
-            delete next[updated.id];
-            return next;
-          });
-          // A wave can never outlive the run.
-          setActiveFanouts((prev) => {
-            const next = { ...prev };
-            delete next[updated.id];
-            return next;
-          });
-          // Run ended — anything still queued can no longer be injected and
-          // open questions can no longer be answered
-          setPendingInterjections((prev) => {
-            const next = { ...prev };
-            delete next[updated.id];
-            return next;
-          });
-          setHeldTaskIds((prev) => {
-            const next = new Set(prev);
-            next.delete(updated.id);
-            return next;
-          });
-          setUserInputRequests((prev) => {
-            const next = { ...prev };
-            delete next[updated.id];
-            return next;
-          });
-          setLoadingConversationTaskIds((prev) => {
-            const next = new Set(prev);
-            next.delete(updated.id);
-            return next;
-          });
-        }
   };
 
   // Follow-up on a finished task: the user reviews the result and sends a new
   // message — the task relaunches in the SAME conversation (knowledge graph
   // context preserved) with the message as the steering instruction, and the
   // existing chat history stays visible.
+  // Follow-up on a finished task: relaunch in the SAME conversation (graph
+  // context preserved) with the message as the steering instruction. The engine
+  // owns the run; the page only supplies the team config and transcript tail.
   const continueTaskWithMessage = async (task: Task) => {
     const content = (humanInputs[task.id] ?? "").trim();
-    if (!content || updatingTaskIds.has(task.id) || activeStreamsRef.current.has(task.id)) return;
+    if (!content || updatingTaskIds.has(task.id) || isStreaming(task.id)) return;
     if (task.assignedAgents.length === 0) return;
-    setUpdatingTaskIds((prev) => new Set(prev).add(task.id));
-    setInterjectErrors((prev) => {
-      const next = { ...prev };
-      delete next[task.id];
-      return next;
-    });
-    try {
-      // Snapshot the recent transcript BEFORE appending the follow-up, so the
-      // new run sees verbatim what was said (the knowledge graph alone is a
-      // lossy, retrieval-based memory — it may miss prior conclusions).
-      const transcriptTail = (taskConversations[task.id] ?? [])
-        .slice(-10)
-        .map((m) => {
-          const speaker = m.agentId === "user" ? "User" : (agentById.get(m.agentId)?.name ?? m.agentId);
-          const text = m.content.length > 600 ? `${m.content.slice(0, 600)}…` : m.content;
-          return `${speaker}: ${text}`;
-        })
-        .join("\n---\n");
-
-      // Show + persist the follow-up message alongside the agent turns
-      const message: Message = {
-        id: `${Date.now()}-followup`,
-        agentId: "user",
-        content,
-        timestamp: new Date().toISOString(),
-        taskId: task.id,
-      };
-      setTaskConversations((prev) => ({
-        ...prev,
-        [task.id]: [...(prev[task.id] ?? []), message],
-      }));
-      setHumanInputs((prev) => ({ ...prev, [task.id]: "" }));
-      try {
-        await api.addConversation({ agentId: "user", content, taskId: task.id });
-      } catch (e) {
-        console.error("Failed to save follow-up message:", e);
-      }
-
-      const updated = await api.upsertTask({ ...task, status: "in-progress" });
-      setTaskList((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
-
-      // Follow-up instruction comes BEFORE the transcript: the token budget
-      // truncates from the tail, so the instruction must never be the part
-      // that gets cut.
-      const formattedInput =
-        `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}\n\n` +
-        `[User follow-up after reviewing the previous result — continue the task accordingly, ` +
-        `building on the work already done instead of starting over]: ${content}` +
-        (transcriptTail
-          ? `\n\n[Recent conversation from the previous run, for context]:\n${transcriptTail}`
-          : "");
-      await runTaskStream(updated, formattedInput);
-    } catch (e) {
-      if (!(e instanceof DOMException && e.name === "AbortError")) {
-        console.error(e);
-        setInterjectErrors((prev) => ({
-          ...prev,
-          [task.id]: e instanceof Error ? e.message : "Failed to continue task",
-        }));
-      }
-    } finally {
-      setUpdatingTaskIds((prev) => {
-        const next = new Set(prev);
-        next.delete(task.id);
-        return next;
-      });
-    }
+    // Snapshot the recent transcript BEFORE the follow-up so the new run sees
+    // verbatim what was said (the knowledge graph alone is lossy).
+    const transcriptTail = (taskConversations[task.id] ?? [])
+      .slice(-10)
+      .map((m) => {
+        const speaker = m.agentId === "user" ? "User" : (agentById.get(m.agentId)?.name ?? m.agentId);
+        const text = m.content.length > 600 ? `${m.content.slice(0, 600)}\u2026` : m.content;
+        return `${speaker}: ${text}`;
+      })
+      .join("\n---\n");
+    setHumanInputs((prev) => ({ ...prev, [task.id]: "" }));
+    await engine.continueTask(task, content, { ...teamRunOpts(task), transcriptTail });
   };
 
   // Composer dispatch: mid-run messages interject into the live run; messages
@@ -1087,55 +628,12 @@ export default function TaskManager() {
 
   const deleteTask = async (id: string) => {
     if (updatingTaskIds.has(id)) return;
-    setUpdatingTaskIds((prev) => new Set(prev).add(id));
     try {
-      await api.deleteTask(id);
-      setTaskList((prev) => prev.filter((t) => t.id !== id));
-      setTaskConversations((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-      setTaskGraphSnapshots((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-      setTaskGraphHighlights((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-      setPendingInterjections((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-      setHumanInputs((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-      setInterjectErrors((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-      setHeldTaskIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-      setUserInputRequests((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-      setActiveFanouts((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
+      await engine.removeTask(id);
+      // Clear page-local presentation state for the removed task.
+      setTaskGraphViewports((prev) => { const next = { ...prev }; delete next[id]; return next; });
+      setTaskGraphPositions((prev) => { const next = { ...prev }; delete next[id]; return next; });
+      setHumanInputs((prev) => { const next = { ...prev }; delete next[id]; return next; });
       if (editingTaskId === id) {
         resetForm();
         setOpen(false);
@@ -1147,163 +645,27 @@ export default function TaskManager() {
       }
     } catch (e) {
       console.error(e);
-    } finally {
-      setUpdatingTaskIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
     }
   };
 
-  // Human-in-the-loop: send a message while agents are running. The backend
-  // queues it and the next agent turn injects it into its context; the
-  // `user_message_injected` stream event flips the badge from queued → injected.
+  // Human-in-the-loop: send a message while agents are running (interjection).
   const sendHumanMessage = async (task: Task) => {
     const content = (humanInputs[task.id] ?? "").trim();
-    if (!content || sendingInterjectTaskIds.has(task.id)) return;
-    setSendingInterjectTaskIds((prev) => new Set(prev).add(task.id));
-    setInterjectErrors((prev) => {
-      const next = { ...prev };
-      delete next[task.id];
-      return next;
-    });
-    try {
-      const res = await api.interjectAgentGraph({ conversation_id: task.id, content });
-      const messageId = res.message_id ?? `${Date.now()}-user`;
-      const message: Message = {
-        id: messageId,
-        agentId: "user",
-        content,
-        timestamp: new Date().toISOString(),
-        taskId: task.id,
-      };
-      setTaskConversations((prev) => ({
-        ...prev,
-        [task.id]: [...(prev[task.id] ?? []), message],
-      }));
-      setPendingInterjections((prev) => ({
-        ...prev,
-        [task.id]: new Set([...(prev[task.id] ?? []), messageId]),
-      }));
-      setHumanInputs((prev) => ({ ...prev, [task.id]: "" }));
-      // Persist alongside agent turns so it survives reloads
-      try {
-        await api.addConversation({ agentId: "user", content, taskId: task.id });
-      } catch (e) {
-        console.error("Failed to save user message:", e);
-      }
-    } catch (e) {
-      setInterjectErrors((prev) => ({
-        ...prev,
-        [task.id]: e instanceof Error ? e.message : "Failed to send message",
-      }));
-    } finally {
-      setSendingInterjectTaskIds((prev) => {
-        const next = new Set(prev);
-        next.delete(task.id);
-        return next;
-      });
-    }
+    if (!content) return;
+    const ok = await engine.interject(task, content);
+    if (ok) setHumanInputs((prev) => ({ ...prev, [task.id]: "" }));
   };
 
-  // ask_user tool: deliver the user's answer to the blocked agent, render it
-  // as a chat message, and drop the question card.
+  // ask_user tool: deliver the user's answer to the blocked agent.
   const respondToAgentQuestion = async (task: Task, request: UserInputRequest, response: string) => {
     const content = response.trim();
-    if (!content || respondingRequestIds.has(request.requestId)) return;
-    setRespondingRequestIds((prev) => new Set(prev).add(request.requestId));
-    setInterjectErrors((prev) => {
-      const next = { ...prev };
-      delete next[task.id];
-      return next;
-    });
-    try {
-      await api.respondAgentGraph({
-        conversation_id: task.id,
-        request_id: request.requestId,
-        response: content,
-      });
-      setUserInputRequests((prev) => {
-        const list = prev[task.id];
-        if (!list) return prev;
-        const nextList = list.filter((r) => r.requestId !== request.requestId);
-        const next = { ...prev };
-        if (nextList.length > 0) next[task.id] = nextList;
-        else delete next[task.id];
-        return next;
-      });
-      setUserRequestDrafts((prev) => {
-        const next = { ...prev };
-        delete next[request.requestId];
-        return next;
-      });
-      const message: Message = {
-        id: `${Date.now()}-answer-${request.requestId}`,
-        agentId: "user",
-        content,
-        timestamp: new Date().toISOString(),
-        taskId: task.id,
-      };
-      setTaskConversations((prev) => ({
-        ...prev,
-        [task.id]: [...(prev[task.id] ?? []), message],
-      }));
-      try {
-        await api.addConversation({ agentId: "user", content, taskId: task.id });
-      } catch (e) {
-        console.error("Failed to save user answer:", e);
-      }
-    } catch (e) {
-      setInterjectErrors((prev) => ({
-        ...prev,
-        [task.id]: e instanceof Error ? e.message : "Failed to send answer",
-      }));
-    } finally {
-      setRespondingRequestIds((prev) => {
-        const next = new Set(prev);
-        next.delete(request.requestId);
-        return next;
-      });
-    }
+    if (!content) return;
+    const ok = await engine.respond(task, request, content);
+    if (ok) setUserRequestDrafts((prev) => { const next = { ...prev }; delete next[request.requestId]; return next; });
   };
 
-  // Interrupt: hold the run at the next turn boundary (current agent finishes
-  // its turn first). Resume: release it — the next agent picks up everything
-  // sent while held. The run never dies; the SSE stream stays open.
-  const toggleHoldTask = async (task: Task, hold: boolean) => {
-    if (holdTogglingTaskIds.has(task.id)) return;
-    setHoldTogglingTaskIds((prev) => new Set(prev).add(task.id));
-    setInterjectErrors((prev) => {
-      const next = { ...prev };
-      delete next[task.id];
-      return next;
-    });
-    try {
-      if (hold) {
-        await api.pauseAgentGraph({ conversation_id: task.id });
-        setHeldTaskIds((prev) => new Set(prev).add(task.id));
-      } else {
-        await api.resumeAgentGraph({ conversation_id: task.id });
-        setHeldTaskIds((prev) => {
-          const next = new Set(prev);
-          next.delete(task.id);
-          return next;
-        });
-      }
-    } catch (e) {
-      setInterjectErrors((prev) => ({
-        ...prev,
-        [task.id]: e instanceof Error ? e.message : "Failed to update run state",
-      }));
-    } finally {
-      setHoldTogglingTaskIds((prev) => {
-        const next = new Set(prev);
-        next.delete(task.id);
-        return next;
-      });
-    }
-  };
+  // Interrupt/resume the run at a turn boundary (the SSE stream stays open).
+  const toggleHoldTask = (task: Task, hold: boolean) => engine.hold(task, hold);
 
   return (
     <div className="h-full w-full flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-border bg-background overflow-hidden select-none">
@@ -1340,15 +702,14 @@ export default function TaskManager() {
                       if (!task) continue;
                       if (!makeCopy && canEditItem(task)) {
                         // Own task → move it into the office's department.
-                        const updated = await api.upsertTask({
+                        await engine.upsertTask({
                           ...task,
                           teamId: team.id,
                           assignedAgents: team.agents || [],
                         });
-                        setTaskList((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
                       } else {
                         // Copy requested, or shared (default) task → append a copy owned by the user.
-                        const copy = await api.upsertTask({
+                        await engine.upsertTask({
                           title: task.title,
                           description: task.description,
                           teamId: team.id,
@@ -1356,7 +717,6 @@ export default function TaskManager() {
                           progress: 0,
                           assignedAgents: team.agents || [],
                         });
-                        setTaskList((prev) => [...prev, copy]);
                       }
                     }
                   }}
@@ -1646,7 +1006,7 @@ export default function TaskManager() {
                         disabled={!canStart || isUpdating}
                       >
                         <Play className="w-3 h-3 mr-1.5 fill-current" />
-                        {isRestart ? "Restart" : "Start"}
+                        {selectedTask.status === "paused" ? "Resume" : isRestart ? "Restart" : "Start"}
                       </Button>
                       <Button
                         size="sm"
