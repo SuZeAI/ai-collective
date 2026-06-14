@@ -18,10 +18,14 @@ Access is **nested**, grouped by config.yml section, e.g.::
 
     settings.llm.provider
     settings.agent.context_token_limit
-    settings.tools.slack_bot_token
+    settings.security.allow_private_http
 
 A set of flat ``@property`` delegates is kept on the root for backward
 compatibility with existing call-sites (``settings.llm_provider`` …).
+
+Per-tool credentials are NOT configured here anymore — they live in each skill's
+``config`` dict (stored in MongoDB, edited via the UI) and reach toolkits through
+their constructor kwargs. Only global tool flags remain (``SecuritySettings``).
 """
 
 from __future__ import annotations
@@ -31,10 +35,6 @@ from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend.api.config_loader import apply_config_yaml
-
-# Build the layered environment before any Settings() is constructed.
-dotenv.load_dotenv()
-apply_config_yaml()
 
 _DEFAULT_JWT_SECRET = "change-me-in-production-use-openssl-rand-hex-32"
 
@@ -364,9 +364,30 @@ class BrowserSettings(BaseSettings):
     extra_headers: dict | None = Field(default=None, validation_alias=_alias("EXTRA_HEADERS"))
 
 
+class SecuritySettings(BaseSettings):
+    """Global operational/security flags for agent tools (NOT per-skill creds).
+
+    These are process-wide knobs declared in config.yml (`security:`), separate
+    from the per-tool credential fallbacks in ``ToolsSettings``.
+    """
+
+    model_config = _SECTION_CONFIG
+
+    # Allow tools to reach private/loopback IPs (turns the SSRF guard off).
+    allow_private_http: bool = Field(default=False, validation_alias=_alias("ALLOW_PRIVATE_HTTP"))
+    # Verbose HTTP debug logging.
+    last30days_debug: bool = Field(default=False, validation_alias=_alias("LAST30DAYS_DEBUG"))
+
+
 class ToolsSettings(BaseSettings):
-    """Per-tool credentials / endpoints (secrets). Constructor args still take
-    precedence; these are the env-backed fallbacks every toolkit reads."""
+    """Per-tool credentials / endpoints (secrets), env-backed FALLBACKS.
+
+    A skill's own ``config`` (stored in MongoDB, edited via the UI) is the
+    primary source and is passed to each toolkit constructor. When a skill leaves
+    a field empty, the toolkit falls back to the matching value here, which is
+    read from the environment (.env / OS env) — these are NOT declared in
+    config.yml. Global, non-credential flags live in ``SecuritySettings``.
+    """
 
     model_config = _SECTION_CONFIG
 
@@ -443,10 +464,6 @@ class ToolsSettings(BaseSettings):
     google_sheets_token_path: str = Field(default="", validation_alias=_alias("GOOGLE_SHEETS_TOKEN_PATH"))
     google_slides_token_path: str = Field(default="", validation_alias=_alias("GOOGLE_SLIDES_TOKEN_PATH"))
 
-    # ── Tool runtime flags ─────────────────────────────────────────────────────
-    allow_private_http: bool = Field(default=False, validation_alias=_alias("ALLOW_PRIVATE_HTTP"))
-    last30days_debug: bool = Field(default=False, validation_alias=_alias("LAST30DAYS_DEBUG"))
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Root settings — composes every section + backward-compatible flat delegates
@@ -473,6 +490,7 @@ class Settings(BaseSettings):
     admin: AdminSettings = Field(default_factory=AdminSettings)
     seed: SeedSettings = Field(default_factory=SeedSettings)
     browser: BrowserSettings = Field(default_factory=BrowserSettings)
+    security: SecuritySettings = Field(default_factory=SecuritySettings)
     tools: ToolsSettings = Field(default_factory=ToolsSettings)
 
     # ── Root helpers ────────────────────────────────────────────────────────
@@ -614,5 +632,12 @@ class Settings(BaseSettings):
     @property
     def extra_headers(self) -> dict | None: return self.browser.extra_headers
 
+
+# Build the layered environment (code < config.yml < .env < OS) just before the
+# instance is constructed. ``apply_config_yaml`` imports the Settings *class*
+# (now defined) to map nested config.yml keys to env aliases; pydantic reads the
+# environment at instantiation, so this ordering fills os.environ in time.
+dotenv.load_dotenv()
+apply_config_yaml()
 
 settings = Settings()
