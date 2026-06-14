@@ -284,6 +284,77 @@ def memory_toolkit_tools(conversation_id: str | None, agent_name: str) -> list[A
         return []
 
 
+def attach_conversation_sandbox(
+    bound_tools: list[Any],
+    *,
+    conversation_id: str | None,
+    agent_name: str,
+) -> bool:
+    """If this conversation has files, scope the run to its shared sandbox.
+
+    When the chat has at least one file (a user upload or an agent-written file):
+      1. Binds the sandbox contextvar to the deterministic conversation-scoped
+         thread id (overwriting any random per-turn id set earlier), so every
+         agent in the chat resolves to the *same* shared workspace and can
+         exchange files.
+      2. Appends ``SandboxToolkit`` tools to *bound_tools* (idempotent — skips if
+         ``sandbox_bash`` is already present from a bound skill).
+
+    Returns ``True`` when sandbox tools were attached. Best-effort: any failure
+    logs and returns ``False`` so a run is never broken by sandbox wiring. Must
+    be called AFTER ``new_thread_id`` (so the conv id wins the contextvar) and
+    BEFORE constructing ``TaskToolkit`` (so subagents inherit the sandbox tools).
+    """
+    if not conversation_id:
+        return False
+    try:
+        from backend.infrastructure.llm.sandbox_middleware import (
+            ensure_conversation_sandbox,
+        )
+
+        cs = ensure_conversation_sandbox(conversation_id)
+        if cs is None or not cs.has_files:
+            return False
+
+        from backend.infrastructure.sandbox.sandbox_session import use_conversation_thread
+
+        use_conversation_thread(conversation_id)
+
+        existing = {getattr(t, "name", "") for t in bound_tools}
+        if "sandbox_bash" not in existing:
+            from backend.domain.tools.sandbox_tools import SandboxToolkit
+
+            bound_tools.extend(SandboxToolkit(session_id=cs.thread_id).get_tools())
+        return True
+    except Exception:  # noqa: BLE001
+        logger.exception("attach_conversation_sandbox failed for %s", conversation_id)
+        return False
+
+
+def uploads_hint(conversation_id: str | None) -> str:
+    """One-line note listing files available in the shared workspace, or ''.
+
+    Prepended to an agent's input so it knows files exist and which tools to use.
+    """
+    if not conversation_id:
+        return ""
+    try:
+        from backend.infrastructure.sandbox.thread_files import list_thread_files
+
+        names = [f.get("filename", "") for f in list_thread_files(conversation_id)]
+        names = [n for n in names if n]
+        if not names:
+            return ""
+        listing = ", ".join(names[:20])
+        more = "" if len(names) <= 20 else f" (+{len(names) - 20} more)"
+        return (
+            f"[Files available in ./uploads/: {listing}{more} — use sandbox_ls / "
+            f"sandbox_read_file to inspect them, sandbox_write_file to share outputs.]\n\n"
+        )
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 def recursion_config(max_rounds: int) -> dict[str, Any]:
     """Build a LangGraph config whose recursion limit honors ``max_rounds``.
 

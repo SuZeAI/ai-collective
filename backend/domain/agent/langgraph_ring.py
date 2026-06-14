@@ -18,6 +18,7 @@ from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
 from backend.domain.agent._graph_runtime import (
+    attach_conversation_sandbox,
     drain_human_guidance,
     ensure_working_memory,
     memory_toolkit_tools,
@@ -335,6 +336,12 @@ class LangGraphRingOrchestrator(AgentGraphOrchestrator):
                 )
             # Default memory tools: save/recall shared working-memory notes.
             bound_tools.extend(memory_toolkit_tools(conversation_id, agent.name))
+
+            # Sandbox: scope to the shared conversation workspace + inject tools
+            # when the chat has files.
+            attach_conversation_sandbox(
+                bound_tools, conversation_id=conversation_id, agent_name=agent.name
+            )
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,

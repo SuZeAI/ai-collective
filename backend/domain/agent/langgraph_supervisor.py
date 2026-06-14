@@ -23,6 +23,7 @@ from backend.domain.agent.token_budget import apply_context_token_budget
 from backend.domain.agent._graph_runtime import (
     FANOUT_SYNTHESIS_GUIDANCE,
     MESH_FANOUT_MAX_CONCURRENT,
+    attach_conversation_sandbox,
     drain_human_guidance,
     ensure_working_memory,
     memory_toolkit_tools,
@@ -425,6 +426,10 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             # Default memory tools: save/recall shared working-memory notes.
             bound_tools.extend(memory_toolkit_tools(conversation_id, lead.name))
 
+            attach_conversation_sandbox(
+                bound_tools, conversation_id=conversation_id, agent_name=lead.name
+            )
+
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
                 "agent_name": lead.name,
@@ -637,6 +642,10 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             # Default memory tools: save/recall shared working-memory notes.
             bound_tools.extend(memory_toolkit_tools(conversation_id, worker.name))
 
+            attach_conversation_sandbox(
+                bound_tools, conversation_id=conversation_id, agent_name=worker.name
+            )
+
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
                 "agent_name": worker.name,
@@ -844,6 +853,10 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
                 ).get_tools()
             )
         bound_tools.extend(memory_toolkit_tools(conversation_id, worker.name))
+
+        attach_conversation_sandbox(
+            bound_tools, conversation_id=conversation_id, agent_name=worker.name
+        )
 
         return {
             "system": worker_system,
