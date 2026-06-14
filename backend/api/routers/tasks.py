@@ -299,6 +299,14 @@ def delete_task(
         raise HTTPException(status_code=403, detail="Only the default (admin) account can delete shared default items")
     service.delete_task(task_id)
     conv_service.delete_messages_by_task(task_id)
+    try:
+        from backend.infrastructure.llm.sandbox_middleware import (
+            cleanup_conversation_sandbox,
+        )
+
+        cleanup_conversation_sandbox(task_id)
+    except Exception:  # noqa: BLE001 - best-effort; never block task deletion
+        pass
     _sync_runtime_state(service, team_service, agent_service)
     return {"deleted": True}
 
