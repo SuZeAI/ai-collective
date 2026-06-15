@@ -25,6 +25,7 @@ from backend.api.routers import (
     conversations,
     health,
     llm,
+    marketplace,
     office_builder,
     simulations,
     skills,
@@ -105,6 +106,7 @@ def create_app() -> FastAPI:
     app.include_router(skills.router, prefix=settings.api_prefix)
     app.include_router(teams.router, prefix=settings.api_prefix)
     app.include_router(tasks.router, prefix=settings.api_prefix)
+    app.include_router(marketplace.router, prefix=settings.api_prefix)
     app.include_router(conversations.router, prefix=settings.api_prefix)
     app.include_router(analytics.router, prefix=settings.api_prefix)
     app.include_router(simulations.router, prefix=settings.api_prefix)

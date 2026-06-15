@@ -12,7 +12,7 @@ from backend.api.schemas.skill import (
 )
 from backend.application.service.skill_service import SkillService
 from backend.domain.errors import NotFoundError
-from backend.domain.models import Skill, can_delete, can_modify, is_visible_to
+from backend.domain.models import Skill, can_delete, can_modify, is_owned_by, is_visible_to
 
 
 router = APIRouter(prefix="/skills", tags=["skills"])
@@ -26,7 +26,7 @@ def list_skills(
     return [
         SkillSchema.from_domain(s)
         for s in service.list_skills()
-        if is_visible_to(owner_id, s.owner_id)
+        if is_owned_by(owner_id, s.owner_id)
     ]
 
 

@@ -15,6 +15,7 @@ from backend.application.service.simulation_service import SimulationService
 from backend.application.service.task_service import TaskService
 from backend.application.service.team_service import TeamService
 from backend.application.service.skill_service import SkillService
+from backend.application.service.marketplace_service import MarketplaceService
 from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.domain.agent.langgraph_orchestrator import LangGraphAgentOrchestrator
 from backend.domain.agent.langgraph_mesh import MultiAgentMeshOrchestrator
@@ -169,6 +170,16 @@ def get_team_service() -> TeamService:
 def get_task_service() -> TaskService:
     _, _, _, tasks, _, _, _, _, _, _ = _repos()
     return TaskService(tasks)
+
+
+def get_marketplace_service() -> MarketplaceService:
+    agents, skills, teams, tasks, _, _, _, _, _, _ = _repos()
+    return MarketplaceService(
+        AgentService(agents, skills),
+        SkillService(skills),
+        TeamService(teams),
+        TaskService(tasks),
+    )
 
 
 def get_conversation_service() -> ConversationService:
