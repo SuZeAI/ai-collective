@@ -46,6 +46,7 @@ dependencies = [
 rabbitmq = ["pika>=1.3.0"]
 redis = ["redis>=5.0.0"]
 queue-all = ["pika>=1.3.0", "redis>=5.0.0"]
+backup = ["minio>=7.2.0"]
 
 [tool.uvicorn]
 app = "backend.api.main:app"

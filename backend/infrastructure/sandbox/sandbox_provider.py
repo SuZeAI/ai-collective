@@ -127,10 +127,18 @@ class AioSandboxProvider(SandboxProvider):
 
     # ── Core operations ───────────────────────────────────────────────────────
 
-    def acquire(self, session_id: Optional[str] = None) -> str:
+    def acquire(
+        self,
+        session_id: Optional[str] = None,
+        *,
+        extra_mounts: Optional[list[tuple[str, str, bool]]] = None,
+    ) -> str:
         """Acquire a sandbox for *session_id* and return its sandbox_id.
 
         Priority: in-process cache → warm pool → backend discovery → create.
+        ``extra_mounts`` (host_path, container_path, read_only) are applied only
+        when a fresh container is created — a reused warm/cached one keeps the
+        mounts it was started with (so key by a stable per-conversation id).
         """
         session_id = session_id or "default"
         sandbox_id = self._deterministic_id(session_id)
@@ -152,7 +160,7 @@ class AioSandboxProvider(SandboxProvider):
                 logger.info("Reclaimed warm-pool sandbox %s for session %s", sandbox_id, session_id)
                 return sandbox_id
 
-        return self._discover_or_create(session_id, sandbox_id)
+        return self._discover_or_create(session_id, sandbox_id, extra_mounts=extra_mounts)
 
     def get(self, sandbox_id: str) -> Optional[AioSandbox]:
         with self._lock:
@@ -229,7 +237,12 @@ class AioSandboxProvider(SandboxProvider):
     def _deterministic_id(session_id: str) -> str:
         return hashlib.sha256(session_id.encode()).hexdigest()[:8]
 
-    def _discover_or_create(self, session_id: str, sandbox_id: str) -> str:
+    def _discover_or_create(
+        self,
+        session_id: str,
+        sandbox_id: str,
+        extra_mounts: Optional[list[tuple[str, str, bool]]] = None,
+    ) -> str:
         """Layer 3: backend discovery + create (handles cross-process races)."""
         # Enforce replicas soft cap (evict oldest warm pool entry if at limit)
         with self._lock:
@@ -252,7 +265,7 @@ class AioSandboxProvider(SandboxProvider):
             )
             return discovered.sandbox_id
 
-        info = self._backend.create(session_id, sandbox_id)
+        info = self._backend.create(session_id, sandbox_id, extra_mounts=extra_mounts)
         if not wait_for_sandbox_ready(info.sandbox_url, timeout=60):
             self._backend.destroy(info)
             raise RuntimeError(f"Sandbox {sandbox_id} failed to become ready at {info.sandbox_url}")

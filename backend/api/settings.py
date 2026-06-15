@@ -282,6 +282,19 @@ class SandboxSettings(BaseSettings):
     workspace: str | None = Field(default=None, validation_alias=_alias("SANDBOX_WORKSPACE"))
 
 
+class MinioSettings(BaseSettings):
+    """S3-compatible object storage for backing up conversation sandbox files."""
+
+    model_config = _SECTION_CONFIG
+
+    enabled: bool = Field(default=False, validation_alias=_alias("MINIO_ENABLED"))
+    endpoint: str = Field(default="localhost:9000", validation_alias=_alias("MINIO_ENDPOINT"))
+    access_key: str = Field(default="minioadmin", validation_alias=_alias("MINIO_ACCESS_KEY"))
+    secret_key: str = Field(default="minioadmin", validation_alias=_alias("MINIO_SECRET_KEY"))
+    bucket: str = Field(default="sandbox-backups", validation_alias=_alias("MINIO_BUCKET"))
+    secure: bool = Field(default=False, validation_alias=_alias("MINIO_SECURE"))
+
+
 class AuthSettings(BaseSettings):
     model_config = _SECTION_CONFIG
 
@@ -484,6 +497,7 @@ class Settings(BaseSettings):
     task_queue: TaskQueueSettings = Field(default_factory=TaskQueueSettings)
     lock: LockSettings = Field(default_factory=LockSettings)
     sandbox: SandboxSettings = Field(default_factory=SandboxSettings)
+    minio: MinioSettings = Field(default_factory=MinioSettings)
     auth: AuthSettings = Field(default_factory=AuthSettings)
     working_memory: WorkingMemorySettings = Field(default_factory=WorkingMemorySettings)
     mcp: McpSettings = Field(default_factory=McpSettings)

@@ -52,11 +52,11 @@ def _truncate_head(output: str, max_chars: int, hint: str = "Use start_line/end_
     return f"{output[:kept]}{marker}"
 
 
-def _get_sandbox(sandbox=None):
+def _get_sandbox(sandbox=None, session_id: str | None = None):
     if sandbox is not None:
         return sandbox
     from backend.infrastructure.sandbox.factory import create_sandbox_adapter
-    return create_sandbox_adapter()
+    return create_sandbox_adapter(session_id=session_id)
 
 
 class SandboxToolkit(BaseToolkit):
@@ -69,9 +69,11 @@ class SandboxToolkit(BaseToolkit):
 
     name: str = "sandbox"
 
-    def __init__(self, sandbox=None, workspace: str | None = None, **kwargs):
+    def __init__(self, sandbox=None, workspace: str | None = None, session_id: str | None = None, **kwargs):
         super().__init__(**kwargs)
-        self.sandbox = _get_sandbox(sandbox)
+        # session_id keys the underlying sandbox (e.g. per-conversation container
+        # in docker/k8s mode); ignored for the local host-FS adapter.
+        self.sandbox = _get_sandbox(sandbox, session_id=session_id)
         from backend.infrastructure.sandbox.local_sandbox import LocalSandboxAdapter
         if workspace:
             self._base_workspace = workspace

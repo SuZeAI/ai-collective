@@ -10,6 +10,7 @@ Each agent node invocation gets a unique thread_id that:
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import threading
@@ -96,6 +97,58 @@ def new_thread_id(
         thread_id, agent_name, task_id, workspace_path,
     )
     return thread_id
+
+
+# ── Conversation-scoped (shared) workspaces ────────────────────────────────────
+
+_CONV_THREAD_PREFIX = "conv-"
+
+
+def conversation_thread_id(conversation_id: str) -> str:
+    """Deterministic, filesystem-safe thread_id for a whole conversation.
+
+    Same conversation_id always maps to the same id, so every agent in the chat
+    resolves to the *same* shared workspace ``{SANDBOX_WORKSPACE}/conv-<hash>/``.
+    Hashing avoids path-traversal / odd-char issues and gives a stable length.
+    """
+    digest = hashlib.sha256(conversation_id.encode("utf-8")).hexdigest()[:32]
+    return f"{_CONV_THREAD_PREFIX}{digest}"
+
+
+def ensure_conversation_workspace(conversation_id: str) -> str:
+    """Create ``{SANDBOX_WORKSPACE}/conv-<hash>/`` (+ an ``uploads/`` subdir).
+
+    Returns the workspace path. Reuses :func:`_ensure_thread_workspace` so the
+    base-path resolution (including the ``~/sandbox_workspace`` fallback) is
+    identical to the per-turn path — the uploader and the tools never drift.
+    """
+    tid = conversation_thread_id(conversation_id)
+    workspace = _ensure_thread_workspace(tid)
+    try:
+        os.makedirs(os.path.join(workspace, "uploads"), exist_ok=True)
+    except OSError as exc:
+        logger.warning("Could not create uploads dir in %s: %s", workspace, exc)
+    return workspace
+
+
+def use_conversation_thread(conversation_id: str) -> str:
+    """Bind the contextvar to the conversation-scoped (shared) thread_id.
+
+    Overwrites any random per-turn id set earlier in the agent node, ensures the
+    shared workspace exists, and persists a session record. Call this at node
+    start *only* when the conversation has files (see ``attach_conversation_sandbox``).
+    """
+    tid = conversation_thread_id(conversation_id)
+    _current_thread_id.set(tid)
+    workspace = ensure_conversation_workspace(conversation_id)
+    _persist_session(
+        thread_id=tid,
+        agent_name="conversation",
+        task_id=conversation_id,
+        run_id=tid,
+        workspace_path=workspace,
+    )
+    return tid
 
 
 # ── Workspace creation ────────────────────────────────────────────────────────
