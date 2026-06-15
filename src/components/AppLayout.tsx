@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
   BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit, Settings2,
-  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building,
+  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, ShoppingBag, Plus,
 } from "lucide-react";
 import { api, type Workspace } from "@/lib/api";
 import { OVERALL_WORKSPACE_ID } from "@/hooks/use-workspace-scope";
@@ -14,8 +14,6 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   SidebarProvider, SidebarTrigger, Sidebar, SidebarContent,
-  SidebarGroup, SidebarGroupLabel, SidebarGroupContent,
-  SidebarMenu, SidebarMenuItem, SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -26,10 +24,10 @@ import { cn } from "@/lib/utils";
 type NavItemKey =
   | "dashboard" | "analytics" | "tasks" | "conversations" | "officeBuilder" | "virtualOffice"
   | "teams" | "agents" | "skills" | "playground" | "workspaces" | "settings"
-  | "monitoring";
+  | "monitoring" | "marketplace";
 
 type NavGroup = {
-  groupKey: "overviewGroup" | "operationsGroup" | "orgGroup" | "devGroup" | "systemGroup" | "adminGroup";
+  groupKey: "overviewGroup" | "operationsGroup" | "orgGroup" | "officeGroup" | "devGroup" | "systemGroup" | "adminGroup";
   adminOnly?: boolean;
   items: { key: NavItemKey; url: string; icon: React.ElementType }[];
 };
@@ -43,6 +41,14 @@ const NAV_GROUPS: NavGroup[] = [
     ]
   },
   {
+    groupKey: "orgGroup",
+    items: [
+      { key: "agents", url: "/agents", icon: Cpu },
+      { key: "teams", url: "/teams", icon: Users },
+      { key: "skills", url: "/skills", icon: Wrench },
+    ]
+  },
+  {
     groupKey: "operationsGroup",
     items: [
       { key: "tasks", url: "/tasks", icon: CheckCircle2 },
@@ -50,25 +56,17 @@ const NAV_GROUPS: NavGroup[] = [
     ]
   },
   {
-    groupKey: "orgGroup",
+    groupKey: "officeGroup",
     items: [
-      { key: "virtualOffice", url: "/virtual-office", icon: Building },
       { key: "officeBuilder", url: "/office-builder", icon: Sparkles },
-      { key: "teams", url: "/teams", icon: Users },
-      { key: "agents", url: "/agents", icon: Cpu },
-      { key: "skills", url: "/skills", icon: Wrench },
-    ]
-  },
-  {
-    groupKey: "devGroup",
-    items: [
-      { key: "playground", url: "/playground", icon: Play },
-      { key: "workspaces", url: "/workspaces", icon: BrainCircuit },
+      { key: "virtualOffice", url: "/virtual-office", icon: Building },
+      { key: "marketplace", url: "/marketplace", icon: ShoppingBag },
     ]
   },
   {
     groupKey: "systemGroup",
     items: [
+      { key: "playground", url: "/playground", icon: Play },
       { key: "settings", url: "/settings", icon: Settings2 },
     ]
   },
@@ -118,7 +116,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       .then((data) => {
         if (!active) return;
         setWorkspaces(data);
-        // Default is "Overall" (all offices); only restore a stored real office.
         const storedId = localStorage.getItem("activeWorkspaceId");
         const found = data.find((ws) => ws.id === storedId);
         setActiveWorkspace(found || null);
@@ -128,7 +125,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return () => { active = false; };
   }, []);
 
-  // Listen to external workspace creations/deletes/updates to refresh dropdown list
   useEffect(() => {
     const handleWorkspaceRefresh = () => {
       api.listWorkspaces()
@@ -146,7 +142,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("workspaceChanged", handleWorkspaceRefresh);
   }, []);
 
-  // null → "Overall" (all offices, including items not attached to any office).
   const handleSelectWorkspace = (ws: Workspace | null) => {
     setActiveWorkspace(ws);
     localStorage.setItem("activeWorkspaceId", ws ? ws.id : OVERALL_WORKSPACE_ID);
@@ -165,136 +160,152 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const isFullBleed = location.pathname === "/tasks" || location.pathname === "/virtual-office";
 
   return (
-    <SidebarProvider>
+    <SidebarProvider style={{ "--sidebar-width-icon": "4rem", "--sidebar-width": "17rem" } as React.CSSProperties}>
       <div className="h-screen overflow-hidden flex w-full bg-transparent">
         <Sidebar collapsible="icon">
-          <SidebarContent className="flex flex-col h-full bg-sidebar">
-            {/* Brand & Workspace Switcher dropdown */}
-            <div className="px-3 py-3 border-b border-sidebar-border flex-shrink-0">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2.5 w-full text-left rounded-lg p-1.5 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-colors focus-visible:outline-none select-none">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 bg-gradient-to-br from-teal-500 to-cyan-600 text-white font-bold shadow-md shadow-teal-500/10 text-sm">
-                      {activeWorkspace ? (activeWorkspace.avatar || activeWorkspace.name?.[0] || "A") : <Globe className="w-4 h-4" />}
-                    </div>
-                    <div className="flex-1 min-w-0 leading-tight group-data-[collapsible=icon]:hidden">
-                      <span className="block font-semibold text-[13px] text-sidebar-foreground truncate">
-                        {activeWorkspace?.name || "Overall"}
-                      </span>
-                      <span className="block text-[10px] text-sidebar-foreground/45 truncate mt-0.5">
-                        {activeWorkspace?.description || "All offices & shared items"}
-                      </span>
-                    </div>
-                    <ChevronDown className="w-3.5 h-3.5 text-sidebar-foreground/40 flex-shrink-0 group-data-[collapsible=icon]:hidden" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 align-start" side="bottom" align="start">
-                  <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Offices & Workspaces
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
+          <SidebarContent className="flex flex-row h-full bg-sidebar overflow-hidden p-0 gap-0">
+            <div className="w-16 border-r border-sidebar-border/50 bg-sidebar/95 flex flex-col items-center py-4 justify-between shrink-0 h-full">
+              <div className="flex flex-col items-center gap-4 w-full">
+                <div 
+                  onClick={() => navigate("/dashboard")}
+                  className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-md shadow-teal-500/20 select-none cursor-pointer hover:scale-105 transition-transform"
+                >
+                  <Building className="w-5 h-5 text-white" />
+                </div>
+                <div className="w-8 h-px bg-sidebar-border/40 my-1 shrink-0" />
+                <div 
+                  className="flex flex-col gap-2.5 w-full items-center max-h-[calc(100vh-220px)] overflow-y-auto [&::-webkit-scrollbar]:hidden py-1"
+                  style={{ scrollbarWidth: "none" }}
+                >
+                  <button
                     onClick={() => handleSelectWorkspace(null)}
                     className={cn(
-                      "flex items-center gap-2 text-xs py-2 cursor-pointer",
-                      !activeWorkspace ? "bg-muted font-medium text-foreground" : "text-muted-foreground"
+                      "w-10 h-10 rounded-xl flex items-center justify-center transition-all relative group shrink-0",
+                      !activeWorkspace
+                        ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-105"
+                        : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
                     )}
                   >
-                    <div className="w-5 h-5 rounded-md flex items-center justify-center bg-gradient-to-br from-slate-500 to-zinc-600 text-white shrink-0">
-                      <Globe className="w-3 h-3" />
+                    <Globe className="w-4 h-4" />
+                    <span className="absolute -top-1 -right-1 bg-teal-500 text-white text-[8px] font-bold px-1 rounded-full border border-background scale-90">
+                      All
+                    </span>
+                    <div className="absolute left-14 bg-popover text-popover-foreground border shadow-md px-2 py-1 rounded-md text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 translate-x-1 group-hover:translate-x-0 pointer-events-none z-50">
+                      Overall Collective
                     </div>
-                    <span className="truncate flex-1">Overall — all offices</span>
-                    {!activeWorkspace && <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />}
-                  </DropdownMenuItem>
-                  {workspaces.map((ws) => (
-                    <DropdownMenuItem
-                      key={ws.id}
-                      onClick={() => handleSelectWorkspace(ws)}
-                      className={cn(
-                        "flex items-center gap-2 text-xs py-2 cursor-pointer",
-                        activeWorkspace?.id === ws.id ? "bg-muted font-medium text-foreground" : "text-muted-foreground"
-                      )}
-                    >
-                      <div className="w-5 h-5 rounded-md flex items-center justify-center bg-gradient-to-br from-teal-500 to-cyan-600 text-white font-bold text-[10px] shrink-0">
-                        {ws.avatar || ws.name[0]}
-                      </div>
-                      <span className="truncate flex-1">{ws.name}</span>
-                      {activeWorkspace?.id === ws.id && <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />}
-                    </DropdownMenuItem>
-                  ))}
-                  {workspaces.length === 0 && (
-                    <div className="p-2 text-center text-[11px] text-muted-foreground">
-                      No offices found
+                  </button>
+                  {workspaces.map((ws) => {
+                    const isActive = activeWorkspace?.id === ws.id;
+                    const initials = ws.name
+                      .split(" ")
+                      .slice(0, 2)
+                      .map((w) => w[0]?.toUpperCase() ?? "")
+                      .join("");
+                    return (
+                      <button
+                        key={ws.id}
+                        onClick={() => handleSelectWorkspace(ws)}
+                        className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-[11px] transition-all relative group shrink-0",
+                          isActive
+                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-105"
+                            : "bg-sidebar-accent/30 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                        )}
+                      >
+                        {ws.avatar ? (
+                          <span className="text-sm select-none">{ws.avatar}</span>
+                        ) : (
+                          <span className="tracking-tight select-none">{initials || ws.name[0]?.toUpperCase()}</span>
+                        )}
+                        <div className="absolute left-14 bg-popover text-popover-foreground border shadow-md px-2 py-1 rounded-md text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 translate-x-1 group-hover:translate-x-0 pointer-events-none z-50">
+                          {ws.name}
+                        </div>
+                      </button>
+                    );
+                  })}
+                  <button
+                    onClick={() => navigate("/workspaces")}
+                    className="w-10 h-10 rounded-xl border border-dashed border-sidebar-border/70 flex items-center justify-center text-sidebar-foreground/45 hover:text-sidebar-foreground hover:border-sidebar-foreground/60 hover:bg-sidebar-accent/20 transition-all group relative shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <div className="absolute left-14 bg-popover text-popover-foreground border shadow-md px-2 py-1 rounded-md text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 translate-x-1 group-hover:translate-x-0 pointer-events-none z-50">
+                      {t.nav.manageWorkspaces}
                     </div>
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-col items-center w-full">
+                <button
+                  onClick={() => navigate("/settings")}
+                  className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center transition-all relative group shrink-0",
+                    location.pathname === "/settings"
+                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-105"
+                      : "text-sidebar-foreground/65 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
                   )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate("/workspaces")} className="text-xs text-primary font-medium cursor-pointer">
-                    <BrainCircuit className="w-3.5 h-3.5 mr-2 text-teal-400" />
-                    {t.nav.manageWorkspaces}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                >
+                  <Settings2 className="w-4.5 h-4.5" />
+                  <div className="absolute left-14 bg-popover text-popover-foreground border shadow-md px-2 py-1 rounded-md text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 translate-x-1 group-hover:translate-x-0 pointer-events-none z-50">
+                    {t.nav.settings}
+                  </div>
+                </button>
+              </div>
             </div>
-
-            {/* Navigation groups */}
-            <div className="flex-1 overflow-y-auto py-3 space-y-4">
-              {navGroups.map((group) => (
-                <SidebarGroup key={group.groupKey} className="py-0">
-                  <SidebarGroupLabel className="text-sidebar-foreground/30 text-[10px] font-bold uppercase tracking-widest px-3 mb-1 group-data-[collapsible=icon]:hidden">
-                    {t.nav[group.groupKey]}
-                  </SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu className="gap-px">
+            <div className="flex-1 flex flex-col h-full overflow-hidden group-data-[state=collapsed]:hidden bg-sidebar">
+              <div className="px-4 py-4 border-b border-sidebar-border/40 shrink-0 bg-sidebar-accent/5 select-none">
+                <div className="text-[9px] font-bold text-sidebar-foreground/40 uppercase tracking-widest">
+                  {t.nav.workspaces}
+                </div>
+                <div className="font-bold text-[13px] text-sidebar-foreground truncate mt-1">
+                  {activeWorkspace?.name || "Overall Collective"}
+                </div>
+                <div className="text-[10px] text-sidebar-foreground/45 truncate mt-0.5 leading-normal">
+                  {activeWorkspace?.description || "All offices & shared resources"}
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto py-4 space-y-4 px-2.5">
+                {navGroups.map((group) => (
+                  <div key={group.groupKey} className="space-y-1">
+                    <div className="text-[9px] font-bold text-sidebar-foreground/35 uppercase tracking-widest px-2 mb-1.5 select-none">
+                      {t.nav[group.groupKey]}
+                    </div>
+                    <div className="space-y-0.5">
                       {group.items.map((item) => {
                         const isActive = location.pathname === item.url;
                         const title = t.nav[item.key];
                         return (
-                          <SidebarMenuItem key={item.key}>
-                            <SidebarMenuButton
-                              asChild
-                              isActive={isActive}
+                          <Link
+                            key={item.key}
+                            to={item.url}
+                            className={cn(
+                              "flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs transition-all group/item font-semibold",
+                              isActive
+                                ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm border border-sidebar-border/20"
+                                : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
+                            )}
+                          >
+                            <item.icon
                               className={cn(
-                                "h-9 rounded-md transition-all duration-150 group/item",
+                                "w-4 h-4 shrink-0 transition-colors",
+                                isActive
+                                  ? "text-sidebar-accent-foreground"
+                                  : "text-sidebar-foreground/40 group-hover/item:text-sidebar-foreground/70"
                               )}
-                            >
-                              <Link to={item.url} className="flex items-center gap-2.5 px-2">
-                                <span
-                                  className={cn(
-                                    "relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-all duration-150",
-                                    isActive
-                                      ? "text-sidebar-primary-foreground bg-sidebar-primary shadow-sm"
-                                      : "text-sidebar-foreground/50 group-hover/item:text-sidebar-foreground",
-                                  )}
-                                >
-                                  <item.icon className="h-3.5 w-3.5" strokeWidth={2} />
-                                </span>
-                                <span className={cn(
-                                  "text-[13px] group-data-[collapsible=icon]:hidden transition-colors",
-                                  isActive
-                                    ? "font-semibold text-sidebar-foreground"
-                                    : "font-medium text-sidebar-foreground/60 group-hover/item:text-sidebar-foreground/80",
-                                )}>
-                                  {title}
-                                </span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
+                            />
+                            <span className="truncate">{title}</span>
+                          </Link>
                         );
                       })}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              ))}
-            </div>
-
-            {/* Sidebar footer */}
-            <div className="px-3 py-3 border-t border-sidebar-border flex-shrink-0 group-data-[collapsible=icon]:px-2">
-              <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="p-3 border-t border-sidebar-border/40 shrink-0 bg-sidebar-accent/5 flex items-center gap-2 select-none">
                 <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sidebar-foreground/40 opacity-50" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-sidebar-foreground/40" />
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-50" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
                 </span>
-                <span className="text-[11px] text-sidebar-foreground/35 font-mono group-data-[collapsible=icon]:hidden">
+                <span className="text-[10px] text-sidebar-foreground/45 font-semibold">
                   {t.status.allSystemsOnline}
                 </span>
               </div>
