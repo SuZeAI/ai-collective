@@ -23,6 +23,7 @@ from backend.domain.agent.token_budget import apply_context_token_budget
 from backend.domain.agent._graph_runtime import (
     FANOUT_SYNTHESIS_GUIDANCE,
     MESH_FANOUT_MAX_CONCURRENT,
+    attach_conversation_sandbox,
     drain_human_guidance,
     ensure_working_memory,
     memory_toolkit_tools,
@@ -686,6 +687,12 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             # Default memory tools: save/recall shared working-memory notes.
             bound_tools.extend(memory_toolkit_tools(conversation_id, agent.name))
 
+            # Sandbox: scope to the shared conversation workspace + inject tools
+            # when the chat has files (before TaskToolkit so subagents inherit).
+            attach_conversation_sandbox(
+                bound_tools, conversation_id=conversation_id, agent_name=agent.name
+            )
+
             # Agent Mode: expose the `task` tool so this agent can delegate to
             # subagents (which inherit these tools minus `task`).
             if agent.subagent_enabled:
@@ -1089,6 +1096,9 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 ).get_tools()
             )
         bound_tools.extend(memory_toolkit_tools(conversation_id, branch_agent.name))
+        attach_conversation_sandbox(
+            bound_tools, conversation_id=conversation_id, agent_name=branch_agent.name
+        )
         if branch_agent.subagent_enabled:
             from backend.domain.tools.task import TaskToolkit
 

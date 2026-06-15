@@ -126,6 +126,32 @@ class LLMSettings(BaseSettings):
         default=20, validation_alias=_alias("LLM_SUMMARIZATION_KEEP_MESSAGES")
     )
 
+    # Loop detection — short-circuits an agent that repeats the same tool call
+    # (same name + args). On by default; it only soft-nudges (never re-executes
+    # the repeated call), so it's a pure safety net.
+    loop_detection_enabled: bool = Field(
+        default=True, validation_alias=_alias("LLM_LOOP_DETECTION_ENABLED")
+    )
+    loop_detection_max_repeats: int = Field(
+        default=3, validation_alias=_alias("LLM_LOOP_DETECTION_MAX_REPEATS")
+    )
+    # Run-level cap on total tool executions (0 disables). Backstops the
+    # model-call cap with a tool-call cap.
+    tool_call_limit: int = Field(default=0, validation_alias=_alias("LLM_TOOL_CALL_LIMIT"))
+    # Model-call retry on transient errors (0 disables; off by default since
+    # key rotation already handles most provider failures).
+    model_retry_max: int = Field(default=0, validation_alias=_alias("LLM_MODEL_RETRY_MAX"))
+    # Context editing — prune old tool outputs when the input grows large.
+    context_editing_enabled: bool = Field(
+        default=False, validation_alias=_alias("LLM_CONTEXT_EDITING_ENABLED")
+    )
+    context_editing_trigger_tokens: int = Field(
+        default=100000, validation_alias=_alias("LLM_CONTEXT_EDITING_TRIGGER_TOKENS")
+    )
+    context_editing_keep: int = Field(
+        default=3, validation_alias=_alias("LLM_CONTEXT_EDITING_KEEP")
+    )
+
     def fallback_model_list(self) -> list[str]:
         raw = self.fallback_models or ""
         return [p.strip() for p in raw.replace("\n", ",").split(",") if p.strip()]
@@ -280,6 +306,19 @@ class SandboxSettings(BaseSettings):
     provisioner_url: str | None = Field(default=None, validation_alias=_alias("SANDBOX_PROVISIONER_URL"))
     timeout: int = Field(default=120, validation_alias=_alias("SANDBOX_TIMEOUT"))
     workspace: str | None = Field(default=None, validation_alias=_alias("SANDBOX_WORKSPACE"))
+
+
+class MinioSettings(BaseSettings):
+    """S3-compatible object storage for backing up conversation sandbox files."""
+
+    model_config = _SECTION_CONFIG
+
+    enabled: bool = Field(default=False, validation_alias=_alias("MINIO_ENABLED"))
+    endpoint: str = Field(default="localhost:9000", validation_alias=_alias("MINIO_ENDPOINT"))
+    access_key: str = Field(default="minioadmin", validation_alias=_alias("MINIO_ACCESS_KEY"))
+    secret_key: str = Field(default="minioadmin", validation_alias=_alias("MINIO_SECRET_KEY"))
+    bucket: str = Field(default="sandbox-backups", validation_alias=_alias("MINIO_BUCKET"))
+    secure: bool = Field(default=False, validation_alias=_alias("MINIO_SECURE"))
 
 
 class AuthSettings(BaseSettings):
@@ -484,6 +523,7 @@ class Settings(BaseSettings):
     task_queue: TaskQueueSettings = Field(default_factory=TaskQueueSettings)
     lock: LockSettings = Field(default_factory=LockSettings)
     sandbox: SandboxSettings = Field(default_factory=SandboxSettings)
+    minio: MinioSettings = Field(default_factory=MinioSettings)
     auth: AuthSettings = Field(default_factory=AuthSettings)
     working_memory: WorkingMemorySettings = Field(default_factory=WorkingMemorySettings)
     mcp: McpSettings = Field(default_factory=McpSettings)

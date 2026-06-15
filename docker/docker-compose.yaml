@@ -203,6 +203,13 @@ services:
       # Live store lives in local_database/ (gitignored), separate from the
       # committed storage/ seed catalog. Used by json mode + json fallbacks.
       - STORAGE_DIR=/app/local_database
+      # MinIO: durable backup of conversation sandbox files (profile: minio).
+      - MINIO_ENABLED=${MINIO_ENABLED:-false}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-minio:9000}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_BUCKET=${MINIO_BUCKET:-sandbox-backups}
+      - MINIO_SECURE=${MINIO_SECURE:-false}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -317,11 +324,39 @@ services:
       retries: 5
       start_period: 20s
 
+  # ── MinIO object storage (optional — profile: minio) ─────────────────────
+  # Durable backup/restore of conversation sandbox files so they survive Pod
+  # eviction in k8s mode. Activate: docker compose --profile minio up -d
+  # and set MINIO_ENABLED=true for the backend.
+  minio:
+    image: minio/minio:latest
+    container_name: ai-collective-minio
+    profiles: ["minio"]
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio_data:/data
+    networks:
+      - ai-collective
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   mongo_data:
     driver: local
   sandbox-workspace:
   router_data:
+  minio_data:
 
 networks:
   ai-collective:

@@ -152,6 +152,29 @@ class AioSandbox(Sandbox):
         )
         await self.exec_command(f"_write_{uuid.uuid4().hex[:6]}", "/", py_cmd)
 
+    async def write_bytes(self, path: str, data: bytes, append: bool = False) -> None:
+        """Write raw bytes into the container (binary-safe; for pdf/xlsx/etc)."""
+        encoded = base64.b64encode(data).decode()
+        mode = "ab" if append else "wb"
+        py_cmd = (
+            f"python3 -c \""
+            f"import base64,os; os.makedirs(os.path.dirname(os.path.abspath({path!r})), exist_ok=True); "
+            f"open({path!r}, {mode!r}).write(base64.b64decode('{encoded}'))\""
+        )
+        await self.exec_command(f"_wb_{uuid.uuid4().hex[:6]}", "/", py_cmd)
+
+    async def read_bytes(self, path: str) -> bytes:
+        """Read a file's raw bytes out of the container (binary-safe)."""
+        py_cmd = (
+            f"python3 -c \"import base64,sys; "
+            f"sys.stdout.write(base64.b64encode(open({path!r},'rb').read()).decode())\""
+        )
+        result = await self.exec_command(f"_rb_{uuid.uuid4().hex[:6]}", "/", py_cmd)
+        try:
+            return base64.b64decode(result.output.strip())
+        except Exception:  # noqa: BLE001
+            return b""
+
     async def list_dir(self, path: str, max_depth: int = 2) -> list[str]:
         cmd = (
             f"find {shlex.quote(path)} -maxdepth {max_depth} "

@@ -18,9 +18,11 @@ from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
 from backend.domain.agent._graph_runtime import (
+    attach_conversation_sandbox,
     drain_human_guidance,
     ensure_working_memory,
     memory_toolkit_tools,
+    uploads_hint,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
@@ -241,6 +243,13 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
             # Default memory tools: save/recall shared working-memory notes.
             bound_tools.extend(memory_toolkit_tools(conversation_id, agent.name))
 
+            # Sandbox: when this chat has files, scope the run to the shared
+            # conversation workspace and auto-inject the sandbox tools (before
+            # TaskToolkit so subagents inherit them).
+            attach_conversation_sandbox(
+                bound_tools, conversation_id=conversation_id, agent_name=agent.name
+            )
+
             # Agent Mode: expose the `task` tool so this agent can delegate to
             # subagents (which inherit these tools minus `task`).
             if agent.subagent_enabled:
@@ -254,7 +263,7 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                 )
                 bound_tools.extend(task_toolkit.get_tools())
 
-            user_input = state["input"]
+            user_input = uploads_hint(conversation_id) + state["input"]
 
             # Stream: Building context
             stream_writer({
