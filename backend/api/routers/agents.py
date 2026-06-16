@@ -9,7 +9,7 @@ from backend.application.service.agent_service import AgentService
 from backend.api.deps import current_owner_id_dep, get_agent_service
 from backend.domain.enums import AgentStatus
 from backend.domain.errors import NotFoundError
-from backend.domain.models import Agent, can_delete, can_modify, is_visible_to
+from backend.domain.models import Agent, can_delete, can_modify, is_owned_by, is_visible_to
 
 
 router = APIRouter(prefix="/agents", tags=["agents"])
@@ -33,7 +33,7 @@ def list_agents(
     return [
         AgentSchema.from_domain(agent, skills)
         for agent, skills in service.list_agents_with_skills()
-        if is_visible_to(owner_id, agent.owner_id)
+        if is_owned_by(owner_id, agent.owner_id)
     ]
 
 

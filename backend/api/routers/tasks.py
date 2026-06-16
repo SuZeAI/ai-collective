@@ -25,7 +25,7 @@ from backend.application.service.team_service import TeamService
 from backend.domain.errors import NotFoundError
 from backend.domain.enums import AgentStatus
 from backend.domain.enums import TaskStatus
-from backend.domain.models import Task, can_delete, can_modify, is_visible_to
+from backend.domain.models import Task, can_delete, can_modify, is_owned_by, is_visible_to
 from backend.infrastructure import task_run_registry
 from backend.infrastructure import task_queue
 from backend.log import get_logger
@@ -93,7 +93,7 @@ def list_tasks(
     return [
         TaskSchema.from_domain(t)
         for t in service.list_tasks()
-        if is_visible_to(owner_id, t.owner_id)
+        if is_owned_by(owner_id, t.owner_id)
     ]
 
 

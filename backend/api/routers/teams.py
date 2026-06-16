@@ -13,7 +13,7 @@ from backend.application.service.conversation_service import ConversationService
 from backend.application.service.team_service import TeamService
 from backend.domain.enums import AgentStatus
 from backend.domain.errors import NotFoundError
-from backend.domain.models import Message, Team, can_delete, can_modify, is_visible_to
+from backend.domain.models import Message, Team, can_delete, can_modify, is_owned_by, is_visible_to
 
 
 router = APIRouter(prefix="/teams", tags=["teams"])
@@ -71,7 +71,7 @@ def list_teams(
     return [
         TeamSchema.from_domain(t)
         for t in service.list_teams()
-        if is_visible_to(owner_id, t.owner_id)
+        if is_owned_by(owner_id, t.owner_id)
     ]
 
 

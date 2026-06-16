@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Trash2, Plug, Copy, CheckCheck, ChevronDown, ChevronRight,
   BrainCircuit, Users, Webhook, Settings2, RefreshCw,
-  MessageCircle, Zap, Globe, Link2,
+  MessageCircle, Zap, Globe, Link2, Download,
 } from "lucide-react";
 import { api, canDeleteItem, canEditItem, type Workspace, type PlatformHook, type PlatformDef, type Team, type ThirdPartyConnection } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -339,6 +339,7 @@ function WorkspaceDialog({
   platforms,
   connections,
   onSave,
+  workspaces = [],
 }: {
   open: boolean;
   onClose: () => void;
@@ -347,6 +348,7 @@ function WorkspaceDialog({
   platforms: PlatformDef[];
   connections: ThirdPartyConnection[];
   onSave: (data: Partial<Workspace> & Pick<Workspace, "name">) => void;
+  workspaces?: Workspace[];
 }) {
   const [name, setName] = useState(existing?.name || "");
   const [desc, setDesc] = useState(existing?.description || "");
@@ -364,6 +366,20 @@ function WorkspaceDialog({
       setHooks(existing?.platformHooks || []);
     }
   }, [open, existing]);
+
+  const handleImportFromOffice = (wsId: string) => {
+    const sourceWs = workspaces.find((w) => w.id === wsId);
+    if (sourceWs) {
+      setTeamIds(sourceWs.teamIds || []);
+      setPrimaryTeamId(sourceWs.primaryTeamId || "");
+      // Generate new IDs for imported hooks to prevent collisions
+      const importedHooks = (sourceWs.platformHooks || []).map((h, index) => ({
+        ...h,
+        id: `hook_imported_${Date.now()}_${index}`,
+      }));
+      setHooks(importedHooks);
+    }
+  };
 
   const toggleTeam = (id: string) => {
     setTeamIds((prev) =>
@@ -406,6 +422,35 @@ function WorkspaceDialog({
           </DialogHeader>
 
           <div className="grid gap-5 py-2">
+            {/* Import from another office (Only shown when creating a new office) */}
+            {!existing && workspaces.length > 0 && (
+              <div className="rounded-xl border border-dashed border-teal-500/30 bg-teal-500/5 p-4 grid gap-3">
+                <div className="flex items-center gap-2.5">
+                  <Download className="h-4 w-4 text-teal-400 shrink-0" />
+                  <div>
+                    <h4 className="text-xs font-semibold text-foreground">Import settings from another Office</h4>
+                    <p className="text-[10px] text-muted-foreground leading-normal">
+                      Clone departments and platform hooks instantly from an existing office.
+                    </p>
+                  </div>
+                </div>
+                <div className="max-w-md">
+                  <Select onValueChange={handleImportFromOffice}>
+                    <SelectTrigger className="h-8 text-xs bg-background/50">
+                      <SelectValue placeholder="Choose office to import from..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {workspaces.map((ws) => (
+                        <SelectItem key={ws.id} value={ws.id} className="text-xs">
+                          {ws.name} ({ws.teamIds.length} departments, {ws.platformHooks.length} hooks)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
             {/* Name + Description */}
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
@@ -885,6 +930,7 @@ export default function Workspaces() {
         platforms={platforms}
         connections={connections}
         onSave={handleSave}
+        workspaces={workspaces}
       />
     </div>
   );

@@ -14,8 +14,23 @@ GUEST_OWNER_ID = "guest"
 
 
 def is_visible_to(owner_id: str, entity_owner_id: str) -> bool:
-    """An entity is visible to a user if it is shared ("default") or theirs."""
+    """An entity is visible to a user if it is shared ("default") or theirs.
+
+    Used for access control (read/copy): a user may still *read* shared
+    "default" items so the marketplace can clone them into their own scope.
+    """
     return entity_owner_id in (DEFAULT_OWNER_ID, owner_id)
+
+
+def is_owned_by(owner_id: str, entity_owner_id: str) -> bool:
+    """Strict ownership: True only when the user created the entity.
+
+    The per-user list pages use this so shared "default" items no longer
+    appear there — they are discovered and cloned via the Marketplace.
+    (The admin account acts in the DEFAULT_OWNER_ID scope, so it still sees
+    every default item through this same check.)
+    """
+    return entity_owner_id == owner_id
 
 
 def can_delete(owner_id: str, entity_owner_id: str) -> bool:
