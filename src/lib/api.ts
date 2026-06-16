@@ -534,6 +534,17 @@ export const api = {
     apiFetch<Task>("/tasks", { method: "POST", body: JSON.stringify(payload) }),
   deleteTask: (id: string) => apiFetch<{ deleted: boolean }>(`/tasks/${id}`, { method: "DELETE" }),
 
+  // Marketplace: shared "default" items users can browse and clone into their scope.
+  listMarketplaceSkills: () => apiFetch<Skill[]>("/marketplace/skills"),
+  listMarketplaceAgents: () => apiFetch<Agent[]>("/marketplace/agents"),
+  listMarketplaceTeams: () => apiFetch<Team[]>("/marketplace/teams"),
+  listMarketplaceTasks: () => apiFetch<Task[]>("/marketplace/tasks"),
+  copyFromMarketplace: (payload: { type: "skill" | "agent" | "team" | "task"; id: string }) =>
+    apiFetch<{ type: string; id: string }>("/marketplace/copy", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
   listConversations: (taskId?: string) => {
     const qs = taskId ? `?task_id=${encodeURIComponent(taskId)}` : "";
     return apiFetch<Message[]>(`/conversations${qs}`);
