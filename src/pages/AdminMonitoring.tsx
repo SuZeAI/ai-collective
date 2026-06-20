@@ -6,10 +6,13 @@ import {
   BarChart3,
   CheckCircle2,
   Coins,
+  Cloud,
   Cpu,
   Database,
   DollarSign,
+  FolderOpen,
   Gauge,
+  HardDrive,
   Pencil,
   Plus,
   RefreshCw,
@@ -59,6 +62,7 @@ import { useToast } from "@/components/ui/use-toast";
 import {
   api,
   type AdminUserActivity,
+  type FileStorageStats,
   type ModelPricing,
   type SystemHealth,
   type UsageSummary,
@@ -76,6 +80,13 @@ function formatTokens(n: number): string {
 function formatCost(n: number): string {
   if (n > 0 && n < 0.01) return "<$0.01";
   return `$${n.toFixed(2)}`;
+}
+
+function formatBytes(n: number): string {
+  if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(2)} GB`;
+  if (n >= 1024 ** 2) return `${(n / 1024 ** 2).toFixed(1)} MB`;
+  if (n >= 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${n} B`;
 }
 
 function formatUptime(seconds: number): string {
@@ -280,6 +291,7 @@ export default function AdminMonitoring() {
   const [health, setHealth] = useState<SystemHealth | null>(null);
   const [pricing, setPricing] = useState<ModelPricing[]>([]);
   const [userActivity, setUserActivity] = useState<AdminUserActivity[]>([]);
+  const [fileStorage, setFileStorage] = useState<FileStorageStats | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [pricingDialogOpen, setPricingDialogOpen] = useState(false);
@@ -293,17 +305,19 @@ export default function AdminMonitoring() {
     setError(null);
     (async () => {
       try {
-        const [u, h, p, ua] = await Promise.all([
+        const [u, h, p, ua, fs] = await Promise.all([
           api.getAdminUsage(days),
           api.getAdminHealth(),
           api.listModelPricing(),
           api.getAdminUsers(days),
+          api.getAdminFileStorage(),
         ]);
         if (cancelled) return;
         setUsage(u);
         setHealth(h);
         setPricing(p);
         setUserActivity(ua);
+        setFileStorage(fs);
       } catch (e) {
         if (!cancelled) setError(String(e));
       } finally {
@@ -376,6 +390,7 @@ export default function AdminMonitoring() {
           <TabsTrigger value="overview" className="gap-1.5"><Gauge className="w-3.5 h-3.5" />Overview</TabsTrigger>
           <TabsTrigger value="usage" className="gap-1.5"><Coins className="w-3.5 h-3.5" />Token Usage</TabsTrigger>
           <TabsTrigger value="pricing" className="gap-1.5"><DollarSign className="w-3.5 h-3.5" />Pricing</TabsTrigger>
+          <TabsTrigger value="storage" className="gap-1.5"><HardDrive className="w-3.5 h-3.5" />Storage</TabsTrigger>
           <TabsTrigger value="users" className="gap-1.5"><UsersIcon className="w-3.5 h-3.5" />Users</TabsTrigger>
         </TabsList>
 
@@ -729,6 +744,101 @@ export default function AdminMonitoring() {
               </Table>
             )}
           </div>
+        </TabsContent>
+
+        {/* ── Storage ───────────────────────────────────────────────────── */}
+        <TabsContent value="storage" className="space-y-5">
+          {loading || !fileStorage ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="glass-card p-5"><Skeleton className="h-16 w-full" /></div>
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <KpiCard
+                  index={0}
+                  label="File store"
+                  value={fileStorage.backend === "s3" ? "S3 / MinIO" : "Local disk"}
+                  sub={`Sandbox mode: ${fileStorage.sandboxMode}`}
+                  icon={fileStorage.backend === "s3" ? Cloud : HardDrive}
+                  color={fileStorage.backend === "s3" ? "#06b6d4" : "#64748b"}
+                />
+                <KpiCard
+                  index={1}
+                  label="Object store"
+                  value={
+                    !fileStorage.minioEnabled ? "Disabled"
+                      : fileStorage.minioConnected ? "Connected" : "Unreachable"
+                  }
+                  sub={fileStorage.minioEnabled ? fileStorage.minioEndpoint : "MINIO_ENABLED=false"}
+                  icon={Database}
+                  color={fileStorage.minioConnected ? "#22c55e" : fileStorage.minioEnabled ? "#ef4444" : "#64748b"}
+                />
+                <KpiCard
+                  index={2}
+                  label="Library documents"
+                  value={String(fileStorage.libraryDocCount)}
+                  sub={formatBytes(fileStorage.libraryTotalBytes)}
+                  icon={FolderOpen}
+                  color="#14b8a6"
+                />
+                <KpiCard
+                  index={3}
+                  label="Stored in MinIO"
+                  value={formatBytes(fileStorage.sandboxTotalBytes + fileStorage.libraryObjectBytes)}
+                  sub={`${fileStorage.sandboxObjectCount + fileStorage.libraryObjectCount} objects`}
+                  icon={ServerCog}
+                  color="#a855f7"
+                />
+              </div>
+
+              <div className="glass-card p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <HardDrive className="w-4 h-4 text-primary" />
+                  <h3 className="text-sm font-semibold">File byte storage</h3>
+                  <span className="ml-auto"><OkBadge ok={fileStorage.backend !== "s3" || fileStorage.minioConnected} okLabel="Healthy" badLabel="Needs MinIO" /></span>
+                </div>
+
+                {fileStorage.backend === "s3" && fileStorage.minioEnabled && !fileStorage.minioConnected && (
+                  <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs">
+                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold">MinIO is configured but unreachable.</p>
+                      <p className="text-muted-foreground mt-0.5">
+                        Start it with <code className="font-mono">make dev PROFILES=minio</code>.
+                        {fileStorage.minioError ? ` (${fileStorage.minioError})` : ""}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <dl className="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-xs">
+                  {[
+                    ["Backend", fileStorage.backend === "s3" ? "s3 (MinIO is system of record)" : "local (host workspace volume)"],
+                    ["Sandbox mode", fileStorage.sandboxMode],
+                    ["Workspace path", fileStorage.workspaceBase],
+                    ["MinIO endpoint", fileStorage.minioEnabled ? fileStorage.minioEndpoint : "—"],
+                    ["MinIO bucket", fileStorage.minioEnabled ? fileStorage.minioBucket : "—"],
+                    ["Library objects (S3)", `${fileStorage.libraryObjectCount} · ${formatBytes(fileStorage.libraryObjectBytes)}`],
+                    ["Conversation objects (S3)", `${fileStorage.sandboxObjectCount} · ${formatBytes(fileStorage.sandboxTotalBytes)}`],
+                  ].map(([k, v]) => (
+                    <div key={k} className="flex justify-between gap-4 border-b border-border/40 pb-2">
+                      <dt className="text-muted-foreground shrink-0">{k}</dt>
+                      <dd className="font-medium text-right break-all">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+
+                <p className="text-[11px] text-muted-foreground mt-4 leading-relaxed">
+                  {fileStorage.backend === "s3"
+                    ? "Files (uploads, agent outputs, document library) are durably stored in MinIO and restored into the working directory on restart — surviving container/Pod recreation."
+                    : "Files live only on the host workspace volume. Set FILE_STORAGE_BACKEND=s3 + MINIO_ENABLED=true for durability across Pod recreation (required in k8s sandbox mode)."}
+                </p>
+              </div>
+            </>
+          )}
         </TabsContent>
 
         {/* ── Users ─────────────────────────────────────────────────────── */}
