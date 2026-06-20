@@ -78,6 +78,7 @@ export type Translations = {
     officeBuilder: string;
     virtualOffice: string;
     marketplace: string;
+    documentLibrary: string;
     settings: string;
     overviewGroup: string;
     operationsGroup: string;
@@ -88,6 +89,37 @@ export type Translations = {
     adminGroup: string;
     monitoring: string;
     manageWorkspaces: string;
+  };
+  documentLibrary: {
+    title: string;
+    subtitle: string;
+    overallScopeHint: string;
+    selectUnitFirst: string;
+    upload: string;
+    addFromUrl: string;
+    urlPlaceholder: string;
+    search: string;
+    empty: string;
+    emptyHint: string;
+    download: string;
+    delete: string;
+    deleteConfirm: string;
+    attachToProject: string;
+    selectProject: string;
+    attach: string;
+    cancel: string;
+    add: string;
+    uploading: string;
+    dropHint: string;
+    descriptionOptional: string;
+    tagsOptional: string;
+    nameOptional: string;
+    uploadedBy: string;
+    attachSuccess: string;
+    uploadSuccess: string;
+    deleteSuccess: string;
+    all: string;
+    types: { pdf: string; excel: string; doc: string; image: string; link: string; other: string };
   };
   status: { allSystemsOnline: string };
   brand: { subtitle: string };
@@ -373,6 +405,7 @@ export const translations: Record<Language, Translations> = {
       officeBuilder: "Office Designer",
       virtualOffice: "Office Map",
       marketplace: "Recruiting Hub",
+      documentLibrary: "Document Library",
       settings: "Settings",
       overviewGroup: "Overview",
       operationsGroup: "Operations",
@@ -383,6 +416,37 @@ export const translations: Record<Language, Translations> = {
       adminGroup: "Administration",
       monitoring: "System Monitoring",
       manageWorkspaces: "Manage Units",
+    },
+    documentLibrary: {
+      title: "Document Library",
+      subtitle: "Shared documents for this business unit — reusable across its projects.",
+      overallScopeHint: "Select a business unit to manage its document library.",
+      selectUnitFirst: "Select a business unit first.",
+      upload: "Upload document",
+      addFromUrl: "Add from link",
+      urlPlaceholder: "https://example.com/article",
+      search: "Search documents…",
+      empty: "No documents yet",
+      emptyHint: "Upload a file or add a link to build this unit's library.",
+      download: "Download",
+      delete: "Delete",
+      deleteConfirm: "Delete this document?",
+      attachToProject: "Attach to project",
+      selectProject: "Select a project",
+      attach: "Attach",
+      cancel: "Cancel",
+      add: "Add",
+      uploading: "Uploading…",
+      dropHint: "Drag & drop a file here, or click to choose",
+      descriptionOptional: "Description (optional)",
+      tagsOptional: "Tags, comma separated (optional)",
+      nameOptional: "Name (optional)",
+      uploadedBy: "Uploaded by",
+      attachSuccess: "Document attached to project.",
+      uploadSuccess: "Document uploaded.",
+      deleteSuccess: "Document deleted.",
+      all: "All",
+      types: { pdf: "PDF", excel: "Excel", doc: "Document", image: "Image", link: "Link", other: "Other" },
     },
     status: { allSystemsOnline: "All systems online" },
     brand: { subtitle: "Company Builder" },
@@ -692,6 +756,7 @@ export const translations: Record<Language, Translations> = {
       officeBuilder: "Thiết kế Văn phòng",
       virtualOffice: "Sơ đồ Văn phòng",
       marketplace: "Sàn Tuyển dụng",
+      documentLibrary: "Kho tài liệu",
       settings: "Cài đặt",
       overviewGroup: "Tổng quan",
       operationsGroup: "Vận hành",
@@ -702,6 +767,37 @@ export const translations: Record<Language, Translations> = {
       adminGroup: "Quản trị",
       monitoring: "Giám sát hệ thống",
       manageWorkspaces: "Quản lý Đơn vị",
+    },
+    documentLibrary: {
+      title: "Kho tài liệu",
+      subtitle: "Tài liệu dùng chung của đơn vị này — tái sử dụng cho mọi dự án bên trong.",
+      overallScopeHint: "Chọn một đơn vị thành viên để quản lý kho tài liệu của nó.",
+      selectUnitFirst: "Hãy chọn một đơn vị thành viên trước.",
+      upload: "Tải tài liệu lên",
+      addFromUrl: "Thêm từ đường link",
+      urlPlaceholder: "https://vidu.com/bai-viet",
+      search: "Tìm tài liệu…",
+      empty: "Chưa có tài liệu nào",
+      emptyHint: "Tải tệp lên hoặc thêm đường link để xây dựng kho tài liệu cho đơn vị này.",
+      download: "Tải về",
+      delete: "Xoá",
+      deleteConfirm: "Xoá tài liệu này?",
+      attachToProject: "Đính kèm vào dự án",
+      selectProject: "Chọn một dự án",
+      attach: "Đính kèm",
+      cancel: "Huỷ",
+      add: "Thêm",
+      uploading: "Đang tải lên…",
+      dropHint: "Kéo & thả tệp vào đây, hoặc bấm để chọn",
+      descriptionOptional: "Mô tả (không bắt buộc)",
+      tagsOptional: "Thẻ, cách nhau bởi dấu phẩy (không bắt buộc)",
+      nameOptional: "Tên (không bắt buộc)",
+      uploadedBy: "Người tải lên",
+      attachSuccess: "Đã đính kèm tài liệu vào dự án.",
+      uploadSuccess: "Đã tải tài liệu lên.",
+      deleteSuccess: "Đã xoá tài liệu.",
+      all: "Tất cả",
+      types: { pdf: "PDF", excel: "Excel", doc: "Tài liệu", image: "Hình ảnh", link: "Liên kết", other: "Khác" },
     },
     status: { allSystemsOnline: "Tất cả hệ thống hoạt động" },
     brand: { subtitle: "Kiến tạo doanh nghiệp" },
@@ -1011,6 +1107,7 @@ export const translations: Record<Language, Translations> = {
       officeBuilder: "办公室设计",
       virtualOffice: "办公室平面图",
       marketplace: "招聘广场",
+      documentLibrary: "文档库",
       settings: "系统设置",
       overviewGroup: "概览",
       operationsGroup: "运营",
@@ -1021,6 +1118,37 @@ export const translations: Record<Language, Translations> = {
       adminGroup: "管理",
       monitoring: "系统监控",
       manageWorkspaces: "管理单位",
+    },
+    documentLibrary: {
+      title: "文档库",
+      subtitle: "本业务单元的共享文档 — 可在其所有项目中复用。",
+      overallScopeHint: "请选择一个业务单元以管理其文档库。",
+      selectUnitFirst: "请先选择一个业务单元。",
+      upload: "上传文档",
+      addFromUrl: "从链接添加",
+      urlPlaceholder: "https://example.com/article",
+      search: "搜索文档…",
+      empty: "暂无文档",
+      emptyHint: "上传文件或添加链接以构建本单元的文档库。",
+      download: "下载",
+      delete: "删除",
+      deleteConfirm: "删除此文档？",
+      attachToProject: "附加到项目",
+      selectProject: "选择项目",
+      attach: "附加",
+      cancel: "取消",
+      add: "添加",
+      uploading: "上传中…",
+      dropHint: "将文件拖放到此处，或点击选择",
+      descriptionOptional: "描述（可选）",
+      tagsOptional: "标签，用逗号分隔（可选）",
+      nameOptional: "名称（可选）",
+      uploadedBy: "上传者",
+      attachSuccess: "文档已附加到项目。",
+      uploadSuccess: "文档已上传。",
+      deleteSuccess: "文档已删除。",
+      all: "全部",
+      types: { pdf: "PDF", excel: "Excel", doc: "文档", image: "图片", link: "链接", other: "其他" },
     },
     status: { allSystemsOnline: "所有系统运行正常" },
     brand: { subtitle: "公司构建器" },
@@ -1330,6 +1458,7 @@ export const translations: Record<Language, Translations> = {
       officeBuilder: "オフィスレイアウト",
       virtualOffice: "オフィス図面",
       marketplace: "求人ハブ",
+      documentLibrary: "ドキュメントライブラリ",
       settings: "システム設定",
       overviewGroup: "概要",
       operationsGroup: "オペレーション",
@@ -1340,6 +1469,37 @@ export const translations: Record<Language, Translations> = {
       adminGroup: "管理",
       monitoring: "システム監視",
       manageWorkspaces: "拠点管理",
+    },
+    documentLibrary: {
+      title: "ドキュメントライブラリ",
+      subtitle: "このビジネスユニットの共有ドキュメント — 配下の全プロジェクトで再利用できます。",
+      overallScopeHint: "ドキュメントライブラリを管理するビジネスユニットを選択してください。",
+      selectUnitFirst: "先にビジネスユニットを選択してください。",
+      upload: "ドキュメントをアップロード",
+      addFromUrl: "リンクから追加",
+      urlPlaceholder: "https://example.com/article",
+      search: "ドキュメントを検索…",
+      empty: "ドキュメントがありません",
+      emptyHint: "ファイルをアップロードするか、リンクを追加してライブラリを作成します。",
+      download: "ダウンロード",
+      delete: "削除",
+      deleteConfirm: "このドキュメントを削除しますか？",
+      attachToProject: "プロジェクトに添付",
+      selectProject: "プロジェクトを選択",
+      attach: "添付",
+      cancel: "キャンセル",
+      add: "追加",
+      uploading: "アップロード中…",
+      dropHint: "ここにファイルをドラッグ＆ドロップ、またはクリックして選択",
+      descriptionOptional: "説明（任意）",
+      tagsOptional: "タグ（カンマ区切り、任意）",
+      nameOptional: "名前（任意）",
+      uploadedBy: "アップロード者",
+      attachSuccess: "ドキュメントをプロジェクトに添付しました。",
+      uploadSuccess: "ドキュメントをアップロードしました。",
+      deleteSuccess: "ドキュメントを削除しました。",
+      all: "すべて",
+      types: { pdf: "PDF", excel: "Excel", doc: "ドキュメント", image: "画像", link: "リンク", other: "その他" },
     },
     status: { allSystemsOnline: "全システム稼働中" },
     brand: { subtitle: "会社ビルダ" },

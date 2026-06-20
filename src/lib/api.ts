@@ -224,6 +224,7 @@ export type ChatRequest = {
   prompt: string;
   system?: string;
   agentId?: string;
+  conversationId?: string;
 };
 
 export type ChatResponse = {
@@ -410,6 +411,23 @@ export type SystemHealth = {
   counts: { users: number; agents: number; teams: number; tasks: number; workspaces: number };
 };
 
+export type FileStorageStats = {
+  backend: string;            // "local" | "s3"
+  sandboxMode: string;
+  workspaceBase: string;
+  minioEnabled: boolean;
+  minioConnected: boolean;
+  minioEndpoint: string;
+  minioBucket: string;
+  minioError: string;
+  libraryDocCount: number;
+  libraryTotalBytes: number;
+  sandboxObjectCount: number;
+  sandboxTotalBytes: number;
+  libraryObjectCount: number;
+  libraryObjectBytes: number;
+};
+
 export type AdminUserActivity = {
   id: string;
   name: string;
@@ -440,6 +458,34 @@ export type LoginResponse = {
   access_token: string;
   token_type: string;
   user: AuthUser;
+};
+
+export type ThreadFile = {
+  id: string;
+  conversationId: string;
+  filename: string;
+  size: number;
+  contentType?: string | null;
+  relPath: string;
+  uploadedBy: string;
+  producedByAgent?: string | null;
+  createdAt: string;
+};
+
+export type LibraryDocument = {
+  id: string;
+  workspaceId: string;
+  name: string;
+  contentType: string;
+  size: number;
+  relPath: string;
+  createdAt: string;
+  description: string;
+  source: string;
+  sourceUrl: string;
+  tags: string[];
+  owner_id: string;
+  uploadedBy: string;
 };
 
 type ApiOptions = RequestInit & { timeoutMs?: number };
@@ -502,6 +548,41 @@ async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
   } finally {
     clearTimeout(id);
   }
+}
+
+async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  const base = getApiBase().replace(/\/$/, "");
+  const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
+  const res = await fetch(url, { method: "POST", headers: { ...getAuthHeader() }, body: formData });
+  if (!res.ok) {
+    let detail = `${res.status} ${res.statusText}`;
+    try {
+      const data = await res.json();
+      if (data?.detail) detail = String(data.detail);
+    } catch { /* ignore */ }
+    throw new Error(detail);
+  }
+  return (await res.json()) as T;
+}
+
+async function apiDownload(path: string): Promise<Blob> {
+  const base = getApiBase().replace(/\/$/, "");
+  const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
+  const res = await fetch(url, { headers: { ...getAuthHeader() } });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return await res.blob();
+}
+
+/** Trigger a browser "save as" for a fetched blob. */
+export function saveBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 export const api = {
@@ -787,6 +868,7 @@ export const api = {
   // Admin monitoring (requires admin role)
   getAdminUsage: (days = 30) => apiFetch<UsageSummary>(`/admin/monitoring/usage?days=${days}`),
   getAdminHealth: () => apiFetch<SystemHealth>("/admin/monitoring/health"),
+  getAdminFileStorage: () => apiFetch<FileStorageStats>("/admin/monitoring/file-storage"),
   getAdminUsers: (days = 30) => apiFetch<AdminUserActivity[]>(`/admin/monitoring/users?days=${days}`),
   listModelPricing: () => apiFetch<ModelPricing[]>("/admin/monitoring/pricing"),
   upsertModelPricing: (payload: ModelPricing) =>
@@ -799,6 +881,41 @@ export const api = {
       `/admin/monitoring/pricing?model=${encodeURIComponent(model)}`,
       { method: "DELETE" },
     ),
+
+  // Project (conversation) files
+  listConversationFiles: (taskId: string) =>
+    apiFetch<ThreadFile[]>(`/conversations/${encodeURIComponent(taskId)}/files`),
+  uploadConversationFile: (taskId: string, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return apiUpload<ThreadFile>(`/conversations/${encodeURIComponent(taskId)}/files`, fd);
+  },
+  downloadConversationFile: (taskId: string, relPath: string) =>
+    apiDownload(`/conversations/${encodeURIComponent(taskId)}/files/download?rel_path=${encodeURIComponent(relPath)}`),
+
+  // Document Library (Business Unit scope)
+  listDocuments: (workspaceId?: string) =>
+    apiFetch<LibraryDocument[]>(
+      `/library/documents${workspaceId ? `?workspace_id=${encodeURIComponent(workspaceId)}` : ""}`,
+    ),
+  uploadDocument: (workspaceId: string, file: File, opts?: { description?: string; tags?: string[] }) => {
+    const fd = new FormData();
+    fd.append("workspaceId", workspaceId);
+    fd.append("file", file);
+    if (opts?.description) fd.append("description", opts.description);
+    if (opts?.tags?.length) fd.append("tags", opts.tags.join(","));
+    return apiUpload<LibraryDocument>("/library/documents", fd);
+  },
+  ingestUrl: (payload: { workspaceId: string; url: string; name?: string; description?: string; tags?: string[] }) =>
+    apiFetch<LibraryDocument>("/library/documents/ingest-url", { method: "POST", body: JSON.stringify(payload) }),
+  downloadDocument: (id: string) => apiDownload(`/library/documents/${encodeURIComponent(id)}/download`),
+  attachDocumentToProject: (id: string, taskId: string) =>
+    apiFetch<{ attached: boolean }>(`/library/documents/${encodeURIComponent(id)}/attach`, {
+      method: "POST",
+      body: JSON.stringify({ taskId }),
+    }),
+  deleteDocument: (id: string) =>
+    apiFetch<{ deleted: boolean }>(`/library/documents/${encodeURIComponent(id)}`, { method: "DELETE" }),
 
   // Auth
   login: (email: string, password: string) =>

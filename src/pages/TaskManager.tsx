@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
+import { ConversationFiles } from "@/components/ConversationFiles";
 import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
 import { useRunEngine, type GraphHighlight, type UserInputRequest } from "@/contexts/RunEngineContext";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
@@ -1313,6 +1314,9 @@ export default function TaskManager() {
                         {interjectErrors[selectedTask.id]}
                       </p>
                     )}
+                    <div className="mb-2">
+                      <ConversationFiles taskId={selectedTask.id} workspaceId={scope.workspace?.id ?? null} />
+                    </div>
                     <div className="flex items-end gap-2">
                       <Textarea
                         value={humanInputs[selectedTask.id] ?? ""}
