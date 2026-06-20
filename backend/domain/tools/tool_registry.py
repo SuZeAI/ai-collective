@@ -6,6 +6,7 @@ from backend.domain.tools.bash import BashToolkit
 from backend.domain.tools.sandbox_tools import SandboxToolkit
 from backend.domain.tools.brave_search import BraveSearchToolkit
 from backend.domain.tools.browser import BrowserToolkit
+from backend.domain.tools.document_tools import DocumentToolkit
 from backend.domain.tools.http import HTTPToolkit
 from backend.domain.tools.mcp_toolkit import MCPToolkit
 from backend.domain.tools.a2a_toolkit import A2AToolkit
@@ -59,6 +60,7 @@ from backend.domain.tools.gemini import (
 class ToolType(str, Enum):
     BASH = "bash"
     SANDBOX = "sandbox"
+    DOCUMENTS = "documents"
     BRAVE_SEARCH = "brave_search"
     BROWSER = "browser"
     WEBSEARCH = "websearch"
@@ -112,6 +114,7 @@ class ToolType(str, Enum):
 TOOL_CLASS_REGISTRY: Dict[str, Type[BaseToolkit]] = {
     ToolType.BASH.value: BashToolkit,
     ToolType.SANDBOX.value: SandboxToolkit,
+    ToolType.DOCUMENTS.value: DocumentToolkit,
     ToolType.BRAVE_SEARCH.value: BraveSearchToolkit,
     ToolType.BROWSER.value: BrowserToolkit,
     ToolType.WEBSEARCH.value: WebSearchToolkit,

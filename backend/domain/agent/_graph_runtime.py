@@ -325,6 +325,12 @@ def attach_conversation_sandbox(
             from backend.domain.tools.sandbox_tools import SandboxToolkit
 
             bound_tools.extend(SandboxToolkit(session_id=cs.thread_id).get_tools())
+        # Document understanding (extract pdf/excel/csv text, read tables, fetch URLs,
+        # describe images) — available whenever a chat has files.
+        if "document_extract_text" not in existing:
+            from backend.domain.tools.document_tools import DocumentToolkit
+
+            bound_tools.extend(DocumentToolkit().get_tools())
         return True
     except Exception:  # noqa: BLE001
         logger.exception("attach_conversation_sandbox failed for %s", conversation_id)
