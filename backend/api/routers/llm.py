@@ -35,6 +35,7 @@ class ChatRequest(BaseModel):
     prompt: str = Field(min_length=1)
     system: str | None = None
     agentId: str | None = None
+    conversationId: str | None = None
 
 
 class ChatResponse(BaseModel):
@@ -83,8 +84,25 @@ async def chat(
         )
         tools.extend(task_toolkit.get_tools())
 
+    # When the direct chat is scoped to a conversation that has files, provision
+    # the shared sandbox and inject the file/document tools so the agent can read
+    # the uploads (mirrors the agent-graph path).
+    prompt = req.prompt
+    if req.conversationId:
+        try:
+            from backend.domain.agent._graph_runtime import (
+                attach_conversation_sandbox,
+                uploads_hint,
+            )
+
+            agent_name = req.agentId or "assistant"
+            if attach_conversation_sandbox(tools, conversation_id=req.conversationId, agent_name=agent_name):
+                prompt = uploads_hint(req.conversationId) + prompt
+        except Exception as exc:  # noqa: BLE001 - never break a chat over file wiring
+            logger.warning("attach_conversation_sandbox (direct chat) failed: %s", exc)
+
     text = await service.chat(
-        prompt=req.prompt,
+        prompt=prompt,
         system=system_prompt or "You are a helpful assistant.",
         tools=tools or None,
         parallel_tools=subagent_enabled,

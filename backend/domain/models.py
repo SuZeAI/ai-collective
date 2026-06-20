@@ -165,6 +165,28 @@ class Workspace:
 
 
 @dataclass(frozen=True, slots=True)
+class LibraryDocument:
+    """A document in a Business Unit's shared document library ("Kho tài liệu").
+
+    Bytes live in the FileStore (``library/<workspace_id>/<rel_path>``); this is the
+    metadata record. ``source`` is "upload" | "url" | "project".
+    """
+    id: str
+    workspace_id: str
+    name: str
+    content_type: str
+    size: int
+    rel_path: str
+    created_at: datetime
+    description: str = ""
+    source: str = "upload"
+    source_url: str = ""
+    tags: list[str] = field(default_factory=list)
+    uploaded_by: str = ""
+    owner_id: str = DEFAULT_OWNER_ID
+
+
+@dataclass(frozen=True, slots=True)
 class OfficeBuilderSession:
     """A saved Office Builder chat session (history + draft plan)."""
     id: str
