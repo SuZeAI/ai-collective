@@ -203,6 +203,9 @@ services:
       # Live store lives in local_database/ (gitignored), separate from the
       # committed storage/ seed catalog. Used by json mode + json fallbacks.
       - STORAGE_DIR=/app/local_database
+      # File byte-store: local (host volume) | s3 (MinIO). Empty → auto (s3 when
+      # MINIO_ENABLED, else local). s3 restores files on restart. See .env.template.
+      - FILE_STORAGE_BACKEND=${FILE_STORAGE_BACKEND:-}
       # MinIO: durable backup of conversation sandbox files (profile: minio).
       - MINIO_ENABLED=${MINIO_ENABLED:-false}
       - MINIO_ENDPOINT=${MINIO_ENDPOINT:-minio:9000}
