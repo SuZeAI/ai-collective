@@ -1,0 +1,109 @@
+# LLM Agent Middleware
+
+The provider's `chat()` does not hand-roll a ReAct loop; it delegates to
+LangChain's `create_agent`, and cross-cutting behaviours are expressed as
+**middleware**. The stack is assembled in
+`build_default_middleware()` (`backend/infrastructure/llm/middleware.py`) and
+applied to every agent in every topology.
+
+Each middleware uses the appropriate hook:
+
+- `awrap_tool_call` — wraps a tool execution (block / cache / time-out / redact).
+- `before_model` / `after_model` — runs around the model call (inject context,
+  trim history, persist output).
+
+## Stack order
+
+`build_default_middleware()` composes the stack in this order (later items are
+inner wrappers for tool calls):
+
+| Order | Middleware | Hook | Gate (default OFF unless noted) |
+|------:|-----------|------|--------------------------------|
+| 1 | `ModelCallLimitMiddleware` | model | always (caps rounds, forces final answer) |
+| 2 | `ToolCallLimitMiddleware` | tool | `LLM_TOOL_CALL_LIMIT > 0` |
+| 3 | `GuardrailMiddleware` | tool | when deny tools/patterns configured |
+| 4 | `ToolResultCacheMiddleware` | tool | `LLM_TOOL_CACHE_ENABLED` |
+| 5 | `LoopDetectionMiddleware` | tool | `LLM_LOOP_DETECTION_ENABLED` (**on**) |
+| 6 | `ToolRetryMiddleware` | tool | `LLM_TOOL_RETRY_MAX > 0` (**on**, =2) |
+| 7 | `ToolTimeoutMiddleware` | tool | always |
+| 8 | `PIIRedactionMiddleware` | tool | `LLM_PII_REDACTION_ENABLED` |
+| 9 | `ModelFallbackMiddleware` | model | `LLM_FALLBACK_MODELS` set |
+| 10 | `ModelRetryMiddleware` | model | `LLM_MODEL_RETRY_MAX > 0` |
+| 11 | `ContextEditingMiddleware` | model | `LLM_CONTEXT_EDITING_ENABLED` |
+| 12 | `SummarizationMiddleware` | model | `LLM_SUMMARIZATION_ENABLED` (LLM-based) |
+| 13 | `RollingSummaryMiddleware` | model | `LLM_ROLLING_SUMMARY_ENABLED` |
+| 14 | `LongTermMemoryMiddleware` | model | `LLM_LTM_MIDDLEWARE_ENABLED` |
+| 15 | `CostBudgetMiddleware` | model | `LLM_RUN_TOKEN_BUDGET > 0` |
+
+**Ordering rationale:** guardrail/PII protect tool execution, the cache serves
+before retry/timeout do work, loop-detection → retry → timeout wrap the actual
+call, and the model-facing trio (trim → recall → budget) acts around the model.
+
+## Built-in middleware (LangChain)
+
+- **ModelCallLimitMiddleware** — caps model calls per run and ends with a final
+  answer (replaces the old `max_tool_rounds` loop).
+- **ToolCallLimit / ToolRetry / ModelFallback / ModelRetry** — bound tool calls,
+  retry transient failures, fall back across models.
+- **ContextEditingMiddleware** — prunes old tool outputs when the input grows
+  large.
+- **SummarizationMiddleware** — compacts long histories with a dedicated
+  summarization model (set `LLM_SUMMARIZATION_MODEL`).
+
+## Custom middleware
+
+| Middleware | What it does |
+|-----------|--------------|
+| **ToolTimeoutMiddleware** | Bounds each tool call to `TOOL_TIMEOUT_SECONDS`; returns a timeout `ToolMessage` instead of hanging. |
+| **LoopDetectionMiddleware** | Detects an agent re-issuing the *same* tool call (name + args) `LLM_LOOP_DETECTION_MAX_REPEATS` times and soft-nudges it to change approach or finalize. Stateless (scans `state["messages"]`). |
+| **RollingSummaryMiddleware** | LLM-free history compactor: when history exceeds `LLM_ROLLING_SUMMARY_TRIGGER_TOKENS`, folds the oldest messages into one summary `SystemMessage` and removes them (keeping the last N). Pairing-safe — never orphans a `tool_use`/`tool_result`. |
+| **LongTermMemoryMiddleware** | Recalls long-term memory for the run scope and injects it before the model; persists the final answer after. See [LONG_TERM_MEMORY.md](LONG_TERM_MEMORY.md). |
+| **ToolResultCacheMiddleware** | Serves an identical idempotent tool call from the run's prior result (keyed by name + canonical args), complementing loop detection. Skips tools on `LLM_TOOL_CACHE_DENY_TOOLS`. |
+| **CostBudgetMiddleware** | Soft-stops a run that exceeds `LLM_RUN_TOKEN_BUDGET` by injecting a "finalize now" instruction (a soft cap atop the hard model-call cap). |
+| **GuardrailMiddleware** | Blocks a tool call (returns an explanatory `ToolMessage` instead of executing) when the tool is on `LLM_GUARDRAIL_DENY_TOOLS` or its args match `LLM_GUARDRAIL_DENY_PATTERNS`. |
+| **PIIRedactionMiddleware** | Redacts emails, card-like digit runs and common secret tokens from tool results before the model sees them. |
+
+## Configuration
+
+Knobs live under `config.yml › llm` (or the matching `LLM_*` env vars); see
+[configuration.md](configuration.md) for the full list. All custom additions are
+**OFF by default**, so enabling them is opt-in and the baseline behaviour is
+unchanged.
+
+```yaml
+llm:
+  # summarization (LLM-based, built-in)
+  summarization_enabled: false
+  # rolling summary (LLM-free)
+  rolling_summary_enabled: false
+  rolling_summary_trigger_tokens: 6000
+  rolling_summary_keep_messages: 10
+  # long-term memory recall/persist
+  ltm_middleware_enabled: false
+  # tool result cache
+  tool_cache_enabled: false
+  # tool_cache_deny_tools: send_email,run_shell
+  # cost guard (0 = off)
+  run_token_budget: 0
+  # guardrail + PII
+  pii_redaction_enabled: false
+  # guardrail_deny_tools: run_shell,delete_file
+  # guardrail_deny_patterns: rm -rf,DROP TABLE
+```
+
+## Writing a new middleware
+
+Subclass `AgentMiddleware` and implement the relevant hook, then register it
+(gated) in `build_default_middleware()`:
+
+```python
+class MyMiddleware(AgentMiddleware):
+    async def awrap_tool_call(self, request, handler):
+        # pre-checks on request.tool_call / request.state["messages"]
+        result = await handler(request)
+        # post-process result
+        return result
+```
+
+All middleware are best-effort and must never break a run; follow the existing
+classes for the soft-fail conventions.

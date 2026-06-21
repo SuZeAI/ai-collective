@@ -101,6 +101,30 @@ multi-provider proxy, set `LLM_FAILOVER_STRATEGY=9router`, `LLM_PROVIDER=openai`
 | `AGENT_LLM_TIMEOUT_SECONDS` | `120` | Per `llm.chat` call timeout (`safe_chat`) |
 | `AGENT_LLM_MAX_RETRIES` | `2` | Retries on transient LLM failures |
 
+### LLM middleware
+
+Cross-cutting behaviours layered on the `create_agent` path. See
+[LLM_MIDDLEWARE.md](LLM_MIDDLEWARE.md) for the full stack and ordering.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LLM_LOOP_DETECTION_ENABLED` | `true` | Short-circuit repeated-identical tool calls |
+| `LLM_LOOP_DETECTION_MAX_REPEATS` | `3` | Repeats before the soft nudge |
+| `LLM_TOOL_RETRY_MAX` | `2` | Retries for transient tool failures (0 = off) |
+| `LLM_TOOL_CALL_LIMIT` | `0` | Run-wide cap on tool executions (0 = off) |
+| `LLM_MODEL_RETRY_MAX` | `0` | Model-call retries on transient errors (0 = off) |
+| `LLM_FALLBACK_MODELS` | — | Comma-separated fallback model ids |
+| `LLM_CONTEXT_EDITING_ENABLED` | `false` | Prune old tool outputs when input grows large |
+| `LLM_SUMMARIZATION_ENABLED` / `LLM_SUMMARIZATION_MODEL` | `false` / — | LLM-based history summarization |
+| `LLM_ROLLING_SUMMARY_ENABLED` | `false` | LLM-free history compactor (fold oldest → summary) |
+| `LLM_ROLLING_SUMMARY_TRIGGER_TOKENS` / `LLM_ROLLING_SUMMARY_KEEP_MESSAGES` | `6000` / `10` | Trigger and tail kept verbatim |
+| `LLM_LTM_MIDDLEWARE_ENABLED` | `false` | Recall long-term memory before model, persist after |
+| `LLM_TOOL_CACHE_ENABLED` | `false` | Serve identical idempotent tool calls from cache |
+| `LLM_TOOL_CACHE_DENY_TOOLS` | — | Comma-separated tools to never cache |
+| `LLM_RUN_TOKEN_BUDGET` | `0` | Soft-stop a run past this many tokens (0 = off) |
+| `LLM_PII_REDACTION_ENABLED` | `false` | Redact emails/cards/secrets from tool results |
+| `LLM_GUARDRAIL_DENY_TOOLS` / `LLM_GUARDRAIL_DENY_PATTERNS` | — | Block tools by name / arg regex |
+
 ## Storage
 
 | Variable | Default | Description |
@@ -128,6 +152,60 @@ multi-provider proxy, set `LLM_FAILOVER_STRATEGY=9router`, `LLM_PROVIDER=openai`
 |----------|---------|-------------|
 | `GRAPH_BUILD_MODE` | `static` | `static` (spaCy/rules) \| `llm` (richer, costs tokens) |
 | `GRAPH_LLM_PROVIDER` / `GRAPH_LLM_MODEL` | — | Optional dedicated extraction LLM |
+| `GRAPH_DB_BACKEND` | `auto` | `auto` (follow `STORAGE_BACKEND`) \| `neo4j` |
+| `NEO4J_URI` | — | e.g. `bolt://localhost:7687` (required for `neo4j`) |
+| `NEO4J_USER` / `NEO4J_PASSWORD` | `neo4j` / — | Neo4j credentials (secrets → `.env`) |
+| `NEO4J_DATABASE` | `neo4j` | Target database |
+
+Falls back to the `STORAGE_BACKEND` graph repo if the driver/server is
+unavailable. Install with `pip install '.[neo4j]'`; local dev container via the
+`neo4j` compose profile. See [LONG_TERM_MEMORY.md](LONG_TERM_MEMORY.md).
+
+## Embeddings & long-term memory
+
+Real vector RAG + cross-conversation memory. **OFF by default** (lexical
+fallback). Full guide: [LONG_TERM_MEMORY.md](LONG_TERM_MEMORY.md).
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `EMBEDDING_ENABLED` | `false` | Turn on real vector embeddings |
+| `EMBEDDING_PROVIDER` | `hashing` | `hashing` (no dep) \| `google` \| `openai` \| `open_weight` |
+| `EMBEDDING_MODEL` | — | Provider-specific model id |
+| `EMBEDDING_DIM` | `256` | Vector dimension (hashing) |
+| `LONG_TERM_MEMORY_ENABLED` | `false` | Enable cross-conversation memory |
+| `LTM_RECALL_TOP_K` | `5` | Records recalled per query |
+| `LTM_MIN_IMPORTANCE` | `0.0` | Minimum importance to recall |
+| `LTM_CONSOLIDATE_ON_RUN_END` | `true` | Promote salient working-memory notes at run end |
+| `LTM_DEDUPE_THRESHOLD` | `0.92` | Similarity above which records merge |
+| `LTM_DIGEST_CHARS` | `2000` | Injected recall-digest size cap |
+
+### RAG retrieval (additional context for the knowledge graph)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RETRIEVAL_MODE` | `bm25` | `bm25` (local, no service) \| `qdrant` (vector) \| `neo4j` (graph) \| `hybrid` (Qdrant + Neo4j, GraphRAG) |
+| `RETRIEVAL_TOP_K` | `5` | Chunks retrieved per query |
+| `RETRIEVAL_HOPS` | `1` | Graph expansion depth (`neo4j`/`hybrid`) |
+| `RETRIEVAL_MAX_CHARS` | `1500` | Size cap of the injected RAG block |
+
+`qdrant`/`hybrid` need `EMBEDDING_ENABLED` + a Qdrant service; `neo4j`/`hybrid`
+use the knowledge graph (best with `GRAPH_DB_BACKEND=neo4j`). Any mode falls back
+to BM25 on failure.
+
+### Vector store (ANN index for recall)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VECTOR_STORE_BACKEND` | `none` | `none` (brute force) \| `faiss` \| `qdrant` |
+| `VECTOR_STORE_PATH` | `<STORAGE_DIR>/vector_store` | FAISS index directory |
+| `VECTOR_STORE_OVERFETCH` | `5` | Candidates fetched before scope filtering |
+| `QDRANT_URL` | — | Qdrant endpoint (required for `qdrant`) |
+| `QDRANT_API_KEY` | — | Optional; blank for the local dev container |
+| `QDRANT_COLLECTION` | `ltm_memory` | Collection name |
+
+Only used when embeddings are enabled; degrades to brute force if the backend is
+unavailable. Install with `pip install '.[faiss]'` / `'.[qdrant]'`; local dev
+containers via the `qdrant` compose profile.
 
 ## Security / networking knobs
 

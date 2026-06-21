@@ -121,3 +121,8 @@ is logged and skipped — it can never abort an agent run.
 | Cost | NLP/LLM extraction per message | plain string handling |
 
 They run side by side; disabling one does not affect the other.
+
+> **Beyond one conversation:** working memory and the graph are per-conversation
+> and reset when a run ends. For knowledge that persists **across** tasks (scoped
+> by workspace + owner + agent, with vector RAG), see
+> [LONG_TERM_MEMORY.md](LONG_TERM_MEMORY.md).

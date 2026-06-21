@@ -12,8 +12,10 @@ architecture, configuration, security model, and deployment.
 | [configuration.md](configuration.md) | Full environment-variable reference |
 | [security.md](security.md) | Auth, JWT, CORS, SSRF guard, webhook signatures, logging hygiene |
 | [webhooks.md](webhooks.md) | Inbound messaging webhooks and per-platform verification |
-| [agent-orchestration.md](agent-orchestration.md) | LangGraph topologies and reliability controls |
+| [agent-orchestration.md](agent-orchestration.md) | LangGraph topologies, reliability controls, conversation persistence on restart |
 | [AGENT_MEMORY.md](AGENT_MEMORY.md) | Shared working memory — anti-context-loss layer for multi-agent runs |
+| [LONG_TERM_MEMORY.md](LONG_TERM_MEMORY.md) | Cross-conversation long-term memory, embeddings/RAG, FAISS/Qdrant vector stores, Neo4j graph backend |
+| [LLM_MIDDLEWARE.md](LLM_MIDDLEWARE.md) | The agent middleware stack (limits, retries, summary, LTM, cache, cost guard, guardrail, PII) |
 | [MCP_GUIDE.md](MCP_GUIDE.md) | Connecting MCP servers to agents as skills |
 | [deployment.md](deployment.md) | Docker image, task-queue/lock/sandbox backends, graceful shutdown |
 | [api-reference.md](api-reference.md) | REST surface grouped by router |
