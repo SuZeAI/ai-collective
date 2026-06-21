@@ -163,6 +163,24 @@ class SystemHealthSchema(BaseModel):
     counts: EntityCountsSchema
 
 
+class FileStorageStatsSchema(BaseModel):
+    """File byte-store (uploads / agent outputs / document library) status & usage."""
+    backend: str                 # "local" | "s3"
+    sandboxMode: str             # local | docker | k8s
+    workspaceBase: str
+    minioEnabled: bool
+    minioConnected: bool
+    minioEndpoint: str = ""
+    minioBucket: str = ""
+    minioError: str = ""
+    libraryDocCount: int = 0
+    libraryTotalBytes: int = 0
+    sandboxObjectCount: int = 0   # objects under sandbox/ in MinIO (s3 mode)
+    sandboxTotalBytes: int = 0
+    libraryObjectCount: int = 0   # objects under library/ in MinIO (s3 mode)
+    libraryObjectBytes: int = 0
+
+
 # ── User activity ────────────────────────────────────────────────────────────
 
 class UserActivitySchema(BaseModel):

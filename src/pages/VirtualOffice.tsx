@@ -10,6 +10,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useTheme } from "next-themes";
 import { AgentAvatar } from "@/components/AgentAvatar";
+import { ConversationFiles } from "@/components/ConversationFiles";
 import { api, buildCustomGraphPayload, type Agent, type Task, type Team, type Message } from "@/lib/api";
 import { useRunEngine } from "@/contexts/RunEngineContext";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
@@ -432,7 +433,8 @@ export default function VirtualOffice() {
     try {
       const res = await api.chat({
         prompt: userMessage,
-        agentId: selectedAgentId
+        agentId: selectedAgentId,
+        conversationId: `direct-${selectedAgentId}`,
       });
 
       setDirectChatMessages((prev) => ({
@@ -876,7 +878,14 @@ export default function VirtualOffice() {
                 </div>
 
                 {/* direct chat input row inside widget */}
-                <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex gap-2 shrink-0 bg-transparent mt-auto">
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 shrink-0 bg-transparent mt-auto space-y-2">
+                  {selectedAgentId && (
+                    <ConversationFiles
+                      taskId={`direct-${selectedAgentId}`}
+                      workspaceId={scope.workspace?.id ?? null}
+                    />
+                  )}
+                  <div className="flex gap-2">
                   <input
                     type="text"
                     value={directChatInput}
@@ -892,6 +901,7 @@ export default function VirtualOffice() {
                   >
                     <Send className="w-3 h-3" />
                   </button>
+                  </div>
                 </div>
               </div>
             ) : (

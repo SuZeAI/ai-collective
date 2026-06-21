@@ -248,6 +248,28 @@ def get_connection_service() -> ConnectionService:
 
 
 @lru_cache
+def _library_document_store():
+    if settings.storage_backend == "mongo":
+        import pymongo
+        from backend.infrastructure.repositories.mongo_repositories.library_documents import (
+            MongoLibraryDocumentRepository,
+        )
+        client = pymongo.MongoClient(settings.mongo_uri)
+        db = client[settings.mongo_db]
+        return MongoLibraryDocumentRepository(db)
+    from backend.infrastructure.repositories.json_files.library_documents import (
+        JsonLibraryDocumentRepository,
+    )
+    return JsonLibraryDocumentRepository(_store("library_documents.json"))
+
+
+def get_document_library_service() -> "DocumentLibraryService":
+    from backend.application.service.document_library_service import DocumentLibraryService
+
+    return DocumentLibraryService(_library_document_store())
+
+
+@lru_cache
 def _office_builder_session_store():
     if settings.storage_backend == "mongo":
         import pymongo

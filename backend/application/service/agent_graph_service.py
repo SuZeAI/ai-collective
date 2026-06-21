@@ -11,6 +11,20 @@ from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.application.ports.llm import LLMProvider
 
 
+def _backup_workspace(conversation_id: str | None) -> None:
+    """Best-effort: mirror agent-written files up to S3 at run-end (s3 mode only)."""
+    if not conversation_id:
+        return
+    try:
+        from backend.infrastructure.llm.sandbox_middleware import (
+            backup_conversation_workspace,
+        )
+
+        backup_conversation_workspace(conversation_id)
+    except Exception:  # noqa: BLE001 - never let backup wiring break a run
+        pass
+
+
 class AgentGraphService:
     def __init__(self, llm: LLMProvider, orchestrator: AgentGraphOrchestrator):
         self._llm = llm
@@ -31,16 +45,19 @@ class AgentGraphService:
             raise ValueError("user_input must not be empty")
         if not definitions:
             raise ValueError("At least one agent definition is required")
-        return await self._orchestrator.run(
-            user_input=user_input,
-            agents=definitions,
-            llm=self._llm,
-            max_rounds=max(1, max_rounds),
-            conversation_id=conversation_id,
-            graph_context_provider=graph_context_provider,
-            graph_config=graph_config,
-            custom_graph=custom_graph,
-        )
+        try:
+            return await self._orchestrator.run(
+                user_input=user_input,
+                agents=definitions,
+                llm=self._llm,
+                max_rounds=max(1, max_rounds),
+                conversation_id=conversation_id,
+                graph_context_provider=graph_context_provider,
+                graph_config=graph_config,
+                custom_graph=custom_graph,
+            )
+        finally:
+            _backup_workspace(conversation_id)
 
     async def run_stream_with_definitions(
         self,
@@ -58,14 +75,17 @@ class AgentGraphService:
             raise ValueError("user_input must not be empty")
         if not definitions:
             raise ValueError("At least one agent definition is required")
-        async for turn in self._orchestrator.run_stream(
-            user_input=user_input,
-            agents=definitions,
-            llm=self._llm,
-            max_rounds=max(1, max_rounds),
-            conversation_id=conversation_id,
-            graph_context_provider=graph_context_provider,
-            graph_config=graph_config,
-            custom_graph=custom_graph,
-        ):
-            yield turn
+        try:
+            async for turn in self._orchestrator.run_stream(
+                user_input=user_input,
+                agents=definitions,
+                llm=self._llm,
+                max_rounds=max(1, max_rounds),
+                conversation_id=conversation_id,
+                graph_context_provider=graph_context_provider,
+                graph_config=graph_config,
+                custom_graph=custom_graph,
+            ):
+                yield turn
+        finally:
+            _backup_workspace(conversation_id)

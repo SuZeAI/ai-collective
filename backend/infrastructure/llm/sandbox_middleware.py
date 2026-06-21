@@ -59,6 +59,16 @@ def _sandbox_mode() -> str:
         return "local"
 
 
+def _file_backend() -> str:
+    """Effective byte-store backend ('local' | 's3'), independent of sandbox_mode."""
+    try:
+        from backend.api.settings import settings
+
+        return settings.file_storage_backend
+    except Exception:  # noqa: BLE001
+        return "local"
+
+
 def ensure_conversation_sandbox(conversation_id: Optional[str]) -> Optional[ConversationSandbox]:
     """Provision (idempotently) the shared workspace for a chat and report files.
 
@@ -82,8 +92,13 @@ def ensure_conversation_sandbox(conversation_id: Optional[str]) -> Optional[Conv
         uploads_dir = os.path.join(workspace, "uploads")
         has_files = conversation_has_files(conversation_id)
 
-        if has_files and _sandbox_mode() != "local":
-            _restore_remote_once(conversation_id, thread_id, workspace)
+        if has_files and _file_backend() == "s3":
+            # Rehydrate the host workspace agents read/write (covers local + the
+            # docker bind-mount) so files survive a restart on an ephemeral FS.
+            _restore_local_once(conversation_id, thread_id, workspace)
+            # k8s pods have no host mount — also push the bytes into the live pod.
+            if _sandbox_mode() not in ("local", "docker"):
+                _restore_remote_once(conversation_id, thread_id, workspace)
 
         return ConversationSandbox(
             conversation_id=conversation_id,
@@ -95,6 +110,32 @@ def ensure_conversation_sandbox(conversation_id: Optional[str]) -> Optional[Conv
     except Exception as exc:  # noqa: BLE001
         logger.exception("ensure_conversation_sandbox failed for %s: %s", conversation_id, exc)
         return None
+
+
+def _restore_local_once(conversation_id: str, thread_id: str, workspace: str) -> None:
+    """Rehydrate the host workspace from S3 once per conversation per process.
+
+    In ``s3`` mode the host workspace is a cache: after a restart on an ephemeral
+    filesystem it is empty even though the durable copy lives in MinIO. We restore
+    the bytes back into ``{SANDBOX_WORKSPACE}/<thread_id>/`` so sandbox tools (and
+    the docker bind-mount) see the files agents were exchanging. Idempotent and
+    best-effort. Uses a distinct marker so it can coexist with the remote restore.
+    """
+    marker = f"local:{conversation_id}"
+    with _restored_lock:
+        if marker in _restored:
+            return
+        _restored.add(marker)
+    try:
+        from backend.infrastructure.storage.file_store import get_file_store
+
+        count = get_file_store("sandbox").restore_to_dir(thread_id, workspace)
+        if count:
+            logger.info("Restored %d file(s) into host workspace for %s", count, conversation_id)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Local sandbox restore failed for %s: %s", conversation_id, exc)
+        with _restored_lock:
+            _restored.discard(marker)  # allow a later retry
 
 
 def _restore_remote_once(conversation_id: str, thread_id: str, workspace: str) -> None:
@@ -144,9 +185,10 @@ def push_upload_to_sandbox(conversation_id: str, rel_path: str, content: bytes) 
         from backend.infrastructure.sandbox.sandbox_session import conversation_thread_id
 
         thread_id = conversation_thread_id(conversation_id)
-        backup = get_backup_service()
-        if backup.enabled:
-            backup.backup_bytes(thread_id, rel_path, content)
+        if _file_backend() == "s3":
+            backup = get_backup_service()
+            if backup.enabled:
+                backup.backup_bytes(thread_id, rel_path, content)
 
         if _sandbox_mode() == "local":
             return  # host FS already holds the file (uploader wrote it)
@@ -169,6 +211,8 @@ def backup_conversation_workspace(conversation_id: str) -> None:
     upload path / explicit backup tooling.
     """
     try:
+        if _file_backend() != "s3":
+            return
         backup = get_backup_service()
         if not backup.enabled:
             return

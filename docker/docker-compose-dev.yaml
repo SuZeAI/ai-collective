@@ -224,6 +224,10 @@ services:
       # Live store lives in local_database/ (gitignored), separate from the
       # committed storage/ seed catalog. Used by json mode + json fallbacks.
       - STORAGE_DIR=/app/local_database
+      # File byte-store (FILE_STORAGE_BACKEND / MINIO_*) is delivered via env_file
+      # (../.env) so it is NOT shadowed by interpolation defaults here. For s3
+      # durability: set FILE_STORAGE_BACKEND=s3 + MINIO_ENABLED=true in .env and
+      # start MinIO with `make dev PROFILES=minio`.
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - PYTHONUNBUFFERED=1
     # Reach NodePort sandbox services on the host k3s node (k8s mode).
@@ -346,6 +350,34 @@ services:
       retries: 5
       start_period: 20s
 
+  # ── MinIO object storage (optional — profile: minio) ─────────────────────
+  # Durable byte-store for uploads/agent-outputs/library docs so files survive
+  # container restarts. Activate: make dev PROFILES=minio  (then set
+  # MINIO_ENABLED=true or FILE_STORAGE_BACKEND=s3 in .env). Console: :9001.
+  minio:
+    image: minio/minio:latest
+    container_name: ai-collective-minio-dev
+    profiles: ["minio"]
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio_data:/data
+    networks:
+      - ai-collective-dev
+    restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   mongo_data:
     driver: local
@@ -353,6 +385,7 @@ volumes:
   backend-uv-cache:
   sandbox-workspace:
   router_data:
+  minio_data:
 
 networks:
   ai-collective-dev:

@@ -71,6 +71,38 @@ def list_files(task_id: str) -> list[ThreadFileSchema]:
     return [ThreadFileSchema.from_record(r) for r in list_thread_files(task_id)]
 
 
+@router.get("/{task_id}/files/download")
+def download_file(task_id: str, rel_path: str = Query(...)):
+    """Download a file attached to a conversation by its rel_path.
+
+    Reads via the FileStore (host dir in local mode, MinIO in s3 mode). The
+    rel_path is confined to the conversation's ``uploads/`` directory.
+    """
+    import io
+    from fastapi.responses import StreamingResponse
+
+    from backend.infrastructure.sandbox.sandbox_session import conversation_thread_id
+    from backend.infrastructure.sandbox.thread_files import list_thread_files
+    from backend.infrastructure.storage.file_store import get_file_store
+
+    norm = os.path.normpath(rel_path)
+    if norm.startswith("..") or os.path.isabs(norm) or not norm.startswith("uploads" + os.sep):
+        raise HTTPException(status_code=400, detail="Invalid rel_path.")
+
+    record = next((r for r in list_thread_files(task_id) if r.get("rel_path") == rel_path), None)
+    thread_id = conversation_thread_id(task_id)
+    data = get_file_store("sandbox").get(thread_id, rel_path)
+    if data is None:
+        raise HTTPException(status_code=404, detail="File not found.")
+    filename = (record or {}).get("filename") or os.path.basename(rel_path)
+    content_type = (record or {}).get("content_type") or "application/octet-stream"
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type=content_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @router.post("/{task_id}/files", response_model=ThreadFileSchema, status_code=201)
 async def upload_file(
     task_id: str,
