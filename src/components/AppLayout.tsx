@@ -43,8 +43,8 @@ const NAV_GROUPS: NavGroup[] = [
   {
     groupKey: "orgGroup",
     items: [
-      { key: "agents", url: "/agents", icon: Cpu },
       { key: "teams", url: "/teams", icon: Users },
+      { key: "agents", url: "/agents", icon: Cpu },
       { key: "skills", url: "/skills", icon: Wrench },
     ]
   },
