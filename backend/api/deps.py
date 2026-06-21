@@ -149,6 +149,29 @@ def _repos():
         )
         workspaces = JsonWorkspaceRepository(JsonFileStore(STORAGE_DIR / "workspaces.json"))
         connections = JsonConnectionRepository(JsonFileStore(STORAGE_DIR / "connections.json"))
+
+    # Optional Neo4j knowledge-graph backend (overrides the STORAGE_BACKEND repo
+    # above). Falls back to that repo if the driver/server is unavailable so the
+    # app always boots.
+    if settings.graph.backend.strip().lower() == "neo4j" and settings.graph.neo4j_uri:
+        try:
+            from backend.infrastructure.repositories.neo4j_graph_knowledge import (
+                Neo4jGraphKnowledgeRepository,
+            )
+
+            graph_knowledge = Neo4jGraphKnowledgeRepository(
+                uri=settings.graph.neo4j_uri,
+                user=settings.graph.neo4j_user,
+                password=settings.graph.neo4j_password,
+                database=settings.graph.neo4j_database,
+            )
+            get_logger().info("Knowledge graph backend: Neo4j (%s)", settings.graph.neo4j_uri)
+        except Exception:  # noqa: BLE001 — degrade to the storage-backend repo
+            get_logger().warning(
+                "Neo4j graph backend unavailable; using %s repo", settings.storage_backend,
+                exc_info=True,
+            )
+
     return agents, skills, teams, tasks, conversations, analytics, activity_feed, graph_knowledge, workspaces, connections
 
 
