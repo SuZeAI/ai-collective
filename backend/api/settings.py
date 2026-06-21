@@ -253,6 +253,11 @@ class StorageSettings(BaseSettings):
     backend: str = Field(default="json", validation_alias=_alias("STORAGE_BACKEND"))
     dir: str | None = Field(default=None, validation_alias=_alias("STORAGE_DIR"))
     seed_dir: str | None = Field(default=None, validation_alias=_alias("SEED_DIR"))
+    # Where file *bytes* (uploads, agent outputs, library docs) durably live.
+    # "local" → host workspace dir only; "s3" → MinIO/S3 is the system of record
+    # and the working dir is restored from it on cold start (any sandbox mode).
+    # "" (default/auto) → s3 when MINIO_ENABLED else local (back-compat).
+    file_backend: str = Field(default="", validation_alias=_alias("FILE_STORAGE_BACKEND"))
 
 
 class MongoSettings(BaseSettings):
@@ -593,6 +598,16 @@ class Settings(BaseSettings):
     def storage_dir(self) -> str | None: return self.storage.dir
     @property
     def seed_dir(self) -> str | None: return self.storage.seed_dir
+    @property
+    def file_storage_backend(self) -> str:
+        """Effective byte-store backend: explicit FILE_STORAGE_BACKEND wins; else auto.
+
+        auto = 's3' when MINIO_ENABLED, otherwise 'local' (back-compat).
+        """
+        choice = (self.storage.file_backend or "").strip().lower()
+        if choice in ("s3", "local"):
+            return choice
+        return "s3" if self.minio.enabled else "local"
     # Mongo
     @property
     def mongo_uri(self) -> str: return self.mongo.uri

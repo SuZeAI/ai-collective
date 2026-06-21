@@ -10,6 +10,7 @@ from backend.api.deps import (
 )
 from backend.api.schemas.admin import (
     EntityCountsSchema,
+    FileStorageStatsSchema,
     LLMHealthSchema,
     ModelPricingSchema,
     RequestMetricsSchema,
@@ -101,6 +102,62 @@ def _check_storage() -> StorageHealthSchema:
         return StorageHealthSchema(backend="json", ok=ok, detail=str(STORAGE_DIR))
     except Exception as e:
         return StorageHealthSchema(backend="json", ok=False, detail=str(e))
+
+
+@router.get("/file-storage", response_model=FileStorageStatsSchema)
+def get_file_storage(
+    _: object = Depends(require_admin),
+) -> FileStorageStatsSchema:
+    """File byte-store status: local⇄s3 backend, MinIO connectivity, and usage."""
+    from backend.infrastructure.storage.file_store import workspace_base
+
+    backend = settings.file_storage_backend
+    minio_cfg = settings.minio
+
+    # Library metadata (cheap, accurate — from the repository).
+    lib_count, lib_bytes = 0, 0
+    try:
+        from backend.api.deps import _library_document_store
+
+        docs = _library_document_store().list()
+        lib_count = len(docs)
+        lib_bytes = sum(int(getattr(d, "size", 0) or 0) for d in docs)
+    except Exception:  # noqa: BLE001
+        pass
+
+    connected = False
+    minio_error = ""
+    sb_count = sb_bytes = lib_obj_count = lib_obj_bytes = 0
+    if backend == "s3" and minio_cfg.enabled:
+        try:
+            from backend.infrastructure.sandbox.backup import create_backup_service
+
+            sandbox_store = create_backup_service(key_root="sandbox")
+            connected = sandbox_store.ping()
+            if connected:
+                sb_count, sb_bytes = sandbox_store.usage()
+                lib_obj_count, lib_obj_bytes = create_backup_service(key_root="library").usage()
+            else:
+                minio_error = "Cannot reach MinIO bucket (is `make dev PROFILES=minio` running?)"
+        except Exception as e:  # noqa: BLE001
+            minio_error = str(e)
+
+    return FileStorageStatsSchema(
+        backend=backend,
+        sandboxMode=settings.sandbox_mode,
+        workspaceBase=workspace_base(),
+        minioEnabled=minio_cfg.enabled,
+        minioConnected=connected,
+        minioEndpoint=minio_cfg.endpoint if minio_cfg.enabled else "",
+        minioBucket=minio_cfg.bucket if minio_cfg.enabled else "",
+        minioError=minio_error,
+        libraryDocCount=lib_count,
+        libraryTotalBytes=lib_bytes,
+        sandboxObjectCount=sb_count,
+        sandboxTotalBytes=sb_bytes,
+        libraryObjectCount=lib_obj_count,
+        libraryObjectBytes=lib_obj_bytes,
+    )
 
 
 @router.get("/health", response_model=SystemHealthSchema)

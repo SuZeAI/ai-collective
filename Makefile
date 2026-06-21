@@ -20,7 +20,7 @@ SHELL     := /bin/bash
 #   make dev PROFILES=router
 #   make dev PROFILES="sandbox router"
 #   make up  PROFILES="router provisioner"
-# Available profiles: sandbox · provisioner · router · mongo-express · tools
+# Available profiles: sandbox · provisioner · router · mongo-express · tools · minio
 PROFILES ?=
 COMPOSE_PROFILES := $(foreach p,$(PROFILES),--profile $(p))
 

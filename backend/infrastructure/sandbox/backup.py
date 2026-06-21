@@ -21,8 +21,6 @@ from backend.log import get_logger
 
 logger = get_logger(__name__)
 
-_KEY_ROOT = "sandbox"
-
 
 class S3BackupService:
     """Mirror conversation workspaces to an S3-compatible bucket (MinIO)."""
@@ -35,9 +33,11 @@ class S3BackupService:
         secret_key: str,
         bucket: str,
         secure: bool = False,
+        key_root: str = "sandbox",
     ) -> None:
         self._bucket = bucket
         self._endpoint = endpoint
+        self._key_root = key_root.strip("/") or "sandbox"
         self._client = None
         try:
             from minio import Minio  # type: ignore
@@ -66,9 +66,8 @@ class S3BackupService:
         except Exception as exc:  # noqa: BLE001
             logger.warning("MinIO ensure-bucket failed: %s", exc)
 
-    @staticmethod
-    def _key(thread_id: str, rel_path: str) -> str:
-        return f"{_KEY_ROOT}/{thread_id}/{rel_path.lstrip('/')}"
+    def _key(self, thread_id: str, rel_path: str) -> str:
+        return f"{self._key_root}/{thread_id}/{rel_path.lstrip('/')}"
 
     # ── Single object ──────────────────────────────────────────────────────────
 
@@ -109,7 +108,7 @@ class S3BackupService:
         """Return rel_paths of all objects stored under this conversation."""
         if self._client is None:
             return []
-        prefix = f"{_KEY_ROOT}/{thread_id}/"
+        prefix = f"{self._key_root}/{thread_id}/"
         try:
             return [
                 obj.object_name[len(prefix):]
@@ -121,6 +120,33 @@ class S3BackupService:
         except Exception as exc:  # noqa: BLE001
             logger.warning("MinIO list failed for %s: %s", thread_id, exc)
             return []
+
+    def usage(self, scope_prefix: str = "") -> tuple[int, int]:
+        """Return (object_count, total_bytes) under ``{key_root}/<scope_prefix>``."""
+        if self._client is None:
+            return (0, 0)
+        prefix = f"{self._key_root}/{scope_prefix}".rstrip("/") + "/" if scope_prefix else f"{self._key_root}/"
+        count = 0
+        total = 0
+        try:
+            for obj in self._client.list_objects(self._bucket, prefix=prefix, recursive=True):
+                if obj.object_name.endswith("/"):
+                    continue
+                count += 1
+                total += int(obj.size or 0)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("MinIO usage failed for %s: %s", prefix, exc)
+        return (count, total)
+
+    def ping(self) -> bool:
+        """Best-effort connectivity check (bucket existence)."""
+        if self._client is None:
+            return False
+        try:
+            return bool(self._client.bucket_exists(self._bucket))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("MinIO ping failed: %s", exc)
+            return False
 
     def backup_dir(self, thread_id: str, root: str) -> int:
         """Upload every file under host *root* dir. Returns count uploaded."""
@@ -158,6 +184,15 @@ class S3BackupService:
                 logger.warning("restore_dir write failed for %s: %s", dest, exc)
         return count
 
+    def purge_object(self, thread_id: str, rel_path: str) -> None:
+        """Delete a single object (best-effort)."""
+        if self._client is None:
+            return
+        try:
+            self._client.remove_object(self._bucket, self._key(thread_id, rel_path))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("MinIO purge_object failed for %s: %s", rel_path, exc)
+
     def purge(self, thread_id: str) -> None:
         """Delete all objects for a conversation (best-effort; used on cleanup)."""
         if self._client is None:
@@ -165,7 +200,7 @@ class S3BackupService:
         try:
             from minio.deleteobjects import DeleteObject  # type: ignore
 
-            prefix = f"{_KEY_ROOT}/{thread_id}/"
+            prefix = f"{self._key_root}/{thread_id}/"
             objs = [
                 DeleteObject(o.object_name)
                 for o in self._client.list_objects(
@@ -193,11 +228,20 @@ class _NoopBackupService:
         return 0
     def restore_dir(self, *_a, **_k) -> int:
         return 0
+    def usage(self, *_a, **_k) -> tuple[int, int]:
+        return (0, 0)
+    def ping(self, *_a, **_k) -> bool:
+        return False
+    def purge_object(self, *_a, **_k) -> None: ...
     def purge(self, *_a, **_k) -> None: ...
 
 
-def create_backup_service():
-    """Build the configured backup service, or a no-op when MinIO is disabled."""
+def create_backup_service(key_root: str = "sandbox"):
+    """Build the configured backup service, or a no-op when MinIO is disabled.
+
+    *key_root* is the object-key namespace (``sandbox`` for conversation files,
+    ``library`` for the document library) so distinct stores never collide.
+    """
     try:
         from backend.api.settings import settings
 
@@ -210,6 +254,7 @@ def create_backup_service():
             secret_key=cfg.secret_key,
             bucket=cfg.bucket,
             secure=cfg.secure,
+            key_root=key_root,
         )
     except Exception as exc:  # noqa: BLE001
         logger.warning("Backup service unavailable (%s); using no-op.", exc)
