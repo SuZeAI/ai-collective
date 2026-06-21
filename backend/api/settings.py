@@ -152,9 +152,57 @@ class LLMSettings(BaseSettings):
         default=3, validation_alias=_alias("LLM_CONTEXT_EDITING_KEEP")
     )
 
+    # ── Custom middleware suite (all OFF by default) ──────────────────────────
+    # Rolling summary — project-native summarizer that folds the oldest history
+    # into a working-memory summary note and trims it from the model input.
+    rolling_summary_enabled: bool = Field(
+        default=False, validation_alias=_alias("LLM_ROLLING_SUMMARY_ENABLED")
+    )
+    rolling_summary_trigger_tokens: int = Field(
+        default=6000, validation_alias=_alias("LLM_ROLLING_SUMMARY_TRIGGER_TOKENS")
+    )
+    rolling_summary_keep_messages: int = Field(
+        default=10, validation_alias=_alias("LLM_ROLLING_SUMMARY_KEEP_MESSAGES")
+    )
+    # Long-term memory middleware — recall at start, persist salient at end.
+    ltm_middleware_enabled: bool = Field(
+        default=False, validation_alias=_alias("LLM_LTM_MIDDLEWARE_ENABLED")
+    )
+    # Tool result cache — serve identical idempotent tool calls from cache.
+    tool_cache_enabled: bool = Field(
+        default=False, validation_alias=_alias("LLM_TOOL_CACHE_ENABLED")
+    )
+    tool_cache_deny_tools: str | None = Field(
+        default=None, validation_alias=_alias("LLM_TOOL_CACHE_DENY_TOOLS")
+    )
+    # Cost/token budget guard — soft-stop a run past a token ceiling (0 = off).
+    run_token_budget: int = Field(default=0, validation_alias=_alias("LLM_RUN_TOKEN_BUDGET"))
+    # PII redaction + guardrail.
+    pii_redaction_enabled: bool = Field(
+        default=False, validation_alias=_alias("LLM_PII_REDACTION_ENABLED")
+    )
+    guardrail_deny_tools: str | None = Field(
+        default=None, validation_alias=_alias("LLM_GUARDRAIL_DENY_TOOLS")
+    )
+    guardrail_deny_patterns: str | None = Field(
+        default=None, validation_alias=_alias("LLM_GUARDRAIL_DENY_PATTERNS")
+    )
+
     def fallback_model_list(self) -> list[str]:
         raw = self.fallback_models or ""
         return [p.strip() for p in raw.replace("\n", ",").split(",") if p.strip()]
+
+    def _csv_list(self, raw: str | None) -> list[str]:
+        return [p.strip() for p in (raw or "").replace("\n", ",").split(",") if p.strip()]
+
+    def tool_cache_deny_list(self) -> list[str]:
+        return self._csv_list(self.tool_cache_deny_tools)
+
+    def guardrail_deny_tool_list(self) -> list[str]:
+        return self._csv_list(self.guardrail_deny_tools)
+
+    def guardrail_deny_pattern_list(self) -> list[str]:
+        return self._csv_list(self.guardrail_deny_patterns)
 
 
 class LLMKeysSettings(BaseSettings):
@@ -276,6 +324,14 @@ class GraphSettings(BaseSettings):
     build_mode: str = Field(default="static", validation_alias=_alias("GRAPH_BUILD_MODE"))
     llm_provider: str | None = Field(default=None, validation_alias=_alias("GRAPH_LLM_PROVIDER"))
     llm_model: str | None = Field(default=None, validation_alias=_alias("GRAPH_LLM_MODEL"))
+    # Knowledge-graph persistence backend. "auto" follows STORAGE_BACKEND
+    # (mongo|json); "neo4j" uses a Neo4j graph database (falls back to the
+    # STORAGE_BACKEND repo if the driver/service is unavailable).
+    backend: str = Field(default="auto", validation_alias=_alias("GRAPH_DB_BACKEND"))
+    neo4j_uri: str | None = Field(default=None, validation_alias=_alias("NEO4J_URI"))
+    neo4j_user: str = Field(default="neo4j", validation_alias=_alias("NEO4J_USER"))
+    neo4j_password: str | None = Field(default=None, validation_alias=_alias("NEO4J_PASSWORD"))
+    neo4j_database: str = Field(default="neo4j", validation_alias=_alias("NEO4J_DATABASE"))
 
 
 class TaskQueueSettings(BaseSettings):
@@ -367,6 +423,87 @@ class WorkingMemorySettings(BaseSettings):
     note_chars: int = Field(default=600, validation_alias=_alias("WORKING_MEMORY_NOTE_CHARS"))
     summary_chars: int = Field(default=3000, validation_alias=_alias("WORKING_MEMORY_SUMMARY_CHARS"))
     digest_chars: int = Field(default=4000, validation_alias=_alias("WORKING_MEMORY_DIGEST_CHARS"))
+
+
+class EmbeddingSettings(BaseSettings):
+    """Pluggable embedding backend for real (vector) RAG.
+
+    Off by default — when disabled the knowledge graph / long-term memory /
+    document RAG all fall back to lexical retrieval. ``provider`` selects a
+    real model (google/openai/open_weight) or the dependency-free ``hashing``
+    fallback. Keys are reused from ``LLMKeysSettings``.
+    """
+
+    model_config = _SECTION_CONFIG
+
+    enabled: bool = Field(default=False, validation_alias=_alias("EMBEDDING_ENABLED"))
+    provider: str = Field(default="hashing", validation_alias=_alias("EMBEDDING_PROVIDER"))
+    model: str | None = Field(default=None, validation_alias=_alias("EMBEDDING_MODEL"))
+    dim: int = Field(default=256, validation_alias=_alias("EMBEDDING_DIM"))
+    batch_size: int = Field(default=64, validation_alias=_alias("EMBEDDING_BATCH_SIZE"))
+
+
+class VectorStoreSettings(BaseSettings):
+    """ANN vector index for long-term memory recall.
+
+    ``backend=none`` (default) keeps the brute-force cosine over scope-filtered
+    records in the repository. ``faiss`` builds a local on-disk index; ``qdrant``
+    uses an external Qdrant service. Both degrade to brute-force if the optional
+    dependency is missing or the backend can't be reached.
+    """
+
+    model_config = _SECTION_CONFIG
+
+    backend: str = Field(default="none", validation_alias=_alias("VECTOR_STORE_BACKEND"))
+    # faiss — NOTE: field name must NOT be ``path`` (case-insensitive matching
+    # would read the ubiquitous ``$PATH`` env var into it).
+    faiss_path: str | None = Field(default=None, validation_alias=_alias("VECTOR_STORE_PATH"))
+    # qdrant
+    qdrant_url: str | None = Field(default=None, validation_alias=_alias("QDRANT_URL"))
+    qdrant_api_key: str | None = Field(default=None, validation_alias=_alias("QDRANT_API_KEY"))
+    qdrant_collection: str = Field(
+        default="ltm_memory", validation_alias=_alias("QDRANT_COLLECTION")
+    )
+    # how many extra candidates to over-fetch before scope filtering (backends
+    # without server-side scope filtering rely on this).
+    overfetch: int = Field(default=5, validation_alias=_alias("VECTOR_STORE_OVERFETCH"))
+
+
+class RetrievalSettings(BaseSettings):
+    """RAG retrieval mode for injecting 'additional information' into context.
+
+    ``mode``:
+      * ``bm25`` (default) — local Okapi BM25 over conversation chunks. No
+        external service or embedding model; the fallback when the advanced
+        backends are disabled.
+      * ``qdrant`` — semantic vector search over chunk embeddings (needs Qdrant
+        + embeddings).
+      * ``neo4j`` — graph-relationship expansion over the knowledge graph.
+      * ``hybrid`` — Qdrant vector seeds fused with Neo4j graph expansion
+        (GraphRAG); the two work together, not separately.
+    """
+
+    model_config = _SECTION_CONFIG
+
+    mode: str = Field(default="bm25", validation_alias=_alias("RETRIEVAL_MODE"))
+    top_k: int = Field(default=5, validation_alias=_alias("RETRIEVAL_TOP_K"))
+    hops: int = Field(default=1, validation_alias=_alias("RETRIEVAL_HOPS"))
+    max_chars: int = Field(default=1500, validation_alias=_alias("RETRIEVAL_MAX_CHARS"))
+
+
+class LongTermMemorySettings(BaseSettings):
+    """Cross-conversation long-term memory (workspace + owner + agent scoped)."""
+
+    model_config = _SECTION_CONFIG
+
+    enabled: bool = Field(default=False, validation_alias=_alias("LONG_TERM_MEMORY_ENABLED"))
+    recall_top_k: int = Field(default=5, validation_alias=_alias("LTM_RECALL_TOP_K"))
+    min_importance: float = Field(default=0.0, validation_alias=_alias("LTM_MIN_IMPORTANCE"))
+    consolidate_on_run_end: bool = Field(
+        default=True, validation_alias=_alias("LTM_CONSOLIDATE_ON_RUN_END")
+    )
+    dedupe_threshold: float = Field(default=0.92, validation_alias=_alias("LTM_DEDUPE_THRESHOLD"))
+    digest_chars: int = Field(default=2000, validation_alias=_alias("LTM_DIGEST_CHARS"))
 
 
 class McpSettings(BaseSettings):
@@ -531,6 +668,10 @@ class Settings(BaseSettings):
     minio: MinioSettings = Field(default_factory=MinioSettings)
     auth: AuthSettings = Field(default_factory=AuthSettings)
     working_memory: WorkingMemorySettings = Field(default_factory=WorkingMemorySettings)
+    embedding: EmbeddingSettings = Field(default_factory=EmbeddingSettings)
+    vector_store: VectorStoreSettings = Field(default_factory=VectorStoreSettings)
+    retrieval: RetrievalSettings = Field(default_factory=RetrievalSettings)
+    long_term_memory: LongTermMemorySettings = Field(default_factory=LongTermMemorySettings)
     mcp: McpSettings = Field(default_factory=McpSettings)
     admin: AdminSettings = Field(default_factory=AdminSettings)
     seed: SeedSettings = Field(default_factory=SeedSettings)
