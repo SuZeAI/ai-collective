@@ -615,6 +615,11 @@ export const api = {
     apiFetch<Task>("/tasks", { method: "POST", body: JSON.stringify(payload) }),
   deleteTask: (id: string) => apiFetch<{ deleted: boolean }>(`/tasks/${id}`, { method: "DELETE" }),
 
+  // Explicit "fresh start": wipe a task's conversation history + graph context.
+  // (Restart no longer clears messages automatically — it continues the dialogue.)
+  clearTaskHistory: (id: string) =>
+    apiFetch<{ cleared: boolean }>(`/tasks/${id}/history`, { method: "DELETE" }),
+
   // Marketplace: shared "default" items users can browse and clone into their scope.
   listMarketplaceSkills: () => apiFetch<Skill[]>("/marketplace/skills"),
   listMarketplaceAgents: () => apiFetch<Agent[]>("/marketplace/agents"),

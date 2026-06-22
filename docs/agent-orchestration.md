@@ -56,3 +56,28 @@ Agents may spawn subagents (`subagents.py`) bounded by `SUBAGENT_MAX_CONCURRENT`
 and `SUBAGENT_MAX_TURNS`. Subagents can be granted sandboxed `bash`/file tools;
 treat the sandbox as the security boundary and label untrusted user/context
 input in prompts to reduce prompt-injection surface.
+
+## Conversation persistence on restart
+
+Starting a **completed** or **stopped** task again no longer wipes its history.
+Instead of deleting the messages and resetting the knowledge graph, the restart
+(`PUT /tasks/{id}/status` → `in-progress`, in `api/routers/tasks.py`):
+
+- **keeps** all prior messages and the graph, and
+- appends a `— New session started <ts> —` divider message,
+
+so the re-run reads as a continuation of one long conversation rather than a
+blank slate. This is consistent with how a follow-up on a completed task already
+behaved, and it is what feeds the long-running dialogue into long-term-memory
+consolidation.
+
+For a deliberate fresh start there is an explicit, owner/admin-gated action:
+
+| Method | Path | Effect |
+|--------|------|--------|
+| `DELETE` | `/tasks/{id}/history` | Wipe the task's messages **and** graph context |
+
+On the frontend this is the **Clear history** button in TaskManager
+(`api.clearTaskHistory` → `RunEngineContext.clearHistory`). The run engine keeps
+the transcript across a restart (`clearTransientRunState` resets only transient
+interaction state, not the conversation).

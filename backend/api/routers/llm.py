@@ -10,11 +10,13 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from backend.api.deps import (
+    current_owner_id_dep,
     get_agent_graph_service,
     get_agent_service,
     get_graph_context_service,
     get_llm_service,
     get_skill_tool_manager,
+    get_task_service,
 )
 from backend.api.schemas.agent_graph import GraphRunRequest, GraphRunResponse, GraphTurnSchema
 from backend.application.ports.agent_graph import CustomGraphSpec, GraphAgentDefinition
@@ -294,6 +296,8 @@ async def run_agent_graph_stream(
     agent_service: AgentService = Depends(get_agent_service),
     tool_manager: SkillToolManager = Depends(get_skill_tool_manager),
     graph_context_service: GraphContextService = Depends(get_graph_context_service),
+    task_service=Depends(get_task_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ):
     """Stream agent responses in real-time using Server-Sent Events"""
     service = get_agent_graph_service(mode=req.mode)
@@ -339,6 +343,21 @@ async def run_agent_graph_stream(
     graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
     conversation_id = req.conversation_id
     agent_id_to_name = {agent_id: name for name, agent_id in agent_name_to_id.items()}
+
+    # Long-term memory scope for this run: owner + the task's team (Business Unit
+    # proxy). Recall/inject is done by the LTM middleware; consolidation runs at
+    # natural completion. Best-effort — never blocks the run.
+    from backend.domain.memory.long_term_memory import MemoryScope
+    from backend.infrastructure import long_term_memory_store as ltm_store
+
+    workspace_id = None
+    if conversation_id:
+        try:
+            task = task_service.get_task(conversation_id)
+            workspace_id = getattr(task, "team_id", None) if task else None
+        except Exception:  # noqa: BLE001 — scope is best-effort
+            workspace_id = None
+    memory_scope = MemoryScope(workspace_id=workspace_id, owner_id=owner_id).normalized()
     custom_graph_spec = _build_custom_graph_spec(req, agent_id_to_name)
 
     # Register a cancel flag so stop/pause can signal this stream to halt
@@ -361,6 +380,9 @@ async def run_agent_graph_stream(
         the backend stops doing work (no further LLM calls, tools or searches)
         rather than running the current turn to completion.
         """
+        # Bind the run's LTM scope so the LTM middleware (recall/inject) and
+        # end-of-run consolidation see it without a threaded argument.
+        scope_token = ltm_store.current_memory_scope.set(memory_scope)
         agen = service.run_stream_with_definitions(
             user_input=req.user_input,
             definitions=definitions,
@@ -447,6 +469,14 @@ async def run_agent_graph_stream(
                 )
                 if pack.text:
                     yield f"data: {json.dumps({'graph_context': asdict(pack)})}\n\n"
+
+            # Promote salient short-term knowledge into long-term memory on a
+            # clean finish (no-op when LTM is disabled). Never breaks the run.
+            if conversation_id and not _is_cancelled():
+                with contextlib.suppress(Exception):
+                    await ltm_store.consolidate(
+                        conversation_id=conversation_id, scope=memory_scope
+                    )
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
         finally:
@@ -454,6 +484,7 @@ async def run_agent_graph_stream(
             # await is cancelled and the backend stops working on this run.
             with contextlib.suppress(Exception):
                 await agen.aclose()
+            ltm_store.current_memory_scope.reset(scope_token)
             if conversation_id:
                 task_run_registry.unregister(conversation_id)
 

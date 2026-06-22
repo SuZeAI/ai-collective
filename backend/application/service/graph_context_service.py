@@ -400,6 +400,20 @@ class GraphContextService:
         """Drop graph knowledge for a conversation so a restart starts from a clean context."""
         self._repo.delete(conversation_id)
 
+    def _rag_block(self, conversation_id: str, query: str, graph, exclude_texts: set[str]) -> str:
+        """RAG 'additional information' block (bm25 / qdrant / neo4j / hybrid).
+
+        Best-effort and additive; never raises into context assembly.
+        """
+        try:
+            from backend.infrastructure import rag_retrieval_store
+
+            return rag_retrieval_store.retrieve_block(
+                conversation_id, query, graph, exclude_texts=exclude_texts
+            )
+        except Exception:  # noqa: BLE001
+            return ""
+
     def get_graph_snapshot(self, *, conversation_id: str) -> dict[str, object]:
         graph = self._repo.get(conversation_id)
         if not graph:
@@ -510,12 +524,15 @@ class GraphContextService:
                     conversation_id,
                     json.dumps(asdict(graph), ensure_ascii=False),
                 )
+            # Even with no entity relations, RAG retrieval can still surface
+            # relevant chunks as additional information.
+            rag_block = self._rag_block(conversation_id, query, graph, set())
             return GraphContextPack(
-                text="",
+                text=rag_block,
                 node_ids=[],
                 edge_ids=[],
                 chunk_ids=[],
-                method="pagerank",
+                method=f"rag:{'hit' if rag_block else 'empty'}",
             )
 
         chunk_signature_to_id: dict[str, str] = {}
@@ -555,6 +572,14 @@ class GraphContextService:
         context_text = "Graph knowledge context:\n" + "\n".join(lines)
         if chunk_lines:
             context_text += "\n" + "\n".join(chunk_lines)
+        # Append RAG "additional information", excluding chunks already shown
+        # above so it adds genuinely new context (never duplicates).
+        already_shown = {
+            _normalize_chunk_text(graph.chunks.get(cid, "")) for cid in chunk_ids
+        }
+        rag_block = self._rag_block(conversation_id, query, graph, already_shown)
+        if rag_block:
+            context_text += "\n\n" + rag_block
         logger.info(
             "Graph context build snapshot | conversation_id=%s | method=%s | selected_nodes=%s | selected_edges=%s | chunks=%s",
             conversation_id,

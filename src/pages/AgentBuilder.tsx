@@ -17,41 +17,85 @@ import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 
 const roles = [
   "Other Position",
+  "Chief Executive Officer (CEO)",
+  "Chief Technology Officer (CTO)",
+  "Chief Operating Officer (COO)",
+  "Chief Financial Officer (CFO)",
+  "Chief Marketing Officer (CMO)",
   "Project Manager",
-  "Researcher",
+  "Product Owner",
+  "Scrum Master",
   "Software Developer",
-  "Marketing Specialist",
+  "Frontend Developer",
+  "Backend Developer",
+  "Full Stack Developer",
+  "Mobile Developer",
+  "DevOps Engineer",
+  "Cloud Architect",
+  "Solutions Architect",
+  "AI Engineer",
+  "Machine Learning Engineer",
+  "Data Scientist",
+  "Data Engineer",
+  "Data Analyst",
+  "Business Analyst",
+  "System Administrator",
+  "Database Administrator",
+  "Security Engineer",
+  "Network Engineer",
+  "QA Specialist",
   "Reviewer / QA Specialist",
-  "Support Specialist",
+  "Technical Writer",
+  "UI/UX Designer",
+  "Product Designer",
+  "Graphic Designer",
+  "Illustrator",
+  "Video Editor",
+  "Creative Director",
+  "Researcher",
+  "Marketing Specialist",
+  "Social Media Manager",
+  "SEO Specialist",
+  "Content Writer",
+  "Copywriter",
+  "PR Specialist",
+  "Brand Manager",
+  "Growth Hacker",
   "Community Manager",
   "Sales Representative",
-  "HR Specialist",
-  "Operations Coordinator",
-  "Finance Analyst",
+  "Account Executive",
+  "Business Development Manager",
+  "Customer Success Manager",
   "Customer Service Rep",
-  "Product Owner",
-  "QA Specialist",
-  "UI/UX Designer",
-  "Data Analyst",
-  "Data Scientist",
-  "Business Analyst",
-  "Legal Advisor",
-  "Compliance Officer",
-  "Procurement Specialist",
-  "Logistics Coordinator",
-  "Supply Chain Analyst",
+  "Support Specialist",
+  "Help Desk Technician",
+  "HR Specialist",
   "Recruiter",
   "Trainer",
   "Educator",
+  "Operations Coordinator",
+  "Office Manager",
+  "Executive Assistant",
+  "Administrative Assistant",
+  "Virtual Assistant",
+  "Finance Analyst",
+  "Accountant",
+  "Auditor",
+  "Investment Analyst",
+  "Risk Analyst",
+  "Tax Consultant",
+  "Legal Advisor",
+  "Compliance Officer",
+  "Lawyer",
+  "Patent Attorney",
+  "Procurement Specialist",
+  "Logistics Coordinator",
+  "Supply Chain Analyst",
   "Medical Consultant",
   "Healthcare Advisor",
   "Architect",
   "Engineer",
-  "Accountant",
-  "Auditor",
-  "Lawyer",
   "Journalist",
-  "Content Writer",
   "Translator",
   "Event Planner",
   "Real Estate Advisor",
@@ -344,7 +388,19 @@ export default function AgentBuilder() {
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">Full Name</label>
-                  <Input placeholder="Human name" value={name} onChange={(e) => setName(e.target.value)} />
+                  <Input
+                    placeholder="Human name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (role.trim()) {
+                          saveAgent();
+                        }
+                      }
+                    }}
+                  />
                 </div>
 
                 <div className="space-y-1.5 relative">
@@ -356,13 +412,35 @@ export default function AgentBuilder() {
                       onChange={(e) => setRole(e.target.value)}
                       onFocus={() => setShowSuggestions(true)}
                       onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          setShowSuggestions(false);
+                          if (name.trim()) {
+                            saveAgent();
+                          }
+                        }
+                      }}
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground/60">
                       <ChevronDown className="h-4 w-4" />
                     </div>
                   </div>
-                  {showSuggestions && filteredRoles.length > 0 && (
+                  {showSuggestions && (role.trim() || filteredRoles.length > 0) && (
                     <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-md border bg-popover/95 backdrop-blur-md text-popover-foreground shadow-lg p-1 space-y-0.5">
+                      {role.trim() && !roles.some(r => r.toLowerCase() === role.trim().toLowerCase()) && (
+                        <button
+                          type="button"
+                          className="w-full text-left px-2.5 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground text-blue-600 dark:text-blue-400 transition-colors font-semibold border-b border-border/40 pb-1.5 mb-1 flex items-center justify-between"
+                          onMouseDown={() => {
+                            setRole(role.trim());
+                            setShowSuggestions(false);
+                          }}
+                        >
+                          <span className="truncate">Use custom: "{role.trim()}"</span>
+                          <span className="text-[9px] uppercase tracking-wider bg-blue-100 dark:bg-blue-950 px-1 py-0.5 rounded text-blue-700 dark:text-blue-300 ml-2 shrink-0">Custom</span>
+                        </button>
+                      )}
                       {filteredRoles.map((r) => (
                         <button
                           key={r}
@@ -383,8 +461,19 @@ export default function AgentBuilder() {
 
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">Description</label>
-                  <Input placeholder="Description (optional)" value={desc} onChange={(e) => setDesc(e.target.value)} />
-                </div>
+                  <Input
+                    placeholder="Description (optional)"
+                    value={desc}
+                    onChange={(e) => setDesc(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (name.trim() && role.trim()) {
+                          saveAgent();
+                        }
+                      }
+                    }}
+                  />
 
                 <div className="space-y-3 border rounded-lg p-3 bg-muted/10">
                   <div className="text-sm font-medium">Avatar Customization</div>

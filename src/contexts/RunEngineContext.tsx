@@ -77,6 +77,7 @@ export type RunEngineValue = {
   respond: (task: Task, request: UserInputRequest, response: string) => Promise<boolean>;
   hold: (task: Task, hold: boolean) => Promise<void>;
   clearRunState: (taskId: string) => void;
+  clearHistory: (taskId: string) => Promise<void>;
 
   // Knowledge-graph context
   loadGraph: (taskId: string) => Promise<void>;
@@ -187,6 +188,18 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
   const clearRunState = useCallback((taskId: string) => {
     setConversations((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
     setGraphSnapshots((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setGraphHighlights((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setPendingInterjections((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setInterjectErrors((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setHeldTaskIds((prev) => { const next = new Set(prev); next.delete(taskId); return next; });
+    setUserInputRequests((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setActiveFanouts((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+  }, []);
+
+  // Restart housekeeping: reset transient interaction state but KEEP the
+  // transcript (and graph) so a re-run continues the long conversation instead
+  // of wiping it. Use clearRunState (full wipe) only for an explicit reset.
+  const clearTransientRunState = useCallback((taskId: string) => {
     setGraphHighlights((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
     setPendingInterjections((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
     setInterjectErrors((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
@@ -467,9 +480,11 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
       const updated = await api.upsertTask({ ...task, status: "in-progress" });
       applyTask(updated);
       if (updated.assignedAgents.length > 0) {
-        // Clear old run state only when restarting from completed/stopped.
+        // On restart from completed/stopped, keep the transcript (long-running
+        // conversation) and only reset transient interaction state. Use the
+        // explicit "Clear history" action for a full wipe.
         if (task.status === "completed" || task.status === "stopped") {
-          clearRunState(updated.id);
+          clearTransientRunState(updated.id);
         }
         const formattedInput =
           opts.formattedInput ??
@@ -485,7 +500,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         return next;
       });
     }
-  }, [applyTask, clearRunState, runStream]);
+  }, [applyTask, clearTransientRunState, runStream]);
 
   const abortStream = useCallback((taskId: string) => {
     const controller = controllersRef.current.get(taskId);
@@ -699,6 +714,12 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     clearRunState(id);
   }, [abortStream, clearRunState]);
 
+  // Explicit "fresh start": wipe backend history + graph and the local run state.
+  const clearHistory = useCallback(async (id: string) => {
+    await api.clearTaskHistory(id);
+    clearRunState(id);
+  }, [clearRunState]);
+
   // ---- Reconciliation with backend loads (avoid clobbering live state) --------
 
   const ingestTasks = useCallback((incoming: Task[]) => {
@@ -751,6 +772,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     respond,
     hold,
     clearRunState,
+    clearHistory,
     loadGraph,
     refreshGraph,
     subscribe,
