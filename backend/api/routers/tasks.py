@@ -25,7 +25,7 @@ from backend.application.service.team_service import TeamService
 from backend.domain.errors import NotFoundError
 from backend.domain.enums import AgentStatus
 from backend.domain.enums import TaskStatus
-from backend.domain.models import Task, can_delete, can_modify, is_owned_by, is_visible_to
+from backend.domain.models import Message, Task, can_delete, can_modify, is_owned_by, is_visible_to
 from backend.infrastructure import task_run_registry
 from backend.infrastructure import task_queue
 from backend.log import get_logger
@@ -146,13 +146,26 @@ def upsert_task(
         task_run_registry.signal_cancel(task_id)
         task_queue.cancel(task_id)
 
-    # Restart behavior: moving from completed/stopped -> in-progress clears old conversations.
+    # Restart behavior: moving from completed/stopped -> in-progress no longer
+    # wipes the conversation. The history is kept as one long dialogue and a
+    # divider message is appended so the model reads the re-run as a continuation
+    # rather than a fresh start. Use DELETE /tasks/{id}/history for a clean slate.
     if previous_status in {TaskStatus.completed, TaskStatus.stopped} and next_status == TaskStatus.in_progress:
         progress = 0
         start_time = now
         end_time = None
-        conv_service.delete_messages_by_task(task_id)
-        graph_context_service.reset_conversation(conversation_id=task_id)
+        try:
+            conv_service.add_message(
+                Message(
+                    id=f"session_{uuid4().hex}",
+                    agent_id="system",
+                    content=f"— New session started {now.isoformat()} —",
+                    timestamp=now,
+                    task_id=task_id,
+                )
+            )
+        except Exception:  # noqa: BLE001 — a missing divider must not block restart
+            logger.warning("Failed to append session divider for task %s", task_id, exc_info=True)
 
     # Resume from paused: keep existing conversations, preserve progress
     if previous_status == TaskStatus.paused and next_status == TaskStatus.in_progress:
@@ -224,6 +237,33 @@ def delete_task(
         pass
     _sync_runtime_state(service, team_service, agent_service)
     return {"deleted": True}
+
+
+@router.delete("/{task_id}/history")
+def clear_task_history(
+    task_id: str,
+    service: TaskService = Depends(get_task_service),
+    conv_service: ConversationService = Depends(get_conversation_service),
+    graph_context_service: GraphContextService = Depends(get_graph_context_service),
+    owner_id: str = Depends(current_owner_id_dep),
+) -> dict:
+    """Explicitly wipe a task's conversation history + graph context.
+
+    Restart no longer clears messages automatically (it keeps the long
+    dialogue), so this is the deliberate "fresh start" action. Owner/admin
+    gated like the status-update and delete endpoints.
+    """
+    existing = service._repo.get(task_id)
+    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
+        raise NotFoundError(f"Task '{task_id}' not found")
+    if existing is not None and not can_modify(owner_id, existing.owner_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Only the default (admin) account can edit or run shared default items",
+        )
+    conv_service.delete_messages_by_task(task_id)
+    graph_context_service.reset_conversation(conversation_id=task_id)
+    return {"cleared": True}
 
 
 @router.get("/{task_id}/graph-context")

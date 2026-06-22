@@ -56,10 +56,21 @@ llm:
   # ── Optional middleware knobs ──
   tool_retry_max: 2                   # retries for transient tool failures
   # fallback_models: gemini-2.0-flash,gpt-4o-mini   # ModelFallbackMiddleware
-  summarization_enabled: false        # SummarizationMiddleware on/off
+  summarization_enabled: false        # SummarizationMiddleware (LLM-based) on/off
   # summarization_model: gemini-2.0-flash
   summarization_trigger_tokens: 8000
   summarization_keep_messages: 20
+  # ── Additional middleware suite (all OFF by default) ──
+  rolling_summary_enabled: false      # LLM-free history compactor → working-memory summary
+  rolling_summary_trigger_tokens: 6000
+  rolling_summary_keep_messages: 10
+  ltm_middleware_enabled: false       # recall long-term memory before model, persist salient after
+  tool_cache_enabled: false           # serve identical idempotent tool calls from the run cache
+  # tool_cache_deny_tools: send_email,run_shell   # non-idempotent tools to never cache
+  run_token_budget: 0                 # soft-stop a run past this many tokens (0 = off)
+  pii_redaction_enabled: false        # scrub emails/cards/secrets from tool results
+  # guardrail_deny_tools: run_shell,delete_file   # tools to block outright
+  # guardrail_deny_patterns: rm -rf,DROP TABLE     # arg regexes to block
   # ── Failover / key rotation ──
   # rotate  → built-in multi-key rotation (list several keys per provider below)
   # 9router → delegate to the 9Router gateway (aliases: router, nine-router, off)
@@ -114,6 +125,12 @@ graph:
   build_mode: static                  # static (spaCy, no token cost) | llm
   # llm_provider: google
   # llm_model: gemini-3-flash-preview
+  # Knowledge-graph persistence: auto (follow storage backend) | neo4j
+  # backend: neo4j                      # pip install '.[neo4j]'
+  # neo4j_uri: bolt://localhost:7687
+  # neo4j_user: neo4j
+  # neo4j_password: ${NEO4J_PASSWORD}
+  # neo4j_database: neo4j
 
 # ── Task queue ────────────────────────────────────────────────────────────────
 # rabbitmq_url (contains credentials) is a secret → see `secrets:` block.
@@ -149,7 +166,7 @@ auth:
   google_login_redirect_uri: http://127.0.0.1:2026/api/v1/auth/google/callback
   google_oauth_redirect_uri: http://127.0.0.1:2026/api/v1/auth/oauth/callback
 
-# ── Agent working memory ──────────────────────────────────────────────────────
+# ── Agent working memory (short-term, per-conversation) ───────────────────────
 working_memory:
   enabled: true
   max_notes: 40
@@ -157,6 +174,48 @@ working_memory:
   note_chars: 600
   summary_chars: 3000
   digest_chars: 4000
+
+# ── Embeddings (pluggable vector backend for real RAG) ────────────────────────
+# OFF by default → graph / long-term memory fall back to lexical retrieval.
+# provider: hashing (dependency-free) | google | openai | open_weight
+embedding:
+  enabled: false
+  provider: hashing
+  # model: text-embedding-3-small        # provider-specific; omit for hashing
+  dim: 256
+  batch_size: 64
+
+# ── Long-term memory (cross-conversation; workspace + owner + agent scoped) ───
+long_term_memory:
+  enabled: false
+  recall_top_k: 5
+  min_importance: 0.0
+  consolidate_on_run_end: true          # promote salient working-memory notes at run end
+  dedupe_threshold: 0.92
+  digest_chars: 2000
+
+# ── RAG retrieval (extra context injected into the knowledge graph) ───────────
+# mode: bm25 (default, local — no service) | qdrant (vector) | neo4j (graph)
+#       | hybrid (Qdrant vector seeds + Neo4j graph expansion = GraphRAG)
+# qdrant/hybrid also need embedding.enabled + a Qdrant service; neo4j/hybrid use
+# the knowledge graph (best in Neo4j via graph.backend). Falls back to bm25.
+retrieval:
+  mode: bm25
+  top_k: 5
+  hops: 1                  # graph expansion depth for neo4j/hybrid
+  max_chars: 1500
+
+# ── Vector store (ANN index for long-term-memory recall) ──────────────────────
+# backend: none (brute-force cosine) | faiss (local, pip install '.[faiss]')
+#                                     | qdrant (service, pip install '.[qdrant]')
+# Only used when embeddings are enabled; degrades to brute force if unavailable.
+vector_store:
+  backend: none
+  # faiss_path: storage/vector_store      # faiss index dir (defaults under STORAGE_DIR)
+  # qdrant_url: http://localhost:6333
+  # qdrant_api_key: ${QDRANT_API_KEY}
+  qdrant_collection: ltm_memory
+  overfetch: 5                           # extra candidates fetched before scope filtering
 
 # ── MCP (Model Context Protocol) ──────────────────────────────────────────────
 # Per-server connection config is declared in mcp.yml (see that file).

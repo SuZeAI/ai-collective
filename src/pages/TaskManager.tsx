@@ -627,6 +627,16 @@ export default function TaskManager() {
     }
   };
 
+  const clearHistory = async (id: string) => {
+    if (updatingTaskIds.has(id)) return;
+    if (!window.confirm("Clear all conversation history and knowledge for this task? This cannot be undone.")) return;
+    try {
+      await engine.clearHistory(id);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const deleteTask = async (id: string) => {
     if (updatingTaskIds.has(id)) return;
     try {
@@ -966,6 +976,18 @@ export default function TaskManager() {
                       disabled={isUpdating}
                     >
                       <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
+                    </Button>
+                  )}
+                  {canEditItem(selectedTask) && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs px-3"
+                      onClick={() => clearHistory(selectedTask.id)}
+                      disabled={isUpdating}
+                      title="Wipe conversation history and knowledge for a fresh start"
+                    >
+                      <X className="w-3.5 h-3.5 mr-1.5" /> Clear history
                     </Button>
                   )}
                   {canDeleteItem(selectedTask) && (
