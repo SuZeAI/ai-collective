@@ -474,6 +474,7 @@ export default function AgentBuilder() {
                       }
                     }}
                   />
+                </div>
 
                 <div className="space-y-3 border rounded-lg p-3 bg-muted/10">
                   <div className="text-sm font-medium">Avatar Customization</div>
