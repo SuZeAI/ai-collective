@@ -24,7 +24,7 @@ from backend.application.service.task_service import TaskService
 from backend.application.service.team_service import TeamService
 from backend.domain.errors import NotFoundError
 from backend.domain.enums import AgentStatus
-from backend.domain.enums import TaskStatus
+from backend.domain.enums import TaskPriority, TaskStatus
 from backend.domain.models import Message, Task, can_delete, can_modify, is_owned_by, is_visible_to
 from backend.infrastructure import task_run_registry
 from backend.infrastructure import task_queue
@@ -182,6 +182,13 @@ def upsert_task(
     elif next_status in {TaskStatus.pending, TaskStatus.paused, TaskStatus.stopped, TaskStatus.in_progress}:
         end_time = None
 
+    try:
+        priority = TaskPriority(req.priority)
+    except ValueError:
+        priority = TaskPriority.medium
+    due_date = _parse_iso_datetime(req.dueDate)
+    comments = [c.model_dump() for c in req.comments]
+
     task = Task(
         id=task_id,
         title=req.title,
@@ -193,6 +200,11 @@ def upsert_task(
         start_time=start_time,
         end_time=end_time,
         owner_id=previous_task.owner_id if previous_task else owner_id,
+        priority=priority,
+        due_date=due_date,
+        labels=list(req.labels),
+        assignee_id=req.assigneeId,
+        comments=comments,
     )
     saved = service.upsert_task(task)
     logger.info("[Task] upsert saved | task_id=%s | status=%s | progress=%s%%",

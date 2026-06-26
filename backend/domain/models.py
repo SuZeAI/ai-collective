@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from backend.domain.enums import AgentStatus, TaskStatus
+from backend.domain.enums import AgentStatus, TaskPriority, TaskStatus
 
 # Ownership scoping: every user-creatable entity carries an owner_id.
 # "default" marks shared/system-seeded items visible to everyone;
@@ -111,6 +111,16 @@ class Task:
     start_time: datetime | None = None
     end_time: datetime | None = None
     owner_id: str = DEFAULT_OWNER_ID
+    # Jira-style project fields.
+    priority: TaskPriority = TaskPriority.medium
+    due_date: datetime | None = None
+    labels: list[str] = field(default_factory=list)
+    # Single staff (agent id) responsible when a task is assigned to a person
+    # rather than a whole department. team_id may be empty in that case.
+    assignee_id: str | None = None
+    # User-authored comment thread, kept separate from the agent live-chat
+    # transcript. Each item: {id, author_id, content, created_at}.
+    comments: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass(frozen=True, slots=True)
