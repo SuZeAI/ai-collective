@@ -98,6 +98,15 @@ export type Team = {
   flow?: CustomFlow | null;
 };
 
+export type TaskPriority = "low" | "medium" | "high" | "urgent";
+
+export type TaskComment = {
+  id: string;
+  author_id: string;
+  content: string;
+  created_at?: string | null;
+};
+
 export type Task = {
   id: string;
   title: string;
@@ -109,6 +118,11 @@ export type Task = {
   startTime?: string | null;
   endTime?: string | null;
   owner_id?: string;
+  priority?: TaskPriority;
+  dueDate?: string | null;
+  labels?: string[];
+  assigneeId?: string | null;
+  comments?: TaskComment[];
 };
 
 export type Message = {
@@ -611,7 +625,7 @@ export const api = {
   deleteTeam: (id: string) => apiFetch<{ deleted: boolean }>(`/teams/${id}`, { method: "DELETE" }),
 
   listTasks: () => apiFetch<Task[]>("/tasks"),
-  upsertTask: (payload: Partial<Task> & Pick<Task, "title" | "teamId">) =>
+  upsertTask: (payload: Partial<Task> & Pick<Task, "title">) =>
     apiFetch<Task>("/tasks", { method: "POST", body: JSON.stringify(payload) }),
   deleteTask: (id: string) => apiFetch<{ deleted: boolean }>(`/tasks/${id}`, { method: "DELETE" }),
 
