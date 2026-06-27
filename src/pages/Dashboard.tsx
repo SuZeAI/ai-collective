@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp, Zap, Users, Clock, Activity, CheckCircle2, ListTodo, Building2, ArrowUpRight, Sparkles,
@@ -9,6 +9,7 @@ import { useAgentSimulation } from "@/hooks/use-agent-simulation";
 import { api, type Agent, type Analytics, type ActivityFeedItem, type Task, type Workspace, type Team } from "@/lib/api";
 import { useWorkspaceScope, setActiveWorkspaceId } from "@/hooks/use-workspace-scope";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { companyTypeOf } from "@/lib/company-types";
 
 // Client-side average completion time for office-scoped views (the backend
@@ -56,6 +57,8 @@ export default function Dashboard() {
   useAgentSimulation();
   const scope = useWorkspaceScope();
   const { t } = useLanguage();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin" || user?.role === "system";
   const [isLoading, setIsLoading] = useState(true);
   const [allAgents, setAgents] = useState<Agent[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
@@ -167,6 +170,10 @@ export default function Dashboard() {
     { value: String(activeAgentsCount), trend: `of ${agents.length}` },
     { value: avgCompletion, trend: "avg time" },
   ];
+
+  // Admins have no company control center: their "All" view is the shared
+  // catalog, so send them to Departments instead of the Company Overview.
+  if (scope.isOverall && isAdmin) return <Navigate to="/teams" replace />;
 
   return (
     <motion.div

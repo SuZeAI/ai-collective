@@ -90,6 +90,33 @@ function WithCompanyLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Catalog pages (Departments / Humans / Skills / Document Library) are reachable
+// inside a company (per-company data) AND, for admins only, in the "All" scope —
+// where they curate the shared "default" catalog that feeds Recruiting. Non-admins
+// in "All" are bounced like any other company-only page.
+function RequireCompanyOrAdmin({ children }: { children: React.ReactNode }) {
+  const scope = useWorkspaceScope();
+  const { user } = useAuth();
+  const { t } = useLanguage();
+  const { toast } = useToast();
+  const isAdmin = user?.role === "admin" || user?.role === "system";
+  useEffect(() => {
+    if (scope.isOverall && !isAdmin) toast({ description: t.nav.selectCompanyToManage });
+  }, [scope.isOverall, isAdmin, toast, t]);
+  if (scope.isOverall && !isAdmin) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
+function WithCatalogLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <RequireAuth>
+      <RequireCompanyOrAdmin>
+        <AppLayout>{children}</AppLayout>
+      </RequireCompanyOrAdmin>
+    </RequireAuth>
+  );
+}
+
 // Admin-only pages: authenticated AND role admin/system, else back to dashboard.
 function RequireAdmin({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -123,9 +150,9 @@ const App = () => (
                 <Route path="/login" element={<Login />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/dashboard" element={<WithLayout><Dashboard /></WithLayout>} />
-                <Route path="/agents" element={<WithCompanyLayout><AgentBuilder /></WithCompanyLayout>} />
-                <Route path="/skills" element={<WithCompanyLayout><Skills /></WithCompanyLayout>} />
-                <Route path="/teams" element={<WithCompanyLayout><TeamBuilder /></WithCompanyLayout>} />
+                <Route path="/agents" element={<WithCatalogLayout><AgentBuilder /></WithCatalogLayout>} />
+                <Route path="/skills" element={<WithCatalogLayout><Skills /></WithCatalogLayout>} />
+                <Route path="/teams" element={<WithCatalogLayout><TeamBuilder /></WithCatalogLayout>} />
                 <Route path="/tasks" element={<WithCompanyLayout><TaskManager /></WithCompanyLayout>} />
                 <Route path="/projects" element={<WithCompanyLayout><Projects /></WithCompanyLayout>} />
                 <Route path="/projects/:key/board" element={<WithCompanyLayout><TaskManager /></WithCompanyLayout>} />
@@ -140,7 +167,7 @@ const App = () => (
                 <Route path="/office-builder" element={<WithLayout><OfficeBuilder /></WithLayout>} />
                 <Route path="/virtual-office" element={<WithCompanyLayout><VirtualOffice /></WithCompanyLayout>} />
                 <Route path="/marketplace" element={<WithCompanyLayout><Marketplace /></WithCompanyLayout>} />
-                <Route path="/documents" element={<WithCompanyLayout><DocumentLibrary /></WithCompanyLayout>} />
+                <Route path="/documents" element={<WithCatalogLayout><DocumentLibrary /></WithCatalogLayout>} />
                 <Route path="/settings" element={<WithLayout><Settings /></WithLayout>} />
                 <Route path="/admin/monitoring" element={<WithAdminLayout><AdminMonitoring /></WithAdminLayout>} />
                 <Route path="/profile" element={<WithLayout><Profile /></WithLayout>} />
