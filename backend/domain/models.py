@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from backend.domain.enums import AgentStatus, TaskPriority, TaskStatus
+from backend.domain.enums import AgentStatus, IssueType, SprintStatus, TaskPriority, TaskStatus
 
 # Ownership scoping: every user-creatable entity carries an owner_id.
 # "default" marks shared/system-seeded items visible to everyone;
@@ -121,6 +121,59 @@ class Task:
     # User-authored comment thread, kept separate from the agent live-chat
     # transcript. Each item: {id, author_id, content, created_at}.
     comments: list[dict[str, Any]] = field(default_factory=list)
+    # Jira-style organisation fields. A Task IS the "Issue" in the UI; the
+    # domain name stays Task so the run engine / queue / registry are untouched.
+    project_id: str = ""
+    issue_type: IssueType = IssueType.task
+    issue_key: str = ""              # "NUC-42", assigned once at create time
+    epic_id: str | None = None
+    sprint_id: str | None = None
+    story_points: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Project:
+    """A Jira-style project: a container for issues with its own key namespace."""
+    id: str
+    key: str                         # "NUC" — uppercase, unique within owner scope
+    name: str
+    description: str = ""
+    lead_id: str = ""                # agent id acting as project lead
+    planner_agent_id: str = ""       # which Agent is the configurable "planner"
+    planner_system_prompt: str = ""  # optional override of the planner agent's prompt
+    issue_counter: int = 0           # monotonic source of the "-N" suffix in issue keys
+    created_at: datetime | None = None
+    avatar: str = ""
+    avatar_icon: str = ""
+    avatar_color: str = ""
+    avatar_url: str = ""
+    owner_id: str = DEFAULT_OWNER_ID
+
+
+@dataclass(frozen=True, slots=True)
+class Epic:
+    id: str
+    project_id: str
+    key: str                         # uses the same project counter (e.g. NUC-1)
+    title: str
+    description: str = ""
+    status: TaskStatus = TaskStatus.pending
+    color: str = ""
+    start_date: datetime | None = None
+    due_date: datetime | None = None
+    owner_id: str = DEFAULT_OWNER_ID
+
+
+@dataclass(frozen=True, slots=True)
+class Sprint:
+    id: str
+    project_id: str
+    name: str
+    goal: str = ""
+    status: SprintStatus = SprintStatus.planned
+    start_date: datetime | None = None
+    end_date: datetime | None = None
+    owner_id: str = DEFAULT_OWNER_ID
 
 
 @dataclass(frozen=True, slots=True)
