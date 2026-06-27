@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Trash2, Plug, Settings2, Globe, CheckCircle2, Eye, EyeOff, Pencil,
 } from "lucide-react";
-import { api, type ThirdPartyConnection, type PlatformDef } from "@/lib/api";
+import { api, type Connection, type PlatformDef } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,9 +54,9 @@ function ConnectionDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  existing?: ThirdPartyConnection;
+  existing?: Connection;
   platforms: PlatformDef[];
-  onSave: (data: Partial<ThirdPartyConnection> & Pick<ThirdPartyConnection, "platform" | "name">) => void;
+  onSave: (data: Partial<Connection> & Pick<Connection, "platform" | "name">) => void;
 }) {
   const [platform, setPlatform] = useState(existing?.platform || "");
   const [name, setName] = useState(existing?.name || "");
@@ -217,7 +217,7 @@ function ConnectionCard({
   onEdit,
   onDelete,
 }: {
-  connection: ThirdPartyConnection;
+  connection: Connection;
   platforms: PlatformDef[];
   onEdit: () => void;
   onDelete: () => void;
@@ -303,7 +303,7 @@ export default function Settings() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<ThirdPartyConnection | undefined>();
+  const [editing, setEditing] = useState<Connection | undefined>();
   const [filterPlatform, setFilterPlatform] = useState<string>("all");
 
   const { data: connections = [], isLoading } = useQuery({
@@ -335,10 +335,10 @@ export default function Settings() {
   });
 
   const openNew = () => { setEditing(undefined); setDialogOpen(true); };
-  const openEdit = (c: ThirdPartyConnection) => { setEditing(c); setDialogOpen(true); };
+  const openEdit = (c: Connection) => { setEditing(c); setDialogOpen(true); };
   const closeDialog = () => { setDialogOpen(false); setEditing(undefined); };
 
-  const handleSave = (data: Partial<ThirdPartyConnection> & Pick<ThirdPartyConnection, "platform" | "name">) => {
+  const handleSave = (data: Partial<Connection> & Pick<Connection, "platform" | "name">) => {
     upsert.mutate(data as any);
   };
 
@@ -347,7 +347,7 @@ export default function Settings() {
     ? connections
     : connections.filter((c) => c.platform === filterPlatform);
 
-  const groupedByPlatform = platforms.reduce<Record<string, ThirdPartyConnection[]>>((acc, p) => {
+  const groupedByPlatform = platforms.reduce<Record<string, Connection[]>>((acc, p) => {
     acc[p.platform] = filtered.filter((c) => c.platform === p.platform);
     return acc;
   }, {});

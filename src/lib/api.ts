@@ -249,7 +249,8 @@ export type Company = {
   description: string;
   departmentIds: string[];
   primaryDepartmentId: string;
-  platformHooks: PlatformHook[];
+  // Client-populated from inbound-webhook Connections (not returned by the API).
+  platformHooks?: PlatformHook[];
   createdAt: string;
   type?: CompanyType;
   avatar?: string;
@@ -259,12 +260,18 @@ export type Company = {
   owner_id?: string;
 };
 
-export type ThirdPartyConnection = {
+// Unified third-party integration (formerly PlatformHook + ThirdPartyConnection).
+// `kind: "inbound_webhook"` = a per-company webhook (carries `companyId`);
+// `kind: "outbound"` = an account-level connection.
+export type Connection = {
   id: string;
   platform: string;
   name: string;
-  config: Record<string, string>;
+  config: Record<string, unknown>;
   description: string;
+  enabled: boolean;
+  kind: "inbound_webhook" | "outbound";
+  companyId: string;
   createdAt: string;
 };
 
@@ -1029,9 +1036,15 @@ export const api = {
   deleteCompany: (id: string) => apiFetch<{ deleted: boolean }>(`/companies/${id}`, { method: "DELETE" }),
   listPlatforms: () => apiFetch<PlatformDef[]>("/companies/platforms"),
 
-  listConnections: () => apiFetch<ThirdPartyConnection[]>("/connections"),
-  upsertConnection: (payload: Partial<ThirdPartyConnection> & Pick<ThirdPartyConnection, "platform" | "name">) =>
-    apiFetch<ThirdPartyConnection>("/connections", { method: "POST", body: JSON.stringify(payload) }),
+  listConnections: (companyId?: string, kind?: "inbound_webhook" | "outbound") => {
+    const qs = new URLSearchParams();
+    if (companyId !== undefined) qs.set("company_id", companyId);
+    if (kind) qs.set("kind", kind);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return apiFetch<Connection[]>(`/connections${suffix}`);
+  },
+  upsertConnection: (payload: Partial<Connection> & Pick<Connection, "platform" | "name">) =>
+    apiFetch<Connection>("/connections", { method: "POST", body: JSON.stringify(payload) }),
   deleteConnection: (id: string) => apiFetch<{ deleted: boolean }>(`/connections/${id}`, { method: "DELETE" }),
 
   // Cost monitoring (per-user; scoped to the caller's own runs)

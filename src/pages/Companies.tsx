@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -6,7 +6,7 @@ import {
   BrainCircuit, Users, Webhook, Settings2, RefreshCw,
   MessageCircle, Zap, Globe, Link2, Download,
 } from "lucide-react";
-import { api, canDeleteItem, canEditItem, type Company, type PlatformHook, type PlatformDef, type Department, type ThirdPartyConnection, type CompanyType } from "@/lib/api";
+import { api, canDeleteItem, canEditItem, type Company, type PlatformHook, type PlatformDef, type Department, type Connection, type CompanyType } from "@/lib/api";
 import { COMPANY_TYPES, COMPANY_TYPE_MAP, companyTypeOf } from "@/lib/company-types";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
@@ -124,7 +124,7 @@ function AddHookDialog({
   open: boolean;
   onClose: () => void;
   platforms: PlatformDef[];
-  connections: ThirdPartyConnection[];
+  connections: Connection[];
   onAdd: (hook: Omit<PlatformHook, "id">) => void;
 }) {
   const [platform, setPlatform] = useState("");
@@ -352,7 +352,7 @@ function CompanyDialog({
   existing?: Company;
   departments: Department[];
   platforms: PlatformDef[];
-  connections: ThirdPartyConnection[];
+  connections: Connection[];
   onSave: (data: Partial<Company> & Pick<Company, "name">) => void;
   companies?: Company[];
 }) {
@@ -452,7 +452,7 @@ function CompanyDialog({
                     <SelectContent>
                       {companies.map((ws) => (
                         <SelectItem key={ws.id} value={ws.id} className="text-xs">
-                          {ws.name} ({ws.departmentIds.length} departments, {ws.platformHooks.length} hooks)
+                          {ws.name} ({ws.departmentIds.length} departments, {(ws.platformHooks ?? []).length} hooks)
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -688,7 +688,7 @@ function CompanyCard({
           </div>
           <div className="flex items-center gap-1.5 rounded-lg border border-border/40 px-2 py-1">
             <Plug className="h-3 w-3 text-muted-foreground" />
-            <span className="text-[11px] text-muted-foreground">{company.platformHooks.length}</span>
+            <span className="text-[11px] text-muted-foreground">{(company.platformHooks ?? []).length}</span>
           </div>
           {canEditItem(company) && (
             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onEdit}>
@@ -745,11 +745,11 @@ function CompanyCard({
               {/* Hooks */}
               <div>
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Platform Hooks</p>
-                {company.platformHooks.length === 0 ? (
+                {(company.platformHooks ?? []).length === 0 ? (
                   <p className="text-xs text-muted-foreground">No hooks configured</p>
                 ) : (
                   <div className="grid gap-2">
-                    {company.platformHooks.map((h) => {
+                    {(company.platformHooks ?? []).map((h) => {
                       const pLabel = platforms.find((p) => p.platform === h.platform)?.label || h.platform;
                       const color = PLATFORM_COLORS[h.platform] || "from-slate-500 to-gray-600";
                       const url = getWebhookUrl(company.id, h.id, h.platform);
@@ -808,13 +808,61 @@ export default function Companies() {
 
   const { data: connections = [] } = useQuery({
     queryKey: ["connections"],
-    queryFn: api.listConnections,
+    queryFn: () => api.listConnections(),
   });
 
+  // Inbound webhooks are now Connections (kind="inbound_webhook"); attach them to
+  // each company client-side so the cards/dialog keep working with `platformHooks`.
+  const companiesWithHooks = useMemo<Company[]>(() => {
+    const byCompany = new Map<string, PlatformHook[]>();
+    for (const c of connections) {
+      if (c.kind !== "inbound_webhook" || !c.companyId) continue;
+      const hook: PlatformHook = {
+        id: c.id, platform: c.platform, name: c.name,
+        config: c.config, description: c.description, enabled: c.enabled,
+      };
+      const list = byCompany.get(c.companyId) ?? [];
+      list.push(hook);
+      byCompany.set(c.companyId, list);
+    }
+    return companies.map((w) => ({ ...w, platformHooks: byCompany.get(w.id) ?? [] }));
+  }, [companies, connections]);
+
   const upsert = useMutation({
-    mutationFn: api.upsertCompany,
+    // Save the company, then reconcile its inbound webhooks into the unified
+    // `connections` store (kind="inbound_webhook"). Locally-added hooks have a
+    // temporary `hook_*` id; they're created server-side (id assigned then).
+    mutationFn: async (data: Partial<Company> & Pick<Company, "name">) => {
+      const { platformHooks = [], ...companyData } = data;
+      const saved = await api.upsertCompany(companyData as any);
+      const existing = connections.filter(
+        (c) => c.kind === "inbound_webhook" && c.companyId === saved.id
+      );
+      const keptIds = new Set(
+        platformHooks.map((h) => h.id).filter((id) => !id.startsWith("hook_"))
+      );
+      await Promise.all(
+        existing.filter((c) => !keptIds.has(c.id)).map((c) => api.deleteConnection(c.id))
+      );
+      await Promise.all(
+        platformHooks.map((h) =>
+          api.upsertConnection({
+            id: h.id.startsWith("hook_") ? undefined : h.id,
+            platform: h.platform,
+            name: h.name,
+            config: h.config,
+            description: h.description,
+            enabled: h.enabled,
+            kind: "inbound_webhook",
+            companyId: saved.id,
+          })
+        )
+      );
+      return saved;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["companies"] });
+      qc.invalidateQueries({ queryKey: ["connections"] });
       toast({ title: "Office saved" });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -874,7 +922,7 @@ export default function Companies() {
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: "Companies", value: companies.length, icon: BrainCircuit, color: "text-teal-400" },
-          { label: "Active Hooks", value: companies.reduce((s, w) => s + w.platformHooks.filter(h => h.enabled).length, 0), icon: Plug, color: "text-emerald-400" },
+          { label: "Active Hooks", value: companiesWithHooks.reduce((s, w) => s + (w.platformHooks ?? []).filter(h => h.enabled).length, 0), icon: Plug, color: "text-emerald-400" },
           { label: "Platforms", value: platforms.length, icon: Globe, color: "text-sky-400" },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="rounded-2xl border border-border/40 bg-card/40 p-4 flex items-center gap-4">
@@ -931,7 +979,7 @@ export default function Companies() {
       ) : (
         <AnimatePresence mode="popLayout">
           <div className="grid gap-4">
-            {companies.map((ws) => (
+            {companiesWithHooks.map((ws) => (
               <CompanyCard
                 key={ws.id}
                 company={ws}
@@ -978,7 +1026,7 @@ export default function Companies() {
         platforms={platforms}
         connections={connections}
         onSave={handleSave}
-        companies={companies}
+        companies={companiesWithHooks}
       />
 
       {/* Delete confirmation */}
