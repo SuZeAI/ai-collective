@@ -100,6 +100,10 @@ export type Team = {
 
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
 
+export type IssueType = "epic" | "story" | "task" | "bug" | "subtask";
+
+export type SprintStatus = "planned" | "active" | "completed";
+
 export type TaskComment = {
   id: string;
   author_id: string;
@@ -112,7 +116,7 @@ export type Task = {
   title: string;
   description: string;
   teamId: string;
-  status: "pending" | "in-progress" | "paused" | "stopped" | "completed" | string;
+  status: "pending" | "in-progress" | "in-review" | "paused" | "stopped" | "completed" | string;
   progress: number;
   assignedAgents: string[];
   startTime?: string | null;
@@ -123,6 +127,61 @@ export type Task = {
   labels?: string[];
   assigneeId?: string | null;
   comments?: TaskComment[];
+  projectId?: string;
+  issueType?: IssueType;
+  issueKey?: string;
+  epicId?: string | null;
+  sprintId?: string | null;
+  storyPoints?: number | null;
+};
+
+export type Project = {
+  id: string;
+  key: string;
+  name: string;
+  description?: string;
+  leadId?: string;
+  plannerAgentId?: string;
+  plannerSystemPrompt?: string;
+  issueCounter?: number;
+  createdAt?: string | null;
+  avatar?: string;
+  avatar_icon?: string;
+  avatar_color?: string;
+  avatar_url?: string;
+  owner_id?: string;
+};
+
+export type Epic = {
+  id: string;
+  projectId: string;
+  key?: string;
+  title: string;
+  description?: string;
+  status?: string;
+  color?: string;
+  startDate?: string | null;
+  dueDate?: string | null;
+  owner_id?: string;
+};
+
+export type Sprint = {
+  id: string;
+  projectId: string;
+  name: string;
+  goal?: string;
+  status?: SprintStatus;
+  startDate?: string | null;
+  endDate?: string | null;
+  owner_id?: string;
+};
+
+export type DraftIssue = {
+  title: string;
+  type: IssueType;
+  description?: string;
+  storyPoints?: number | null;
+  epicHint?: string;
 };
 
 export type Message = {
@@ -663,6 +722,43 @@ export const api = {
   // (Restart no longer clears messages automatically — it continues the dialogue.)
   clearTaskHistory: (id: string) =>
     apiFetch<{ cleared: boolean }>(`/tasks/${id}/history`, { method: "DELETE" }),
+
+  // Jira-style project management layer.
+  listProjects: () => apiFetch<Project[]>("/projects"),
+  upsertProject: (payload: Partial<Project> & Pick<Project, "key" | "name">) =>
+    apiFetch<Project>("/projects", { method: "POST", body: JSON.stringify(payload) }),
+  deleteProject: (id: string) =>
+    apiFetch<{ deleted: boolean }>(`/projects/${id}`, { method: "DELETE" }),
+
+  listEpics: () => apiFetch<Epic[]>("/epics"),
+  upsertEpic: (payload: Partial<Epic> & Pick<Epic, "projectId" | "title">) =>
+    apiFetch<Epic>("/epics", { method: "POST", body: JSON.stringify(payload) }),
+  deleteEpic: (id: string) => apiFetch<{ deleted: boolean }>(`/epics/${id}`, { method: "DELETE" }),
+
+  listSprints: () => apiFetch<Sprint[]>("/sprints"),
+  upsertSprint: (payload: Partial<Sprint> & Pick<Sprint, "projectId" | "name">) =>
+    apiFetch<Sprint>("/sprints", { method: "POST", body: JSON.stringify(payload) }),
+  deleteSprint: (id: string) =>
+    apiFetch<{ deleted: boolean }>(`/sprints/${id}`, { method: "DELETE" }),
+
+  plannerDecompose: (payload: {
+    projectId: string;
+    epicId?: string | null;
+    description: string;
+    count?: number;
+  }) =>
+    apiFetch<{ issues: DraftIssue[] }>("/planner/decompose", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  plannerCommit: (payload: {
+    projectId: string;
+    epicId?: string | null;
+    sprintId?: string | null;
+    teamId?: string;
+    issues: DraftIssue[];
+  }) =>
+    apiFetch<Task[]>("/planner/commit", { method: "POST", body: JSON.stringify(payload) }),
 
   // Marketplace: shared "default" items users can browse and clone into their scope.
   listMarketplaceSkills: () => apiFetch<Skill[]>("/marketplace/skills"),
