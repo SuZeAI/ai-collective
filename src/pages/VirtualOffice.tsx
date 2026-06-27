@@ -9,15 +9,15 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useTheme } from "next-themes";
-import { AgentAvatar } from "@/components/AgentAvatar";
-import { ConversationFiles } from "@/components/ConversationFiles";
-import { api, buildCustomGraphPayload, type Agent, type Task, type Team, type Message } from "@/lib/api";
+import { StaffAvatar } from "@/components/StaffAvatar";
+import { MeetingFiles } from "@/components/MeetingFiles";
+import { api, buildCustomGraphPayload, type Staff, type Task, type Department, type Message } from "@/lib/api";
 import { useRunEngine } from "@/contexts/RunEngineContext";
-import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
+import { useCompanyScope } from "@/hooks/use-company-scope";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-interface AgentState {
-  agentId: string;
+interface StaffState {
+  staffId: string;
   status: "idle" | "thinking" | "executing" | "coffee" | "collaborating";
   emote: string;
   message?: string;
@@ -33,49 +33,49 @@ interface FlyingDocument {
 
 export default function VirtualOffice() {
   const { t } = useLanguage();
-  const scope = useWorkspaceScope();
+  const scope = useCompanyScope();
   const { theme } = useTheme();
   const isDark = theme !== "light";
 
   // Shared run engine (lives above the router): owns the streaming loop, task
-  // list, conversations and thinking-state so runs survive navigation and stay
+  // list, meetings and thinking-state so runs survive navigation and stay
   // in sync with the Task Manager page.
   const engine = useRunEngine();
   const {
     tasks: taskList,
-    conversations: messages,
-    thinkingAgents,
+    meetings: messages,
+    thinkingStaff,
     isStreaming,
   } = engine;
 
   // Data lists
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
 
   // Forms
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDesc, setTaskDesc] = useState("");
-  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
 
   // Office-map animation layer (presentation only, derived from engine events).
-  const [agentRealtimeStates, setAgentRealtimeStates] = useState<Record<string, AgentState>>({});
+  const [staffRealtimeStates, setStaffRealtimeStates] = useState<Record<string, StaffState>>({});
   
-  // Direct chat with individual agent
+  // Direct chat with individual staff
   const [directChatInput, setDirectChatInput] = useState("");
-  const [directChatMessages, setDirectChatMessages] = useState<Record<string, { sender: "user" | "agent"; text: string }[]>>({});
+  const [directChatMessages, setDirectChatMessages] = useState<Record<string, { sender: "user" | "staff"; text: string }[]>>({});
   const [isDirectChatLoading, setIsDirectChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Flying context documents list
   const [flyingDocs, setFlyingDocs] = useState<FlyingDocument[]>([]);
-  const lastActiveAgentIdRef = useRef<string | null>(null);
+  const lastActiveStaffIdRef = useRef<string | null>(null);
 
   // Auto-scroll helper
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, selectedTaskId, directChatMessages, selectedAgentId]);
+  }, [messages, selectedTaskId, directChatMessages, selectedStaffId]);
 
   // Load initial data
   useEffect(() => {
@@ -83,13 +83,13 @@ export default function VirtualOffice() {
     const loadData = async () => {
       try {
         const [aData, tData, tasksData] = await Promise.all([
-          api.listAgents(),
-          api.listTeams(),
+          api.listStaff(),
+          api.listDepartments(),
           api.listTasks()
         ]);
         if (!active) return;
-        setAgents(aData);
-        setTeams(tData);
+        setStaff(aData);
+        setDepartments(tData);
         // Reconcile into the engine — keeps live status for any streaming task.
         engine.ingestTasks(tasksData);
       } catch (err) {
@@ -99,26 +99,26 @@ export default function VirtualOffice() {
     loadData();
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope.workspace?.id]);
+  }, [scope.company?.id]);
 
-  // Filter agents and teams by workspace scope
-  const filteredAgents = useMemo(() => {
-    if (scope.isOverall) return agents;
-    return agents.filter((a) => scope.agentIds.has(a.id));
-  }, [agents, scope]);
+  // Filter staff and departments by company scope
+  const filteredStaff = useMemo(() => {
+    if (scope.isOverall) return staff;
+    return staff.filter((a) => scope.staffIds.has(a.id));
+  }, [staff, scope]);
 
-  const filteredTeams = useMemo(() => {
-    if (scope.isOverall) return teams;
-    return teams.filter((t) => scope.teamIds.has(t.id));
-  }, [teams, scope]);
+  const filteredDepartments = useMemo(() => {
+    if (scope.isOverall) return departments;
+    return departments.filter((t) => scope.departmentIds.has(t.id));
+  }, [departments, scope]);
 
   const filteredTasks = useMemo(() => {
     if (scope.isOverall) return taskList;
     return taskList.filter((t) => {
-      const team = teams.find((teamItem) => teamItem.id === t.teamId);
-      return team && scope.teamIds.has(team.id);
+      const department = departments.find((departmentItem) => departmentItem.id === t.departmentId);
+      return department && scope.departmentIds.has(department.id);
     });
-  }, [taskList, teams, scope]);
+  }, [taskList, departments, scope]);
 
   // Selected Task
   const selectedTask = useMemo(() => {
@@ -137,58 +137,58 @@ export default function VirtualOffice() {
   useEffect(() => {
     if (!selectedTaskId) return;
     let active = true;
-    api.listConversations(selectedTaskId)
+    api.listMeetings(selectedTaskId)
       .then((data) => {
         if (!active) return;
-        engine.ingestConversations(selectedTaskId, data);
+        engine.ingestMeetings(selectedTaskId, data);
       })
-      .catch((e) => console.error("Error listing conversations:", e));
+      .catch((e) => console.error("Error listing meetings:", e));
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTaskId]);
 
-  // FILTER AGENTS SHOWN ON MAP: If a task is selected, ONLY show the department (team) of that task!
-  const visibleAgents = useMemo(() => {
-    if (!selectedTask) return filteredAgents;
-    const activeTeam = teams.find((t) => t.id === selectedTask.teamId);
-    if (!activeTeam) return filteredAgents;
-    const assignedIds = new Set(activeTeam.agents);
-    return filteredAgents.filter((a) => assignedIds.has(a.id));
-  }, [filteredAgents, selectedTask, teams]);
+  // FILTER AGENTS SHOWN ON MAP: If a task is selected, ONLY show the department (department) of that task!
+  const visibleStaff = useMemo(() => {
+    if (!selectedTask) return filteredStaff;
+    const activeDepartment = departments.find((t) => t.id === selectedTask.departmentId);
+    if (!activeDepartment) return filteredStaff;
+    const assignedIds = new Set(activeDepartment.staff);
+    return filteredStaff.filter((a) => assignedIds.has(a.id));
+  }, [filteredStaff, selectedTask, departments]);
 
   // Setup initial status
   useEffect(() => {
-    if (filteredAgents.length === 0) return;
-    const nextStates: Record<string, AgentState> = {};
-    filteredAgents.forEach((a) => {
+    if (filteredStaff.length === 0) return;
+    const nextStates: Record<string, StaffState> = {};
+    filteredStaff.forEach((a) => {
       nextStates[a.id] = {
-        agentId: a.id,
+        staffId: a.id,
         status: "idle",
         emote: "💤",
         message: ""
       };
     });
-    setAgentRealtimeStates((prev) => ({
+    setStaffRealtimeStates((prev) => ({
       ...nextStates,
       ...prev
     }));
-  }, [filteredAgents]);
+  }, [filteredStaff]);
 
-  // Wandering cycle for idle agents (makes pantry/coffee active)
+  // Wandering cycle for idle staff (makes pantry/coffee active)
   useEffect(() => {
     const interval = setInterval(() => {
-      const activeIds = visibleAgents.map((a) => a.id);
+      const activeIds = visibleStaff.map((a) => a.id);
       if (activeIds.length === 0) return;
 
       const randomId = activeIds[Math.floor(Math.random() * activeIds.length)];
-      const current = agentRealtimeStates[randomId];
+      const current = staffRealtimeStates[randomId];
       if (!current) return;
 
       // Don't wander if actively running task
-      const isTaskActive = Object.values(thinkingAgents).some((set) => set.has(randomId));
+      const isTaskActive = Object.values(thinkingStaff).some((set) => set.has(randomId));
       if (isTaskActive || current.status === "thinking" || current.status === "executing") return;
 
-      setAgentRealtimeStates((prev) => {
+      setStaffRealtimeStates((prev) => {
         const ag = prev[randomId];
         if (!ag) return prev;
 
@@ -213,10 +213,10 @@ export default function VirtualOffice() {
     }, 8000);
 
     return () => clearInterval(interval);
-  }, [agentRealtimeStates, thinkingAgents, visibleAgents]);
+  }, [staffRealtimeStates, thinkingStaff, visibleStaff]);
 
   // Calculate coordinates on the full 2D grid canvas
-  const agentCanvasPositions = useMemo(() => {
+  const staffCanvasPositions = useMemo(() => {
     const positions: Record<string, { left: number; top: number; status: string; emote: string; message: string }> = {};
 
     const DESKS = [
@@ -227,9 +227,9 @@ export default function VirtualOffice() {
       { x: 580, y: 560 }
     ];
 
-    visibleAgents.forEach((a, index) => {
-      const isThinking = thinkingAgents[selectedTaskId ?? ""]?.has(a.id);
-      const rtState = agentRealtimeStates[a.id];
+    visibleStaff.forEach((a, index) => {
+      const isThinking = thinkingStaff[selectedTaskId ?? ""]?.has(a.id);
+      const rtState = staffRealtimeStates[a.id];
 
       let status = "idle";
       let emote = "💤";
@@ -298,28 +298,28 @@ export default function VirtualOffice() {
     });
 
     return positions;
-  }, [visibleAgents, thinkingAgents, selectedTaskId, agentRealtimeStates]);
+  }, [visibleStaff, thinkingStaff, selectedTaskId, staffRealtimeStates]);
 
-  // Latest canvas positions / visible agents for the event listener (avoids
+  // Latest canvas positions / visible staff for the event listener (avoids
   // stale closures without resubscribing on every render).
-  const canvasPosRef = useRef(agentCanvasPositions);
-  canvasPosRef.current = agentCanvasPositions;
-  const visibleAgentsRef = useRef(visibleAgents);
-  visibleAgentsRef.current = visibleAgents;
+  const canvasPosRef = useRef(staffCanvasPositions);
+  canvasPosRef.current = staffCanvasPositions;
+  const visibleStaffRef = useRef(visibleStaff);
+  visibleStaffRef.current = visibleStaff;
 
   // Drive the office-map animations from engine stream events. The engine owns
-  // the run loop and conversation/thinking state; here we only translate events
-  // into agent emotes and flying-document handoffs. Subscribing to "*" means a
+  // the run loop and meeting/thinking state; here we only translate events
+  // into staff emotes and flying-document handoffs. Subscribing to "*" means a
   // run started on the Task Manager page animates here too.
   useEffect(() => {
     const unsubscribe = engine.subscribe("*", (event: any) => {
       const eventType = event.type;
-      const agentId = event.agent_id || event.agentId || event.agent_name || event.agentName;
+      const staffId = event.agent_id || event.staffId || event.agent_name || event.staffName;
 
       if (eventType === "llm_request_start") {
-        if (!agentId) return;
-        const senderId = lastActiveAgentIdRef.current;
-        const receiverId = agentId;
+        if (!staffId) return;
+        const senderId = lastActiveStaffIdRef.current;
+        const receiverId = staffId;
         const positions = canvasPosRef.current;
         if (senderId && receiverId && senderId !== receiverId) {
           const senderPos = positions[senderId];
@@ -331,27 +331,27 @@ export default function VirtualOffice() {
             ]);
           }
         }
-        lastActiveAgentIdRef.current = receiverId;
-        setAgentRealtimeStates((prev) => {
-          const ag = prev[agentId];
+        lastActiveStaffIdRef.current = receiverId;
+        setStaffRealtimeStates((prev) => {
+          const ag = prev[staffId];
           if (!ag) return prev;
-          return { ...prev, [agentId]: { ...ag, status: "thinking", emote: "\ud83d\udcad", message: "Developing software solutions..." } };
+          return { ...prev, [staffId]: { ...ag, status: "thinking", emote: "\ud83d\udcad", message: "Developing software solutions..." } };
         });
       } else if (eventType === "turn_complete" && event.turn) {
         const turn = event.turn;
-        const turnAgentId = turn.agent_id || turn.agentId || turn.agent_name || turn.agentName;
-        if (!turnAgentId) return;
-        lastActiveAgentIdRef.current = turnAgentId;
-        setAgentRealtimeStates((prev) => {
-          const ag = prev[turnAgentId];
+        const turnStaffId = turn.agent_id || turn.staffId || turn.agent_name || turn.staffName;
+        if (!turnStaffId) return;
+        lastActiveStaffIdRef.current = turnStaffId;
+        setStaffRealtimeStates((prev) => {
+          const ag = prev[turnStaffId];
           if (!ag) return prev;
-          return { ...prev, [turnAgentId]: { ...ag, status: "collaborating", emote: "\ud83d\udcac", message: "Reviewing code outputs" } };
+          return { ...prev, [turnStaffId]: { ...ag, status: "collaborating", emote: "\ud83d\udcac", message: "Reviewing code outputs" } };
         });
       } else if (eventType === "run_ended") {
-        lastActiveAgentIdRef.current = null;
-        setAgentRealtimeStates((prev) => {
+        lastActiveStaffIdRef.current = null;
+        setStaffRealtimeStates((prev) => {
           const next = { ...prev };
-          for (const a of visibleAgentsRef.current) {
+          for (const a of visibleStaffRef.current) {
             const ag = next[a.id];
             if (ag) next[a.id] = { ...ag, status: "idle", emote: "\ud83d\udca4", message: "" };
           }
@@ -366,29 +366,29 @@ export default function VirtualOffice() {
   // Start (or restart) a task run through the shared engine.
   const runTask = (task: Task) => {
     if (isStreaming(task.id)) return;
-    const team = teams.find((t) => t.id === task.teamId);
-    if (!team) return;
-    lastActiveAgentIdRef.current = null;
+    const department = departments.find((t) => t.id === task.departmentId);
+    if (!department) return;
+    lastActiveStaffIdRef.current = null;
     // Custom mode runs the user-drawn flow; fall back to sequential if unwired.
-    const customGraph = buildCustomGraphPayload(team);
-    const mode = team.mode === "custom" && !customGraph ? "sequential" : (team.mode ?? "sequential");
-    void engine.startTask(task, { mode, maxSteps: team.maxSteps ?? 6, customGraph });
+    const customGraph = buildCustomGraphPayload(department);
+    const mode = department.mode === "custom" && !customGraph ? "sequential" : (department.mode ?? "sequential");
+    void engine.startTask(task, { mode, maxSteps: department.maxSteps ?? 6, customGraph });
   };
 
   const handleCreateAndRunTask = async () => {
-    if (!taskTitle.trim() || !selectedTeamId) return;
+    if (!taskTitle.trim() || !selectedDepartmentId) return;
 
-    const team = teams.find((t) => t.id === selectedTeamId);
-    if (!team) return;
+    const department = departments.find((t) => t.id === selectedDepartmentId);
+    if (!department) return;
 
     try {
       const newTask = await engine.upsertTask({
         title: taskTitle.trim(),
         description: taskDesc,
-        teamId: selectedTeamId,
+        departmentId: selectedDepartmentId,
         status: "pending",
         progress: 0,
-        assignedAgents: team.agents
+        assignedStaff: department.staff
       });
 
       setSelectedTaskId(newTask.id);
@@ -401,27 +401,27 @@ export default function VirtualOffice() {
     }
   };
 
-  // Direct chat with agent in inspector
+  // Direct chat with staff in inspector
   const handleDirectChat = async () => {
-    if (!directChatInput.trim() || !selectedAgentId) return;
+    if (!directChatInput.trim() || !selectedStaffId) return;
 
-    const agent = agents.find((a) => a.id === selectedAgentId);
-    if (!agent) return;
+    const staff = staff.find((a) => a.id === selectedStaffId);
+    if (!staff) return;
 
     const userMessage = directChatInput;
     setDirectChatInput("");
     setDirectChatMessages((prev) => ({
       ...prev,
-      [selectedAgentId]: [...(prev[selectedAgentId] ?? []), { sender: "user", text: userMessage }]
+      [selectedStaffId]: [...(prev[selectedStaffId] ?? []), { sender: "user", text: userMessage }]
     }));
     setIsDirectChatLoading(true);
 
-    setAgentRealtimeStates((prev) => {
-      const ag = prev[selectedAgentId];
+    setStaffRealtimeStates((prev) => {
+      const ag = prev[selectedStaffId];
       if (!ag) return prev;
       return {
         ...prev,
-        [selectedAgentId]: {
+        [selectedStaffId]: {
           ...ag,
           status: "thinking",
           emote: "💻",
@@ -433,21 +433,21 @@ export default function VirtualOffice() {
     try {
       const res = await api.chat({
         prompt: userMessage,
-        agentId: selectedAgentId,
-        conversationId: `direct-${selectedAgentId}`,
+        staffId: selectedStaffId,
+        conversationId: `direct-${selectedStaffId}`,
       });
 
       setDirectChatMessages((prev) => ({
         ...prev,
-        [selectedAgentId]: [...(prev[selectedAgentId] ?? []), { sender: "agent", text: res.response }]
+        [selectedStaffId]: [...(prev[selectedStaffId] ?? []), { sender: "staff", text: res.response }]
       }));
 
-      setAgentRealtimeStates((prev) => {
-        const ag = prev[selectedAgentId];
+      setStaffRealtimeStates((prev) => {
+        const ag = prev[selectedStaffId];
         if (!ag) return prev;
         return {
           ...prev,
-          [selectedAgentId]: {
+          [selectedStaffId]: {
             ...ag,
             status: "idle",
             emote: "💭",
@@ -462,9 +462,9 @@ export default function VirtualOffice() {
     }
   };
 
-  const inspectorAgent = useMemo(() => {
-    return agents.find((a) => a.id === selectedAgentId) || null;
-  }, [agents, selectedAgentId]);
+  const inspectorStaff = useMemo(() => {
+    return staff.find((a) => a.id === selectedStaffId) || null;
+  }, [staff, selectedStaffId]);
 
   return (
     <div className="w-full h-full relative overflow-hidden transition-colors duration-200 bg-[#f8fafc] text-slate-900 dark:bg-[#161822] dark:text-slate-200 select-none">
@@ -609,25 +609,25 @@ export default function VirtualOffice() {
             </div>
           ))}
 
-          {/* Render Agent tokens using absolute coordinates calculated dynamically */}
+          {/* Render Staff tokens using absolute coordinates calculated dynamically */}
           <AnimatePresence>
-            {Object.entries(agentCanvasPositions).map(([agentId, pos]) => {
-              const agent = agents.find((a) => a.id === agentId);
-              if (!agent) return null;
+            {Object.entries(staffCanvasPositions).map(([staffId, pos]) => {
+              const staff = staff.find((a) => a.id === staffId);
+              if (!staff) return null;
 
-              const isSelected = selectedAgentId === agent.id;
+              const isSelected = selectedStaffId === staff.id;
               const isThinking = pos.status === "thinking";
               const isCoffee = pos.status === "coffee";
               const isCollab = pos.status === "collaborating";
 
               return (
                 <motion.div
-                  key={agentId}
+                  key={staffId}
                   layout
                   transition={{ type: "spring", stiffness: 70, damping: 14 }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setSelectedAgentId(agent.id);
+                    setSelectedStaffId(staff.id);
                   }}
                   className="absolute aspect-square flex flex-col items-center justify-center cursor-pointer z-30 group p-1"
                   style={{
@@ -652,7 +652,7 @@ export default function VirtualOffice() {
                     )}
                   </AnimatePresence>
 
-                  {/* Agent Circular Avatar container with inner micro-animations */}
+                  {/* Staff Circular Avatar container with inner micro-animations */}
                   <div className="relative w-12 h-12 flex items-center justify-center">
                     {isThinking && (
                       <span className="absolute inset-0 rounded-full bg-teal-500/35 animate-ping" />
@@ -685,8 +685,8 @@ export default function VirtualOffice() {
                           : "border-slate-200 dark:border-slate-800 group-hover:border-slate-400 dark:group-hover:border-slate-600"
                       }`}
                     >
-                      <AgentAvatar
-                        agent={agent}
+                      <StaffAvatar
+                        staff={staff}
                         className="w-full h-full rounded-full"
                       />
                     </motion.div>
@@ -695,7 +695,7 @@ export default function VirtualOffice() {
 
                   {/* Name banner */}
                   <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 bg-white/90 dark:bg-slate-950/90 px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/5 pointer-events-none mt-1 shadow-sm truncate max-w-[65px] text-center">
-                    {agent.name}
+                    {staff.name}
                   </span>
                 </motion.div>
               );
@@ -744,18 +744,18 @@ export default function VirtualOffice() {
               />
               <div className="flex gap-2">
                 <select
-                  value={selectedTeamId}
-                  onChange={(e) => setSelectedTeamId(e.target.value)}
+                  value={selectedDepartmentId}
+                  onChange={(e) => setSelectedDepartmentId(e.target.value)}
                   className="flex-1 h-8 px-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-xs focus:outline-none text-slate-600 dark:text-slate-400"
                 >
                   <option value="">Auto-assign</option>
-                  {filteredTeams.map((t) => (
+                  {filteredDepartments.map((t) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
                 <button
                   onClick={handleCreateAndRunTask}
-                  disabled={!taskTitle.trim() || !selectedTeamId}
+                  disabled={!taskTitle.trim() || !selectedDepartmentId}
                   className="px-3 h-8 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-600/40 text-white font-bold text-xs rounded-md shadow transition-all shrink-0"
                 >
                   Assign
@@ -817,38 +817,38 @@ export default function VirtualOffice() {
 
           {/* FLOATING WIDGET 2: Inspector & Direct Chat Combined (Top-Right corner of canvas: x:1256px, y:24px) */}
           <div className="absolute top-6 right-6 z-40 w-80 bg-white/95 dark:bg-[#0c0f16]/90 border border-slate-200 dark:border-slate-800/80 rounded-xl p-4 shadow-2xl backdrop-blur-md flex flex-col h-[400px] text-slate-900 dark:text-slate-200 transition-colors">
-            {inspectorAgent ? (
+            {inspectorStaff ? (
               <div className="flex flex-col h-full overflow-hidden">
                 <div className="flex items-center justify-between mb-2 shrink-0">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5" />
-                    Inspector: {inspectorAgent.name}
+                    Inspector: {inspectorStaff.name}
                   </h3>
                   <button
-                    onClick={() => setSelectedAgentId(null)}
+                    onClick={() => setSelectedStaffId(null)}
                     className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
                 
-                {/* Agent statistics info */}
+                {/* Staff statistics info */}
                 <div className="space-y-1.5 text-[10px] font-mono mb-2 border-b border-slate-200 dark:border-slate-800/80 pb-2 shrink-0">
                   <div>
                     <span className="text-slate-500 dark:text-slate-400">Role:</span>{" "}
-                    <span className="text-slate-800 dark:text-slate-200">{inspectorAgent.role}</span>
+                    <span className="text-slate-800 dark:text-slate-200">{inspectorStaff.role}</span>
                   </div>
                   <div>
                     <span className="text-slate-500 dark:text-slate-400">Status:</span>{" "}
                     <span className="text-emerald-600 dark:text-emerald-400">
-                      {agentRealtimeStates[inspectorAgent.id]?.status || "Idle"}
+                      {staffRealtimeStates[inspectorStaff.id]?.status || "Idle"}
                     </span>
                   </div>
                 </div>
 
-                {/* Combined Direct Agent Chat messaging block */}
+                {/* Combined Direct Staff Chat messaging block */}
                 <div className="flex-1 overflow-y-auto space-y-2 pb-2 scrollbar-thin text-xs pr-1 mt-1">
-                  {(directChatMessages[inspectorAgent.id] ?? []).map((msg, index) => (
+                  {(directChatMessages[inspectorStaff.id] ?? []).map((msg, index) => (
                     <div
                       key={index}
                       className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
@@ -879,10 +879,10 @@ export default function VirtualOffice() {
 
                 {/* direct chat input row inside widget */}
                 <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 shrink-0 bg-transparent mt-auto space-y-2">
-                  {selectedAgentId && (
-                    <ConversationFiles
-                      taskId={`direct-${selectedAgentId}`}
-                      workspaceId={scope.workspace?.id ?? null}
+                  {selectedStaffId && (
+                    <MeetingFiles
+                      taskId={`direct-${selectedStaffId}`}
+                      companyId={scope.company?.id ?? null}
                     />
                   )}
                   <div className="flex gap-2">
@@ -910,7 +910,7 @@ export default function VirtualOffice() {
                   <Cpu className="w-3.5 h-3.5" />
                   Inspector
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">Select an agent on the map to inspect and chat.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">Select an staff on the map to inspect and chat.</p>
               </div>
             )}
           </div>
@@ -925,12 +925,12 @@ export default function VirtualOffice() {
             {/* Chat Scrolling logs */}
             <div className="flex-1 overflow-y-auto space-y-2.5 pb-2.5 scrollbar-thin text-xs pr-1">
               {selectedTaskId && messages[selectedTaskId] ? (
-                // Show General office task conversation logs
+                // Show General office task meeting logs
                 messages[selectedTaskId].map((msg) => {
-                  const agent = agents.find((a) => a.id === msg.agentId);
+                  const staff = staff.find((a) => a.id === msg.staffId);
                   return (
                     <div key={msg.id} className="leading-relaxed mb-3">
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">{agent?.name || msg.agentId}:</span>{" "}
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">{staff?.name || msg.staffId}:</span>{" "}
                       <span className="text-[10px] text-slate-400 ml-1">💭</span>
                       <div className="text-[11px] text-slate-700 dark:text-slate-300 pl-4 mt-0.5 leading-normal prose prose-sm dark:prose-invert max-w-none [&>p]:leading-normal [&>p:last-child]:mb-0 [&>*:last-child]:mb-0">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -947,7 +947,7 @@ export default function VirtualOffice() {
               )}
               {selectedTaskId && isStreaming(selectedTaskId) && (
                 <div className="text-[10px] text-teal-500 dark:text-teal-400 font-semibold animate-pulse">
-                  System: Tuning in to active agent channel...
+                  System: Tuning in to active staff channel...
                 </div>
               )}
               <div ref={chatEndRef} />
@@ -966,7 +966,7 @@ export default function VirtualOffice() {
                 <Building className="w-4 h-4 text-teal-600 dark:text-teal-400" />
               </div>
               <div className="min-w-0">
-                <h4 className="text-[11px] font-bold text-slate-800 dark:text-slate-100">AgentOffice</h4>
+                <h4 className="text-[11px] font-bold text-slate-800 dark:text-slate-100">StaffOffice</h4>
                 <p className="text-[9px] text-slate-500 dark:text-slate-400 truncate">Real-time simulation</p>
               </div>
             </div>

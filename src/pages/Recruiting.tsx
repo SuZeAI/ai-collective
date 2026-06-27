@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AgentAvatar } from "@/components/AgentAvatar";
-import { api, type Agent, type LibraryDocument, type Skill, type Task, type Team } from "@/lib/api";
+import { StaffAvatar } from "@/components/StaffAvatar";
+import { api, type Staff, type LibraryDocument, type Skill, type Task, type Department } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
+import { useCompanyScope } from "@/hooks/use-company-scope";
 
-type Kind = "task" | "team" | "agent" | "skill" | "document";
+type Kind = "task" | "department" | "staff" | "skill" | "document";
 
 // Page-local copy keyed by the active language (the global locales only carry
 // the nav label). Keeps the page self-contained without bloating locales/index.
@@ -19,7 +19,7 @@ const COPY = {
   en: {
     subtitle: "Discover ready-made resources and copy them into your own business units.",
     search: "Search…",
-    tabs: { task: "Projects", team: "Departments", agent: "Staff", skill: "Skills & Tools", document: "Documents" },
+    tabs: { task: "Projects", department: "Departments", staff: "Staff", skill: "Skills & Tools", document: "Documents" },
     copy: "Copy to my unit",
     copying: "Copying…",
     copied: "Copied",
@@ -32,7 +32,7 @@ const COPY = {
   vi: {
     subtitle: "Khám phá các tài nguyên dựng sẵn và sao chép về đơn vị thành viên của bạn.",
     search: "Tìm kiếm…",
-    tabs: { task: "Dự án", team: "Phòng ban", agent: "Hồ sơ Nhân sự Số", skill: "Nghiệp vụ & Công cụ", document: "Tài liệu" },
+    tabs: { task: "Dự án", department: "Phòng ban", staff: "Hồ sơ Nhân sự Số", skill: "Nghiệp vụ & Công cụ", document: "Tài liệu" },
     copy: "Sao chép về đơn vị của tôi",
     copying: "Đang sao chép…",
     copied: "Đã sao chép",
@@ -45,7 +45,7 @@ const COPY = {
   zh: {
     subtitle: "发现现成的资源并复制到你自己的成员单位。",
     search: "搜索…",
-    tabs: { task: "项目", team: "部门架构", agent: "数字化员工", skill: "业务与工具", document: "文档" },
+    tabs: { task: "项目", department: "部门架构", staff: "数字化员工", skill: "业务与工具", document: "文档" },
     copy: "复制到我的单位",
     copying: "复制中…",
     copied: "已复制",
@@ -58,7 +58,7 @@ const COPY = {
   ja: {
     subtitle: "既製のリソースを見つけて、自分の拠点にコピーします。",
     search: "検索…",
-    tabs: { task: "プロジェクト", team: "部門構成", agent: "デジタル人材", skill: "業務とツール", document: "ドキュメント" },
+    tabs: { task: "プロジェクト", department: "部門構成", staff: "デジタル人材", skill: "業務とツール", document: "ドキュメント" },
     copy: "自分の拠点にコピー",
     copying: "コピー中…",
     copied: "コピー済み",
@@ -78,15 +78,15 @@ type CardData = {
   avatarLike: { avatar?: string; avatar_icon?: string; avatar_color?: string; avatar_url?: string };
 };
 
-export default function Marketplace() {
+export default function Recruiting() {
   const { t, language } = useLanguage();
   const { toast } = useToast();
-  const scope = useWorkspaceScope();
+  const scope = useCompanyScope();
   const c = COPY[language] ?? COPY.en;
 
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [documents, setDocuments] = useState<LibraryDocument[]>([]);
   const [search, setSearch] = useState("");
@@ -98,20 +98,20 @@ export default function Marketplace() {
     (async () => {
       try {
         const [sk, ag, tm, tk, dc] = await Promise.all([
-          api.listMarketplaceSkills(),
-          api.listMarketplaceAgents(),
-          api.listMarketplaceTeams(),
-          api.listMarketplaceTasks(),
-          api.listMarketplaceDocuments(),
+          api.listRecruitingSkills(),
+          api.listRecruitingStaff(),
+          api.listRecruitingDepartments(),
+          api.listRecruitingTasks(),
+          api.listRecruitingDocuments(),
         ]);
         if (cancelled) return;
         setSkills(sk);
-        setAgents(ag);
-        setTeams(tm);
+        setStaff(ag);
+        setDepartments(tm);
         setTasks(tk);
         setDocuments(dc);
       } catch (e) {
-        console.error("Failed to load marketplace:", e);
+        console.error("Failed to load recruiting:", e);
       }
     })();
     return () => {
@@ -121,16 +121,16 @@ export default function Marketplace() {
 
   const handleCopy = async (kind: Kind, id: string) => {
     // Documents are office-bound, so they copy into the active company.
-    if (kind === "document" && !scope.workspace) {
+    if (kind === "document" && !scope.company) {
       toast({ title: c.toastErr, description: c.docNeedsCompany, variant: "destructive" });
       return;
     }
     setBusyId(id);
     try {
-      await api.copyFromMarketplace({
+      await api.copyFromRecruiting({
         type: kind,
         id,
-        ...(kind === "document" ? { workspaceId: scope.workspace?.id } : {}),
+        ...(kind === "document" ? { companyId: scope.company?.id } : {}),
       });
       setCopiedIds((prev) => new Set(prev).add(id));
       toast({ title: c.toastOk, description: c.toastDesc });
@@ -154,7 +154,7 @@ export default function Marketplace() {
       task: tasks.map((x) =>
         toCard(x.id, x.title, x.description, x.status, { avatar: x.title?.[0]?.toUpperCase(), avatar_icon: "target" }),
       ),
-      team: teams.map((x) =>
+      department: departments.map((x) =>
         toCard(x.id, x.name, x.description, x.mode, {
           avatar: x.avatar,
           avatar_icon: x.avatar_icon,
@@ -162,7 +162,7 @@ export default function Marketplace() {
           avatar_url: x.avatar_url,
         }),
       ),
-      agent: agents.map((x) =>
+      staff: staff.map((x) =>
         toCard(x.id, x.name, x.role || x.description, undefined, {
           avatar: x.avatar,
           avatar_icon: x.avatar_icon,
@@ -185,7 +185,7 @@ export default function Marketplace() {
         }),
       ),
     };
-  }, [tasks, teams, agents, skills, documents]);
+  }, [tasks, departments, staff, skills, documents]);
 
   const renderGrid = (kind: Kind) => {
     const q = search.trim().toLowerCase();
@@ -209,7 +209,7 @@ export default function Marketplace() {
             >
               <div className="glass-card p-5 h-full flex flex-col">
                 <div className="flex items-start gap-3">
-                  <AgentAvatar agent={it.avatarLike} className="w-10 h-10 shrink-0" />
+                  <StaffAvatar staff={it.avatarLike} className="w-10 h-10 shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold truncate">{it.name}</p>
                     {it.badge && (
@@ -243,13 +243,13 @@ export default function Marketplace() {
     );
   };
 
-  const order: Kind[] = ["task", "team", "agent", "skill", "document"];
+  const order: Kind[] = ["task", "department", "staff", "skill", "document"];
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <div className="flex items-center gap-3 mb-1">
         <ShoppingBag className="w-6 h-6" />
-        <h1 className="text-2xl font-bold">{t.nav.marketplace}</h1>
+        <h1 className="text-2xl font-bold">{t.nav.recruiting}</h1>
       </div>
       <p className="text-muted-foreground mb-6">{c.subtitle}</p>
 

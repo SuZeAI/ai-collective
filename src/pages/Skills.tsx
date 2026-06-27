@@ -7,10 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { AgentAvatar, skillAvatarIconOptions } from "@/components/AgentAvatar";
+import { StaffAvatar, skillAvatarIconOptions } from "@/components/StaffAvatar";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
-import { api, canDeleteItem, canEditItem, type Agent, type Skill, type SkillToolConfigField, type SkillToolPreset } from "@/lib/api";
-import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
+import { api, canDeleteItem, canEditItem, type Staff, type Skill, type SkillToolConfigField, type SkillToolPreset } from "@/lib/api";
+import { useCompanyScope } from "@/hooks/use-company-scope";
 
 type ToolName = string;
 type AvatarMode = "initial" | "icon" | "image";
@@ -171,9 +171,9 @@ function validateRequiredConfig(
 }
 
 export default function Skills() {
-  const scope = useWorkspaceScope();
+  const scope = useCompanyScope();
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [agentList, setAgentList] = useState<Agent[]>([]);
+  const [staffList, setStaffList] = useState<Staff[]>([]);
   const [toolPresets, setToolPresets] = useState<SkillToolPreset[]>([]);
   const [open, setOpen] = useState(false);
   const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
@@ -241,16 +241,16 @@ export default function Skills() {
     let cancelled = false;
     (async () => {
       try {
-        const [list, agents, backendPresets] = await Promise.all([
+        const [list, staff, backendPresets] = await Promise.all([
           api.listSkills(),
-          api.listAgents(),
+          api.listStaff(),
           api.listSkillToolPresets().catch(async () => {
             const tools = await api.listSkillTools();
             return tools.map(toToolPreset);
           }),
         ]);
         if (cancelled) return;
-        setAgentList(agents);
+        setStaffList(staff);
 
         const uniquePresets = Array.from(
           new Map(
@@ -500,29 +500,29 @@ export default function Skills() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Skills</h1>
           <p className="text-muted-foreground mt-1">
-            {scope.workspace
-              ? <>Skills used by personnel of office <span className="font-semibold text-foreground">{scope.workspace.name}</span>.</>
+            {scope.company
+              ? <>Skills used by personnel of office <span className="font-semibold text-foreground">{scope.company.name}</span>.</>
               : "Create reusable skills and assign them to personnel."}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {scope.workspace && (
+          {scope.company && (
             <AppendFromOverallDialog
-              title={`Append skills & tools to "${scope.workspace.name}"`}
-              description="Pick existing skills/tools from Overall and equip one of this office's humans with them."
+              title={`Append skills & tools to "${scope.company.name}"`}
+              description="Pick existing skills/tools from Overall and equip one of this office's staff with them."
               items={skills
                 .filter((s) => !scope.skillIds.has(s.id))
                 .map((s) => ({ id: s.id, name: s.name, sub: s.description, badge: s.tool_name || s.kind }))}
               emptyText="Every skill from Overall is already in use at this office."
-              targets={agentList
-                .filter((a) => scope.agentIds.has(a.id) && canEditItem(a))
+              targets={staffList
+                .filter((a) => scope.staffIds.has(a.id) && canEditItem(a))
                 .map((a) => ({ id: a.id, name: `${a.name} (${a.role})` }))}
               targetLabel="Equip human"
               noTargetText="No human in this office can be edited by you. Hire your own human first."
               copyLabel="Create independent copies for this office (config/code of the copied skills can be customized without affecting Overall)."
               onAppend={async (ids, targetId, makeCopy) => {
-                const agent = agentList.find((a) => a.id === targetId);
-                if (!agent) return;
+                const staff = staffList.find((a) => a.id === targetId);
+                if (!staff) return;
                 let skillIdsToAdd = ids;
                 if (makeCopy) {
                   skillIdsToAdd = [];
@@ -547,11 +547,11 @@ export default function Skills() {
                     skillIdsToAdd.push(copied.id);
                   }
                 }
-                const merged = [...new Set([...(agent.skill_ids || []), ...skillIdsToAdd])];
-                const saved = await api.upsertAgent({ ...agent, skill_ids: merged });
-                setAgentList((prev) => prev.map((a) => (a.id === saved.id ? saved : a)));
+                const merged = [...new Set([...(staff.skill_ids || []), ...skillIdsToAdd])];
+                const saved = await api.upsertStaff({ ...staff, skill_ids: merged });
+                setStaffList((prev) => prev.map((a) => (a.id === saved.id ? saved : a)));
                 // Refresh the office scope so the appended skills show up.
-                window.dispatchEvent(new CustomEvent("workspaceChanged"));
+                window.dispatchEvent(new CustomEvent("companyChanged"));
               }}
             />
           )}
@@ -646,8 +646,8 @@ export default function Skills() {
 
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">Preview</span>
-                        <AgentAvatar
-                          agent={{
+                        <StaffAvatar
+                          staff={{
                             avatar: name.trim()[0]?.toUpperCase() || "S",
                             avatar_icon: avatarMode === "icon" ? avatarIcon : "",
                             avatar_color: isHexColor(avatarColor) ? avatarColor : "",
@@ -804,8 +804,8 @@ export default function Skills() {
       {visibleSkills.length === 0 && scope.ready && (
         <div className="text-center py-16 text-muted-foreground">
           <p className="text-sm">
-            {scope.workspace
-              ? `No skills in use at "${scope.workspace.name}" yet — assign skills to its humans, or switch to Overall.`
+            {scope.company
+              ? `No skills in use at "${scope.company.name}" yet — assign skills to its staff, or switch to Overall.`
               : "No skills yet. Create your first skill."}
           </p>
         </div>
@@ -822,8 +822,8 @@ export default function Skills() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex items-start gap-3">
-                  <AgentAvatar
-                    agent={{ ...s, avatar: s.avatar || s.name?.slice(0, 1).toUpperCase() || "S" }}
+                  <StaffAvatar
+                    staff={{ ...s, avatar: s.avatar || s.name?.slice(0, 1).toUpperCase() || "S" }}
                     className="w-10 h-10"
                   />
                   <div className="min-w-0 flex-1">

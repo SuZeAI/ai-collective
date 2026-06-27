@@ -6,7 +6,7 @@ import {
   BrainCircuit, Users, Webhook, Settings2, RefreshCw,
   MessageCircle, Zap, Globe, Link2, Download,
 } from "lucide-react";
-import { api, canDeleteItem, canEditItem, type Workspace, type PlatformHook, type PlatformDef, type Team, type ThirdPartyConnection, type CompanyType } from "@/lib/api";
+import { api, canDeleteItem, canEditItem, type Company, type PlatformHook, type PlatformDef, type Department, type ThirdPartyConnection, type CompanyType } from "@/lib/api";
 import { COMPANY_TYPES, COMPANY_TYPE_MAP, companyTypeOf } from "@/lib/company-types";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
@@ -29,12 +29,12 @@ import { cn } from "@/lib/utils";
 
 const API_BASE = ((import.meta as any).env?.VITE_API_BASE_URL as string) || "/api/v1";
 
-function getWebhookUrl(workspaceId: string, hookId: string, platform: string): string {
-  return `${API_BASE}/webhook/${platform}/${workspaceId}/${hookId}`;
+function getWebhookUrl(companyId: string, hookId: string, platform: string): string {
+  return `${API_BASE}/webhook/${platform}/${companyId}/${hookId}`;
 }
 
 const PLATFORM_ICONS: Record<string, string> = {
-  telegram: "✈️", discord: "🎮", slack: "💬", teams: "🟦",
+  telegram: "✈️", discord: "🎮", slack: "💬", departments: "🟦",
   whatsapp_business: "💚", facebook_messenger: "💙", instagram: "📸",
   line_messaging: "🟢", viber_messaging: "💜", zalo_messaging: "🔵",
   signal_messaging: "🔒", skype_messaging: "🌐", wire_messaging: "⚡",
@@ -45,7 +45,7 @@ const PLATFORM_COLORS: Record<string, string> = {
   telegram: "from-sky-500 to-blue-600",
   discord: "from-indigo-500 to-violet-600",
   slack: "from-amber-500 to-orange-500",
-  teams: "from-blue-500 to-indigo-600",
+  departments: "from-blue-500 to-indigo-600",
   whatsapp_business: "from-emerald-500 to-green-600",
   facebook_messenger: "from-blue-400 to-indigo-500",
   instagram: "from-pink-500 to-rose-600",
@@ -336,32 +336,32 @@ function AddHookDialog({
   );
 }
 
-// ─── Workspace Form Dialog ────────────────────────────────────────────────────
-function WorkspaceDialog({
+// ─── Company Form Dialog ────────────────────────────────────────────────────
+function CompanyDialog({
   open,
   onClose,
   existing,
-  teams,
+  departments,
   platforms,
   connections,
   onSave,
-  workspaces = [],
+  companies = [],
 }: {
   open: boolean;
   onClose: () => void;
-  existing?: Workspace;
-  teams: Team[];
+  existing?: Company;
+  departments: Department[];
   platforms: PlatformDef[];
   connections: ThirdPartyConnection[];
-  onSave: (data: Partial<Workspace> & Pick<Workspace, "name">) => void;
-  workspaces?: Workspace[];
+  onSave: (data: Partial<Company> & Pick<Company, "name">) => void;
+  companies?: Company[];
 }) {
   const { t: lang } = useLanguage();
   const [name, setName] = useState(existing?.name || "");
   const [desc, setDesc] = useState(existing?.description || "");
   const [type, setType] = useState<CompanyType>(existing?.type ?? "general");
-  const [teamIds, setTeamIds] = useState<string[]>(existing?.teamIds || []);
-  const [primaryTeamId, setPrimaryTeamId] = useState(existing?.primaryTeamId || "");
+  const [departmentIds, setDepartmentIds] = useState<string[]>(existing?.departmentIds || []);
+  const [primaryDepartmentId, setPrimaryDepartmentId] = useState(existing?.primaryDepartmentId || "");
   const [hooks, setHooks] = useState<PlatformHook[]>(existing?.platformHooks || []);
   const [addHookOpen, setAddHookOpen] = useState(false);
 
@@ -370,17 +370,17 @@ function WorkspaceDialog({
       setName(existing?.name || "");
       setDesc(existing?.description || "");
       setType(existing?.type ?? "general");
-      setTeamIds(existing?.teamIds || []);
-      setPrimaryTeamId(existing?.primaryTeamId || "");
+      setDepartmentIds(existing?.departmentIds || []);
+      setPrimaryDepartmentId(existing?.primaryDepartmentId || "");
       setHooks(existing?.platformHooks || []);
     }
   }, [open, existing]);
 
   const handleImportFromOffice = (wsId: string) => {
-    const sourceWs = workspaces.find((w) => w.id === wsId);
+    const sourceWs = companies.find((w) => w.id === wsId);
     if (sourceWs) {
-      setTeamIds(sourceWs.teamIds || []);
-      setPrimaryTeamId(sourceWs.primaryTeamId || "");
+      setDepartmentIds(sourceWs.departmentIds || []);
+      setPrimaryDepartmentId(sourceWs.primaryDepartmentId || "");
       // Generate new IDs for imported hooks to prevent collisions
       const importedHooks = (sourceWs.platformHooks || []).map((h, index) => ({
         ...h,
@@ -390,11 +390,11 @@ function WorkspaceDialog({
     }
   };
 
-  const toggleTeam = (id: string) => {
-    setTeamIds((prev) =>
+  const toggleDepartment = (id: string) => {
+    setDepartmentIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
-    if (!teamIds.includes(id) && !primaryTeamId) setPrimaryTeamId(id);
+    if (!departmentIds.includes(id) && !primaryDepartmentId) setPrimaryDepartmentId(id);
   };
 
   const addHook = (h: Omit<PlatformHook, "id">) => {
@@ -413,8 +413,8 @@ function WorkspaceDialog({
       name: name.trim(),
       description: desc,
       type,
-      teamIds,
-      primaryTeamId: primaryTeamId || teamIds[0] || "",
+      departmentIds,
+      primaryDepartmentId: primaryDepartmentId || departmentIds[0] || "",
       platformHooks: hooks,
     });
     onClose();
@@ -433,7 +433,7 @@ function WorkspaceDialog({
 
           <div className="grid gap-5 py-2">
             {/* Import from another office (Only shown when creating a new office) */}
-            {!existing && workspaces.length > 0 && (
+            {!existing && companies.length > 0 && (
               <div className="rounded-xl border border-dashed border-teal-500/30 bg-teal-500/5 p-4 grid gap-3">
                 <div className="flex items-center gap-2.5">
                   <Download className="h-4 w-4 text-teal-400 shrink-0" />
@@ -450,9 +450,9 @@ function WorkspaceDialog({
                       <SelectValue placeholder="Choose office to import from..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {workspaces.map((ws) => (
+                      {companies.map((ws) => (
                         <SelectItem key={ws.id} value={ws.id} className="text-xs">
-                          {ws.name} ({ws.teamIds.length} departments, {ws.platformHooks.length} hooks)
+                          {ws.name} ({ws.departmentIds.length} departments, {ws.platformHooks.length} hooks)
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -491,22 +491,22 @@ function WorkspaceDialog({
               </Select>
             </div>
 
-            {/* Teams */}
+            {/* Departments */}
             <div className="grid gap-2">
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
                 Departments
               </Label>
-              {teams.length === 0 ? (
+              {departments.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No departments yet. Create departments first.</p>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
-                  {teams.map((t) => {
-                    const active = teamIds.includes(t.id);
-                    const isPrimary = primaryTeamId === t.id;
+                  {departments.map((t) => {
+                    const active = departmentIds.includes(t.id);
+                    const isPrimary = primaryDepartmentId === t.id;
                     return (
                       <div
                         key={t.id}
-                        onClick={() => toggleTeam(t.id)}
+                        onClick={() => toggleDepartment(t.id)}
                         className={cn(
                           "flex items-center gap-2 rounded-xl border p-3 cursor-pointer transition-all",
                           active
@@ -522,11 +522,11 @@ function WorkspaceDialog({
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium truncate">{t.name}</p>
-                          <p className="text-[10px] text-muted-foreground">{t.agents.length} personnel</p>
+                          <p className="text-[10px] text-muted-foreground">{t.staff.length} personnel</p>
                         </div>
                         {active && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); setPrimaryTeamId(t.id); }}
+                            onClick={(e) => { e.stopPropagation(); setPrimaryDepartmentId(t.id); }}
                             className={cn(
                               "text-[10px] px-1.5 py-0.5 rounded-full border transition-colors",
                               isPrimary
@@ -568,7 +568,7 @@ function WorkspaceDialog({
                     const color = PLATFORM_COLORS[h.platform] || "from-slate-500 to-gray-600";
                     const webhookUrl = existing
                       ? getWebhookUrl(existing.id, h.id, h.platform)
-                      : "(Save workspace first to get URL)";
+                      : "(Save company first to get URL)";
 
                     return (
                       <div key={h.id} className={cn(
@@ -638,24 +638,24 @@ function WorkspaceDialog({
   );
 }
 
-// ─── Workspace Card ───────────────────────────────────────────────────────────
-function WorkspaceCard({
-  workspace,
-  teams,
+// ─── Company Card ───────────────────────────────────────────────────────────
+function CompanyCard({
+  company,
+  departments,
   platforms,
   onEdit,
   onDelete,
 }: {
-  workspace: Workspace;
-  teams: Team[];
+  company: Company;
+  departments: Department[];
   platforms: PlatformDef[];
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const { t: lang } = useLanguage();
   const [expanded, setExpanded] = useState(false);
-  const wsTeams = teams.filter((t) => workspace.teamIds.includes(t.id));
-  const wsType = companyTypeOf(workspace);
+  const wsDepartments = departments.filter((t) => company.departmentIds.includes(t.id));
+  const wsType = companyTypeOf(company);
   const wsTypeDef = COMPANY_TYPE_MAP[wsType];
 
   return (
@@ -669,33 +669,33 @@ function WorkspaceCard({
       {/* Header */}
       <div className="flex items-center gap-4 p-4">
         <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold bg-gradient-to-br from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/20">
-          {workspace.avatar || workspace.name[0]}
+          {company.avatar || company.name[0]}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-sm truncate">{workspace.name}</h3>
+            <h3 className="font-semibold text-sm truncate">{company.name}</h3>
             <span className={cn("shrink-0 inline-flex items-center gap-1 rounded-full text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 border", wsTypeDef.accent)}>
               <wsTypeDef.icon className="h-2.5 w-2.5" />
               {lang.companyTypes[wsType]}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground truncate">{workspace.description || "No description"}</p>
+          <p className="text-xs text-muted-foreground truncate">{company.description || "No description"}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 rounded-lg border border-border/40 px-2 py-1">
             <Users className="h-3 w-3 text-muted-foreground" />
-            <span className="text-[11px] text-muted-foreground">{workspace.teamIds.length}</span>
+            <span className="text-[11px] text-muted-foreground">{company.departmentIds.length}</span>
           </div>
           <div className="flex items-center gap-1.5 rounded-lg border border-border/40 px-2 py-1">
             <Plug className="h-3 w-3 text-muted-foreground" />
-            <span className="text-[11px] text-muted-foreground">{workspace.platformHooks.length}</span>
+            <span className="text-[11px] text-muted-foreground">{company.platformHooks.length}</span>
           </div>
-          {canEditItem(workspace) && (
+          {canEditItem(company) && (
             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onEdit}>
               <Settings2 className="h-3.5 w-3.5" />
             </Button>
           )}
-          {canDeleteItem(workspace) && (
+          {canDeleteItem(company) && (
             <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-rose-400"
               onClick={onDelete}>
               <Trash2 className="h-3.5 w-3.5" />
@@ -718,20 +718,20 @@ function WorkspaceCard({
             className="overflow-hidden"
           >
             <div className="border-t border-border/40 p-4 grid gap-4">
-              {/* Teams */}
+              {/* Departments */}
               <div>
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Departments</p>
-                {wsTeams.length === 0 ? (
+                {wsDepartments.length === 0 ? (
                   <p className="text-xs text-muted-foreground">No departments assigned</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
-                    {wsTeams.map((t) => (
+                    {wsDepartments.map((t) => (
                       <div key={t.id} className="flex items-center gap-1.5 rounded-lg border border-border/40 px-2.5 py-1.5">
                         <div className="w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold bg-gradient-to-br from-violet-500 to-indigo-600 text-white">
                           {t.avatar || t.name[0]}
                         </div>
                         <span className="text-xs font-medium">{t.name}</span>
-                        {workspace.primaryTeamId === t.id && (
+                        {company.primaryDepartmentId === t.id && (
                           <Badge variant="outline" className="text-[9px] h-4 px-1 border-teal-500/50 text-teal-400">
                             primary
                           </Badge>
@@ -745,14 +745,14 @@ function WorkspaceCard({
               {/* Hooks */}
               <div>
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Platform Hooks</p>
-                {workspace.platformHooks.length === 0 ? (
+                {company.platformHooks.length === 0 ? (
                   <p className="text-xs text-muted-foreground">No hooks configured</p>
                 ) : (
                   <div className="grid gap-2">
-                    {workspace.platformHooks.map((h) => {
+                    {company.platformHooks.map((h) => {
                       const pLabel = platforms.find((p) => p.platform === h.platform)?.label || h.platform;
                       const color = PLATFORM_COLORS[h.platform] || "from-slate-500 to-gray-600";
-                      const url = getWebhookUrl(workspace.id, h.id, h.platform);
+                      const url = getWebhookUrl(company.id, h.id, h.platform);
                       return (
                         <div key={h.id} className="rounded-xl border border-border/40 p-3">
                           <div className="flex items-center gap-2 mb-2">
@@ -784,21 +784,21 @@ function WorkspaceCard({
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
-export default function Workspaces() {
+export default function Companies() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<Workspace | undefined>();
-  const [deleting, setDeleting] = useState<Workspace | undefined>();
+  const [editing, setEditing] = useState<Company | undefined>();
+  const [deleting, setDeleting] = useState<Company | undefined>();
 
-  const { data: workspaces = [], isLoading: wsLoading } = useQuery({
-    queryKey: ["workspaces"],
-    queryFn: api.listWorkspaces,
+  const { data: companies = [], isLoading: wsLoading } = useQuery({
+    queryKey: ["companies"],
+    queryFn: api.listCompanies,
   });
 
-  const { data: teams = [] } = useQuery({
-    queryKey: ["teams"],
-    queryFn: api.listTeams,
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments"],
+    queryFn: api.listDepartments,
   });
 
   const { data: platforms = [] } = useQuery({
@@ -812,22 +812,22 @@ export default function Workspaces() {
   });
 
   const upsert = useMutation({
-    mutationFn: api.upsertWorkspace,
+    mutationFn: api.upsertCompany,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["workspaces"] });
+      qc.invalidateQueries({ queryKey: ["companies"] });
       toast({ title: "Office saved" });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   const remove = useMutation({
-    mutationFn: api.deleteWorkspace,
+    mutationFn: api.deleteCompany,
     onSuccess: () => {
-      // The workspace and all of its related data (departments, documents,
+      // The company and all of its related data (departments, documents,
       // office-builder sessions, …) are cleaned up server-side. Refresh the
       // department list so deleted ones stop showing in the New Company dialog.
-      qc.invalidateQueries({ queryKey: ["workspaces"] });
-      qc.invalidateQueries({ queryKey: ["teams"] });
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      qc.invalidateQueries({ queryKey: ["departments"] });
       toast({ title: "Company deleted" });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -840,10 +840,10 @@ export default function Workspaces() {
   };
 
   const openNew = () => { setEditing(undefined); setDialogOpen(true); };
-  const openEdit = (ws: Workspace) => { setEditing(ws); setDialogOpen(true); };
+  const openEdit = (ws: Company) => { setEditing(ws); setDialogOpen(true); };
   const closeDialog = () => { setDialogOpen(false); setEditing(undefined); };
 
-  const handleSave = (data: Partial<Workspace> & Pick<Workspace, "name">) => {
+  const handleSave = (data: Partial<Company> & Pick<Company, "name">) => {
     upsert.mutate(data as any);
   };
 
@@ -873,8 +873,8 @@ export default function Workspaces() {
       {/* Stats bar */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Companies", value: workspaces.length, icon: BrainCircuit, color: "text-teal-400" },
-          { label: "Active Hooks", value: workspaces.reduce((s, w) => s + w.platformHooks.filter(h => h.enabled).length, 0), icon: Plug, color: "text-emerald-400" },
+          { label: "Companies", value: companies.length, icon: BrainCircuit, color: "text-teal-400" },
+          { label: "Active Hooks", value: companies.reduce((s, w) => s + w.platformHooks.filter(h => h.enabled).length, 0), icon: Plug, color: "text-emerald-400" },
           { label: "Platforms", value: platforms.length, icon: Globe, color: "text-sky-400" },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="rounded-2xl border border-border/40 bg-card/40 p-4 flex items-center gap-4">
@@ -904,13 +904,13 @@ export default function Workspaces() {
         </div>
       )}
 
-      {/* Workspace list */}
+      {/* Company list */}
       {wsLoading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
           <RefreshCw className="h-5 w-5 animate-spin mr-2" />
           Loading companies...
         </div>
-      ) : workspaces.length === 0 ? (
+      ) : companies.length === 0 ? (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -931,11 +931,11 @@ export default function Workspaces() {
       ) : (
         <AnimatePresence mode="popLayout">
           <div className="grid gap-4">
-            {workspaces.map((ws) => (
-              <WorkspaceCard
+            {companies.map((ws) => (
+              <CompanyCard
                 key={ws.id}
-                workspace={ws}
-                teams={teams}
+                company={ws}
+                departments={departments}
                 platforms={platforms}
                 onEdit={() => openEdit(ws)}
                 onDelete={() => setDeleting(ws)}
@@ -946,7 +946,7 @@ export default function Workspaces() {
       )}
 
       {/* How it works */}
-      {workspaces.length > 0 && (
+      {companies.length > 0 && (
         <div className="rounded-2xl border border-border/30 bg-card/30 p-5">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">How It Works</p>
           <div className="grid grid-cols-3 gap-4 text-xs text-muted-foreground">
@@ -970,15 +970,15 @@ export default function Workspaces() {
       )}
 
       {/* Dialog */}
-      <WorkspaceDialog
+      <CompanyDialog
         open={dialogOpen}
         onClose={closeDialog}
         existing={editing}
-        teams={teams}
+        departments={departments}
         platforms={platforms}
         connections={connections}
         onSave={handleSave}
-        workspaces={workspaces}
+        companies={companies}
       />
 
       {/* Delete confirmation */}

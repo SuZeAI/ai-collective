@@ -6,8 +6,8 @@ import {
   BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit,
   LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, Building2, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban, Star,
 } from "lucide-react";
-import { api, type Workspace } from "@/lib/api";
-import { OVERALL_WORKSPACE_ID, setActiveWorkspaceId } from "@/hooks/use-workspace-scope";
+import { api, type Company } from "@/lib/api";
+import { OVERALL_COMPANY_ID, setActiveCompanyId } from "@/hooks/use-company-scope";
 import { COMPANY_TYPE_MAP, companyTypeOf, suggestedNavKeys } from "@/lib/company-types";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -23,9 +23,9 @@ import {
 import { cn } from "@/lib/utils";
 
 type NavItemKey =
-  | "dashboard" | "analytics" | "tasks" | "projects" | "conversations" | "officeBuilder" | "virtualOffice"
-  | "teams" | "agents" | "skills" | "playground" | "workspaces" | "settings"
-  | "monitoring" | "consumption" | "marketplace" | "documentLibrary";
+  | "dashboard" | "analytics" | "tasks" | "projects" | "meetings" | "officeBuilder" | "virtualOffice"
+  | "departments" | "staff" | "skills" | "playground" | "companies" | "settings"
+  | "monitoring" | "consumption" | "recruiting" | "documentLibrary";
 
 type NavGroup = {
   groupKey: "overviewGroup" | "companiesGroup" | "catalogGroup" | "operationsGroup" | "orgGroup" | "officeGroup" | "devGroup" | "systemGroup" | "adminGroup";
@@ -53,18 +53,18 @@ const NAV_GROUPS: NavGroup[] = [
     visibleIn: "overall",
     items: [
       { key: "officeBuilder", url: "/office-builder", icon: Sparkles },
-      { key: "workspaces", url: "/workspaces", icon: Building2 },
+      { key: "companies", url: "/companies", icon: Building2 },
     ]
   },
   {
     // Admin-only, All-scope: the shared "default" catalog admins curate. These
-    // feed Recruiting (Marketplace) for every company to copy from.
+    // feed Recruiting (Recruiting) for every company to copy from.
     groupKey: "catalogGroup",
     adminOnly: true,
     visibleIn: "overall",
     items: [
-      { key: "teams", url: "/teams", icon: Users },
-      { key: "agents", url: "/agents", icon: Cpu },
+      { key: "departments", url: "/departments", icon: Users },
+      { key: "staff", url: "/staff", icon: Cpu },
       { key: "skills", url: "/skills", icon: Wrench },
       { key: "documentLibrary", url: "/documents", icon: FolderOpen },
     ]
@@ -73,8 +73,8 @@ const NAV_GROUPS: NavGroup[] = [
     groupKey: "orgGroup",
     visibleIn: "company",
     items: [
-      { key: "teams", url: "/teams", icon: Users },
-      { key: "agents", url: "/agents", icon: Cpu },
+      { key: "departments", url: "/departments", icon: Users },
+      { key: "staff", url: "/staff", icon: Cpu },
       { key: "skills", url: "/skills", icon: Wrench },
     ]
   },
@@ -84,7 +84,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { key: "projects", url: "/projects", icon: FolderKanban },
       { key: "tasks", url: "/tasks", icon: CheckCircle2 },
-      { key: "conversations", url: "/conversations", icon: MessageSquare },
+      { key: "meetings", url: "/meetings", icon: MessageSquare },
     ]
   },
   {
@@ -93,7 +93,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { key: "virtualOffice", url: "/virtual-office", icon: Building },
       { key: "documentLibrary", url: "/documents", icon: FolderOpen },
-      { key: "marketplace", url: "/marketplace", icon: ShoppingBag },
+      { key: "recruiting", url: "/recruiting", icon: ShoppingBag },
     ]
   },
   {
@@ -141,57 +141,57 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { t } = useLanguage();
   const { user, logout, isGuest } = useAuth();
 
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [activeCompany, setActiveCompany] = useState<Company | null>(null);
 
   useEffect(() => {
     let active = true;
-    api.listWorkspaces()
+    api.listCompanies()
       .then((data) => {
         if (!active) return;
-        setWorkspaces(data);
-        const storedId = localStorage.getItem("activeWorkspaceId");
+        setCompanies(data);
+        const storedId = localStorage.getItem("activeCompanyId");
         const found = data.find((ws) => ws.id === storedId);
-        setActiveWorkspace(found || null);
-        if (!found) localStorage.setItem("activeWorkspaceId", OVERALL_WORKSPACE_ID);
+        setActiveCompany(found || null);
+        if (!found) localStorage.setItem("activeCompanyId", OVERALL_COMPANY_ID);
       })
-      .catch((err) => console.error("Error listing workspaces in sidebar:", err));
+      .catch((err) => console.error("Error listing companies in sidebar:", err));
     return () => { active = false; };
   }, []);
 
   useEffect(() => {
-    const handleWorkspaceRefresh = () => {
-      api.listWorkspaces()
+    const handleCompanyRefresh = () => {
+      api.listCompanies()
         .then((data) => {
-          setWorkspaces(data);
-          const storedId = localStorage.getItem("activeWorkspaceId");
+          setCompanies(data);
+          const storedId = localStorage.getItem("activeCompanyId");
           const found = data.find((ws) => ws.id === storedId);
-          setActiveWorkspace(found || null);
-          if (!found) localStorage.setItem("activeWorkspaceId", OVERALL_WORKSPACE_ID);
+          setActiveCompany(found || null);
+          if (!found) localStorage.setItem("activeCompanyId", OVERALL_COMPANY_ID);
         })
-        .catch((err) => console.error("Error refreshing workspaces:", err));
+        .catch((err) => console.error("Error refreshing companies:", err));
     };
 
-    // "workspaceChanged" → office list edited; "activeWorkspaceChanged" → the
+    // "companyChanged" → office list edited; "activeCompanyChanged" → the
     // selected office switched (e.g. from the Overview "Companies" grid). Both
     // must re-sync the sidebar's active office and the scope-aware nav.
-    window.addEventListener("workspaceChanged", handleWorkspaceRefresh);
-    window.addEventListener("activeWorkspaceChanged", handleWorkspaceRefresh);
+    window.addEventListener("companyChanged", handleCompanyRefresh);
+    window.addEventListener("activeCompanyChanged", handleCompanyRefresh);
     return () => {
-      window.removeEventListener("workspaceChanged", handleWorkspaceRefresh);
-      window.removeEventListener("activeWorkspaceChanged", handleWorkspaceRefresh);
+      window.removeEventListener("companyChanged", handleCompanyRefresh);
+      window.removeEventListener("activeCompanyChanged", handleCompanyRefresh);
     };
   }, []);
 
-  const handleSelectWorkspace = (ws: Workspace | null) => {
-    setActiveWorkspace(ws);
-    setActiveWorkspaceId(ws ? ws.id : null);
+  const handleSelectCompany = (ws: Company | null) => {
+    setActiveCompany(ws);
+    setActiveCompanyId(ws ? ws.id : null);
   };
 
   const isAdmin = user?.role === "admin" || user?.role === "system";
   // "All" scope = company create/control/monitor; inside a company = that
   // company's operations. Groups declare where they belong via `visibleIn`.
-  const isOverall = !activeWorkspace;
+  const isOverall = !activeCompany;
   const navGroups = NAV_GROUPS.filter(
     (group) =>
       (!group.adminOnly || isAdmin) &&
@@ -202,7 +202,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   );
   // Flexible company-type rule: inside a company, mark (never hide) the options
   // best suited to its type with a "suggested" star.
-  const companyType = companyTypeOf(activeWorkspace);
+  const companyType = companyTypeOf(activeCompany);
   const suggestedKeys = isOverall ? new Set<string>() : suggestedNavKeys(companyType);
   const typeDef = COMPANY_TYPE_MAP[companyType];
 
@@ -233,10 +233,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   style={{ scrollbarWidth: "none" }}
                 >
                   <button
-                    onClick={() => handleSelectWorkspace(null)}
+                    onClick={() => handleSelectCompany(null)}
                     className={cn(
                       "w-10 h-10 rounded-xl flex items-center justify-center transition-all relative group shrink-0",
-                      !activeWorkspace
+                      !activeCompany
                         ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-105"
                         : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
                     )}
@@ -249,8 +249,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       Overall Collective
                     </div>
                   </button>
-                  {workspaces.map((ws) => {
-                    const isActive = activeWorkspace?.id === ws.id;
+                  {companies.map((ws) => {
+                    const isActive = activeCompany?.id === ws.id;
                     const initials = ws.name
                       .split(" ")
                       .slice(0, 2)
@@ -259,7 +259,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     return (
                       <button
                         key={ws.id}
-                        onClick={() => handleSelectWorkspace(ws)}
+                        onClick={() => handleSelectCompany(ws)}
                         className={cn(
                           "w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-[11px] transition-all relative group shrink-0",
                           isActive
@@ -282,12 +282,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       shared catalog instead and don't create companies. */}
                   {!isAdmin && (
                     <button
-                      onClick={() => navigate("/workspaces")}
+                      onClick={() => navigate("/companies")}
                       className="w-10 h-10 rounded-xl border border-dashed border-sidebar-border/70 flex items-center justify-center text-sidebar-foreground/45 hover:text-sidebar-foreground hover:border-sidebar-foreground/60 hover:bg-sidebar-accent/20 transition-all group relative shrink-0"
                     >
                       <Plus className="w-4 h-4" />
                       <div className="absolute left-14 bg-popover text-popover-foreground border shadow-md px-2 py-1 rounded-md text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 translate-x-1 group-hover:translate-x-0 pointer-events-none z-50">
-                        {t.nav.manageWorkspaces}
+                        {t.nav.manageCompanies}
                       </div>
                     </button>
                   )}
@@ -297,11 +297,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="flex-1 flex flex-col h-full overflow-hidden group-data-[state=collapsed]:hidden bg-sidebar">
               <div className="px-4 py-4 border-b border-sidebar-border/40 shrink-0 bg-sidebar-accent/5 select-none">
                 <div className="text-[9px] font-bold text-sidebar-foreground/40 uppercase tracking-widest">
-                  {t.nav.workspaces}
+                  {t.nav.companies}
                 </div>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className="font-bold text-[13px] text-sidebar-foreground truncate">
-                    {activeWorkspace?.name || "Overall Collective"}
+                    {activeCompany?.name || "Overall Collective"}
                   </span>
                   {isOverall ? (
                     <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-teal-500/15 text-teal-500 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 border border-teal-500/25">
@@ -316,7 +316,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   )}
                 </div>
                 <div className="text-[10px] text-sidebar-foreground/45 truncate mt-0.5 leading-normal">
-                  {activeWorkspace?.description || "All offices & shared resources"}
+                  {activeCompany?.description || "All offices & shared resources"}
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto py-4 space-y-4 px-2.5">

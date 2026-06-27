@@ -6,16 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AgentAvatar, teamAvatarIconOptions } from "@/components/AgentAvatar";
+import { StaffAvatar, departmentAvatarIconOptions } from "@/components/StaffAvatar";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
-import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Agent, type CustomFlow, type Team, type TeamMode } from "@/lib/api";
-import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
-import CustomFlowEditor from "@/components/team/CustomFlowEditor";
+import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Staff, type CustomFlow, type Department, type DepartmentMode } from "@/lib/api";
+import { useCompanyScope } from "@/hooks/use-company-scope";
+import CustomFlowEditor from "@/components/department/CustomFlowEditor";
 import { cn } from "@/lib/utils";
 
-type TeamTestMessage = {
+type DepartmentTestMessage = {
   id: string;
-  agentId: string;
+  staffId: string;
   content: string;
   step: number;
   timestamp: string;
@@ -27,54 +27,54 @@ function isHexColor(value: string): boolean {
   return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
 }
 
-export default function TeamBuilder() {
-  const scope = useWorkspaceScope();
-  const [teamList, setTeamList] = useState<Team[]>([]);
-  const [agentList, setAgentList] = useState<Agent[]>([]);
+export default function DepartmentBuilder() {
+  const scope = useCompanyScope();
+  const [departmentList, setDepartmentList] = useState<Department[]>([]);
+  const [staffList, setStaffList] = useState<Staff[]>([]);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
-  const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
-  const [mode, setMode] = useState<TeamMode>("sequential");
+  const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
+  const [mode, setMode] = useState<DepartmentMode>("sequential");
   const [flow, setFlow] = useState<CustomFlow | null>(null);
   const [maxSteps, setMaxSteps] = useState("6");
   const [avatarMode, setAvatarMode] = useState<AvatarMode>("initial");
   const [avatarIcon, setAvatarIcon] = useState("users");
   const [avatarColor, setAvatarColor] = useState("#0EA5E9");
   const [avatarUrl, setAvatarUrl] = useState("");
-  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
-  const [draggedAgent, setDraggedAgent] = useState<string | null>(null);
+  const [editingDepartmentId, setEditingDepartmentId] = useState<string | null>(null);
+  const [draggedStaff, setDraggedStaff] = useState<string | null>(null);
   const [testOpen, setTestOpen] = useState(false);
-  const [testingTeam, setTestingTeam] = useState<Team | null>(null);
+  const [testingDepartment, setTestingDepartment] = useState<Department | null>(null);
   const [testPrompt, setTestPrompt] = useState("Run a quick kickoff discussion and align responsibilities.");
   const [testStepLimit, setTestStepLimit] = useState("6");
   const [isTesting, setIsTesting] = useState(false);
   const [testError, setTestError] = useState("");
-  const [testMessages, setTestMessages] = useState<TeamTestMessage[]>([]);
-  const [testThinkingAgents, setTestThinkingAgents] = useState<Set<string>>(new Set());
+  const [testMessages, setTestMessages] = useState<DepartmentTestMessage[]>([]);
+  const [testThinkingStaff, setTestThinkingStaff] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
   const stopTestRef = useRef(false);
   const [copied, setCopied] = useState(false);
   const [personnelSearch, setPersonnelSearch] = useState("");
 
-  const filteredAgents = useMemo(() => {
+  const filteredStaff = useMemo(() => {
     const term = personnelSearch.trim().toLowerCase();
-    if (!term) return agentList;
-    return agentList.filter(
+    if (!term) return staffList;
+    return staffList.filter(
       (a) =>
         a.name.toLowerCase().includes(term) ||
         (a.role || "").toLowerCase().includes(term) ||
         (a.skills || []).some((s) => s.name.toLowerCase().includes(term))
     );
-  }, [agentList, personnelSearch]);
+  }, [staffList, personnelSearch]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [teams, agents] = await Promise.all([api.listTeams(), api.listAgents()]);
+        const [departments, staff] = await Promise.all([api.listDepartments(), api.listStaff()]);
         if (cancelled) return;
-        setTeamList(teams);
-        setAgentList(agents);
+        setDepartmentList(departments);
+        setStaffList(staff);
       } catch (e) {
         console.error(e);
       }
@@ -84,21 +84,21 @@ export default function TeamBuilder() {
     };
   }, []);
 
-  const agentById = useMemo(() => {
-    const map = new Map<string, Agent>();
-    agentList.forEach((a) => map.set(a.id, a));
+  const staffById = useMemo(() => {
+    const map = new Map<string, Staff>();
+    staffList.forEach((a) => map.set(a.id, a));
     return map;
-  }, [agentList]);
+  }, [staffList]);
 
-  const toggleAgent = (id: string) => {
-    setSelectedAgents((prev) => prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]);
+  const toggleStaff = (id: string) => {
+    setSelectedStaff((prev) => prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]);
   };
 
   const resetForm = () => {
-    setEditingTeamId(null);
+    setEditingDepartmentId(null);
     setName("");
     setDesc("");
-    setSelectedAgents([]);
+    setSelectedStaff([]);
     setMode("sequential");
     setFlow(null);
     setMaxSteps("6");
@@ -109,37 +109,37 @@ export default function TeamBuilder() {
     setPersonnelSearch("");
   };
 
-  const handleDragStart = (agentId: string) => {
-    setDraggedAgent(agentId);
+  const handleDragStart = (staffId: string) => {
+    setDraggedStaff(staffId);
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
   };
 
-  const handleDrop = (targetAgentId: string) => {
-    if (!draggedAgent || draggedAgent === targetAgentId) {
-      setDraggedAgent(null);
+  const handleDrop = (targetStaffId: string) => {
+    if (!draggedStaff || draggedStaff === targetStaffId) {
+      setDraggedStaff(null);
       return;
     }
 
-    const draggedIndex = selectedAgents.indexOf(draggedAgent);
-    const targetIndex = selectedAgents.indexOf(targetAgentId);
+    const draggedIndex = selectedStaff.indexOf(draggedStaff);
+    const targetIndex = selectedStaff.indexOf(targetStaffId);
 
     if (draggedIndex === -1 || targetIndex === -1) {
-      setDraggedAgent(null);
+      setDraggedStaff(null);
       return;
     }
 
-    const newAgents = [...selectedAgents];
-    newAgents.splice(draggedIndex, 1);
-    newAgents.splice(targetIndex, 0, draggedAgent);
-    setSelectedAgents(newAgents);
-    setDraggedAgent(null);
+    const newStaff = [...selectedStaff];
+    newStaff.splice(draggedIndex, 1);
+    newStaff.splice(targetIndex, 0, draggedStaff);
+    setSelectedStaff(newStaff);
+    setDraggedStaff(null);
   };
 
-  const removeAgent = (agentId: string) => {
-    setSelectedAgents((prev) => prev.filter((a) => a !== agentId));
+  const removeStaff = (staffId: string) => {
+    setSelectedStaff((prev) => prev.filter((a) => a !== staffId));
   };
 
   const openCreateDialog = () => {
@@ -147,32 +147,32 @@ export default function TeamBuilder() {
     setOpen(true);
   };
 
-  const openEditDialog = (team: Team) => {
-    setEditingTeamId(team.id);
-    setName(team.name);
-    setDesc(team.description ?? "");
-    setSelectedAgents(team.agents || []);
-    setMode((team.mode as TeamMode) ?? "sequential");
-    setFlow(team.flow ?? null);
-    setMaxSteps(String(team.maxSteps ?? 6));
-    setAvatarMode(team.avatar_url ? "image" : team.avatar_icon ? "icon" : "initial");
-    setAvatarIcon(team.avatar_icon || "users");
-    setAvatarColor(isHexColor(team.avatar_color || "") ? (team.avatar_color as string) : "#0EA5E9");
-    setAvatarUrl(team.avatar_url || "");
+  const openEditDialog = (department: Department) => {
+    setEditingDepartmentId(department.id);
+    setName(department.name);
+    setDesc(department.description ?? "");
+    setSelectedStaff(department.staff || []);
+    setMode((department.mode as DepartmentMode) ?? "sequential");
+    setFlow(department.flow ?? null);
+    setMaxSteps(String(department.maxSteps ?? 6));
+    setAvatarMode(department.avatar_url ? "image" : department.avatar_icon ? "icon" : "initial");
+    setAvatarIcon(department.avatar_icon || "users");
+    setAvatarColor(isHexColor(department.avatar_color || "") ? (department.avatar_color as string) : "#0EA5E9");
+    setAvatarUrl(department.avatar_url || "");
     setOpen(true);
   };
 
-  const saveTeam = async () => {
-    if (!name.trim() || selectedAgents.length === 0) return;
-    const existing = editingTeamId ? teamList.find((t) => t.id === editingTeamId) : undefined;
+  const saveDepartment = async () => {
+    if (!name.trim() || selectedStaff.length === 0) return;
+    const existing = editingDepartmentId ? departmentList.find((t) => t.id === editingDepartmentId) : undefined;
     const parsedSteps = Number(maxSteps);
     const finalSteps = Number.isFinite(parsedSteps) ? Math.max(1, Math.min(10, Math.floor(parsedSteps))) : 6;
     try {
-      const saved = await api.upsertTeam({
-        id: editingTeamId ?? undefined,
+      const saved = await api.upsertDepartment({
+        id: editingDepartmentId ?? undefined,
         name: name.trim(),
         description: desc,
-        agents: selectedAgents,
+        staff: selectedStaff,
         activeTasks: existing?.activeTasks ?? 0,
         avatar: name.trim()[0]?.toUpperCase() || "T",
         avatar_icon: avatarMode === "icon" ? avatarIcon : "",
@@ -182,7 +182,7 @@ export default function TeamBuilder() {
         maxSteps: finalSteps,
         flow: mode === "custom" ? flow : null,
       });
-      setTeamList((prev) => {
+      setDepartmentList((prev) => {
         const idx = prev.findIndex((t) => t.id === saved.id);
         if (idx === -1) return [...prev, saved];
         const next = [...prev];
@@ -191,13 +191,13 @@ export default function TeamBuilder() {
       });
       // A department created while a specific office is selected joins that
       // office; ones created under "Overall" stay unattached (shared/default).
-      if (!editingTeamId && scope.workspace && !scope.workspace.teamIds.includes(saved.id)) {
+      if (!editingDepartmentId && scope.company && !scope.company.departmentIds.includes(saved.id)) {
         try {
-          await api.upsertWorkspace({
-            ...scope.workspace,
-            teamIds: [...scope.workspace.teamIds, saved.id],
+          await api.upsertCompany({
+            ...scope.company,
+            departmentIds: [...scope.company.departmentIds, saved.id],
           });
-          window.dispatchEvent(new CustomEvent("workspaceChanged"));
+          window.dispatchEvent(new CustomEvent("companyChanged"));
         } catch (err) {
           console.error("Failed to attach department to office:", err);
         }
@@ -209,11 +209,11 @@ export default function TeamBuilder() {
     }
   };
 
-  const deleteTeam = async (id: string) => {
+  const deleteDepartment = async (id: string) => {
     try {
-      await api.deleteTeam(id);
-      setTeamList((prev) => prev.filter((t) => t.id !== id));
-      if (editingTeamId === id) {
+      await api.deleteDepartment(id);
+      setDepartmentList((prev) => prev.filter((t) => t.id !== id));
+      if (editingDepartmentId === id) {
         resetForm();
         setOpen(false);
       }
@@ -222,8 +222,8 @@ export default function TeamBuilder() {
     }
   };
 
-  const openTestDialog = (team: Team) => {
-    setTestingTeam(team);
+  const openTestDialog = (department: Department) => {
+    setTestingDepartment(department);
     setTestMessages([]);
     setTestError("");
     setTestPrompt("Run a quick kickoff discussion and align responsibilities.");
@@ -231,23 +231,23 @@ export default function TeamBuilder() {
     setTestOpen(true);
   };
 
-  const stopTeamTest = () => {
+  const stopDepartmentTest = () => {
     stopTestRef.current = true;
     setIsTesting(false);
   };
 
   const copyMessages = () => {
-    const text = testMessages.map((m) => `[Step ${m.step}] ${m.agentId}: ${m.content}`).join("\n\n");
+    const text = testMessages.map((m) => `[Step ${m.step}] ${m.staffId}: ${m.content}`).join("\n\n");
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const runTeamTest = async () => {
-    if (!testingTeam || isTesting) return;
+  const runDepartmentTest = async () => {
+    if (!testingDepartment || isTesting) return;
     
-    if (testingTeam.agents.length === 0) {
-      setTestError("This team has no agents to test.");
+    if (testingDepartment.staff.length === 0) {
+      setTestError("This department has no staff to test.");
       return;
     }
 
@@ -258,20 +258,20 @@ export default function TeamBuilder() {
     setIsTesting(true);
     setTestError("");
     setTestMessages([]);
-    setTestThinkingAgents(new Set());
+    setTestThinkingStaff(new Set());
 
     try {
       let stepCounter = 0;
-      const customGraph = buildCustomGraphPayload(testingTeam);
-      const testMode = testingTeam.mode === "custom" && !customGraph ? "sequential" : (testingTeam.mode ?? "sequential");
-      for await (const event of api.runAgentGraphStream({
-        user_input: testPrompt.trim() || "Coordinate a team execution plan.",
-        agents: testingTeam.agents,
+      const customGraph = buildCustomGraphPayload(testingDepartment);
+      const testMode = testingDepartment.mode === "custom" && !customGraph ? "sequential" : (testingDepartment.mode ?? "sequential");
+      for await (const event of api.runStaffGraphStream({
+        user_input: testPrompt.trim() || "Coordinate a department execution plan.",
+        staff: testingDepartment.staff,
         max_rounds: stepLimit,
         mode: testMode,
         custom_graph: customGraph,
-        conversation_id: testingTeam.id,
-        team_id: testingTeam.id,
+        conversation_id: testingDepartment.id,
+        department_id: testingDepartment.id,
       })) {
         if (stopTestRef.current) break;
 
@@ -282,19 +282,19 @@ export default function TeamBuilder() {
 
         // Handle different event types
         const eventType = event.type;
-        const agentId = event.agent_id || event.agentId || event.agent_name || event.agentName;
+        const staffId = event.agent_id || event.staffId || event.agent_name || event.staffName;
         
         // Handle thinking state (LLM request start)
         if (eventType === "llm_request_start") {
-          if (!agentId) continue;
-          setTestThinkingAgents((prev) => new Set([...prev, agentId]));
+          if (!staffId) continue;
+          setTestThinkingStaff((prev) => new Set([...prev, staffId]));
         }
         // Remove thinking state (LLM response complete)
         else if (eventType === "llm_response_complete") {
-          if (!agentId) continue;
-          setTestThinkingAgents((prev) => {
+          if (!staffId) continue;
+          setTestThinkingStaff((prev) => {
             const next = new Set(prev);
-            next.delete(agentId);
+            next.delete(staffId);
             return next;
           });
         }
@@ -302,18 +302,18 @@ export default function TeamBuilder() {
         else if (eventType === "turn_complete" && event.turn) {
           stepCounter += 1;
           const turn = event.turn;
-          const turnAgentId = turn.agent_id || turn.agentId || turn.agent_name || turn.agentName;
-          if (!turnAgentId) continue;
-          const item: TeamTestMessage = {
-            id: `${Date.now()}-${stepCounter}-${turnAgentId}`,
-            agentId: turnAgentId,
+          const turnStaffId = turn.agent_id || turn.staffId || turn.agent_name || turn.staffName;
+          if (!turnStaffId) continue;
+          const item: DepartmentTestMessage = {
+            id: `${Date.now()}-${stepCounter}-${turnStaffId}`,
+            staffId: turnStaffId,
             content: turn.content || "(No response)",
             step: turn.turn,
             timestamp: new Date().toISOString(),
           };
-          setTestThinkingAgents((prev) => {
+          setTestThinkingStaff((prev) => {
             const next = new Set(prev);
-            next.delete(turnAgentId);
+            next.delete(turnStaffId);
             return next;
           });
           setTestMessages((prev) => [...prev, item]);
@@ -321,10 +321,10 @@ export default function TeamBuilder() {
         // Fallback for old-style turn objects (if not wrapped in turn_complete event)
         else if (event.content && !eventType) {
           stepCounter += 1;
-          if (!agentId) continue;
-          const item: TeamTestMessage = {
-            id: `${Date.now()}-${stepCounter}-${agentId}`,
-            agentId: agentId,
+          if (!staffId) continue;
+          const item: DepartmentTestMessage = {
+            id: `${Date.now()}-${stepCounter}-${staffId}`,
+            staffId: staffId,
             content: event.content || "(No response)",
             step: event.turn,
             timestamp: new Date().toISOString(),
@@ -333,23 +333,23 @@ export default function TeamBuilder() {
         }
       }
     } catch (e) {
-      setTestError(e instanceof Error ? e.message : "Failed to run team test discussion.");
+      setTestError(e instanceof Error ? e.message : "Failed to run department test discussion.");
     } finally {
       setIsTesting(false);
-      setTestThinkingAgents(new Set());
+      setTestThinkingStaff(new Set());
     }
   };
 
-  const visibleTeams = useMemo(
-    () => (scope.isOverall ? teamList : teamList.filter((t) => scope.teamIds.has(t.id))),
-    [teamList, scope],
+  const visibleDepartments = useMemo(
+    () => (scope.isOverall ? departmentList : departmentList.filter((t) => scope.departmentIds.has(t.id))),
+    [departmentList, scope],
   );
 
   const selectPersonnelNode = (
     <div className="space-y-2">
       <label className="text-sm font-medium">Select Personnel</label>
       <p className="text-xs text-muted-foreground">Choose personnel to add to this department.</p>
-      {agentList.length > 0 && (
+      {staffList.length > 0 && (
         <Input
           placeholder="Search personnel..."
           value={personnelSearch}
@@ -362,10 +362,10 @@ export default function TeamBuilder() {
         mode === "custom" ? "h-[200px]" : "h-[320px]"
       )}>
         <div className="space-y-2 pb-8">
-          {filteredAgents.length ? (
-            filteredAgents.map((a) => (
+          {filteredStaff.length ? (
+            filteredStaff.map((a) => (
               <label key={a.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-background cursor-pointer">
-                <Checkbox checked={selectedAgents.includes(a.id)} onCheckedChange={() => toggleAgent(a.id)} />
+                <Checkbox checked={selectedStaff.includes(a.id)} onCheckedChange={() => toggleStaff(a.id)} />
                 <span className="text-sm font-medium">{a.name}</span>
                 <span className="text-xs text-muted-foreground">({a.role})</span>
                 {a.skill_ids?.length ? (
@@ -389,54 +389,54 @@ export default function TeamBuilder() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Departments</h1>
           <p className="text-muted-foreground mt-1">
-            {scope.workspace
-              ? <>Departments of office <span className="font-semibold text-foreground">{scope.workspace.name}</span>. New departments join this office.</>
-              : "Assemble departments and project teams for corporate tasks."}
+            {scope.company
+              ? <>Departments of office <span className="font-semibold text-foreground">{scope.company.name}</span>. New departments join this office.</>
+              : "Assemble departments and project departments for corporate tasks."}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {scope.workspace && canEditItem(scope.workspace) && (
+          {scope.company && canEditItem(scope.company) && (
             <AppendFromOverallDialog
-              title={`Append departments to "${scope.workspace.name}"`}
+              title={`Append departments to "${scope.company.name}"`}
               description="Pick existing departments from Overall to join this office."
-              items={teamList
-                .filter((t) => !scope.teamIds.has(t.id))
+              items={departmentList
+                .filter((t) => !scope.departmentIds.has(t.id))
                 .map((t) => ({ id: t.id, name: t.name, sub: t.description, badge: t.mode }))}
               emptyText="Every department from Overall already belongs to this office."
-              copyLabel="Create independent copies for this office (the department and its humans are cloned, so edits here won't affect Overall)."
+              copyLabel="Create independent copies for this office (the department and its staff are cloned, so edits here won't affect Overall)."
               onAppend={async (ids, _targetId, makeCopy) => {
-                const ws = scope.workspace!;
-                let teamIdsToAdd = ids;
+                const ws = scope.company!;
+                let departmentIdsToAdd = ids;
                 if (makeCopy) {
-                  teamIdsToAdd = [];
+                  departmentIdsToAdd = [];
                   for (const id of ids) {
-                    const src = teamList.find((t) => t.id === id);
+                    const src = departmentList.find((t) => t.id === id);
                     if (!src) continue;
-                    // Deep copy: clone the member humans too so the office can customize them.
+                    // Deep copy: clone the member staff too so the office can customize them.
                     const memberIds: string[] = [];
-                    for (const agentId of src.agents || []) {
-                      const srcAgent = agentById.get(agentId);
-                      if (!srcAgent) continue;
-                      const copiedAgent = await api.upsertAgent({
-                        name: srcAgent.name,
-                        role: srcAgent.role,
-                        description: srcAgent.description,
-                        system_prompt: srcAgent.system_prompt,
-                        skill_ids: srcAgent.skill_ids || [],
+                    for (const staffId of src.staff || []) {
+                      const srcStaff = staffById.get(staffId);
+                      if (!srcStaff) continue;
+                      const copiedStaff = await api.upsertStaff({
+                        name: srcStaff.name,
+                        role: srcStaff.role,
+                        description: srcStaff.description,
+                        system_prompt: srcStaff.system_prompt,
+                        skill_ids: srcStaff.skill_ids || [],
                         status: "idle",
-                        avatar: srcAgent.avatar,
-                        avatar_icon: srcAgent.avatar_icon,
-                        avatar_color: srcAgent.avatar_color,
-                        avatar_url: srcAgent.avatar_url,
-                        subagent_enabled: srcAgent.subagent_enabled,
+                        avatar: srcStaff.avatar,
+                        avatar_icon: srcStaff.avatar_icon,
+                        avatar_color: srcStaff.avatar_color,
+                        avatar_url: srcStaff.avatar_url,
+                        subagent_enabled: srcStaff.subagent_enabled,
                       });
-                      memberIds.push(copiedAgent.id);
-                      setAgentList((prev) => [...prev, copiedAgent]);
+                      memberIds.push(copiedStaff.id);
+                      setStaffList((prev) => [...prev, copiedStaff]);
                     }
-                    const copiedTeam = await api.upsertTeam({
+                    const copiedDepartment = await api.upsertDepartment({
                       name: src.name,
                       description: src.description,
-                      agents: memberIds,
+                      staff: memberIds,
                       activeTasks: 0,
                       avatar: src.avatar || src.name[0]?.toUpperCase() || "T",
                       avatar_icon: src.avatar_icon,
@@ -446,13 +446,13 @@ export default function TeamBuilder() {
                       maxSteps: src.maxSteps,
                       flow: src.flow ?? null,
                     });
-                    setTeamList((prev) => [...prev, copiedTeam]);
-                    teamIdsToAdd.push(copiedTeam.id);
+                    setDepartmentList((prev) => [...prev, copiedDepartment]);
+                    departmentIdsToAdd.push(copiedDepartment.id);
                   }
                 }
-                await api.upsertWorkspace({ ...ws, teamIds: [...ws.teamIds, ...teamIdsToAdd] });
+                await api.upsertCompany({ ...ws, departmentIds: [...ws.departmentIds, ...departmentIdsToAdd] });
                 // Refresh the office scope so the new departments show up.
-                window.dispatchEvent(new CustomEvent("workspaceChanged"));
+                window.dispatchEvent(new CustomEvent("companyChanged"));
               }}
             />
           )}
@@ -461,7 +461,7 @@ export default function TeamBuilder() {
             <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> New Department</Button>
           </DialogTrigger>
           <DialogContent className="max-w-6xl w-[96vw] max-h-[90vh] overflow-y-auto overflow-x-hidden p-6">
-            <DialogHeader><DialogTitle>{editingTeamId ? "Edit Department" : "Create Department"}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingDepartmentId ? "Edit Department" : "Create Department"}</DialogTitle></DialogHeader>
             <div className={cn(
               "pt-2 grid grid-cols-1 gap-6",
               mode === "custom"
@@ -487,8 +487,8 @@ export default function TeamBuilder() {
 
                     <div className="flex items-center gap-2 justify-start sm:justify-end">
                       <span className="text-xs text-muted-foreground">Preview</span>
-                      <AgentAvatar
-                        agent={{
+                      <StaffAvatar
+                        staff={{
                           avatar: name.trim()[0]?.toUpperCase() || "T",
                           avatar_icon: avatarMode === "icon" ? avatarIcon : "",
                           avatar_color: isHexColor(avatarColor) ? avatarColor : "",
@@ -505,7 +505,7 @@ export default function TeamBuilder() {
                       onChange={(e) => setAvatarIcon(e.target.value)}
                       className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
                     >
-                      {teamAvatarIconOptions.map((opt) => (
+                      {departmentAvatarIconOptions.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
@@ -513,7 +513,7 @@ export default function TeamBuilder() {
 
                   {avatarMode === "image" ? (
                     <Input
-                      placeholder="https://example.com/team-avatar.png"
+                      placeholder="https://example.com/department-avatar.png"
                       value={avatarUrl}
                       onChange={(e) => setAvatarUrl(e.target.value)}
                     />
@@ -538,13 +538,13 @@ export default function TeamBuilder() {
                   <label className="text-sm font-medium">Workflow Mode</label>
                   <select
                     value={mode}
-                    onChange={(e) => setMode(e.target.value as TeamMode)}
+                    onChange={(e) => setMode(e.target.value as DepartmentMode)}
                     className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
                   >
                     <option value="sequential">Sequential Pipeline (members work in sequence)</option>
                     <option value="mesh">Mesh Collaboration (all members interact)</option>
                     <option value="ring">Circular Workflow (members pass work in a loop)</option>
-                    <option value="supervisor">Managerial Delegation (lead delegates to team)</option>
+                    <option value="supervisor">Managerial Delegation (lead delegates to department)</option>
                     <option value="tree">Hierarchical Tree (manager delegates down branches)</option>
                     <option value="custom">Custom Flow (drag-and-drop your own routing)</option>
                   </select>
@@ -558,10 +558,10 @@ export default function TeamBuilder() {
                       First member in the order will be the <strong>lead manager</strong>. Remaining members are workers.
                     </p>
                   )}
-                  {mode === "tree" && selectedAgents.length > 0 && (
+                  {mode === "tree" && selectedStaff.length > 0 && (
                     <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                      Members arranged as a hierarchy tree: <strong>{agentById.get(selectedAgents[0])?.name ?? "Member 1"}</strong> is root.
-                      {selectedAgents.length > 1 && <> Children: <strong>{[selectedAgents[1], selectedAgents[2]].filter(Boolean).map(id => agentById.get(id)?.name).filter(Boolean).join(", ")}</strong>.</>}
+                      Members arranged as a hierarchy tree: <strong>{staffById.get(selectedStaff[0])?.name ?? "Member 1"}</strong> is root.
+                      {selectedStaff.length > 1 && <> Children: <strong>{[selectedStaff[1], selectedStaff[2]].filter(Boolean).map(id => staffById.get(id)?.name).filter(Boolean).join(", ")}</strong>.</>}
                     </p>
                   )}
                 </div>
@@ -581,8 +581,8 @@ export default function TeamBuilder() {
                     {selectPersonnelNode}
                   </div>
                 )}
-                <Button onClick={saveTeam} className="w-full" disabled={!name.trim() || selectedAgents.length === 0}>
-                  {editingTeamId ? "Save Changes" : "Create Department"}
+                <Button onClick={saveDepartment} className="w-full" disabled={!name.trim() || selectedStaff.length === 0}>
+                  {editingDepartmentId ? "Save Changes" : "Create Department"}
                 </Button>
               </div>
 
@@ -594,7 +594,7 @@ export default function TeamBuilder() {
                       Drag from a node's right handle to another node's left handle to route work. Move nodes freely; select an edge and press Delete to remove it.
                     </p>
                     <CustomFlowEditor
-                      agents={selectedAgents.map((id) => agentById.get(id)).filter((a): a is Agent => Boolean(a))}
+                      staff={selectedStaff.map((id) => staffById.get(id)).filter((a): a is Staff => Boolean(a))}
                       initialFlow={flow}
                       onChange={setFlow}
                     />
@@ -607,19 +607,19 @@ export default function TeamBuilder() {
                       <p className="text-xs text-muted-foreground">Drag to reorder personnel. If the list is long, scroll here.</p>
                       <div className="border border-input rounded-lg p-3 h-[320px] overflow-y-auto bg-muted/50">
                         <div className="space-y-2 pb-8">
-                          {selectedAgents.length > 0 ? (
-                            selectedAgents.map((agentId, index) => {
-                              const agent = agentById.get(agentId);
-                              if (!agent) return null;
+                          {selectedStaff.length > 0 ? (
+                            selectedStaff.map((staffId, index) => {
+                              const staff = staffById.get(staffId);
+                              if (!staff) return null;
                               return (
                                 <div
-                                  key={agentId}
+                                  key={staffId}
                                   draggable
-                                  onDragStart={() => handleDragStart(agentId)}
+                                  onDragStart={() => handleDragStart(staffId)}
                                   onDragOver={handleDragOver}
-                                  onDrop={() => handleDrop(agentId)}
+                                  onDrop={() => handleDrop(staffId)}
                                   className={`flex items-center gap-3 p-3 rounded-lg border-2 border-dashed transition-all cursor-move ${
-                                    draggedAgent === agentId
+                                    draggedStaff === staffId
                                       ? "border-primary bg-primary/8 opacity-50"
                                       : "border-transparent bg-card hover:bg-muted/30 hover:border-border"
                                   }`}
@@ -630,12 +630,12 @@ export default function TeamBuilder() {
                                       <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-xs font-bold text-primary">
                                         {index + 1}
                                       </span>
-                                      <span className="text-sm font-medium">{agent.name}</span>
-                                      <span className="text-xs text-muted-foreground">({agent.role})</span>
+                                      <span className="text-sm font-medium">{staff.name}</span>
+                                      <span className="text-xs text-muted-foreground">({staff.role})</span>
                                     </div>
                                   </div>
                                   <button
-                                    onClick={() => removeAgent(agentId)}
+                                    onClick={() => removeStaff(staffId)}
                                     className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                                     title="Remove member"
                                   >
@@ -665,7 +665,7 @@ export default function TeamBuilder() {
         open={testOpen}
         onOpenChange={(next) => {
           setTestOpen(next);
-          if (!next) stopTeamTest();
+          if (!next) stopDepartmentTest();
         }}
       >
         <DialogContent className="max-w-3xl max-h-[92vh] flex flex-col">
@@ -673,9 +673,9 @@ export default function TeamBuilder() {
             <div className="flex items-center justify-between">
               <div>
                 <DialogTitle className="text-xl">Test Department Discussion</DialogTitle>
-                {testingTeam && (
+                {testingDepartment && (
                   <p className="text-sm text-muted-foreground mt-1">
-                    {testingTeam.name} • {testingTeam.agents.length} members • {testingTeam.mode}
+                    {testingDepartment.name} • {testingDepartment.staff.length} members • {testingDepartment.mode}
                   </p>
                 )}
               </div>
@@ -723,8 +723,8 @@ export default function TeamBuilder() {
                   />
                 </div>
                 <Button
-                  onClick={runTeamTest}
-                  disabled={!testingTeam || isTesting}
+                  onClick={runDepartmentTest}
+                  disabled={!testingDepartment || isTesting}
                   className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 h-9"
                 >
                   <FlaskConical className="w-4 h-4 mr-1.5" />
@@ -732,7 +732,7 @@ export default function TeamBuilder() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={stopTeamTest}
+                  onClick={stopDepartmentTest}
                   disabled={!isTesting}
                   className="h-9"
                 >
@@ -750,10 +750,10 @@ export default function TeamBuilder() {
                 </span>
               </div>
               <div className="flex-1 rounded-lg border-2 border-border bg-muted/20 p-3 overflow-y-auto space-y-2">
-                {testMessages.length > 0 || testThinkingAgents.size > 0 ? (
+                {testMessages.length > 0 || testThinkingStaff.size > 0 ? (
                   <>
                     {testMessages.map((m) => {
-                      const agent = agentById.get(m.agentId);
+                      const staff = staffById.get(m.staffId);
                       const ts = new Date(m.timestamp);
                       return (
                         <motion.div
@@ -767,7 +767,7 @@ export default function TeamBuilder() {
                               <span className="text-xs font-bold text-primary">#{m.step}</span>
                             </span>
                             <span className="text-sm font-semibold text-foreground">
-                              {agent?.name ?? m.agentId}
+                              {staff?.name ?? m.staffId}
                             </span>
                             <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1">
                               <Clock className="w-3 h-3" />
@@ -788,12 +788,12 @@ export default function TeamBuilder() {
                     })}
                     
                     {/* Thinking indicators for test */}
-                    {testThinkingAgents.size > 0 && (
-                      Array.from(testThinkingAgents).map((agentId) => {
-                        const agent = agentById.get(agentId);
+                    {testThinkingStaff.size > 0 && (
+                      Array.from(testThinkingStaff).map((staffId) => {
+                        const staff = staffById.get(staffId);
                         return (
                           <motion.div
-                            key={`thinking-${agentId}`}
+                            key={`thinking-${staffId}`}
                             initial={{ opacity: 0, y: 5 }}
                             animate={{ opacity: 1, y: 0 }}
                             className="rounded-lg border border-primary/20 bg-primary/8 p-3"
@@ -805,7 +805,7 @@ export default function TeamBuilder() {
                                 <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0.4s" }} />
                               </div>
                               <span className="text-sm font-semibold text-primary">
-                                {agent?.name ?? agentId} is working/thinking...
+                                {staff?.name ?? staffId} is working/thinking...
                               </span>
                             </div>
                           </motion.div>
@@ -838,71 +838,71 @@ export default function TeamBuilder() {
         </DialogContent>
       </Dialog>
 
-      {visibleTeams.length === 0 && scope.ready && (
+      {visibleDepartments.length === 0 && scope.ready && (
         <div className="text-center py-16 text-muted-foreground">
           <Users className="w-8 h-8 mx-auto mb-3 opacity-30" />
           <p className="text-sm">
-            {scope.workspace
-              ? `No departments in "${scope.workspace.name}" yet. Create one, or switch to Overall to see everything.`
+            {scope.company
+              ? `No departments in "${scope.company.name}" yet. Create one, or switch to Overall to see everything.`
               : "No departments yet. Create your first department."}
           </p>
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {visibleTeams.map((team, i) => (
+        {visibleDepartments.map((department, i) => (
           <motion.div
-            key={team.id}
+            key={department.id}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
             className="glass-card p-6"
           >
             <div className="flex items-center gap-3 mb-4">
-              <AgentAvatar
-                agent={{ ...team, avatar: team.avatar || team.name?.slice(0, 1).toUpperCase() || "T" }}
-                className={`w-10 h-10 ${team.avatar_color ? "" : "bg-primary/10 text-primary"}`}
+              <StaffAvatar
+                staff={{ ...department, avatar: department.avatar || department.name?.slice(0, 1).toUpperCase() || "T" }}
+                className={`w-10 h-10 ${department.avatar_color ? "" : "bg-primary/10 text-primary"}`}
                 iconClassName="w-5 h-5"
               />
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold">{team.name}</h3>
-                <p className="text-xs text-muted-foreground">{team.description}</p>
+                <h3 className="font-bold">{department.name}</h3>
+                <p className="text-xs text-muted-foreground">{department.description}</p>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" onClick={() => openTestDialog(team)} aria-label={`Test ${team.name}`}>
+                <Button variant="ghost" size="icon" onClick={() => openTestDialog(department)} aria-label={`Test ${department.name}`}>
                   <FlaskConical className="w-4 h-4" />
                 </Button>
-                {canEditItem(team) && (
-                  <Button variant="ghost" size="icon" onClick={() => openEditDialog(team)} aria-label={`Edit ${team.name}`}>
+                {canEditItem(department) && (
+                  <Button variant="ghost" size="icon" onClick={() => openEditDialog(department)} aria-label={`Edit ${department.name}`}>
                     <Pencil className="w-4 h-4" />
                   </Button>
                 )}
-                {canDeleteItem(team) && (
-                  <Button variant="ghost" size="icon" onClick={() => deleteTeam(team.id)} aria-label={`Delete ${team.name}`}>
+                {canDeleteItem(department) && (
+                  <Button variant="ghost" size="icon" onClick={() => deleteDepartment(department.id)} aria-label={`Delete ${department.name}`}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 )}
               </div>
             </div>
             <div className="flex flex-wrap gap-2 mb-4">
-              {team.agents.map((agentId) => {
-                const agent = agentById.get(agentId);
-                if (!agent) return null;
+              {department.staff.map((staffId) => {
+                const staff = staffById.get(staffId);
+                if (!staff) return null;
                 return (
-                  <span key={agentId} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
-                    <AgentAvatar
-                      agent={agent}
+                  <span key={staffId} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
+                    <StaffAvatar
+                      staff={staff}
                       className="w-5 h-5 rounded-md text-[10px] bg-background/80"
                       iconClassName="w-3 h-3"
                     />
-                    {agent.name}
+                    {staff.name}
                   </span>
                 );
               })}
             </div>
             <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
-              <span>{team.activeTasks} active tasks</span>
+              <span>{department.activeTasks} active tasks</span>
               <span className="px-2 py-1 rounded bg-muted/50">
-                {team.mode === "mesh" ? "🔗 Mesh" : team.mode === "ring" ? "🔄 Ring" : team.mode === "supervisor" ? "👑 Manager" : team.mode === "tree" ? "🌲 Tree" : team.mode === "custom" ? "🧩 Custom" : "📋 Sequential"} • {team.maxSteps || 6} steps
+                {department.mode === "mesh" ? "🔗 Mesh" : department.mode === "ring" ? "🔄 Ring" : department.mode === "supervisor" ? "👑 Manager" : department.mode === "tree" ? "🌲 Tree" : department.mode === "custom" ? "🧩 Custom" : "📋 Sequential"} • {department.maxSteps || 6} steps
               </span>
             </div>
           </motion.div>

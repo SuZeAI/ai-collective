@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type AgentAvatarLike = {
+type StaffAvatarLike = {
   avatar?: string;
   avatar_icon?: string;
   avatar_color?: string;
@@ -86,8 +86,8 @@ export const skillAvatarIconOptions = [
   { value: "settings", label: "System" },
 ] as const;
 
-export const teamAvatarIconOptions = [
-  { value: "users", label: "Team" },
+export const departmentAvatarIconOptions = [
+  { value: "users", label: "Department" },
   { value: "network", label: "Network" },
   { value: "workflow", label: "Workflow" },
   { value: "layers", label: "Squad" },
@@ -115,24 +115,24 @@ function getContrastingTextColor(bgColor: string): string {
   return luminance > 0.6 ? "#111827" : "#F9FAFB";
 }
 
-export function AgentAvatar({
-  agent,
+export function StaffAvatar({
+  staff,
   className,
   iconClassName,
 }: {
-  agent: AgentAvatarLike;
+  staff: StaffAvatarLike;
   className?: string;
   iconClassName?: string;
 }) {
-  const hasImage = Boolean(agent.avatar_url && agent.avatar_url.trim());
-  const normalizedIcon = (agent.avatar_icon || "").toLowerCase();
+  const hasImage = Boolean(staff.avatar_url && staff.avatar_url.trim());
+  const normalizedIcon = (staff.avatar_icon || "").toLowerCase();
   const Icon = iconRegistry[normalizedIcon];
 
-  const color = isValidHexColor(agent.avatar_color)
-    ? agent.avatar_color.trim()
+  const color = isValidHexColor(staff.avatar_color)
+    ? staff.avatar_color.trim()
     : undefined;
   const textColor = color ? getContrastingTextColor(color) : undefined;
-  const fallbackText = (agent.avatar || "?").slice(0, 1).toUpperCase();
+  const fallbackText = (staff.avatar || "?").slice(0, 1).toUpperCase();
 
   return (
     <div
@@ -151,7 +151,7 @@ export function AgentAvatar({
     >
       {hasImage ? (
         <img
-          src={agent.avatar_url}
+          src={staff.avatar_url}
           alt="avatar"
           className="h-full w-full object-cover"
           loading="lazy"

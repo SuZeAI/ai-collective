@@ -9,11 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { AgentAvatar, avatarIconOptions } from "@/components/AgentAvatar";
+import { StaffAvatar, avatarIconOptions } from "@/components/StaffAvatar";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
-import { api, canDeleteItem, canEditItem, type Agent, type Skill, type Team } from "@/lib/api";
-import { getAgentDotColor, getAgentRoleColor } from "@/lib/agent-role-ui";
-import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
+import { api, canDeleteItem, canEditItem, type Staff, type Skill, type Department } from "@/lib/api";
+import { getStaffDotColor, getStaffRoleColor } from "@/lib/staff-role-ui";
+import { useCompanyScope } from "@/hooks/use-company-scope";
 
 const roles = [
   "Other Position",
@@ -108,15 +108,15 @@ function isHexColor(value: string): boolean {
   return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
 }
 
-export default function AgentBuilder() {
-  const scope = useWorkspaceScope();
-  const [agentList, setAgentList] = useState<Agent[]>([]);
+export default function StaffBuilder() {
+  const scope = useCompanyScope();
+  const [staffList, setStaffList] = useState<Staff[]>([]);
   const [skillCatalog, setSkillCatalog] = useState<Skill[]>([]);
-  const [teamList, setTeamList] = useState<Team[]>([]);
+  const [departmentList, setDepartmentList] = useState<Department[]>([]);
 
   const [open, setOpen] = useState(false);
   const [testOpen, setTestOpen] = useState(false);
-  const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
+  const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [desc, setDesc] = useState("");
@@ -126,7 +126,7 @@ export default function AgentBuilder() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
   const [subagentEnabled, setSubagentEnabled] = useState(false);
-  const [testingAgent, setTestingAgent] = useState<Agent | null>(null);
+  const [testingStaff, setTestingStaff] = useState<Staff | null>(null);
   const [testPrompt, setTestPrompt] = useState("");
   const [testOutput, setTestOutput] = useState("");
   const [isTesting, setIsTesting] = useState(false);
@@ -156,11 +156,11 @@ export default function AgentBuilder() {
     let cancelled = false;
     (async () => {
       try {
-        const [agents, skills, teams] = await Promise.all([api.listAgents(), api.listSkills(), api.listTeams()]);
+        const [staff, skills, departments] = await Promise.all([api.listStaff(), api.listSkills(), api.listDepartments()]);
         if (cancelled) return;
-        setAgentList(agents);
+        setStaffList(staff);
         setSkillCatalog(skills);
-        setTeamList(teams);
+        setDepartmentList(departments);
       } catch (e) {
         console.error(e);
       }
@@ -195,7 +195,7 @@ export default function AgentBuilder() {
   };
 
   const resetForm = () => {
-    setEditingAgentId(null);
+    setEditingStaffId(null);
     setName("");
     setRole("");
     setDesc("");
@@ -212,27 +212,27 @@ export default function AgentBuilder() {
     setOpen(true);
   };
 
-  const openEditDialog = (agent: Agent) => {
-    setEditingAgentId(agent.id);
-    setName(agent.name);
-    setRole(agent.role || "");
-    setDesc(agent.description ?? "");
-    setAvatarMode(agent.avatar_url ? "image" : agent.avatar_icon ? "icon" : "initial");
-    setAvatarIcon(agent.avatar_icon || "bot");
-    setAvatarColor(isHexColor(agent.avatar_color || "") ? (agent.avatar_color as string) : "#3b82f6");
-    setAvatarUrl(agent.avatar_url || "");
-    setSelectedSkillIds(sanitizeSkillIds(agent.skill_ids || []));
-    setSubagentEnabled(agent.subagent_enabled ?? false);
+  const openEditDialog = (staff: Staff) => {
+    setEditingStaffId(staff.id);
+    setName(staff.name);
+    setRole(staff.role || "");
+    setDesc(staff.description ?? "");
+    setAvatarMode(staff.avatar_url ? "image" : staff.avatar_icon ? "icon" : "initial");
+    setAvatarIcon(staff.avatar_icon || "bot");
+    setAvatarColor(isHexColor(staff.avatar_color || "") ? (staff.avatar_color as string) : "#3b82f6");
+    setAvatarUrl(staff.avatar_url || "");
+    setSelectedSkillIds(sanitizeSkillIds(staff.skill_ids || []));
+    setSubagentEnabled(staff.subagent_enabled ?? false);
     setOpen(true);
   };
 
-  const saveAgent = async () => {
+  const saveStaff = async () => {
     const normalizedRole = role.trim();
     if (!name.trim() || !normalizedRole) return;
     const normalizedSkillIds = sanitizeSkillIds(selectedSkillIds);
     try {
-      const saved = await api.upsertAgent({
-        id: editingAgentId ?? undefined,
+      const saved = await api.upsertStaff({
+        id: editingStaffId ?? undefined,
         name: name.trim(),
         role: normalizedRole,
         description: desc,
@@ -245,7 +245,7 @@ export default function AgentBuilder() {
         subagent_enabled: subagentEnabled,
       });
       setSelectedSkillIds(normalizedSkillIds);
-      setAgentList((prev) => {
+      setStaffList((prev) => {
         const idx = prev.findIndex((a) => a.id === saved.id);
         if (idx === -1) return [...prev, saved];
         const next = [...prev];
@@ -259,11 +259,11 @@ export default function AgentBuilder() {
     }
   };
 
-  const deleteAgent = async (id: string) => {
+  const deleteStaff = async (id: string) => {
     try {
-      await api.deleteAgent(id);
-      setAgentList((prev) => prev.filter((a) => a.id !== id));
-      if (editingAgentId === id) {
+      await api.deleteStaff(id);
+      setStaffList((prev) => prev.filter((a) => a.id !== id));
+      if (editingStaffId === id) {
         resetForm();
         setOpen(false);
       }
@@ -272,15 +272,15 @@ export default function AgentBuilder() {
     }
   };
 
-  const openTestDialog = (agent: Agent) => {
-    setTestingAgent(agent);
+  const openTestDialog = (staff: Staff) => {
+    setTestingStaff(staff);
     setTestPrompt("");
     setTestOutput("");
     setTestOpen(true);
   };
 
-  const runAgentTest = async () => {
-    if (!testingAgent || !testPrompt.trim() || isTesting) return;
+  const runStaffTest = async () => {
+    if (!testingStaff || !testPrompt.trim() || isTesting) return;
     setIsTesting(true);
     setTestOutput("");
     setTestError("");
@@ -288,7 +288,7 @@ export default function AgentBuilder() {
     try {
       const result = await api.chat({
         prompt: testPrompt.trim(),
-        agentId: testingAgent.id,
+        staffId: testingStaff.id,
       });
       setTestOutput(result.response || "(No response)");
     } catch (e) {
@@ -306,48 +306,48 @@ export default function AgentBuilder() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const visibleAgents = useMemo(
-    () => (scope.isOverall ? agentList : agentList.filter((a) => scope.agentIds.has(a.id))),
-    [agentList, scope],
+  const visibleStaff = useMemo(
+    () => (scope.isOverall ? staffList : staffList.filter((a) => scope.staffIds.has(a.id))),
+    [staffList, scope],
   );
 
   return (
     <div>
       <header className="mb-8 flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Humans</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Staff</h1>
           <p className="text-muted-foreground mt-1">
-            {scope.workspace
-              ? <>Personnel of office <span className="font-semibold text-foreground">{scope.workspace.name}</span> (members of its departments).</>
+            {scope.company
+              ? <>Personnel of office <span className="font-semibold text-foreground">{scope.company.name}</span> (members of its departments).</>
               : "Hire and manage your company's personnel roster."}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          {scope.workspace && (
+          {scope.company && (
             <AppendFromOverallDialog
-              title={`Append humans to "${scope.workspace.name}"`}
-              description="Pick existing humans from Overall and add them to one of this office's departments."
-              items={agentList
-                .filter((a) => !scope.agentIds.has(a.id))
+              title={`Append staff to "${scope.company.name}"`}
+              description="Pick existing staff from Overall and add them to one of this office's departments."
+              items={staffList
+                .filter((a) => !scope.staffIds.has(a.id))
                 .map((a) => ({ id: a.id, name: a.name, sub: a.role }))}
               emptyText="Every human from Overall is already part of this office."
-              targets={teamList
-                .filter((t) => scope.teamIds.has(t.id) && canEditItem(t))
+              targets={departmentList
+                .filter((t) => scope.departmentIds.has(t.id) && canEditItem(t))
                 .map((t) => ({ id: t.id, name: t.name }))}
               targetLabel="Add to department"
               noTargetText="No department in this office can be edited by you. Create your own department first."
-              copyLabel="Create independent copies for this office (edits to the copied humans won't affect Overall)."
+              copyLabel="Create independent copies for this office (edits to the copied staff won't affect Overall)."
               onAppend={async (ids, targetId, makeCopy) => {
-                const team = teamList.find((t) => t.id === targetId);
-                if (!team) return;
-                let agentIdsToAdd = ids;
+                const department = departmentList.find((t) => t.id === targetId);
+                if (!department) return;
+                let staffIdsToAdd = ids;
                 if (makeCopy) {
-                  agentIdsToAdd = [];
+                  staffIdsToAdd = [];
                   for (const id of ids) {
-                    const src = agentList.find((a) => a.id === id);
+                    const src = staffList.find((a) => a.id === id);
                     if (!src) continue;
-                    const copied = await api.upsertAgent({
+                    const copied = await api.upsertStaff({
                       name: src.name,
                       role: src.role,
                       description: src.description,
@@ -360,15 +360,15 @@ export default function AgentBuilder() {
                       avatar_url: src.avatar_url,
                       subagent_enabled: src.subagent_enabled,
                     });
-                    setAgentList((prev) => [...prev, copied]);
-                    agentIdsToAdd.push(copied.id);
+                    setStaffList((prev) => [...prev, copied]);
+                    staffIdsToAdd.push(copied.id);
                   }
                 }
-                const merged = [...new Set([...(team.agents || []), ...agentIdsToAdd])];
-                const saved = await api.upsertTeam({ ...team, agents: merged });
-                setTeamList((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
-                // Refresh the office scope so the new humans show up.
-                window.dispatchEvent(new CustomEvent("workspaceChanged"));
+                const merged = [...new Set([...(department.staff || []), ...staffIdsToAdd])];
+                const saved = await api.upsertDepartment({ ...department, staff: merged });
+                setDepartmentList((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
+                // Refresh the office scope so the new staff show up.
+                window.dispatchEvent(new CustomEvent("companyChanged"));
               }}
             />
           )}
@@ -380,7 +380,7 @@ export default function AgentBuilder() {
           </DialogTrigger>
           <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto overflow-x-hidden p-6">
             <DialogHeader>
-              <DialogTitle>{editingAgentId ? "Edit Human Profile" : "Hire Human"}</DialogTitle>
+              <DialogTitle>{editingStaffId ? "Edit Human Profile" : "Hire Human"}</DialogTitle>
             </DialogHeader>
 
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-6 pt-2">
@@ -396,7 +396,7 @@ export default function AgentBuilder() {
                       if (e.key === "Enter") {
                         e.preventDefault();
                         if (role.trim()) {
-                          saveAgent();
+                          saveStaff();
                         }
                       }
                     }}
@@ -417,7 +417,7 @@ export default function AgentBuilder() {
                           e.preventDefault();
                           setShowSuggestions(false);
                           if (name.trim()) {
-                            saveAgent();
+                            saveStaff();
                           }
                         }
                       }}
@@ -469,7 +469,7 @@ export default function AgentBuilder() {
                       if (e.key === "Enter") {
                         e.preventDefault();
                         if (name.trim() && role.trim()) {
-                          saveAgent();
+                          saveStaff();
                         }
                       }
                     }}
@@ -492,8 +492,8 @@ export default function AgentBuilder() {
 
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">Preview</span>
-                      <AgentAvatar
-                        agent={{
+                      <StaffAvatar
+                        staff={{
                           avatar: name.trim()[0]?.toUpperCase() || "A",
                           avatar_icon: avatarMode === "icon" ? avatarIcon : "",
                           avatar_color: isHexColor(avatarColor) ? avatarColor : "",
@@ -547,7 +547,7 @@ export default function AgentBuilder() {
                     <div>
                       <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Manager Mode</div>
                       <p className="text-[10px] text-muted-foreground leading-normal mt-0.5">
-                        Delegate work to other team members via subagents and run tools in parallel.
+                        Delegate work to other department members via subagents and run tools in parallel.
                       </p>
                     </div>
                     <Switch checked={subagentEnabled} onCheckedChange={setSubagentEnabled} />
@@ -628,8 +628,8 @@ export default function AgentBuilder() {
             </div>
 
             <div className="pt-4 border-t mt-4">
-              <Button onClick={saveAgent} className="w-full" disabled={!name.trim() || !role}>
-                {editingAgentId ? "Save Changes" : "Hire Person"}
+              <Button onClick={saveStaff} className="w-full" disabled={!name.trim() || !role}>
+                {editingStaffId ? "Save Changes" : "Hire Person"}
               </Button>
             </div>
           </DialogContent>
@@ -652,9 +652,9 @@ export default function AgentBuilder() {
             <div className="flex items-center justify-between">
               <div>
                 <DialogTitle className="text-xl">Test Capability</DialogTitle>
-                {testingAgent && (
+                {testingStaff && (
                   <p className="text-sm text-muted-foreground mt-1">
-                    {testingAgent.name} • {testingAgent.role}
+                    {testingStaff.name} • {testingStaff.role}
                   </p>
                 )}
               </div>
@@ -690,8 +690,8 @@ export default function AgentBuilder() {
                 disabled={isTesting}
               />
               <Button
-                onClick={runAgentTest}
-                disabled={!testingAgent || !testPrompt.trim() || isTesting}
+                onClick={runStaffTest}
+                disabled={!testingStaff || !testPrompt.trim() || isTesting}
                 className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 h-9"
               >
                 <FlaskConical className="w-4 h-4 mr-2" />
@@ -731,58 +731,58 @@ export default function AgentBuilder() {
         </DialogContent>
       </Dialog>
 
-      {visibleAgents.length === 0 && scope.ready && (
+      {visibleStaff.length === 0 && scope.ready && (
         <div className="text-center py-16 text-muted-foreground">
           <p className="text-sm">
-            {scope.workspace
-              ? `No humans in "${scope.workspace.name}" yet — add them to one of its departments, or switch to Overall.`
-              : "No humans yet. Hire your first one."}
+            {scope.company
+              ? `No staff in "${scope.company.name}" yet — add them to one of its departments, or switch to Overall.`
+              : "No staff yet. Hire your first one."}
           </p>
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {visibleAgents.map((agent, i) => (
+        {visibleStaff.map((staff, i) => (
           <motion.div
-            key={agent.id}
+            key={staff.id}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
             className="glass-card p-5"
           >
             <div className="flex items-start gap-4">
-              <AgentAvatar
-                agent={agent}
-                className={`w-10 h-10 ${agent.avatar_color ? "" : getAgentRoleColor(agent.role)}`}
+              <StaffAvatar
+                staff={staff}
+                className={`w-10 h-10 ${staff.avatar_color ? "" : getStaffRoleColor(staff.role)}`}
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold truncate">{agent.name}</h3>
+                  <h3 className="font-bold truncate">{staff.name}</h3>
                   <div className="flex items-center gap-2">
-                    {canEditItem(agent) && (
-                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(agent)} aria-label={`Edit ${agent.name}`}>
+                    {canEditItem(staff) && (
+                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(staff)} aria-label={`Edit ${staff.name}`}>
                         <Pencil className="w-4 h-4" />
                       </Button>
                     )}
-                    {canDeleteItem(agent) && (
-                      <Button variant="ghost" size="icon" onClick={() => deleteAgent(agent.id)} aria-label={`Delete ${agent.name}`}>
+                    {canDeleteItem(staff) && (
+                      <Button variant="ghost" size="icon" onClick={() => deleteStaff(staff.id)} aria-label={`Delete ${staff.name}`}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     )}
                     <div className="flex items-center gap-1.5">
                     <span
                       className={`w-2 h-2 rounded-full ${
-                        agent.status === "active" ? "bg-agent-dev animate-pulse" : "bg-muted-foreground/30"
+                        staff.status === "active" ? "bg-staff-dev animate-pulse" : "bg-muted-foreground/30"
                       }`}
                     />
-                    <span className="text-[10px] font-mono text-muted-foreground capitalize">{agent.status}</span>
+                    <span className="text-[10px] font-mono text-muted-foreground capitalize">{staff.status}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className={`w-1.5 h-1.5 rounded-full ${getAgentDotColor(agent.role)}`} />
-                  <span className="text-xs text-muted-foreground">{agent.role}</span>
-                  {agent.subagent_enabled ? (
+                  <span className={`w-1.5 h-1.5 rounded-full ${getStaffDotColor(staff.role)}`} />
+                  <span className="text-xs text-muted-foreground">{staff.role}</span>
+                  {staff.subagent_enabled ? (
                     <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">
                       Manager Mode
                     </Badge>
@@ -790,26 +790,26 @@ export default function AgentBuilder() {
                 </div>
 
                 <div className="mt-2">
-                  <Button variant="outline" size="sm" onClick={() => openTestDialog(agent)}>
+                  <Button variant="outline" size="sm" onClick={() => openTestDialog(staff)}>
                     <FlaskConical className="w-3.5 h-3.5 mr-1.5" />
                     Test
                   </Button>
                 </div>
 
-                {agent.skill_ids?.length ? (
+                {staff.skill_ids?.length ? (
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {agent.skills?.slice(0, 3).map((s) => (
+                    {staff.skills?.slice(0, 3).map((s) => (
                       <Badge key={s.id} variant="secondary" className="text-[10px]">
                         {s.name}
                       </Badge>
                     ))}
-                    {agent.skill_ids.length > 3 ? (
-                      <span className="text-[10px] text-muted-foreground">+{agent.skill_ids.length - 3}</span>
+                    {staff.skill_ids.length > 3 ? (
+                      <span className="text-[10px] text-muted-foreground">+{staff.skill_ids.length - 3}</span>
                     ) : null}
                   </div>
                 ) : null}
 
-                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{agent.description}</p>
+                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{staff.description}</p>
               </div>
             </div>
           </motion.div>

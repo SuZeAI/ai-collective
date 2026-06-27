@@ -7,7 +7,7 @@ export interface SimMessage {
   timestamp: string;
 }
 
-export function useAgentSimulation() {
+export function useStaffSimulation() {
   const [isSimulating, setIsSimulating] = useState(false);
   const [messages, setMessages] = useState<SimMessage[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
@@ -17,7 +17,7 @@ export function useAgentSimulation() {
     setMessages([]);
     setCurrentStep(1);
 
-    type BackendStep = { agent: string; msg: string; delay_ms: number; phase?: number | null };
+    type BackendStep = { staff: string; msg: string; delay_ms: number; phase?: number | null };
 
     const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || "/api/v1";
     try {
@@ -44,7 +44,7 @@ export function useAgentSimulation() {
           ...prev,
           {
             id: Date.now() + i,
-            role: steps[i].agent,
+            role: steps[i].staff,
             content: steps[i].msg,
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
           },

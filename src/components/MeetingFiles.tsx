@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Paperclip, Download, Loader2, FileText, FolderOpen } from "lucide-react";
-import { api, saveBlob, type ThreadFile, type LibraryDocument } from "@/lib/api";
+import { api, saveBlob, type MeetingFile, type LibraryDocument } from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -11,29 +11,29 @@ const ACCEPT_ATTR = ".txt,.md,.csv,.json,.pdf,.zip,.doc,.docx,.xls,.xlsx,.png,.j
 const MAX_BYTES = 25 * 1024 * 1024;
 
 /**
- * Compact attach + file-chip widget for a conversation (Project / direct chat).
+ * Compact attach + file-chip widget for a meeting (Project / direct chat).
  * Self-contained: lists the chat's files, uploads new ones, downloads on click,
  * and (when a Business Unit is active) attaches a document from its library.
  */
-export function ConversationFiles({ taskId, workspaceId }: { taskId: string; workspaceId?: string | null }) {
+export function MeetingFiles({ taskId, companyId }: { taskId: string; companyId?: string | null }) {
   const { t } = useLanguage();
   const { toast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [files, setFiles] = useState<ThreadFile[]>([]);
+  const [files, setFiles] = useState<MeetingFile[]>([]);
   const [busy, setBusy] = useState(false);
   const [libraryDocs, setLibraryDocs] = useState<LibraryDocument[]>([]);
 
   const refresh = useCallback(() => {
     if (!taskId) return;
-    api.listConversationFiles(taskId).then(setFiles).catch(() => { /* chat may have no files yet */ });
+    api.listMeetingFiles(taskId).then(setFiles).catch(() => { /* chat may have no files yet */ });
   }, [taskId]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
   useEffect(() => {
-    if (workspaceId) api.listDocuments(workspaceId).then(setLibraryDocs).catch(() => setLibraryDocs([]));
+    if (companyId) api.listDocuments(companyId).then(setLibraryDocs).catch(() => setLibraryDocs([]));
     else setLibraryDocs([]);
-  }, [workspaceId]);
+  }, [companyId]);
 
   const upload = async (fileList: FileList | null) => {
     if (!fileList || !taskId) return;
@@ -44,7 +44,7 @@ export function ConversationFiles({ taskId, workspaceId }: { taskId: string; wor
           toast({ title: `"${file.name}" > 25 MB`, variant: "destructive" });
           continue;
         }
-        await api.uploadConversationFile(taskId, file);
+        await api.uploadMeetingFile(taskId, file);
       }
       toast({ title: t.documentLibrary.uploadSuccess });
       refresh();
@@ -56,7 +56,7 @@ export function ConversationFiles({ taskId, workspaceId }: { taskId: string; wor
     }
   };
 
-  const download = async (f: ThreadFile) => {
+  const download = async (f: MeetingFile) => {
     try {
       const blob = await api.downloadConversationFile(taskId, f.relPath);
       saveBlob(blob, f.filename);
@@ -90,7 +90,7 @@ export function ConversationFiles({ taskId, workspaceId }: { taskId: string; wor
         {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Paperclip className="w-3.5 h-3.5" />}
       </button>
 
-      {workspaceId && libraryDocs.length > 0 && (
+      {companyId && libraryDocs.length > 0 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button

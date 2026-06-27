@@ -15,10 +15,10 @@ import {
   type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { Agent, CustomFlow } from "@/lib/api";
-import { AgentAvatar } from "@/components/AgentAvatar";
+import type { Staff, CustomFlow } from "@/lib/api";
+import { StaffAvatar } from "@/components/StaffAvatar";
 
-type AgentNodeData = {
+type StaffNodeData = {
   label: string;
   role: string;
   avatar?: string;
@@ -27,9 +27,9 @@ type AgentNodeData = {
   avatar_url?: string;
 };
 
-// Custom Node component displaying the agent avatar, name, and role,
-// with styled boundaries matching the agent's custom avatar color.
-function AgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
+// Custom Node component displaying the staff avatar, name, and role,
+// with styled boundaries matching the staff's custom avatar color.
+function StaffNode({ data }: NodeProps<Node<StaffNodeData>>) {
   const customColor = data.avatar_color || "hsl(var(--primary))";
 
   return (
@@ -40,7 +40,7 @@ function AgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
         boxShadow: `0 4px 15px -3px rgba(0, 0, 0, 0.05), 0 0 10px -2px ${customColor}15`,
       }}
     >
-      {/* Top indicator bar matching the agent's color theme */}
+      {/* Top indicator bar matching the staff's color theme */}
       <div
         className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl"
         style={{ backgroundColor: customColor }}
@@ -56,8 +56,8 @@ function AgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
 
       {/* Avatar wrapper */}
       <div className="flex-shrink-0">
-        <AgentAvatar
-          agent={{
+        <StaffAvatar
+          staff={{
             avatar: data.avatar,
             avatar_icon: data.avatar_icon,
             avatar_color: data.avatar_color,
@@ -67,7 +67,7 @@ function AgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
         />
       </div>
 
-      {/* Agent details */}
+      {/* Staff details */}
       <div className="flex-1 min-w-0 text-left">
         <div className="text-xs font-semibold text-foreground truncate" title={data.label}>
           {data.label}
@@ -88,23 +88,23 @@ function AgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
   );
 }
 
-const nodeTypes = { agent: AgentNode };
+const nodeTypes = { staff: StaffNode };
 
 function edgeId(source: string, target: string): string {
   return `${source}->${target}`;
 }
 
 type Props = {
-  /** Selected agents, in order — drives exactly one node per agent. */
-  agents: Agent[];
-  /** Initial flow to restore (positions + edges) when editing a saved team. */
+  /** Selected staff, in order — drives exactly one node per staff. */
+  staff: Staff[];
+  /** Initial flow to restore (positions + edges) when editing a saved department. */
   initialFlow?: CustomFlow | null;
   /** Emitted whenever the user moves a node or adds/removes an edge. */
   onChange: (flow: CustomFlow) => void;
 };
 
-function FlowCanvas({ agents, initialFlow, onChange }: Props) {
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node<AgentNodeData>>([]);
+function FlowCanvas({ staff, initialFlow, onChange }: Props) {
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<StaffNodeData>>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
   // Keep track of the initial position map. Only write to it once when loaded.
@@ -135,14 +135,14 @@ function FlowCanvas({ agents, initialFlow, onChange }: Props) {
     }
   }, [initialFlow, setEdges]);
 
-  // Reconcile nodes with the current selection: one node per selected agent.
-  // This effect ONLY triggers when the selected agents list changes.
-  const selectedIds = useMemo(() => agents.map((a) => a.id).join(","), [agents]);
+  // Reconcile nodes with the current selection: one node per selected staff.
+  // This effect ONLY triggers when the selected staff list changes.
+  const selectedIds = useMemo(() => staff.map((a) => a.id).join(","), [staff]);
   useEffect(() => {
     setNodes((prev) => {
       const byId = new Map(prev.map((n) => [n.id, n]));
-      const next: Node<AgentNodeData>[] = [];
-      agents.forEach((a, i) => {
+      const next: Node<StaffNodeData>[] = [];
+      staff.forEach((a, i) => {
         const existing = byId.get(a.id);
         const position =
           existing?.position ??
@@ -152,7 +152,7 @@ function FlowCanvas({ agents, initialFlow, onChange }: Props) {
           };
         next.push({
           id: a.id,
-          type: "agent",
+          type: "staff",
           position,
           deletable: false,
           data: {
@@ -168,10 +168,10 @@ function FlowCanvas({ agents, initialFlow, onChange }: Props) {
       return next;
     });
 
-    // Drop edges that reference an agent no longer selected.
-    const allowed = new Set(agents.map((a) => a.id));
+    // Drop edges that reference an staff no longer selected.
+    const allowed = new Set(staff.map((a) => a.id));
     setEdges((prev) => prev.filter((e) => allowed.has(e.source) && allowed.has(e.target)));
-  }, [selectedIds, setNodes, setEdges, agents]);
+  }, [selectedIds, setNodes, setEdges, staff]);
 
   // Push the serialized flow up on every node/edge change.
   useEffect(() => {
@@ -194,7 +194,7 @@ function FlowCanvas({ agents, initialFlow, onChange }: Props) {
     style: { stroke: "hsl(var(--primary) / 0.5)", strokeWidth: 2.5 },
   }), []);
 
-  if (agents.length === 0) {
+  if (staff.length === 0) {
     return (
       <div className="h-[500px] flex items-center justify-center text-center text-xs text-muted-foreground border border-input rounded-xl bg-muted/20 px-6">
         Select personnel on the left to add nodes, then drag from a node's right handle to another node's left handle to wire the flow.

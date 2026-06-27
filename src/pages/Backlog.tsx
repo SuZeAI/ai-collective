@@ -354,7 +354,7 @@ function PlannerButton({ project, epics, sprints, onCommitted }: { project?: Pro
     setDrafts((prev) => prev ? prev.map((d, idx) => (idx === i ? { ...d, ...patch } : d)) : prev);
   const removeDraft = (i: number) => setDrafts((prev) => prev ? prev.filter((_, idx) => idx !== i) : prev);
 
-  const noPlanner = project && !project.plannerAgentId && !project.plannerSystemPrompt;
+  const noPlanner = project && !project.plannerStaffId && !project.plannerSystemPrompt;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setDrafts(null); }}>
@@ -368,7 +368,7 @@ function PlannerButton({ project, epics, sprints, onCommitted }: { project?: Pro
         <div className="space-y-3 pt-2">
           {noPlanner && (
             <p className="text-[11px] text-amber-500 bg-amber-500/10 rounded px-3 py-2">
-              No planner agent is set for this project — a generic planner will be used. Configure one in the project settings for tailored results.
+              No planner staff is set for this project — a generic planner will be used. Configure one in the project settings for tailored results.
             </p>
           )}
           <Textarea

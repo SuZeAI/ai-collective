@@ -560,7 +560,7 @@ export default function ContactSales() {
                             <div className="flex gap-2.5 p-3.5 rounded-lg border border-amber-500/20 bg-amber-500/5 text-xs leading-relaxed text-amber-700 dark:text-amber-400">
                               <Info className="w-4 h-4 shrink-0 mt-0.5" />
                               <div>
-                                <span className="font-semibold">Tip:</span> Rate limits are enforced on a per-workspace basis. You can also request limits directly inside the <Link to="/login" className="underline font-semibold">Console Settings</Link> page after logging in.
+                                <span className="font-semibold">Tip:</span> Rate limits are enforced on a per-company basis. You can also request limits directly inside the <Link to="/login" className="underline font-semibold">Console Settings</Link> page after logging in.
                               </div>
                             </div>
 

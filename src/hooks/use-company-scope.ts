@@ -1,19 +1,19 @@
 import { useEffect, useState } from "react";
-import { api, type Workspace } from "@/lib/api";
+import { api, type Company } from "@/lib/api";
 
 // Sentinel stored in localStorage when "Overall" (all offices) is selected.
-export const OVERALL_WORKSPACE_ID = "__overall__";
+export const OVERALL_COMPANY_ID = "__overall__";
 
-// Workspace id used to tag documents that belong to the shared "default" catalog
+// Company id used to tag documents that belong to the shared "default" catalog
 // (curated by admins in the "All" scope and offered in Recruiting), rather than
-// to any single company. Documents are workspace-bound, so catalog docs need a
+// to any single company. Documents are company-bound, so catalog docs need a
 // stable home that isn't a real office.
-export const CATALOG_WORKSPACE_ID = "__default__";
+export const CATALOG_COMPANY_ID = "__default__";
 
-export function getActiveWorkspaceId(): string | null {
+export function getActiveCompanyId(): string | null {
   try {
-    const v = localStorage.getItem("activeWorkspaceId");
-    return v && v !== OVERALL_WORKSPACE_ID ? v : null;
+    const v = localStorage.getItem("activeCompanyId");
+    return v && v !== OVERALL_COMPANY_ID ? v : null;
   } catch {
     return null;
   }
@@ -21,67 +21,67 @@ export function getActiveWorkspaceId(): string | null {
 
 /**
  * Switch the active office (or Overall when `id` is null). Persists the choice
- * and broadcasts it so every `useWorkspaceScope()` consumer and the sidebar
+ * and broadcasts it so every `useCompanyScope()` consumer and the sidebar
  * re-resolve. Shared by the sidebar switcher and the Overview "Companies" grid.
  */
-export function setActiveWorkspaceId(id: string | null): void {
+export function setActiveCompanyId(id: string | null): void {
   try {
-    localStorage.setItem("activeWorkspaceId", id ?? OVERALL_WORKSPACE_ID);
+    localStorage.setItem("activeCompanyId", id ?? OVERALL_COMPANY_ID);
   } catch {
     /* ignore storage failures */
   }
-  window.dispatchEvent(new CustomEvent("activeWorkspaceChanged", { detail: id }));
+  window.dispatchEvent(new CustomEvent("activeCompanyChanged", { detail: id }));
 }
 
-export type WorkspaceScope = {
+export type CompanyScope = {
   /** true → "Overall": show everything across all offices (incl. unattached items). */
   isOverall: boolean;
-  workspace: Workspace | null;
+  company: Company | null;
   /** Entity id sets belonging to the selected office (empty when isOverall). */
-  teamIds: Set<string>;
-  agentIds: Set<string>;
+  departmentIds: Set<string>;
+  staffIds: Set<string>;
   skillIds: Set<string>;
   /** false while the office membership is still being resolved. */
   ready: boolean;
 };
 
-const OVERALL_SCOPE: WorkspaceScope = {
+const OVERALL_SCOPE: CompanyScope = {
   isOverall: true,
-  workspace: null,
-  teamIds: new Set(),
-  agentIds: new Set(),
+  company: null,
+  departmentIds: new Set(),
+  staffIds: new Set(),
   skillIds: new Set(),
   ready: true,
 };
 
 /**
- * Resolve the active office (workspace) into entity-id sets so pages can show
- * only the departments/humans/skills that belong to it. Membership is derived
- * from the existing hierarchy: workspace.teamIds → team.agents → agent.skill_ids.
- * Reacts to the sidebar switcher via the activeWorkspaceChanged/workspaceChanged events.
+ * Resolve the active office (company) into entity-id sets so pages can show
+ * only the departments/staff/skills that belong to it. Membership is derived
+ * from the existing hierarchy: company.departmentIds → department.staff → staff.skill_ids.
+ * Reacts to the sidebar switcher via the activeCompanyChanged/companyChanged events.
  */
-export function useWorkspaceScope(): WorkspaceScope {
-  const [workspaceId, setWorkspaceId] = useState<string | null>(getActiveWorkspaceId());
+export function useCompanyScope(): CompanyScope {
+  const [companyId, setCompanyId] = useState<string | null>(getActiveCompanyId());
   const [rev, setRev] = useState(0); // bumped on membership changes so scope refetches even for the same office
-  const [scope, setScope] = useState<WorkspaceScope>(
-    workspaceId ? { ...OVERALL_SCOPE, isOverall: false, ready: false } : OVERALL_SCOPE,
+  const [scope, setScope] = useState<CompanyScope>(
+    companyId ? { ...OVERALL_SCOPE, isOverall: false, ready: false } : OVERALL_SCOPE,
   );
 
   useEffect(() => {
     const sync = () => {
-      setWorkspaceId(getActiveWorkspaceId());
+      setCompanyId(getActiveCompanyId());
       setRev((v) => v + 1);
     };
-    window.addEventListener("activeWorkspaceChanged", sync);
-    window.addEventListener("workspaceChanged", sync);
+    window.addEventListener("activeCompanyChanged", sync);
+    window.addEventListener("companyChanged", sync);
     return () => {
-      window.removeEventListener("activeWorkspaceChanged", sync);
-      window.removeEventListener("workspaceChanged", sync);
+      window.removeEventListener("activeCompanyChanged", sync);
+      window.removeEventListener("companyChanged", sync);
     };
   }, []);
 
   useEffect(() => {
-    if (!workspaceId) {
+    if (!companyId) {
       setScope(OVERALL_SCOPE);
       return;
     }
@@ -89,22 +89,22 @@ export function useWorkspaceScope(): WorkspaceScope {
     setScope((prev) => ({ ...prev, isOverall: false, ready: false }));
     (async () => {
       try {
-        const [ws, teams, agents] = await Promise.all([
-          api.getWorkspace(workspaceId),
-          api.listTeams(),
-          api.listAgents(),
+        const [ws, departments, staff] = await Promise.all([
+          api.getCompany(companyId),
+          api.listDepartments(),
+          api.listStaff(),
         ]);
         if (!active) return;
-        const teamIds = new Set(ws.teamIds);
-        const agentIds = new Set(
-          teams.filter((t) => teamIds.has(t.id)).flatMap((t) => t.agents),
+        const departmentIds = new Set(ws.departmentIds);
+        const staffIds = new Set(
+          departments.filter((t) => departmentIds.has(t.id)).flatMap((t) => t.staff),
         );
         const skillIds = new Set(
-          agents.filter((a) => agentIds.has(a.id)).flatMap((a) => a.skill_ids),
+          staff.filter((a) => staffIds.has(a.id)).flatMap((a) => a.skill_ids),
         );
-        setScope({ isOverall: false, workspace: ws, teamIds, agentIds, skillIds, ready: true });
+        setScope({ isOverall: false, company: ws, departmentIds, staffIds, skillIds, ready: true });
       } catch (err) {
-        console.error("Failed to resolve workspace scope:", err);
+        console.error("Failed to resolve company scope:", err);
         // Office vanished (deleted elsewhere) — fall back to Overall.
         if (active) setScope(OVERALL_SCOPE);
       }
@@ -112,7 +112,7 @@ export function useWorkspaceScope(): WorkspaceScope {
     return () => {
       active = false;
     };
-  }, [workspaceId, rev]);
+  }, [companyId, rev]);
 
   return scope;
 }

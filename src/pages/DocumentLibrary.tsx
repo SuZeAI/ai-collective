@@ -18,7 +18,7 @@ import { DocumentDropzone } from "@/components/DocumentDropzone";
 import { api, saveBlob, type LibraryDocument, type Task } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useWorkspaceScope, CATALOG_WORKSPACE_ID } from "@/hooks/use-workspace-scope";
+import { useCompanyScope, CATALOG_COMPANY_ID } from "@/hooks/use-company-scope";
 
 type DocType = "all" | "pdf" | "excel" | "doc" | "image" | "link" | "other";
 
@@ -46,11 +46,11 @@ function formatSize(n: number): string {
 export default function DocumentLibrary() {
   const { t } = useLanguage();
   const { toast } = useToast();
-  const scope = useWorkspaceScope();
+  const scope = useCompanyScope();
   const tl = t.documentLibrary;
   // In the "All" scope (admin-only here), the page edits the shared "default"
   // document catalog instead of a single office's library.
-  const workspaceId = scope.workspace?.id ?? (scope.isOverall ? CATALOG_WORKSPACE_ID : null);
+  const companyId = scope.company?.id ?? (scope.isOverall ? CATALOG_COMPANY_ID : null);
 
   const [docs, setDocs] = useState<LibraryDocument[]>([]);
   const [loading, setLoading] = useState(false);
@@ -67,15 +67,15 @@ export default function DocumentLibrary() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const refresh = () => {
-    if (!workspaceId) { setDocs([]); return; }
+    if (!companyId) { setDocs([]); return; }
     setLoading(true);
-    api.listDocuments(workspaceId)
+    api.listDocuments(companyId)
       .then(setDocs)
       .catch((e) => toast({ title: e instanceof Error ? e.message : String(e), variant: "destructive" }))
       .finally(() => setLoading(false));
   };
 
-  useEffect(refresh, [workspaceId]);
+  useEffect(refresh, [companyId]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -87,10 +87,10 @@ export default function DocumentLibrary() {
   }, [docs, search, tab]);
 
   const onUpload = async (file: File) => {
-    if (!workspaceId) return;
+    if (!companyId) return;
     setBusy(true);
     try {
-      await api.uploadDocument(workspaceId, file);
+      await api.uploadDocument(companyId, file);
       toast({ title: tl.uploadSuccess });
       refresh();
     } finally {
@@ -99,10 +99,10 @@ export default function DocumentLibrary() {
   };
 
   const onIngestUrl = async () => {
-    if (!workspaceId || !url.trim()) return;
+    if (!companyId || !url.trim()) return;
     setBusy(true);
     try {
-      await api.ingestUrl({ workspaceId, url: url.trim() });
+      await api.ingestUrl({ companyId, url: url.trim() });
       toast({ title: tl.uploadSuccess });
       setUrl("");
       setUrlOpen(false);
@@ -170,7 +170,7 @@ export default function DocumentLibrary() {
             <p className="text-sm text-muted-foreground">{tl.subtitle}</p>
           </div>
         </div>
-        {workspaceId && (
+        {companyId && (
           <div className="flex items-center gap-2">
             <Dialog open={urlOpen} onOpenChange={setUrlOpen}>
               <DialogTrigger asChild>
@@ -201,7 +201,7 @@ export default function DocumentLibrary() {
         )}
       </div>
 
-      {!workspaceId ? (
+      {!companyId ? (
         <div className="rounded-xl border border-dashed border-border py-16 text-center text-muted-foreground">
           {tl.overallScopeHint}
         </div>

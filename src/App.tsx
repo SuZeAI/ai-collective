@@ -9,28 +9,28 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { RunEngineProvider } from "@/contexts/RunEngineContext";
 import { AppLayout } from "@/components/AppLayout";
-import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
+import { useCompanyScope } from "@/hooks/use-company-scope";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Profile from "@/pages/Profile";
 import Dashboard from "@/pages/Dashboard";
-import AgentBuilder from "@/pages/AgentBuilder";
+import StaffBuilder from "@/pages/StaffBuilder";
 import Skills from "./pages/Skills";
-import TeamBuilder from "@/pages/TeamBuilder";
+import DepartmentBuilder from "@/pages/DepartmentBuilder";
 import TaskManager from "@/pages/TaskManager";
 import Projects from "@/pages/Projects";
 import Backlog from "@/pages/Backlog";
 import Roadmap from "@/pages/Roadmap";
 import Reports from "@/pages/Reports";
-import Conversations from "@/pages/Conversations";
+import Meetings from "@/pages/Meetings";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import Playground from "@/pages/Playground";
-import Workspaces from "@/pages/Workspaces";
+import Companies from "@/pages/Companies";
 import OfficeBuilder from "@/pages/OfficeBuilder";
 import VirtualOffice from "@/pages/VirtualOffice";
-import Marketplace from "@/pages/Marketplace";
+import Recruiting from "@/pages/Recruiting";
 import DocumentLibrary from "@/pages/DocumentLibrary";
 import Settings from "@/pages/Settings";
 import AdminMonitoring from "@/pages/AdminMonitoring";
@@ -68,7 +68,7 @@ function WithLayout({ children }: { children: React.ReactNode }) {
 // hides them there; this guards stray deep links / typed URLs by sending the
 // user back to the monitoring overview with a hint to pick a company.
 function RequireCompany({ children }: { children: React.ReactNode }) {
-  const scope = useWorkspaceScope();
+  const scope = useCompanyScope();
   const { t } = useLanguage();
   const { toast } = useToast();
   // `isOverall` is reliable immediately (true only when no office is selected),
@@ -90,12 +90,12 @@ function WithCompanyLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Catalog pages (Departments / Humans / Skills / Document Library) are reachable
+// Catalog pages (Departments / Staff / Skills / Document Library) are reachable
 // inside a company (per-company data) AND, for admins only, in the "All" scope —
 // where they curate the shared "default" catalog that feeds Recruiting. Non-admins
 // in "All" are bounced like any other company-only page.
 function RequireCompanyOrAdmin({ children }: { children: React.ReactNode }) {
-  const scope = useWorkspaceScope();
+  const scope = useCompanyScope();
   const { user } = useAuth();
   const { t } = useLanguage();
   const { toast } = useToast();
@@ -150,23 +150,23 @@ const App = () => (
                 <Route path="/login" element={<Login />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/dashboard" element={<WithLayout><Dashboard /></WithLayout>} />
-                <Route path="/agents" element={<WithCatalogLayout><AgentBuilder /></WithCatalogLayout>} />
+                <Route path="/staff" element={<WithCatalogLayout><StaffBuilder /></WithCatalogLayout>} />
                 <Route path="/skills" element={<WithCatalogLayout><Skills /></WithCatalogLayout>} />
-                <Route path="/teams" element={<WithCatalogLayout><TeamBuilder /></WithCatalogLayout>} />
+                <Route path="/departments" element={<WithCatalogLayout><DepartmentBuilder /></WithCatalogLayout>} />
                 <Route path="/tasks" element={<WithCompanyLayout><TaskManager /></WithCompanyLayout>} />
                 <Route path="/projects" element={<WithCompanyLayout><Projects /></WithCompanyLayout>} />
                 <Route path="/projects/:key/board" element={<WithCompanyLayout><TaskManager /></WithCompanyLayout>} />
                 <Route path="/projects/:key/backlog" element={<WithCompanyLayout><Backlog /></WithCompanyLayout>} />
                 <Route path="/projects/:key/roadmap" element={<WithCompanyLayout><Roadmap /></WithCompanyLayout>} />
                 <Route path="/projects/:key/reports" element={<WithCompanyLayout><Reports /></WithCompanyLayout>} />
-                <Route path="/conversations" element={<WithCompanyLayout><Conversations /></WithCompanyLayout>} />
+                <Route path="/meetings" element={<WithCompanyLayout><Meetings /></WithCompanyLayout>} />
                 <Route path="/analytics" element={<WithLayout><AnalyticsPage /></WithLayout>} />
                 <Route path="/consumption" element={<WithLayout><ConsumptionMonitoring /></WithLayout>} />
                 <Route path="/playground" element={<WithCompanyLayout><Playground /></WithCompanyLayout>} />
-                <Route path="/workspaces" element={<WithLayout><Workspaces /></WithLayout>} />
+                <Route path="/companies" element={<WithLayout><Companies /></WithLayout>} />
                 <Route path="/office-builder" element={<WithLayout><OfficeBuilder /></WithLayout>} />
                 <Route path="/virtual-office" element={<WithCompanyLayout><VirtualOffice /></WithCompanyLayout>} />
-                <Route path="/marketplace" element={<WithCompanyLayout><Marketplace /></WithCompanyLayout>} />
+                <Route path="/recruiting" element={<WithCompanyLayout><Recruiting /></WithCompanyLayout>} />
                 <Route path="/documents" element={<WithCatalogLayout><DocumentLibrary /></WithCatalogLayout>} />
                 <Route path="/settings" element={<WithLayout><Settings /></WithLayout>} />
                 <Route path="/admin/monitoring" element={<WithAdminLayout><AdminMonitoring /></WithAdminLayout>} />

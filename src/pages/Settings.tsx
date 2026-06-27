@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 const PLATFORM_ICONS: Record<string, string> = {
-  telegram: "✈️", discord: "🎮", slack: "💬", teams: "🟦",
+  telegram: "✈️", discord: "🎮", slack: "💬", departments: "🟦",
   whatsapp_business: "💚", facebook_messenger: "💙", instagram: "📸",
   line_messaging: "🟢", viber_messaging: "💜", zalo_messaging: "🔵",
   signal_messaging: "🔒", skype_messaging: "🌐", wire_messaging: "⚡",
@@ -30,7 +30,7 @@ const PLATFORM_COLORS: Record<string, string> = {
   telegram: "from-sky-500 to-blue-600",
   discord: "from-indigo-500 to-violet-600",
   slack: "from-amber-500 to-orange-500",
-  teams: "from-blue-500 to-indigo-600",
+  departments: "from-blue-500 to-indigo-600",
   whatsapp_business: "from-emerald-500 to-green-600",
   facebook_messenger: "from-blue-400 to-indigo-500",
   instagram: "from-pink-500 to-rose-600",
@@ -363,7 +363,7 @@ export default function Settings() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
             <p className="text-sm text-muted-foreground">
-              Manage global third-party connections. Authenticate once and reuse across workspaces.
+              Manage global third-party connections. Authenticate once and reuse across companies.
             </p>
           </div>
         </div>
@@ -401,7 +401,7 @@ export default function Settings() {
           <div>
             <h2 className="text-base font-semibold">Third Party Connections</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Add your platform credentials here once — then pick them when creating workspace hooks.
+              Add your platform credentials here once — then pick them when creating company hooks.
             </p>
           </div>
 
@@ -440,7 +440,7 @@ export default function Settings() {
             </div>
             <h3 className="text-base font-semibold mb-1">No connections yet</h3>
             <p className="text-sm text-muted-foreground max-w-xs mb-5">
-              Add credentials for Telegram, Discord, Slack, and other platforms. Reuse them freely across workspaces.
+              Add credentials for Telegram, Discord, Slack, and other platforms. Reuse them freely across companies.
             </p>
             <Button onClick={openNew} className="gap-2 bg-teal-600 hover:bg-teal-500" size="sm">
               <Plus className="h-4 w-4" />
