@@ -20,7 +20,7 @@ from backend.application.service.office_builder_session_service import OfficeBui
 from backend.application.service.department_service import DepartmentService
 from backend.application.service.company_service import CompanyService
 from backend.domain.errors import NotFoundError
-from backend.domain.models import PlatformHook, Company, can_delete, can_modify, is_visible_to
+from backend.domain.models import Company, can_delete, can_modify, is_visible_to
 from backend.domain.thirty_part.registry import list_platforms
 
 logger = logging.getLogger(__name__)
@@ -47,17 +47,6 @@ def upsert_workspace(
     owner_id: str = Depends(current_owner_id_dep),
 ):
     ws_id = req.id or f"ws_{uuid4().hex}"
-    hooks = [
-        PlatformHook(
-            id=h.id or f"hook_{uuid4().hex}",
-            platform=h.platform,
-            name=h.name,
-            config=dict(h.config or {}),
-            description=h.description or "",
-            enabled=h.enabled,
-        )
-        for h in (req.platformHooks or [])
-    ]
     existing = service._repo.get(ws_id)
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):
         raise NotFoundError(f"Company {ws_id!r} not found")
@@ -68,9 +57,8 @@ def upsert_workspace(
         id=ws_id,
         name=req.name,
         description=req.description or "",
-        department_ids=list(req.teamIds or []),
-        primary_department_id=req.primaryTeamId or "",
-        platform_hooks=hooks,
+        department_ids=list(req.departmentIds or []),
+        primary_department_id=req.primaryDepartmentId or "",
         created_at=created_at,
         type=(req.type or (existing.type if existing else None) or "general"),
         avatar=(req.avatar or "").strip() or req.name[:1].upper() or "W",

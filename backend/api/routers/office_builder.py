@@ -438,7 +438,6 @@ def apply_office_plan(
             description=plan.description.strip(),
             department_ids=department_ids,
             primary_department_id=department_ids[0] if department_ids else "",
-            platform_hooks=[],
             created_at=datetime.now(timezone.utc),
             type=(plan.type or "general"),
             avatar=(plan.name.strip()[:1] or "W").upper(),

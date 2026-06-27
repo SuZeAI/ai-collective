@@ -5,7 +5,7 @@ from typing import Any
 
 import pymongo
 
-from backend.domain.models import DEFAULT_OWNER_ID, PlatformHook, Company
+from backend.domain.models import DEFAULT_OWNER_ID, Company
 
 
 class MongoCompanyRepository:
@@ -14,17 +14,6 @@ class MongoCompanyRepository:
         self._col.create_index("id", unique=True, background=True)
 
     def _doc_to_workspace(self, item: dict[str, Any]) -> Company:
-        hooks = [
-            PlatformHook(
-                id=str(h["id"]),
-                platform=str(h.get("platform", "")),
-                name=str(h.get("name", "")),
-                config=dict(h.get("config") or {}),
-                description=str(h.get("description", "")),
-                enabled=bool(h.get("enabled", True)),
-            )
-            for h in (item.get("platformHooks") or [])
-        ]
         created_raw = item.get("createdAt")
         if isinstance(created_raw, datetime):
             created_at = created_raw if created_raw.tzinfo else created_raw.replace(tzinfo=timezone.utc)
@@ -38,7 +27,6 @@ class MongoCompanyRepository:
             name=str(item.get("name", "")),
             description=str(item.get("description", "")),
             department_ids=[str(x) for x in (item.get("teamIds") or [])],
-            platform_hooks=hooks,
             created_at=created_at,
             avatar=str(item.get("avatar", "") or str(item.get("name", "") or "W")[:1].upper()),
             avatar_icon=str(item.get("avatar_icon", "") or ""),
@@ -57,17 +45,6 @@ class MongoCompanyRepository:
             "description": w.description,
             "teamIds": list(w.department_ids),
             "primaryTeamId": w.primary_department_id,
-            "platformHooks": [
-                {
-                    "id": h.id,
-                    "platform": h.platform,
-                    "name": h.name,
-                    "config": dict(h.config),
-                    "description": h.description,
-                    "enabled": h.enabled,
-                }
-                for h in w.platform_hooks
-            ],
             "createdAt": w.created_at.isoformat(),
             "type": w.type,
             "avatar": w.avatar,

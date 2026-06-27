@@ -11,12 +11,14 @@ from backend.api.deps import (
     get_staff_service,
     get_skill_tool_manager,
     get_company_service,
+    get_connection_service,
 )
 from backend.application.ports.staff_graph import GraphStaffDefinition
 from backend.application.service.staff_service import StaffService
 from backend.application.service.company_service import CompanyService
+from backend.application.service.connection_service import ConnectionService
 from backend.domain.errors import NotFoundError
-from backend.domain.models import PlatformHook, Company
+from backend.domain.models import Connection, Company
 from backend.domain.thirty_part.registry import get_processor
 from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.log import get_logger
@@ -27,7 +29,7 @@ logger = get_logger(__name__)
 
 async def _process_message(
     platform: str,
-    hook: PlatformHook,
+    hook: Connection,
     workspace: Company,
     chat_id: str,
     text: str,
@@ -109,6 +111,21 @@ async def _process_message(
             logger.warning("Failed to deliver error notification to %s/%s", platform, chat_id)
 
 
+def _resolve_hook(connections: ConnectionService, company_id: str, hook_id: str) -> Connection:
+    """Resolve an inbound-webhook Connection by id, verifying it belongs to company_id.
+
+    Inbound webhooks are now Connection rows (``kind="inbound_webhook"``) instead of
+    being embedded on the Company.
+    """
+    try:
+        hook = connections.get_connection(hook_id)
+    except NotFoundError:
+        raise HTTPException(status_code=404, detail="Hook not found")
+    if hook.kind != "inbound_webhook" or (hook.company_id or "") != company_id:
+        raise HTTPException(status_code=404, detail="Hook not found")
+    return hook
+
+
 @router.get("/{platform}/{company_id}/{hook_id}")
 async def webhook_verify(
     platform: str,
@@ -116,16 +133,10 @@ async def webhook_verify(
     hook_id: str,
     request: Request,
     service: CompanyService = Depends(get_company_service),
+    connections: ConnectionService = Depends(get_connection_service),
 ):
     """Handle GET-based webhook verification (Facebook, Instagram, WhatsApp, WeChat)."""
-    try:
-        workspace = service.get_company(company_id)
-    except (NotFoundError, KeyError):
-        raise HTTPException(status_code=404, detail="Company not found")
-
-    hook = next((h for h in workspace.platform_hooks if h.id == hook_id), None)
-    if not hook:
-        raise HTTPException(status_code=404, detail="Hook not found")
+    hook = _resolve_hook(connections, company_id, hook_id)
 
     processor = get_processor(platform)
     if not processor:
@@ -149,19 +160,18 @@ async def webhook_receive(
     service: CompanyService = Depends(get_company_service),
     staff_service: StaffService = Depends(get_staff_service),
     tool_manager: SkillToolManager = Depends(get_skill_tool_manager),
+    connections: ConnectionService = Depends(get_connection_service),
 ):
     """Receive incoming message from platform, process via staff graph, reply."""
+    hook = _resolve_hook(connections, company_id, hook_id)
+
+    if not hook.enabled:
+        return {"ok": True, "status": "hook_disabled"}
+
     try:
         workspace = service.get_company(company_id)
     except (NotFoundError, KeyError):
         raise HTTPException(status_code=404, detail="Company not found")
-
-    hook = next((h for h in workspace.platform_hooks if h.id == hook_id), None)
-    if not hook:
-        raise HTTPException(status_code=404, detail="Hook not found")
-
-    if not hook.enabled:
-        return {"ok": True, "status": "hook_disabled"}
 
     processor = get_processor(platform)
     if not processor:

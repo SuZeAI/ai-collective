@@ -202,22 +202,11 @@ class ActivityFeedItem:
 
 
 @dataclass(frozen=True, slots=True)
-class PlatformHook:
-    id: str
-    platform: str       # "telegram" | "discord" | "slack" | "teams" | "whatsapp_business" | ...
-    name: str
-    config: dict[str, Any]   # platform-specific tokens/keys
-    description: str = ""
-    enabled: bool = True
-
-
-@dataclass(frozen=True, slots=True)
 class Company:
     id: str
     name: str
     description: str
     department_ids: list[str]
-    platform_hooks: list[PlatformHook]
     created_at: datetime
     avatar: str = ""
     avatar_icon: str = ""
@@ -266,13 +255,24 @@ class OfficeBuilderSession:
 
 
 @dataclass(frozen=True, slots=True)
-class ThirdPartyConnection:
+class Connection:
+    """A third-party integration, unified across both former systems.
+
+    ``kind="inbound_webhook"`` = a per-company inbound webhook endpoint (formerly
+    ``PlatformHook``, embedded on the Company); ``kind="outbound"`` = an
+    account-level outbound connection (formerly ``Connection``).
+    ``company_id=""`` means global/account-scoped.
+    """
     id: str
     platform: str
     name: str
     config: dict[str, Any]
     created_at: datetime
     description: str = ""
+    enabled: bool = True
+    kind: str = "outbound"
+    company_id: str = ""
+    owner_id: str = DEFAULT_OWNER_ID
 
 
 @dataclass

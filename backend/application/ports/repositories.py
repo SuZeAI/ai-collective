@@ -17,7 +17,7 @@ from backend.domain.models import (
     OfficeBuilderSession,
     Project,
     Sprint,
-    ThirdPartyConnection,
+    Connection,
     TokenUsageRecord,
     User,
     Company,
@@ -159,13 +159,13 @@ class ActivityFeedRepository(Protocol):
 
 
 class ConnectionRepository(Protocol):
-    def list(self) -> list[ThirdPartyConnection]:
+    def list(self) -> list[Connection]:
         ...
 
-    def get(self, conn_id: str) -> ThirdPartyConnection | None:
+    def get(self, conn_id: str) -> Connection | None:
         ...
 
-    def upsert(self, conn: ThirdPartyConnection) -> ThirdPartyConnection:
+    def upsert(self, conn: Connection) -> Connection:
         ...
 
     def delete(self, conn_id: str) -> None:

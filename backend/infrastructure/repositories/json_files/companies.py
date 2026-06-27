@@ -3,7 +3,7 @@ from __future__ import annotations
 import threading
 from datetime import datetime, timezone
 
-from backend.domain.models import DEFAULT_OWNER_ID, PlatformHook, Company
+from backend.domain.models import DEFAULT_OWNER_ID, Company
 from backend.infrastructure.repositories._helpers import parse_iso_utc
 from backend.infrastructure.repositories.json_store import JsonFileStore
 
@@ -18,23 +18,11 @@ class JsonCompanyRepository:
         self._items: dict[str, Company] = {}
         for item in data:
             try:
-                hooks = [
-                    PlatformHook(
-                        id=str(h["id"]),
-                        platform=str(h.get("platform", "")),
-                        name=str(h.get("name", "")),
-                        config=dict(h.get("config") or {}),
-                        description=str(h.get("description", "")),
-                        enabled=bool(h.get("enabled", True)),
-                    )
-                    for h in (item.get("platformHooks") or [])
-                ]
                 ws = Company(
                     id=str(item["id"]),
                     name=str(item.get("name", "")),
                     description=str(item.get("description", "")),
                     department_ids=[str(x) for x in (item.get("teamIds") or [])],
-                    platform_hooks=hooks,
                     created_at=parse_iso_utc(str(item.get("createdAt", ""))) or datetime.now(timezone.utc),
                     avatar=str(item.get("avatar", "") or str(item.get("name", "") or "W")[:1].upper()),
                     avatar_icon=str(item.get("avatar_icon", "") or ""),
@@ -56,17 +44,6 @@ class JsonCompanyRepository:
                 "description": w.description,
                 "teamIds": list(w.department_ids),
                 "primaryTeamId": w.primary_department_id,
-                "platformHooks": [
-                    {
-                        "id": h.id,
-                        "platform": h.platform,
-                        "name": h.name,
-                        "config": dict(h.config),
-                        "description": h.description,
-                        "enabled": h.enabled,
-                    }
-                    for h in w.platform_hooks
-                ],
                 "createdAt": w.created_at.isoformat(),
                 "type": w.type,
                 "avatar": w.avatar,
