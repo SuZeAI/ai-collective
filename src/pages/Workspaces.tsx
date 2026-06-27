@@ -823,9 +823,11 @@ export default function Workspaces() {
   const remove = useMutation({
     mutationFn: api.deleteWorkspace,
     onSuccess: () => {
-      // The workspace and all of its related data (documents, office-builder
-      // sessions, …) are cleaned up server-side; those pages refetch on mount.
+      // The workspace and all of its related data (departments, documents,
+      // office-builder sessions, …) are cleaned up server-side. Refresh the
+      // department list so deleted ones stop showing in the New Company dialog.
       qc.invalidateQueries({ queryKey: ["workspaces"] });
+      qc.invalidateQueries({ queryKey: ["teams"] });
       toast({ title: "Company deleted" });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),

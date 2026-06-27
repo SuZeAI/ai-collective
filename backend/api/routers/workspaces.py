@@ -11,11 +11,13 @@ from backend.api.deps import (
     current_owner_id_dep,
     get_document_library_service,
     get_office_builder_session_service,
+    get_team_service,
     get_workspace_service,
 )
 from backend.api.schemas.workspace import WorkspaceSchema, UpsertWorkspaceRequest
 from backend.application.service.document_library_service import DocumentLibraryService
 from backend.application.service.office_builder_session_service import OfficeBuilderSessionService
+from backend.application.service.team_service import TeamService
 from backend.application.service.workspace_service import WorkspaceService
 from backend.domain.errors import NotFoundError
 from backend.domain.models import PlatformHook, Workspace, can_delete, can_modify, is_visible_to
@@ -87,6 +89,7 @@ def delete_workspace(
     service: WorkspaceService = Depends(get_workspace_service),
     documents: DocumentLibraryService = Depends(get_document_library_service),
     office_sessions: OfficeBuilderSessionService = Depends(get_office_builder_session_service),
+    teams: TeamService = Depends(get_team_service),
     owner_id: str = Depends(current_owner_id_dep),
 ):
     existing = service._repo.get(workspace_id)
@@ -98,6 +101,29 @@ def delete_workspace(
     # Cascade: remove everything that belongs to this company so no orphans are
     # left behind. Each cleanup is best-effort — a failure on related data must
     # not block deleting the workspace itself.
+
+    # Departments (teams) that are still referenced by another company must be
+    # kept — they are shared. Only delete the ones unique to this company.
+    other_team_ids: set[str] = set()
+    for ws in service.list_workspaces():
+        if ws.id == workspace_id:
+            continue
+        other_team_ids.update(ws.team_ids)
+
+    removed_teams = 0
+    if existing is not None:
+        own_team_ids = set(existing.team_ids)
+        for team in teams.list_teams():
+            if team.id not in own_team_ids or team.id in other_team_ids:
+                continue
+            if not can_delete(owner_id, team.owner_id):
+                continue
+            try:
+                teams.delete_team(team.id)
+                removed_teams += 1
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("failed to delete team %s for workspace %s: %s", team.id, workspace_id, exc)
+
     removed_documents = 0
     for doc in documents.list_documents():
         if doc.workspace_id != workspace_id:
@@ -121,6 +147,7 @@ def delete_workspace(
     service.delete_workspace(workspace_id)
     return {
         "deleted": True,
+        "removed_teams": removed_teams,
         "removed_documents": removed_documents,
         "removed_office_builder_sessions": removed_sessions,
     }
