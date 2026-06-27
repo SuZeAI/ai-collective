@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from backend.api.deps import current_owner_id_dep, get_marketplace_service
 from backend.api.schemas.agent import AgentSchema
+from backend.api.schemas.library_document import LibraryDocumentSchema
 from backend.api.schemas.skill import SkillSchema
 from backend.api.schemas.task import TaskSchema
 from backend.api.schemas.team import TeamSchema
@@ -15,8 +16,10 @@ router = APIRouter(prefix="/marketplace", tags=["marketplace"])
 
 
 class CopyRequest(BaseModel):
-    type: str  # "skill" | "agent" | "team" | "task"
+    type: str  # "skill" | "agent" | "team" | "task" | "document"
     id: str
+    # Required only for "document": the office to copy the catalog doc into.
+    workspaceId: str | None = None
 
 
 class CopyResponse(BaseModel):
@@ -52,11 +55,18 @@ def list_marketplace_tasks(
     return [TaskSchema.from_domain(t) for t in service.list_default_tasks()]
 
 
+@router.get("/documents", response_model=list[LibraryDocumentSchema])
+def list_marketplace_documents(
+    service: MarketplaceService = Depends(get_marketplace_service),
+) -> list[LibraryDocumentSchema]:
+    return [LibraryDocumentSchema.from_domain(d) for d in service.list_default_documents()]
+
+
 @router.post("/copy", response_model=CopyResponse)
 def copy_from_marketplace(
     req: CopyRequest,
     service: MarketplaceService = Depends(get_marketplace_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> CopyResponse:
-    result = service.copy(req.type, req.id, owner_id)
+    result = service.copy(req.type, req.id, owner_id, workspace_id=req.workspaceId)
     return CopyResponse(**result)

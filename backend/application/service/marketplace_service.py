@@ -4,21 +4,28 @@ from dataclasses import replace
 from uuid import uuid4
 
 from backend.application.service.agent_service import AgentService
+from backend.application.service.document_library_service import DocumentLibraryService
 from backend.application.service.skill_service import SkillService
 from backend.application.service.task_service import TaskService
 from backend.application.service.team_service import TeamService
 from backend.domain.enums import AgentStatus, TaskStatus
-from backend.domain.errors import NotFoundError
+from backend.domain.errors import NotFoundError, ValidationError
 from backend.domain.models import (
     DEFAULT_OWNER_ID,
     Agent,
+    LibraryDocument,
     Skill,
     Task,
     Team,
 )
 
-# The four entity kinds users can browse and clone from the marketplace.
-MARKETPLACE_KINDS = ("skill", "agent", "team", "task")
+# Workspace id under which admins keep the shared "default" document catalog
+# (mirrors CATALOG_WORKSPACE_ID on the frontend). Documents are workspace-bound,
+# so catalog docs live here rather than in any single office.
+CATALOG_WORKSPACE_ID = "__default__"
+
+# The entity kinds users can browse and clone from the marketplace.
+MARKETPLACE_KINDS = ("skill", "agent", "team", "task", "document")
 
 
 class MarketplaceService:
@@ -36,11 +43,13 @@ class MarketplaceService:
         skill_service: SkillService,
         team_service: TeamService,
         task_service: TaskService,
+        document_service: DocumentLibraryService,
     ) -> None:
         self._agents = agent_service
         self._skills = skill_service
         self._teams = team_service
         self._tasks = task_service
+        self._documents = document_service
 
     # ----- listing -----------------------------------------------------------
 
@@ -60,12 +69,28 @@ class MarketplaceService:
     def list_default_tasks(self) -> list[Task]:
         return [t for t in self._tasks.list_tasks() if t.owner_id == DEFAULT_OWNER_ID]
 
+    def list_default_documents(self) -> list[LibraryDocument]:
+        return [
+            d
+            for d in self._documents.list_documents()
+            if d.owner_id == DEFAULT_OWNER_ID and d.workspace_id == CATALOG_WORKSPACE_ID
+        ]
+
     # ----- copying -----------------------------------------------------------
 
-    def copy(self, kind: str, item_id: str, owner_id: str) -> dict:
+    def copy(
+        self,
+        kind: str,
+        item_id: str,
+        owner_id: str,
+        *,
+        workspace_id: str | None = None,
+    ) -> dict:
         """Deep-copy a default item into ``owner_id``'s scope.
 
         Returns a small summary ``{"type", "id"}`` of the created root entity.
+        Documents are office-bound, so copying one requires the target
+        ``workspace_id`` (the company the user is recruiting into).
         """
         if kind == "skill":
             return {"type": kind, "id": self._copy_skill(item_id, owner_id).id}
@@ -75,6 +100,10 @@ class MarketplaceService:
             return {"type": kind, "id": self._copy_team(item_id, owner_id).id}
         if kind == "task":
             return {"type": kind, "id": self._copy_task(item_id, owner_id).id}
+        if kind == "document":
+            if not workspace_id:
+                raise ValidationError("Copying a document requires a target workspace_id")
+            return {"type": kind, "id": self._copy_document(item_id, owner_id, workspace_id).id}
         raise NotFoundError(f"Unknown marketplace kind '{kind}'")
 
     def _skills_by_id(self) -> dict[str, Skill]:
@@ -183,3 +212,25 @@ class MarketplaceService:
             owner_id=owner_id,
         )
         return self._tasks.upsert_task(clone)
+
+    def _copy_document(
+        self, doc_id: str, owner_id: str, target_workspace_id: str
+    ) -> LibraryDocument:
+        src = self._documents.get_document(doc_id)
+        if src.owner_id != DEFAULT_OWNER_ID or src.workspace_id != CATALOG_WORKSPACE_ID:
+            raise NotFoundError(f"Marketplace document '{doc_id}' not found")
+        data = self._documents.read_bytes(src)
+        if data is None:
+            raise NotFoundError(f"Document bytes for {doc_id!r} not found")
+        return self._documents.create_document(
+            workspace_id=target_workspace_id,
+            filename=src.name,
+            content_type=src.content_type,
+            data=data,
+            owner_id=owner_id,
+            uploaded_by=owner_id,
+            description=src.description,
+            source=src.source,
+            source_url=src.source_url,
+            tags=list(src.tags or []),
+        )
