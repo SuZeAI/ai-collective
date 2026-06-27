@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import threading
 
-from backend.domain.enums import TaskPriority, TaskStatus
+from backend.domain.enums import IssueType, TaskPriority, TaskStatus
 from backend.domain.models import DEFAULT_OWNER_ID, Task
 from backend.infrastructure.repositories._helpers import parse_iso_utc
 from backend.infrastructure.repositories.json_store import JsonFileStore
@@ -25,6 +25,11 @@ class JsonTaskRepository:
                     priority = TaskPriority(str(item.get("priority", "medium")))
                 except ValueError:
                     priority = TaskPriority.medium
+                try:
+                    issue_type = IssueType(str(item.get("issueType", "task")))
+                except ValueError:
+                    issue_type = IssueType.task
+                story_points_raw = item.get("storyPoints")
                 task = Task(
                     id=str(item["id"]),
                     title=str(item.get("title", "")),
@@ -41,6 +46,12 @@ class JsonTaskRepository:
                     labels=[str(x) for x in (item.get("labels") or [])],
                     assignee_id=item.get("assigneeId") or None,
                     comments=[dict(c) for c in (item.get("comments") or [])],
+                    project_id=str(item.get("projectId") or ""),
+                    issue_type=issue_type,
+                    issue_key=str(item.get("issueKey") or ""),
+                    epic_id=item.get("epicId") or None,
+                    sprint_id=item.get("sprintId") or None,
+                    story_points=int(story_points_raw) if story_points_raw is not None else None,
                 )
                 self._items[task.id] = task
             except Exception:
@@ -65,6 +76,12 @@ class JsonTaskRepository:
                     "labels": list(t.labels),
                     "assigneeId": t.assignee_id,
                     "comments": [dict(c) for c in t.comments],
+                    "projectId": t.project_id,
+                    "issueType": t.issue_type.value if hasattr(t.issue_type, "value") else str(t.issue_type),
+                    "issueKey": t.issue_key,
+                    "epicId": t.epic_id,
+                    "sprintId": t.sprint_id,
+                    "storyPoints": t.story_points,
                 }
                 for t in self._items.values()
             ]
