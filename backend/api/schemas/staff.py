@@ -37,7 +37,7 @@ class SkillSchema(BaseModel):
         )
 
 
-class AgentSchema(BaseModel):
+class StaffSchema(BaseModel):
     id: str
     name: str
     role: str
@@ -54,8 +54,8 @@ class AgentSchema(BaseModel):
     owner_id: str = "default"
 
     @staticmethod
-    def from_domain(a, skills: list = None) -> "AgentSchema":
-        return AgentSchema(
+    def from_domain(a, skills: list = None) -> "StaffSchema":
+        return StaffSchema(
             id=a.id,
             name=a.name,
             role=a.role,
@@ -73,7 +73,7 @@ class AgentSchema(BaseModel):
         )
 
 
-class UpsertAgentRequest(BaseModel):
+class UpsertStaffRequest(BaseModel):
     id: str | None = None
     name: str
     role: str

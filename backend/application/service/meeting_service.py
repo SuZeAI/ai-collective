@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from backend.application.ports.repositories import ConversationRepository
-from backend.application.ports.agent_graph import GraphContextProvider
+from backend.application.ports.repositories import MeetingRepository
+from backend.application.ports.staff_graph import GraphContextProvider
 from backend.domain.models import Message
 
 
-class ConversationService:
+class MeetingService:
     def __init__(
         self,
-        repo: ConversationRepository,
+        repo: MeetingRepository,
         graph_context_provider: GraphContextProvider | None = None,
     ):
         self._repo = repo
@@ -23,7 +23,7 @@ class ConversationService:
             self._graph_context_provider.ingest_message(
                 conversation_id=saved.task_id,
                 message_id=saved.id,
-                speaker=saved.agent_id,
+                speaker=saved.staff_id,
                 content=saved.content,
                 config=None,
             )

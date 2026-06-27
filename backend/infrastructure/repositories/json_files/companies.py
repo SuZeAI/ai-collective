@@ -3,19 +3,19 @@ from __future__ import annotations
 import threading
 from datetime import datetime, timezone
 
-from backend.domain.models import DEFAULT_OWNER_ID, PlatformHook, Workspace
+from backend.domain.models import DEFAULT_OWNER_ID, PlatformHook, Company
 from backend.infrastructure.repositories._helpers import parse_iso_utc
 from backend.infrastructure.repositories.json_store import JsonFileStore
 
 
-class JsonWorkspaceRepository:
+class JsonCompanyRepository:
     def __init__(self, store: JsonFileStore):
         self._store = store
         self._lock = threading.RLock()
         data = store.read()
         if not isinstance(data, list):
             data = []
-        self._items: dict[str, Workspace] = {}
+        self._items: dict[str, Company] = {}
         for item in data:
             try:
                 hooks = [
@@ -29,19 +29,19 @@ class JsonWorkspaceRepository:
                     )
                     for h in (item.get("platformHooks") or [])
                 ]
-                ws = Workspace(
+                ws = Company(
                     id=str(item["id"]),
                     name=str(item.get("name", "")),
                     description=str(item.get("description", "")),
-                    team_ids=[str(x) for x in (item.get("teamIds") or [])],
+                    department_ids=[str(x) for x in (item.get("teamIds") or [])],
                     platform_hooks=hooks,
                     created_at=parse_iso_utc(str(item.get("createdAt", ""))) or datetime.now(timezone.utc),
                     avatar=str(item.get("avatar", "") or str(item.get("name", "") or "W")[:1].upper()),
                     avatar_icon=str(item.get("avatar_icon", "") or ""),
                     avatar_color=str(item.get("avatar_color", "") or ""),
                     avatar_url=str(item.get("avatar_url", "") or ""),
-                    primary_team_id=str(item.get("primaryTeamId", "")),
-                    company_type=str(item.get("type", "") or "general"),
+                    primary_department_id=str(item.get("primaryTeamId", "")),
+                    type=str(item.get("type", "") or "general"),
                     owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
                 )
                 self._items[ws.id] = ws
@@ -54,8 +54,8 @@ class JsonWorkspaceRepository:
                 "id": w.id,
                 "name": w.name,
                 "description": w.description,
-                "teamIds": list(w.team_ids),
-                "primaryTeamId": w.primary_team_id,
+                "teamIds": list(w.department_ids),
+                "primaryTeamId": w.primary_department_id,
                 "platformHooks": [
                     {
                         "id": h.id,
@@ -68,7 +68,7 @@ class JsonWorkspaceRepository:
                     for h in w.platform_hooks
                 ],
                 "createdAt": w.created_at.isoformat(),
-                "type": w.company_type,
+                "type": w.type,
                 "avatar": w.avatar,
                 "avatar_icon": w.avatar_icon,
                 "avatar_color": w.avatar_color,
@@ -78,21 +78,21 @@ class JsonWorkspaceRepository:
             for w in self._items.values()
         ])
 
-    def list(self) -> list[Workspace]:
+    def list(self) -> list[Company]:
         with self._lock:
             return list(self._items.values())
 
-    def get(self, workspace_id: str) -> Workspace | None:
+    def get(self, company_id: str) -> Company | None:
         with self._lock:
-            return self._items.get(workspace_id)
+            return self._items.get(company_id)
 
-    def upsert(self, workspace: Workspace) -> Workspace:
+    def upsert(self, workspace: Company) -> Company:
         with self._lock:
             self._items[workspace.id] = workspace
             self._persist()
         return workspace
 
-    def delete(self, workspace_id: str) -> None:
+    def delete(self, company_id: str) -> None:
         with self._lock:
-            self._items.pop(workspace_id, None)
+            self._items.pop(company_id, None)
             self._persist()

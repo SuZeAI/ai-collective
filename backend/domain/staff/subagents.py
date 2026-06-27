@@ -1,7 +1,7 @@
 """Subagent configurations and registry.
 
 Ported and adapted from ``context/deerflow/subagents``. In this product an
-agent is a bounded async tool-calling loop (``LLMProvider.chat``), so a
+staff_member is a bounded async tool-calling loop (``LLMProvider.chat``), so a
 "subagent" is simply a recursive ``chat`` call with a dedicated system prompt
 and a filtered tool set (the ``task`` tool itself is always removed to prevent
 infinite recursion).
@@ -19,10 +19,10 @@ class SubagentConfig:
 
     Attributes:
         name: Unique identifier (used as ``subagent_type``).
-        description: When the parent agent should delegate to this subagent.
+        description: When the parent staff_member should delegate to this subagent.
         system_prompt: System prompt guiding the subagent.
         tools: Optional allowlist of tool names. ``None`` inherits all of the
-            parent agent's tools.
+            parent staff_member's tools.
         disallowed_tools: Tool names always removed (defaults to ``["task"]``
             to prevent recursive nesting).
         max_turns: Advisory tool-round budget for the subagent.
@@ -39,8 +39,8 @@ class SubagentConfig:
 _GENERAL_PURPOSE = SubagentConfig(
     name="general-purpose",
     description=(
-        "A capable agent for complex, multi-step tasks that require both "
-        "exploration and action. Inherits all of the parent agent's tools."
+        "A capable staff_member for complex, multi-step tasks that require both "
+        "exploration and action. Inherits all of the parent staff_member's tools."
     ),
     system_prompt=(
         "You are a general-purpose subagent working on a delegated task. "
@@ -61,7 +61,7 @@ _RESEARCH = SubagentConfig(
     name="research",
     description=(
         "A research specialist for gathering, searching and synthesizing "
-        "information from the parent agent's search/browse tools."
+        "information from the parent staff_member's search/browse tools."
     ),
     system_prompt=(
         "You are a research subagent. Your job is to investigate the delegated "
@@ -95,7 +95,7 @@ _CODING = SubagentConfig(
         "(success/failure), relevant output, and any errors."
     ),
     # Allowlist of bash + sandbox tool names. Names not present on the parent
-    # agent are simply skipped during filtering.
+    # staff_member are simply skipped during filtering.
     tools=[
         "bash_exec",
         "bash_view",

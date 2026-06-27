@@ -9,7 +9,7 @@ from backend.domain.tools.base import BaseToolkit
 
 
 @dataclass(frozen=True, slots=True)
-class GraphAgentDefinition:
+class GraphStaffDefinition:
     name: str
     role: str
     system_prompt: str
@@ -23,8 +23,8 @@ class GraphAgentDefinition:
 @dataclass(frozen=True, slots=True)
 class GraphTurn:
     turn: int
-    agent_name: str
-    agent_role: str
+    staff_name: str
+    staff_role: str
     content: str
 
 
@@ -32,13 +32,13 @@ class GraphTurn:
 class GraphRunResult:
     turns: list[GraphTurn]
     final_response: str
-    final_agent: str | None
+    final_staff: str | None
     rounds: int
 
 
 @dataclass(frozen=True, slots=True)
 class CustomGraphSpec:
-    """A user-drawn directed graph over agent NAMES (not ids).
+    """A user-drawn directed graph over staff NAMES (not ids).
 
     edges: (source_name, target_name) pairs. entry: explicit start nodes; when
     empty the orchestrator infers roots (nodes with no incoming edge).
@@ -70,12 +70,12 @@ class GraphContextProvider(Protocol):
         ...
 
 
-class AgentGraphOrchestrator(Protocol):
+class StaffGraphOrchestrator(Protocol):
     async def run(
         self,
         *,
         user_input: str,
-        agents: list[GraphAgentDefinition],
+        staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
         conversation_id: str | None = None,
@@ -89,7 +89,7 @@ class AgentGraphOrchestrator(Protocol):
         self,
         *,
         user_input: str,
-        agents: list[GraphAgentDefinition],
+        staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
         conversation_id: str | None = None,
@@ -97,5 +97,5 @@ class AgentGraphOrchestrator(Protocol):
         graph_config: GraphContextConfig | None = None,
         custom_graph: CustomGraphSpec | None = None,
     ):
-        """Streaming version that yields GraphTurn events as agents process"""
+        """Streaming version that yields GraphTurn events as staff process"""
         ...

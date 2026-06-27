@@ -1,13 +1,13 @@
-"""Agent middleware for the LangChain ``create_agent`` chat path.
+"""Staff middleware for the LangChain ``create_staff`` chat path.
 
 The provider's ``chat()`` no longer hand-rolls a ReAct loop; it delegates to
-``create_agent`` (see ``agent_builder.py``). The cross-cutting behaviours that
+``create_staff`` (see ``agent_builder.py``). The cross-cutting behaviours that
 loop used to implement inline are expressed here as middleware, following
 https://docs.langchain.com/oss/python/langchain/middleware/overview :
 
 * **Round bound + final answer** — ``ModelCallLimitMiddleware`` replaces the old
   ``max_tool_rounds`` loop and the forced "final round synthesize" turn.
-* **Loop detection** — ``LoopDetectionMiddleware`` (custom, below) breaks an agent
+* **Loop detection** — ``LoopDetectionMiddleware`` (custom, below) breaks an staff
   that re-issues the same tool call (same name + args) without progressing.
 * **Per-tool timeout** — ``ToolTimeoutMiddleware`` (custom, below) replaces the
   ``asyncio.wait_for`` in the old ``_execute_tool_call``.
@@ -79,7 +79,7 @@ def _state_messages(state: Any) -> list:
 
 def _default_tool_timeout() -> int:
     """Per-tool timeout in seconds (0 disables)."""
-    return max(0, settings.agent.tool_timeout_seconds)
+    return max(0, settings.staff.tool_timeout_seconds)
 
 
 class ToolTimeoutMiddleware(AgentMiddleware):
@@ -129,9 +129,9 @@ def _default_loop_max_repeats() -> int:
 
 
 class LoopDetectionMiddleware(AgentMiddleware):
-    """Detect and break agent loops that repeat an identical tool call.
+    """Detect and break staff loops that repeat an identical tool call.
 
-    A stuck agent often re-issues the *same* tool call (same name + args) over
+    A stuck staff often re-issues the *same* tool call (same name + args) over
     and over, burning its whole round budget (and tokens, and per-tool timeouts)
     without making progress. When the current call has already been made
     ``max_repeats`` times earlier in the run, this middleware **does not
@@ -363,7 +363,7 @@ class CostBudgetMiddleware(AgentMiddleware):
     """Soft-stop a run that exceeds a token budget.
 
     Estimates cumulative history tokens before each model call; once past
-    ``budget`` it injects a firm ``SystemMessage`` instructing the agent to stop
+    ``budget`` it injects a firm ``SystemMessage`` instructing the staff to stop
     calling tools and produce its final answer now. A soft cap (the run stays
     alive and yields a result) layered on top of the hard ``ModelCallLimit``.
     """
@@ -469,7 +469,7 @@ def build_default_middleware(
     max_tool_rounds: int,
     tool_timeout: int | None = None,
 ) -> list[AgentMiddleware]:
-    """Assemble the default middleware stack for a chat agent.
+    """Assemble the default middleware stack for a chat staff.
 
     Always present:
       * ``ModelCallLimitMiddleware`` — caps model calls per run and ends with a

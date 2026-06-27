@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from backend.api.deps import (
     current_owner_id_dep,
-    get_agent_service,
+    get_staff_service,
     get_epic_service,
     get_llm_service,
     get_project_service,
@@ -20,7 +20,7 @@ from backend.api.schemas.planner import (
     PlannerDecomposeResponse,
 )
 from backend.api.schemas.task import TaskSchema
-from backend.application.service.agent_service import AgentService
+from backend.application.service.staff_service import StaffService
 from backend.application.service.epic_service import EpicService
 from backend.application.service.llm_service import LLMService
 from backend.application.service.project_service import ProjectService
@@ -61,7 +61,7 @@ def _build_planner_system_prompt(persona: str, count: int) -> str:
     persona = (persona or "").strip()
     intro = (
         persona
-        or "You are an expert technical project planner for an AI software team."
+        or "You are an expert technical project planner for an AI software department."
     )
     return (
         f"{intro}\n\n"
@@ -95,7 +95,7 @@ async def planner_decompose(
     req: PlannerDecomposeRequest,
     llm_service: LLMService | None = Depends(get_llm_service),
     project_service: ProjectService = Depends(get_project_service),
-    agent_service: AgentService = Depends(get_agent_service),
+    staff_service: StaffService = Depends(get_staff_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> PlannerDecomposeResponse:
     if llm_service is None:
@@ -105,14 +105,14 @@ async def planner_decompose(
     if not is_visible_to(owner_id, project.owner_id):
         raise NotFoundError(f"Project '{req.projectId}' not found")
 
-    # The configurable planner: the project's chosen agent persona drives the
+    # The configurable planner: the project's chosen staff persona drives the
     # decomposition. An explicit prompt override on the project wins over the
-    # agent's own system_prompt.
+    # staff's own system_prompt.
     persona = (project.planner_system_prompt or "").strip()
-    if not persona and project.planner_agent_id:
+    if not persona and project.planner_staff_id:
         try:
-            agent = agent_service.get_agent(project.planner_agent_id)
-            persona = (agent.system_prompt or agent.description or "").strip()
+            staff = staff_service.get_staff(project.planner_staff_id)
+            persona = (staff.system_prompt or staff.description or "").strip()
         except NotFoundError:
             persona = ""
 
@@ -169,10 +169,10 @@ def planner_commit(
             id=f"task_{uuid4().hex}",
             title=draft.title,
             description=draft.description,
-            team_id=req.teamId,
+            department_id=req.teamId,
             status=TaskStatus.pending,
             progress=0,
-            assigned_agents=[],
+            assigned_staff=[],
             owner_id=owner_id,
             priority=TaskPriority.medium,
             project_id=req.projectId,

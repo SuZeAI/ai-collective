@@ -24,12 +24,12 @@ class PlatformHookSchema(BaseModel):
         )
 
 
-class WorkspaceSchema(BaseModel):
+class CompanySchema(BaseModel):
     id: str
     name: str
     description: str
-    teamIds: list[str]
-    primaryTeamId: str
+    departmentIds: list[str]
+    primaryDepartmentId: str
     platformHooks: list[PlatformHookSchema]
     createdAt: str
     type: str = "general"
@@ -40,16 +40,16 @@ class WorkspaceSchema(BaseModel):
     owner_id: str = "default"
 
     @staticmethod
-    def from_domain(w) -> "WorkspaceSchema":
-        return WorkspaceSchema(
+    def from_domain(w) -> "CompanySchema":
+        return CompanySchema(
             id=w.id,
             name=w.name,
             description=w.description,
-            teamIds=list(w.team_ids),
-            primaryTeamId=w.primary_team_id or "",
+            departmentIds=list(w.department_ids),
+            primaryDepartmentId=w.primary_department_id or "",
             platformHooks=[PlatformHookSchema.from_domain(h) for h in w.platform_hooks],
             createdAt=w.created_at.isoformat(),
-            type=getattr(w, "company_type", "general") or "general",
+            type=getattr(w, "type", "general") or "general",
             avatar=w.avatar or "",
             avatar_icon=w.avatar_icon or "",
             avatar_color=w.avatar_color or "",
@@ -71,8 +71,8 @@ class UpsertWorkspaceRequest(BaseModel):
     id: str | None = None
     name: str
     description: str = ""
-    teamIds: list[str] = []
-    primaryTeamId: str = ""
+    departmentIds: list[str] = []
+    primaryDepartmentId: str = ""
     platformHooks: list[UpsertPlatformHookRequest] = []
     type: str | None = None
     avatar: str | None = None

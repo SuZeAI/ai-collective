@@ -6,18 +6,18 @@ from uuid import uuid4
 
 from langgraph.graph import END, START, StateGraph
 
-from backend.application.ports.agent_graph import (
-    AgentGraphOrchestrator,
+from backend.application.ports.staff_graph import (
+    StaffGraphOrchestrator,
     CustomGraphSpec,
-    GraphAgentDefinition,
+    GraphStaffDefinition,
     GraphContextProvider,
     GraphRunResult,
     GraphTurn,
 )
 from backend.application.ports.llm import LLMProvider
 from backend.domain.memory.knowledge_graph import GraphContextConfig
-from backend.domain.agent._graph_runtime import recursion_config, run_to_final_state
-from backend.domain.agent.langgraph_orchestrator import LangGraphAgentOrchestrator
+from backend.domain.staff._graph_runtime import recursion_config, run_to_final_state
+from backend.domain.staff.langgraph_orchestrator import LangGraphStaffOrchestrator
 
 
 def _last(_old, new):
@@ -31,16 +31,16 @@ class CustomState(TypedDict):
     original_input: str
     turns: Annotated[list[GraphTurn], operator.add]
     final_response: Annotated[str, _last]
-    final_agent: Annotated[str | None, _last]
+    final_staff: Annotated[str | None, _last]
     rounds: Annotated[int, operator.add]
 
 
-class LangGraphCustomOrchestrator(AgentGraphOrchestrator):
+class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
     """User-defined topology.
 
-    The frontend draws a directed graph of agent nodes (mode == "custom"). Each
-    node is one agent; edges define routing. Built on the same LLM node as the
-    sequential pipeline, so every agent inherits streaming, working memory,
+    The frontend draws a directed graph of staff_member nodes (mode == "custom"). Each
+    node is one staff_member; edges define routing. Built on the same LLM node as the
+    sequential pipeline, so every staff_member inherits streaming, working memory,
     ask_user, subagents and the token budget.
 
     Semantics:
@@ -57,13 +57,13 @@ class LangGraphCustomOrchestrator(AgentGraphOrchestrator):
 
     def __init__(self) -> None:
         # Reuse the sequential node factory verbatim (no copy-paste).
-        self._node_factory = LangGraphAgentOrchestrator()
+        self._node_factory = LangGraphStaffOrchestrator()
 
     async def run(
         self,
         *,
         user_input: str,
-        agents: list[GraphAgentDefinition],
+        staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
         conversation_id: str | None = None,
@@ -71,11 +71,11 @@ class LangGraphCustomOrchestrator(AgentGraphOrchestrator):
         graph_config: GraphContextConfig | None = None,
         custom_graph: CustomGraphSpec | None = None,
     ) -> GraphRunResult:
-        if not agents:
-            raise ValueError("At least one agent definition is required")
+        if not staff:
+            raise ValueError("At least one staff_member definition is required")
 
         graph = self._build_graph(
-            agents, llm, max_rounds, custom_graph,
+            staff, llm, max_rounds, custom_graph,
             conversation_id, graph_context_provider, graph_config,
         )
         self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
@@ -85,7 +85,7 @@ class LangGraphCustomOrchestrator(AgentGraphOrchestrator):
         return GraphRunResult(
             turns=turns,
             final_response=final_state.get("final_response") or (turns[-1].content if turns else ""),
-            final_agent=final_state.get("final_agent"),
+            final_staff=final_state.get("final_staff"),
             rounds=int(final_state.get("rounds", len(turns))),
         )
 
@@ -93,7 +93,7 @@ class LangGraphCustomOrchestrator(AgentGraphOrchestrator):
         self,
         *,
         user_input: str,
-        agents: list[GraphAgentDefinition],
+        staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
         conversation_id: str | None = None,
@@ -101,11 +101,11 @@ class LangGraphCustomOrchestrator(AgentGraphOrchestrator):
         graph_config: GraphContextConfig | None = None,
         custom_graph: CustomGraphSpec | None = None,
     ):
-        if not agents:
-            raise ValueError("At least one agent definition is required")
+        if not staff:
+            raise ValueError("At least one staff_member definition is required")
 
         graph = self._build_graph(
-            agents, llm, max_rounds, custom_graph,
+            staff, llm, max_rounds, custom_graph,
             conversation_id, graph_context_provider, graph_config,
         )
         self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
@@ -124,7 +124,7 @@ class LangGraphCustomOrchestrator(AgentGraphOrchestrator):
 
     def _build_graph(
         self,
-        agents: list[GraphAgentDefinition],
+        staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
         custom_graph: CustomGraphSpec | None,
@@ -132,10 +132,10 @@ class LangGraphCustomOrchestrator(AgentGraphOrchestrator):
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
     ):
-        names = [a.name for a in agents]
+        names = [a.name for a in staff]
         name_set = set(names)
 
-        # Keep only edges whose endpoints are real agents, drop self-loops-to-self
+        # Keep only edges whose endpoints are real staff, drop self-loops-to-self
         # duplicates while preserving order.
         edges: list[tuple[str, str]] = []
         if custom_graph and custom_graph.edges:
@@ -165,15 +165,15 @@ class LangGraphCustomOrchestrator(AgentGraphOrchestrator):
             entry = [names[0]]
 
         builder: StateGraph = StateGraph(CustomState)
-        for agent in agents:
+        for staff_member in staff:
             inner = self._node_factory._make_llm_node(
-                agent=agent,
+                staff_member=staff_member,
                 llm=llm,
                 conversation_id=conversation_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             )
-            builder.add_node(agent.name, self._make_delta_node(inner))
+            builder.add_node(staff_member.name, self._make_delta_node(inner))
 
         path_map = {n: n for n in names}
         path_map[END] = END
@@ -206,7 +206,7 @@ class LangGraphCustomOrchestrator(AgentGraphOrchestrator):
                 "input": result.get("input", state["input"]),
                 "turns": list(added),
                 "final_response": result.get("final_response", "") or "",
-                "final_agent": result.get("final_agent"),
+                "final_staff": result.get("final_staff"),
                 "rounds": 1,
             }
         return node
@@ -218,7 +218,7 @@ class LangGraphCustomOrchestrator(AgentGraphOrchestrator):
             "original_input": user_input,
             "turns": [],
             "final_response": "",
-            "final_agent": None,
+            "final_staff": None,
             "rounds": 0,
         }
 

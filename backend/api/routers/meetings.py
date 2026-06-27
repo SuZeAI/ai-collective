@@ -7,21 +7,21 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
-from backend.api.deps import current_user_dep, get_conversation_service
+from backend.api.deps import current_user_dep, get_meeting_service
 from backend.api.schemas.common import (
     CreateMessageRequest,
     MessageSchema,
-    ThreadFileSchema,
+    MeetingFileSchema,
 )
-from backend.application.service.conversation_service import ConversationService
+from backend.application.service.meeting_service import MeetingService
 from backend.domain.models import Message, User
 from backend.log import get_logger
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/conversations", tags=["conversations"])
+router = APIRouter(prefix="/meetings", tags=["conversations"])
 
-# Documents agents commonly need to work with. Executables are intentionally
+# Documents staff commonly need to work with. Executables are intentionally
 # excluded — uploads land in a sandbox but should not be arbitrary binaries.
 _ALLOWED_UPLOAD_TYPES = {
     "text/plain",
@@ -45,16 +45,16 @@ _MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
 @router.get("", response_model=list[MessageSchema])
 def list_messages(
     task_id: str | None = Query(default=None),
-    service: ConversationService = Depends(get_conversation_service),
+    service: MeetingService = Depends(get_meeting_service),
 ) -> list[MessageSchema]:
     return [MessageSchema.from_domain(m) for m in service.list_messages(task_id=task_id)]
 
 
 @router.post("", response_model=MessageSchema)
-def add_message(req: CreateMessageRequest, service: ConversationService = Depends(get_conversation_service)) -> MessageSchema:
+def add_message(req: CreateMessageRequest, service: MeetingService = Depends(get_meeting_service)) -> MessageSchema:
     message = Message(
         id=f"m_{uuid4().hex}",
-        agent_id=req.agentId,
+        staff_id=req.staffId,
         content=req.content,
         timestamp=datetime.now(timezone.utc).replace(microsecond=0),
         task_id=req.taskId,
@@ -63,12 +63,12 @@ def add_message(req: CreateMessageRequest, service: ConversationService = Depend
     return MessageSchema.from_domain(saved)
 
 
-@router.get("/{task_id}/files", response_model=list[ThreadFileSchema])
-def list_files(task_id: str) -> list[ThreadFileSchema]:
-    """List files attached to a conversation (user uploads + agent outputs)."""
+@router.get("/{task_id}/files", response_model=list[MeetingFileSchema])
+def list_files(task_id: str) -> list[MeetingFileSchema]:
+    """List files attached to a conversation (user uploads + staff outputs)."""
     from backend.infrastructure.sandbox.thread_files import list_thread_files
 
-    return [ThreadFileSchema.from_record(r) for r in list_thread_files(task_id)]
+    return [MeetingFileSchema.from_record(r) for r in list_thread_files(task_id)]
 
 
 @router.get("/{task_id}/files/download")
@@ -103,17 +103,17 @@ def download_file(task_id: str, rel_path: str = Query(...)):
     )
 
 
-@router.post("/{task_id}/files", response_model=ThreadFileSchema, status_code=201)
+@router.post("/{task_id}/files", response_model=MeetingFileSchema, status_code=201)
 async def upload_file(
     task_id: str,
     file: UploadFile = File(...),
     current_user: User = Depends(current_user_dep),
-) -> ThreadFileSchema:
+) -> MeetingFileSchema:
     """Upload a document into a conversation's shared sandbox workspace.
 
     The file lands in ``{SANDBOX_WORKSPACE}/conv-<hash>/uploads/`` and is recorded
     so the orchestrator provisions the conversation sandbox and injects the
-    sandbox tools for every agent in that chat. In docker/k8s mode the bytes are
+    sandbox tools for every staff in that chat. In docker/k8s mode the bytes are
     also pushed into the live sandbox and backed up to MinIO (best-effort).
     """
     if file.content_type not in _ALLOWED_UPLOAD_TYPES:
@@ -162,7 +162,7 @@ async def upload_file(
     except Exception as exc:  # noqa: BLE001
         logger.warning("push_upload_to_sandbox failed for %s: %s", task_id, exc)
 
-    return ThreadFileSchema.from_record(record)
+    return MeetingFileSchema.from_record(record)
 
 
 def _write_bytes(path: str, content: bytes) -> None:

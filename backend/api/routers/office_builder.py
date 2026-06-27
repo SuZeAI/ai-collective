@@ -11,16 +11,16 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from backend.api.deps import (
     current_owner_id_dep,
-    get_agent_service,
-    get_conversation_service,
+    get_staff_service,
+    get_meeting_service,
     get_llm_service,
     get_office_builder_session_service,
     get_skill_service,
-    get_team_service,
-    get_workspace_service,
+    get_department_service,
+    get_company_service,
 )
-from backend.api.routers.agents import _build_agent_system_prompt
-from backend.api.routers.teams import _activate_team_agents, _seed_team_kickoff_messages
+from backend.api.routers.staff import _build_staff_system_prompt
+from backend.api.routers.departments import _activate_department_staff, _seed_department_kickoff_messages
 from backend.api.schemas.office_builder import (
     ApplyOfficePlanRequest,
     ApplyOfficePlanResponse,
@@ -31,16 +31,16 @@ from backend.api.schemas.office_builder import (
     OfficePlan,
     UpsertOfficeBuilderSessionRequest,
 )
-from backend.api.schemas.workspace import WorkspaceSchema
-from backend.application.service.agent_service import AgentService
-from backend.application.service.conversation_service import ConversationService
+from backend.api.schemas.company import CompanySchema
+from backend.application.service.staff_service import StaffService
+from backend.application.service.meeting_service import MeetingService
 from backend.application.service.llm_service import LLMService
 from backend.application.service.office_builder_session_service import OfficeBuilderSessionService
 from backend.application.service.skill_service import SkillService
-from backend.application.service.team_service import TeamService
-from backend.application.service.workspace_service import WorkspaceService
-from backend.domain.enums import AgentStatus
-from backend.domain.models import Agent, OfficeBuilderSession, Skill, Team, Workspace, can_delete, can_modify, is_visible_to
+from backend.application.service.department_service import DepartmentService
+from backend.application.service.company_service import CompanyService
+from backend.domain.enums import StaffStatus
+from backend.domain.models import Staff, OfficeBuilderSession, Skill, Department, Company, can_delete, can_modify, is_visible_to
 from backend.log import get_logger
 
 
@@ -60,9 +60,9 @@ _PLAN_SCHEMA_TEXT = (
     '      "name": "<department name>",\n'
     '      "description": "<department description>",\n'
     '      "mode": "sequential|mesh|ring|supervisor|tree",\n'
-    '      "humans": [\n'
+    '      "staff": [\n'
     "        {\n"
-    '          "name": "<human-like name>",\n'
+    '          "name": "<realistic person name>",\n'
     '          "role": "<job title>",\n'
     '          "description": "<mission / responsibilities>",\n'
     '          "skills": [\n'
@@ -77,8 +77,8 @@ _PLAN_SCHEMA_TEXT = (
 
 _DESIGNER_RULES_TEXT = (
     "Rules:\n"
-    "- Design a sensible org: typically 2-5 departments with 2-4 humans each and 1-3 skills "
-    "per human, unless the user specifies otherwise.\n"
+    "- Design a sensible org: typically 2-5 departments with 2-4 staff each and 1-3 skills "
+    "per staff member, unless the user specifies otherwise.\n"
     "- tool_name MUST be one of the available tools above, or null.\n"
     "- Prefer free tools (websearch, http, hackernews, youtube) over ones requiring API keys, "
     "unless the user asks for a specific integration.\n"
@@ -95,7 +95,7 @@ def _designer_prompt_intro(tool_presets: list[dict]) -> str:
     return (
         "You are an expert AI organization designer for the AI Collective platform. "
         "The user wants to build a full OFFICE through conversation. An office contains "
-        "multiple DEPARTMENTS (teams); each department contains HUMANS (AI agents); each "
+        "multiple DEPARTMENTS (departments); each department contains STAFF (AI staff); each "
         "human has SKILLS, and each skill may be linked to one TOOL.\n\n"
         "Available tools (use the exact tool_name, or null for a knowledge-only skill):\n"
         f"{tool_lines}\n\n"
@@ -159,8 +159,8 @@ def _sanitize_plan(raw: dict, available_tools: set[str]) -> OfficePlan:
     for dept in plan.departments:
         if dept.mode not in TEAM_MODES:
             dept.mode = "sequential"
-        for human in dept.humans:
-            for skill in human.skills:
+        for member in dept.staff:
+            for skill in member.skills:
                 if skill.tool_name and skill.tool_name not in available_tools:
                     get_logger().warning(
                         "Office builder: dropping unknown tool '%s' from skill '%s'",
@@ -310,7 +310,7 @@ async def chat_office_plan_stream(
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
-# ─── Plan application (create skills → humans → departments → office) ───────
+# ─── Plan application (create skills → staff → departments → office) ───────
 
 def _preset_default_config(tool_name: str | None, presets_by_tool: dict[str, dict]) -> dict:
     if not tool_name:
@@ -328,10 +328,10 @@ def _preset_default_config(tool_name: str | None, presets_by_tool: dict[str, dic
 def apply_office_plan(
     req: ApplyOfficePlanRequest,
     skill_service: SkillService = Depends(get_skill_service),
-    agent_service: AgentService = Depends(get_agent_service),
-    team_service: TeamService = Depends(get_team_service),
-    workspace_service: WorkspaceService = Depends(get_workspace_service),
-    conv_service: ConversationService = Depends(get_conversation_service),
+    staff_service: StaffService = Depends(get_staff_service),
+    department_service: DepartmentService = Depends(get_department_service),
+    company_service: CompanyService = Depends(get_company_service),
+    conv_service: MeetingService = Depends(get_meeting_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> ApplyOfficePlanResponse:
     plan = req.plan
@@ -383,73 +383,73 @@ def apply_office_plan(
         created_skill_ids.append(saved.id)
         return saved.id
 
-    agent_ids: list[str] = []
-    team_ids: list[str] = []
+    staff_ids: list[str] = []
+    department_ids: list[str] = []
 
     for dept in plan.departments:
-        dept_agent_ids: list[str] = []
-        for human in dept.humans:
+        dept_staff_ids: list[str] = []
+        for member in dept.staff:
             skill_ids = [
                 _resolve_skill(s.name, s.description, s.tool_name)
-                for s in human.skills
+                for s in member.skills
                 if s.name.strip()
             ]
-            description = human.description.strip() or f"{human.role} agent"
-            saved_agent = agent_service.upsert_agent(
-                Agent(
+            description = human.description.strip() or f"{human.role} staff"
+            saved_staff = staff_service.upsert_staff(
+                Staff(
                     id=f"agent_{uuid4().hex}",
                     name=human.name.strip() or human.role,
                     role=human.role.strip() or "Specialist",
                     description=description,
                     skill_ids=skill_ids,
-                    status=AgentStatus.active,
+                    status=StaffStatus.active,
                     avatar=(human.name.strip()[:1] or "A").upper(),
-                    system_prompt=_build_agent_system_prompt(
+                    system_prompt=_build_staff_system_prompt(
                         name=human.name, role=human.role, description=description
                     ),
                     owner_id=owner_id,
                 )
             )
-            dept_agent_ids.append(saved_agent.id)
-            agent_ids.append(saved_agent.id)
+            dept_staff_ids.append(saved_staff.id)
+            staff_ids.append(saved_staff.id)
 
         mode = dept.mode if dept.mode in TEAM_MODES else "sequential"
-        saved_team = team_service.upsert_team(
-            Team(
+        saved_team = department_service.upsert_department(
+            Department(
                 id=f"team_{uuid4().hex}",
                 name=dept.name.strip() or "Department",
                 description=dept.description.strip() or f"{dept.name} department",
-                agents=dept_agent_ids,
-                active_tasks=1 if dept_agent_ids else 0,
+                staff=dept_staff_ids,
+                active_tasks=1 if dept_staff_ids else 0,
                 avatar=(dept.name.strip()[:1] or "T").upper(),
                 mode=mode,
                 owner_id=owner_id,
             )
         )
-        team_ids.append(saved_team.id)
-        # Mirror the manual team-creation flow (activation + kickoff messages).
-        _activate_team_agents(saved_team.agents, agent_service)
-        _seed_team_kickoff_messages(saved_team, agent_service, conv_service)
+        department_ids.append(saved_team.id)
+        # Mirror the manual department-creation flow (activation + kickoff messages).
+        _activate_department_staff(saved_team.staff, staff_service)
+        _seed_department_kickoff_messages(saved_team, staff_service, conv_service)
 
-    workspace = workspace_service.upsert_workspace(
-        Workspace(
+    workspace = company_service.upsert_workspace(
+        Company(
             id=f"ws_{uuid4().hex}",
             name=plan.name.strip(),
             description=plan.description.strip(),
-            team_ids=team_ids,
-            primary_team_id=team_ids[0] if team_ids else "",
+            department_ids=department_ids,
+            primary_department_id=department_ids[0] if department_ids else "",
             platform_hooks=[],
             created_at=datetime.now(timezone.utc),
-            company_type=(plan.company_type or "general"),
+            type=(plan.type or "general"),
             avatar=(plan.name.strip()[:1] or "W").upper(),
             owner_id=owner_id,
         )
     )
 
     return ApplyOfficePlanResponse(
-        workspace=WorkspaceSchema.from_domain(workspace),
-        team_ids=team_ids,
-        agent_ids=agent_ids,
+        workspace=CompanySchema.from_domain(workspace),
+        department_ids=department_ids,
+        staff_ids=staff_ids,
         skill_ids=created_skill_ids,
         reused_skill_ids=reused_skill_ids,
     )
@@ -511,7 +511,7 @@ def upsert_session(
         plan=req.plan.model_dump() if req.plan else None,
         created_at=existing.created_at if existing else now,
         updated_at=now,
-        workspace_id=req.workspaceId or (existing.workspace_id if existing else ""),
+        company_id=req.companyId or (existing.company_id if existing else ""),
         owner_id=existing.owner_id if existing else owner_id,
     )
     saved = service.upsert_session(session)

@@ -111,7 +111,7 @@ def _sc_headers(token: str) -> Dict[str, str]:
     return {
         "x-api-key": token,
         "Content-Type": "application/json",
-        "User-Agent": "ai-collective/reddit-tool",
+        "User-Staff": "ai-collective/reddit-tool",
     }
 
 

@@ -1,6 +1,6 @@
 """SandboxToolkit — high-level sandbox tools (bash, ls, glob, grep, read_file, write_file, str_replace).
 
-All operations are strictly confined to the agent run's thread workspace:
+All operations are strictly confined to the staff run's thread workspace:
   {SANDBOX_WORKSPACE}/{thread_id}/
 
 File tools reject any path outside that boundary.
@@ -62,7 +62,7 @@ def _get_sandbox(sandbox=None, session_id: str | None = None):
 class SandboxToolkit(BaseToolkit):
     """All-in-one sandbox toolkit with strict workspace confinement.
 
-    Every agent run is isolated inside ``{SANDBOX_WORKSPACE}/{thread_id}/``.
+    Every staff run is isolated inside ``{SANDBOX_WORKSPACE}/{thread_id}/``.
     All file operations reject paths outside that directory; bash commands
     start in that directory with HOME/TMPDIR scoped there and cd restricted.
     """
@@ -156,14 +156,14 @@ class SandboxToolkit(BaseToolkit):
     async def sandbox_bash(self, description: str, command: str, session_id: str = "default") -> Any:
         """Execute a bash command inside the sandbox workspace.
 
-        The command runs inside the agent's isolated workspace directory.
+        The command runs inside the staff's isolated workspace directory.
         ``cd`` is restricted so the shell cannot leave the workspace.
         HOME and TMPDIR are scoped to the workspace.
 
         Args:
             description: Brief explanation of why this command is being run.
             command: The bash command to execute (supports multi-line with &&).
-            session_id: Named sub-session within this agent run (default: "default").
+            session_id: Named sub-session within this staff run (default: "default").
         """
         from backend.infrastructure.sandbox.local_sandbox import LocalSandboxAdapter
         from backend.infrastructure.sandbox.sandbox_session import get_current_thread_id
@@ -188,7 +188,7 @@ class SandboxToolkit(BaseToolkit):
     async def sandbox_ls(self, description: str, path: str) -> Any:
         """List the contents of a directory up to 2 levels deep.
 
-        Path must be inside the agent's sandbox workspace.
+        Path must be inside the staff's sandbox workspace.
 
         Args:
             description: Brief explanation of why you are listing this directory.
@@ -220,7 +220,7 @@ class SandboxToolkit(BaseToolkit):
     ) -> Any:
         """Find files matching a glob pattern under a directory in the workspace.
 
-        Path must be inside the agent's sandbox workspace.
+        Path must be inside the staff's sandbox workspace.
 
         Args:
             description: Brief explanation of why you are searching for these paths.
@@ -262,7 +262,7 @@ class SandboxToolkit(BaseToolkit):
     ) -> Any:
         """Search for matching lines inside files within the workspace.
 
-        Path must be inside the agent's sandbox workspace.
+        Path must be inside the staff's sandbox workspace.
 
         Args:
             description: Brief explanation of why you are searching file contents.
@@ -315,7 +315,7 @@ class SandboxToolkit(BaseToolkit):
     ) -> Any:
         """Read the contents of a file inside the workspace.
 
-        Path must be inside the agent's sandbox workspace.
+        Path must be inside the staff's sandbox workspace.
 
         Args:
             description: Brief explanation of why you are reading this file.
@@ -350,7 +350,7 @@ class SandboxToolkit(BaseToolkit):
         """Write text content to a file inside the workspace.
 
         Parent directories are created automatically.
-        Path must be inside the agent's sandbox workspace.
+        Path must be inside the staff's sandbox workspace.
 
         Args:
             description: Brief explanation of why you are writing this file.
@@ -386,7 +386,7 @@ class SandboxToolkit(BaseToolkit):
         """Replace a substring in a file inside the workspace.
 
         When replace_all is False (default), old_str must appear exactly once.
-        Path must be inside the agent's sandbox workspace.
+        Path must be inside the staff's sandbox workspace.
 
         Args:
             description: Brief explanation of why you are replacing this string.

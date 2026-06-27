@@ -12,7 +12,7 @@ logger = get_logger(__name__)
 _LEAK_WARN_THRESHOLD = 1000
 
 # Cap on queued-but-not-yet-consumed human messages per run. Protects against
-# a client flooding the queue faster than agent turns can drain it.
+# a client flooding the queue faster than staff turns can drain it.
 _MAX_PENDING_USER_MESSAGES = 50
 
 
@@ -20,8 +20,8 @@ class _RunHandle:
     """Per-run control handle: a cancel flag plus a human-in-the-loop inbox.
 
     User messages posted while the run is streaming are queued here and
-    drained by the next agent node, so mid-run guidance lands in the context
-    of every subsequent agent turn.
+    drained by the next staff node, so mid-run guidance lands in the context
+    of every subsequent staff turn.
     """
 
     __slots__ = ("_event", "_messages", "_msg_lock", "_pause_event", "_requests")
@@ -43,7 +43,7 @@ class _RunHandle:
         return self._event.is_set()
 
     def pause(self) -> None:
-        """Hold the run: agent nodes wait at their turn boundary until resume."""
+        """Hold the run: staff nodes wait at their turn boundary until resume."""
         self._pause_event.set()
 
     def resume(self) -> None:
@@ -55,7 +55,7 @@ class _RunHandle:
         return self._pause_event.is_set() and not self._event.is_set()
 
     def post_message(self, content: str) -> str | None:
-        """Queue a human message for the next agent turn. Returns its id."""
+        """Queue a human message for the next staff turn. Returns its id."""
         with self._msg_lock:
             if len(self._messages) >= _MAX_PENDING_USER_MESSAGES:
                 return None
@@ -145,7 +145,7 @@ def signal_pause(task_id: str) -> bool:
 
 
 def signal_resume(task_id: str) -> bool:
-    """Release a held run so the next agent turn proceeds. False when not active."""
+    """Release a held run so the next staff turn proceeds. False when not active."""
     with _lock:
         handle = _active.get(task_id)
     if not handle:

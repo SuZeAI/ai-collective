@@ -9,7 +9,7 @@ from backend.domain.models import Message
 from backend.infrastructure.repositories._helpers import parse_iso_utc
 
 
-class MongoConversationRepository:
+class MongoMeetingRepository:
     def __init__(self, db: pymongo.database.Database) -> None:
         self._col = db["conversations"]
         self._col.create_index("id", unique=True, background=True)
@@ -20,7 +20,7 @@ class MongoConversationRepository:
         dt = parse_iso_utc(ts) if ts else datetime.now(timezone.utc).replace(microsecond=0)
         return Message(
             id=str(item["id"]),
-            agent_id=str(item.get("agentId", "")),
+            staff_id=str(item.get("agentId", "")),
             content=str(item.get("content", "")),
             timestamp=dt,
             task_id=(str(item.get("taskId")) if item.get("taskId") is not None else None),
@@ -30,7 +30,7 @@ class MongoConversationRepository:
         return {
             "id": m.id,
             "_id": m.id,
-            "agentId": m.agent_id,
+            "agentId": m.staff_id,
             "content": m.content,
             "timestamp": m.timestamp.isoformat(),
             "taskId": m.task_id,

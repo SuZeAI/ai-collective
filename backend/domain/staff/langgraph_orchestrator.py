@@ -6,9 +6,9 @@ from uuid import uuid4
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 
-from backend.application.ports.agent_graph import (
-    AgentGraphOrchestrator,
-    GraphAgentDefinition,
+from backend.application.ports.staff_graph import (
+    StaffGraphOrchestrator,
+    GraphStaffDefinition,
     GraphContextProvider,
     GraphRunResult,
     GraphTurn,
@@ -16,8 +16,8 @@ from backend.application.ports.agent_graph import (
 from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
-from backend.domain.agent.token_budget import apply_context_token_budget
-from backend.domain.agent._graph_runtime import (
+from backend.domain.staff.token_budget import apply_context_token_budget
+from backend.domain.staff._graph_runtime import (
     attach_conversation_sandbox,
     drain_human_guidance,
     ensure_working_memory,
@@ -35,9 +35,9 @@ from backend.domain.agent._graph_runtime import (
 
 from backend.api.settings import settings
 
-MAX_CONTEXT_TOKENS = max(1024, settings.agent.context_token_limit)
-RESERVED_OUTPUT_TOKENS = max(256, settings.agent.output_token_reserve)
-SUBAGENT_MAX_CONCURRENT = max(1, settings.agent.subagent_max_concurrent)
+MAX_CONTEXT_TOKENS = max(1024, settings.staff.context_token_limit)
+RESERVED_OUTPUT_TOKENS = max(256, settings.staff.output_token_reserve)
+SUBAGENT_MAX_CONCURRENT = max(1, settings.staff.subagent_max_concurrent)
 
 
 class MultiAgentState(TypedDict):
@@ -45,16 +45,16 @@ class MultiAgentState(TypedDict):
     original_input: str
     turns: list[GraphTurn]
     final_response: str
-    final_agent: str | None
+    final_staff: str | None
     rounds: int
 
 
-class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
+class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
     async def run(
         self,
         *,
         user_input: str,
-        agents: list[GraphAgentDefinition],
+        staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
         conversation_id: str | None = None,
@@ -62,16 +62,16 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
     ) -> GraphRunResult:
-        if not agents:
-            raise ValueError("At least one agent definition is required")
+        if not staff:
+            raise ValueError("At least one staff_member definition is required")
 
-        selected_agents = agents[: max(1, max_rounds)]
+        selected_agents = staff[: max(1, max_rounds)]
         builder: StateGraph = StateGraph(MultiAgentState)
-        for i, agent in enumerate(selected_agents):
+        for i, staff_member in enumerate(selected_agents):
             builder.add_node(
-                agent.name,
+                staff_member.name,
                 self._make_llm_node(
-                    agent=agent,
+                    staff_member=staff_member,
                     llm=llm,
                     conversation_id=conversation_id,
                     graph_context_provider=graph_context_provider,
@@ -79,9 +79,9 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                 ),
             )
             if i < len(selected_agents) - 1:
-                builder.add_edge(agent.name, selected_agents[i + 1].name)
+                builder.add_edge(staff_member.name, selected_agents[i + 1].name)
             else:
-                builder.add_edge(agent.name, END)
+                builder.add_edge(staff_member.name, END)
 
         builder.add_edge(START, selected_agents[0].name)
         graph = builder.compile()
@@ -91,7 +91,7 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
             "original_input": user_input,
             "turns": [],
             "final_response": "",
-            "final_agent": None,
+            "final_staff": None,
             "rounds": 0,
         }
 
@@ -107,12 +107,12 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
         final_state = await run_to_final_state(graph, initial, len(selected_agents))
         turns = list(final_state.get("turns", []))
         final_response = final_state.get("final_response") or (turns[-1].content if turns else "")
-        final_agent = final_state.get("final_agent")
+        final_staff = final_state.get("final_staff")
         rounds = int(final_state.get("rounds", len(turns)))
         return GraphRunResult(
             turns=turns,
             final_response=final_response,
-            final_agent=final_agent,
+            final_staff=final_staff,
             rounds=rounds,
         )
 
@@ -120,7 +120,7 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
         self,
         *,
         user_input: str,
-        agents: list[GraphAgentDefinition],
+        staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
         conversation_id: str | None = None,
@@ -129,16 +129,16 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
     ):
         """Streaming version using get_stream_writer for real-time custom events"""
-        if not agents:
-            raise ValueError("At least one agent definition is required")
+        if not staff:
+            raise ValueError("At least one staff_member definition is required")
 
-        selected_agents = agents[: max(1, max_rounds)]
+        selected_agents = staff[: max(1, max_rounds)]
         builder: StateGraph = StateGraph(MultiAgentState)
-        for i, agent in enumerate(selected_agents):
+        for i, staff_member in enumerate(selected_agents):
             builder.add_node(
-                agent.name,
+                staff_member.name,
                 self._make_llm_node(
-                    agent=agent,
+                    staff_member=staff_member,
                     llm=llm,
                     conversation_id=conversation_id,
                     graph_context_provider=graph_context_provider,
@@ -146,9 +146,9 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                 ),
             )
             if i < len(selected_agents) - 1:
-                builder.add_edge(agent.name, selected_agents[i + 1].name)
+                builder.add_edge(staff_member.name, selected_agents[i + 1].name)
             else:
-                builder.add_edge(agent.name, END)
+                builder.add_edge(staff_member.name, END)
 
         builder.add_edge(START, selected_agents[0].name)
         graph = builder.compile()
@@ -158,7 +158,7 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
             "original_input": user_input,
             "turns": [],
             "final_response": "",
-            "final_agent": None,
+            "final_staff": None,
             "rounds": 0,
         }
 
@@ -182,7 +182,7 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
     def _make_llm_node(
         self,
         *,
-        agent: GraphAgentDefinition,
+        staff_member: GraphStaffDefinition,
         llm: LLMProvider,
         conversation_id: str | None,
         graph_context_provider: GraphContextProvider | None,
@@ -192,14 +192,14 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
             stream_writer = get_stream_writer()
 
             # Human-in-the-loop: if the user interrupted the run, hold here
-            # (before this agent starts) until they resume.
+            # (before this staff_member starts) until they resume.
             await wait_while_paused(
                 conversation_id=conversation_id,
                 stream_writer=stream_writer,
-                agent_name=agent.name,
+                staff_name=staff_member.name,
             )
 
-            # Generate a unique thread_id for this agent turn.
+            # Generate a unique thread_id for this staff_member turn.
             # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
             from backend.infrastructure.sandbox.sandbox_session import (
                 new_thread_id as _new_thread_id,
@@ -207,29 +207,29 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
             )
             from backend.api.settings import settings as _settings
             sandbox_thread_id = _new_thread_id(
-                agent_name=agent.name,
+                staff_name=staff_member.name,
                 task_id=conversation_id,
             )
             sandbox_workspace = _get_thread_workspace(
                 _settings.sandbox_workspace or "", sandbox_thread_id
             )
 
-            # Stream: Agent starting
+            # Stream: Staff starting
             stream_writer({
                 "type": EventType.AGENT_START.value,
-                "agent_name": agent.name,
-                "agent_role": agent.role,
+                "agent_name": staff_member.name,
+                "staff_role": staff_member.role,
                 "turn": state["rounds"] + 1,
                 "sandbox_thread_id": sandbox_thread_id,
                 "sandbox_workspace": sandbox_workspace,
             })
 
             bound_tools = []
-            if agent.tools:
-                for toolkit in agent.tools.values():
+            if staff_member.tools:
+                for toolkit in staff_member.tools.values():
                     bound_tools.extend(toolkit.get_tools())
 
-            # Default human-in-the-loop tool: every agent can interrupt and ask
+            # Default human-in-the-loop tool: every staff_member can interrupt and ask
             # the user a question mid-run (subagents inherit it too).
             if conversation_id:
                 from backend.domain.tools.ask_user import AskUserToolkit
@@ -237,29 +237,29 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                 bound_tools.extend(
                     AskUserToolkit(
                         conversation_id=conversation_id,
-                        agent_name=agent.name,
+                        staff_name=staff_member.name,
                     ).get_tools()
                 )
             # Default memory tools: save/recall shared working-memory notes.
-            bound_tools.extend(memory_toolkit_tools(conversation_id, agent.name))
+            bound_tools.extend(memory_toolkit_tools(conversation_id, staff_member.name))
 
             # Sandbox: when this chat has files, scope the run to the shared
             # conversation workspace and auto-inject the sandbox tools (before
             # TaskToolkit so subagents inherit them).
             attach_conversation_sandbox(
-                bound_tools, conversation_id=conversation_id, agent_name=agent.name
+                bound_tools, conversation_id=conversation_id, staff_name=staff_member.name
             )
 
-            # Agent Mode: expose the `task` tool so this agent can delegate to
+            # Staff Mode: expose the `task` tool so this staff_member can delegate to
             # subagents (which inherit these tools minus `task`).
-            if agent.subagent_enabled:
+            if staff_member.subagent_enabled:
                 from backend.domain.tools.task import TaskToolkit
 
                 task_toolkit = TaskToolkit(
                     llm=llm,
                     subagent_tools=list(bound_tools),
                     max_concurrent=SUBAGENT_MAX_CONCURRENT,
-                    parent_agent_name=agent.name,
+                    parent_staff_name=staff_member.name,
                 )
                 bound_tools.extend(task_toolkit.get_tools())
 
@@ -268,11 +268,11 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
             # Stream: Building context
             stream_writer({
                 "type": EventType.CONTEXT_BUILDING.value,
-                "agent_name": agent.name,
+                "agent_name": staff_member.name,
             })
 
             # Human-in-the-loop: pick up any user messages posted mid-run so
-            # this agent (and every one after it) sees the latest guidance.
+            # this staff_member (and every one after it) sees the latest guidance.
             human_guidance = drain_human_guidance(
                 conversation_id=conversation_id,
                 stream_writer=stream_writer,
@@ -291,13 +291,13 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                     # Stream: Context retrieved
                     stream_writer({
                         "type": EventType.CONTEXT_RETRIEVED.value,
-                        "agent_name": agent.name,
+                        "agent_name": staff_member.name,
                         "node_ids": pack.node_ids,
                         "edge_ids": pack.edge_ids,
                         "chunk_ids": pack.chunk_ids,
                     })
 
-            # Shared working memory: in a pipeline only the previous agent's
+            # Shared working memory: in a pipeline only the previous staff_member's
             # output flows forward — the digest restores everything earlier.
             ensure_working_memory(conversation_id, state["original_input"])
             if human_guidance:
@@ -312,7 +312,7 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
 
             budget_result = apply_context_token_budget(
                 llm=llm,
-                system_prompt=agent.system_prompt,
+                system_prompt=staff_member.system_prompt,
                 user_input=user_input,
                 max_context_tokens=MAX_CONTEXT_TOKENS,
                 reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
@@ -322,7 +322,7 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
             # Stream: LLM processing started
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
-                "agent_name": agent.name,
+                "agent_name": staff_member.name,
                 "context_length": len(user_input),
                 "context_tokens": budget_result.input_tokens,
                 "context_token_limit": budget_result.max_input_tokens,
@@ -333,23 +333,23 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
             })
             
             output = await safe_chat(llm,
-                system=agent.system_prompt,
+                system=staff_member.system_prompt,
                 user=user_input,
                 tools=bound_tools or None,
-                parallel_tools=agent.subagent_enabled,
+                parallel_tools=staff_member.subagent_enabled,
             )
 
             # Stream: LLM response received
             stream_writer({
                 "type": EventType.LLM_RESPONSE_COMPLETE.value,
-                "agent_name": agent.name,
+                "agent_name": staff_member.name,
                 "response_length": len(output),
             })
 
             next_turn = GraphTurn(
                 turn=state["rounds"] + 1,
-                agent_name=agent.name,
-                agent_role=agent.role,
+                staff_name=staff_member.name,
+                staff_role=staff_member.role,
                 content=output,
             )
 
@@ -357,7 +357,7 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
             # pipeline stages, not just the immediate next one.
             record_turn_in_memory(
                 conversation_id,
-                agent_name=agent.name,
+                staff_name=staff_member.name,
                 turn=state["rounds"] + 1,
                 content=output,
                 kind="result",
@@ -366,15 +366,15 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
             if graph_context_provider and conversation_id:
                 graph_context_provider.ingest_message(
                     conversation_id=conversation_id,
-                    message_id=f"agent-{agent.name}-{uuid4().hex}",
-                    speaker=agent.name,
+                    message_id=f"staff_member-{staff_member.name}-{uuid4().hex}",
+                    speaker=staff_member.name,
                     content=output,
                     config=graph_config,
                 )
                 # Stream: Message ingested
                 stream_writer({
                     "type": EventType.MESSAGE_INGESTED.value,
-                    "agent_name": agent.name,
+                    "agent_name": staff_member.name,
                 })
 
             # Stream: Turn completed
@@ -388,7 +388,7 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
                 "input": output,
                 "turns": [*state["turns"], next_turn],
                 "final_response": output,
-                "final_agent": agent.name,
+                "final_staff": staff_member.name,
                 "rounds": state["rounds"] + 1,
             }
 

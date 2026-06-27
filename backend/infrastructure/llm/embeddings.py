@@ -25,8 +25,8 @@ from typing import Any, Protocol
 from backend.api.settings import settings
 from backend.domain.memory.vectors import tokenize
 from backend.infrastructure.llm.usage_tracker import (
-    current_usage_agent,
-    current_usage_team,
+    current_usage_staff,
+    current_usage_department,
     current_usage_user,
     _recorder,
 )
@@ -121,8 +121,8 @@ class LangChainEmbeddingProvider:
                 input_tokens=approx_tokens,
                 output_tokens=0,
                 user_id=current_usage_user.get(),
-                agent_name=current_usage_agent.get(),
-                team_id=current_usage_team.get(),
+                staff_name=current_usage_staff.get(),
+                department_id=current_usage_department.get(),
             )
         except Exception:  # noqa: BLE001 — usage tracking never breaks embedding
             logger.debug("Failed to record embedding usage", exc_info=True)

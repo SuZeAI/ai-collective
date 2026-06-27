@@ -26,7 +26,7 @@ def resolve_kimi_model(model: str) -> str:
 
 
 class KimiLangChainProvider(LangChainLLMProvider):
-    """Moonshot AI Kimi as an agent LLM backend (OpenAI-compatible chat API)."""
+    """Moonshot AI Kimi as an staff LLM backend (OpenAI-compatible chat API)."""
 
     def __init__(
         self,

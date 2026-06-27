@@ -18,17 +18,17 @@ from backend.domain.errors import NotFoundError, ValidationError
 from backend.api.routers import (
     activity_feed,
     admin_monitoring,
-    agents,
+    staff,
     analytics,
     auth,
     connections,
     consumption,
-    conversations,
+    meetings,
     documents,
     epics,
     health,
     llm,
-    marketplace,
+    recruiting,
     office_builder,
     planner,
     projects,
@@ -36,8 +36,8 @@ from backend.api.routers import (
     skills,
     sprints,
     tasks,
-    teams,
-    workspaces,
+    departments,
+    companies,
     webhook,
 )
 
@@ -108,16 +108,16 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router, prefix=settings.api_prefix)
     app.include_router(activity_feed.router, prefix=settings.api_prefix)
-    app.include_router(agents.router, prefix=settings.api_prefix)
+    app.include_router(staff.router, prefix=settings.api_prefix)
     app.include_router(skills.router, prefix=settings.api_prefix)
-    app.include_router(teams.router, prefix=settings.api_prefix)
+    app.include_router(departments.router, prefix=settings.api_prefix)
     app.include_router(tasks.router, prefix=settings.api_prefix)
     app.include_router(projects.router, prefix=settings.api_prefix)
     app.include_router(epics.router, prefix=settings.api_prefix)
     app.include_router(sprints.router, prefix=settings.api_prefix)
     app.include_router(planner.router, prefix=settings.api_prefix)
-    app.include_router(marketplace.router, prefix=settings.api_prefix)
-    app.include_router(conversations.router, prefix=settings.api_prefix)
+    app.include_router(recruiting.router, prefix=settings.api_prefix)
+    app.include_router(meetings.router, prefix=settings.api_prefix)
     app.include_router(documents.router, prefix=settings.api_prefix)
     app.include_router(analytics.router, prefix=settings.api_prefix)
     app.include_router(consumption.router, prefix=settings.api_prefix)
@@ -125,7 +125,7 @@ def create_app() -> FastAPI:
     app.include_router(llm.router, prefix=settings.api_prefix)
     app.include_router(office_builder.router, prefix=settings.api_prefix)
     app.include_router(auth.router, prefix=settings.api_prefix)
-    app.include_router(workspaces.router, prefix=settings.api_prefix)
+    app.include_router(companies.router, prefix=settings.api_prefix)
     app.include_router(connections.router, prefix=settings.api_prefix)
     app.include_router(webhook.router, prefix=settings.api_prefix)
     app.include_router(admin_monitoring.router, prefix=settings.api_prefix)

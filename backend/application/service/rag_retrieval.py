@@ -1,4 +1,4 @@
-"""RAG retrieval — fetches 'additional information' to augment agent context.
+"""RAG retrieval — fetches 'additional information' to augment staff context.
 
 A single configurable retrieval mode over the conversation knowledge graph's
 chunks + entities/relations:
@@ -126,7 +126,7 @@ class RagRetrievalService:
             return
         ids = list(pending)
         vectors = embedder.embed_many_sync([pending[c] for c in ids])
-        scope = MemoryScope(workspace_id=conversation_id)  # per-conversation namespace
+        scope = MemoryScope(company_id=conversation_id)  # per-conversation namespace
         for cid, vec in zip(ids, vectors):
             if vec is not None:
                 self._vector_store.upsert(f"{conversation_id}::{cid}", vec, scope)
@@ -141,7 +141,7 @@ class RagRetrievalService:
         if qvec is None:
             return self._retrieve_bm25(query, chunks)
         hits = self._vector_store.search(
-            qvec, top_k=self._top_k, scope=MemoryScope(workspace_id=conversation_id)
+            qvec, top_k=self._top_k, scope=MemoryScope(company_id=conversation_id)
         )
         out: list[RagHit] = []
         for hit in hits:

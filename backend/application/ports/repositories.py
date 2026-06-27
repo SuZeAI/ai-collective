@@ -5,9 +5,9 @@ from typing import Protocol
 
 from backend.domain.memory.knowledge_graph import ConversationKnowledgeGraph
 from backend.domain.models import (
-    Agent,
+    Staff,
     Skill,
-    Team,
+    Department,
     Task,
     Epic,
     Message,
@@ -20,21 +20,21 @@ from backend.domain.models import (
     ThirdPartyConnection,
     TokenUsageRecord,
     User,
-    Workspace,
+    Company,
 )
 
 
-class AgentRepository(Protocol):
-    def list(self) -> list[Agent]:
+class StaffRepository(Protocol):
+    def list(self) -> list[Staff]:
         ...
 
-    def get(self, agent_id: str) -> Agent | None:
+    def get(self, staff_id: str) -> Staff | None:
         ...
 
-    def upsert(self, agent: Agent) -> Agent:
+    def upsert(self, staff: Staff) -> Staff:
         ...
 
-    def delete(self, agent_id: str) -> None:
+    def delete(self, staff_id: str) -> None:
         ...
 
 
@@ -52,17 +52,17 @@ class SkillRepository(Protocol):
         ...
 
 
-class TeamRepository(Protocol):
-    def list(self) -> list[Team]:
+class DepartmentRepository(Protocol):
+    def list(self) -> list[Department]:
         ...
 
-    def get(self, team_id: str) -> Team | None:
+    def get(self, department_id: str) -> Department | None:
         ...
 
-    def upsert(self, team: Team) -> Team:
+    def upsert(self, department: Department) -> Department:
         ...
 
-    def delete(self, team_id: str) -> None:
+    def delete(self, department_id: str) -> None:
         ...
 
 
@@ -131,7 +131,7 @@ class SprintRepository(Protocol):
         ...
 
 
-class ConversationRepository(Protocol):
+class MeetingRepository(Protocol):
     def list(self, task_id: str | None = None) -> list[Message]:
         ...
 
@@ -186,17 +186,17 @@ class OfficeBuilderSessionRepository(Protocol):
         ...
 
 
-class WorkspaceRepository(Protocol):
-    def list(self) -> list[Workspace]:
+class CompanyRepository(Protocol):
+    def list(self) -> list[Company]:
         ...
 
-    def get(self, workspace_id: str) -> Workspace | None:
+    def get(self, company_id: str) -> Company | None:
         ...
 
-    def upsert(self, workspace: Workspace) -> Workspace:
+    def upsert(self, workspace: Company) -> Company:
         ...
 
-    def delete(self, workspace_id: str) -> None:
+    def delete(self, company_id: str) -> None:
         ...
 
 

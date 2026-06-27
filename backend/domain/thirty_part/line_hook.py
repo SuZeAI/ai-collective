@@ -44,7 +44,7 @@ class LINEHookProcessor(BaseHookProcessor):
             user_id = str(source.get("userId", ""))
             reply_token = event.get("replyToken", "")
             # Prefer push-by-userId: replyToken is one-time and expires (~1 min),
-            # and the agent reply is produced asynchronously, by which point the
+            # and the staff reply is produced asynchronously, by which point the
             # reply token is usually already invalid. Only fall back to the reply
             # API (with an explicit prefix) when no userId is available.
             chat_id = user_id or (f"reply:{reply_token}" if reply_token else "")

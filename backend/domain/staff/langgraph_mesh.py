@@ -9,9 +9,9 @@ from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 
 from backend.domain.prompt.routing_prompt import get_routing_guidance
-from backend.application.ports.agent_graph import (
-    AgentGraphOrchestrator,
-    GraphAgentDefinition,
+from backend.application.ports.staff_graph import (
+    StaffGraphOrchestrator,
+    GraphStaffDefinition,
     GraphContextProvider,
     GraphRunResult,
     GraphTurn,
@@ -19,8 +19,8 @@ from backend.application.ports.agent_graph import (
 from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
-from backend.domain.agent.token_budget import apply_context_token_budget
-from backend.domain.agent._graph_runtime import (
+from backend.domain.staff.token_budget import apply_context_token_budget
+from backend.domain.staff._graph_runtime import (
     FANOUT_SYNTHESIS_GUIDANCE,
     MESH_FANOUT_MAX_CONCURRENT,
     attach_conversation_sandbox,
@@ -41,33 +41,33 @@ from backend.log import get_logger
 
 logger = get_logger(__name__)
 
-MAX_CONTEXT_TOKENS = max(1024, settings.agent.context_token_limit)
-RESERVED_OUTPUT_TOKENS = max(256, settings.agent.output_token_reserve)
-SUBAGENT_MAX_CONCURRENT = max(1, settings.agent.subagent_max_concurrent)
+MAX_CONTEXT_TOKENS = max(1024, settings.staff.context_token_limit)
+RESERVED_OUTPUT_TOKENS = max(256, settings.staff.output_token_reserve)
+SUBAGENT_MAX_CONCURRENT = max(1, settings.staff.subagent_max_concurrent)
 
 
 class MultiAgentMeshState(TypedDict):
-    """State for multi-agent mesh topology with central hub"""
+    """State for multi-staff_member mesh topology with central hub"""
     input: str
     original_input: str
     turns: list[GraphTurn]
     conversation_history: dict[str, list[str]]
     current_agent: str
-    hub_agent: str
-    agent_names: list[str]
+    hub_staff: str
+    staff_names: list[str]
     discussion_ended: bool
     final_response: str
     last_action: str
     rounds: int
 
 
-class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
+class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
     """
-    Orchestrator for multi-agent mesh topology where one central agent
-    connects bidirectionally to all other agents. The conditional function
-    determines which agent speaks next based on conversation content.
+    Orchestrator for multi-staff_member mesh topology where one central staff_member
+    connects bidirectionally to all other staff. The conditional function
+    determines which staff_member speaks next based on conversation content.
     
-    Topology: 1 hub agent ↔ N spoke agents
+    Topology: 1 hub staff_member ↔ N spoke staff
     Flow: Hub → Agent1 → Agent2 or Hub or END
     """
 
@@ -101,7 +101,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         self,
         *,
         user_input: str,
-        agents: list[GraphAgentDefinition],
+        staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
         conversation_id: str | None = None,
@@ -110,30 +110,30 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
     ) -> GraphRunResult:
         """
-        Execute multi-agent mesh graph where all agents can connect to each other.
+        Execute multi-staff_member mesh graph where all staff can connect to each other.
         
         Args:
             user_input: Initial input to start the discussion
-            agents: List of agents. First agent acts as hub/starter.
-            llm: LLM provider for agent responses
+            staff: List of staff. First staff_member acts as hub/starter.
+            llm: LLM provider for staff_member responses
             max_rounds: Maximum discussion rounds before forced stop
             
         Returns:
             GraphRunResult with conversation turns and final response
         """
-        if not agents:
-            raise ValueError("At least one agent definition is required")
+        if not staff:
+            raise ValueError("At least one staff_member definition is required")
 
         logger.debug(
-            "MeshOrchestrator.run: agents=%s max_rounds=%d conversation_id=%s",
-            [a.name for a in agents], max_rounds, conversation_id,
+            "MeshOrchestrator.run: staff=%s max_rounds=%d conversation_id=%s",
+            [a.name for a in staff], max_rounds, conversation_id,
         )
 
-        if len(agents) == 1:
-            logger.debug("MeshOrchestrator.run: single-agent fallback -> %s", agents[0].name)
+        if len(staff) == 1:
+            logger.debug("MeshOrchestrator.run: single-staff_member fallback -> %s", staff[0].name)
             return await self._run_single_agent(
                 user_input=user_input,
-                agent=agents[0],
+                staff_member=staff[0],
                 llm=llm,
                 max_rounds=max_rounds,
                 conversation_id=conversation_id,
@@ -152,47 +152,47 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
 
         builder: StateGraph = StateGraph(MultiAgentMeshState)
 
-        hub_agent = agents[0]
-        all_agent_names = [a.name for a in agents]
+        hub_staff = staff[0]
+        all_staff_names = [a.name for a in staff]
 
-        for agent in agents:
+        for staff_member in staff:
             builder.add_node(
-                agent.name,
+                staff_member.name,
                 self._make_mesh_llm_node(
-                    agent=agent,
+                    staff_member=staff_member,
                     llm=llm,
                     max_rounds=max_rounds,
-                    all_agents=agents,
-                    hub_agent_name=hub_agent.name,
+                    all_staff=staff,
+                    hub_staff_name=hub_staff.name,
                     conversation_id=conversation_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                 ),
             )
 
-        for agent in agents:
-            def should_route_to_next(state, current_agent_name=agent.name):
-                return self._decide_next_agent(
+        for staff_member in staff:
+            def should_route_to_next(state, current_staff_name=staff_member.name):
+                return self._decide_next_staff(
                     state,
-                    current_agent_name,
+                    current_staff_name,
                     max_rounds,
-                    all_agent_names,
+                    all_staff_names,
                 )
 
-            routing_options = {name: name for name in all_agent_names if name != agent.name}
+            routing_options = {name: name for name in all_staff_names if name != staff_member.name}
             routing_options["end"] = END
 
             builder.add_conditional_edges(
-                agent.name,
+                staff_member.name,
                 should_route_to_next,
                 routing_options,
             )
 
-        builder.add_edge(START, hub_agent.name)
+        builder.add_edge(START, hub_staff.name)
         graph = builder.compile()
         logger.debug(
-            "MeshOrchestrator.run: graph compiled — hub=%s agents=%s",
-            hub_agent.name, all_agent_names,
+            "MeshOrchestrator.run: graph compiled — hub=%s staff=%s",
+            hub_staff.name, all_staff_names,
         )
 
         initial: MultiAgentMeshState = {
@@ -200,11 +200,11 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             "original_input": user_input,
             "turns": [],
             "conversation_history": {
-                agent.name: [] for agent in agents
+                staff_member.name: [] for staff_member in staff
             },
-            "current_agent": hub_agent.name,
-            "hub_agent": hub_agent.name,
-            "agent_names": all_agent_names,
+            "current_agent": hub_staff.name,
+            "hub_staff": hub_staff.name,
+            "staff_names": all_staff_names,
             "discussion_ended": False,
             "final_response": "",
             "last_action": "",
@@ -218,13 +218,13 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         )
         rounds = int(final_state.get("rounds", len(turns)))
         logger.debug(
-            "MeshOrchestrator.run: complete — turns=%d rounds=%d final_agent=%s",
-            len(turns), rounds, turns[-1].agent_name if turns else None,
+            "MeshOrchestrator.run: complete — turns=%d rounds=%d final_staff=%s",
+            len(turns), rounds, turns[-1].staff_name if turns else None,
         )
         return GraphRunResult(
             turns=turns,
             final_response=final_response,
-            final_agent=turns[-1].agent_name if turns else None,
+            final_staff=turns[-1].staff_name if turns else None,
             rounds=rounds,
         )
 
@@ -232,7 +232,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         self,
         *,
         user_input: str,
-        agents: list[GraphAgentDefinition],
+        staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
         conversation_id: str | None = None,
@@ -241,19 +241,19 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
     ):
         """Streaming version using get_stream_writer for real-time custom events"""
-        if not agents:
-            raise ValueError("At least one agent definition is required")
+        if not staff:
+            raise ValueError("At least one staff_member definition is required")
 
         logger.debug(
-            "MeshOrchestrator.run_stream: agents=%s max_rounds=%d conversation_id=%s",
-            [a.name for a in agents], max_rounds, conversation_id,
+            "MeshOrchestrator.run_stream: staff=%s max_rounds=%d conversation_id=%s",
+            [a.name for a in staff], max_rounds, conversation_id,
         )
 
-        if len(agents) == 1:
-            logger.debug("MeshOrchestrator.run_stream: single-agent fallback -> %s", agents[0].name)
+        if len(staff) == 1:
+            logger.debug("MeshOrchestrator.run_stream: single-staff_member fallback -> %s", staff[0].name)
             async for turn in self._run_single_agent_stream(
                 user_input=user_input,
-                agent=agents[0],
+                staff_member=staff[0],
                 llm=llm,
                 max_rounds=max_rounds,
                 conversation_id=conversation_id,
@@ -274,47 +274,47 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
 
         builder: StateGraph = StateGraph(MultiAgentMeshState)
 
-        hub_agent = agents[0]
-        all_agent_names = [a.name for a in agents]
+        hub_staff = staff[0]
+        all_staff_names = [a.name for a in staff]
 
-        for agent in agents:
+        for staff_member in staff:
             builder.add_node(
-                agent.name,
+                staff_member.name,
                 self._make_mesh_llm_node(
-                    agent=agent,
+                    staff_member=staff_member,
                     llm=llm,
                     max_rounds=max_rounds,
-                    all_agents=agents,
-                    hub_agent_name=hub_agent.name,
+                    all_staff=staff,
+                    hub_staff_name=hub_staff.name,
                     conversation_id=conversation_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                 ),
             )
 
-        for agent in agents:
-            def should_route_to_next(state, current_agent_name=agent.name):
-                return self._decide_next_agent(
+        for staff_member in staff:
+            def should_route_to_next(state, current_staff_name=staff_member.name):
+                return self._decide_next_staff(
                     state,
-                    current_agent_name,
+                    current_staff_name,
                     max_rounds,
-                    all_agent_names,
+                    all_staff_names,
                 )
 
-            routing_options = {name: name for name in all_agent_names if name != agent.name}
+            routing_options = {name: name for name in all_staff_names if name != staff_member.name}
             routing_options["end"] = END
 
             builder.add_conditional_edges(
-                agent.name,
+                staff_member.name,
                 should_route_to_next,
                 routing_options,
             )
 
-        builder.add_edge(START, hub_agent.name)
+        builder.add_edge(START, hub_staff.name)
         graph = builder.compile()
         logger.debug(
-            "MeshOrchestrator.run_stream: graph compiled — hub=%s agents=%s, streaming...",
-            hub_agent.name, all_agent_names,
+            "MeshOrchestrator.run_stream: graph compiled — hub=%s staff=%s, streaming...",
+            hub_staff.name, all_staff_names,
         )
 
         initial: MultiAgentMeshState = {
@@ -322,11 +322,11 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             "original_input": user_input,
             "turns": [],
             "conversation_history": {
-                agent.name: [] for agent in agents
+                staff_member.name: [] for staff_member in staff
             },
-            "current_agent": hub_agent.name,
-            "hub_agent": hub_agent.name,
-            "agent_names": all_agent_names,
+            "current_agent": hub_staff.name,
+            "hub_staff": hub_staff.name,
+            "staff_names": all_staff_names,
             "discussion_ended": False,
             "final_response": "",
             "last_action": "",
@@ -344,15 +344,15 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         self,
         *,
         user_input: str,
-        agent: GraphAgentDefinition,
+        staff_member: GraphStaffDefinition,
         llm: LLMProvider,
         max_rounds: int,
         conversation_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
     ) -> GraphRunResult:
-        """Fallback execution path when only one agent is provided."""
-        logger.debug("_run_single_agent: agent=%s max_rounds=%d", agent.name, max_rounds)
+        """Fallback execution path when only one staff_member is provided."""
+        logger.debug("_run_single_agent: staff_member=%s max_rounds=%d", staff_member.name, max_rounds)
         if graph_context_provider and conversation_id:
             graph_context_provider.ingest_message(
                 conversation_id=conversation_id,
@@ -364,30 +364,30 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
 
         builder: StateGraph = StateGraph(MultiAgentMeshState)
         builder.add_node(
-            agent.name,
+            staff_member.name,
             self._make_mesh_llm_node(
-                agent=agent,
+                staff_member=staff_member,
                 llm=llm,
                 max_rounds=max_rounds,
-                all_agents=[agent],
-                hub_agent_name=agent.name,
+                all_staff=[staff_member],
+                hub_staff_name=staff_member.name,
                 conversation_id=conversation_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             ),
         )
-        builder.add_edge(START, agent.name)
-        builder.add_edge(agent.name, END)
+        builder.add_edge(START, staff_member.name)
+        builder.add_edge(staff_member.name, END)
         graph = builder.compile()
 
         initial: MultiAgentMeshState = {
             "input": user_input,
             "original_input": user_input,
             "turns": [],
-            "conversation_history": {agent.name: []},
-            "current_agent": agent.name,
-            "hub_agent": agent.name,
-            "agent_names": [agent.name],
+            "conversation_history": {staff_member.name: []},
+            "current_agent": staff_member.name,
+            "hub_staff": staff_member.name,
+            "staff_names": [staff_member.name],
             "discussion_ended": False,
             "final_response": "",
             "last_action": "",
@@ -402,7 +402,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         return GraphRunResult(
             turns=turns,
             final_response=final_response,
-            final_agent=turns[-1].agent_name if turns else None,
+            final_staff=turns[-1].staff_name if turns else None,
             rounds=rounds,
         )
 
@@ -410,15 +410,15 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         self,
         *,
         user_input: str,
-        agent: GraphAgentDefinition,
+        staff_member: GraphStaffDefinition,
         llm: LLMProvider,
         max_rounds: int,
         conversation_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
     ):
-        """Streaming fallback when only one agent is provided."""
-        logger.debug("_run_single_agent_stream: agent=%s max_rounds=%d", agent.name, max_rounds)
+        """Streaming fallback when only one staff_member is provided."""
+        logger.debug("_run_single_agent_stream: staff_member=%s max_rounds=%d", staff_member.name, max_rounds)
         if graph_context_provider and conversation_id:
             graph_context_provider.ingest_message(
                 conversation_id=conversation_id,
@@ -430,30 +430,30 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
 
         builder: StateGraph = StateGraph(MultiAgentMeshState)
         builder.add_node(
-            agent.name,
+            staff_member.name,
             self._make_mesh_llm_node(
-                agent=agent,
+                staff_member=staff_member,
                 llm=llm,
                 max_rounds=max_rounds,
-                all_agents=[agent],
-                hub_agent_name=agent.name,
+                all_staff=[staff_member],
+                hub_staff_name=staff_member.name,
                 conversation_id=conversation_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             ),
         )
-        builder.add_edge(START, agent.name)
-        builder.add_edge(agent.name, END)
+        builder.add_edge(START, staff_member.name)
+        builder.add_edge(staff_member.name, END)
         graph = builder.compile()
 
         initial: MultiAgentMeshState = {
             "input": user_input,
             "original_input": user_input,
             "turns": [],
-            "conversation_history": {agent.name: []},
-            "current_agent": agent.name,
-            "hub_agent": agent.name,
-            "agent_names": [agent.name],
+            "conversation_history": {staff_member.name: []},
+            "current_agent": staff_member.name,
+            "hub_staff": staff_member.name,
+            "staff_names": [staff_member.name],
             "discussion_ended": False,
             "final_response": "",
             "last_action": "",
@@ -479,31 +479,31 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
 
     def _make_mesh_llm_node(
         self,
-        agent: GraphAgentDefinition,
+        staff_member: GraphStaffDefinition,
         llm: LLMProvider,
         max_rounds: int,
-        all_agents: list[GraphAgentDefinition] = None,
-        hub_agent_name: str = None,
+        all_staff: list[GraphStaffDefinition] = None,
+        hub_staff_name: str = None,
         conversation_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
     ):
         """
-        Create an LLM node function for multi-agent mesh communication with streaming support.
+        Create an LLM node function for multi-staff_member mesh communication with streaming support.
 
         Args:
-            agent: The agent for this node
+            staff_member: The staff_member for this node
             llm: LLM provider
-            all_agents: List of all agents (for routing guidance)
-            hub_agent_name: Name of hub agent (for routing guidance)
+            all_staff: List of all staff (for routing guidance)
+            hub_staff_name: Name of hub staff_member (for routing guidance)
 
         Returns:
-            Async function that processes the agent's turn with stream_writer support
+            Async function that processes the staff_member's turn with stream_writer support
         """
 
-        routing_guidance = agent.routing_guidance
-        if not routing_guidance and all_agents and hub_agent_name:
-            other_agents = [a for a in all_agents if a.name != agent.name]
+        routing_guidance = staff_member.routing_guidance
+        if not routing_guidance and all_staff and hub_staff_name:
+            other_agents = [a for a in all_staff if a.name != staff_member.name]
             other_agent_profiles = [
                 {
                     "name": a.name,
@@ -513,8 +513,8 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 for a in other_agents
             ]
             routing_guidance = get_routing_guidance(
-                agent.name,
-                hub_agent_name,
+                staff_member.name,
+                hub_staff_name,
                 other_agent_profiles,
                 max_concurrent=MESH_FANOUT_MAX_CONCURRENT,
             )
@@ -526,10 +526,10 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             await wait_while_paused(
                 conversation_id=conversation_id,
                 stream_writer=stream_writer,
-                agent_name=agent.name,
+                staff_name=staff_member.name,
             )
 
-            # Generate a unique thread_id for this agent turn.
+            # Generate a unique thread_id for this staff_member turn.
             # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
             from backend.infrastructure.sandbox.sandbox_session import (
                 new_thread_id as _new_thread_id,
@@ -537,7 +537,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             )
             from backend.api.settings import settings as _settings
             sandbox_thread_id = _new_thread_id(
-                agent_name=agent.name,
+                staff_name=staff_member.name,
                 task_id=conversation_id,
             )
             sandbox_workspace = _get_thread_workspace(
@@ -545,14 +545,14 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             )
             logger.debug(
                 "[%s] mesh_node: round=%d thread_id=%s workspace=%s",
-                agent.name, state.get("rounds", 0) + 1, sandbox_thread_id, sandbox_workspace,
+                staff_member.name, state.get("rounds", 0) + 1, sandbox_thread_id, sandbox_workspace,
             )
 
-            # Stream: Agent turn starting
+            # Stream: Staff turn starting
             stream_writer({
                 "type": EventType.AGENT_TURN_START.value,
-                "agent_name": agent.name,
-                "agent_role": agent.role,
+                "agent_name": staff_member.name,
+                "staff_role": staff_member.role,
                 "turn": len(state.get("turns", [])) + 1,
                 "round": state.get("rounds", 0) + 1,
                 "sandbox_thread_id": sandbox_thread_id,
@@ -565,7 +565,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             # Stream: Building context
             stream_writer({
                 "type": EventType.CONTEXT_BUILDING.value,
-                "agent_name": agent.name,
+                "agent_name": staff_member.name,
             })
 
             # Human-in-the-loop: pick up user messages posted mid-run so this
@@ -590,19 +590,19 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 context_parts += [memory_block, ""]
 
             all_recent_messages = []
-            for other_agent_name in state["agent_names"]:
-                if other_agent_name != agent.name and conversation_history.get(other_agent_name):
-                    for msg in conversation_history[other_agent_name][-3:]:
-                        all_recent_messages.append(f"{other_agent_name}: {msg}")
+            for other_staff_name in state["staff_names"]:
+                if other_staff_name != staff_member.name and conversation_history.get(other_staff_name):
+                    for msg in conversation_history[other_staff_name][-3:]:
+                        all_recent_messages.append(f"{other_staff_name}: {msg}")
 
-            if conversation_history.get(agent.name):
-                for msg in conversation_history[agent.name][-2:]:
-                    all_recent_messages.append(f"{agent.name}: {msg}")
+            if conversation_history.get(staff_member.name):
+                for msg in conversation_history[staff_member.name][-2:]:
+                    all_recent_messages.append(f"{staff_member.name}: {msg}")
 
             history_text = "\n".join(all_recent_messages[-5:]).strip() or "(empty)"
             logger.debug(
                 "[%s] mesh_node: history_messages=%d history_chars=%d",
-                agent.name, len(all_recent_messages), len(history_text),
+                staff_member.name, len(all_recent_messages), len(history_text),
             )
 
             graph_context_text = ""
@@ -619,7 +619,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 # Stream: Context retrieved
                 stream_writer({
                     "type": EventType.CONTEXT_RETRIEVED.value,
-                    "agent_name": agent.name,
+                    "agent_name": staff_member.name,
                     "node_ids": pack.node_ids,
                     "edge_ids": pack.edge_ids,
                     "chunk_ids": pack.chunk_ids,
@@ -630,10 +630,10 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 context_parts.append("context:")
                 context_parts.append(graph_context_text or "(empty)")
             else:
-                previous_agent_name = state["turns"][-1].agent_name if state.get("turns") else "user"
+                previous_staff_name = state["turns"][-1].staff_name if state.get("turns") else "user"
                 question_payload = state.get("input", "").strip() or "1. Please clarify the next required step."
                 context_parts.append(f"user input: {state['original_input']}")
-                context_parts.append(f"agent {previous_agent_name} ask agent {agent.name}:")
+                context_parts.append(f"staff_member {previous_staff_name} ask staff_member {staff_member.name}:")
                 context_parts.append(question_payload)
                 context_parts.append("history:")
                 context_parts.append(history_text)
@@ -643,10 +643,10 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             user_input = "\n".join(context_parts)
             logger.debug(
                 "[%s] mesh_node: context built — graph_context_chars=%d user_input_chars=%d",
-                agent.name, len(graph_context_text), len(user_input),
+                staff_member.name, len(graph_context_text), len(user_input),
             )
 
-            system_prompt_with_routing = agent.system_prompt
+            system_prompt_with_routing = staff_member.system_prompt
             if routing_guidance:
                 system_prompt_with_routing = f"{system_prompt_with_routing}\n\n{routing_guidance}"
             system_prompt_with_routing += self._build_round_budget_context(
@@ -664,16 +664,16 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             user_input = budget_result.text
             logger.debug(
                 "[%s] mesh_node: token budget — input_tokens=%d max=%d truncated=%s provider=%s model=%s",
-                agent.name, budget_result.input_tokens, budget_result.max_input_tokens,
+                staff_member.name, budget_result.input_tokens, budget_result.max_input_tokens,
                 budget_result.truncated, budget_result.provider, budget_result.model,
             )
 
             bound_tools = []
-            if agent.tools:
-                for toolkit in agent.tools.values():
+            if staff_member.tools:
+                for toolkit in staff_member.tools.values():
                     bound_tools.extend(toolkit.get_tools())
 
-            # Default human-in-the-loop tool: every agent can interrupt and ask
+            # Default human-in-the-loop tool: every staff_member can interrupt and ask
             # the user a question mid-run (subagents inherit it too).
             if conversation_id:
                 from backend.domain.tools.ask_user import AskUserToolkit
@@ -681,40 +681,40 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 bound_tools.extend(
                     AskUserToolkit(
                         conversation_id=conversation_id,
-                        agent_name=agent.name,
+                        staff_name=staff_member.name,
                     ).get_tools()
                 )
             # Default memory tools: save/recall shared working-memory notes.
-            bound_tools.extend(memory_toolkit_tools(conversation_id, agent.name))
+            bound_tools.extend(memory_toolkit_tools(conversation_id, staff_member.name))
 
             # Sandbox: scope to the shared conversation workspace + inject tools
             # when the chat has files (before TaskToolkit so subagents inherit).
             attach_conversation_sandbox(
-                bound_tools, conversation_id=conversation_id, agent_name=agent.name
+                bound_tools, conversation_id=conversation_id, staff_name=staff_member.name
             )
 
-            # Agent Mode: expose the `task` tool so this agent can delegate to
+            # Staff Mode: expose the `task` tool so this staff_member can delegate to
             # subagents (which inherit these tools minus `task`).
-            if agent.subagent_enabled:
+            if staff_member.subagent_enabled:
                 from backend.domain.tools.task import TaskToolkit
 
                 task_toolkit = TaskToolkit(
                     llm=llm,
                     subagent_tools=list(bound_tools),
                     max_concurrent=SUBAGENT_MAX_CONCURRENT,
-                    parent_agent_name=agent.name,
+                    parent_staff_name=staff_member.name,
                 )
                 bound_tools.extend(task_toolkit.get_tools())
 
             logger.debug(
                 "[%s] mesh_node: bound_tools=%s",
-                agent.name, [t.name for t in bound_tools],
+                staff_member.name, [t.name for t in bound_tools],
             )
 
             # Stream: LLM request starting
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
-                "agent_name": agent.name,
+                "agent_name": staff_member.name,
                 "context_length": len(user_input),
                 "context_tokens": budget_result.input_tokens,
                 "context_token_limit": budget_result.max_input_tokens,
@@ -725,50 +725,50 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 "has_tools": len(bound_tools) > 0,
             })
 
-            logger.debug("[%s] mesh_node: invoking LLM...", agent.name)
+            logger.debug("[%s] mesh_node: invoking LLM...", staff_member.name)
             response = await safe_chat(llm,
                 system=system_prompt_with_routing,
                 user=user_input,
                 tools=bound_tools or None,
-                parallel_tools=agent.subagent_enabled,
+                parallel_tools=staff_member.subagent_enabled,
             )
             logger.debug(
                 "[%s] mesh_node: LLM response received — response_chars=%d",
-                agent.name, len(response),
+                staff_member.name, len(response),
             )
 
             # Stream: LLM response received
             stream_writer({
                 "type": EventType.LLM_RESPONSE_COMPLETE.value,
-                "agent_name": agent.name,
+                "agent_name": staff_member.name,
                 "response_length": len(response),
             })
 
             reasoning, action_payload = self._split_reasoning_and_action(response)
             logger.debug(
                 "[%s] mesh_node: split — reasoning_chars=%d action_payload_chars=%d",
-                agent.name, len(reasoning), len(action_payload),
+                staff_member.name, len(reasoning), len(action_payload),
             )
 
-            # Parallel fan-out: if this agent dispatched a wave, run the named
+            # Parallel fan-out: if this staff_member dispatched a wave, run the named
             # targets concurrently and synthesize, all within this node (one
             # state update per channel — no reducer changes needed).
             fanout_pairs = self._parse_fanout(
-                action_payload, state["agent_names"], agent.name
+                action_payload, state["staff_names"], staff_member.name
             )
             if fanout_pairs:
                 logger.debug(
                     "[%s] mesh_node: FANOUT -> %s",
-                    agent.name, [n for n, _ in fanout_pairs],
+                    staff_member.name, [n for n, _ in fanout_pairs],
                 )
                 return await self._execute_fanout(
-                    coordinator=agent,
+                    coordinator=staff_member,
                     fanout_pairs=fanout_pairs,
                     coordinator_reasoning=reasoning,
                     coordinator_system=system_prompt_with_routing,
                     state=state,
                     llm=llm,
-                    all_agents=all_agents,
+                    all_staff=all_staff,
                     stream_writer=stream_writer,
                     conversation_id=conversation_id,
                     graph_context_provider=graph_context_provider,
@@ -779,7 +779,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             # rolling history window above.
             record_turn_in_memory(
                 conversation_id,
-                agent_name=agent.name,
+                staff_name=staff_member.name,
                 turn=state.get("rounds", 0) + 1,
                 content=reasoning,
                 kind="result",
@@ -788,43 +788,43 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             if graph_context_provider and conversation_id:
                 graph_context_provider.ingest_message(
                     conversation_id=conversation_id,
-                    message_id=f"agent-{agent.name}-{uuid4().hex}",
-                    speaker=agent.name,
+                    message_id=f"staff_member-{staff_member.name}-{uuid4().hex}",
+                    speaker=staff_member.name,
                     content=reasoning,
                     config=graph_config,
                 )
                 # Stream: Message ingested to knowledge graph
                 stream_writer({
                     "type": EventType.MESSAGE_INGESTED.value,
-                    "agent_name": agent.name,
+                    "agent_name": staff_member.name,
                 })
 
             turns = state["turns"]
             new_turn = GraphTurn(
                 turn=len(turns) + 1,
-                agent_name=agent.name,
-                agent_role=agent.role,
+                staff_name=staff_member.name,
+                staff_role=staff_member.role,
                 content=reasoning,
             )
 
             # Deep-copy the inner lists: dict.copy() is shallow and would mutate
             # the previous state's list in place, corrupting LangGraph snapshots.
             new_history = {k: list(v) for k, v in conversation_history.items()}
-            new_history.setdefault(agent.name, []).append(reasoning)
+            new_history.setdefault(staff_member.name, []).append(reasoning)
 
             discussion_ended = self._has_discussion_end_signal(action_payload)
-            next_agent = self._extract_target_agent_from_message(
+            next_staff = self._extract_target_agent_from_message(
                 action_payload,
-                state["agent_names"],
-                agent.name,
+                state["staff_names"],
+                staff_member.name,
             )
             logger.debug(
-                "[%s] mesh_node: routing — discussion_ended=%s next_agent=%s",
-                agent.name, discussion_ended, next_agent,
+                "[%s] mesh_node: routing — discussion_ended=%s next_staff=%s",
+                staff_member.name, discussion_ended, next_staff,
             )
             next_input = ""
-            if not discussion_ended and next_agent:
-                questions = self._extract_questions_for_next_agent(action_payload)
+            if not discussion_ended and next_staff:
+                questions = self._extract_questions_for_next_staff(action_payload)
                 if not questions:
                     questions = [
                         "Please continue with the highest-priority next analysis and include concrete evidence."
@@ -835,7 +835,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             stream_writer({
                 "type": EventType.TURN_COMPLETE.value,
                 "turn": new_turn,
-                "next_agent": next_agent,
+                "next_staff": next_staff,
                 "discussion_ended": discussion_ended,
             })
 
@@ -843,110 +843,110 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 "turns": [*turns, new_turn],
                 "conversation_history": new_history,
                 "input": next_input,
-                "current_agent": agent.name,
+                "current_agent": staff_member.name,
                 "final_response": reasoning,
                 "last_action": action_payload,
-                "final_agent": agent.name,
+                "final_staff": staff_member.name,
                 "rounds": state.get("rounds", 0) + 1,
             }
 
         return mesh_node
 
-    def _decide_next_agent(
+    def _decide_next_staff(
         self,
         state: MultiAgentMeshState,
-        current_agent_name: str,
+        current_staff_name: str,
         max_rounds: int,
-        all_agent_names: list[str],
+        all_staff_names: list[str],
     ) -> str:
         """
-        Conditional function to determine which agent should speak next.
+        Conditional function to determine which staff_member should speak next.
         
         Decision logic:
         1. If max_rounds reached → END
         2. Check if last message contains end-of-discussion signal → END
-        3. Extract next agent name from last message or use round-robin
-        4. Otherwise → route to next agent in round-robin fashion
+        3. Extract next staff_member name from last message or use round-robin
+        4. Otherwise → route to next staff_member in round-robin fashion
         
         Args:
             state: Current graph state
-            current_agent_name: Name of agent who just spoke
+            current_staff_name: Name of staff_member who just spoke
             max_rounds: Maximum rounds allowed
-            all_agent_names: List of all available agents
+            all_staff_names: List of all available staff
             
         Returns:
-            Name of next agent to speak or "end"
+            Name of next staff_member to speak or "end"
         """
         turns = state.get("turns", [])
         rounds = state.get("rounds", 0)
 
         if rounds >= max_rounds:
             logger.debug(
-                "_decide_next_agent: current=%s rounds=%d/%d -> end (max_rounds reached)",
-                current_agent_name, rounds, max_rounds,
+                "_decide_next_staff: current=%s rounds=%d/%d -> end (max_rounds reached)",
+                current_staff_name, rounds, max_rounds,
             )
             return "end"
 
         if len(turns) == 0:
-            hub_agent = state["hub_agent"]
-            if current_agent_name == hub_agent:
-                decision = all_agent_names[1] if len(all_agent_names) > 1 else "end"
+            hub_staff = state["hub_staff"]
+            if current_staff_name == hub_staff:
+                decision = all_staff_names[1] if len(all_staff_names) > 1 else "end"
                 logger.debug(
-                    "_decide_next_agent: current=%s (hub, first turn) -> %s",
-                    current_agent_name, decision,
+                    "_decide_next_staff: current=%s (hub, first turn) -> %s",
+                    current_staff_name, decision,
                 )
                 return decision
             logger.debug(
-                "_decide_next_agent: current=%s (spoke, first turn) -> hub=%s",
-                current_agent_name, hub_agent,
+                "_decide_next_staff: current=%s (spoke, first turn) -> hub=%s",
+                current_staff_name, hub_staff,
             )
-            return hub_agent
+            return hub_staff
 
         last_turn = turns[-1]
         last_content = state.get("last_action", "") or last_turn.content
 
         if self._has_discussion_end_signal(last_content):
             logger.debug(
-                "_decide_next_agent: current=%s -> end (DISCUSSION_END signal)",
-                current_agent_name,
+                "_decide_next_staff: current=%s -> end (DISCUSSION_END signal)",
+                current_staff_name,
             )
             return "end"
 
-        next_agent = self._extract_target_agent_from_message(
-            last_content, all_agent_names, current_agent_name
+        next_staff = self._extract_target_agent_from_message(
+            last_content, all_staff_names, current_staff_name
         )
-        if next_agent:
+        if next_staff:
             logger.debug(
-                "_decide_next_agent: current=%s -> %s (explicit NEXT_AGENT tag)",
-                current_agent_name, next_agent,
+                "_decide_next_staff: current=%s -> %s (explicit NEXT_AGENT tag)",
+                current_staff_name, next_staff,
             )
-            return next_agent
+            return next_staff
 
-        decision = self._get_next_agent_roundrobin(
-            current_agent_name, all_agent_names, state["hub_agent"]
+        decision = self._get_next_staff_roundrobin(
+            current_staff_name, all_staff_names, state["hub_staff"]
         )
         logger.debug(
-            "_decide_next_agent: current=%s -> %s (round-robin)",
-            current_agent_name, decision,
+            "_decide_next_staff: current=%s -> %s (round-robin)",
+            current_staff_name, decision,
         )
         return decision
 
     def _extract_target_agent_from_message(
         self,
         message: str,
-        agent_names: list[str],
-        current_agent_name: str,
+        staff_names: list[str],
+        current_staff_name: str,
     ) -> str | None:
         """
-        Try to extract target agent name from message content.
+        Try to extract target staff_member name from message content.
         
         Args:
             message: Message content
-            agent_names: List of all agent names
-            current_agent_name: Current agent's name
+            staff_names: List of all staff_member names
+            current_staff_name: Current staff_member's name
             
         Returns:
-            Target agent name if found, else None
+            Target staff_member name if found, else None
         """
         match = self._NEXT_AGENT_RE.search(message)
         if not match:
@@ -961,19 +961,19 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             logger.debug("_extract_target_agent: <NEXT_AGENT> tag empty")
             return None
 
-        normalized = {name.lower(): name for name in agent_names}
+        normalized = {name.lower(): name for name in staff_names}
         target = normalized.get(candidate.lower())
         if not target:
             logger.debug(
-                "_extract_target_agent: candidate=%r not in agent_names=%s",
-                candidate, agent_names,
+                "_extract_target_agent: candidate=%r not in staff_names=%s",
+                candidate, staff_names,
             )
             return None
 
-        if target.lower() == current_agent_name.lower():
+        if target.lower() == current_staff_name.lower():
             logger.debug(
                 "_extract_target_agent: candidate=%r resolves to self (%s), ignoring",
-                candidate, current_agent_name,
+                candidate, current_staff_name,
             )
             return None
 
@@ -998,19 +998,19 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
     def _parse_fanout(
         self,
         action_payload: str,
-        agent_names: list[str],
+        staff_names: list[str],
         self_name: str,
     ) -> list[tuple[str, str]]:
-        """Parse a `<FANOUT>` block into ordered (agent_name, task) pairs.
+        """Parse a `<FANOUT>` block into ordered (staff_name, task) pairs.
 
         Returns [] (→ caller falls back to single-routing) unless at least two
-        distinct, valid, non-self target agents are found.
+        distinct, valid, non-self target staff are found.
         """
         match = self._FANOUT_RE.search(action_payload)
         if not match:
             return []
 
-        normalized = {name.lower(): name for name in agent_names}
+        normalized = {name.lower(): name for name in staff_names}
         pairs: list[tuple[str, str]] = []
         seen: set[str] = set()
         for raw_name, raw_task in self._FANOUT_PAIR_RE.findall(match.group(1)):
@@ -1035,7 +1035,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
     def _build_branch_chat_kwargs(
         self,
         *,
-        branch_agent: GraphAgentDefinition,
+        branch_agent: GraphStaffDefinition,
         task_text: str,
         state: MultiAgentMeshState,
         llm: LLMProvider,
@@ -1092,12 +1092,12 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             bound_tools.extend(
                 AskUserToolkit(
                     conversation_id=conversation_id,
-                    agent_name=branch_agent.name,
+                    staff_name=branch_agent.name,
                 ).get_tools()
             )
         bound_tools.extend(memory_toolkit_tools(conversation_id, branch_agent.name))
         attach_conversation_sandbox(
-            bound_tools, conversation_id=conversation_id, agent_name=branch_agent.name
+            bound_tools, conversation_id=conversation_id, staff_name=branch_agent.name
         )
         if branch_agent.subagent_enabled:
             from backend.domain.tools.task import TaskToolkit
@@ -1106,7 +1106,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
                 llm=llm,
                 subagent_tools=list(bound_tools),
                 max_concurrent=SUBAGENT_MAX_CONCURRENT,
-                parent_agent_name=branch_agent.name,
+                parent_staff_name=branch_agent.name,
             )
             bound_tools.extend(task_toolkit.get_tools())
 
@@ -1120,13 +1120,13 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
     async def _execute_fanout(
         self,
         *,
-        coordinator: GraphAgentDefinition,
+        coordinator: GraphStaffDefinition,
         fanout_pairs: list[tuple[str, str]],
         coordinator_reasoning: str,
         coordinator_system: str,
         state: MultiAgentMeshState,
         llm: LLMProvider,
-        all_agents: list[GraphAgentDefinition],
+        all_staff: list[GraphStaffDefinition],
         stream_writer,
         conversation_id: str | None,
         graph_context_provider: GraphContextProvider | None,
@@ -1140,13 +1140,13 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         edge router keeps working unchanged — fan-out is invisible to the graph.
         """
         turns = state["turns"]
-        agent_by_name = {a.name: a for a in all_agents}
+        staff_by_name = {a.name: a for a in all_staff}
         base_turn = len(turns) + 1  # coordinator's own turn number
 
         # Record/ingest the coordinator's fan-out decision as its own turn.
         record_turn_in_memory(
             conversation_id,
-            agent_name=coordinator.name,
+            staff_name=coordinator.name,
             turn=base_turn,
             content=coordinator_reasoning,
             kind="decision",
@@ -1154,15 +1154,15 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         if graph_context_provider and conversation_id:
             graph_context_provider.ingest_message(
                 conversation_id=conversation_id,
-                message_id=f"agent-{coordinator.name}-{uuid4().hex}",
+                message_id=f"staff_member-{coordinator.name}-{uuid4().hex}",
                 speaker=coordinator.name,
                 content=coordinator_reasoning,
                 config=graph_config,
             )
         coordinator_turn = GraphTurn(
             turn=base_turn,
-            agent_name=coordinator.name,
-            agent_role=coordinator.role,
+            staff_name=coordinator.name,
+            staff_role=coordinator.role,
             content=coordinator_reasoning,
         )
         stream_writer({
@@ -1180,9 +1180,9 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
 
         # Pre-build each branch's chat kwargs sequentially (graph reads not raced).
         prebuilt: dict[str, dict] = {}
-        branches: list[tuple[GraphAgentDefinition, str]] = []
+        branches: list[tuple[GraphStaffDefinition, str]] = []
         for target_name, task_text in fanout_pairs:
-            branch_agent = agent_by_name[target_name]
+            branch_agent = staff_by_name[target_name]
             prebuilt[target_name] = self._build_branch_chat_kwargs(
                 branch_agent=branch_agent,
                 task_text=task_text,
@@ -1216,8 +1216,8 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         branch_turns = [
             GraphTurn(
                 turn=r.turn,
-                agent_name=r.agent_name,
-                agent_role=r.agent_role,
+                staff_name=r.staff_name,
+                staff_role=r.staff_role,
                 content=r.content,
             )
             for r in results
@@ -1227,13 +1227,13 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         synthesis_user = (
             "You dispatched a parallel wave. Here are the specialists' results:\n\n"
             + "\n\n".join(
-                f"### {r.agent_name} (sub-task: {r.task})\n{r.content}" for r in results
+                f"### {r.staff_name} (sub-task: {r.task})\n{r.content}" for r in results
             )
         )
         synthesis_system = f"{coordinator_system}\n\n{FANOUT_SYNTHESIS_GUIDANCE}"
         synth_raw = await safe_chat(
             llm,
-            agent_name=coordinator.name,
+            staff_name=coordinator.name,
             system=synthesis_system,
             user=synthesis_user,
         )
@@ -1242,7 +1242,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         synthesis_turn_number = base_turn + len(results) + 1
         record_turn_in_memory(
             conversation_id,
-            agent_name=coordinator.name,
+            staff_name=coordinator.name,
             turn=synthesis_turn_number,
             content=synth_reasoning,
             kind="result",
@@ -1250,25 +1250,25 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         if graph_context_provider and conversation_id:
             graph_context_provider.ingest_message(
                 conversation_id=conversation_id,
-                message_id=f"agent-{coordinator.name}-{uuid4().hex}",
+                message_id=f"staff_member-{coordinator.name}-{uuid4().hex}",
                 speaker=coordinator.name,
                 content=synth_reasoning,
                 config=graph_config,
             )
         synthesis_turn = GraphTurn(
             turn=synthesis_turn_number,
-            agent_name=coordinator.name,
-            agent_role=coordinator.role,
+            staff_name=coordinator.name,
+            staff_role=coordinator.role,
             content=synth_reasoning,
         )
 
         discussion_ended = self._has_discussion_end_signal(synth_action)
-        next_agent = self._extract_target_agent_from_message(
-            synth_action, state["agent_names"], coordinator.name
+        next_staff = self._extract_target_agent_from_message(
+            synth_action, state["staff_names"], coordinator.name
         )
         next_input = ""
-        if not discussion_ended and next_agent:
-            questions = self._extract_questions_for_next_agent(synth_action)
+        if not discussion_ended and next_staff:
+            questions = self._extract_questions_for_next_staff(synth_action)
             if not questions:
                 questions = [
                     "Please continue with the highest-priority next analysis and include concrete evidence."
@@ -1278,7 +1278,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         stream_writer({
             "type": EventType.TURN_COMPLETE.value,
             "turn": synthesis_turn,
-            "next_agent": next_agent,
+            "next_staff": next_staff,
             "discussion_ended": discussion_ended,
         })
 
@@ -1286,7 +1286,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         new_history = {k: list(v) for k, v in state.get("conversation_history", {}).items()}
         new_history.setdefault(coordinator.name, []).append(coordinator_reasoning)
         for r in results:
-            new_history.setdefault(r.agent_name, []).append(r.content)
+            new_history.setdefault(r.staff_name, []).append(r.content)
         new_history.setdefault(coordinator.name, []).append(synth_reasoning)
 
         return {
@@ -1296,7 +1296,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             "current_agent": coordinator.name,
             "final_response": synth_reasoning,
             "last_action": synth_action,
-            "final_agent": coordinator.name,
+            "final_staff": coordinator.name,
             "rounds": state.get("rounds", 0) + 1,
         }
 
@@ -1317,7 +1317,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
 
         return reasoning, action_payload
 
-    def _extract_questions_for_next_agent(self, message: str) -> list[str]:
+    def _extract_questions_for_next_staff(self, message: str) -> list[str]:
         """Extract the handoff questions from `<ASK_NEXT_AGENT>...</ASK_NEXT_AGENT>` block."""
         match = self._ASK_NEXT_AGENT_RE.search(message)
         if not match:
@@ -1339,38 +1339,38 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
         return questions
 
     def _format_question_payload(self, questions: list[str]) -> str:
-        """Convert questions to the compact numbered payload passed to the next agent."""
+        """Convert questions to the compact numbered payload passed to the next staff_member."""
         lines = [f"{index}. {question}" for index, question in enumerate(questions, start=1)]
         return "\n".join(lines)
 
-    def _get_next_agent_roundrobin(
+    def _get_next_staff_roundrobin(
         self,
-        current_agent_name: str,
-        agent_names: list[str],
-        hub_agent_name: str,
+        current_staff_name: str,
+        staff_names: list[str],
+        hub_staff_name: str,
     ) -> str:
         """
-        Get next agent in round-robin fashion, biased towards hub.
+        Get next staff_member in round-robin fashion, biased towards hub.
         
         Args:
-            current_agent_name: Current agent
-            agent_names: All available agents
-            hub_agent_name: Hub agent name
+            current_staff_name: Current staff_member
+            staff_names: All available staff
+            hub_staff_name: Hub staff_member name
             
         Returns:
-            Next agent name
+            Next staff_member name
         """
-        current_idx = agent_names.index(current_agent_name)
+        current_idx = staff_names.index(current_staff_name)
         
-        if current_agent_name != hub_agent_name:
-            return hub_agent_name
+        if current_staff_name != hub_staff_name:
+            return hub_staff_name
         
-        next_idx = (current_idx + 1) % len(agent_names)
-        next_agent = agent_names[next_idx]
+        next_idx = (current_idx + 1) % len(staff_names)
+        next_staff = staff_names[next_idx]
         
-        if next_agent == hub_agent_name:
-            next_idx = (next_idx + 1) % len(agent_names)
-            next_agent = agent_names[next_idx]
+        if next_staff == hub_staff_name:
+            next_idx = (next_idx + 1) % len(staff_names)
+            next_staff = staff_names[next_idx]
         
-        return next_agent
+        return next_staff
 

@@ -15,7 +15,7 @@ class VectorHit:
 def scope_payload(scope: MemoryScope) -> dict[str, str | None]:
     """Flatten a scope into the payload stored alongside a vector."""
     s = scope.normalized()
-    return {"workspace_id": s.workspace_id, "owner_id": s.owner_id, "agent_id": s.agent_id}
+    return {"workspace_id": s.company_id, "owner_id": s.owner_id, "agent_id": s.staff_id}
 
 
 def payload_matches(query: MemoryScope, payload: dict) -> bool:
@@ -30,9 +30,9 @@ def payload_matches(query: MemoryScope, payload: dict) -> bool:
         return qv == rv
 
     return (
-        dim_ok(q.workspace_id, payload.get("workspace_id"))
+        dim_ok(q.company_id, payload.get("workspace_id"))
         and dim_ok(q.owner_id, payload.get("owner_id"))
-        and dim_ok(q.agent_id, payload.get("agent_id"))
+        and dim_ok(q.staff_id, payload.get("agent_id"))
     )
 
 

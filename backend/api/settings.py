@@ -17,7 +17,7 @@ environment via ``validation_alias`` (the canonical UPPER_CASE env-var name).
 Access is **nested**, grouped by config.yml section, e.g.::
 
     settings.llm.provider
-    settings.agent.context_token_limit
+    settings.staff.context_token_limit
     settings.security.allow_private_http
 
 A set of flat ``@property`` delegates is kept on the root for backward
@@ -126,7 +126,7 @@ class LLMSettings(BaseSettings):
         default=20, validation_alias=_alias("LLM_SUMMARIZATION_KEEP_MESSAGES")
     )
 
-    # Loop detection — short-circuits an agent that repeats the same tool call
+    # Loop detection — short-circuits an staff that repeats the same tool call
     # (same name + args). On by default; it only soft-nudges (never re-executes
     # the repeated call), so it's a pure safety net.
     loop_detection_enabled: bool = Field(
@@ -272,7 +272,7 @@ class RouterSettings(BaseSettings):
     initial_password: str | None = Field(default=None, validation_alias=_alias("ROUTER_INITIAL_PASSWORD"))
 
 
-class AgentSettings(BaseSettings):
+class StaffSettings(BaseSettings):
     model_config = _SECTION_CONFIG
 
     max_tool_rounds: int = Field(default=6, validation_alias=_alias("AGENT_MAX_TOOL_ROUNDS"))
@@ -301,7 +301,7 @@ class StorageSettings(BaseSettings):
     backend: str = Field(default="json", validation_alias=_alias("STORAGE_BACKEND"))
     dir: str | None = Field(default=None, validation_alias=_alias("STORAGE_DIR"))
     seed_dir: str | None = Field(default=None, validation_alias=_alias("SEED_DIR"))
-    # Where file *bytes* (uploads, agent outputs, library docs) durably live.
+    # Where file *bytes* (uploads, staff outputs, library docs) durably live.
     # "local" → host workspace dir only; "s3" → MinIO/S3 is the system of record
     # and the working dir is restored from it on cold start (any sandbox mode).
     # "" (default/auto) → s3 when MINIO_ENABLED else local (back-compat).
@@ -492,7 +492,7 @@ class RetrievalSettings(BaseSettings):
 
 
 class LongTermMemorySettings(BaseSettings):
-    """Cross-conversation long-term memory (workspace + owner + agent scoped)."""
+    """Cross-conversation long-term memory (workspace + owner + staff scoped)."""
 
     model_config = _SECTION_CONFIG
 
@@ -533,7 +533,7 @@ class SeedSettings(BaseSettings):
 
 
 class BrowserSettings(BaseSettings):
-    """LLM config used by the agent browser-automation tools."""
+    """LLM config used by the staff browser-automation tools."""
 
     model_config = _SECTION_CONFIG
 
@@ -546,7 +546,7 @@ class BrowserSettings(BaseSettings):
 
 
 class SecuritySettings(BaseSettings):
-    """Global operational/security flags for agent tools (NOT per-skill creds).
+    """Global operational/security flags for staff tools (NOT per-skill creds).
 
     These are process-wide knobs declared in config.yml (`security:`), separate
     from the per-tool credential fallbacks in ``ToolsSettings``.
@@ -658,7 +658,7 @@ class Settings(BaseSettings):
     llm_keys: LLMKeysSettings = Field(default_factory=LLMKeysSettings)
     llm_failover: FailoverSettings = Field(default_factory=FailoverSettings)
     router: RouterSettings = Field(default_factory=RouterSettings)
-    agent: AgentSettings = Field(default_factory=AgentSettings)
+    staff: StaffSettings = Field(default_factory=StaffSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
     mongo: MongoSettings = Field(default_factory=MongoSettings)
     graph: GraphSettings = Field(default_factory=GraphSettings)
@@ -754,13 +754,13 @@ class Settings(BaseSettings):
     def mongo_uri(self) -> str: return self.mongo.uri
     @property
     def mongo_db(self) -> str: return self.mongo.db
-    # Agent
+    # Staff
     @property
-    def agent_max_tool_rounds(self) -> int: return self.agent.max_tool_rounds
+    def staff_max_tool_rounds(self) -> int: return self.staff.max_tool_rounds
     @property
-    def tool_timeout_seconds(self) -> int: return self.agent.tool_timeout_seconds
+    def tool_timeout_seconds(self) -> int: return self.staff.tool_timeout_seconds
     @property
-    def subagent_max_concurrent(self) -> int: return self.agent.subagent_max_concurrent
+    def subagent_max_concurrent(self) -> int: return self.staff.subagent_max_concurrent
     # Task queue
     @property
     def task_queue_backend(self) -> str: return self.task_queue.backend

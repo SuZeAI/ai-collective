@@ -15,7 +15,7 @@ class HealthResponse(BaseModel):
 
 class MessageSchema(BaseModel):
     id: str
-    agentId: str
+    staffId: str
     content: str
     timestamp: str
     taskId: str | None = None
@@ -24,7 +24,7 @@ class MessageSchema(BaseModel):
     def from_domain(m) -> "MessageSchema":
         return MessageSchema(
             id=m.id,
-            agentId=m.agent_id,
+            staffId=m.staff_id,
             content=m.content,
             timestamp=m.timestamp.isoformat(),
             taskId=m.task_id,
@@ -32,12 +32,12 @@ class MessageSchema(BaseModel):
 
 
 class CreateMessageRequest(BaseModel):
-    agentId: str
+    staffId: str
     content: str
     taskId: str | None = None
 
 
-class ThreadFileSchema(BaseModel):
+class MeetingFileSchema(BaseModel):
     id: str
     conversationId: str
     filename: str
@@ -45,12 +45,12 @@ class ThreadFileSchema(BaseModel):
     contentType: str | None = None
     relPath: str
     uploadedBy: str = "user"
-    producedByAgent: str | None = None
+    producedByStaff: str | None = None
     createdAt: str
 
     @staticmethod
-    def from_record(rec: dict) -> "ThreadFileSchema":
-        return ThreadFileSchema(
+    def from_record(rec: dict) -> "MeetingFileSchema":
+        return MeetingFileSchema(
             id=rec.get("id", ""),
             conversationId=rec.get("conversation_id", ""),
             filename=rec.get("filename", ""),
@@ -58,7 +58,7 @@ class ThreadFileSchema(BaseModel):
             contentType=rec.get("content_type"),
             relPath=rec.get("rel_path", ""),
             uploadedBy=rec.get("uploaded_by", "user"),
-            producedByAgent=rec.get("produced_by_agent"),
+            producedByStaff=rec.get("produced_by_agent"),
             createdAt=rec.get("created_at", ""),
         )
 
@@ -68,7 +68,7 @@ class SimulationPlanRequest(BaseModel):
 
 
 class SimulationStepSchema(BaseModel):
-    agent: str
+    staff: str
     msg: str
     delay_ms: int
     phase: int | None = None

@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from backend.domain.enums import AgentStatus, IssueType, SprintStatus, TaskPriority, TaskStatus
+from backend.domain.enums import StaffStatus, IssueType, SprintStatus, TaskPriority, TaskStatus
 
 # Ownership scoping: every user-creatable entity carries an owner_id.
 # "default" marks shared/system-seeded items visible to everyone;
@@ -26,7 +26,7 @@ def is_owned_by(owner_id: str, entity_owner_id: str) -> bool:
     """Strict ownership: True only when the user created the entity.
 
     The per-user list pages use this so shared "default" items no longer
-    appear there — they are discovered and cloned via the Marketplace.
+    appear there — they are discovered and cloned via the Recruiting.
     (The admin account acts in the DEFAULT_OWNER_ID scope, so it still sees
     every default item through this same check.)
     """
@@ -63,13 +63,13 @@ class Skill:
 
 
 @dataclass(frozen=True, slots=True)
-class Agent:
+class Staff:
     id: str
     name: str
     role: str
     description: str
     skill_ids: list[str]
-    status: AgentStatus
+    status: StaffStatus
     avatar: str
     avatar_icon: str = ""
     avatar_color: str = ""
@@ -80,11 +80,11 @@ class Agent:
 
 
 @dataclass(frozen=True, slots=True)
-class Team:
+class Department:
     id: str
     name: str
     description: str
-    agents: list[str]
+    staff: list[str]
     active_tasks: int
     avatar: str = ""
     avatar_icon: str = ""
@@ -104,10 +104,10 @@ class Task:
     id: str
     title: str
     description: str
-    team_id: str
+    department_id: str
     status: TaskStatus
     progress: int
-    assigned_agents: list[str]
+    assigned_staff: list[str]
     start_time: datetime | None = None
     end_time: datetime | None = None
     owner_id: str = DEFAULT_OWNER_ID
@@ -115,10 +115,10 @@ class Task:
     priority: TaskPriority = TaskPriority.medium
     due_date: datetime | None = None
     labels: list[str] = field(default_factory=list)
-    # Single staff (agent id) responsible when a task is assigned to a person
-    # rather than a whole department. team_id may be empty in that case.
+    # Single staff (staff id) responsible when a task is assigned to a person
+    # rather than a whole department. department_id may be empty in that case.
     assignee_id: str | None = None
-    # User-authored comment thread, kept separate from the agent live-chat
+    # User-authored comment thread, kept separate from the staff live-chat
     # transcript. Each item: {id, author_id, content, created_at}.
     comments: list[dict[str, Any]] = field(default_factory=list)
     # Jira-style organisation fields. A Task IS the "Issue" in the UI; the
@@ -138,9 +138,9 @@ class Project:
     key: str                         # "NUC" — uppercase, unique within owner scope
     name: str
     description: str = ""
-    lead_id: str = ""                # agent id acting as project lead
-    planner_agent_id: str = ""       # which Agent is the configurable "planner"
-    planner_system_prompt: str = ""  # optional override of the planner agent's prompt
+    lead_id: str = ""                # staff id acting as project lead
+    planner_staff_id: str = ""       # which Staff is the configurable "planner"
+    planner_system_prompt: str = ""  # optional override of the planner staff's prompt
     issue_counter: int = 0           # monotonic source of the "-N" suffix in issue keys
     created_at: datetime | None = None
     avatar: str = ""
@@ -179,7 +179,7 @@ class Sprint:
 @dataclass(frozen=True, slots=True)
 class Message:
     id: str
-    agent_id: str
+    staff_id: str
     content: str
     timestamp: datetime
     task_id: str | None = None
@@ -189,14 +189,14 @@ class Message:
 class Analytics:
     tasks_completed: int
     avg_completion_time: str
-    team_efficiency: int
-    agent_productivity: dict[str, int]
+    department_efficiency: int
+    staff_productivity: dict[str, int]
 
 
 @dataclass(frozen=True, slots=True)
 class ActivityFeedItem:
     id: str
-    agent_id: str
+    staff_id: str
     action: str
     time: str
 
@@ -212,21 +212,21 @@ class PlatformHook:
 
 
 @dataclass(frozen=True, slots=True)
-class Workspace:
+class Company:
     id: str
     name: str
     description: str
-    team_ids: list[str]
+    department_ids: list[str]
     platform_hooks: list[PlatformHook]
     created_at: datetime
     avatar: str = ""
     avatar_icon: str = ""
     avatar_color: str = ""
     avatar_url: str = ""
-    primary_team_id: str = ""
+    primary_department_id: str = ""
     # Company type (software | marketing | research | general). Drives which
     # operational options are "suggested" inside the company; never hides any.
-    company_type: str = "general"
+    type: str = "general"
     owner_id: str = DEFAULT_OWNER_ID
 
 
@@ -234,11 +234,11 @@ class Workspace:
 class LibraryDocument:
     """A document in a Business Unit's shared document library ("Kho tài liệu").
 
-    Bytes live in the FileStore (``library/<workspace_id>/<rel_path>``); this is the
+    Bytes live in the FileStore (``library/<company_id>/<rel_path>``); this is the
     metadata record. ``source`` is "upload" | "url" | "project".
     """
     id: str
-    workspace_id: str
+    company_id: str
     name: str
     content_type: str
     size: int
@@ -261,7 +261,7 @@ class OfficeBuilderSession:
     plan: dict[str, Any] | None      # draft OfficePlan, if one has been generated
     created_at: datetime
     updated_at: datetime
-    workspace_id: str = ""           # set once the plan has been applied
+    company_id: str = ""           # set once the plan has been applied
     owner_id: str = DEFAULT_OWNER_ID
 
 
@@ -285,7 +285,7 @@ class ToolResult:
 
 @dataclass(frozen=True, slots=True)
 class SimulationStep:
-    agent: str
+    staff: str
     msg: str
     delay_ms: int
     phase: int | None = None  # 1..4 (Planning/Execution/Review/Complete)
@@ -302,8 +302,8 @@ class TokenUsageRecord:
     total_tokens: int
     user_id: str             # who triggered the call; "system" for background work
     timestamp: datetime
-    agent_name: str = ""     # AI staff member that made the call; "" if unattributed
-    team_id: str = ""        # department/team the run belongs to; "" if unattributed
+    staff_name: str = ""     # AI staff member that made the call; "" if unattributed
+    department_id: str = ""        # department/team the run belongs to; "" if unattributed
 
 
 @dataclass(frozen=True, slots=True)

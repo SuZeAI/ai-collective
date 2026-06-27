@@ -5,11 +5,11 @@ from typing import Any
 from pydantic import BaseModel
 
 
-class TeamSchema(BaseModel):
+class DepartmentSchema(BaseModel):
     id: str
     name: str
     description: str
-    agents: list[str]
+    staff: list[str]
     activeTasks: int
     avatar: str = ""
     avatar_icon: str = ""
@@ -21,12 +21,12 @@ class TeamSchema(BaseModel):
     flow: dict[str, Any] | None = None
 
     @staticmethod
-    def from_domain(t) -> "TeamSchema":
-        return TeamSchema(
+    def from_domain(t) -> "DepartmentSchema":
+        return DepartmentSchema(
             id=t.id,
             name=t.name,
             description=t.description,
-            agents=list(t.agents),
+            staff=list(t.staff),
             activeTasks=t.active_tasks,
             avatar=getattr(t, "avatar", "") or "",
             avatar_icon=getattr(t, "avatar_icon", "") or "",
@@ -43,7 +43,7 @@ class UpsertTeamRequest(BaseModel):
     id: str | None = None
     name: str
     description: str = ""
-    agents: list[str]
+    staff: list[str]
     activeTasks: int = 0
     avatar: str | None = None
     avatar_icon: str | None = None

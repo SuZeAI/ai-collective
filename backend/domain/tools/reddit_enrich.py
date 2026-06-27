@@ -51,7 +51,7 @@ def _fetch_reddit_json(path: str, timeout: int = 30, retries: int = 2) -> Option
         clean_path = clean_path.rstrip("/") + "/.json"
     url = f"https://www.reddit.com{clean_path}"
     headers = {
-        "User-Agent": "ai-collective/reddit-enrich",
+        "User-Staff": "ai-collective/reddit-enrich",
     }
 
     for attempt in range(retries + 1):
@@ -85,7 +85,7 @@ def _sc_headers(token: str) -> Dict[str, str]:
     return {
         "x-api-key": token,
         "Content-Type": "application/json",
-        "User-Agent": "ai-collective/reddit-enrich",
+        "User-Staff": "ai-collective/reddit-enrich",
     }
 
 

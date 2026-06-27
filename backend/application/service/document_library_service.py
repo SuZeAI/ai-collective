@@ -24,7 +24,7 @@ class DocumentLibraryService:
 
     Metadata lives in the repository; bytes go through the FileStore ``library``
     namespace (scope = workspace id) so the local⇄s3 switch is shared with chat files.
-    Ownership filtering is enforced in the router (mirrors WorkspaceService).
+    Ownership filtering is enforced in the router (mirrors CompanyService).
     """
 
     def __init__(self, repo) -> None:
@@ -48,14 +48,14 @@ class DocumentLibraryService:
         return doc
 
     def read_bytes(self, doc: LibraryDocument) -> bytes | None:
-        return self._store.get(doc.workspace_id, doc.rel_path)
+        return self._store.get(doc.company_id, doc.rel_path)
 
     # ── writes ───────────────────────────────────────────────────────────────────
 
     def create_document(
         self,
         *,
-        workspace_id: str,
+        company_id: str,
         filename: str,
         content_type: str,
         data: bytes,
@@ -69,10 +69,10 @@ class DocumentLibraryService:
         doc_id = f"doc_{uuid4().hex}"
         name = _safe_name(filename)
         rel_path = f"{doc_id}/{name}"
-        self._store.put(workspace_id, rel_path, data)
+        self._store.put(company_id, rel_path, data)
         doc = LibraryDocument(
             id=doc_id,
-            workspace_id=workspace_id,
+            company_id=company_id,
             name=name,
             content_type=content_type or "application/octet-stream",
             size=len(data),
@@ -89,7 +89,7 @@ class DocumentLibraryService:
 
     def delete_document(self, doc: LibraryDocument) -> None:
         try:
-            self._store.delete(doc.workspace_id, doc.rel_path)
+            self._store.delete(doc.company_id, doc.rel_path)
         except Exception as exc:  # noqa: BLE001
             logger.warning("library byte delete failed for %s: %s", doc.id, exc)
         self._repo.delete(doc.id)

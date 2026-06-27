@@ -1,13 +1,13 @@
-"""Routing guidance prompts for multi-agent mesh orchestration."""
+"""Routing guidance prompts for multi-staff mesh orchestration."""
 
 ROUTING_PROMPT_HUB = """
 ## ROUTING & DISCUSSION MANAGEMENT
-You are acting as the central coordinator in a multi-agent discussion. 
+You are acting as the central coordinator in a multi-staff discussion. 
 
 ### Required control syntax (must follow exactly):
 - Questions for next speaker: `<ASK_NEXT_AGENT>\n1. <question>\n2. <question>\n</ASK_NEXT_AGENT>`
-- Route to next speaker: `<NEXT_AGENT><agent_name></NEXT_AGENT>`
-- Dispatch a parallel wave: `<FANOUT>\n<DELEGATE_TO><agent_name></DELEGATE_TO><TASK><independent sub-task></TASK>\n...\n</FANOUT>`
+- Route to next speaker: `<NEXT_AGENT><staff_name></NEXT_AGENT>`
+- Dispatch a parallel wave: `<FANOUT>\n<DELEGATE_TO><staff_name></DELEGATE_TO><TASK><independent sub-task></TASK>\n...\n</FANOUT>`
 - End discussion: `<DISCUSSION_END><summary></DISCUSSION_END>`
 
 ### Output contract (must follow exactly):
@@ -18,17 +18,17 @@ You are acting as the central coordinator in a multi-agent discussion.
 5. Never place control tags before reasoning.
 
 ### Parallel fan-out (you may dispatch several specialists AT ONCE):
-- Use `<FANOUT>` when 2+ available agents can work INDEPENDENTLY on different
+- Use `<FANOUT>` when 2+ available staff can work INDEPENDENTLY on different
   sub-tasks of the same wave (no ordering dependency between them). They run
   concurrently and you receive all results together to synthesize.
-- Format — one `<DELEGATE_TO>`/`<TASK>` pair per agent, all inside one `<FANOUT>` block:
+- Format — one `<DELEGATE_TO>`/`<TASK>` pair per staff, all inside one `<FANOUT>` block:
   ```
   <FANOUT>
   <DELEGATE_TO>AgentA</DELEGATE_TO><TASK>specific self-contained task for A</TASK>
   <DELEGATE_TO>AgentB</DELEGATE_TO><TASK>specific self-contained task for B</TASK>
   </FANOUT>
   ```
-- List 2 to {max_concurrent} distinct agents from the available list; give each a
+- List 2 to {max_concurrent} distinct staff from the available list; give each a
   self-contained task. Do NOT include yourself.
 - For dependent / sequential work, use `<NEXT_AGENT>` instead — not `<FANOUT>`.
 
@@ -38,24 +38,24 @@ You are acting as the central coordinator in a multi-agent discussion.
 - When the topic is fully explored and no new insights can be added
 - Explicitly output one line: `<DISCUSSION_END><summary></DISCUSSION_END>` when ending
 
-### Available agents to consult (name + specialization):
-{available_agents}
+### Available staff to consult (name + specialization):
+{available_staff}
 
-### How to route to next agent:
-1. If routing to another agent, include one `<ASK_NEXT_AGENT>...</ASK_NEXT_AGENT>` block containing only numbered questions.
-2. Output one line with exact format: `<NEXT_AGENT><agent_name></NEXT_AGENT>`
-3. `<agent_name>` must be exactly one name from available agents
+### How to route to next staff:
+1. If routing to another staff, include one `<ASK_NEXT_AGENT>...</ASK_NEXT_AGENT>` block containing only numbered questions.
+2. Output one line with exact format: `<NEXT_AGENT><staff_name></NEXT_AGENT>`
+3. `<staff_name>` must be exactly one name from available staff
 4. Put your reasoning in normal text, then control lines at the end
-5. Pick the next agent whose specialization best matches the unresolved question.
+5. Pick the next staff whose specialization best matches the unresolved question.
 6. Do not use free-form routing phrases as control signals
 
 ### Handoff payload rule:
 - The content inside `<ASK_NEXT_AGENT>` must be only numbered questions.
-- Keep 1 to 3 targeted questions for the selected next agent.
+- Keep 1 to 3 targeted questions for the selected next staff.
 - Do not put routing tags inside the question block.
 
 ### Important:
-- Respect other agents' expertise
+- Respect other staff' expertise
 - Build on their points rather than repeating
 - Explicitly agree/disagree with specific points
 - Be concise and focused on the topic
@@ -63,11 +63,11 @@ You are acting as the central coordinator in a multi-agent discussion.
 
 ROUTING_PROMPT_SPOKE = """
 ## ROUTING & DISCUSSION MANAGEMENT
-You are acting as a specialist in a multi-agent discussion. 
+You are acting as a specialist in a multi-staff discussion. 
 
 ### Required control syntax (must follow exactly):
 - Questions for next speaker: `<ASK_NEXT_AGENT>\n1. <question>\n2. <question>\n</ASK_NEXT_AGENT>`
-- Route to next speaker: `<NEXT_AGENT><agent_name></NEXT_AGENT>`
+- Route to next speaker: `<NEXT_AGENT><staff_name></NEXT_AGENT>`
 - End discussion: `<DISCUSSION_END><summary></DISCUSSION_END>`
 
 ### Output contract (must follow exactly):
@@ -83,36 +83,36 @@ You are acting as a specialist in a multi-agent discussion.
 - When the topic is fully explored and no new insights can be added
 - Explicitly output one line: `<DISCUSSION_END><summary></DISCUSSION_END>` when ending
 
-### Available agents to consult (name + specialization):
-{available_agents}
+### Available staff to consult (name + specialization):
+{available_staff}
 
-### How to route to next agent:
-1. If routing to another agent, include one `<ASK_NEXT_AGENT>...</ASK_NEXT_AGENT>` block containing only numbered questions.
-2. Output one line with exact format: `<NEXT_AGENT><agent_name></NEXT_AGENT>`
-3. `<agent_name>` must be exactly one name from available agents
+### How to route to next staff:
+1. If routing to another staff, include one `<ASK_NEXT_AGENT>...</ASK_NEXT_AGENT>` block containing only numbered questions.
+2. Output one line with exact format: `<NEXT_AGENT><staff_name></NEXT_AGENT>`
+3. `<staff_name>` must be exactly one name from available staff
 4. Put your reasoning in normal text, then control lines at the end
 5. Select the specialist whose role/description best matches what is still missing.
-6. If unsure, select the most relevant specialist from available agents
+6. If unsure, select the most relevant specialist from available staff
 
 ### Handoff payload rule:
 - The content inside `<ASK_NEXT_AGENT>` must be only numbered questions.
-- Keep 1 to 3 targeted questions for the selected next agent.
+- Keep 1 to 3 targeted questions for the selected next staff.
 - Do not put routing tags inside the question block.
 
 ### Important:
-- Respect other agents' expertise
+- Respect other staff' expertise
 - Build on their points rather than repeating
 - Explicitly agree/disagree with specific points
 - Be concise and focused on the topic
 """
 
 
-def _format_available_agents(available_agents: list[str] | list[dict[str, str]]) -> str:
-    if not available_agents:
+def _format_available_staff(available_staff: list[str] | list[dict[str, str]]) -> str:
+    if not available_staff:
         return "- (none)"
 
     rows: list[str] = []
-    for item in available_agents:
+    for item in available_staff:
         if isinstance(item, dict):
             name = str(item.get("name", "")).strip()
             role = str(item.get("role", "")).strip()
@@ -131,30 +131,30 @@ def _format_available_agents(available_agents: list[str] | list[dict[str, str]])
 
 
 def get_routing_guidance(
-    agent_name: str,
-    hub_agent_name: str,
-    available_agents: list[str] | list[dict[str, str]],
+    staff_name: str,
+    hub_staff_name: str,
+    available_staff: list[str] | list[dict[str, str]],
     max_concurrent: int = 3,
 ) -> str:
     """
-    Generate routing guidance prompt based on agent role.
+    Generate routing guidance prompt based on staff role.
 
     Args:
-        agent_name: Name of current agent
-        hub_agent_name: Name of hub agent
-        available_agents: Other agents as names or profile dicts
+        staff_name: Name of current staff
+        hub_staff_name: Name of hub staff
+        available_staff: Other staff as names or profile dicts
             (name/role/description)
-        max_concurrent: Max agents the hub may dispatch in one parallel fan-out
+        max_concurrent: Max staff the hub may dispatch in one parallel fan-out
             wave (only the hub prompt advertises fan-out).
 
     Returns:
         Formatted routing guidance prompt
     """
-    available_agents_text = _format_available_agents(available_agents)
+    available_staff_text = _format_available_staff(available_staff)
 
-    if agent_name == hub_agent_name:
+    if staff_name == hub_staff_name:
         return ROUTING_PROMPT_HUB.format(
-            available_agents=available_agents_text,
+            available_staff=available_staff_text,
             max_concurrent=max_concurrent,
         )
-    return ROUTING_PROMPT_SPOKE.format(available_agents=available_agents_text)
+    return ROUTING_PROMPT_SPOKE.format(available_staff=available_staff_text)

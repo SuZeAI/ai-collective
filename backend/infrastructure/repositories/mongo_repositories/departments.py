@@ -4,20 +4,20 @@ from typing import Any
 
 import pymongo
 
-from backend.domain.models import DEFAULT_OWNER_ID, Team
+from backend.domain.models import DEFAULT_OWNER_ID, Department
 
 
-class MongoTeamRepository:
+class MongoDepartmentRepository:
     def __init__(self, db: pymongo.database.Database) -> None:
         self._col = db["teams"]
         self._col.create_index("id", unique=True, background=True)
 
-    def _doc_to_team(self, item: dict[str, Any]) -> Team:
-        return Team(
+    def _doc_to_team(self, item: dict[str, Any]) -> Department:
+        return Department(
             id=str(item["id"]),
             name=str(item.get("name", "")),
             description=str(item.get("description", "")),
-            agents=[str(x) for x in (item.get("agents") or [])],
+            staff=[str(x) for x in (item.get("agents") or [])],
             active_tasks=int(item.get("activeTasks", 0)),
             avatar=str(item.get("avatar", "") or str(item.get("name", "") or "T")[:1].upper()),
             avatar_icon=str(item.get("avatar_icon", "") or ""),
@@ -29,13 +29,13 @@ class MongoTeamRepository:
             flow=item.get("flow") if isinstance(item.get("flow"), dict) else None,
         )
 
-    def _team_to_doc(self, t: Team) -> dict[str, Any]:
+    def _department_to_doc(self, t: Department) -> dict[str, Any]:
         return {
             "id": t.id,
             "_id": t.id,
             "name": t.name,
             "description": t.description,
-            "agents": list(t.agents),
+            "agents": list(t.staff),
             "activeTasks": t.active_tasks,
             "avatar": t.avatar,
             "avatar_icon": t.avatar_icon,
@@ -47,16 +47,16 @@ class MongoTeamRepository:
             "flow": t.flow,
         }
 
-    def list(self) -> list[Team]:
+    def list(self) -> list[Department]:
         return [self._doc_to_team(doc) for doc in self._col.find()]
 
-    def get(self, team_id: str) -> Team | None:
-        doc = self._col.find_one({"id": team_id})
+    def get(self, department_id: str) -> Department | None:
+        doc = self._col.find_one({"id": department_id})
         return self._doc_to_team(doc) if doc else None
 
-    def upsert(self, team: Team) -> Team:
-        self._col.replace_one({"id": team.id}, self._team_to_doc(team), upsert=True)
-        return team
+    def upsert(self, department: Department) -> Department:
+        self._col.replace_one({"id": department.id}, self._department_to_doc(department), upsert=True)
+        return department
 
-    def delete(self, team_id: str) -> None:
-        self._col.delete_one({"id": team_id})
+    def delete(self, department_id: str) -> None:
+        self._col.delete_one({"id": department_id})

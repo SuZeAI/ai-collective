@@ -9,9 +9,9 @@ from uuid import uuid4
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 
-from backend.application.ports.agent_graph import (
-    AgentGraphOrchestrator,
-    GraphAgentDefinition,
+from backend.application.ports.staff_graph import (
+    StaffGraphOrchestrator,
+    GraphStaffDefinition,
     GraphContextProvider,
     GraphRunResult,
     GraphTurn,
@@ -19,8 +19,8 @@ from backend.application.ports.agent_graph import (
 from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
-from backend.domain.agent.token_budget import apply_context_token_budget
-from backend.domain.agent._graph_runtime import (
+from backend.domain.staff.token_budget import apply_context_token_budget
+from backend.domain.staff._graph_runtime import (
     FANOUT_SYNTHESIS_GUIDANCE,
     MESH_FANOUT_MAX_CONCURRENT,
     attach_conversation_sandbox,
@@ -42,14 +42,14 @@ logger = logging.getLogger(__name__)
 
 from backend.api.settings import settings
 
-MAX_CONTEXT_TOKENS = max(1024, settings.agent.context_token_limit)
-RESERVED_OUTPUT_TOKENS = max(256, settings.agent.output_token_reserve)
+MAX_CONTEXT_TOKENS = max(1024, settings.staff.context_token_limit)
+RESERVED_OUTPUT_TOKENS = max(256, settings.staff.output_token_reserve)
 
 _DELEGATION_LOG_WINDOW = 6  # last N delegation entries shown to lead
 
 _LEAD_ROUTING_PROMPT = """
 ## SUPERVISOR ROLE
-You are the **lead agent**. Your job is to complete the user's request by either answering directly or delegating sub-tasks to specialist workers, then synthesizing their results.
+You are the **lead staff_member**. Your job is to complete the user's request by either answering directly or delegating sub-tasks to specialist workers, then synthesizing their results.
 
 ### Delegation syntax (place ONLY at the very end of your response):
 - Delegate to a worker:
@@ -87,7 +87,7 @@ You are the **lead agent**. Your job is to complete the user's request by either
 
 _WORKER_PROMPT = """
 ## WORKER ROLE
-You are a specialist worker. The lead agent has assigned you a specific task. Execute it thoroughly and return your results directly — the lead will handle next steps.
+You are a specialist worker. The lead staff_member has assigned you a specific task. Execute it thoroughly and return your results directly — the lead will handle next steps.
 
 ### Task assigned by lead:
 {task}
@@ -107,12 +107,12 @@ class SupervisorState(TypedDict):
     final_answer_reached: bool
     rounds: int
     final_response: str
-    final_agent: str | None
+    final_staff: str | None
 
 
-class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
+class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
     """
-    Supervisor topology: one lead agent orchestrates N worker agents.
+    Supervisor topology: one lead staff_member orchestrates N worker staff.
 
     Flow:
         START → Lead
@@ -159,7 +159,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
         self,
         *,
         user_input: str,
-        agents: list[GraphAgentDefinition],
+        staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
         conversation_id: str | None = None,
@@ -167,18 +167,18 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
     ) -> GraphRunResult:
-        if not agents:
-            raise ValueError("At least one agent definition is required")
+        if not staff:
+            raise ValueError("At least one staff_member definition is required")
 
         self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
-        graph = self._build_graph(agents, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
-        final_state = await run_to_final_state(graph, self._initial_state(user_input, agents), max_rounds)
+        graph = self._build_graph(staff, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
+        final_state = await run_to_final_state(graph, self._initial_state(user_input, staff), max_rounds)
 
         turns = list(final_state.get("turns", []))
         return GraphRunResult(
             turns=turns,
             final_response=final_state.get("final_response") or (turns[-1].content if turns else ""),
-            final_agent=final_state.get("final_agent"),
+            final_staff=final_state.get("final_staff"),
             rounds=int(final_state.get("rounds", len(turns))),
         )
 
@@ -186,7 +186,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
         self,
         *,
         user_input: str,
-        agents: list[GraphAgentDefinition],
+        staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
         conversation_id: str | None = None,
@@ -194,14 +194,14 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
     ):
-        if not agents:
-            raise ValueError("At least one agent definition is required")
+        if not staff:
+            raise ValueError("At least one staff_member definition is required")
 
         self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
-        graph = self._build_graph(agents, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
+        graph = self._build_graph(staff, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
 
         async for event in graph.astream(
-            self._initial_state(user_input, agents),
+            self._initial_state(user_input, staff),
             config=recursion_config(max_rounds),
             stream_mode="custom",
         ):
@@ -214,17 +214,17 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
 
     def _build_graph(
         self,
-        agents: list[GraphAgentDefinition],
+        staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
         conversation_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
     ):
-        lead = agents[0]
-        workers = agents[1:]
+        lead = staff[0]
+        workers = staff[1:]
         worker_names = [w.name for w in workers]
-        all_node_names = [a.name for a in agents]
+        all_node_names = [a.name for a in staff]
 
         builder: StateGraph = StateGraph(SupervisorState)
 
@@ -276,7 +276,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
         return builder.compile()
 
     @staticmethod
-    def _initial_state(user_input: str, agents: list[GraphAgentDefinition]) -> SupervisorState:
+    def _initial_state(user_input: str, staff: list[GraphStaffDefinition]) -> SupervisorState:
         return {
             "input": user_input,
             "original_input": user_input,
@@ -287,7 +287,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             "final_answer_reached": False,
             "rounds": 0,
             "final_response": "",
-            "final_agent": None,
+            "final_staff": None,
         }
 
     # ------------------------------------------------------------------ #
@@ -297,8 +297,8 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
     def _make_lead_node(
         self,
         *,
-        lead: GraphAgentDefinition,
-        workers: list[GraphAgentDefinition],
+        lead: GraphStaffDefinition,
+        workers: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
         conversation_id: str | None,
@@ -317,7 +317,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             await wait_while_paused(
                 conversation_id=conversation_id,
                 stream_writer=stream_writer,
-                agent_name=lead.name,
+                staff_name=lead.name,
             )
 
             rounds_used = state["rounds"]
@@ -326,7 +326,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             stream_writer({
                 "type": EventType.AGENT_START.value,
                 "agent_name": lead.name,
-                "agent_role": lead.role,
+                "staff_role": lead.role,
                 "turn": rounds_used + 1,
                 "is_lead": True,
             })
@@ -420,14 +420,14 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
                 bound_tools.extend(
                     AskUserToolkit(
                         conversation_id=conversation_id,
-                        agent_name=lead.name,
+                        staff_name=lead.name,
                     ).get_tools()
                 )
             # Default memory tools: save/recall shared working-memory notes.
             bound_tools.extend(memory_toolkit_tools(conversation_id, lead.name))
 
             attach_conversation_sandbox(
-                bound_tools, conversation_id=conversation_id, agent_name=lead.name
+                bound_tools, conversation_id=conversation_id, staff_name=lead.name
             )
 
             stream_writer({
@@ -482,8 +482,8 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
 
             new_turn = GraphTurn(
                 turn=rounds_used + 1,
-                agent_name=lead.name,
-                agent_role=lead.role,
+                staff_name=lead.name,
+                staff_role=lead.role,
                 content=reasoning,
             )
 
@@ -500,7 +500,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             if target_worker and task_text:
                 record_turn_in_memory(
                     conversation_id,
-                    agent_name=lead.name,
+                    staff_name=lead.name,
                     turn=rounds_used + 1,
                     content=f"Delegated to {target_worker}: {task_text}",
                     kind="decision",
@@ -508,7 +508,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             elif final_answer:
                 record_turn_in_memory(
                     conversation_id,
-                    agent_name=lead.name,
+                    staff_name=lead.name,
                     turn=rounds_used + 1,
                     content=f"Final answer delivered: {final_answer}",
                     kind="result",
@@ -517,7 +517,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             if graph_context_provider and conversation_id:
                 graph_context_provider.ingest_message(
                     conversation_id=conversation_id,
-                    message_id=f"agent-{lead.name}-{uuid4().hex}",
+                    message_id=f"staff_member-{lead.name}-{uuid4().hex}",
                     speaker=lead.name,
                     content=reasoning,
                     config=graph_config,
@@ -540,7 +540,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
                 "current_worker": target_worker,
                 "final_answer_reached": bool(final_answer),
                 "final_response": final_answer or reasoning,
-                "final_agent": lead.name,
+                "final_staff": lead.name,
                 "rounds": rounds_used + 1,
             }
 
@@ -549,7 +549,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
     def _make_worker_node(
         self,
         *,
-        worker: GraphAgentDefinition,
+        worker: GraphStaffDefinition,
         llm: LLMProvider,
         conversation_id: str | None,
         graph_context_provider: GraphContextProvider | None,
@@ -562,7 +562,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             await wait_while_paused(
                 conversation_id=conversation_id,
                 stream_writer=stream_writer,
-                agent_name=worker.name,
+                staff_name=worker.name,
             )
 
             rounds_used = state["rounds"]
@@ -570,7 +570,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             stream_writer({
                 "type": EventType.AGENT_START.value,
                 "agent_name": worker.name,
-                "agent_role": worker.role,
+                "staff_role": worker.role,
                 "turn": rounds_used + 1,
                 "is_worker": True,
             })
@@ -636,14 +636,14 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
                 bound_tools.extend(
                     AskUserToolkit(
                         conversation_id=conversation_id,
-                        agent_name=worker.name,
+                        staff_name=worker.name,
                     ).get_tools()
                 )
             # Default memory tools: save/recall shared working-memory notes.
             bound_tools.extend(memory_toolkit_tools(conversation_id, worker.name))
 
             attach_conversation_sandbox(
-                bound_tools, conversation_id=conversation_id, agent_name=worker.name
+                bound_tools, conversation_id=conversation_id, staff_name=worker.name
             )
 
             stream_writer({
@@ -672,8 +672,8 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
 
             new_turn = GraphTurn(
                 turn=rounds_used + 1,
-                agent_name=worker.name,
-                agent_role=worker.role,
+                staff_name=worker.name,
+                staff_role=worker.role,
                 content=output,
             )
 
@@ -684,7 +684,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             # delegation log above (which only keeps the last few entries).
             record_turn_in_memory(
                 conversation_id,
-                agent_name=worker.name,
+                staff_name=worker.name,
                 turn=rounds_used + 1,
                 content=output,
                 kind="result",
@@ -693,7 +693,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             if graph_context_provider and conversation_id:
                 graph_context_provider.ingest_message(
                     conversation_id=conversation_id,
-                    message_id=f"agent-{worker.name}-{uuid4().hex}",
+                    message_id=f"staff_member-{worker.name}-{uuid4().hex}",
                     speaker=worker.name,
                     content=output,
                     config=graph_config,
@@ -714,7 +714,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
                 "current_task": "",
                 "current_worker": None,
                 "final_response": output,
-                "final_agent": worker.name,
+                "final_staff": worker.name,
                 "rounds": rounds_used + 1,
             }
 
@@ -792,7 +792,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
     def _build_worker_chat_kwargs(
         self,
         *,
-        worker: GraphAgentDefinition,
+        worker: GraphStaffDefinition,
         task_text: str,
         state: SupervisorState,
         llm: LLMProvider,
@@ -849,13 +849,13 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             bound_tools.extend(
                 AskUserToolkit(
                     conversation_id=conversation_id,
-                    agent_name=worker.name,
+                    staff_name=worker.name,
                 ).get_tools()
             )
         bound_tools.extend(memory_toolkit_tools(conversation_id, worker.name))
 
         attach_conversation_sandbox(
-            bound_tools, conversation_id=conversation_id, agent_name=worker.name
+            bound_tools, conversation_id=conversation_id, staff_name=worker.name
         )
 
         return {
@@ -867,8 +867,8 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
     async def _execute_lead_fanout(
         self,
         *,
-        lead: GraphAgentDefinition,
-        workers: list[GraphAgentDefinition],
+        lead: GraphStaffDefinition,
+        workers: list[GraphStaffDefinition],
         fanout_pairs: list[tuple[str, str]],
         lead_reasoning: str,
         lead_system: str,
@@ -896,7 +896,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
         # Lead's fan-out decision recorded as its own turn.
         record_turn_in_memory(
             conversation_id,
-            agent_name=lead.name,
+            staff_name=lead.name,
             turn=base_turn,
             content=f"Dispatched parallel wave: {[n for n, _ in fanout_pairs]}",
             kind="decision",
@@ -904,15 +904,15 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
         if graph_context_provider and conversation_id:
             graph_context_provider.ingest_message(
                 conversation_id=conversation_id,
-                message_id=f"agent-{lead.name}-{uuid4().hex}",
+                message_id=f"staff_member-{lead.name}-{uuid4().hex}",
                 speaker=lead.name,
                 content=lead_reasoning,
                 config=graph_config,
             )
         lead_turn = GraphTurn(
             turn=base_turn,
-            agent_name=lead.name,
-            agent_role=lead.role,
+            staff_name=lead.name,
+            staff_role=lead.role,
             content=lead_reasoning,
         )
         target_names = [n for n, _ in fanout_pairs]
@@ -929,7 +929,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
         })
 
         prebuilt: dict[str, dict] = {}
-        branches: list[tuple[GraphAgentDefinition, str]] = []
+        branches: list[tuple[GraphStaffDefinition, str]] = []
         for worker_name, task_text in fanout_pairs:
             worker = worker_by_name[worker_name]
             prebuilt[worker_name] = self._build_worker_chat_kwargs(
@@ -967,25 +967,25 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             worker_turns.append(
                 GraphTurn(
                     turn=r.turn,
-                    agent_name=r.agent_name,
-                    agent_role=r.agent_role,
+                    staff_name=r.staff_name,
+                    staff_role=r.staff_role,
                     content=r.content,
                 )
             )
             snippet = r.content[:300] + ("..." if len(r.content) > 300 else "")
-            new_log.append(f"[Turn {r.turn}] {r.agent_name} → Lead: {snippet}")
+            new_log.append(f"[Turn {r.turn}] {r.staff_name} → Lead: {snippet}")
 
         # Lead synthesizes the wave's results, then emits one control action.
         synthesis_user = (
             "Your parallel wave returned these worker results:\n\n"
             + "\n\n".join(
-                f"### {r.agent_name} (task: {r.task})\n{r.content}" for r in results
+                f"### {r.staff_name} (task: {r.task})\n{r.content}" for r in results
             )
         )
         synthesis_system = f"{lead_system}\n\n{FANOUT_SYNTHESIS_GUIDANCE}"
         synth_raw = await safe_chat(
             llm,
-            agent_name=lead.name,
+            staff_name=lead.name,
             system=synthesis_system,
             user=synthesis_user,
         )
@@ -996,7 +996,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
         synthesis_turn_number = base_turn + len(results) + 1
         record_turn_in_memory(
             conversation_id,
-            agent_name=lead.name,
+            staff_name=lead.name,
             turn=synthesis_turn_number,
             content=final_answer or synth_reasoning,
             kind="result" if final_answer else "decision",
@@ -1004,15 +1004,15 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
         if graph_context_provider and conversation_id:
             graph_context_provider.ingest_message(
                 conversation_id=conversation_id,
-                message_id=f"agent-{lead.name}-{uuid4().hex}",
+                message_id=f"staff_member-{lead.name}-{uuid4().hex}",
                 speaker=lead.name,
                 content=synth_reasoning,
                 config=graph_config,
             )
         synthesis_turn = GraphTurn(
             turn=synthesis_turn_number,
-            agent_name=lead.name,
-            agent_role=lead.role,
+            staff_name=lead.name,
+            staff_role=lead.role,
             content=synth_reasoning,
         )
         if target_worker and next_task:
@@ -1035,7 +1035,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             "current_worker": target_worker,
             "final_answer_reached": bool(final_answer),
             "final_response": final_answer or synth_reasoning,
-            "final_agent": lead.name,
+            "final_staff": lead.name,
             "rounds": base_turn,
         }
 

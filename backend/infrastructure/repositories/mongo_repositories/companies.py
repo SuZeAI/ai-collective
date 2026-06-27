@@ -5,15 +5,15 @@ from typing import Any
 
 import pymongo
 
-from backend.domain.models import DEFAULT_OWNER_ID, PlatformHook, Workspace
+from backend.domain.models import DEFAULT_OWNER_ID, PlatformHook, Company
 
 
-class MongoWorkspaceRepository:
+class MongoCompanyRepository:
     def __init__(self, db: pymongo.database.Database) -> None:
         self._col = db["workspaces"]
         self._col.create_index("id", unique=True, background=True)
 
-    def _doc_to_workspace(self, item: dict[str, Any]) -> Workspace:
+    def _doc_to_workspace(self, item: dict[str, Any]) -> Company:
         hooks = [
             PlatformHook(
                 id=str(h["id"]),
@@ -33,30 +33,30 @@ class MongoWorkspaceRepository:
                 created_at = datetime.fromisoformat(str(created_raw).replace("Z", "+00:00"))
             except Exception:
                 created_at = datetime.now(timezone.utc)
-        return Workspace(
+        return Company(
             id=str(item["id"]),
             name=str(item.get("name", "")),
             description=str(item.get("description", "")),
-            team_ids=[str(x) for x in (item.get("teamIds") or [])],
+            department_ids=[str(x) for x in (item.get("teamIds") or [])],
             platform_hooks=hooks,
             created_at=created_at,
             avatar=str(item.get("avatar", "") or str(item.get("name", "") or "W")[:1].upper()),
             avatar_icon=str(item.get("avatar_icon", "") or ""),
             avatar_color=str(item.get("avatar_color", "") or ""),
             avatar_url=str(item.get("avatar_url", "") or ""),
-            primary_team_id=str(item.get("primaryTeamId", "")),
-            company_type=str(item.get("type", "") or "general"),
+            primary_department_id=str(item.get("primaryTeamId", "")),
+            type=str(item.get("type", "") or "general"),
             owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
         )
 
-    def _workspace_to_doc(self, w: Workspace) -> dict[str, Any]:
+    def _workspace_to_doc(self, w: Company) -> dict[str, Any]:
         return {
             "id": w.id,
             "_id": w.id,
             "name": w.name,
             "description": w.description,
-            "teamIds": list(w.team_ids),
-            "primaryTeamId": w.primary_team_id,
+            "teamIds": list(w.department_ids),
+            "primaryTeamId": w.primary_department_id,
             "platformHooks": [
                 {
                     "id": h.id,
@@ -69,7 +69,7 @@ class MongoWorkspaceRepository:
                 for h in w.platform_hooks
             ],
             "createdAt": w.created_at.isoformat(),
-            "type": w.company_type,
+            "type": w.type,
             "avatar": w.avatar,
             "avatar_icon": w.avatar_icon,
             "avatar_color": w.avatar_color,
@@ -77,16 +77,16 @@ class MongoWorkspaceRepository:
             "owner_id": w.owner_id,
         }
 
-    def list(self) -> list[Workspace]:
+    def list(self) -> list[Company]:
         return [self._doc_to_workspace(doc) for doc in self._col.find()]
 
-    def get(self, workspace_id: str) -> Workspace | None:
-        doc = self._col.find_one({"id": workspace_id})
+    def get(self, company_id: str) -> Company | None:
+        doc = self._col.find_one({"id": company_id})
         return self._doc_to_workspace(doc) if doc else None
 
-    def upsert(self, workspace: Workspace) -> Workspace:
+    def upsert(self, workspace: Company) -> Company:
         self._col.replace_one({"id": workspace.id}, self._workspace_to_doc(workspace), upsert=True)
         return workspace
 
-    def delete(self, workspace_id: str) -> None:
-        self._col.delete_one({"id": workspace_id})
+    def delete(self, company_id: str) -> None:
+        self._col.delete_one({"id": company_id})

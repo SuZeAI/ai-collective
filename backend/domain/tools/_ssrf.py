@@ -1,4 +1,4 @@
-"""SSRF protection for outbound HTTP made on behalf of the LLM/agent.
+"""SSRF protection for outbound HTTP made on behalf of the LLM/staff.
 
 LLM-supplied URLs must never be allowed to reach internal services or the cloud
 metadata endpoint. ``validate_public_url`` enforces an http/https scheme and
