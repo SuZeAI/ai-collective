@@ -63,7 +63,7 @@ export type RunEngineValue = {
   isStreaming: (taskId: string) => boolean;
 
   // Task CRUD (engine owns the authoritative list so run-status survives navigation)
-  upsertTask: (payload: Partial<Task> & Pick<Task, "title" | "teamId">) => Promise<Task>;
+  upsertTask: (payload: Partial<Task> & Pick<Task, "title">) => Promise<Task>;
   removeTask: (id: string) => Promise<void>;
   ingestTasks: (tasks: Task[]) => void;
   ingestConversations: (taskId: string, messages: Message[]) => void;
@@ -72,6 +72,9 @@ export type RunEngineValue = {
   startTask: (task: Task, opts?: RunOpts) => Promise<void>;
   stopTask: (task: Task) => Promise<void>;
   pauseTask: (task: Task) => Promise<void>;
+  // Generic status setter (aborts any live stream first). Used by the Kanban
+  // board for drag-to-column transitions that aren't start/stop/pause.
+  setStatus: (task: Task, status: Task["status"]) => Promise<void>;
   continueTask: (task: Task, content: string, opts: RunOpts & { transcriptTail?: string }) => Promise<void>;
   interject: (task: Task, content: string) => Promise<boolean>;
   respond: (task: Task, request: UserInputRequest, response: string) => Promise<boolean>;
@@ -701,7 +704,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
 
   // ---- Task CRUD --------------------------------------------------------------
 
-  const upsertTask = useCallback(async (payload: Partial<Task> & Pick<Task, "title" | "teamId">) => {
+  const upsertTask = useCallback(async (payload: Partial<Task> & Pick<Task, "title">) => {
     const saved = await api.upsertTask(payload);
     applyTask(saved);
     return saved;
@@ -767,6 +770,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     startTask,
     stopTask,
     pauseTask,
+    setStatus,
     continueTask,
     interject,
     respond,

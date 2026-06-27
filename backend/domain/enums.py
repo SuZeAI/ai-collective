@@ -15,3 +15,10 @@ class TaskStatus(str, Enum):
     paused = "paused"
     stopped = "stopped"
     completed = "completed"
+
+
+class TaskPriority(str, Enum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+    urgent = "urgent"
