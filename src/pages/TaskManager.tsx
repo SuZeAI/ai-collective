@@ -390,6 +390,10 @@ export default function TaskManager() {
     () => (projectKeyParam ? projectList.find((p) => p.key === projectKeyParam) : undefined),
     [projectKeyParam, projectList],
   );
+  // Task creation belongs to a specific company (office) or a project board. The
+  // global "Overall Collective" scope is monitoring-only, so the New Task button
+  // is hidden there. Editing existing tasks stays available in every scope.
+  const canCreateTask = !!activeProject || !scope.isOverall;
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [teamId, setTeamId] = useState("");
@@ -838,6 +842,20 @@ export default function TaskManager() {
       dueDate: dueDate ? new Date(dueDate).toISOString() : null,
       labels,
       comments: existing?.comments ?? [],
+      // Keep the task tied to its project/epic/sprint. The backend upsert fully
+      // replaces these fields from the request, so we must preserve them on edit
+      // (existing?.…) and seed them from the active project board on create —
+      // otherwise the task is saved with an empty projectId and vanishes from the
+      // board after reload.
+      projectId: existing?.projectId ?? activeProject?.id,
+      epicId: existing?.epicId ?? null,
+      sprintId:
+        existing?.sprintId ??
+        (activeProject && sprintFilter !== "all" && sprintFilter !== "__backlog__"
+          ? sprintFilter
+          : null),
+      issueType: existing?.issueType,
+      storyPoints: existing?.storyPoints ?? null,
     };
     try {
       if (assignMode === "staff") {
@@ -1089,11 +1107,13 @@ export default function TaskManager() {
         )}
 
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" onClick={openCreateDialog} className="h-9 gap-1 text-xs">
-              <Plus className="w-3.5 h-3.5" /> New Task
-            </Button>
-          </DialogTrigger>
+          {canCreateTask && (
+            <DialogTrigger asChild>
+              <Button size="sm" onClick={openCreateDialog} className="h-9 gap-1 text-xs">
+                <Plus className="w-3.5 h-3.5" /> New Task
+              </Button>
+            </DialogTrigger>
+          )}
           <DialogContent>
             <DialogHeader><DialogTitle>{editingTaskId ? "Edit Task" : "Create Task"}</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-2">
