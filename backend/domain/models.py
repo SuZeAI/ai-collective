@@ -246,6 +246,8 @@ class TokenUsageRecord:
     total_tokens: int
     user_id: str             # who triggered the call; "system" for background work
     timestamp: datetime
+    agent_name: str = ""     # AI staff member that made the call; "" if unattributed
+    team_id: str = ""        # department/team the run belongs to; "" if unattributed
 
 
 @dataclass(frozen=True, slots=True)

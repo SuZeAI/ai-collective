@@ -88,6 +88,7 @@ export type Translations = {
     systemGroup: string;
     adminGroup: string;
     monitoring: string;
+    consumption: string;
     manageWorkspaces: string;
   };
   documentLibrary: {
@@ -415,6 +416,7 @@ export const translations: Record<Language, Translations> = {
       systemGroup: "System Settings",
       adminGroup: "Administration",
       monitoring: "System Monitoring",
+      consumption: "Cost Monitoring",
       manageWorkspaces: "Manage Units",
     },
     documentLibrary: {
@@ -766,6 +768,7 @@ export const translations: Record<Language, Translations> = {
       systemGroup: "Thiết lập",
       adminGroup: "Quản trị",
       monitoring: "Giám sát hệ thống",
+      consumption: "Giám sát chi phí",
       manageWorkspaces: "Quản lý Đơn vị",
     },
     documentLibrary: {
@@ -1117,6 +1120,7 @@ export const translations: Record<Language, Translations> = {
       systemGroup: "系统",
       adminGroup: "管理",
       monitoring: "系统监控",
+      consumption: "成本监控",
       manageWorkspaces: "管理单位",
     },
     documentLibrary: {
@@ -1468,6 +1472,7 @@ export const translations: Record<Language, Translations> = {
       systemGroup: "システム",
       adminGroup: "管理",
       monitoring: "システム監視",
+      consumption: "コスト監視",
       manageWorkspaces: "拠点管理",
     },
     documentLibrary: {

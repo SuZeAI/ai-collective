@@ -479,7 +479,16 @@ def init_usage_tracking() -> bool:
 
     usage_repo, _ = _monitoring_stores()
 
-    def _record(*, provider: str, model: str, input_tokens: int, output_tokens: int, user_id: str) -> None:
+    def _record(
+        *,
+        provider: str,
+        model: str,
+        input_tokens: int,
+        output_tokens: int,
+        user_id: str,
+        agent_name: str = "",
+        team_id: str = "",
+    ) -> None:
         usage_repo.add(
             TokenUsageRecord(
                 id=str(uuid.uuid4()),
@@ -490,6 +499,8 @@ def init_usage_tracking() -> bool:
                 total_tokens=input_tokens + output_tokens,
                 user_id=user_id or "system",
                 timestamp=datetime.now(timezone.utc),
+                agent_name=agent_name or "",
+                team_id=team_id or "",
             )
         )
 

@@ -26,6 +26,7 @@ from backend.application.service.llm_service import LLMService
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.infrastructure import task_run_registry
+from backend.infrastructure.llm.usage_tracker import current_usage_team
 from backend.log import get_logger
 
 
@@ -278,15 +279,19 @@ async def run_agent_graph(
     graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
     conversation_id = req.conversation_id
 
-    result = await service.run_with_definitions(
-        user_input=req.user_input,
-        definitions=definitions,
-        max_rounds=req.max_rounds,
-        conversation_id=conversation_id,
-        graph_context_provider=graph_context_service,
-        graph_config=graph_config,
-        custom_graph=_build_custom_graph_spec(req, agent_id_to_name),
-    )
+    team_token = current_usage_team.set(req.team_id or "")
+    try:
+        result = await service.run_with_definitions(
+            user_input=req.user_input,
+            definitions=definitions,
+            max_rounds=req.max_rounds,
+            conversation_id=conversation_id,
+            graph_context_provider=graph_context_service,
+            graph_config=graph_config,
+            custom_graph=_build_custom_graph_spec(req, agent_id_to_name),
+        )
+    finally:
+        current_usage_team.reset(team_token)
     return GraphRunResponse.from_result(result)
 
 
@@ -383,6 +388,8 @@ async def run_agent_graph_stream(
         # Bind the run's LTM scope so the LTM middleware (recall/inject) and
         # end-of-run consolidation see it without a threaded argument.
         scope_token = ltm_store.current_memory_scope.set(memory_scope)
+        # Attribute this run's token spend to its department/team for cost monitoring.
+        team_token = current_usage_team.set(req.team_id or "")
         agen = service.run_stream_with_definitions(
             user_input=req.user_input,
             definitions=definitions,
@@ -485,6 +492,7 @@ async def run_agent_graph_stream(
             with contextlib.suppress(Exception):
                 await agen.aclose()
             ltm_store.current_memory_scope.reset(scope_token)
+            current_usage_team.reset(team_token)
             if conversation_id:
                 task_run_registry.unregister(conversation_id)
 

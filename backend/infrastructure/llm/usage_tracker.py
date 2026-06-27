@@ -14,10 +14,29 @@ current_usage_user: contextvars.ContextVar[str] = contextvars.ContextVar(
     "current_usage_user", default="system"
 )
 
+# Which AI staff member (agent) and department (team) the current LLM call belongs
+# to. current_usage_agent is set per-agent-turn in the graph runtime's safe_chat();
+# current_usage_team is set per-run in the agent-graph API routes. Empty => the call
+# could not be attributed (e.g. background work, single-agent chat).
+current_usage_agent: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "current_usage_agent", default=""
+)
+current_usage_team: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "current_usage_team", default=""
+)
+
 
 class UsageRecorder(Protocol):
     def __call__(
-        self, *, provider: str, model: str, input_tokens: int, output_tokens: int, user_id: str
+        self,
+        *,
+        provider: str,
+        model: str,
+        input_tokens: int,
+        output_tokens: int,
+        user_id: str,
+        agent_name: str,
+        team_id: str,
     ) -> None: ...
 
 
@@ -98,6 +117,8 @@ class UsageTrackingCallback(BaseCallbackHandler):
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
                 user_id=current_usage_user.get(),
+                agent_name=current_usage_agent.get(),
+                team_id=current_usage_team.get(),
             )
         except Exception:
             get_logger().exception("Failed to record LLM token usage")

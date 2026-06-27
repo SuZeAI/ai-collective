@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
   BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit,
-  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, ShoppingBag, Plus, FolderOpen,
+  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, ShoppingBag, Plus, FolderOpen, Coins,
 } from "lucide-react";
 import { api, type Workspace } from "@/lib/api";
 import { OVERALL_WORKSPACE_ID } from "@/hooks/use-workspace-scope";
@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 type NavItemKey =
   | "dashboard" | "analytics" | "tasks" | "conversations" | "officeBuilder" | "virtualOffice"
   | "teams" | "agents" | "skills" | "playground" | "workspaces" | "settings"
-  | "monitoring" | "marketplace" | "documentLibrary";
+  | "monitoring" | "consumption" | "marketplace" | "documentLibrary";
 
 type NavGroup = {
   groupKey: "overviewGroup" | "operationsGroup" | "orgGroup" | "officeGroup" | "devGroup" | "systemGroup" | "adminGroup";
@@ -38,6 +38,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { key: "dashboard", url: "/dashboard", icon: Layout },
       { key: "analytics", url: "/analytics", icon: BarChart3 },
+      { key: "consumption", url: "/consumption", icon: Coins },
     ]
   },
   {
