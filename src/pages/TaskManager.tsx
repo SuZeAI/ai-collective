@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -25,7 +25,7 @@ import { Progress } from "@/components/ui/progress";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
 import { ConversationFiles } from "@/components/ConversationFiles";
-import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Agent, type GraphContextSnapshot, type Message, type Team, type Task, type TaskPriority } from "@/lib/api";
+import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Agent, type GraphContextSnapshot, type Message, type Team, type Task, type TaskPriority, type Project, type Sprint } from "@/lib/api";
 import { useRunEngine, type GraphHighlight, type UserInputRequest } from "@/contexts/RunEngineContext";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 const statusIcons = {
   "pending": Circle,
   "in-progress": Clock,
+  "in-review": Eye,
   "paused": Pause,
   "stopped": Square,
   "completed": CheckCircle2,
@@ -42,6 +43,7 @@ const statusIcons = {
 const statusColors: Record<string, string> = {
   "pending": "text-muted-foreground",
   "in-progress": "text-primary",
+  "in-review": "text-violet-500",
   "paused": "text-amber-500",
   "stopped": "text-rose-500",
   "completed": "text-agent-dev",
@@ -49,13 +51,25 @@ const statusColors: Record<string, string> = {
 
 // Jira-style Kanban columns: one per task status. Dragging a card between
 // columns drives the status transition (and auto-run for "In Progress").
+// "In Review" is a manual column (a human reviews agent output before Done);
+// the run engine never auto-emits it.
 const BOARD_COLUMNS: { status: Task["status"]; label: string; accent: string }[] = [
   { status: "pending", label: "To Do", accent: "bg-muted-foreground/30" },
   { status: "in-progress", label: "In Progress", accent: "bg-primary" },
+  { status: "in-review", label: "In Review", accent: "bg-violet-500" },
   { status: "paused", label: "Paused", accent: "bg-amber-500" },
   { status: "stopped", label: "Stopped", accent: "bg-rose-500" },
   { status: "completed", label: "Done", accent: "bg-emerald-500" },
 ];
+
+// Issue-type → short glyph for board/backlog cards.
+const ISSUE_TYPE_GLYPH: Record<string, { label: string; cls: string }> = {
+  epic: { label: "Epic", cls: "bg-purple-500/15 text-purple-500 border-purple-500/30" },
+  story: { label: "Story", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" },
+  task: { label: "Task", cls: "bg-sky-500/15 text-sky-500 border-sky-500/30" },
+  bug: { label: "Bug", cls: "bg-rose-500/15 text-rose-500 border-rose-500/30" },
+  subtask: { label: "Sub", cls: "bg-muted text-muted-foreground border-border" },
+};
 
 // Priority presentation. `order` drives sorting (urgent first) inside columns.
 const PRIORITY_CONFIG: Record<TaskPriority, { label: string; badge: string; dot: string; order: number }> = {
@@ -241,6 +255,23 @@ function KanbanCard({ task, team, assignee, progress, isSelected, onOpen }: Kanb
         isSelected ? "ring-1 ring-primary/40 border-accent-foreground/20" : "border-border/40",
       )}
     >
+      {(task.issueKey || task.issueType || task.storyPoints != null) && (
+        <div className="flex items-center gap-1.5 mb-1.5">
+          {task.issueType && (
+            <span className={cn("px-1 py-0.5 rounded border text-[8px] font-bold uppercase tracking-wide", (ISSUE_TYPE_GLYPH[task.issueType] ?? ISSUE_TYPE_GLYPH.task).cls)}>
+              {(ISSUE_TYPE_GLYPH[task.issueType] ?? ISSUE_TYPE_GLYPH.task).label}
+            </span>
+          )}
+          {task.issueKey && (
+            <span className="text-[9px] font-mono font-semibold text-muted-foreground">{task.issueKey}</span>
+          )}
+          {task.storyPoints != null && (
+            <span className="ml-auto inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-muted text-[9px] font-bold text-foreground/70" title="Story points">
+              {task.storyPoints}
+            </span>
+          )}
+        </div>
+      )}
       <div className="flex items-start justify-between gap-2">
         <h4 className="text-xs font-bold text-foreground/90 leading-snug line-clamp-2 flex-1">{task.title}</h4>
         <span className={cn("shrink-0 w-2 h-2 rounded-full mt-1", priority.dot)} title={`Priority: ${priority.label}`} />
@@ -349,6 +380,16 @@ export default function TaskManager() {
 
   const [teamList, setTeamList] = useState<Team[]>([]);
   const [agentList, setAgentList] = useState<Agent[]>([]);
+  // Project scoping: when reached via /projects/:key/board the board is filtered
+  // to that project's issues and a sprint filter is offered.
+  const { key: projectKeyParam } = useParams<{ key?: string }>();
+  const [projectList, setProjectList] = useState<Project[]>([]);
+  const [sprintList, setSprintList] = useState<Sprint[]>([]);
+  const [sprintFilter, setSprintFilter] = useState<string>("all");
+  const activeProject = useMemo(
+    () => (projectKeyParam ? projectList.find((p) => p.key === projectKeyParam) : undefined),
+    [projectKeyParam, projectList],
+  );
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [teamId, setTeamId] = useState("");
@@ -398,13 +439,21 @@ export default function TaskManager() {
     let cancelled = false;
     (async () => {
       try {
-        const [tasks, teams, agents] = await Promise.all([api.listTasks(), api.listTeams(), api.listAgents()]);
+        const [tasks, teams, agents, projects, sprints] = await Promise.all([
+          api.listTasks(),
+          api.listTeams(),
+          api.listAgents(),
+          api.listProjects().catch(() => [] as Project[]),
+          api.listSprints().catch(() => [] as Sprint[]),
+        ]);
         if (cancelled) return;
         // Reconcile with the engine: it keeps the lead for any task it's actively
         // streaming, and seeds conversations only where it has no live transcript.
         engine.ingestTasks(tasks);
         setTeamList(teams);
         setAgentList(agents);
+        setProjectList(projects);
+        setSprintList(sprints);
 
         // Load conversations for all tasks
         if (tasks.length > 0) {
@@ -471,7 +520,15 @@ export default function TaskManager() {
   const filteredTasks = useMemo(() => {
     const q = searchQuery.toLowerCase();
     return taskList.filter((task) => {
-      if (!isTaskInScope(task)) return false;
+      // In a project board, scope to the project (and optional sprint) instead of
+      // the office membership filter.
+      if (activeProject) {
+        if (task.projectId !== activeProject.id) return false;
+        if (sprintFilter === "__backlog__" && task.sprintId) return false;
+        if (sprintFilter !== "all" && sprintFilter !== "__backlog__" && (task.sprintId ?? "") !== sprintFilter) return false;
+      } else if (!isTaskInScope(task)) {
+        return false;
+      }
       if (!q) return true;
       const team = teamList.find((t) => t.id === task.teamId);
       const assignee = task.assigneeId ? agentById.get(task.assigneeId) : undefined;
@@ -484,13 +541,14 @@ export default function TaskManager() {
       );
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taskList, teamList, agentById, searchQuery, scope]);
+  }, [taskList, teamList, agentById, searchQuery, scope, activeProject, sprintFilter]);
 
   // Group the in-scope tasks into board columns, urgent priority first.
   const tasksByStatus = useMemo(() => {
     const groups: Record<string, Task[]> = {
       "pending": [],
       "in-progress": [],
+      "in-review": [],
       "paused": [],
       "stopped": [],
       "completed": [],
@@ -943,10 +1001,40 @@ export default function TaskManager() {
             <LayoutGrid className="w-4.5 h-4.5 text-primary" />
           </div>
           <div>
-            <h1 className="text-base font-bold tracking-tight text-foreground leading-none">Projects &amp; Tasks</h1>
-            <p className="text-[10px] text-muted-foreground mt-1">Kanban board · drag cards between columns to change status</p>
+            {activeProject ? (
+              <>
+                <h1 className="text-base font-bold tracking-tight text-foreground leading-none">
+                  <span className="font-mono text-primary mr-1.5">{activeProject.key}</span>
+                  {activeProject.name}
+                </h1>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Link to={`/projects/${activeProject.key}/board`} className="text-[10px] font-semibold text-primary border-b-2 border-primary pb-0.5">Board</Link>
+                  <Link to={`/projects/${activeProject.key}/backlog`} className="text-[10px] font-medium text-muted-foreground hover:text-foreground pb-0.5">Backlog</Link>
+                  <Link to={`/projects/${activeProject.key}/roadmap`} className="text-[10px] font-medium text-muted-foreground hover:text-foreground pb-0.5">Roadmap</Link>
+                  <Link to={`/projects/${activeProject.key}/reports`} className="text-[10px] font-medium text-muted-foreground hover:text-foreground pb-0.5">Reports</Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <h1 className="text-base font-bold tracking-tight text-foreground leading-none">Projects &amp; Tasks</h1>
+                <p className="text-[10px] text-muted-foreground mt-1">Kanban board · drag cards between columns to change status</p>
+              </>
+            )}
           </div>
         </div>
+
+        {activeProject && (
+          <Select value={sprintFilter} onValueChange={setSprintFilter}>
+            <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All sprints" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sprints</SelectItem>
+              <SelectItem value="__backlog__">Backlog (no sprint)</SelectItem>
+              {sprintList.filter((s) => s.projectId === activeProject.id).map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         {/* Search box */}
         <div className="relative">
