@@ -4,6 +4,12 @@ import { api, type Workspace } from "@/lib/api";
 // Sentinel stored in localStorage when "Overall" (all offices) is selected.
 export const OVERALL_WORKSPACE_ID = "__overall__";
 
+// Workspace id used to tag documents that belong to the shared "default" catalog
+// (curated by admins in the "All" scope and offered in Recruiting), rather than
+// to any single company. Documents are workspace-bound, so catalog docs need a
+// stable home that isn't a real office.
+export const CATALOG_WORKSPACE_ID = "__default__";
+
 export function getActiveWorkspaceId(): string | null {
   try {
     const v = localStorage.getItem("activeWorkspaceId");
