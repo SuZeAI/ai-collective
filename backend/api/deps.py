@@ -320,6 +320,57 @@ def get_user_service() -> UserService:
     return UserService(_user_store())
 
 
+@lru_cache
+def _project_store():
+    if settings.storage_backend == "mongo":
+        import pymongo
+        from backend.infrastructure.repositories.mongo_repositories import MongoProjectRepository
+        client = pymongo.MongoClient(settings.mongo_uri)
+        db = client[settings.mongo_db]
+        return MongoProjectRepository(db)
+    from backend.infrastructure.repositories.json_files import JsonProjectRepository
+    return JsonProjectRepository(_store("projects.json"))
+
+
+def get_project_service() -> "ProjectService":
+    from backend.application.service.project_service import ProjectService
+    return ProjectService(_project_store())
+
+
+@lru_cache
+def _epic_store():
+    if settings.storage_backend == "mongo":
+        import pymongo
+        from backend.infrastructure.repositories.mongo_repositories import MongoEpicRepository
+        client = pymongo.MongoClient(settings.mongo_uri)
+        db = client[settings.mongo_db]
+        return MongoEpicRepository(db)
+    from backend.infrastructure.repositories.json_files import JsonEpicRepository
+    return JsonEpicRepository(_store("epics.json"))
+
+
+def get_epic_service() -> "EpicService":
+    from backend.application.service.epic_service import EpicService
+    return EpicService(_epic_store())
+
+
+@lru_cache
+def _sprint_store():
+    if settings.storage_backend == "mongo":
+        import pymongo
+        from backend.infrastructure.repositories.mongo_repositories import MongoSprintRepository
+        client = pymongo.MongoClient(settings.mongo_uri)
+        db = client[settings.mongo_db]
+        return MongoSprintRepository(db)
+    from backend.infrastructure.repositories.json_files import JsonSprintRepository
+    return JsonSprintRepository(_store("sprints.json"))
+
+
+def get_sprint_service() -> "SprintService":
+    from backend.application.service.sprint_service import SprintService
+    return SprintService(_sprint_store())
+
+
 def seed_admin_user() -> None:
     """Create/sync the bootstrap admin account from env on startup.
 
