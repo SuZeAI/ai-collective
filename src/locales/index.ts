@@ -80,6 +80,7 @@ export type Translations = {
     virtualOffice: string;
     recruiting: string;
     documentLibrary: string;
+    platform: string;
     settings: string;
     overviewGroup: string;
     companiesGroup: string;
@@ -89,6 +90,7 @@ export type Translations = {
     officeGroup: string;
     devGroup: string;
     systemGroup: string;
+    integrationsGroup: string;
     adminGroup: string;
     monitoring: string;
     consumption: string;
@@ -415,6 +417,7 @@ export const translations: Record<Language, Translations> = {
       virtualOffice: "Office Map",
       recruiting: "Recruiting",
       documentLibrary: "Documents",
+      platform: "Platform",
       settings: "Settings",
       overviewGroup: "Overview",
       companiesGroup: "Companies",
@@ -424,6 +427,7 @@ export const translations: Record<Language, Translations> = {
       officeGroup: "Company",
       devGroup: "System Setup",
       systemGroup: "Tools",
+      integrationsGroup: "Integrations",
       adminGroup: "Administration",
       monitoring: "System Monitoring",
       consumption: "Usage & Billing",
@@ -774,6 +778,7 @@ export const translations: Record<Language, Translations> = {
       virtualOffice: "Sơ đồ Văn phòng",
       recruiting: "Tuyển dụng",
       documentLibrary: "Tài liệu",
+      platform: "Nền tảng",
       settings: "Cài đặt",
       overviewGroup: "Tổng quan",
       companiesGroup: "Công ty",
@@ -783,6 +788,7 @@ export const translations: Record<Language, Translations> = {
       officeGroup: "Không gian",
       devGroup: "Thiết lập Hệ thống",
       systemGroup: "Công cụ",
+      integrationsGroup: "Kết nối",
       adminGroup: "Quản trị",
       monitoring: "Giám sát hệ thống",
       consumption: "Sử dụng & Chi phí",
@@ -1133,6 +1139,7 @@ export const translations: Record<Language, Translations> = {
       virtualOffice: "办公室平面图",
       recruiting: "招聘",
       documentLibrary: "文档",
+      platform: "平台",
       settings: "系统设置",
       overviewGroup: "概览",
       companiesGroup: "公司",
@@ -1142,6 +1149,7 @@ export const translations: Record<Language, Translations> = {
       officeGroup: "空间",
       devGroup: "系统设置",
       systemGroup: "工具",
+      integrationsGroup: "集成",
       adminGroup: "管理",
       monitoring: "系统监控",
       consumption: "用量与账单",
@@ -1492,6 +1500,7 @@ export const translations: Record<Language, Translations> = {
       virtualOffice: "オフィス図面",
       recruiting: "採用",
       documentLibrary: "ドキュメント",
+      platform: "プラットフォーム",
       settings: "システム設定",
       overviewGroup: "概要",
       companiesGroup: "会社",
@@ -1501,6 +1510,7 @@ export const translations: Record<Language, Translations> = {
       officeGroup: "スペース",
       devGroup: "システム設定",
       systemGroup: "ツール",
+      integrationsGroup: "連携",
       adminGroup: "管理",
       monitoring: "システム監視",
       consumption: "使用量と請求",

@@ -272,6 +272,9 @@ export type Connection = {
   enabled: boolean;
   kind: "inbound_webhook" | "outbound";
   companyId: string;
+  // Per-connection routing override (inbound webhooks). Empty → company primary department.
+  routingDepartmentId: string;
+  routingStaffIds: string[];
   createdAt: string;
 };
 

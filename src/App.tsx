@@ -28,6 +28,7 @@ import Meetings from "@/pages/Meetings";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import Playground from "@/pages/Playground";
 import Companies from "@/pages/Companies";
+import Platform from "@/pages/Platform";
 import OfficeBuilder from "@/pages/OfficeBuilder";
 import VirtualOffice from "@/pages/VirtualOffice";
 import Recruiting from "@/pages/Recruiting";
@@ -164,6 +165,7 @@ const App = () => (
                 <Route path="/consumption" element={<WithLayout><ConsumptionMonitoring /></WithLayout>} />
                 <Route path="/playground" element={<WithCompanyLayout><Playground /></WithCompanyLayout>} />
                 <Route path="/companies" element={<WithLayout><Companies /></WithLayout>} />
+                <Route path="/platform" element={<WithCompanyLayout><Platform /></WithCompanyLayout>} />
                 <Route path="/office-builder" element={<WithLayout><OfficeBuilder /></WithLayout>} />
                 <Route path="/virtual-office" element={<WithCompanyLayout><VirtualOffice /></WithCompanyLayout>} />
                 <Route path="/recruiting" element={<WithCompanyLayout><Recruiting /></WithCompanyLayout>} />

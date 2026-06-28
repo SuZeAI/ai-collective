@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
   BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit,
-  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, Building2, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban, Star,
+  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, Building2, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban, Star, Plug,
 } from "lucide-react";
 import { api, type Company } from "@/lib/api";
-import { OVERALL_COMPANY_ID, setActiveCompanyId } from "@/hooks/use-company-scope";
+import { OVERALL_COMPANY_ID, setActiveCompanyId, getActiveCompanyId } from "@/hooks/use-company-scope";
 import { COMPANY_TYPE_MAP, companyTypeOf, suggestedNavKeys } from "@/lib/company-types";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -25,10 +25,10 @@ import { cn } from "@/lib/utils";
 type NavItemKey =
   | "dashboard" | "analytics" | "tasks" | "projects" | "meetings" | "officeBuilder" | "virtualOffice"
   | "departments" | "staff" | "skills" | "playground" | "companies" | "settings"
-  | "monitoring" | "consumption" | "recruiting" | "documentLibrary";
+  | "monitoring" | "consumption" | "recruiting" | "documentLibrary" | "platform";
 
 type NavGroup = {
-  groupKey: "overviewGroup" | "companiesGroup" | "catalogGroup" | "operationsGroup" | "orgGroup" | "officeGroup" | "devGroup" | "systemGroup" | "adminGroup";
+  groupKey: "overviewGroup" | "companiesGroup" | "catalogGroup" | "operationsGroup" | "orgGroup" | "officeGroup" | "devGroup" | "systemGroup" | "integrationsGroup" | "adminGroup";
   adminOnly?: boolean;
   // Where the group appears: "overall" = only the All scope (company create/
   // control), "company" = only inside a selected company, "both" = everywhere.
@@ -97,6 +97,13 @@ const NAV_GROUPS: NavGroup[] = [
     ]
   },
   {
+    groupKey: "integrationsGroup",
+    visibleIn: "company",
+    items: [
+      { key: "platform", url: "/platform", icon: Plug },
+    ]
+  },
+  {
     groupKey: "systemGroup",
     visibleIn: "company",
     items: [
@@ -143,6 +150,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [activeCompany, setActiveCompany] = useState<Company | null>(null);
+  // Mirror of `companies` for event handlers that must read the latest list
+  // without re-subscribing (their effect runs once with [] deps).
+  const companiesRef = useRef<Company[]>([]);
+  useEffect(() => { companiesRef.current = companies; }, [companies]);
 
   useEffect(() => {
     let active = true;
@@ -160,7 +171,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const handleCompanyRefresh = () => {
+    // "companyChanged" → the office list itself changed (created/edited/deleted):
+    // refetch the list and re-sync the active office from storage.
+    const handleListRefresh = () => {
       api.listCompanies()
         .then((data) => {
           setCompanies(data);
@@ -172,14 +185,24 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         .catch((err) => console.error("Error refreshing companies:", err));
     };
 
-    // "companyChanged" → office list edited; "activeCompanyChanged" → the
-    // selected office switched (e.g. from the Overview "Companies" grid). Both
-    // must re-sync the sidebar's active office and the scope-aware nav.
-    window.addEventListener("companyChanged", handleCompanyRefresh);
-    window.addEventListener("activeCompanyChanged", handleCompanyRefresh);
+    // "activeCompanyChanged" → only the selection switched (sidebar click,
+    // Overview grid). Resolve it from the in-memory list — no refetch, so the
+    // rail doesn't flicker (the old code refetched here, briefly resolving to
+    // null and flashing the "All" button). Only refetch when the id is unknown
+    // (e.g. an office just created elsewhere).
+    const handleActiveChange = () => {
+      const storedId = getActiveCompanyId(); // null when "All"/Overall
+      if (!storedId) { setActiveCompany(null); return; }
+      const known = companiesRef.current.find((ws) => ws.id === storedId);
+      if (known) setActiveCompany(known);
+      else handleListRefresh();
+    };
+
+    window.addEventListener("companyChanged", handleListRefresh);
+    window.addEventListener("activeCompanyChanged", handleActiveChange);
     return () => {
-      window.removeEventListener("companyChanged", handleCompanyRefresh);
-      window.removeEventListener("activeCompanyChanged", handleCompanyRefresh);
+      window.removeEventListener("companyChanged", handleListRefresh);
+      window.removeEventListener("activeCompanyChanged", handleActiveChange);
     };
   }, []);
 
@@ -221,8 +244,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarContent className="flex flex-row h-full bg-sidebar overflow-hidden p-0 gap-0">
             <div className="w-16 border-r border-sidebar-border/50 bg-sidebar/95 flex flex-col items-center py-4 justify-between shrink-0 h-full">
               <div className="flex flex-col items-center gap-4 w-full">
-                <div 
-                  onClick={() => navigate("/dashboard")}
+                <div
+                  onClick={() => navigate("/")}
                   className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-md shadow-teal-500/20 select-none cursor-pointer hover:scale-105 transition-transform"
                 >
                   <Building className="w-5 h-5 text-white" />
