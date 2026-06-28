@@ -89,6 +89,8 @@ llm_keys:
   openai_api_key: $OPENAI_API_KEY
   open_weight_api_key: $OPENROUTER_API_KEY
   kimi_api_key: $KIMI_API_KEY
+  deepseek_api_key: $DEEPSEEK_API_KEY
+  glm_api_key: $GLM_API_KEY
 
 # ── 9Router gateway (docker profile: router) ──────────────────────────────────
 # router_jwt_secret / router_initial_password are secrets → see `secrets:` block.

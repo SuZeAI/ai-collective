@@ -99,6 +99,26 @@ def create_llm_provider(
             max_tool_rounds=max_tool_rounds,
             tool_timeout_seconds=tool_timeout_seconds,
         )
+    if resolved_provider == "deepseek":
+        if not deepseek_api_key:
+            return None
+        return DeepSeekLangChainProvider(
+            model=resolved_model,
+            api_key=deepseek_api_key,
+            base_url=base_url,
+            max_tool_rounds=max_tool_rounds,
+            tool_timeout_seconds=tool_timeout_seconds,
+        )
+    if resolved_provider == "glm":
+        if not glm_api_key:
+            return None
+        return GLMLangChainProvider(
+            model=resolved_model,
+            api_key=glm_api_key,
+            base_url=base_url,
+            max_tool_rounds=max_tool_rounds,
+            tool_timeout_seconds=tool_timeout_seconds,
+        )
     if not google_api_key:
         return None
     return GoogleLangChainProvider(

@@ -242,6 +242,9 @@ function PricingDialog({
                 <SelectItem value="openai">OpenAI</SelectItem>
                 <SelectItem value="google">Google</SelectItem>
                 <SelectItem value="open_weight">Open Weight (OpenRouter)</SelectItem>
+                <SelectItem value="kimi">Kimi (Moonshot)</SelectItem>
+                <SelectItem value="deepseek">DeepSeek</SelectItem>
+                <SelectItem value="glm">GLM (Zhipu)</SelectItem>
               </SelectContent>
             </Select>
           </div>

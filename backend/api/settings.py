@@ -231,6 +231,16 @@ class LLMKeysSettings(BaseSettings):
         default=None,
         validation_alias=_alias("KIMI_API_KEY", "KIMI_API_KEYS", "MOONSHOT_API_KEY", "MOONSHOT_API_KEYS"),
     )
+    deepseek_api_key: str | None = Field(
+        default=None,
+        validation_alias=_alias("DEEPSEEK_API_KEY", "DEEPSEEK_API_KEYS"),
+    )
+    glm_api_key: str | None = Field(
+        default=None,
+        validation_alias=_alias(
+            "GLM_API_KEY", "GLM_API_KEYS", "ZHIPU_API_KEY", "ZHIPU_API_KEYS", "ZHIPUAI_API_KEY"
+        ),
+    )
 
     def google_api_keys(self) -> list[str]:
         return _split_keys(self.google_api_key)
@@ -246,6 +256,12 @@ class LLMKeysSettings(BaseSettings):
 
     def kimi_api_keys(self) -> list[str]:
         return _split_keys(self.kimi_api_key)
+
+    def deepseek_api_keys(self) -> list[str]:
+        return _split_keys(self.deepseek_api_key)
+
+    def glm_api_keys(self) -> list[str]:
+        return _split_keys(self.glm_api_key)
 
 
 class FailoverSettings(BaseSettings):
@@ -725,12 +741,18 @@ class Settings(BaseSettings):
     def open_weight_api_key(self) -> str | None: return self.llm_keys.open_weight_api_key
     @property
     def kimi_api_key(self) -> str | None: return self.llm_keys.kimi_api_key
+    @property
+    def deepseek_api_key(self) -> str | None: return self.llm_keys.deepseek_api_key
+    @property
+    def glm_api_key(self) -> str | None: return self.llm_keys.glm_api_key
 
     def google_api_keys(self) -> list[str]: return self.llm_keys.google_api_keys()
     def anthropic_api_keys(self) -> list[str]: return self.llm_keys.anthropic_api_keys()
     def openai_api_keys(self) -> list[str]: return self.llm_keys.openai_api_keys()
     def open_weight_api_keys(self) -> list[str]: return self.llm_keys.open_weight_api_keys()
     def kimi_api_keys(self) -> list[str]: return self.llm_keys.kimi_api_keys()
+    def deepseek_api_keys(self) -> list[str]: return self.llm_keys.deepseek_api_keys()
+    def glm_api_keys(self) -> list[str]: return self.llm_keys.glm_api_keys()
 
     # Storage
     @property

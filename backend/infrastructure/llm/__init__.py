@@ -8,6 +8,8 @@ from backend.infrastructure.llm.middleware import build_default_middleware
 from backend.infrastructure.llm.open_weight_langchain import OpenWeightLangChainProvider
 from backend.infrastructure.llm.openai_langchain import OpenAILangChainProvider
 from backend.infrastructure.llm.kimi_langchain import KimiLangChainProvider
+from backend.infrastructure.llm.deepseek_langchain import DeepSeekLangChainProvider
+from backend.infrastructure.llm.glm_langchain import GLMLangChainProvider
 
 __all__ = [
 	"AnthropicLangChainProvider",
@@ -15,6 +17,8 @@ __all__ = [
 	"OpenAILangChainProvider",
 	"OpenWeightLangChainProvider",
 	"KimiLangChainProvider",
+	"DeepSeekLangChainProvider",
+	"GLMLangChainProvider",
 	"create_llm_provider",
 	"build_chat_agent",
 	"build_default_middleware",
