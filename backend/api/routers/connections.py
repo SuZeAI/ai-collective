@@ -44,6 +44,8 @@ def upsert_connection(
         kind=req.kind or "outbound",
         company_id=req.companyId or "",
         owner_id=existing.owner_id if existing else "default",
+        routing_department_id=req.routingDepartmentId or "",
+        routing_staff_ids=list(req.routingStaffIds or []),
     )
     saved = service.upsert_connection(conn)
     return ConnectionSchema.from_domain(saved)

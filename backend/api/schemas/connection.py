@@ -13,6 +13,9 @@ class ConnectionSchema(BaseModel):
     enabled: bool = True
     kind: str = "outbound"          # "inbound_webhook" | "outbound"
     companyId: str = ""             # "" = global / account-scoped
+    # Routing override for inbound webhooks (empty → company primary department).
+    routingDepartmentId: str = ""
+    routingStaffIds: list[str] = []
     createdAt: str
 
     @staticmethod
@@ -26,6 +29,8 @@ class ConnectionSchema(BaseModel):
             enabled=getattr(c, "enabled", True),
             kind=getattr(c, "kind", "outbound") or "outbound",
             companyId=getattr(c, "company_id", "") or "",
+            routingDepartmentId=getattr(c, "routing_department_id", "") or "",
+            routingStaffIds=list(getattr(c, "routing_staff_ids", []) or []),
             createdAt=c.created_at.isoformat(),
         )
 
@@ -39,3 +44,5 @@ class UpsertConnectionRequest(BaseModel):
     enabled: bool = True
     kind: str = "outbound"
     companyId: str = ""
+    routingDepartmentId: str = ""
+    routingStaffIds: list[str] = []

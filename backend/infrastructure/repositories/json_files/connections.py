@@ -30,6 +30,8 @@ class JsonConnectionRepository:
                     kind=str(item.get("kind", "outbound") or "outbound"),
                     company_id=str(item.get("company_id", "") or ""),
                     owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
+                    routing_department_id=str(item.get("routing_department_id", "") or ""),
+                    routing_staff_ids=list(item.get("routing_staff_ids") or []),
                 )
                 self._items[conn.id] = conn
             except Exception:
@@ -49,6 +51,8 @@ class JsonConnectionRepository:
                     "kind": c.kind,
                     "company_id": c.company_id,
                     "owner_id": c.owner_id,
+                    "routing_department_id": c.routing_department_id,
+                    "routing_staff_ids": list(c.routing_staff_ids),
                 }
                 for c in self._items.values()
             ]

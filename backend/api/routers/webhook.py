@@ -51,15 +51,32 @@ async def _process_message(
             await processor.send_response(hook.config, chat_id, "⚠️ AI service is not configured.")
             return
 
-        # Resolve staff from primary department
-        department_id = workspace.primary_department_id or (workspace.department_ids[0] if workspace.department_ids else None)
-        if not department_id:
-            await processor.send_response(hook.config, chat_id, "⚠️ No department configured for this workspace.")
-            return
+        # Resolve which staff handle this hook, with per-connection routing
+        # overrides taking priority over the company's primary department:
+        #   1. routing_staff_ids → exactly those staff
+        #   2. routing_department_id → that department's staff
+        #   3. (fallback) company primary department / first department
+        routing_staff_ids = list(getattr(hook, "routing_staff_ids", []) or [])
+        routing_department_id = getattr(hook, "routing_department_id", "") or ""
+        max_rounds_default = 6
 
-        department = department_service.get_department(department_id)
+        if routing_staff_ids:
+            staff_ids = routing_staff_ids
+        else:
+            department_id = (
+                routing_department_id
+                or workspace.primary_department_id
+                or (workspace.department_ids[0] if workspace.department_ids else None)
+            )
+            if not department_id:
+                await processor.send_response(hook.config, chat_id, "⚠️ No department configured for this workspace.")
+                return
+            department = department_service.get_department(department_id)
+            staff_ids = department.staff
+            max_rounds_default = department.max_steps or 6
+
         staff_defs: list[GraphStaffDefinition] = []
-        for staff_id in department.staff:
+        for staff_id in staff_ids:
             try:
                 staff = staff_service.get_staff(staff_id)
                 skills = staff_service.get_staff_skills(staff_id)
@@ -87,7 +104,7 @@ async def _process_message(
         result = await graph_service.run_with_definitions(
             user_input=text,
             definitions=staff_defs,
-            max_rounds=department.max_steps or 6,
+            max_rounds=max_rounds_default,
         )
 
         # Extract final output text

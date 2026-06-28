@@ -33,6 +33,8 @@ class MongoConnectionRepository:
             kind=str(item.get("kind", "outbound") or "outbound"),
             company_id=str(item.get("company_id", "") or ""),
             owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
+            routing_department_id=str(item.get("routing_department_id", "") or ""),
+            routing_staff_ids=list(item.get("routing_staff_ids") or []),
         )
 
     def _conn_to_doc(self, c: Connection) -> dict[str, Any]:
@@ -48,6 +50,8 @@ class MongoConnectionRepository:
             "kind": c.kind,
             "company_id": c.company_id,
             "owner_id": c.owner_id,
+            "routing_department_id": c.routing_department_id,
+            "routing_staff_ids": list(c.routing_staff_ids),
         }
 
     def list(self) -> list[Connection]:

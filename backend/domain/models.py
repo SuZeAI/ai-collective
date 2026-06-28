@@ -273,6 +273,12 @@ class Connection:
     kind: str = "outbound"
     company_id: str = ""
     owner_id: str = DEFAULT_OWNER_ID
+    # Per-connection routing override for inbound webhooks. When set, messages
+    # from this connection are handled by the given staff (``routing_staff_ids``)
+    # or department (``routing_department_id``) instead of the company's primary
+    # department. Empty → fall back to the company's primary department.
+    routing_department_id: str = ""
+    routing_staff_ids: list[str] = field(default_factory=list)
 
 
 @dataclass
