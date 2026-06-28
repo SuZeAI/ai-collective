@@ -47,32 +47,78 @@ logging:
   log_max_bytes: 10485760
   log_backup_count: 5
 
-# ── LLM provider ──────────────────────────────────────────────────────────────
-# API keys live in `llm_keys:` below (pulled from .env via $VAR).
+# ── Models (model-driven LLM config, DeerFlow-style) ──────────────────────────
+# Declarative chat-model registry (pattern: context/config.example.yaml). Each
+# entry picks the LangChain chat-model class via `use: module:ClassName` and
+# passes the remaining keys straight to it. `api_key` holds the secret (pulled
+# from .env via $VAR; may be several comma-separated keys → rotation). For classes
+# whose key kwarg is not `api_key`, set `api_key_field` (Google → google_api_key).
+# `llm.active_model` below selects the active entry.
+models:
+  - name: gemini
+    display_name: Gemini 3 Flash
+    provider_name: Google
+    use: langchain_google_genai:ChatGoogleGenerativeAI
+    model: gemini-3-flash-preview
+    api_key: $GOOGLE_API_KEY
+    api_key_field: google_api_key
+    supports_vision: true
+
+  - name: claude
+    display_name: Claude Sonnet 4
+    provider_name: Anthropic
+    use: langchain_anthropic:ChatAnthropic
+    model: claude-sonnet-4-20250514
+    api_key: $ANTHROPIC_API_KEY
+    supports_vision: true
+
+  - name: gpt-4o
+    display_name: GPT-4o
+    provider_name: OpenAI
+    use: langchain_openai:ChatOpenAI
+    model: gpt-4o
+    api_key: $OPENAI_API_KEY
+
+  - name: deepseek
+    display_name: DeepSeek Chat
+    provider_name: DeepSeek
+    use: langchain_openai:ChatOpenAI
+    model: deepseek-chat
+    api_key: $DEEPSEEK_API_KEY
+    base_url: https://api.deepseek.com/v1
+
+  - name: kimi
+    display_name: Kimi K2
+    provider_name: Kimi
+    use: langchain_openai:ChatOpenAI
+    model: kimi-k2-0711-preview
+    api_key: $KIMI_API_KEY
+    base_url: https://api.moonshot.ai/v1
+
+  - name: glm
+    display_name: GLM 4.6
+    provider_name: GLM
+    use: langchain_openai:ChatOpenAI
+    model: glm-4.6
+    api_key: $GLM_API_KEY
+    base_url: https://api.z.ai/api/paas/v4
+
+  - name: open_weight
+    display_name: OpenRouter (Qwen)
+    provider_name: Open-weight
+    use: langchain_openai:ChatOpenAI
+    model: qwen/qwen3.5-397b-a17b
+    api_key: $OPENROUTER_API_KEY
+    base_url: https://openrouter.ai/api/v1
+
+# ── LLM runtime (active model + key rotation) ─────────────────────────────────
+# The model-driven `models:` list above is the config; `active_model` selects one.
+# Provider API keys are referenced per-model via `api_key: $VAR` (pulled from .env).
 llm:
-  provider: google
-  model: gemini-3-flash-preview
-  # api_base: http://localhost:11434/v1   # custom base URL (Ollama / LiteLLM)
-  # ── Optional middleware knobs ──
-  tool_retry_max: 2                   # retries for transient tool failures
-  # fallback_models: gemini-2.0-flash,gpt-4o-mini   # ModelFallbackMiddleware
-  summarization_enabled: false        # SummarizationMiddleware (LLM-based) on/off
-  # summarization_model: gemini-2.0-flash
-  summarization_trigger_tokens: 8000
-  summarization_keep_messages: 20
-  # ── Additional middleware suite (all OFF by default) ──
-  rolling_summary_enabled: false      # LLM-free history compactor → working-memory summary
-  rolling_summary_trigger_tokens: 6000
-  rolling_summary_keep_messages: 10
-  ltm_middleware_enabled: false       # recall long-term memory before model, persist salient after
-  tool_cache_enabled: false           # serve identical idempotent tool calls from the run cache
-  # tool_cache_deny_tools: send_email,run_shell   # non-idempotent tools to never cache
-  run_token_budget: 0                 # soft-stop a run past this many tokens (0 = off)
-  pii_redaction_enabled: false        # scrub emails/cards/secrets from tool results
-  # guardrail_deny_tools: run_shell,delete_file   # tools to block outright
-  # guardrail_deny_patterns: rm -rf,DROP TABLE     # arg regexes to block
+  active_model: gemini                # which entry in `models:` above is active
+  # api_base: http://localhost:11434/v1   # optional base URL for the embedding layer
   # ── Failover / key rotation ──
-  # rotate  → built-in multi-key rotation (list several keys per provider below)
+  # rotate  → built-in multi-key rotation (several comma-separated keys per model)
   # 9router → delegate to the 9Router gateway (aliases: router, nine-router, off)
   failover:
     strategy: rotate
@@ -80,17 +126,47 @@ llm:
     rotate_max_tokens_per_min: 0      # per-key TPM budget, 0 = unlimited
     key_cooldown_seconds: 60          # how long an errored key is skipped before retry
 
-# ── LLM provider API keys (secrets) ───────────────────────────────────────────
-# Each value may hold ONE key or SEVERAL comma-separated keys (enables rotation).
-# Values are pulled from .env so the secret never touches git.
-llm_keys:
-  google_api_key: $GOOGLE_API_KEY
-  anthropic_api_key: $ANTHROPIC_API_KEY
-  openai_api_key: $OPENAI_API_KEY
-  open_weight_api_key: $OPENROUTER_API_KEY
-  kimi_api_key: $KIMI_API_KEY
-  deepseek_api_key: $DEEPSEEK_API_KEY
-  glm_api_key: $GLM_API_KEY
+# ── Middleware (staff middleware stack, by component) ─────────────────────────
+# Each block configures one middleware (see backend/infrastructure/llm/middleware/).
+# Omit a block to fall back to its default. The always-on stack is ModelCallLimit
+# + LoopDetection + ToolRetry + ToolTimeout; the rest activate when enabled.
+middleware:
+  loop_detection:
+    enabled: true                     # break loops that repeat an identical tool call
+    max_repeats: 3
+  tool_retry:
+    max: 2                            # retries for transient tool failures (0 = off)
+  tool_call_limit:
+    limit: 0                          # run-wide cap on tool executions (0 = off)
+  tool_cache:
+    enabled: false                    # serve identical idempotent tool calls from the run
+    deny_tools: ""                    # comma-separated tools to never cache
+  guardrail:
+    deny_tools: ""                    # comma-separated tools to block outright
+    deny_patterns: ""                 # comma-separated arg regexes to block
+  pii_redaction:
+    enabled: false                    # scrub emails/cards/secrets from tool results
+  model_fallback:
+    models: ""                        # comma-separated fallback model names
+  model_retry:
+    max: 0                            # retries on transient model errors (0 = off)
+  context_editing:
+    enabled: false                    # prune old tool outputs when input grows large
+    trigger_tokens: 100000
+    keep: 3
+  summarization:
+    enabled: false                    # LLM-based history summarization
+    model: ""                         # required when enabled (a `models:` name)
+    trigger_tokens: 8000
+    keep_messages: 20
+  rolling_summary:
+    enabled: false                    # LLM-free history compactor → summary note
+    trigger_tokens: 6000
+    keep_messages: 10
+  long_term_memory:
+    enabled: false                    # recall LTM before model, persist salient after
+  cost_budget:
+    run_token_budget: 0               # soft-stop a run past this many tokens (0 = off)
 
 # ── 9Router gateway (docker profile: router) ──────────────────────────────────
 # router_jwt_secret / router_initial_password are secrets → see `secrets:` block.
@@ -252,74 +328,6 @@ browser:
 security:
   allow_private_http: false           # allow tools to reach private/loopback IPs
   last30days_debug: false             # verbose HTTP debug logging
-
-# ── Tool credential fallbacks ─────────────────────────────────────────────────
-# Per-tool credentials are PRIMARILY set per-skill in the UI (stored in MongoDB)
-# and passed to each toolkit. The entries below are env-backed FALLBACKS, used
-# only when a skill leaves a field empty — values pulled from .env. Non-secret
-# defaults (xai_model, viber_sender_name) are inline. An unset var expands to
-# empty, which simply leaves that tool disabled until configured.
-tools:
-  # ── Search / scraping ──
-  brave_search_api_key: ${BRAVE_SEARCH_API_KEY}
-  parallel_api_key: ${PARALLEL_API_KEY}
-  openrouter_api_key: ${OPENROUTER_API_KEY}
-  scrapecreators_api_key: ${SCRAPECREATORS_API_KEY}
-  truthsocial_token: ${TRUTHSOCIAL_TOKEN}
-  xiaohongshu_api_base_url: ${XIAOHONGSHU_API_BASE_URL}
-  auth_token: ${AUTH_TOKEN}             # bird_x — X auth_token cookie
-  ct0: ${CT0}                           # bird_x — X ct0 cookie
-  bird_search_mjs: ${BIRD_SEARCH_MJS}
-  # ── X / xAI ──
-  xai_api_key: ${XAI_API_KEY}
-  xai_model: grok-4-fast
-  # ── Bluesky ──
-  bsky_handle: ${BSKY_HANDLE}
-  bsky_app_password: ${BSKY_APP_PASSWORD}
-  # ── Messaging ──
-  slack_bot_token: ${SLACK_BOT_TOKEN}
-  slack_default_channel: ${SLACK_DEFAULT_CHANNEL}
-  discord_bot_token: ${DISCORD_BOT_TOKEN}
-  discord_webhook_url: ${DISCORD_WEBHOOK_URL}
-  discord_channel_id: ${DISCORD_CHANNEL_ID}
-  telegram_bot_token: ${TELEGRAM_BOT_TOKEN}
-  telegram_chat_id: ${TELEGRAM_CHAT_ID}
-  teams_webhook_url: ${TEAMS_WEBHOOK_URL}
-  signal_phone_number: ${SIGNAL_PHONE_NUMBER}
-  signal_callmebot_api_key: ${SIGNAL_CALLMEBOT_API_KEY}
-  skype_bot_app_id: ${SKYPE_BOT_APP_ID}
-  skype_bot_app_password: ${SKYPE_BOT_APP_PASSWORD}
-  skype_service_url: ${SKYPE_SERVICE_URL}
-  skype_conversation_id: ${SKYPE_CONVERSATION_ID}
-  snapchat_access_token: ${SNAPCHAT_ACCESS_TOKEN}
-  snapchat_ad_account_id: ${SNAPCHAT_AD_ACCOUNT_ID}
-  whatsapp_access_token: ${WHATSAPP_ACCESS_TOKEN}
-  whatsapp_phone_number_id: ${WHATSAPP_PHONE_NUMBER_ID}
-  wechat_app_id: ${WECHAT_APP_ID}
-  wechat_app_secret: ${WECHAT_APP_SECRET}
-  viber_auth_token: ${VIBER_AUTH_TOKEN}
-  viber_sender_name: AI Assistant
-  wire_bearer_token: ${WIRE_BEARER_TOKEN}
-  wire_conversation_id: ${WIRE_CONVERSATION_ID}
-  zalo_oa_access_token: ${ZALO_OA_ACCESS_TOKEN}
-  line_channel_access_token: ${LINE_CHANNEL_ACCESS_TOKEN}
-  messenger_page_access_token: ${MESSENGER_PAGE_ACCESS_TOKEN}
-  instagram_page_access_token: ${INSTAGRAM_PAGE_ACCESS_TOKEN}
-  instagram_user_id: ${INSTAGRAM_USER_ID}
-  # ── Media generation ──
-  gemini_api_key: ${GEMINI_API_KEY}
-  image_gen_api_key: ${IMAGE_GEN_API_KEY}
-  video_gen_api_key: ${VIDEO_GEN_API_KEY}
-  video_gen_create_endpoint: ${VIDEO_GEN_CREATE_ENDPOINT}
-  video_gen_status_endpoint: ${VIDEO_GEN_STATUS_ENDPOINT}
-  tts_api_key: ${TTS_API_KEY}
-  tts_output_dir: ${TTS_OUTPUT_DIR}
-  # ── Google workspace token paths ──
-  google_calendar_token_path: ${GOOGLE_CALENDAR_TOKEN_PATH}
-  google_docs_token_path: ${GOOGLE_DOCS_TOKEN_PATH}
-  google_drive_token_path: ${GOOGLE_DRIVE_TOKEN_PATH}
-  google_sheets_token_path: ${GOOGLE_SHEETS_TOKEN_PATH}
-  google_slides_token_path: ${GOOGLE_SLIDES_TOKEN_PATH}
 
 # ============================================================================
 # Secrets — declared here, VALUES live in .env and are pulled in via ${VAR}.
