@@ -71,6 +71,7 @@ export type Translations = {
     skills: string;
     teams: string;
     tasks: string;
+    projects: string;
     conversations: string;
     analytics: string;
     playground: string;
@@ -401,7 +402,7 @@ export const translations: Record<Language, Translations> = {
     },
     nav: {
       label: "Navigation", dashboard: "Corporate Overview", agents: "Staff",
-      skills: "Skills & Tools", teams: "Departments", tasks: "Projects & Kanban",
+      skills: "Skills & Tools", teams: "Departments", tasks: "Projects & Kanban", projects: "Projects",
       conversations: "Internal Meetings", analytics: "Staff & Cost Metrics", playground: "Training Center", workspaces: "Business Units",
       officeBuilder: "Office Designer",
       virtualOffice: "Office Map",
@@ -753,7 +754,7 @@ export const translations: Record<Language, Translations> = {
     },
     nav: {
       label: "Điều hướng", dashboard: "Báo cáo Tổng quan", agents: "Hồ sơ Nhân sự Số",
-      skills: "Nghiệp vụ & Công cụ", teams: "Sơ đồ Phòng ban", tasks: "Dự án & Kanban Đầu việc",
+      skills: "Nghiệp vụ & Công cụ", teams: "Sơ đồ Phòng ban", tasks: "Dự án & Kanban Đầu việc", projects: "Dự án",
       conversations: "Phòng họp nội bộ", analytics: "Chỉ số Nhân sự & Chi phí", playground: "Trung tâm Đào tạo", workspaces: "Đơn vị Thành viên",
       officeBuilder: "Thiết kế Văn phòng",
       virtualOffice: "Sơ đồ Văn phòng",
@@ -1105,7 +1106,7 @@ export const translations: Record<Language, Translations> = {
     },
     nav: {
       label: "导航", dashboard: "企业概览", agents: "数字化员工",
-      skills: "业务与工具", teams: "部门架构", tasks: "项目与看板",
+      skills: "业务与工具", teams: "部门架构", tasks: "项目与看板", projects: "项目",
       conversations: "内部会议室", analytics: "员工与费用指标", playground: "培训中心", workspaces: "成员单位",
       officeBuilder: "办公室设计",
       virtualOffice: "办公室平面图",
@@ -1457,7 +1458,7 @@ export const translations: Record<Language, Translations> = {
     },
     nav: {
       label: "ナビゲーション", dashboard: "企業概要", agents: "デジタル人材",
-      skills: "業務とツール", teams: "部門構成", tasks: "プロジェクトと看板",
+      skills: "業務とツール", teams: "部門構成", tasks: "プロジェクトと看板", projects: "プロジェクト",
       conversations: "社内会議室", analytics: "人件費とコスト分析", playground: "トレーニングセンター", workspaces: "子会社・拠点",
       officeBuilder: "オフィスレイアウト",
       virtualOffice: "オフィス図面",
