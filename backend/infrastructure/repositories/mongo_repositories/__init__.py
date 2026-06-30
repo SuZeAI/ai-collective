@@ -20,6 +20,7 @@ from backend.infrastructure.repositories.mongo_repositories.connections import M
 from backend.infrastructure.repositories.mongo_repositories.conversations import (
     MongoConversationRepository,
 )
+from backend.infrastructure.repositories.mongo_repositories.epics import MongoEpicRepository
 from backend.infrastructure.repositories.mongo_repositories.graph_knowledge import (
     MongoGraphKnowledgeRepository,
 )
@@ -29,7 +30,9 @@ from backend.infrastructure.repositories.mongo_repositories.model_pricing import
 from backend.infrastructure.repositories.mongo_repositories.office_builder_sessions import (
     MongoOfficeBuilderSessionRepository,
 )
+from backend.infrastructure.repositories.mongo_repositories.projects import MongoProjectRepository
 from backend.infrastructure.repositories.mongo_repositories.skills import MongoSkillRepository
+from backend.infrastructure.repositories.mongo_repositories.sprints import MongoSprintRepository
 from backend.infrastructure.repositories.mongo_repositories.tasks import MongoTaskRepository
 from backend.infrastructure.repositories.mongo_repositories.teams import MongoTeamRepository
 from backend.infrastructure.repositories.mongo_repositories.token_usage import (
@@ -44,10 +47,13 @@ __all__ = [
     "MongoAnalyticsRepository",
     "MongoConnectionRepository",
     "MongoConversationRepository",
+    "MongoEpicRepository",
     "MongoGraphKnowledgeRepository",
     "MongoModelPricingRepository",
     "MongoOfficeBuilderSessionRepository",
+    "MongoProjectRepository",
     "MongoSkillRepository",
+    "MongoSprintRepository",
     "MongoTaskRepository",
     "MongoTeamRepository",
     "MongoTokenUsageRepository",

@@ -1,10 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X, Eye, EyeOff, Send, UserRound, Hand, HelpCircle, Zap } from "lucide-react";
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+  closestCorners,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X, Eye, EyeOff, Send, UserRound, Hand, HelpCircle, Zap, LayoutGrid, Flag, CalendarClock, Tag, Building2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +25,7 @@ import { Progress } from "@/components/ui/progress";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
 import { ConversationFiles } from "@/components/ConversationFiles";
-import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Agent, type GraphContextSnapshot, type Message, type Team, type Task } from "@/lib/api";
+import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Agent, type GraphContextSnapshot, type Message, type Team, type Task, type TaskPriority, type Project, type Sprint } from "@/lib/api";
 import { useRunEngine, type GraphHighlight, type UserInputRequest } from "@/contexts/RunEngineContext";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
@@ -23,6 +34,7 @@ import { cn } from "@/lib/utils";
 const statusIcons = {
   "pending": Circle,
   "in-progress": Clock,
+  "in-review": Eye,
   "paused": Pause,
   "stopped": Square,
   "completed": CheckCircle2,
@@ -31,16 +43,58 @@ const statusIcons = {
 const statusColors: Record<string, string> = {
   "pending": "text-muted-foreground",
   "in-progress": "text-primary",
+  "in-review": "text-violet-500",
   "paused": "text-amber-500",
   "stopped": "text-rose-500",
   "completed": "text-agent-dev",
 };
+
+// Jira-style Kanban columns: one per task status. Dragging a card between
+// columns drives the status transition (and auto-run for "In Progress").
+// "In Review" is a manual column (a human reviews agent output before Done);
+// the run engine never auto-emits it.
+const BOARD_COLUMNS: { status: Task["status"]; label: string; accent: string }[] = [
+  { status: "pending", label: "To Do", accent: "bg-muted-foreground/30" },
+  { status: "in-progress", label: "In Progress", accent: "bg-primary" },
+  { status: "in-review", label: "In Review", accent: "bg-violet-500" },
+  { status: "paused", label: "Paused", accent: "bg-amber-500" },
+  { status: "stopped", label: "Stopped", accent: "bg-rose-500" },
+  { status: "completed", label: "Done", accent: "bg-emerald-500" },
+];
+
+// Issue-type → short glyph for board/backlog cards.
+const ISSUE_TYPE_GLYPH: Record<string, { label: string; cls: string }> = {
+  epic: { label: "Epic", cls: "bg-purple-500/15 text-purple-500 border-purple-500/30" },
+  story: { label: "Story", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" },
+  task: { label: "Task", cls: "bg-sky-500/15 text-sky-500 border-sky-500/30" },
+  bug: { label: "Bug", cls: "bg-rose-500/15 text-rose-500 border-rose-500/30" },
+  subtask: { label: "Sub", cls: "bg-muted text-muted-foreground border-border" },
+};
+
+// Priority presentation. `order` drives sorting (urgent first) inside columns.
+const PRIORITY_CONFIG: Record<TaskPriority, { label: string; badge: string; dot: string; order: number }> = {
+  urgent: { label: "Urgent", badge: "bg-rose-500/15 text-rose-500 border-rose-500/30", dot: "bg-rose-500", order: 0 },
+  high: { label: "High", badge: "bg-orange-500/15 text-orange-500 border-orange-500/30", dot: "bg-orange-500", order: 1 },
+  medium: { label: "Medium", badge: "bg-amber-500/15 text-amber-500 border-amber-500/30", dot: "bg-amber-500", order: 2 },
+  low: { label: "Low", badge: "bg-sky-500/15 text-sky-500 border-sky-500/30", dot: "bg-sky-500", order: 3 },
+};
+
+const priorityOf = (task: Task): TaskPriority => (task.priority && PRIORITY_CONFIG[task.priority] ? task.priority : "medium");
 
 const parseTaskDate = (value?: string | null) => {
   if (!value) return null;
   const dt = new Date(value);
   return Number.isNaN(dt.getTime()) ? null : dt;
 };
+
+const isOverdue = (dueDate?: string | null, status?: string) => {
+  if (status === "completed") return false;
+  const d = parseTaskDate(dueDate);
+  return d ? d.getTime() < Date.now() : false;
+};
+
+const formatDueDate = (date: Date) =>
+  date.toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", day: "2-digit", month: "2-digit", year: "numeric" });
 
 const formatDuration = (ms: number) => {
   if (ms <= 0) return "0s";
@@ -168,6 +222,137 @@ const getGraphLayout = (nodes: GraphContextSnapshot["nodes"], width: number, hei
   });
 };
 
+// ---- Kanban board pieces ----------------------------------------------------
+
+type KanbanCardProps = {
+  task: Task;
+  team?: Team;
+  assignee?: Agent;
+  progress: number;
+  isSelected: boolean;
+  onOpen: (taskId: string) => void;
+};
+
+function KanbanCard({ task, team, assignee, progress, isSelected, onOpen }: KanbanCardProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
+  const style = transform ? { transform: CSS.Translate.toString(transform), zIndex: 50 } : undefined;
+  const priority = PRIORITY_CONFIG[priorityOf(task)];
+  const dueDate = parseTaskDate(task.dueDate);
+  const overdue = isOverdue(task.dueDate, task.status);
+  const labels = task.labels ?? [];
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      onClick={() => onOpen(task.id)}
+      className={cn(
+        "rounded-xl border p-3 bg-card/70 cursor-grab active:cursor-grabbing transition-all group select-none",
+        "hover:border-border/80 hover:bg-muted/30",
+        isDragging ? "opacity-50 shadow-lg" : "shadow-sm",
+        isSelected ? "ring-1 ring-primary/40 border-accent-foreground/20" : "border-border/40",
+      )}
+    >
+      {(task.issueKey || task.issueType || task.storyPoints != null) && (
+        <div className="flex items-center gap-1.5 mb-1.5">
+          {task.issueType && (
+            <span className={cn("px-1 py-0.5 rounded border text-[8px] font-bold uppercase tracking-wide", (ISSUE_TYPE_GLYPH[task.issueType] ?? ISSUE_TYPE_GLYPH.task).cls)}>
+              {(ISSUE_TYPE_GLYPH[task.issueType] ?? ISSUE_TYPE_GLYPH.task).label}
+            </span>
+          )}
+          {task.issueKey && (
+            <span className="text-[9px] font-mono font-semibold text-muted-foreground">{task.issueKey}</span>
+          )}
+          {task.storyPoints != null && (
+            <span className="ml-auto inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-muted text-[9px] font-bold text-foreground/70" title="Story points">
+              {task.storyPoints}
+            </span>
+          )}
+        </div>
+      )}
+      <div className="flex items-start justify-between gap-2">
+        <h4 className="text-xs font-bold text-foreground/90 leading-snug line-clamp-2 flex-1">{task.title}</h4>
+        <span className={cn("shrink-0 w-2 h-2 rounded-full mt-1", priority.dot)} title={`Priority: ${priority.label}`} />
+      </div>
+
+      {task.description && (
+        <p className="text-[10px] text-muted-foreground line-clamp-2 mt-1">{task.description}</p>
+      )}
+
+      {labels.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {labels.slice(0, 4).map((label) => (
+            <span key={label} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-muted text-[9px] font-semibold text-muted-foreground">
+              <Tag className="w-2 h-2" /> {label}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-2 mt-2.5 pt-2 border-t border-border/20">
+        <div className="flex items-center gap-1 min-w-0">
+          {assignee ? (
+            <>
+              <AgentAvatar agent={assignee} className="w-4 h-4 rounded-md text-[8px] shrink-0" iconClassName="w-2.5 h-2.5" />
+              <span className="text-[9px] text-muted-foreground truncate">{assignee.name}</span>
+            </>
+          ) : team ? (
+            <>
+              <AgentAvatar agent={team} className="w-4 h-4 rounded-md text-[8px] shrink-0" iconClassName="w-2.5 h-2.5" />
+              <span className="text-[9px] text-muted-foreground truncate">{team.name}</span>
+            </>
+          ) : (
+            <span className="text-[9px] text-muted-foreground truncate">Unassigned</span>
+          )}
+        </div>
+        <span className="text-[9px] font-semibold text-foreground/75 shrink-0">{progress}%</span>
+      </div>
+
+      {dueDate && (
+        <div className={cn("flex items-center gap-1 mt-2 text-[9px] font-medium", overdue ? "text-rose-500" : "text-muted-foreground")}>
+          <CalendarClock className="w-2.5 h-2.5" />
+          {formatDueDate(dueDate)} {overdue ? "· overdue" : ""}
+        </div>
+      )}
+    </div>
+  );
+}
+
+type KanbanColumnProps = {
+  status: Task["status"];
+  label: string;
+  accent: string;
+  count: number;
+  children: React.ReactNode;
+};
+
+function KanbanColumn({ status, label, accent, count, children }: KanbanColumnProps) {
+  const { setNodeRef, isOver } = useDroppable({ id: status });
+  return (
+    <div className="flex flex-col w-[300px] shrink-0 h-full">
+      <div className="flex items-center gap-2 px-2 py-2 mb-1">
+        <span className={cn("w-2 h-2 rounded-full", accent)} />
+        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
+        <span className="text-[10px] font-semibold text-muted-foreground/70 bg-muted rounded-full px-1.5 py-0.5 ml-auto">{count}</span>
+      </div>
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "flex-1 min-h-0 overflow-y-auto rounded-xl p-2 space-y-2 scrollbar-thin transition-colors border border-dashed",
+          isOver ? "bg-primary/5 border-primary/40" : "bg-muted/15 border-transparent",
+        )}
+      >
+        {children}
+        {count === 0 && (
+          <div className="text-center py-6 text-[10px] text-muted-foreground/60">Drop a task here</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function TaskManager() {
   const scope = useWorkspaceScope();
   // Shared run engine (lives above the router): owns the streaming loop and all
@@ -195,9 +380,29 @@ export default function TaskManager() {
 
   const [teamList, setTeamList] = useState<Team[]>([]);
   const [agentList, setAgentList] = useState<Agent[]>([]);
+  // Project scoping: when reached via /projects/:key/board the board is filtered
+  // to that project's issues and a sprint filter is offered.
+  const { key: projectKeyParam } = useParams<{ key?: string }>();
+  const [projectList, setProjectList] = useState<Project[]>([]);
+  const [sprintList, setSprintList] = useState<Sprint[]>([]);
+  const [sprintFilter, setSprintFilter] = useState<string>("all");
+  const activeProject = useMemo(
+    () => (projectKeyParam ? projectList.find((p) => p.key === projectKeyParam) : undefined),
+    [projectKeyParam, projectList],
+  );
+  // Task creation belongs to a specific company (office) or a project board. The
+  // global "Overall Collective" scope is monitoring-only, so the New Task button
+  // is hidden there. Editing existing tasks stays available in every scope.
+  const canCreateTask = !!activeProject || !scope.isOverall;
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [teamId, setTeamId] = useState("");
+  // Jira-style create/edit form fields.
+  const [assignMode, setAssignMode] = useState<"department" | "staff">("department");
+  const [assigneeId, setAssigneeId] = useState("");
+  const [priority, setPriority] = useState<TaskPriority>("medium");
+  const [dueDate, setDueDate] = useState("");
+  const [labelsInput, setLabelsInput] = useState("");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
   // Graph viewport/layout are per-viewer presentation over engine-owned snapshots.
@@ -205,12 +410,13 @@ export default function TaskManager() {
   const [taskGraphPositions, setTaskGraphPositions] = useState<Record<string, Record<string, GraphNodePosition>>>({});
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "completed" | "pending">("all");
   const [open, setOpen] = useState(false);
   const [viewTaskId, setViewTaskId] = useState<string | null>(null);
   // Human-in-the-loop composer draft and ask_user free-text drafts (UI-local).
   const [humanInputs, setHumanInputs] = useState<Record<string, string>>({});
   const [userRequestDrafts, setUserRequestDrafts] = useState<Record<string, string>>({});
+  // User comment drafts per task (separate from the agent live-chat composer).
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const [graphPanelVisible, setGraphPanelVisible] = useState(false);
   const [graphActivityCollapsed, setGraphActivityCollapsed] = useState(false);
@@ -229,19 +435,29 @@ export default function TaskManager() {
     startPositions: Record<string, GraphNodePosition>;
   } | null>(null);
 
-
+  // A small activation distance lets a plain click open the detail dialog while
+  // an actual drag (>6px) starts the board move.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [tasks, teams, agents] = await Promise.all([api.listTasks(), api.listTeams(), api.listAgents()]);
+        const [tasks, teams, agents, projects, sprints] = await Promise.all([
+          api.listTasks(),
+          api.listTeams(),
+          api.listAgents(),
+          api.listProjects().catch(() => [] as Project[]),
+          api.listSprints().catch(() => [] as Sprint[]),
+        ]);
         if (cancelled) return;
         // Reconcile with the engine: it keeps the lead for any task it's actively
         // streaming, and seeds conversations only where it has no live transcript.
         engine.ingestTasks(tasks);
         setTeamList(teams);
         setAgentList(agents);
+        setProjectList(projects);
+        setSprintList(sprints);
 
         // Load conversations for all tasks
         if (tasks.length > 0) {
@@ -274,7 +490,16 @@ export default function TaskManager() {
     return map;
   }, [agentList]);
 
-  // The engine is team-agnostic; the page supplies the team's run config.
+  // Agents the active office can pick for an individual ("staff") assignment.
+  const scopedAgents = useMemo(() => {
+    if (scope.isOverall) return agentList;
+    const ids = new Set<string>();
+    teamList.filter((t) => scope.teamIds.has(t.id)).forEach((t) => (t.agents ?? []).forEach((a) => ids.add(a)));
+    return agentList.filter((a) => ids.has(a.id));
+  }, [agentList, teamList, scope]);
+
+  // The engine is team-agnostic; the page supplies the team's run config. Tasks
+  // assigned to an individual (no team) fall back to a single-agent sequential run.
   const teamRunOpts = (task: Task) => {
     const team = teamList.find((t) => t.id === task.teamId);
     // Custom mode runs the user-drawn flow; if it was never wired, fall back to
@@ -284,36 +509,64 @@ export default function TaskManager() {
     return { mode, maxSteps: team?.maxSteps ?? 6, customGraph };
   };
 
+  // Office scoping: a task belongs to the active office if its department is in
+  // scope OR (for individual assignments without a department) its assignee is a
+  // member of a department in scope.
+  const isTaskInScope = (task: Task) => {
+    if (scope.isOverall) return true;
+    if (task.teamId && scope.teamIds.has(task.teamId)) return true;
+    if (task.assigneeId) {
+      return teamList.some((t) => scope.teamIds.has(t.id) && (t.agents ?? []).includes(task.assigneeId as string));
+    }
+    return false;
+  };
+
   const filteredTasks = useMemo(() => {
+    const q = searchQuery.toLowerCase();
     return taskList.filter((task) => {
-      // Office scoping: only tasks of the selected office's departments.
-      if (!scope.isOverall && !scope.teamIds.has(task.teamId)) return false;
+      // In a project board, scope to the project (and optional sprint) instead of
+      // the office membership filter.
+      if (activeProject) {
+        if (task.projectId !== activeProject.id) return false;
+        if (sprintFilter === "__backlog__" && task.sprintId) return false;
+        if (sprintFilter !== "all" && sprintFilter !== "__backlog__" && (task.sprintId ?? "") !== sprintFilter) return false;
+      } else if (!isTaskInScope(task)) {
+        return false;
+      }
+      if (!q) return true;
       const team = teamList.find((t) => t.id === task.teamId);
-      const matchesSearch =
-        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (task.description ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (team?.name ?? "").toLowerCase().includes(searchQuery.toLowerCase());
-
-      if (!matchesSearch) return false;
-
-      if (statusFilter === "all") return true;
-      if (statusFilter === "active") {
-        return task.status === "in-progress" || task.status === "paused";
-      }
-      if (statusFilter === "completed") {
-        return task.status === "completed";
-      }
-      if (statusFilter === "pending") {
-        return task.status === "pending" || task.status === "stopped";
-      }
-      return true;
+      const assignee = task.assigneeId ? agentById.get(task.assigneeId) : undefined;
+      return (
+        task.title.toLowerCase().includes(q) ||
+        (task.description ?? "").toLowerCase().includes(q) ||
+        (team?.name ?? "").toLowerCase().includes(q) ||
+        (assignee?.name ?? "").toLowerCase().includes(q) ||
+        (task.labels ?? []).some((l) => l.toLowerCase().includes(q))
+      );
     });
-  }, [taskList, teamList, searchQuery, statusFilter, scope]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskList, teamList, agentById, searchQuery, scope, activeProject, sprintFilter]);
+
+  // Group the in-scope tasks into board columns, urgent priority first.
+  const tasksByStatus = useMemo(() => {
+    const groups: Record<string, Task[]> = {
+      "pending": [],
+      "in-progress": [],
+      "in-review": [],
+      "paused": [],
+      "stopped": [],
+      "completed": [],
+    };
+    for (const task of filteredTasks) {
+      (groups[task.status] ?? (groups[task.status] = [])).push(task);
+    }
+    for (const key of Object.keys(groups)) {
+      groups[key].sort((a, b) => PRIORITY_CONFIG[priorityOf(a)].order - PRIORITY_CONFIG[priorityOf(b)].order);
+    }
+    return groups;
+  }, [filteredTasks]);
 
   const taskIdParam = searchParams.get("id");
-
-  // A task is selectable only when it belongs to the active office (or Overall).
-  const isTaskInScope = (task: Task) => scope.isOverall || scope.teamIds.has(task.teamId);
 
   useEffect(() => {
     if (!scope.ready) return; // wait until office membership is resolved
@@ -324,24 +577,16 @@ export default function TaskManager() {
         setTaskGraphViewports((prev) => prev[taskIdParam] ? prev : { ...prev, [taskIdParam]: createDefaultViewport() });
         void loadTaskGraphContext(taskIdParam);
       }
-    } else if (!taskIdParam && taskList.length > 0 && !viewTaskId) {
-      const first = taskList.find(isTaskInScope);
-      if (first) {
-        setViewTaskId(first.id);
-        setTaskGraphViewports((prev) => prev[first.id] ? prev : { ...prev, [first.id]: createDefaultViewport() });
-        void loadTaskGraphContext(first.id);
-      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taskIdParam, taskList, viewTaskId, scope]);
+  }, [taskIdParam, taskList, scope]);
 
   // Switching office must never leave another office's task in the detail panel.
   useEffect(() => {
     if (!scope.ready || scope.isOverall || !viewTaskId) return;
     const current = taskList.find((t) => t.id === viewTaskId);
-    if (current && !scope.teamIds.has(current.teamId)) {
-      const fallback = taskList.find((t) => scope.teamIds.has(t.teamId));
-      setViewTaskId(fallback ? fallback.id : null);
+    if (current && !isTaskInScope(current)) {
+      setViewTaskId(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scope, viewTaskId, taskList]);
@@ -354,6 +599,14 @@ export default function TaskManager() {
 
   const handleSelectTask = (taskId: string) => {
     setSearchParams({ id: taskId });
+    openTaskView(taskId);
+  };
+
+  const closeTaskView = () => {
+    setViewTaskId(null);
+    setSearchParams({});
+    graphDragRef.current = null;
+    graphNodeDragRef.current = null;
   };
 
   const toggleTaskExpanded = (taskId: string) => {
@@ -373,6 +626,11 @@ export default function TaskManager() {
     setTitle("");
     setDesc("");
     setTeamId("");
+    setAssignMode("department");
+    setAssigneeId("");
+    setPriority("medium");
+    setDueDate("");
+    setLabelsInput("");
   };
 
   const openCreateDialog = () => {
@@ -384,7 +642,18 @@ export default function TaskManager() {
     setEditingTaskId(task.id);
     setTitle(task.title);
     setDesc(task.description ?? "");
-    setTeamId(task.teamId);
+    if (task.assigneeId && !task.teamId) {
+      setAssignMode("staff");
+      setAssigneeId(task.assigneeId);
+      setTeamId("");
+    } else {
+      setAssignMode("department");
+      setTeamId(task.teamId);
+      setAssigneeId("");
+    }
+    setPriority(priorityOf(task));
+    setDueDate(task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : "");
+    setLabelsInput((task.labels ?? []).join(", "));
     setOpen(true);
   };
 
@@ -557,24 +826,74 @@ export default function TaskManager() {
   };
 
   const saveTask = async () => {
-    if (!title.trim() || !teamId) return;
+    if (!title.trim()) return;
+    if (assignMode === "department" && !teamId) return;
+    if (assignMode === "staff" && !assigneeId) return;
     const existing = editingTaskId ? taskList.find((t) => t.id === editingTaskId) : undefined;
     const team = teamList.find((t) => t.id === teamId);
+    const labels = labelsInput.split(",").map((s) => s.trim()).filter(Boolean);
+    const base = {
+      id: editingTaskId ?? undefined,
+      title: title.trim(),
+      description: desc,
+      status: existing?.status ?? "pending",
+      progress: existing?.progress ?? 0,
+      priority,
+      dueDate: dueDate ? new Date(dueDate).toISOString() : null,
+      labels,
+      comments: existing?.comments ?? [],
+      // Keep the task tied to its project/epic/sprint. The backend upsert fully
+      // replaces these fields from the request, so we must preserve them on edit
+      // (existing?.…) and seed them from the active project board on create —
+      // otherwise the task is saved with an empty projectId and vanishes from the
+      // board after reload.
+      projectId: existing?.projectId ?? activeProject?.id,
+      epicId: existing?.epicId ?? null,
+      sprintId:
+        existing?.sprintId ??
+        (activeProject && sprintFilter !== "all" && sprintFilter !== "__backlog__"
+          ? sprintFilter
+          : null),
+      issueType: existing?.issueType,
+      storyPoints: existing?.storyPoints ?? null,
+    };
     try {
-      await engine.upsertTask({
-        id: editingTaskId ?? undefined,
-        title: title.trim(),
-        description: desc,
-        teamId,
-        status: existing?.status ?? "pending",
-        progress: existing?.progress ?? 0,
-        assignedAgents: team?.agents || [],
-      });
+      if (assignMode === "staff") {
+        await engine.upsertTask({ ...base, teamId: "", assigneeId, assignedAgents: [assigneeId] });
+      } else {
+        await engine.upsertTask({ ...base, teamId, assigneeId: null, assignedAgents: team?.agents || [] });
+      }
       resetForm();
       setOpen(false);
     } catch (e) {
       console.error(e);
     }
+  };
+
+  // Drag a card between columns → drive the matching status transition. Moving
+  // into "In Progress" auto-runs the agents; the user keeps stop/pause controls.
+  const moveTaskToStatus = (task: Task, status: Task["status"]) => {
+    if (task.status === status) return;
+    if (!canEditItem(task)) return;
+    if (status === "in-progress") {
+      openTaskView(task.id);
+      void engine.startTask(task, teamRunOpts(task));
+    } else if (status === "stopped") {
+      void engine.stopTask(task);
+    } else if (status === "paused") {
+      void engine.pauseTask(task);
+    } else {
+      // pending | completed — generic setter aborts any live stream first.
+      void engine.setStatus(task, status);
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    const task = taskList.find((t) => t.id === active.id);
+    if (!task) return;
+    moveTaskToStatus(task, String(over.id) as Task["status"]);
   };
 
   // Dispatch the detail-panel status buttons to the shared engine. Start/restart
@@ -592,10 +911,6 @@ export default function TaskManager() {
     }
   };
 
-  // Follow-up on a finished task: the user reviews the result and sends a new
-  // message — the task relaunches in the SAME conversation (knowledge graph
-  // context preserved) with the message as the steering instruction, and the
-  // existing chat history stays visible.
   // Follow-up on a finished task: relaunch in the SAME conversation (graph
   // context preserved) with the message as the steering instruction. The engine
   // owns the run; the page only supplies the team config and transcript tail.
@@ -609,7 +924,7 @@ export default function TaskManager() {
       .slice(-10)
       .map((m) => {
         const speaker = m.agentId === "user" ? "User" : (agentById.get(m.agentId)?.name ?? m.agentId);
-        const text = m.content.length > 600 ? `${m.content.slice(0, 600)}\u2026` : m.content;
+        const text = m.content.length > 600 ? `${m.content.slice(0, 600)}…` : m.content;
         return `${speaker}: ${text}`;
       })
       .join("\n---\n");
@@ -624,6 +939,23 @@ export default function TaskManager() {
       void sendHumanMessage(task);
     } else if (task.status === "completed" || task.status === "stopped" || task.status === "paused") {
       void continueTaskWithMessage(task);
+    }
+  };
+
+  // User comment thread (separate from the agent live-chat). Persisted on the
+  // task itself via upsert, so it survives reloads like every other task field.
+  const addComment = async (task: Task) => {
+    const content = (commentDrafts[task.id] ?? "").trim();
+    if (!content) return;
+    const next = [
+      ...(task.comments ?? []),
+      { id: `c_${Date.now()}`, author_id: "you", content, created_at: new Date().toISOString() },
+    ];
+    try {
+      await engine.upsertTask({ ...task, comments: next });
+      setCommentDrafts((prev) => ({ ...prev, [task.id]: "" }));
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -650,9 +982,7 @@ export default function TaskManager() {
         setOpen(false);
       }
       if (viewTaskId === id) {
-        setViewTaskId(null);
-        graphDragRef.current = null;
-        graphNodeDragRef.current = null;
+        closeTaskView();
       }
     } catch (e) {
       console.error(e);
@@ -678,846 +1008,822 @@ export default function TaskManager() {
   // Interrupt/resume the run at a turn boundary (the SSE stream stays open).
   const toggleHoldTask = (task: Task, hold: boolean) => engine.hold(task, hold);
 
+  const selectedTask = viewTaskId ? taskList.find((task) => task.id === viewTaskId) : undefined;
+
   return (
-    <div className="h-full w-full flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-border bg-background overflow-hidden select-none">
-      {/* LEFT SIDEBAR PANEL: Task list (360px wide) */}
-      <div className="lg:w-[380px] w-full flex flex-col flex-shrink-0 bg-muted/5 h-full overflow-hidden">
-        {/* Left header */}
-        <div className="p-4 border-b border-border flex flex-col gap-3 flex-shrink-0 bg-background/50 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-lg font-bold tracking-tight text-foreground">Projects & Tasks</h1>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Manage AI department tasks</p>
-            </div>
-            <div className="flex items-center gap-1.5">
-              {scope.workspace && (
-                <AppendFromOverallDialog
-                  size="sm"
-                  title={`Append tasks to "${scope.workspace.name}"`}
-                  description="Pick existing tasks from Overall and assign them to one of this office's departments."
-                  items={taskList
-                    .filter((t) => !scope.teamIds.has(t.teamId))
-                    .map((t) => ({ id: t.id, name: t.title, sub: t.description, badge: t.status }))}
-                  emptyText="Every task from Overall already belongs to this office."
-                  targets={teamList
-                    .filter((t) => scope.teamIds.has(t.id))
-                    .map((t) => ({ id: t.id, name: t.name }))}
-                  targetLabel="Assign to department"
-                  noTargetText="This office has no departments yet. Add a department first."
-                  copyLabel="Create independent copies for this office (when unchecked, your own tasks are moved instead; shared tasks are always copied)."
-                  onAppend={async (ids, targetId, makeCopy) => {
-                    const team = teamList.find((t) => t.id === targetId);
-                    if (!team) return;
-                    for (const id of ids) {
-                      const task = taskList.find((t) => t.id === id);
-                      if (!task) continue;
-                      if (!makeCopy && canEditItem(task)) {
-                        // Own task → move it into the office's department.
-                        await engine.upsertTask({
-                          ...task,
-                          teamId: team.id,
-                          assignedAgents: team.agents || [],
-                        });
-                      } else {
-                        // Copy requested, or shared (default) task → append a copy owned by the user.
-                        await engine.upsertTask({
-                          title: task.title,
-                          description: task.description,
-                          teamId: team.id,
-                          status: "pending",
-                          progress: 0,
-                          assignedAgents: team.agents || [],
-                        });
-                      }
-                    }
-                  }}
-                />
-              )}
-              <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" onClick={openCreateDialog} className="h-8 gap-1 text-xs">
-                  <Plus className="w-3.5 h-3.5" /> Task
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>{editingTaskId ? "Edit Task" : "Create Task"}</DialogTitle></DialogHeader>
-                <div className="space-y-4 pt-2">
-                  <Input placeholder="Task title" value={title} onChange={(e) => setTitle(e.target.value)} />
-                  <Textarea
-                    placeholder="Description"
-                    value={desc}
-                    onChange={(e) => setDesc(e.target.value)}
-                    className="min-h-[140px] max-h-[220px] overflow-y-auto resize-none"
-                  />
+    <div className="h-full w-full flex flex-col bg-background overflow-hidden select-none">
+      {/* TOP TOOLBAR */}
+      <div className="px-5 py-3 border-b border-border flex items-center gap-3 flex-shrink-0 bg-background/50 backdrop-blur-sm flex-wrap">
+        <div className="flex items-center gap-2.5 mr-auto">
+          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+            <LayoutGrid className="w-4.5 h-4.5 text-primary" />
+          </div>
+          <div>
+            {activeProject ? (
+              <>
+                <h1 className="text-base font-bold tracking-tight text-foreground leading-none">
+                  <span className="font-mono text-primary mr-1.5">{activeProject.key}</span>
+                  {activeProject.name}
+                </h1>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Link to={`/projects/${activeProject.key}/board`} className="text-[10px] font-semibold text-primary border-b-2 border-primary pb-0.5">Board</Link>
+                  <Link to={`/projects/${activeProject.key}/backlog`} className="text-[10px] font-medium text-muted-foreground hover:text-foreground pb-0.5">Backlog</Link>
+                  <Link to={`/projects/${activeProject.key}/roadmap`} className="text-[10px] font-medium text-muted-foreground hover:text-foreground pb-0.5">Roadmap</Link>
+                  <Link to={`/projects/${activeProject.key}/reports`} className="text-[10px] font-medium text-muted-foreground hover:text-foreground pb-0.5">Reports</Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <h1 className="text-base font-bold tracking-tight text-foreground leading-none">Projects &amp; Tasks</h1>
+                <p className="text-[10px] text-muted-foreground mt-1">Kanban board · drag cards between columns to change status</p>
+              </>
+            )}
+          </div>
+        </div>
+
+        {activeProject && (
+          <Select value={sprintFilter} onValueChange={setSprintFilter}>
+            <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All sprints" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sprints</SelectItem>
+              <SelectItem value="__backlog__">Backlog (no sprint)</SelectItem>
+              {sprintList.filter((s) => s.projectId === activeProject.id).map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {/* Search box */}
+        <div className="relative">
+          <Input
+            type="text"
+            placeholder="Search tasks, labels, people..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-9 text-xs pl-8 pr-3 w-[240px]"
+          />
+          <svg className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+
+        {scope.workspace && (
+          <AppendFromOverallDialog
+            size="sm"
+            title={`Append tasks to "${scope.workspace.name}"`}
+            description="Pick existing tasks from Overall and assign them to one of this office's departments."
+            items={taskList
+              .filter((t) => !isTaskInScope(t))
+              .map((t) => ({ id: t.id, name: t.title, sub: t.description, badge: t.status }))}
+            emptyText="Every task from Overall already belongs to this office."
+            targets={teamList
+              .filter((t) => scope.teamIds.has(t.id))
+              .map((t) => ({ id: t.id, name: t.name }))}
+            targetLabel="Assign to department"
+            noTargetText="This office has no departments yet. Add a department first."
+            copyLabel="Create independent copies for this office (when unchecked, your own tasks are moved instead; shared tasks are always copied)."
+            onAppend={async (ids, targetId, makeCopy) => {
+              const team = teamList.find((t) => t.id === targetId);
+              if (!team) return;
+              for (const id of ids) {
+                const task = taskList.find((t) => t.id === id);
+                if (!task) continue;
+                if (!makeCopy && canEditItem(task)) {
+                  await engine.upsertTask({ ...task, teamId: team.id, assigneeId: null, assignedAgents: team.agents || [] });
+                } else {
+                  await engine.upsertTask({
+                    title: task.title,
+                    description: task.description,
+                    teamId: team.id,
+                    status: "pending",
+                    progress: 0,
+                    assignedAgents: team.agents || [],
+                  });
+                }
+              }
+            }}
+          />
+        )}
+
+        <Dialog open={open} onOpenChange={setOpen}>
+          {canCreateTask && (
+            <DialogTrigger asChild>
+              <Button size="sm" onClick={openCreateDialog} className="h-9 gap-1 text-xs">
+                <Plus className="w-3.5 h-3.5" /> New Task
+              </Button>
+            </DialogTrigger>
+          )}
+          <DialogContent>
+            <DialogHeader><DialogTitle>{editingTaskId ? "Edit Task" : "Create Task"}</DialogTitle></DialogHeader>
+            <div className="space-y-4 pt-2">
+              <Input placeholder="Task title" value={title} onChange={(e) => setTitle(e.target.value)} />
+              <Textarea
+                placeholder="Description"
+                value={desc}
+                onChange={(e) => setDesc(e.target.value)}
+                className="min-h-[100px] max-h-[180px] overflow-y-auto resize-none"
+              />
+
+              {/* Assignment: department OR an individual staff member */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Assign to</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAssignMode("department")}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 h-9 rounded-lg border text-xs font-semibold transition-colors",
+                      assignMode === "department" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted/40",
+                    )}
+                  >
+                    <Building2 className="w-3.5 h-3.5" /> Department
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAssignMode("staff")}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 h-9 rounded-lg border text-xs font-semibold transition-colors",
+                      assignMode === "staff" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted/40",
+                    )}
+                  >
+                    <UserRound className="w-3.5 h-3.5" /> Staff
+                  </button>
+                </div>
+                {assignMode === "department" ? (
                   <Select value={teamId} onValueChange={setTeamId}>
-                    <SelectTrigger><SelectValue placeholder="Assign to department" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select a department" /></SelectTrigger>
                     <SelectContent>
                       {(scope.isOverall ? teamList : teamList.filter((t) => scope.teamIds.has(t.id)))
                         .map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Button onClick={saveTask} className="w-full" disabled={!title.trim() || !teamId}>
-                    {editingTaskId ? "Save Changes" : "Create Task"}
-                  </Button>
-                </div>
-              </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-
-          {/* Search box */}
-          <div className="relative">
-            <Input
-              type="text"
-              placeholder="Search tasks..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-8 text-xs pl-8 pr-3"
-            />
-            <svg
-              className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/75"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
-
-          {/* Status filtering tabs */}
-          <div className="grid grid-cols-4 gap-1 p-0.5 bg-muted/65 rounded-lg text-[10px] font-semibold">
-            {(["all", "active", "completed", "pending"] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setStatusFilter(tab)}
-                className={cn(
-                  "py-1 px-1 rounded-md text-center transition-all capitalize",
-                  statusFilter === tab
-                    ? "bg-background text-foreground shadow-sm font-bold"
-                    : "text-muted-foreground hover:text-foreground/90"
+                ) : (
+                  <Select value={assigneeId} onValueChange={setAssigneeId}>
+                    <SelectTrigger><SelectValue placeholder="Select a staff member" /></SelectTrigger>
+                    <SelectContent>
+                      {scopedAgents.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 )}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-        </div>
+              </div>
 
-        {/* Task Cards list */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
-          {filteredTasks.length === 0 ? (
-            <div className="text-center py-10 text-xs text-muted-foreground">
-              No tasks found
-            </div>
-          ) : (
-            filteredTasks.map((task, i) => {
-              const Icon = statusIcons[task.status] ?? Circle;
-              const isSelected = viewTaskId === task.id;
-              const team = teamList.find((t) => t.id === task.teamId);
-              const messages = taskConversations[task.id] ?? [];
-              const progress = task.status === "completed" ? 100 : Math.min(Math.round((messages.length / (team?.maxSteps ?? 6)) * 100), 99);
-              return (
-                <div
-                  key={task.id}
-                  onClick={() => handleSelectTask(task.id)}
-                  className={cn(
-                    "p-3 rounded-xl border cursor-pointer transition-all duration-150 relative overflow-hidden group select-none",
-                    isSelected
-                      ? "bg-accent/40 border-accent-foreground/20 shadow-sm"
-                      : "bg-card/50 border-border/40 hover:bg-muted/35 hover:border-border/80"
-                  )}
-                >
-                  {/* Status Indicator Bar */}
-                  <div
-                    className={cn(
-                      "absolute left-0 top-0 bottom-0 w-[3px]",
-                      task.status === "in-progress" ? "bg-primary animate-pulse" : "",
-                      task.status === "completed" ? "bg-emerald-500" : "",
-                      task.status === "paused" ? "bg-amber-500" : "",
-                      task.status === "stopped" ? "bg-rose-500" : "",
-                      task.status === "pending" ? "bg-muted-foreground/30" : ""
-                    )}
-                  />
-                  <div className="pl-1.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className={cn("text-xs font-bold truncate flex-1", isSelected ? "text-foreground" : "text-foreground/80")}>
-                        {task.title}
-                      </h4>
-                      <Icon className={cn("w-3.5 h-3.5 shrink-0 mt-0.5", statusColors[task.status])} />
-                    </div>
-                    {task.description && (
-                      <p className="text-[10px] text-muted-foreground line-clamp-1 mt-1">
-                        {task.description}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-border/20">
-                      <div className="flex items-center gap-1 min-w-0">
-                        <AgentAvatar
-                          agent={team || { avatar: "T", avatar_icon: "users" }}
-                          className="w-3.5 h-3.5 rounded-md text-[8px] shrink-0"
-                          iconClassName="w-2 h-2"
-                        />
-                        <span className="text-[9px] text-muted-foreground truncate">{team?.name || "No department"}</span>
-                      </div>
-                      <span className="text-[9px] font-semibold text-foreground/75 shrink-0">
-                        {progress}%
-                      </span>
-                    </div>
-                  </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Priority</label>
+                  <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(["urgent", "high", "medium", "low"] as TaskPriority[]).map((p) => (
+                        <SelectItem key={p} value={p}>
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className={cn("w-2 h-2 rounded-full", PRIORITY_CONFIG[p].dot)} /> {PRIORITY_CONFIG[p].label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              );
-            })
-          )}
-        </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Due date</label>
+                  <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="h-9 text-xs" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Labels</label>
+                <Input placeholder="comma, separated, labels" value={labelsInput} onChange={(e) => setLabelsInput(e.target.value)} className="h-9 text-xs" />
+              </div>
+
+              <Button
+                onClick={saveTask}
+                className="w-full"
+                disabled={!title.trim() || (assignMode === "department" ? !teamId : !assigneeId)}
+              >
+                {editingTaskId ? "Save Changes" : "Create Task"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* RIGHT WORKSPACE PANEL: Task detail + convo + graph */}
-      <div className="flex-1 h-full flex flex-col overflow-hidden bg-background">
-        {(() => {
-          if (!viewTaskId) {
-            return (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-muted/5">
-                <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4 border border-border/40 shadow-sm">
-                  <CheckCircle2 className="w-7 h-7 text-muted-foreground/45" />
-                </div>
-                <h3 className="text-sm font-bold text-foreground mb-1">No Task Selected</h3>
-                <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
-                  Select a task from the list on the left to view its execution details, live agent conversations, and knowledge graphs.
-                </p>
-              </div>
-            );
-          }
-
-          const selectedTask = taskList.find((task) => task.id === viewTaskId);
-          if (!selectedTask) {
-            return (
-              <div className="flex-1 flex items-center justify-center p-8 text-center text-xs text-muted-foreground">
-                Task not found
-              </div>
-            );
-          }
-
-          const team = teamList.find((t) => t.id === selectedTask.teamId);
-          const messages = taskConversations[selectedTask.id] ?? [];
-          const visibleMessages = messages.slice(-50);
-          const openQuestions = userInputRequests[selectedTask.id] ?? [];
-          // Finished tasks accept follow-up messages that relaunch the run in
-          // the same conversation (knowledge graph context preserved).
-          const canFollowUp =
-            (selectedTask.status === "completed" || selectedTask.status === "stopped" || selectedTask.status === "paused") &&
-            selectedTask.assignedAgents.length > 0;
-          const composerEnabled = selectedTask.status === "in-progress" || canFollowUp;
-          const composerBusy =
-            selectedTask.status === "in-progress"
-              ? sendingInterjectTaskIds.has(selectedTask.id)
-              : updatingTaskIds.has(selectedTask.id);
-          const maxRounds = team?.maxSteps ?? 6;
-          const calculatedProgress = selectedTask.status === "completed" ? 100 : Math.min(Math.round((messages.length / maxRounds) * 100), 99);
-          const startDate = parseTaskDate(selectedTask.startTime);
-          const endDate = parseTaskDate(selectedTask.endTime);
-          const completionDuration =
-            selectedTask.status === "completed" && startDate && endDate
-              ? formatDuration(endDate.getTime() - startDate.getTime())
-              : null;
-          const completionSummary = !startDate
-            ? "(No start time yet)"
-            : completionDuration ?? "(Not completed yet)";
-          const canStart = selectedTask.status === "pending" || selectedTask.status === "paused" || selectedTask.status === "stopped" || selectedTask.status === "completed";
-          const canPause = selectedTask.status === "in-progress";
-          const canStop = selectedTask.status === "in-progress" || selectedTask.status === "paused";
-          const isUpdating = updatingTaskIds.has(selectedTask.id);
-          const isConversationLoading = loadingConversationTaskIds.has(selectedTask.id);
-          const isRestart = selectedTask.status === "completed";
-          const Icon = statusIcons[selectedTask.status] ?? Circle;
-          const graphSnapshot = taskGraphSnapshots[selectedTask.id];
-          const graphHighlight = taskGraphHighlights[selectedTask.id];
-          const graphLoading = loadingGraphTaskIds.has(selectedTask.id);
-          const graphNodes = getGraphDisplayNodes(graphSnapshot, graphHighlight);
-          const graphLayout = getGraphLayout(graphNodes, 560, 300);
-          const graphLayoutById = new Map(graphLayout.map((entry) => [entry.node.id, entry]));
-          const graphPositions = taskGraphPositions[selectedTask.id] ?? createNodePositionMap(graphNodes, GRAPH_VIEWBOX_WIDTH, GRAPH_VIEWBOX_HEIGHT);
-          const activeNodeIds = new Set(graphHighlight?.nodeIds ?? []);
-          const activeEdgeIds = new Set(graphHighlight?.edgeIds ?? []);
-          const activeChunkIds = new Set(graphHighlight?.chunkIds ?? []);
-          const graphEdges = (graphSnapshot?.edges ?? [])
-            .filter((edge) => graphLayoutById.has(edge.src) && graphLayoutById.has(edge.dst))
-            .sort((left, right) => {
-              const leftActive = activeEdgeIds.has(left.id) ? 1 : 0;
-              const rightActive = activeEdgeIds.has(right.id) ? 1 : 0;
-              return rightActive - leftActive || right.weight - left.weight;
-            })
-            .slice(0, 24);
-          const graphNodeById = new Map((graphSnapshot?.nodes ?? []).map((node) => [node.id, node]));
-          const activeNodeLabels = Array.from(activeNodeIds)
-            .map((nodeId) => graphNodeById.get(nodeId)?.value || nodeId)
-            .slice(0, 6);
-          const viewport = taskGraphViewports[selectedTask.id] ?? createDefaultViewport();
-
-          return (
-            <div className="flex-1 h-full min-h-0 flex flex-col bg-background select-text">
-              {/* Detail Header bar */}
-              <div className="px-5 py-3 border-b border-border bg-background/50 backdrop-blur-sm flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center gap-3 min-w-0">
-                  <Icon className={cn("w-4.5 h-4.5 shrink-0", statusColors[selectedTask.status])} />
-                  <h2 className="font-bold text-sm truncate text-foreground leading-none">{selectedTask.title}</h2>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {canEditItem(selectedTask) && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 text-xs px-3"
-                      onClick={() => openEditDialog(selectedTask)}
-                      disabled={isUpdating}
-                    >
-                      <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
-                    </Button>
-                  )}
-                  {canEditItem(selectedTask) && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 text-xs px-3"
-                      onClick={() => clearHistory(selectedTask.id)}
-                      disabled={isUpdating}
-                      title="Wipe conversation history and knowledge for a fresh start"
-                    >
-                      <X className="w-3.5 h-3.5 mr-1.5" /> Clear history
-                    </Button>
-                  )}
-                  {canDeleteItem(selectedTask) && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 text-xs px-3 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
-                      onClick={() => deleteTask(selectedTask.id)}
-                      disabled={isUpdating}
-                    >
-                      <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Detail columns workspace */}
-              {/* Tạm thời đổi layout sang 2 cột để mở rộng Live Chat khi ẩn Graph
-              <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[280px_1fr_minmax(0,1.2fr)] divide-x divide-border">
-              */}
-              <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[280px_1fr] divide-x divide-border">
-                {/* Panel 1: Settings / Metadata */}
-                <div className="h-full overflow-y-auto p-4 space-y-5 bg-muted/5 flex-shrink-0 scrollbar-thin">
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground font-medium">Progress</span>
-                      <span className="font-bold text-foreground">{calculatedProgress}%</span>
-                    </div>
-                    <Progress value={calculatedProgress} className="h-1.5" />
-                  </div>
-
-                  {canEditItem(selectedTask) && (
-                    <div className="flex items-center gap-1.5">
-                      <Button
-                        size="sm"
-                        className="flex-1 h-8 text-xs font-semibold"
-                        variant={selectedTask.status === "in-progress" ? "default" : "outline"}
-                        onClick={() => updateTaskStatus(selectedTask, "in-progress")}
-                        disabled={!canStart || isUpdating}
-                      >
-                        <Play className="w-3 h-3 mr-1.5 fill-current" />
-                        {selectedTask.status === "paused" ? "Resume" : isRestart ? "Restart" : "Start"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="h-8 px-2.5"
-                        variant="outline"
-                        onClick={() => updateTaskStatus(selectedTask, "paused")}
-                        disabled={!canPause}
-                      >
-                        <Pause className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="h-8 px-2.5 hover:bg-rose-500/10 hover:border-rose-500/20"
-                        variant="outline"
-                        onClick={() => updateTaskStatus(selectedTask, "stopped")}
-                        disabled={!canStop}
-                      >
-                        <Square className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-                      </Button>
-                    </div>
-                  )}
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Description</label>
-                    <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">{selectedTask.description || "(No description)"}</p>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Department</label>
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted text-xs font-semibold">
-                      <AgentAvatar
-                        agent={team || { avatar: "D", avatar_icon: "users" }}
-                        className="w-4 h-4 rounded-md text-[9px]"
-                        iconClassName="w-2.5 h-2.5"
+      {/* KANBAN BOARD */}
+      <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+        <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden p-4">
+          <div className="flex gap-4 h-full min-w-max">
+            {BOARD_COLUMNS.map((col) => {
+              const columnTasks = tasksByStatus[col.status] ?? [];
+              return (
+                <KanbanColumn key={col.status} status={col.status} label={col.label} accent={col.accent} count={columnTasks.length}>
+                  {columnTasks.map((task) => {
+                    const team = task.teamId ? teamList.find((t) => t.id === task.teamId) : undefined;
+                    const assignee = task.assigneeId ? agentById.get(task.assigneeId) : undefined;
+                    const messages = taskConversations[task.id] ?? [];
+                    const progress = task.status === "completed" ? 100 : Math.min(Math.round((messages.length / (team?.maxSteps ?? 6)) * 100), 99);
+                    return (
+                      <KanbanCard
+                        key={task.id}
+                        task={task}
+                        team={team}
+                        assignee={assignee}
+                        progress={progress}
+                        isSelected={viewTaskId === task.id}
+                        onOpen={handleSelectTask}
                       />
-                      {team?.name || "(No team)"}
-                    </div>
-                  </div>
+                    );
+                  })}
+                </KanbanColumn>
+              );
+            })}
+          </div>
+        </div>
+      </DndContext>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Personnel</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {selectedTask.assignedAgents.map((aid) => {
-                        const agent = agentById.get(aid);
-                        return agent ? (
-                          <span key={aid} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-background text-[11px] font-medium border border-border/60 shadow-sm">
-                            <AgentAvatar
-                              agent={agent}
-                              className="w-4 h-4 rounded-md text-[8px]"
-                              iconClassName="w-2.5 h-2.5"
-                            />
-                            {agent.name}
-                          </span>
-                        ) : null;
-                      })}
-                    </div>
-                  </div>
+      {/* TASK DETAIL DIALOG: live chat, interject, files, comments, controls */}
+      <Dialog open={!!viewTaskId} onOpenChange={(o) => { if (!o) closeTaskView(); }}>
+        <DialogContent className="max-w-6xl w-[96vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col">
+          <DialogTitle className="sr-only">Task details</DialogTitle>
+          {(() => {
+            if (!selectedTask) {
+              return (
+                <div className="flex-1 flex items-center justify-center p-8 text-center text-xs text-muted-foreground">
+                  Task not found
+                </div>
+              );
+            }
 
-                  <div className="space-y-1.5 pt-3 border-t border-border/40">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Duration</label>
-                    <p className="text-xs font-semibold text-foreground">{completionSummary}</p>
-                    {startDate && (
-                      <div className="text-[10px] text-muted-foreground mt-1 space-y-0.5">
-                        <p>Started: {formatTaskDateTime(startDate)}</p>
-                        {endDate && <p>Ended: {formatTaskDateTime(endDate)}</p>}
-                      </div>
+            const team = teamList.find((t) => t.id === selectedTask.teamId);
+            const assignee = selectedTask.assigneeId ? agentById.get(selectedTask.assigneeId) : undefined;
+            const messages = taskConversations[selectedTask.id] ?? [];
+            const visibleMessages = messages.slice(-50);
+            const openQuestions = userInputRequests[selectedTask.id] ?? [];
+            const taskComments = selectedTask.comments ?? [];
+            const taskLabels = selectedTask.labels ?? [];
+            const taskPriority = PRIORITY_CONFIG[priorityOf(selectedTask)];
+            const dueDateObj = parseTaskDate(selectedTask.dueDate);
+            const overdue = isOverdue(selectedTask.dueDate, selectedTask.status);
+            // Finished tasks accept follow-up messages that relaunch the run in
+            // the same conversation (knowledge graph context preserved).
+            const canFollowUp =
+              (selectedTask.status === "completed" || selectedTask.status === "stopped" || selectedTask.status === "paused") &&
+              selectedTask.assignedAgents.length > 0;
+            const composerEnabled = selectedTask.status === "in-progress" || canFollowUp;
+            const composerBusy =
+              selectedTask.status === "in-progress"
+                ? sendingInterjectTaskIds.has(selectedTask.id)
+                : updatingTaskIds.has(selectedTask.id);
+            const maxRounds = team?.maxSteps ?? 6;
+            const calculatedProgress = selectedTask.status === "completed" ? 100 : Math.min(Math.round((messages.length / maxRounds) * 100), 99);
+            const startDate = parseTaskDate(selectedTask.startTime);
+            const endDate = parseTaskDate(selectedTask.endTime);
+            const completionDuration =
+              selectedTask.status === "completed" && startDate && endDate
+                ? formatDuration(endDate.getTime() - startDate.getTime())
+                : null;
+            const completionSummary = !startDate
+              ? "(No start time yet)"
+              : completionDuration ?? "(Not completed yet)";
+            const canStart = selectedTask.status === "pending" || selectedTask.status === "paused" || selectedTask.status === "stopped" || selectedTask.status === "completed";
+            const canPause = selectedTask.status === "in-progress";
+            const canStop = selectedTask.status === "in-progress" || selectedTask.status === "paused";
+            const isUpdating = updatingTaskIds.has(selectedTask.id);
+            const isConversationLoading = loadingConversationTaskIds.has(selectedTask.id);
+            const isRestart = selectedTask.status === "completed";
+            const Icon = statusIcons[selectedTask.status] ?? Circle;
+            const graphSnapshot = taskGraphSnapshots[selectedTask.id];
+            const graphHighlight = taskGraphHighlights[selectedTask.id];
+            const graphLoading = loadingGraphTaskIds.has(selectedTask.id);
+            const graphNodes = getGraphDisplayNodes(graphSnapshot, graphHighlight);
+            const graphLayout = getGraphLayout(graphNodes, 560, 300);
+            const graphLayoutById = new Map(graphLayout.map((entry) => [entry.node.id, entry]));
+            const graphPositions = taskGraphPositions[selectedTask.id] ?? createNodePositionMap(graphNodes, GRAPH_VIEWBOX_WIDTH, GRAPH_VIEWBOX_HEIGHT);
+            const activeNodeIds = new Set(graphHighlight?.nodeIds ?? []);
+            const activeEdgeIds = new Set(graphHighlight?.edgeIds ?? []);
+            const activeChunkIds = new Set(graphHighlight?.chunkIds ?? []);
+            const graphEdges = (graphSnapshot?.edges ?? [])
+              .filter((edge) => graphLayoutById.has(edge.src) && graphLayoutById.has(edge.dst))
+              .sort((left, right) => {
+                const leftActive = activeEdgeIds.has(left.id) ? 1 : 0;
+                const rightActive = activeEdgeIds.has(right.id) ? 1 : 0;
+                return rightActive - leftActive || right.weight - left.weight;
+              })
+              .slice(0, 24);
+            const graphNodeById = new Map((graphSnapshot?.nodes ?? []).map((node) => [node.id, node]));
+            const activeNodeLabels = Array.from(activeNodeIds)
+              .map((nodeId) => graphNodeById.get(nodeId)?.value || nodeId)
+              .slice(0, 6);
+            const viewport = taskGraphViewports[selectedTask.id] ?? createDefaultViewport();
+
+            return (
+              <div className="flex-1 h-full min-h-0 flex flex-col bg-background select-text">
+                {/* Detail Header bar */}
+                <div className="px-5 py-3 border-b border-border bg-background/50 backdrop-blur-sm flex items-center justify-between flex-shrink-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Icon className={cn("w-4.5 h-4.5 shrink-0", statusColors[selectedTask.status])} />
+                    <h2 className="font-bold text-sm truncate text-foreground leading-none">{selectedTask.title}</h2>
+                    <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-semibold border shrink-0", taskPriority.badge)}>
+                      {taskPriority.label}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {canEditItem(selectedTask) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs px-3"
+                        onClick={() => openEditDialog(selectedTask)}
+                        disabled={isUpdating}
+                      >
+                        <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
+                      </Button>
+                    )}
+                    {canEditItem(selectedTask) && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 text-xs px-3"
+                        onClick={() => clearHistory(selectedTask.id)}
+                        disabled={isUpdating}
+                        title="Wipe conversation history and knowledge for a fresh start"
+                      >
+                        <X className="w-3.5 h-3.5 mr-1.5" /> Clear history
+                      </Button>
+                    )}
+                    {canDeleteItem(selectedTask) && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 text-xs px-3 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                        onClick={() => deleteTask(selectedTask.id)}
+                        disabled={isUpdating}
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
+                      </Button>
                     )}
                   </div>
                 </div>
 
-                {/* Panel 2: Live Chat/Conversation */}
-                <div className="h-full flex flex-col overflow-hidden bg-background">
-                  <div className="px-4 py-2 border-b border-border/40 bg-muted/5 flex items-center justify-between flex-shrink-0">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Live Chat Logs
-                    </span>
-                    {/* Tạm thời ẩn nút toggle Graph nhưng giữ lại code để sử dụng sau
-                    <button
-                      onClick={() => setGraphPanelVisible(v => !v)}
-                      className="text-[10px] flex items-center gap-1 px-2.5 py-1 rounded bg-muted/65 hover:bg-muted text-muted-foreground transition-colors font-semibold border border-border/40"
-                    >
-                      {graphPanelVisible ? <EyeOff className="w-3 h-3 text-rose-400" /> : <Eye className="w-3 h-3 text-teal-450" />}
-                      {graphPanelVisible ? "Hide Graph" : "Show Graph"}
-                    </button>
-                    */}
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-4 space-y-3.5 scrollbar-thin">
-                    {isConversationLoading && messages.length === 0 && (thinkingAgents[selectedTask.id]?.size ?? 0) === 0 ? (
-                      <p className="text-xs text-muted-foreground animate-pulse">Loading conversation...</p>
-                    ) : visibleMessages.length > 0 || (thinkingAgents[selectedTask.id]?.size ?? 0) > 0 || openQuestions.length > 0 || !!activeFanouts[selectedTask.id] ? (
-                      <div className="space-y-3.5">
-                        {visibleMessages.map((msg) => {
-                          const ts = new Date(msg.timestamp);
-                          // Human-in-the-loop message: distinct style + delivery badge
-                          if (msg.agentId === "user") {
-                            const isQueued = pendingInterjections[selectedTask.id]?.has(msg.id) ?? false;
-                            return (
-                              <div key={msg.id} className="rounded-xl border border-primary/30 p-3.5 bg-primary/10 ml-8 shadow-sm">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <div className="w-6 h-6 rounded-md bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-sm">
-                                    <UserRound className="w-3.5 h-3.5" />
-                                  </div>
-                                  <span className="text-xs font-bold text-foreground">You</span>
-                                  <span
-                                    className={cn(
-                                      "text-[9px] px-1.5 py-0.5 rounded font-semibold border",
-                                      isQueued
-                                        ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                                        : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                                    )}
-                                  >
-                                    {isQueued ? "Waiting for next agent…" : "Added to agent context"}
-                                  </span>
-                                  <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto">
-                                    {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                                  </span>
-                                </div>
-                                <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                              </div>
-                            );
-                          }
-                          const agent = agentById.get(msg.agentId);
-                          return (
-                            <div key={msg.id} className="rounded-xl border border-border/40 p-3.5 bg-card/45 hover:bg-muted/10 transition-colors shadow-sm">
-                              <div className="flex items-center gap-2 mb-2">
-                                <AgentAvatar
-                                  agent={agent || { avatar: "?" }}
-                                  className={`w-6.5 h-6.5 rounded-md text-[9px] shadow-sm shrink-0 ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
-                                  iconClassName="w-3 h-3"
-                                />
-                                <span className="text-xs font-bold text-foreground">{agent?.name ?? msg.agentId}</span>
-                                <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto">
-                                  {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                                </span>
-                              </div>
-                              <div className="prose prose-sm dark:prose-invert max-w-none text-xs text-foreground/80 leading-relaxed [&_:not(pre)>code]:bg-muted [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:py-0.5 [&_:not(pre)>code]:rounded [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                  {msg.content}
-                                </ReactMarkdown>
-                              </div>
-                            </div>
-                          );
-                        })}
+                {/* Detail columns workspace */}
+                <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[300px_1fr] divide-x divide-border">
+                  {/* Panel 1: Settings / Metadata */}
+                  <div className="h-full overflow-y-auto p-4 space-y-5 bg-muted/5 flex-shrink-0 scrollbar-thin">
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground font-medium">Progress</span>
+                        <span className="font-bold text-foreground">{calculatedProgress}%</span>
+                      </div>
+                      <Progress value={calculatedProgress} className="h-1.5" />
+                    </div>
 
-                        {/* ask_user tool: agent question cards — the agent is
-                            blocked until the user answers (or times out) */}
-                        {openQuestions.map((request) => {
-                          const agent = request.agentId ? agentById.get(request.agentId) : undefined;
-                          const draft = userRequestDrafts[request.requestId] ?? "";
-                          const isResponding = respondingRequestIds.has(request.requestId);
-                          return (
-                            <div key={request.requestId} className="rounded-xl border border-violet-500/35 p-3.5 bg-violet-500/5 shadow-sm">
-                              <div className="flex items-center gap-2 mb-2">
-                                <AgentAvatar
-                                  agent={agent || { avatar: "?", avatar_icon: "circle-help" }}
-                                  className={`w-6.5 h-6.5 rounded-md text-[9px] shadow-sm shrink-0 ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
-                                  iconClassName="w-3 h-3"
-                                />
-                                <span className="text-xs font-bold text-foreground">
-                                  {agent?.name ?? request.agentName ?? "Agent"}
-                                </span>
-                                <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold border bg-violet-500/10 text-violet-400 border-violet-500/25 flex items-center gap-1">
-                                  <HelpCircle className="w-2.5 h-2.5" /> needs your input
-                                </span>
-                              </div>
-                              <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap mb-2.5">
-                                {request.question}
-                              </p>
-                              {request.options.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 mb-2">
-                                  {request.options.map((opt) => (
-                                    <Button
-                                      key={opt}
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-7 px-2.5 text-[11px] font-semibold border-violet-500/30 hover:bg-violet-500/10"
-                                      onClick={() => void respondToAgentQuestion(selectedTask, request, opt)}
-                                      disabled={isResponding}
-                                    >
-                                      {opt}
-                                    </Button>
-                                  ))}
-                                </div>
-                              )}
-                              {request.allowFreeText && (
-                                <div className="flex items-end gap-2">
-                                  <Input
-                                    value={draft}
-                                    onChange={(e) =>
-                                      setUserRequestDrafts((prev) => ({ ...prev, [request.requestId]: e.target.value }))
-                                    }
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") {
-                                        e.preventDefault();
-                                        void respondToAgentQuestion(selectedTask, request, draft);
-                                      }
-                                    }}
-                                    placeholder="Type your answer… (Enter to send)"
-                                    disabled={isResponding}
-                                    className="h-8 text-xs flex-1"
-                                  />
-                                  <Button
-                                    size="sm"
-                                    className="h-8 px-2.5 shrink-0"
-                                    onClick={() => void respondToAgentQuestion(selectedTask, request, draft)}
-                                    disabled={!draft.trim() || isResponding}
-                                  >
-                                    <Send className="w-3.5 h-3.5" />
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                    {canEditItem(selectedTask) && (
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          className="flex-1 h-8 text-xs font-semibold"
+                          variant={selectedTask.status === "in-progress" ? "default" : "outline"}
+                          onClick={() => updateTaskStatus(selectedTask, "in-progress")}
+                          disabled={!canStart || isUpdating}
+                        >
+                          <Play className="w-3 h-3 mr-1.5 fill-current" />
+                          {selectedTask.status === "paused" ? "Resume" : isRestart ? "Restart" : "Start"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-8 px-2.5"
+                          variant="outline"
+                          onClick={() => updateTaskStatus(selectedTask, "paused")}
+                          disabled={!canPause}
+                        >
+                          <Pause className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-8 px-2.5 hover:bg-rose-500/10 hover:border-rose-500/20"
+                          variant="outline"
+                          onClick={() => updateTaskStatus(selectedTask, "stopped")}
+                          disabled={!canStop}
+                        >
+                          <Square className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+                        </Button>
+                      </div>
+                    )}
 
-                        {/* Parallel fan-out banner: shown while a coordinator's
-                            wave of agents runs concurrently. */}
-                        {activeFanouts[selectedTask.id] && (
-                          <div className="rounded-xl border border-amber-500/30 p-3 bg-amber-500/5">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0 animate-pulse" />
-                              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-                                Parallel wave — running concurrently:
-                              </span>
-                              {(activeFanouts[selectedTask.id]?.targets ?? []).map((t) => (
-                                <span
-                                  key={`fanout-${t}`}
-                                  className="text-[10px] px-1.5 py-0.5 rounded font-semibold border bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"
-                                >
-                                  {agentById.get(t)?.name ?? t}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Description</label>
+                      <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">{selectedTask.description || "(No description)"}</p>
+                    </div>
+
+                    {/* Assigned to: an individual staff member or a department */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                        {assignee ? "Assignee" : "Department"}
+                      </label>
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted text-xs font-semibold">
+                        {assignee ? (
+                          <>
+                            <AgentAvatar agent={assignee} className="w-4 h-4 rounded-md text-[9px]" iconClassName="w-2.5 h-2.5" />
+                            {assignee.name}
+                          </>
+                        ) : (
+                          <>
+                            <AgentAvatar agent={team || { avatar: "D", avatar_icon: "users" }} className="w-4 h-4 rounded-md text-[9px]" iconClassName="w-2.5 h-2.5" />
+                            {team?.name || "(Unassigned)"}
+                          </>
                         )}
+                      </div>
+                    </div>
 
-                        {/* Thinking indicators */}
-                        {(thinkingAgents[selectedTask.id]?.size ?? 0) > 0 && (
-                          Array.from(thinkingAgents[selectedTask.id] ?? []).map((agentId) => {
-                            const agent = agentById.get(agentId);
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Priority</label>
+                        <span className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border", taskPriority.badge)}>
+                          <Flag className="w-2.5 h-2.5" /> {taskPriority.label}
+                        </span>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Due date</label>
+                        {dueDateObj ? (
+                          <span className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold", overdue ? "bg-rose-500/10 text-rose-500" : "bg-muted text-foreground")}>
+                            <CalendarClock className="w-2.5 h-2.5" /> {formatDueDate(dueDateObj)}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">(None)</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {taskLabels.length > 0 && (
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Labels</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {taskLabels.map((label) => (
+                            <span key={label} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-background text-[11px] font-medium border border-border/60">
+                              <Tag className="w-2.5 h-2.5" /> {label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Personnel</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedTask.assignedAgents.map((aid) => {
+                          const agent = agentById.get(aid);
+                          return agent ? (
+                            <span key={aid} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-background text-[11px] font-medium border border-border/60 shadow-sm">
+                              <AgentAvatar agent={agent} className="w-4 h-4 rounded-md text-[8px]" iconClassName="w-2.5 h-2.5" />
+                              {agent.name}
+                            </span>
+                          ) : null;
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 pt-3 border-t border-border/40">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Duration</label>
+                      <p className="text-xs font-semibold text-foreground">{completionSummary}</p>
+                      {startDate && (
+                        <div className="text-[10px] text-muted-foreground mt-1 space-y-0.5">
+                          <p>Started: {formatTaskDateTime(startDate)}</p>
+                          {endDate && <p>Ended: {formatTaskDateTime(endDate)}</p>}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Comments: user-authored thread, separate from agent live-chat */}
+                    <div className="space-y-2 pt-3 border-t border-border/40">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <MessageSquare className="w-3 h-3" /> Comments ({taskComments.length})
+                      </label>
+                      <div className="space-y-2 max-h-[220px] overflow-y-auto scrollbar-thin">
+                        {taskComments.length === 0 ? (
+                          <p className="text-[11px] text-muted-foreground">No comments yet.</p>
+                        ) : (
+                          taskComments.map((c) => {
+                            const created = parseTaskDate(c.created_at);
                             return (
-                              <div key={`thinking-${agentId}`} className="rounded-xl border border-primary/20 p-3.5 bg-primary/5">
-                                <div className="flex items-center gap-2">
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" />
-                                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0.2s" }} />
-                                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0.4s" }} />
+                              <div key={c.id} className="rounded-lg border border-border/40 bg-card/40 p-2">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <div className="w-4 h-4 rounded bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                                    <UserRound className="w-2.5 h-2.5" />
                                   </div>
-                                  <span className="text-xs font-semibold text-primary/95">
-                                    {agent?.name ?? agentId} is processing...
-                                  </span>
+                                  <span className="text-[10px] font-bold text-foreground">{c.author_id === "you" ? "You" : c.author_id}</span>
+                                  {created && (
+                                    <span className="text-[9px] text-muted-foreground ml-auto">{formatTaskDateTime(created)}</span>
+                                  )}
                                 </div>
+                                <p className="text-[11px] text-foreground/90 leading-relaxed whitespace-pre-wrap">{c.content}</p>
                               </div>
                             );
                           })
                         )}
-                        <div ref={chatEndRef} />
                       </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground text-center py-8">No messages yet for this task.</p>
-                    )}
-                  </div>
-
-                  {/* Human-in-the-loop composer: chat with the agents mid-run.
-                      Messages are queued on the backend and injected into the
-                      context of the next agent turn. Interrupt holds the run
-                      at the turn boundary; Resume releases it.
-                      Hidden for shared default tasks — they are view-only for
-                      regular users (running them requires the admin account). */}
-                  {canEditItem(selectedTask) && (
-                  <div className="border-t border-border/40 p-3 flex-shrink-0 bg-muted/5">
-                    {selectedTask.status === "in-progress" && (
-                      heldTaskIds.has(selectedTask.id) ? (
-                        <div className="flex items-center justify-between gap-2 mb-2 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25">
-                          <span className="text-[10px] font-semibold text-amber-500 flex items-center gap-1.5">
-                            <Hand className="w-3 h-3" />
-                            Agents are holding — send your guidance, then resume.
-                          </span>
+                      {canEditItem(selectedTask) && (
+                        <div className="flex items-end gap-1.5">
+                          <Textarea
+                            value={commentDrafts[selectedTask.id] ?? ""}
+                            onChange={(e) => setCommentDrafts((prev) => ({ ...prev, [selectedTask.id]: e.target.value }))}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                void addComment(selectedTask);
+                              }
+                            }}
+                            placeholder="Add a comment… (Enter to send)"
+                            rows={1}
+                            className="min-h-[34px] max-h-[90px] text-xs resize-none flex-1 py-2"
+                          />
                           <Button
                             size="sm"
-                            className="h-6 px-2.5 text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white"
-                            onClick={() => void toggleHoldTask(selectedTask, false)}
-                            disabled={holdTogglingTaskIds.has(selectedTask.id)}
+                            className="h-8 px-2.5 shrink-0"
+                            onClick={() => void addComment(selectedTask)}
+                            disabled={!(commentDrafts[selectedTask.id] ?? "").trim()}
                           >
-                            <Play className="w-3 h-3 mr-1 fill-current" /> Resume
+                            <Send className="w-3.5 h-3.5" />
                           </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-end mb-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-6 px-2.5 text-[10px] font-semibold text-amber-500 border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-600"
-                            onClick={() => void toggleHoldTask(selectedTask, true)}
-                            disabled={holdTogglingTaskIds.has(selectedTask.id)}
-                          >
-                            <Hand className="w-3 h-3 mr-1" /> Interrupt to chat
-                          </Button>
-                        </div>
-                      )
-                    )}
-                    {interjectErrors[selectedTask.id] && (
-                      <p className="text-[10px] text-rose-500 mb-1.5 font-medium">
-                        {interjectErrors[selectedTask.id]}
-                      </p>
-                    )}
-                    <div className="mb-2">
-                      <ConversationFiles taskId={selectedTask.id} workspaceId={scope.workspace?.id ?? null} />
-                    </div>
-                    <div className="flex items-end gap-2">
-                      <Textarea
-                        value={humanInputs[selectedTask.id] ?? ""}
-                        onChange={(e) =>
-                          setHumanInputs((prev) => ({ ...prev, [selectedTask.id]: e.target.value }))
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            handleComposerSend(selectedTask);
-                          }
-                        }}
-                        placeholder={
-                          !composerEnabled
-                            ? "Start the task to chat with the agents"
-                            : canFollowUp
-                              ? "Task finished — send a follow-up to continue the work with full context… (Enter to send)"
-                              : heldTaskIds.has(selectedTask.id)
-                                ? "Run is holding — discuss freely, then press Resume… (Enter to send)"
-                                : "Guide the agents — your message becomes context for the next agent turn… (Enter to send)"
-                        }
-                        disabled={!composerEnabled || composerBusy}
-                        className="min-h-[38px] max-h-[110px] text-xs resize-none flex-1 py-2"
-                        rows={1}
-                      />
-                      <Button
-                        size="sm"
-                        className="h-9 px-3 shrink-0"
-                        onClick={() => handleComposerSend(selectedTask)}
-                        disabled={
-                          !composerEnabled ||
-                          !(humanInputs[selectedTask.id] ?? "").trim() ||
-                          composerBusy
-                        }
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                  )}
-                </div>
-
-                {/* Panel 3: Knowledge Graph */}
-                {/* Tạm thời ẩn đi phần hiển thị Graph nhưng giữ lại code để sử dụng sau
-                graphPanelVisible && (
-                  <div className="h-full flex flex-col overflow-hidden bg-background">
-                    <div className="px-4 py-2 border-b border-border/40 bg-muted/5 flex items-center justify-between flex-shrink-0">
-                      <div>
-                        <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Knowledge Graph</span>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground/60 font-mono">
-                        {graphNodes.length} nodes · {graphEdges.length} edges
-                      </span>
-                    </div>
-                    <div className="flex-1 p-3 flex flex-col min-h-0 bg-muted/5">
-                      {graphLoading && !graphSnapshot ? (
-                        <div className="flex h-full items-center justify-center rounded-xl border border-border/40 bg-muted/20 text-xs text-muted-foreground animate-pulse">
-                          Loading graph context...
-                        </div>
-                      ) : graphNodes.length > 0 ? (
-                        <div className="flex-1 flex flex-col gap-3 min-h-0">
-                          <div className="relative flex-1 overflow-hidden rounded-xl border border-border/40 bg-muted/10">
-                            <svg
-                              ref={graphSvgRef}
-                              viewBox={`0 0 ${GRAPH_VIEWBOX_WIDTH} ${GRAPH_VIEWBOX_HEIGHT}`}
-                              className="h-full w-full touch-none cursor-grab active:cursor-grabbing"
-                              preserveAspectRatio="xMidYMid meet"
-                              onWheel={(event) => wheelGraph(selectedTask.id, event)}
-                              onPointerDown={(event) => startGraphDrag(selectedTask.id, event)}
-                              onPointerMove={(event) => moveGraphDrag(selectedTask.id, event)}
-                              onPointerUp={(event) => endGraphDrag(selectedTask.id, event)}
-                              onPointerCancel={(event) => endGraphDrag(selectedTask.id, event)}
-                            >
-                              <defs>
-                                <filter id="graphGlow" x="-40%" y="-40%" width="180%" height="180%">
-                                  <feGaussianBlur stdDeviation="6" result="blur" />
-                                  <feColorMatrix
-                                    in="blur"
-                                    type="matrix"
-                                    values="1 0 0 0 0.2 0 1 0 0 0.55 0 0 1 0 0.95 0 0 0 0.85 0"
-                                  />
-                                  <feMerge>
-                                    <feMergeNode />
-                                    <feMergeNode in="SourceGraphic" />
-                                  </feMerge>
-                                </filter>
-                              </defs>
-
-                              <g transform={`translate(${viewport.panX} ${viewport.panY}) scale(${viewport.scale})`} transformOrigin="280 150">
-                                {graphEdges.map((edge) => {
-                                  const source = graphPositions[edge.src] ?? graphLayoutById.get(edge.src);
-                                  const target = graphPositions[edge.dst] ?? graphLayoutById.get(edge.dst);
-                                  if (!source || !target) return null;
-                                  const isActive = activeEdgeIds.has(edge.id) || (activeNodeIds.has(edge.src) && activeNodeIds.has(edge.dst));
-                                  return (
-                                    <line
-                                      key={edge.id}
-                                      x1={source.x}
-                                      y1={source.y}
-                                      x2={target.x}
-                                      y2={target.y}
-                                      stroke={isActive ? "rgba(20, 184, 166, 0.95)" : "rgba(148, 163, 184, 0.2)"}
-                                      strokeWidth={isActive ? 2.5 : 1.25}
-                                      strokeLinecap="round"
-                                    />
-                                  );
-                                })}
-
-                                {graphLayout.map((entry) => {
-                                  const isActive = activeNodeIds.has(entry.node.id);
-                                  const position = graphPositions[entry.node.id] ?? entry;
-                                  const nodeFill = isActive ? "rgba(20, 184, 166, 0.95)" : "rgba(15, 23, 42, 0.9)";
-                                  const nodeStroke = isActive ? "rgba(20, 184, 166, 0.3)" : "rgba(148, 163, 184, 0.3)";
-                                  return (
-                                    <g
-                                      key={entry.node.id}
-                                      filter={isActive ? "url(#graphGlow)" : undefined}
-                                      style={{ cursor: "grab" }}
-                                      onPointerDown={(event) => startNodeDrag(selectedTask.id, entry.node.id, event)}
-                                      onPointerMove={(event) => moveNodeDrag(selectedTask.id, event)}
-                                      onPointerUp={(event) => endNodeDrag(selectedTask.id, event)}
-                                      onPointerCancel={(event) => endNodeDrag(selectedTask.id, event)}
-                                    >
-                                      <circle cx={position.x} cy={position.y} r={isActive ? 16 : 12} fill={nodeFill} stroke={nodeStroke} strokeWidth={isActive ? 3 : 1.5} />
-                                      <circle cx={position.x} cy={position.y} r={isActive ? 24 : 18} fill={isActive ? "rgba(20, 184, 166, 0.12)" : "rgba(148, 163, 184, 0.08)"} />
-                                      <text
-                                        x={position.x}
-                                        y={position.y + 34}
-                                        textAnchor="middle"
-                                        fill="hsl(var(--foreground) / 0.9)"
-                                        fontSize="10"
-                                        fontWeight={600}
-                                        pointerEvents="none"
-                                        className="select-none font-sans"
-                                      >
-                                        {ellipsis(entry.node.value, 18)}
-                                      </text>
-                                      <text
-                                        x={position.x}
-                                        y={position.y + 47}
-                                        textAnchor="middle"
-                                        fill="hsl(var(--muted-foreground))"
-                                        fontSize="8"
-                                        letterSpacing="0.08em"
-                                        pointerEvents="none"
-                                        className="select-none font-sans"
-                                      >
-                                        {entry.node.type}
-                                      </text>
-                                    </g>
-                                  );
-                                })}
-                              </g>
-                            </svg>
-                          </div>
-                          {activeNodeLabels.length > 0 && (
-                            <div className="p-2.5 rounded-xl border border-border/40 bg-card/30 flex flex-wrap gap-1.5 max-h-[85px] overflow-y-auto">
-                              {activeNodeLabels.map((lbl, idx) => (
-                                <span key={idx} className="px-2 py-0.5 rounded bg-teal-500/10 text-teal-400 border border-teal-500/20 text-[10px] font-semibold">
-                                  {lbl}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground border border-dashed border-border/40 rounded-xl p-4">
-                          No knowledge entities extracted yet
                         </div>
                       )}
                     </div>
                   </div>
-                )
-                */}
+
+                  {/* Panel 2: Live Chat/Conversation */}
+                  <div className="h-full flex flex-col overflow-hidden bg-background">
+                    <div className="px-4 py-2 border-b border-border/40 bg-muted/5 flex items-center justify-between flex-shrink-0">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Live Chat Logs
+                      </span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3.5 scrollbar-thin">
+                      {isConversationLoading && messages.length === 0 && (thinkingAgents[selectedTask.id]?.size ?? 0) === 0 ? (
+                        <p className="text-xs text-muted-foreground animate-pulse">Loading conversation...</p>
+                      ) : visibleMessages.length > 0 || (thinkingAgents[selectedTask.id]?.size ?? 0) > 0 || openQuestions.length > 0 || !!activeFanouts[selectedTask.id] ? (
+                        <div className="space-y-3.5">
+                          {visibleMessages.map((msg) => {
+                            const ts = new Date(msg.timestamp);
+                            // Human-in-the-loop message: distinct style + delivery badge
+                            if (msg.agentId === "user") {
+                              const isQueued = pendingInterjections[selectedTask.id]?.has(msg.id) ?? false;
+                              return (
+                                <div key={msg.id} className="rounded-xl border border-primary/30 p-3.5 bg-primary/10 ml-8 shadow-sm">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-6 h-6 rounded-md bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-sm">
+                                      <UserRound className="w-3.5 h-3.5" />
+                                    </div>
+                                    <span className="text-xs font-bold text-foreground">You</span>
+                                    <span
+                                      className={cn(
+                                        "text-[9px] px-1.5 py-0.5 rounded font-semibold border",
+                                        isQueued
+                                          ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                                          : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                      )}
+                                    >
+                                      {isQueued ? "Waiting for next agent…" : "Added to agent context"}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto">
+                                      {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                                </div>
+                              );
+                            }
+                            const agent = agentById.get(msg.agentId);
+                            return (
+                              <div key={msg.id} className="rounded-xl border border-border/40 p-3.5 bg-card/45 hover:bg-muted/10 transition-colors shadow-sm">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <AgentAvatar
+                                    agent={agent || { avatar: "?" }}
+                                    className={`w-6.5 h-6.5 rounded-md text-[9px] shadow-sm shrink-0 ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
+                                    iconClassName="w-3 h-3"
+                                  />
+                                  <span className="text-xs font-bold text-foreground">{agent?.name ?? msg.agentId}</span>
+                                  <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto">
+                                    {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                                  </span>
+                                </div>
+                                <div className="prose prose-sm dark:prose-invert max-w-none text-xs text-foreground/80 leading-relaxed [&_:not(pre)>code]:bg-muted [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:py-0.5 [&_:not(pre)>code]:rounded [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4">
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {msg.content}
+                                  </ReactMarkdown>
+                                </div>
+                              </div>
+                            );
+                          })}
+
+                          {/* ask_user tool: agent question cards — the agent is
+                              blocked until the user answers (or times out) */}
+                          {openQuestions.map((request) => {
+                            const agent = request.agentId ? agentById.get(request.agentId) : undefined;
+                            const draft = userRequestDrafts[request.requestId] ?? "";
+                            const isResponding = respondingRequestIds.has(request.requestId);
+                            return (
+                              <div key={request.requestId} className="rounded-xl border border-violet-500/35 p-3.5 bg-violet-500/5 shadow-sm">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <AgentAvatar
+                                    agent={agent || { avatar: "?", avatar_icon: "circle-help" }}
+                                    className={`w-6.5 h-6.5 rounded-md text-[9px] shadow-sm shrink-0 ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
+                                    iconClassName="w-3 h-3"
+                                  />
+                                  <span className="text-xs font-bold text-foreground">
+                                    {agent?.name ?? request.agentName ?? "Agent"}
+                                  </span>
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold border bg-violet-500/10 text-violet-400 border-violet-500/25 flex items-center gap-1">
+                                    <HelpCircle className="w-2.5 h-2.5" /> needs your input
+                                  </span>
+                                </div>
+                                <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap mb-2.5">
+                                  {request.question}
+                                </p>
+                                {request.options.length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5 mb-2">
+                                    {request.options.map((opt) => (
+                                      <Button
+                                        key={opt}
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 px-2.5 text-[11px] font-semibold border-violet-500/30 hover:bg-violet-500/10"
+                                        onClick={() => void respondToAgentQuestion(selectedTask, request, opt)}
+                                        disabled={isResponding}
+                                      >
+                                        {opt}
+                                      </Button>
+                                    ))}
+                                  </div>
+                                )}
+                                {request.allowFreeText && (
+                                  <div className="flex items-end gap-2">
+                                    <Input
+                                      value={draft}
+                                      onChange={(e) =>
+                                        setUserRequestDrafts((prev) => ({ ...prev, [request.requestId]: e.target.value }))
+                                      }
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          e.preventDefault();
+                                          void respondToAgentQuestion(selectedTask, request, draft);
+                                        }
+                                      }}
+                                      placeholder="Type your answer… (Enter to send)"
+                                      disabled={isResponding}
+                                      className="h-8 text-xs flex-1"
+                                    />
+                                    <Button
+                                      size="sm"
+                                      className="h-8 px-2.5 shrink-0"
+                                      onClick={() => void respondToAgentQuestion(selectedTask, request, draft)}
+                                      disabled={!draft.trim() || isResponding}
+                                    >
+                                      <Send className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+
+                          {/* Parallel fan-out banner: shown while a coordinator's
+                              wave of agents runs concurrently. */}
+                          {activeFanouts[selectedTask.id] && (
+                            <div className="rounded-xl border border-amber-500/30 p-3 bg-amber-500/5">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0 animate-pulse" />
+                                <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                                  Parallel wave — running concurrently:
+                                </span>
+                                {(activeFanouts[selectedTask.id]?.targets ?? []).map((t) => (
+                                  <span
+                                    key={`fanout-${t}`}
+                                    className="text-[10px] px-1.5 py-0.5 rounded font-semibold border bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"
+                                  >
+                                    {agentById.get(t)?.name ?? t}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Thinking indicators */}
+                          {(thinkingAgents[selectedTask.id]?.size ?? 0) > 0 && (
+                            Array.from(thinkingAgents[selectedTask.id] ?? []).map((agentId) => {
+                              const agent = agentById.get(agentId);
+                              return (
+                                <div key={`thinking-${agentId}`} className="rounded-xl border border-primary/20 p-3.5 bg-primary/5">
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" />
+                                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0.2s" }} />
+                                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0.4s" }} />
+                                    </div>
+                                    <span className="text-xs font-semibold text-primary/95">
+                                      {agent?.name ?? agentId} is processing...
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                          <div ref={chatEndRef} />
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground text-center py-8">No messages yet for this task.</p>
+                      )}
+                    </div>
+
+                    {/* Human-in-the-loop composer: chat with the agents mid-run.
+                        Messages are queued on the backend and injected into the
+                        context of the next agent turn. Interrupt holds the run
+                        at the turn boundary; Resume releases it.
+                        Hidden for shared default tasks — they are view-only for
+                        regular users (running them requires the admin account). */}
+                    {canEditItem(selectedTask) && (
+                    <div className="border-t border-border/40 p-3 flex-shrink-0 bg-muted/5">
+                      {selectedTask.status === "in-progress" && (
+                        heldTaskIds.has(selectedTask.id) ? (
+                          <div className="flex items-center justify-between gap-2 mb-2 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25">
+                            <span className="text-[10px] font-semibold text-amber-500 flex items-center gap-1.5">
+                              <Hand className="w-3 h-3" />
+                              Agents are holding — send your guidance, then resume.
+                            </span>
+                            <Button
+                              size="sm"
+                              className="h-6 px-2.5 text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white"
+                              onClick={() => void toggleHoldTask(selectedTask, false)}
+                              disabled={holdTogglingTaskIds.has(selectedTask.id)}
+                            >
+                              <Play className="w-3 h-3 mr-1 fill-current" /> Resume
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end mb-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 px-2.5 text-[10px] font-semibold text-amber-500 border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-600"
+                              onClick={() => void toggleHoldTask(selectedTask, true)}
+                              disabled={holdTogglingTaskIds.has(selectedTask.id)}
+                            >
+                              <Hand className="w-3 h-3 mr-1" /> Interrupt to chat
+                            </Button>
+                          </div>
+                        )
+                      )}
+                      {interjectErrors[selectedTask.id] && (
+                        <p className="text-[10px] text-rose-500 mb-1.5 font-medium">
+                          {interjectErrors[selectedTask.id]}
+                        </p>
+                      )}
+                      <div className="mb-2">
+                        <ConversationFiles taskId={selectedTask.id} workspaceId={scope.workspace?.id ?? null} />
+                      </div>
+                      <div className="flex items-end gap-2">
+                        <Textarea
+                          value={humanInputs[selectedTask.id] ?? ""}
+                          onChange={(e) =>
+                            setHumanInputs((prev) => ({ ...prev, [selectedTask.id]: e.target.value }))
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              handleComposerSend(selectedTask);
+                            }
+                          }}
+                          placeholder={
+                            !composerEnabled
+                              ? "Start the task to chat with the agents"
+                              : canFollowUp
+                                ? "Task finished — send a follow-up to continue the work with full context… (Enter to send)"
+                                : heldTaskIds.has(selectedTask.id)
+                                  ? "Run is holding — discuss freely, then press Resume… (Enter to send)"
+                                  : "Guide the agents — your message becomes context for the next agent turn… (Enter to send)"
+                          }
+                          disabled={!composerEnabled || composerBusy}
+                          className="min-h-[38px] max-h-[110px] text-xs resize-none flex-1 py-2"
+                          rows={1}
+                        />
+                        <Button
+                          size="sm"
+                          className="h-9 px-3 shrink-0"
+                          onClick={() => handleComposerSend(selectedTask)}
+                          disabled={
+                            !composerEnabled ||
+                            !(humanInputs[selectedTask.id] ?? "").trim() ||
+                            composerBusy
+                          }
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          );
-        })()}
-      </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

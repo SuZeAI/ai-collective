@@ -3,8 +3,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
-  BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit, Settings2,
-  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, ShoppingBag, Plus, FolderOpen,
+  BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit,
+  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban,
 } from "lucide-react";
 import { api, type Workspace } from "@/lib/api";
 import { OVERALL_WORKSPACE_ID } from "@/hooks/use-workspace-scope";
@@ -22,9 +22,9 @@ import {
 import { cn } from "@/lib/utils";
 
 type NavItemKey =
-  | "dashboard" | "analytics" | "tasks" | "conversations" | "officeBuilder" | "virtualOffice"
+  | "dashboard" | "analytics" | "tasks" | "projects" | "conversations" | "officeBuilder" | "virtualOffice"
   | "teams" | "agents" | "skills" | "playground" | "workspaces" | "settings"
-  | "monitoring" | "marketplace" | "documentLibrary";
+  | "monitoring" | "consumption" | "marketplace" | "documentLibrary";
 
 type NavGroup = {
   groupKey: "overviewGroup" | "operationsGroup" | "orgGroup" | "officeGroup" | "devGroup" | "systemGroup" | "adminGroup";
@@ -38,6 +38,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { key: "dashboard", url: "/dashboard", icon: Layout },
       { key: "analytics", url: "/analytics", icon: BarChart3 },
+      { key: "consumption", url: "/consumption", icon: Coins },
     ]
   },
   {
@@ -51,6 +52,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     groupKey: "operationsGroup",
     items: [
+      { key: "projects", url: "/projects", icon: FolderKanban },
       { key: "tasks", url: "/tasks", icon: CheckCircle2 },
       { key: "conversations", url: "/conversations", icon: MessageSquare },
     ]
@@ -68,7 +70,6 @@ const NAV_GROUPS: NavGroup[] = [
     groupKey: "systemGroup",
     items: [
       { key: "playground", url: "/playground", icon: Play },
-      { key: "settings", url: "/settings", icon: Settings2 },
     ]
   },
   {
@@ -234,22 +235,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     </div>
                   </button>
                 </div>
-              </div>
-              <div className="flex flex-col items-center w-full">
-                <button
-                  onClick={() => navigate("/settings")}
-                  className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center transition-all relative group shrink-0",
-                    location.pathname === "/settings"
-                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-105"
-                      : "text-sidebar-foreground/65 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
-                  )}
-                >
-                  <Settings2 className="w-4.5 h-4.5" />
-                  <div className="absolute left-14 bg-popover text-popover-foreground border shadow-md px-2 py-1 rounded-md text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 translate-x-1 group-hover:translate-x-0 pointer-events-none z-50">
-                    {t.nav.settings}
-                  </div>
-                </button>
               </div>
             </div>
             <div className="flex-1 flex flex-col h-full overflow-hidden group-data-[state=collapsed]:hidden bg-sidebar">

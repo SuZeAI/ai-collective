@@ -98,17 +98,90 @@ export type Team = {
   flow?: CustomFlow | null;
 };
 
+export type TaskPriority = "low" | "medium" | "high" | "urgent";
+
+export type IssueType = "epic" | "story" | "task" | "bug" | "subtask";
+
+export type SprintStatus = "planned" | "active" | "completed";
+
+export type TaskComment = {
+  id: string;
+  author_id: string;
+  content: string;
+  created_at?: string | null;
+};
+
 export type Task = {
   id: string;
   title: string;
   description: string;
   teamId: string;
-  status: "pending" | "in-progress" | "paused" | "stopped" | "completed" | string;
+  status: "pending" | "in-progress" | "in-review" | "paused" | "stopped" | "completed" | string;
   progress: number;
   assignedAgents: string[];
   startTime?: string | null;
   endTime?: string | null;
   owner_id?: string;
+  priority?: TaskPriority;
+  dueDate?: string | null;
+  labels?: string[];
+  assigneeId?: string | null;
+  comments?: TaskComment[];
+  projectId?: string;
+  issueType?: IssueType;
+  issueKey?: string;
+  epicId?: string | null;
+  sprintId?: string | null;
+  storyPoints?: number | null;
+};
+
+export type Project = {
+  id: string;
+  key: string;
+  name: string;
+  description?: string;
+  leadId?: string;
+  plannerAgentId?: string;
+  plannerSystemPrompt?: string;
+  issueCounter?: number;
+  createdAt?: string | null;
+  avatar?: string;
+  avatar_icon?: string;
+  avatar_color?: string;
+  avatar_url?: string;
+  owner_id?: string;
+};
+
+export type Epic = {
+  id: string;
+  projectId: string;
+  key?: string;
+  title: string;
+  description?: string;
+  status?: string;
+  color?: string;
+  startDate?: string | null;
+  dueDate?: string | null;
+  owner_id?: string;
+};
+
+export type Sprint = {
+  id: string;
+  projectId: string;
+  name: string;
+  goal?: string;
+  status?: SprintStatus;
+  startDate?: string | null;
+  endDate?: string | null;
+  owner_id?: string;
+};
+
+export type DraftIssue = {
+  title: string;
+  type: IssueType;
+  description?: string;
+  storyPoints?: number | null;
+  epicHint?: string;
 };
 
 export type Message = {
@@ -394,6 +467,36 @@ export type UsageSummary = {
   byDay: DailyUsage[];
 };
 
+// Per-user cost monitoring: token/cost broken down by department (team),
+// staff (agent) and human (user). Served by GET /consumption.
+export type TeamConsumption = {
+  teamId: string;
+  name: string;
+  inputTokens: number;
+  outputTokens: number;
+  requests: number;
+  cost: number;
+};
+
+export type AgentConsumption = {
+  agentName: string;
+  name: string;
+  role: string;
+  inputTokens: number;
+  outputTokens: number;
+  requests: number;
+  cost: number;
+};
+
+export type Consumption = {
+  days: number;
+  totals: UsageTotals;
+  byTeam: TeamConsumption[];
+  byAgent: AgentConsumption[];
+  byUser: UserUsage[];
+  byDay: DailyUsage[];
+};
+
 export type SystemHealth = {
   status: "ok" | "degraded" | string;
   environment: string;
@@ -611,7 +714,7 @@ export const api = {
   deleteTeam: (id: string) => apiFetch<{ deleted: boolean }>(`/teams/${id}`, { method: "DELETE" }),
 
   listTasks: () => apiFetch<Task[]>("/tasks"),
-  upsertTask: (payload: Partial<Task> & Pick<Task, "title" | "teamId">) =>
+  upsertTask: (payload: Partial<Task> & Pick<Task, "title">) =>
     apiFetch<Task>("/tasks", { method: "POST", body: JSON.stringify(payload) }),
   deleteTask: (id: string) => apiFetch<{ deleted: boolean }>(`/tasks/${id}`, { method: "DELETE" }),
 
@@ -619,6 +722,43 @@ export const api = {
   // (Restart no longer clears messages automatically — it continues the dialogue.)
   clearTaskHistory: (id: string) =>
     apiFetch<{ cleared: boolean }>(`/tasks/${id}/history`, { method: "DELETE" }),
+
+  // Jira-style project management layer.
+  listProjects: () => apiFetch<Project[]>("/projects"),
+  upsertProject: (payload: Partial<Project> & Pick<Project, "key" | "name">) =>
+    apiFetch<Project>("/projects", { method: "POST", body: JSON.stringify(payload) }),
+  deleteProject: (id: string) =>
+    apiFetch<{ deleted: boolean }>(`/projects/${id}`, { method: "DELETE" }),
+
+  listEpics: () => apiFetch<Epic[]>("/epics"),
+  upsertEpic: (payload: Partial<Epic> & Pick<Epic, "projectId" | "title">) =>
+    apiFetch<Epic>("/epics", { method: "POST", body: JSON.stringify(payload) }),
+  deleteEpic: (id: string) => apiFetch<{ deleted: boolean }>(`/epics/${id}`, { method: "DELETE" }),
+
+  listSprints: () => apiFetch<Sprint[]>("/sprints"),
+  upsertSprint: (payload: Partial<Sprint> & Pick<Sprint, "projectId" | "name">) =>
+    apiFetch<Sprint>("/sprints", { method: "POST", body: JSON.stringify(payload) }),
+  deleteSprint: (id: string) =>
+    apiFetch<{ deleted: boolean }>(`/sprints/${id}`, { method: "DELETE" }),
+
+  plannerDecompose: (payload: {
+    projectId: string;
+    epicId?: string | null;
+    description: string;
+    count?: number;
+  }) =>
+    apiFetch<{ issues: DraftIssue[] }>("/planner/decompose", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  plannerCommit: (payload: {
+    projectId: string;
+    epicId?: string | null;
+    sprintId?: string | null;
+    teamId?: string;
+    issues: DraftIssue[];
+  }) =>
+    apiFetch<Task[]>("/planner/commit", { method: "POST", body: JSON.stringify(payload) }),
 
   // Marketplace: shared "default" items users can browse and clone into their scope.
   listMarketplaceSkills: () => apiFetch<Skill[]>("/marketplace/skills"),
@@ -677,6 +817,8 @@ export const api = {
     max_rounds?: number;
     mode?: TeamMode;
     conversation_id?: string;
+    // Department/team this run belongs to, for per-team cost attribution.
+    team_id?: string;
     signal?: AbortSignal;
     // For mode === "custom": the directed flow over agent ids drawn by the user.
     custom_graph?: {
@@ -706,6 +848,7 @@ export const api = {
       max_rounds: payload.max_rounds ?? 6,
       mode: payload.mode ?? "sequential",
       conversation_id: payload.conversation_id,
+      team_id: payload.team_id,
       custom_graph: payload.custom_graph,
       graph_config: payload.graph_config,
     });
@@ -869,6 +1012,9 @@ export const api = {
   upsertConnection: (payload: Partial<ThirdPartyConnection> & Pick<ThirdPartyConnection, "platform" | "name">) =>
     apiFetch<ThirdPartyConnection>("/connections", { method: "POST", body: JSON.stringify(payload) }),
   deleteConnection: (id: string) => apiFetch<{ deleted: boolean }>(`/connections/${id}`, { method: "DELETE" }),
+
+  // Cost monitoring (per-user; scoped to the caller's own runs)
+  getConsumption: (days = 30) => apiFetch<Consumption>(`/consumption?days=${days}`),
 
   // Admin monitoring (requires admin role)
   getAdminUsage: (days = 30) => apiFetch<UsageSummary>(`/admin/monitoring/usage?days=${days}`),

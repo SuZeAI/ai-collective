@@ -9,11 +9,14 @@ from backend.domain.models import (
     Skill,
     Team,
     Task,
+    Epic,
     Message,
     Analytics,
     ActivityFeedItem,
     ModelPricing,
     OfficeBuilderSession,
+    Project,
+    Sprint,
     ThirdPartyConnection,
     TokenUsageRecord,
     User,
@@ -74,6 +77,57 @@ class TaskRepository(Protocol):
         ...
 
     def delete(self, task_id: str) -> None:
+        ...
+
+
+class ProjectRepository(Protocol):
+    def list(self) -> list[Project]:
+        ...
+
+    def get(self, project_id: str) -> Project | None:
+        ...
+
+    def upsert(self, project: Project) -> Project:
+        ...
+
+    def delete(self, project_id: str) -> None:
+        ...
+
+    def allocate_issue_number(self, project_id: str) -> int:
+        """Atomically increment and return the project's issue counter.
+
+        This is the single mutable counter on the platform; implementations MUST
+        be race-safe (Mongo ``$inc`` / JSON repo lock) rather than letting the
+        caller read-modify-write.
+        """
+        ...
+
+
+class EpicRepository(Protocol):
+    def list(self) -> list[Epic]:
+        ...
+
+    def get(self, epic_id: str) -> Epic | None:
+        ...
+
+    def upsert(self, epic: Epic) -> Epic:
+        ...
+
+    def delete(self, epic_id: str) -> None:
+        ...
+
+
+class SprintRepository(Protocol):
+    def list(self) -> list[Sprint]:
+        ...
+
+    def get(self, sprint_id: str) -> Sprint | None:
+        ...
+
+    def upsert(self, sprint: Sprint) -> Sprint:
+        ...
+
+    def delete(self, sprint_id: str) -> None:
         ...
 
 

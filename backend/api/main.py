@@ -22,14 +22,19 @@ from backend.api.routers import (
     analytics,
     auth,
     connections,
+    consumption,
     conversations,
     documents,
+    epics,
     health,
     llm,
     marketplace,
     office_builder,
+    planner,
+    projects,
     simulations,
     skills,
+    sprints,
     tasks,
     teams,
     workspaces,
@@ -107,10 +112,15 @@ def create_app() -> FastAPI:
     app.include_router(skills.router, prefix=settings.api_prefix)
     app.include_router(teams.router, prefix=settings.api_prefix)
     app.include_router(tasks.router, prefix=settings.api_prefix)
+    app.include_router(projects.router, prefix=settings.api_prefix)
+    app.include_router(epics.router, prefix=settings.api_prefix)
+    app.include_router(sprints.router, prefix=settings.api_prefix)
+    app.include_router(planner.router, prefix=settings.api_prefix)
     app.include_router(marketplace.router, prefix=settings.api_prefix)
     app.include_router(conversations.router, prefix=settings.api_prefix)
     app.include_router(documents.router, prefix=settings.api_prefix)
     app.include_router(analytics.router, prefix=settings.api_prefix)
+    app.include_router(consumption.router, prefix=settings.api_prefix)
     app.include_router(simulations.router, prefix=settings.api_prefix)
     app.include_router(llm.router, prefix=settings.api_prefix)
     app.include_router(office_builder.router, prefix=settings.api_prefix)

@@ -16,6 +16,10 @@ import AgentBuilder from "@/pages/AgentBuilder";
 import Skills from "./pages/Skills";
 import TeamBuilder from "@/pages/TeamBuilder";
 import TaskManager from "@/pages/TaskManager";
+import Projects from "@/pages/Projects";
+import Backlog from "@/pages/Backlog";
+import Roadmap from "@/pages/Roadmap";
+import Reports from "@/pages/Reports";
 import Conversations from "@/pages/Conversations";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import Playground from "@/pages/Playground";
@@ -26,6 +30,7 @@ import Marketplace from "@/pages/Marketplace";
 import DocumentLibrary from "@/pages/DocumentLibrary";
 import Settings from "@/pages/Settings";
 import AdminMonitoring from "@/pages/AdminMonitoring";
+import ConsumptionMonitoring from "@/pages/ConsumptionMonitoring";
 import Docs from "@/pages/Docs";
 import NotFound from "@/pages/NotFound";
 import AuthCallback from "@/pages/AuthCallback";
@@ -91,8 +96,14 @@ const App = () => (
                 <Route path="/skills" element={<WithLayout><Skills /></WithLayout>} />
                 <Route path="/teams" element={<WithLayout><TeamBuilder /></WithLayout>} />
                 <Route path="/tasks" element={<WithLayout><TaskManager /></WithLayout>} />
+                <Route path="/projects" element={<WithLayout><Projects /></WithLayout>} />
+                <Route path="/projects/:key/board" element={<WithLayout><TaskManager /></WithLayout>} />
+                <Route path="/projects/:key/backlog" element={<WithLayout><Backlog /></WithLayout>} />
+                <Route path="/projects/:key/roadmap" element={<WithLayout><Roadmap /></WithLayout>} />
+                <Route path="/projects/:key/reports" element={<WithLayout><Reports /></WithLayout>} />
                 <Route path="/conversations" element={<WithLayout><Conversations /></WithLayout>} />
                 <Route path="/analytics" element={<WithLayout><AnalyticsPage /></WithLayout>} />
+                <Route path="/consumption" element={<WithLayout><ConsumptionMonitoring /></WithLayout>} />
                 <Route path="/playground" element={<WithLayout><Playground /></WithLayout>} />
                 <Route path="/workspaces" element={<WithLayout><Workspaces /></WithLayout>} />
                 <Route path="/office-builder" element={<WithLayout><OfficeBuilder /></WithLayout>} />

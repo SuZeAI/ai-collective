@@ -35,6 +35,8 @@ class JsonTokenUsageRepository:
                         total_tokens=int(item.get("total_tokens", 0)),
                         user_id=str(item.get("user_id", "system")),
                         timestamp=_parse_timestamp(item.get("timestamp")),
+                        agent_name=str(item.get("agent_name", "")),
+                        team_id=str(item.get("team_id", "")),
                     )
                 )
             except Exception:
@@ -52,6 +54,8 @@ class JsonTokenUsageRepository:
                     "total_tokens": r.total_tokens,
                     "user_id": r.user_id,
                     "timestamp": r.timestamp.isoformat(),
+                    "agent_name": r.agent_name,
+                    "team_id": r.team_id,
                 }
                 for r in self._items
             ]

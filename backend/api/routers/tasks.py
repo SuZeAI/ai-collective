@@ -13,6 +13,7 @@ from backend.api.deps import (
     get_agent_service,
     get_conversation_service,
     get_graph_context_service,
+    get_project_service,
     get_task_service,
     get_team_service,
 )
@@ -20,11 +21,12 @@ from backend.api.schemas.task import TaskSchema, UpsertTaskRequest
 from backend.application.service.agent_service import AgentService
 from backend.application.service.conversation_service import ConversationService
 from backend.application.service.graph_context_service import GraphContextService
+from backend.application.service.project_service import ProjectService
 from backend.application.service.task_service import TaskService
 from backend.application.service.team_service import TeamService
 from backend.domain.errors import NotFoundError
 from backend.domain.enums import AgentStatus
-from backend.domain.enums import TaskStatus
+from backend.domain.enums import IssueType, TaskPriority, TaskStatus
 from backend.domain.models import Message, Task, can_delete, can_modify, is_owned_by, is_visible_to
 from backend.infrastructure import task_run_registry
 from backend.infrastructure import task_queue
@@ -105,6 +107,7 @@ def upsert_task(
     agent_service: AgentService = Depends(get_agent_service),
     conv_service: ConversationService = Depends(get_conversation_service),
     graph_context_service: GraphContextService = Depends(get_graph_context_service),
+    project_service: ProjectService = Depends(get_project_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> TaskSchema:
     task_id = req.id or f"task_{uuid4().hex}"
@@ -179,8 +182,34 @@ def upsert_task(
             start_time = now
         if end_time is None:
             end_time = now
-    elif next_status in {TaskStatus.pending, TaskStatus.paused, TaskStatus.stopped, TaskStatus.in_progress}:
+    elif next_status in {
+        TaskStatus.pending,
+        TaskStatus.paused,
+        TaskStatus.stopped,
+        TaskStatus.in_progress,
+        TaskStatus.in_review,
+    }:
         end_time = None
+
+    try:
+        priority = TaskPriority(req.priority)
+    except ValueError:
+        priority = TaskPriority.medium
+    due_date = _parse_iso_datetime(req.dueDate)
+    comments = [c.model_dump() for c in req.comments]
+
+    try:
+        issue_type = IssueType(req.issueType)
+    except ValueError:
+        issue_type = IssueType.task
+
+    # Issue key is allocated once at create time and never changes thereafter.
+    if previous_task is not None:
+        issue_key = previous_task.issue_key
+    elif req.projectId:
+        issue_key = f"{project_service.get_project(req.projectId).key}-{project_service.allocate_issue_number(req.projectId)}"
+    else:
+        issue_key = ""
 
     task = Task(
         id=task_id,
@@ -193,6 +222,17 @@ def upsert_task(
         start_time=start_time,
         end_time=end_time,
         owner_id=previous_task.owner_id if previous_task else owner_id,
+        priority=priority,
+        due_date=due_date,
+        labels=list(req.labels),
+        assignee_id=req.assigneeId,
+        comments=comments,
+        project_id=req.projectId,
+        issue_type=issue_type,
+        issue_key=issue_key,
+        epic_id=req.epicId,
+        sprint_id=req.sprintId,
+        story_points=req.storyPoints,
     )
     saved = service.upsert_task(task)
     logger.info("[Task] upsert saved | task_id=%s | status=%s | progress=%s%%",
