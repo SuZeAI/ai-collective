@@ -408,6 +408,36 @@ export type UsageSummary = {
   byDay: DailyUsage[];
 };
 
+// Per-user cost monitoring: token/cost broken down by department (team),
+// staff (agent) and human (user). Served by GET /consumption.
+export type TeamConsumption = {
+  teamId: string;
+  name: string;
+  inputTokens: number;
+  outputTokens: number;
+  requests: number;
+  cost: number;
+};
+
+export type AgentConsumption = {
+  agentName: string;
+  name: string;
+  role: string;
+  inputTokens: number;
+  outputTokens: number;
+  requests: number;
+  cost: number;
+};
+
+export type Consumption = {
+  days: number;
+  totals: UsageTotals;
+  byTeam: TeamConsumption[];
+  byAgent: AgentConsumption[];
+  byUser: UserUsage[];
+  byDay: DailyUsage[];
+};
+
 export type SystemHealth = {
   status: "ok" | "degraded" | string;
   environment: string;
@@ -691,6 +721,8 @@ export const api = {
     max_rounds?: number;
     mode?: TeamMode;
     conversation_id?: string;
+    // Department/team this run belongs to, for per-team cost attribution.
+    team_id?: string;
     signal?: AbortSignal;
     // For mode === "custom": the directed flow over agent ids drawn by the user.
     custom_graph?: {
@@ -720,6 +752,7 @@ export const api = {
       max_rounds: payload.max_rounds ?? 6,
       mode: payload.mode ?? "sequential",
       conversation_id: payload.conversation_id,
+      team_id: payload.team_id,
       custom_graph: payload.custom_graph,
       graph_config: payload.graph_config,
     });
@@ -883,6 +916,9 @@ export const api = {
   upsertConnection: (payload: Partial<ThirdPartyConnection> & Pick<ThirdPartyConnection, "platform" | "name">) =>
     apiFetch<ThirdPartyConnection>("/connections", { method: "POST", body: JSON.stringify(payload) }),
   deleteConnection: (id: string) => apiFetch<{ deleted: boolean }>(`/connections/${id}`, { method: "DELETE" }),
+
+  // Cost monitoring (per-user; scoped to the caller's own runs)
+  getConsumption: (days = 30) => apiFetch<Consumption>(`/consumption?days=${days}`),
 
   // Admin monitoring (requires admin role)
   getAdminUsage: (days = 30) => apiFetch<UsageSummary>(`/admin/monitoring/usage?days=${days}`),

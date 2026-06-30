@@ -53,28 +53,37 @@ async def safe_chat(llm: Any, *, agent_name: str = "", **chat_kwargs: Any) -> st
     string (used as the agent's turn content) instead of raising, so the graph
     can continue or terminate gracefully and still surface partial results.
     """
-    last_exc: Exception | None = None
-    for attempt in range(LLM_MAX_RETRIES + 1):
-        try:
-            async with asyncio.timeout(LLM_TIMEOUT_SECONDS):
-                return await llm.chat(**chat_kwargs)
-        except asyncio.CancelledError:
-            raise
-        except Exception as exc:  # noqa: BLE001 - provider errors are heterogeneous
-            last_exc = exc
-            if attempt < LLM_MAX_RETRIES:
-                delay = _LLM_RETRY_BASE_DELAY * (2 ** attempt)
-                logger.warning(
-                    "llm.chat failed (agent=%s attempt=%d/%d): %s; retrying in %.1fs",
-                    agent_name, attempt + 1, LLM_MAX_RETRIES + 1, exc, delay,
-                )
-                await asyncio.sleep(delay)
-            else:
-                logger.exception(
-                    "llm.chat failed permanently (agent=%s) after %d attempts",
-                    agent_name, LLM_MAX_RETRIES + 1,
-                )
-    return f"[error] The model call failed after retries: {last_exc}"
+    # Attribute every token recorded during this call to the AI staff member
+    # making it, so the cost-monitoring page can break spend down per agent.
+    # contextvars are per-asyncio-task, so concurrent fan-out branches stay isolated.
+    from backend.infrastructure.llm.usage_tracker import current_usage_agent
+
+    token = current_usage_agent.set(agent_name or "")
+    try:
+        last_exc: Exception | None = None
+        for attempt in range(LLM_MAX_RETRIES + 1):
+            try:
+                async with asyncio.timeout(LLM_TIMEOUT_SECONDS):
+                    return await llm.chat(**chat_kwargs)
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:  # noqa: BLE001 - provider errors are heterogeneous
+                last_exc = exc
+                if attempt < LLM_MAX_RETRIES:
+                    delay = _LLM_RETRY_BASE_DELAY * (2 ** attempt)
+                    logger.warning(
+                        "llm.chat failed (agent=%s attempt=%d/%d): %s; retrying in %.1fs",
+                        agent_name, attempt + 1, LLM_MAX_RETRIES + 1, exc, delay,
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    logger.exception(
+                        "llm.chat failed permanently (agent=%s) after %d attempts",
+                        agent_name, LLM_MAX_RETRIES + 1,
+                    )
+        return f"[error] The model call failed after retries: {last_exc}"
+    finally:
+        current_usage_agent.reset(token)
 
 
 # How often a held run re-checks whether the user resumed it.

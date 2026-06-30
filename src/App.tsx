@@ -26,6 +26,7 @@ import Marketplace from "@/pages/Marketplace";
 import DocumentLibrary from "@/pages/DocumentLibrary";
 import Settings from "@/pages/Settings";
 import AdminMonitoring from "@/pages/AdminMonitoring";
+import ConsumptionMonitoring from "@/pages/ConsumptionMonitoring";
 import Docs from "@/pages/Docs";
 import NotFound from "@/pages/NotFound";
 import AuthCallback from "@/pages/AuthCallback";
@@ -93,6 +94,7 @@ const App = () => (
                 <Route path="/tasks" element={<WithLayout><TaskManager /></WithLayout>} />
                 <Route path="/conversations" element={<WithLayout><Conversations /></WithLayout>} />
                 <Route path="/analytics" element={<WithLayout><AnalyticsPage /></WithLayout>} />
+                <Route path="/consumption" element={<WithLayout><ConsumptionMonitoring /></WithLayout>} />
                 <Route path="/playground" element={<WithLayout><Playground /></WithLayout>} />
                 <Route path="/workspaces" element={<WithLayout><Workspaces /></WithLayout>} />
                 <Route path="/office-builder" element={<WithLayout><OfficeBuilder /></WithLayout>} />

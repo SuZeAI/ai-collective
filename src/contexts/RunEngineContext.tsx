@@ -238,6 +238,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         mode: opts.mode ?? "sequential",
         custom_graph: opts.customGraph,
         conversation_id: updated.id,
+        team_id: updated.teamId,
         signal: controller.signal,
       })) {
         if (controller.signal.aborted) { endReason = "aborted"; break; }

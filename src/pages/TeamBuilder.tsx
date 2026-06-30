@@ -271,6 +271,7 @@ export default function TeamBuilder() {
         mode: testMode,
         custom_graph: customGraph,
         conversation_id: testingTeam.id,
+        team_id: testingTeam.id,
       })) {
         if (stopTestRef.current) break;
 

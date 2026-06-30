@@ -101,6 +101,73 @@ class MonitoringService:
             "by_day": daily,
         }
 
+    # ── Consumption (owner-scoped) ───────────────────────────────────────────
+
+    def get_consumption(self, owner_id: str, days: int = 30) -> dict[str, Any]:
+        """Token/cost consumption for one owner, broken down by department
+        (team), staff (agent) and human (user).
+
+        Powers the per-user Cost Monitoring page. Only records triggered by the
+        given owner are counted, so each user sees just their own spend. Records
+        captured before per-agent/per-team attribution shipped fall under an
+        "unattributed" bucket.
+        """
+        days = max(1, min(int(days), 365))
+        records = [r for r in self._records_since(days) if r.user_id == owner_id]
+        pricing_by_model = {p.model: p for p in self._pricing.list()}
+        team_names = {t.id: t.name for t in self._teams.list()}
+        agent_roles = {a.name: a.role for a in self._agents.list()}
+        user_names = {u.id: u.name for u in self._users.list()}
+
+        def _bucket() -> dict[str, Any]:
+            return {"input_tokens": 0, "output_tokens": 0, "requests": 0, "cost": 0.0}
+
+        totals = _bucket()
+        by_team: dict[str, dict[str, Any]] = defaultdict(_bucket)
+        by_agent: dict[str, dict[str, Any]] = defaultdict(_bucket)
+        by_user: dict[str, dict[str, Any]] = defaultdict(_bucket)
+        by_day: dict[str, dict[str, Any]] = defaultdict(_bucket)
+
+        for r in records:
+            cost = self._cost_of(r, pricing_by_model) or 0.0
+            day = r.timestamp.astimezone(timezone.utc).date().isoformat()
+            team_key = r.team_id or "unattributed"
+            agent_key = r.agent_name or "unattributed"
+            for bucket in (totals, by_team[team_key], by_agent[agent_key], by_user[r.user_id], by_day[day]):
+                bucket["input_tokens"] += r.input_tokens
+                bucket["output_tokens"] += r.output_tokens
+                bucket["requests"] += 1
+                bucket["cost"] += cost
+
+        # Continuous daily series (zero-filled) so charts don't skip days.
+        today = datetime.now(timezone.utc).date()
+        daily = []
+        for offset in range(days - 1, -1, -1):
+            day = (today - timedelta(days=offset)).isoformat()
+            daily.append({"date": day, **by_day.get(day, _bucket())})
+
+        def _name_team(key: str) -> str:
+            return "Unattributed" if key == "unattributed" else team_names.get(key, key)
+
+        return {
+            "days": days,
+            "totals": {**totals, "total_tokens": totals["input_tokens"] + totals["output_tokens"]},
+            "by_team": [
+                {"team_id": key, "name": _name_team(key), **data}
+                for key, data in sorted(by_team.items(), key=lambda kv: -kv[1]["cost"])
+            ],
+            "by_agent": [
+                {"agent_name": key, "name": "Unattributed" if key == "unattributed" else key,
+                 "role": agent_roles.get(key, ""), **data}
+                for key, data in sorted(by_agent.items(), key=lambda kv: -kv[1]["cost"])
+            ],
+            "by_user": [
+                {"user_id": uid, "name": user_names.get(uid, uid), **data}
+                for uid, data in sorted(by_user.items(), key=lambda kv: -kv[1]["cost"])
+            ],
+            "by_day": daily,
+        }
+
     # ── Pricing ──────────────────────────────────────────────────────────────
 
     def list_pricing(self) -> list[ModelPricing]:

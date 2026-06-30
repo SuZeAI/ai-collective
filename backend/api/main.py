@@ -22,6 +22,7 @@ from backend.api.routers import (
     analytics,
     auth,
     connections,
+    consumption,
     conversations,
     documents,
     health,
@@ -111,6 +112,7 @@ def create_app() -> FastAPI:
     app.include_router(conversations.router, prefix=settings.api_prefix)
     app.include_router(documents.router, prefix=settings.api_prefix)
     app.include_router(analytics.router, prefix=settings.api_prefix)
+    app.include_router(consumption.router, prefix=settings.api_prefix)
     app.include_router(simulations.router, prefix=settings.api_prefix)
     app.include_router(llm.router, prefix=settings.api_prefix)
     app.include_router(office_builder.router, prefix=settings.api_prefix)
