@@ -224,6 +224,9 @@ class Workspace:
     avatar_color: str = ""
     avatar_url: str = ""
     primary_team_id: str = ""
+    # Company type (software | marketing | research | general). Drives which
+    # operational options are "suggested" inside the company; never hides any.
+    company_type: str = "general"
     owner_id: str = DEFAULT_OWNER_ID
 
 

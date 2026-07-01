@@ -239,6 +239,10 @@ export type PlatformHook = {
   enabled: boolean;
 };
 
+// A company's "type" tailors which operational options are *suggested* inside
+// it (never hides any — see COMPANY_TYPES). Persisted on the workspace.
+export type CompanyType = "software" | "marketing" | "research" | "general";
+
 export type Workspace = {
   id: string;
   name: string;
@@ -247,6 +251,7 @@ export type Workspace = {
   primaryTeamId: string;
   platformHooks: PlatformHook[];
   createdAt: string;
+  type?: CompanyType;
   avatar?: string;
   avatar_icon?: string;
   avatar_color?: string;
@@ -341,6 +346,7 @@ export function buildCustomGraphPayload(
 export type OfficePlan = {
   name: string;
   description: string;
+  company_type?: CompanyType;
   departments: OfficeDepartmentPlan[];
 };
 

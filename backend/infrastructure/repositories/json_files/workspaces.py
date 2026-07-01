@@ -41,6 +41,7 @@ class JsonWorkspaceRepository:
                     avatar_color=str(item.get("avatar_color", "") or ""),
                     avatar_url=str(item.get("avatar_url", "") or ""),
                     primary_team_id=str(item.get("primaryTeamId", "")),
+                    company_type=str(item.get("type", "") or "general"),
                     owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
                 )
                 self._items[ws.id] = ws
@@ -67,6 +68,7 @@ class JsonWorkspaceRepository:
                     for h in w.platform_hooks
                 ],
                 "createdAt": w.created_at.isoformat(),
+                "type": w.company_type,
                 "avatar": w.avatar,
                 "avatar_icon": w.avatar_icon,
                 "avatar_color": w.avatar_color,

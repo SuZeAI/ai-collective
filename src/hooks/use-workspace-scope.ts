@@ -13,6 +13,20 @@ export function getActiveWorkspaceId(): string | null {
   }
 }
 
+/**
+ * Switch the active office (or Overall when `id` is null). Persists the choice
+ * and broadcasts it so every `useWorkspaceScope()` consumer and the sidebar
+ * re-resolve. Shared by the sidebar switcher and the Overview "Companies" grid.
+ */
+export function setActiveWorkspaceId(id: string | null): void {
+  try {
+    localStorage.setItem("activeWorkspaceId", id ?? OVERALL_WORKSPACE_ID);
+  } catch {
+    /* ignore storage failures */
+  }
+  window.dispatchEvent(new CustomEvent("activeWorkspaceChanged", { detail: id }));
+}
+
 export type WorkspaceScope = {
   /** true → "Overall": show everything across all offices (incl. unattached items). */
   isOverall: boolean;

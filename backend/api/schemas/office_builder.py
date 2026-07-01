@@ -30,6 +30,9 @@ class DepartmentPlan(BaseModel):
 class OfficePlan(BaseModel):
     name: str
     description: str = ""
+    # software | marketing | research | general — chosen by the user before
+    # creating; stored on the workspace as its company type.
+    company_type: str = "general"
     departments: list[DepartmentPlan] = Field(default_factory=list)
 
 

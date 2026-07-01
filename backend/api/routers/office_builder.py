@@ -440,6 +440,7 @@ def apply_office_plan(
             primary_team_id=team_ids[0] if team_ids else "",
             platform_hooks=[],
             created_at=datetime.now(timezone.utc),
+            company_type=(plan.company_type or "general"),
             avatar=(plan.name.strip()[:1] or "W").upper(),
             owner_id=owner_id,
         )

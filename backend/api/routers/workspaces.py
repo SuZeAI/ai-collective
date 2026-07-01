@@ -59,6 +59,7 @@ def upsert_workspace(
         primary_team_id=req.primaryTeamId or "",
         platform_hooks=hooks,
         created_at=created_at,
+        company_type=(req.type or (existing.company_type if existing else None) or "general"),
         avatar=(req.avatar or "").strip() or req.name[:1].upper() or "W",
         avatar_icon=(req.avatar_icon or "").strip(),
         avatar_color=(req.avatar_color or "").strip(),

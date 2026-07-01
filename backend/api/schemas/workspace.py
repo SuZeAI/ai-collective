@@ -32,6 +32,7 @@ class WorkspaceSchema(BaseModel):
     primaryTeamId: str
     platformHooks: list[PlatformHookSchema]
     createdAt: str
+    type: str = "general"
     avatar: str = ""
     avatar_icon: str = ""
     avatar_color: str = ""
@@ -48,6 +49,7 @@ class WorkspaceSchema(BaseModel):
             primaryTeamId=w.primary_team_id or "",
             platformHooks=[PlatformHookSchema.from_domain(h) for h in w.platform_hooks],
             createdAt=w.created_at.isoformat(),
+            type=getattr(w, "company_type", "general") or "general",
             avatar=w.avatar or "",
             avatar_icon=w.avatar_icon or "",
             avatar_color=w.avatar_color or "",
@@ -72,6 +74,7 @@ class UpsertWorkspaceRequest(BaseModel):
     teamIds: list[str] = []
     primaryTeamId: str = ""
     platformHooks: list[UpsertPlatformHookRequest] = []
+    type: str | None = None
     avatar: str | None = None
     avatar_icon: str | None = None
     avatar_color: str | None = None
