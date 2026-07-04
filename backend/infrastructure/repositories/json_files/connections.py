@@ -16,35 +16,36 @@ class JsonConnectionRepository:
             data = []
         self._items: dict[str, ThirdPartyConnection] = {}
         for item in data:
-            try:
-                conn = ThirdPartyConnection(
-                    id=str(item["id"]),
-                    platform=str(item.get("platform", "")),
-                    name=str(item.get("name", "")),
-                    config=dict(item.get("config", {})),
-                    description=str(item.get("description", "")),
-                    created_at=datetime.fromisoformat(item["created_at"]).replace(tzinfo=timezone.utc)
-                    if item.get("created_at")
-                    else datetime.now(timezone.utc),
-                )
-                self._items[conn.id] = conn
-            except Exception:
-                continue
+            parsed = self._parse_item(item)
+            if parsed is not None:
+                self._items[parsed.id] = parsed
 
-    def _persist(self) -> None:
-        self._store.write(
-            [
-                {
-                    "id": c.id,
-                    "platform": c.platform,
-                    "name": c.name,
-                    "config": dict(c.config),
-                    "description": c.description,
-                    "created_at": c.created_at.isoformat(),
-                }
-                for c in self._items.values()
-            ]
-        )
+    @staticmethod
+    def _parse_item(item: dict) -> ThirdPartyConnection | None:
+        try:
+            return ThirdPartyConnection(
+                id=str(item["id"]),
+                platform=str(item.get("platform", "")),
+                name=str(item.get("name", "")),
+                config=dict(item.get("config", {})),
+                description=str(item.get("description", "")),
+                created_at=datetime.fromisoformat(item["created_at"]).replace(tzinfo=timezone.utc)
+                if item.get("created_at")
+                else datetime.now(timezone.utc),
+            )
+        except Exception:
+            return None
+
+    @staticmethod
+    def _serialize_item(c: ThirdPartyConnection) -> dict:
+        return {
+            "id": c.id,
+            "platform": c.platform,
+            "name": c.name,
+            "config": dict(c.config),
+            "description": c.description,
+            "created_at": c.created_at.isoformat(),
+        }
 
     def list(self) -> list[ThirdPartyConnection]:
         with self._lock:
@@ -56,11 +57,34 @@ class JsonConnectionRepository:
 
     def upsert(self, conn: ThirdPartyConnection) -> ThirdPartyConnection:
         with self._lock:
-            self._items[conn.id] = conn
-            self._persist()
+            self._items = self._merge_and_persist({conn.id: conn}, remove_ids=())
         return conn
 
     def delete(self, conn_id: str) -> None:
         with self._lock:
-            self._items.pop(conn_id, None)
-            self._persist()
+            self._items = self._merge_and_persist({}, remove_ids=(conn_id,))
+
+    def _merge_and_persist(
+        self, upserts: dict[str, ThirdPartyConnection], remove_ids: tuple[str, ...]
+    ) -> dict[str, ThirdPartyConnection]:
+        """Merge this change into the *current on-disk* state (not just this
+        process's in-memory cache) under one lock acquisition, so a concurrent
+        writer in another process/instance can't have its update silently
+        overwritten (lost-update)."""
+
+        def modify(current):
+            raw_items = current if isinstance(current, list) else []
+            merged = {str(d["id"]): d for d in raw_items if isinstance(d, dict) and "id" in d}
+            for conn_id in remove_ids:
+                merged.pop(conn_id, None)
+            for conn_id, conn in upserts.items():
+                merged[conn_id] = self._serialize_item(conn)
+            return list(merged.values())
+
+        new_raw = self._store.read_modify_write(modify)
+        result: dict[str, ThirdPartyConnection] = {}
+        for item in new_raw:
+            parsed = self._parse_item(item)
+            if parsed is not None:
+                result[parsed.id] = parsed
+        return result
