@@ -22,6 +22,13 @@ def _header(headers: Dict[str, str], name: str) -> str:
     return ""
 
 
+def split_text(text: str, limit: int) -> list:
+    """Chunk text into pieces no longer than limit (for platform message-length caps)."""
+    if len(text) <= limit:
+        return [text]
+    return [text[i : i + limit] for i in range(0, len(text), limit)]
+
+
 def hmac_sha256_hex(secret: str, message: bytes) -> str:
     return hmac.new(secret.encode("utf-8"), message, hashlib.sha256).hexdigest()
 

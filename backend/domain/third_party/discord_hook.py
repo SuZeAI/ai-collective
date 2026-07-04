@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Dict, Optional
 
-from backend.domain.thirty_part.base_hook import BaseHookProcessor, IncomingMessage, _header, _http_post
+from backend.domain.third_party.base_hook import BaseHookProcessor, IncomingMessage, _header, _http_post, split_text
 from backend.log import get_logger
 
 DISCORD_API = "https://discord.com/api/v10"
@@ -80,16 +80,10 @@ class DiscordHookProcessor(BaseHookProcessor):
         if bot_token:
             url = f"{DISCORD_API}/channels/{chat_id}/messages"
             headers = {"Authorization": f"Bot {bot_token}"}
-            for chunk in _split(text, 2000):
+            for chunk in split_text(text, 2000):
                 await asyncio.to_thread(_http_post, url, {"content": chunk}, headers)
         elif webhook_url:
-            for chunk in _split(text, 2000):
+            for chunk in split_text(text, 2000):
                 await asyncio.to_thread(_http_post, webhook_url, {"content": chunk}, {})
         else:
             raise ValueError("Discord hook requires bot_token or webhook_url")
-
-
-def _split(text: str, limit: int) -> list[str]:
-    if len(text) <= limit:
-        return [text]
-    return [text[i:i+limit] for i in range(0, len(text), limit)]
