@@ -17,7 +17,7 @@ from backend.application.service.agent_service import AgentService
 from backend.application.service.workspace_service import WorkspaceService
 from backend.domain.errors import NotFoundError
 from backend.domain.models import PlatformHook, Workspace
-from backend.domain.thirty_part.registry import get_processor
+from backend.domain.third_party.registry import get_processor
 from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.log import get_logger
 
