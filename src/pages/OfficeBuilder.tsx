@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -35,7 +35,7 @@ const EXAMPLE_PROMPTS = [
 // Remember which session the user was working on across visits.
 const ACTIVE_SESSION_KEY = "ai-collective-office-builder-session";
 
-function PlanStats({ plan }: { plan: OfficePlan }) {
+const PlanStats = memo(function PlanStats({ plan }: { plan: OfficePlan }) {
   const humans = plan.departments.reduce((n, d) => n + d.humans.length, 0);
   const skills = plan.departments.reduce(
     (n, d) => n + d.humans.reduce((m, h) => m + h.skills.length, 0),
@@ -54,9 +54,9 @@ function PlanStats({ plan }: { plan: OfficePlan }) {
       </Badge>
     </div>
   );
-}
+});
 
-function HumanCard({ human }: { human: OfficeHumanPlan }) {
+const HumanCard = memo(function HumanCard({ human }: { human: OfficeHumanPlan }) {
   return (
     <div className="rounded-lg border border-border/40 bg-background/60 p-3">
       <div className="flex items-center gap-2.5">
@@ -84,9 +84,9 @@ function HumanCard({ human }: { human: OfficeHumanPlan }) {
       )}
     </div>
   );
-}
+});
 
-function DepartmentCard({ dept }: { dept: OfficeDepartmentPlan }) {
+const DepartmentCard = memo(function DepartmentCard({ dept }: { dept: OfficeDepartmentPlan }) {
   return (
     <div className="rounded-xl border border-border/50 bg-muted/20 p-3">
       <div className="flex items-center gap-2.5 mb-1">
@@ -110,10 +110,10 @@ function DepartmentCard({ dept }: { dept: OfficeDepartmentPlan }) {
       </div>
     </div>
   );
-}
+});
 
 // ─── "AI is working" overlay shown on the preview while a plan is generated ──
-function GhostDepartmentCard({ index }: { index: number }) {
+const GhostDepartmentCard = memo(function GhostDepartmentCard({ index }: { index: number }) {
   return (
     <motion.div
       initial={{ opacity: 0, x: -14 }}
@@ -158,7 +158,7 @@ function GhostDepartmentCard({ index }: { index: number }) {
       </div>
     </motion.div>
   );
-}
+});
 
 function DesigningOverlay({ updating }: { updating: boolean }) {
   return (
