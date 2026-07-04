@@ -18,7 +18,7 @@ import { DocumentDropzone } from "@/components/DocumentDropzone";
 import { api, saveBlob, type LibraryDocument, type Task } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
+import { useWorkspaceScope, CATALOG_WORKSPACE_ID } from "@/hooks/use-workspace-scope";
 
 type DocType = "all" | "pdf" | "excel" | "doc" | "image" | "link" | "other";
 
@@ -48,7 +48,9 @@ export default function DocumentLibrary() {
   const { toast } = useToast();
   const scope = useWorkspaceScope();
   const tl = t.documentLibrary;
-  const workspaceId = scope.workspace?.id ?? null;
+  // In the "All" scope (admin-only here), the page edits the shared "default"
+  // document catalog instead of a single office's library.
+  const workspaceId = scope.workspace?.id ?? (scope.isOverall ? CATALOG_WORKSPACE_ID : null);
 
   const [docs, setDocs] = useState<LibraryDocument[]>([]);
   const [loading, setLoading] = useState(false);

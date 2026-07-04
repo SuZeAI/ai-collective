@@ -771,7 +771,9 @@ export const api = {
   listMarketplaceAgents: () => apiFetch<Agent[]>("/marketplace/agents"),
   listMarketplaceTeams: () => apiFetch<Team[]>("/marketplace/teams"),
   listMarketplaceTasks: () => apiFetch<Task[]>("/marketplace/tasks"),
-  copyFromMarketplace: (payload: { type: "skill" | "agent" | "team" | "task"; id: string }) =>
+  listMarketplaceDocuments: () => apiFetch<LibraryDocument[]>("/marketplace/documents"),
+  // `workspaceId` is required only for documents (the office to copy into).
+  copyFromMarketplace: (payload: { type: "skill" | "agent" | "team" | "task" | "document"; id: string; workspaceId?: string }) =>
     apiFetch<{ type: string; id: string }>("/marketplace/copy", {
       method: "POST",
       body: JSON.stringify(payload),

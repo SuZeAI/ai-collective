@@ -202,6 +202,7 @@ def get_marketplace_service() -> MarketplaceService:
         SkillService(skills),
         TeamService(teams),
         TaskService(tasks),
+        get_document_library_service(),
     )
 
 

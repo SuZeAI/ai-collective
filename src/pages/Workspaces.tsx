@@ -20,6 +20,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -785,6 +789,7 @@ export default function Workspaces() {
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Workspace | undefined>();
+  const [deleting, setDeleting] = useState<Workspace | undefined>();
 
   const { data: workspaces = [], isLoading: wsLoading } = useQuery({
     queryKey: ["workspaces"],
@@ -818,11 +823,21 @@ export default function Workspaces() {
   const remove = useMutation({
     mutationFn: api.deleteWorkspace,
     onSuccess: () => {
+      // The workspace and all of its related data (departments, documents,
+      // office-builder sessions, …) are cleaned up server-side. Refresh the
+      // department list so deleted ones stop showing in the New Company dialog.
       qc.invalidateQueries({ queryKey: ["workspaces"] });
-      toast({ title: "Office deleted" });
+      qc.invalidateQueries({ queryKey: ["teams"] });
+      toast({ title: "Company deleted" });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
+
+  const confirmDelete = () => {
+    if (!deleting) return;
+    remove.mutate(deleting.id);
+    setDeleting(undefined);
+  };
 
   const openNew = () => { setEditing(undefined); setDialogOpen(true); };
   const openEdit = (ws: Workspace) => { setEditing(ws); setDialogOpen(true); };
@@ -923,7 +938,7 @@ export default function Workspaces() {
                 teams={teams}
                 platforms={platforms}
                 onEdit={() => openEdit(ws)}
-                onDelete={() => remove.mutate(ws.id)}
+                onDelete={() => setDeleting(ws)}
               />
             ))}
           </div>
@@ -965,6 +980,33 @@ export default function Workspaces() {
         onSave={handleSave}
         workspaces={workspaces}
       />
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(undefined)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete company?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleting ? (
+                <>
+                  Are you sure you want to delete <span className="font-semibold text-foreground">{deleting.name}</span>?
+                  This permanently removes the company along with all of its related data — departments links,
+                  platform hooks, document library, and office-builder history. This action cannot be undone.
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-rose-600 hover:bg-rose-500 text-white"
+            >
+              Delete company
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

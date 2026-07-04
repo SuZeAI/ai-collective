@@ -83,6 +83,7 @@ export type Translations = {
     settings: string;
     overviewGroup: string;
     companiesGroup: string;
+    catalogGroup: string;
     operationsGroup: string;
     orgGroup: string;
     officeGroup: string;
@@ -417,6 +418,7 @@ export const translations: Record<Language, Translations> = {
       settings: "Settings",
       overviewGroup: "Overview",
       companiesGroup: "Companies",
+      catalogGroup: "Catalog",
       operationsGroup: "Operations",
       orgGroup: "Organization",
       officeGroup: "Workspace",
@@ -775,6 +777,7 @@ export const translations: Record<Language, Translations> = {
       settings: "Cài đặt",
       overviewGroup: "Tổng quan",
       companiesGroup: "Công ty",
+      catalogGroup: "Danh mục",
       operationsGroup: "Vận hành",
       orgGroup: "Tổ chức",
       officeGroup: "Không gian",
@@ -1133,6 +1136,7 @@ export const translations: Record<Language, Translations> = {
       settings: "系统设置",
       overviewGroup: "概览",
       companiesGroup: "公司",
+      catalogGroup: "目录",
       operationsGroup: "运营",
       orgGroup: "组织",
       officeGroup: "空间",
@@ -1491,6 +1495,7 @@ export const translations: Record<Language, Translations> = {
       settings: "システム設定",
       overviewGroup: "概要",
       companiesGroup: "会社",
+      catalogGroup: "カタログ",
       operationsGroup: "オペレーション",
       orgGroup: "組織",
       officeGroup: "スペース",

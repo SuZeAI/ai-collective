@@ -28,7 +28,7 @@ type NavItemKey =
   | "monitoring" | "consumption" | "marketplace" | "documentLibrary";
 
 type NavGroup = {
-  groupKey: "overviewGroup" | "companiesGroup" | "operationsGroup" | "orgGroup" | "officeGroup" | "devGroup" | "systemGroup" | "adminGroup";
+  groupKey: "overviewGroup" | "companiesGroup" | "catalogGroup" | "operationsGroup" | "orgGroup" | "officeGroup" | "devGroup" | "systemGroup" | "adminGroup";
   adminOnly?: boolean;
   // Where the group appears: "overall" = only the All scope (company create/
   // control), "company" = only inside a selected company, "both" = everywhere.
@@ -48,11 +48,25 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     // All-scope only: the company control center — create (AI) + manage.
+    // Hidden for admins (admins curate the shared catalog instead, below).
     groupKey: "companiesGroup",
     visibleIn: "overall",
     items: [
       { key: "officeBuilder", url: "/office-builder", icon: Sparkles },
       { key: "workspaces", url: "/workspaces", icon: Building2 },
+    ]
+  },
+  {
+    // Admin-only, All-scope: the shared "default" catalog admins curate. These
+    // feed Recruiting (Marketplace) for every company to copy from.
+    groupKey: "catalogGroup",
+    adminOnly: true,
+    visibleIn: "overall",
+    items: [
+      { key: "teams", url: "/teams", icon: Users },
+      { key: "agents", url: "/agents", icon: Cpu },
+      { key: "skills", url: "/skills", icon: Wrench },
+      { key: "documentLibrary", url: "/documents", icon: FolderOpen },
     ]
   },
   {
@@ -181,7 +195,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const navGroups = NAV_GROUPS.filter(
     (group) =>
       (!group.adminOnly || isAdmin) &&
-      (group.visibleIn === "both" || group.visibleIn === (isOverall ? "overall" : "company")),
+      (group.visibleIn === "both" || group.visibleIn === (isOverall ? "overall" : "company")) &&
+      // Admins in the "All" scope don't create/control companies — their All
+      // view is the shared catalog (catalogGroup) + System Monitoring only.
+      !(isOverall && isAdmin && (group.groupKey === "overviewGroup" || group.groupKey === "companiesGroup")),
   );
   // Flexible company-type rule: inside a company, mark (never hide) the options
   // best suited to its type with a "suggested" star.
@@ -261,15 +278,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       </button>
                     );
                   })}
-                  <button
-                    onClick={() => navigate("/workspaces")}
-                    className="w-10 h-10 rounded-xl border border-dashed border-sidebar-border/70 flex items-center justify-center text-sidebar-foreground/45 hover:text-sidebar-foreground hover:border-sidebar-foreground/60 hover:bg-sidebar-accent/20 transition-all group relative shrink-0"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <div className="absolute left-14 bg-popover text-popover-foreground border shadow-md px-2 py-1 rounded-md text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 translate-x-1 group-hover:translate-x-0 pointer-events-none z-50">
-                      {t.nav.manageWorkspaces}
-                    </div>
-                  </button>
+                  {/* Company creation is a non-admin action; admins curate the
+                      shared catalog instead and don't create companies. */}
+                  {!isAdmin && (
+                    <button
+                      onClick={() => navigate("/workspaces")}
+                      className="w-10 h-10 rounded-xl border border-dashed border-sidebar-border/70 flex items-center justify-center text-sidebar-foreground/45 hover:text-sidebar-foreground hover:border-sidebar-foreground/60 hover:bg-sidebar-accent/20 transition-all group relative shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <div className="absolute left-14 bg-popover text-popover-foreground border shadow-md px-2 py-1 rounded-md text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 translate-x-1 group-hover:translate-x-0 pointer-events-none z-50">
+                        {t.nav.manageWorkspaces}
+                      </div>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

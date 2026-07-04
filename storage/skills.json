@@ -362,7 +362,7 @@
     "avatar_url": "",
     "tool_name": "tiktok",
     "config": {
-      "token": "tlFeXjKL6EcgSqLeoHuYa7JRnEo1",
+      "token": "",
       "depth": "default"
     },
     "code": null,
@@ -380,7 +380,7 @@
     "avatar_url": "",
     "tool_name": "scrapecreators_x",
     "config": {
-      "token": "tlFeXjKL6EcgSqLeoHuYa7JRnEo1",
+      "token": "",
       "depth": "default"
     },
     "code": null,
@@ -398,7 +398,7 @@
     "avatar_url": "",
     "tool_name": "reddit",
     "config": {
-      "token": "tlFeXjKL6EcgSqLeoHuYa7JRnEo1",
+      "token": "",
       "depth": "default"
     },
     "code": null,
@@ -416,7 +416,7 @@
     "avatar_url": "",
     "tool_name": "reddit_enrich",
     "config": {
-      "token": "tlFeXjKL6EcgSqLeoHuYa7JRnEo1",
+      "token": "",
       "backend": "auto"
     },
     "code": null,
@@ -451,7 +451,7 @@
     "avatar_url": "",
     "tool_name": "parallel_search",
     "config": {
-      "api_key": "PjHmr44dsEnMhZ-oietRpVJ1ruuDwNLrPY927Vgu",
+      "api_key": "",
       "beta_header": "search-extract-2025-10-10"
     },
     "code": null,
@@ -487,7 +487,7 @@
     "avatar_url": "",
     "tool_name": "instagram",
     "config": {
-      "token": "tlFeXjKL6EcgSqLeoHuYa7JRnEo1",
+      "token": "",
       "depth": "default"
     },
     "code": null,
