@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { FlaskConical, Pencil, Plus, Trash2, X, Copy, Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -134,6 +134,7 @@ export default function AgentBuilder() {
   const [copied, setCopied] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [skillSearch, setSkillSearch] = useState("");
+  const testRunIdRef = useRef(0);
 
   const filteredRoles = useMemo(() => {
     const term = role.trim().toLowerCase();
@@ -273,14 +274,21 @@ export default function AgentBuilder() {
   };
 
   const openTestDialog = (agent: Agent) => {
+    // Invalidate any in-flight test run for a previously-open agent so a late
+    // response can't land in this (possibly different) agent's dialog.
+    testRunIdRef.current += 1;
     setTestingAgent(agent);
     setTestPrompt("");
     setTestOutput("");
+    setTestError("");
+    setIsTesting(false);
     setTestOpen(true);
   };
 
   const runAgentTest = async () => {
     if (!testingAgent || !testPrompt.trim() || isTesting) return;
+    const runId = ++testRunIdRef.current;
+    const agentId = testingAgent.id;
     setIsTesting(true);
     setTestOutput("");
     setTestError("");
@@ -288,15 +296,19 @@ export default function AgentBuilder() {
     try {
       const result = await api.chat({
         prompt: testPrompt.trim(),
-        agentId: testingAgent.id,
+        agentId,
       });
+      if (testRunIdRef.current !== runId) return;
       setTestOutput(result.response || "(No response)");
     } catch (e) {
+      if (testRunIdRef.current !== runId) return;
       const errorMsg = e instanceof Error ? e.message : "Failed to call test endpoint";
       setTestError(errorMsg);
       setTestOutput("");
     } finally {
-      setIsTesting(false);
+      if (testRunIdRef.current === runId) {
+        setIsTesting(false);
+      }
     }
   };
 
