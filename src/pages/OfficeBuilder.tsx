@@ -352,6 +352,11 @@ export default function OfficeBuilder() {
   const [thinking, setThinking] = useState(false); // waiting for the first token
   const [streaming, setStreaming] = useState(false); // tokens are arriving
   const [creating, setCreating] = useState(false);
+  // Aborts the in-flight chat stream on unmount/navigation so the backend
+  // (and the LLM call behind it) actually stops instead of continuing to
+  // stream to a page the user has already left.
+  const streamControllerRef = useRef<AbortController | null>(null);
+  useEffect(() => () => streamControllerRef.current?.abort(), []);
   const [built, setBuilt] = useState(false);
   const [loadingSession, setLoadingSession] = useState(false);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
@@ -461,8 +466,10 @@ export default function OfficeBuilder() {
       setMessages([...nextMessages, { role: "assistant", content: t }]);
     };
 
+    const controller = new AbortController();
+    streamControllerRef.current = controller;
     try {
-      for await (const ev of api.officeBuilderChatStream({ messages: nextMessages, plan })) {
+      for await (const ev of api.officeBuilderChatStream({ messages: nextMessages, plan, signal: controller.signal })) {
         if (ev.type === "delta") {
           if (!assistantText) {
             setThinking(false);
@@ -483,12 +490,14 @@ export default function OfficeBuilder() {
       if (!assistantText) showAssistant("…");
       await persistSession([...nextMessages, { role: "assistant", content: assistantText }], nextPlan);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       const detail = err instanceof Error ? err.message : "Plan generation failed";
       const withError: OfficeChatMessage[] = [...nextMessages, { role: "assistant", content: `⚠️ ${detail}` }];
       setMessages(withError);
       toast({ title: "Office Builder", description: detail, variant: "destructive" });
       await persistSession(withError, nextPlan);
     } finally {
+      if (streamControllerRef.current === controller) streamControllerRef.current = null;
       setThinking(false);
       setStreaming(false);
     }
