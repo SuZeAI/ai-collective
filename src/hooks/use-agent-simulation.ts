@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { getApiBase } from "@/lib/api-base";
 
 export interface SimMessage {
   id: number;
@@ -19,7 +20,7 @@ export function useAgentSimulation() {
 
     type BackendStep = { agent: string; msg: string; delay_ms: number; phase?: number | null };
 
-    const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || "/api/v1";
+    const apiBase = getApiBase();
     try {
       const res = await fetch(`${apiBase}/simulations/run`, {
         method: "POST",

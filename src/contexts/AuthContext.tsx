@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback } from "react";
+import { AUTH_TOKEN_KEY, AUTH_USER_KEY, getApiBase, parseErrorDetail } from "@/lib/api-base";
 
 export type AuthUser = {
   id: string;
@@ -22,15 +23,6 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const TOKEN_KEY = "ai-collective-token";
-const USER_KEY = "ai-collective-user";
-
-function getApiBase(): string {
-  // Same-origin relative default: requests flow through the nginx proxy to the
-  // backend (port 8000 is not published to the host). See src/lib/api.ts.
-  return ((import.meta as any).env?.VITE_API_BASE_URL as string) || "/api/v1";
-}
-
 async function authFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const base = getApiBase().replace(/\/$/, "");
   const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
@@ -39,14 +31,7 @@ async function authFetch<T>(path: string, options: RequestInit = {}): Promise<T>
     headers: { "Content-Type": "application/json", ...(options.headers ?? {}) },
   });
   if (!res.ok) {
-    let detail = `${res.status} ${res.statusText}`;
-    try {
-      const data = await res.json();
-      if (data?.detail) detail = String(data.detail);
-    } catch {
-      // ignore
-    }
-    throw new Error(detail);
+    throw new Error(await parseErrorDetail(res));
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
@@ -54,8 +39,8 @@ async function authFetch<T>(path: string, options: RequestInit = {}): Promise<T>
 
 function loadPersistedAuth(): { user: AuthUser | null; token: string | null } {
   try {
-    const token = localStorage.getItem(TOKEN_KEY);
-    const raw = localStorage.getItem(USER_KEY);
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const raw = localStorage.getItem(AUTH_USER_KEY);
     const user = raw ? (JSON.parse(raw) as AuthUser) : null;
     return { user, token };
   } catch {
@@ -70,9 +55,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
 
   const persistAuth = (t: string | null, u: AuthUser) => {
-    if (t) localStorage.setItem(TOKEN_KEY, t);
-    else localStorage.removeItem(TOKEN_KEY);
-    localStorage.setItem(USER_KEY, JSON.stringify(u));
+    if (t) localStorage.setItem(AUTH_TOKEN_KEY, t);
+    else localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(u));
     setToken(t);
     setUser(u);
   };
@@ -119,8 +104,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
     setToken(null);
     setUser(null);
   }, []);
@@ -129,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser((prev) => {
       if (!prev) return prev;
       const updated = { ...prev, ...data };
-      localStorage.setItem(USER_KEY, JSON.stringify(updated));
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
       return updated;
     });
   }, []);

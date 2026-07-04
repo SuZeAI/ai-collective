@@ -7,6 +7,7 @@ import {
   MessageCircle, Zap, Globe, Link2, Download,
 } from "lucide-react";
 import { api, canDeleteItem, canEditItem, type Workspace, type PlatformHook, type PlatformDef, type Team, type ThirdPartyConnection, type CompanyType } from "@/lib/api";
+import { getApiBase } from "@/lib/api-base";
 import { COMPANY_TYPES, COMPANY_TYPE_MAP, companyTypeOf } from "@/lib/company-types";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
@@ -27,10 +28,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-const API_BASE = ((import.meta as any).env?.VITE_API_BASE_URL as string) || "/api/v1";
-
 function getWebhookUrl(workspaceId: string, hookId: string, platform: string): string {
-  return `${API_BASE}/webhook/${platform}/${workspaceId}/${hookId}`;
+  return `${getApiBase()}/webhook/${platform}/${workspaceId}/${hookId}`;
 }
 
 const PLATFORM_ICONS: Record<string, string> = {

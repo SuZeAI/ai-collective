@@ -1,3 +1,5 @@
+import { AUTH_TOKEN_KEY, AUTH_USER_KEY, getApiBase, parseErrorDetail } from "@/lib/api-base";
+
 export type Agent = {
   id: string;
   name: string;
@@ -403,7 +405,7 @@ export const DEFAULT_OWNER_ID = "default";
 
 export function getCurrentUserId(): string {
   try {
-    const raw = localStorage.getItem("ai-collective-user");
+    const raw = localStorage.getItem(AUTH_USER_KEY);
     const u = raw ? (JSON.parse(raw) as { id?: string; role?: string } | null) : null;
     // Admins act in the shared "default" scope (mirrors the backend rule).
     if (u?.role === "admin" || u?.role === "system") return DEFAULT_OWNER_ID;
@@ -612,22 +614,13 @@ export type LibraryDocument = {
 
 type ApiOptions = RequestInit & { timeoutMs?: number };
 
-function getApiBase(): string {
-  // Default to a same-origin relative path so requests flow through the nginx
-  // reverse proxy (http://localhost:2026 → /api/v1/ → backend). The backend's
-  // port 8000 is not published to the host in the dev/prod compose setups, so
-  // an absolute http://localhost:8000 base would fail with ERR_CONNECTION_REFUSED.
-  // Override with VITE_API_BASE_URL when the API lives on a different origin.
-  return ((import.meta as any).env?.VITE_API_BASE_URL as string) || "/api/v1";
-}
-
 // Backend Swagger docs URL. nginx maps /api/v1/docs → backend /docs, while bare
 // /docs is owned by the frontend, so append /docs to the (possibly relative) base.
 export const API_DOCS_URL = `${getApiBase().replace(/\/$/, "")}/docs`;
 
 function getAuthHeader(): Record<string, string> {
   try {
-    const token = localStorage.getItem("ai-collective-token");
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (token) return { Authorization: `Bearer ${token}` };
   } catch {
     // ignore
@@ -652,14 +645,7 @@ async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
       signal: controller.signal,
     });
     if (!res.ok) {
-      let detail = `${res.status} ${res.statusText}`;
-      try {
-        const data = await res.json();
-        if (data?.detail) detail = String(data.detail);
-      } catch {
-        // ignore
-      }
-      throw new Error(detail);
+      throw new Error(await parseErrorDetail(res));
     }
     return (await res.json()) as T;
   } catch (error) {
@@ -677,12 +663,7 @@ async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
   const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
   const res = await fetch(url, { method: "POST", headers: { ...getAuthHeader() }, body: formData });
   if (!res.ok) {
-    let detail = `${res.status} ${res.statusText}`;
-    try {
-      const data = await res.json();
-      if (data?.detail) detail = String(data.detail);
-    } catch { /* ignore */ }
-    throw new Error(detail);
+    throw new Error(await parseErrorDetail(res));
   }
   return (await res.json()) as T;
 }
@@ -883,14 +864,7 @@ export const api = {
     });
 
     if (!res.ok) {
-      let detail = `${res.status} ${res.statusText}`;
-      try {
-        const data = await res.json();
-        if (data?.detail) detail = String(data.detail);
-      } catch {
-        // ignore
-      }
-      throw new Error(detail);
+      throw new Error(await parseErrorDetail(res));
     }
 
     const reader = res.body?.getReader();
@@ -958,14 +932,7 @@ export const api = {
     });
 
     if (!res.ok) {
-      let detail = `${res.status} ${res.statusText}`;
-      try {
-        const data = await res.json();
-        if (data?.detail) detail = String(data.detail);
-      } catch {
-        // ignore
-      }
-      throw new Error(detail);
+      throw new Error(await parseErrorDetail(res));
     }
 
     const reader = res.body?.getReader();
@@ -1105,19 +1072,14 @@ export const api = {
     const url = `${base}/auth/avatar`;
     const formData = new FormData();
     formData.append("file", file);
-    const token = localStorage.getItem("ai-collective-token");
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
     const res = await fetch(url, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: formData,
     });
     if (!res.ok) {
-      let detail = `${res.status} ${res.statusText}`;
-      try {
-        const data = await res.json();
-        if (data?.detail) detail = String(data.detail);
-      } catch { /* ignore */ }
-      throw new Error(detail);
+      throw new Error(await parseErrorDetail(res));
     }
     const data = await res.json();
     return {
