@@ -172,7 +172,7 @@ export default function AgentBuilder() {
 
   const selectedSkills = useMemo(() => {
     const byId = new Map(skillCatalog.map((s) => [s.id, s] as const));
-    return selectedSkillIds.map((id) => byId.get(id)).filter(Boolean) as Skill[];
+    return selectedSkillIds.map((id) => byId.get(id)).filter((s): s is Skill => s !== undefined);
   }, [skillCatalog, selectedSkillIds]);
 
   const validSkillIdSet = useMemo(() => new Set(skillCatalog.map((s) => s.id)), [skillCatalog]);
