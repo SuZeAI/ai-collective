@@ -52,7 +52,11 @@ export default function TeamBuilder() {
   const [testMessages, setTestMessages] = useState<TeamTestMessage[]>([]);
   const [testThinkingAgents, setTestThinkingAgents] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
-  const stopTestRef = useRef(false);
+  // Per-run stop token (not a single shared flag): stopping test A while test
+  // B is already running must only affect A's own loop, not silently flip a
+  // ref that B's loop also reads. runTeamTest creates a fresh token per run
+  // and only clears/finalizes state if it's still the active one when it ends.
+  const activeTestRunRef = useRef<{ stopped: boolean; controller: AbortController } | null>(null);
   const [copied, setCopied] = useState(false);
   const [personnelSearch, setPersonnelSearch] = useState("");
 
@@ -242,7 +246,13 @@ export default function TeamBuilder() {
   };
 
   const stopTeamTest = () => {
-    stopTestRef.current = true;
+    if (activeTestRunRef.current) {
+      activeTestRunRef.current.stopped = true;
+      // Actually cancel the in-flight backend run — without this the stream
+      // (and the LLM/tool calls behind it) keeps running server-side even
+      // though the UI stops rendering new messages.
+      activeTestRunRef.current.controller.abort();
+    }
     setIsTesting(false);
   };
 
@@ -264,7 +274,8 @@ export default function TeamBuilder() {
     const parsedStep = Number(testStepLimit);
     const stepLimit = Number.isFinite(parsedStep) ? Math.max(1, Math.min(10, Math.floor(parsedStep))) : 6;
 
-    stopTestRef.current = false;
+    const runToken = { stopped: false, controller: new AbortController() };
+    activeTestRunRef.current = runToken;
     setIsTesting(true);
     setTestError("");
     setTestMessages([]);
@@ -281,9 +292,13 @@ export default function TeamBuilder() {
         mode: testMode,
         custom_graph: customGraph,
         conversation_id: testingTeam.id,
+        signal: runToken.controller.signal,
         team_id: testingTeam.id,
       })) {
-        if (stopTestRef.current) break;
+        if (runToken.stopped) break;
+        // A newer run has since started (dialog reopened for another team) —
+        // stop consuming/mutating shared state on its behalf.
+        if (activeTestRunRef.current !== runToken) break;
 
         if (event.error) {
           setTestError(event.error);
@@ -343,10 +358,16 @@ export default function TeamBuilder() {
         }
       }
     } catch (e) {
-      setTestError(e instanceof Error ? e.message : "Failed to run team test discussion.");
+      const isAbort = e instanceof DOMException && e.name === "AbortError";
+      if (!isAbort && activeTestRunRef.current === runToken) {
+        setTestError(e instanceof Error ? e.message : "Failed to run team test discussion.");
+      }
     } finally {
-      setIsTesting(false);
-      setTestThinkingAgents(new Set());
+      if (activeTestRunRef.current === runToken) {
+        activeTestRunRef.current = null;
+        setIsTesting(false);
+        setTestThinkingAgents(new Set());
+      }
     }
   };
 
