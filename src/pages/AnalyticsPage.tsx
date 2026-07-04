@@ -27,20 +27,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { getAgentRoleColor } from "@/lib/agent-role-ui";
-import { api, type Agent, type Analytics, type Task, type Team } from "@/lib/api";
+import { api, avgCompletionOf, type Agent, type Analytics, type Task, type Team } from "@/lib/api";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
-
-// Client-side average completion for office-scoped views (backend aggregates globally).
-function avgCompletionOf(tasks: Task[]): string {
-  const durations = tasks
-    .filter((t) => t.status === "completed" && t.startTime && t.endTime)
-    .map((t) => new Date(t.endTime as string).getTime() - new Date(t.startTime as string).getTime())
-    .filter((ms) => Number.isFinite(ms) && ms > 0);
-  if (durations.length === 0) return "—";
-  const minutes = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length / 60000);
-  if (minutes < 60) return `${minutes}m`;
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-}
 
 const ROLE_COLORS: Record<string, string> = {
   manager: "hsl(350 75% 55%)",

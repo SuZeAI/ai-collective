@@ -421,6 +421,19 @@ export function canDeleteItem(item: { owner_id?: string }): boolean {
 /** Editing shared items follows the same ownership rule — only the owner sees the edit button. */
 export const canEditItem = canDeleteItem;
 
+// Client-side average completion time for office-scoped views (the backend
+// analytics endpoint aggregates globally). Shared by Dashboard and AnalyticsPage.
+export function avgCompletionOf(tasks: Task[]): string {
+  const durations = tasks
+    .filter((t) => t.status === "completed" && t.startTime && t.endTime)
+    .map((t) => new Date(t.endTime as string).getTime() - new Date(t.startTime as string).getTime())
+    .filter((ms) => Number.isFinite(ms) && ms > 0);
+  if (durations.length === 0) return "—";
+  const minutes = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length / 60000);
+  if (minutes < 60) return `${minutes}m`;
+  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+}
+
 // ─── Admin monitoring ────────────────────────────────────────────────────────
 
 export type ModelPricing = {

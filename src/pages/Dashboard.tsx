@@ -6,24 +6,11 @@ import {
 } from "lucide-react";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { useAgentSimulation } from "@/hooks/use-agent-simulation";
-import { api, type Agent, type Analytics, type ActivityFeedItem, type Task, type Workspace, type Team } from "@/lib/api";
+import { api, avgCompletionOf, type Agent, type Analytics, type ActivityFeedItem, type Task, type Workspace, type Team } from "@/lib/api";
 import { useWorkspaceScope, setActiveWorkspaceId } from "@/hooks/use-workspace-scope";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { companyTypeOf } from "@/lib/company-types";
-
-// Client-side average completion time for office-scoped views (the backend
-// analytics endpoint aggregates globally).
-function avgCompletionOf(tasks: Task[]): string {
-  const durations = tasks
-    .filter((t) => t.status === "completed" && t.startTime && t.endTime)
-    .map((t) => new Date(t.endTime as string).getTime() - new Date(t.startTime as string).getTime())
-    .filter((ms) => Number.isFinite(ms) && ms > 0);
-  if (durations.length === 0) return "—";
-  const minutes = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length / 60000);
-  if (minutes < 60) return `${minutes}m`;
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-}
 
 const containerVariants = {
   hidden: { opacity: 0 },
