@@ -875,6 +875,7 @@ export default function TaskManager() {
   const moveTaskToStatus = (task: Task, status: Task["status"]) => {
     if (task.status === status) return;
     if (!canEditItem(task)) return;
+    if (updatingTaskIds.has(task.id)) return;
     if (status === "in-progress") {
       openTaskView(task.id);
       void engine.startTask(task, teamRunOpts(task));
@@ -901,6 +902,7 @@ export default function TaskManager() {
   // the engine aborts on stop/pause and clears run state when restarting.
   const updateTaskStatus = (task: Task, status: Task["status"]) => {
     if (task.status === status) return;
+    if (updatingTaskIds.has(task.id)) return;
     if (status === "in-progress") {
       openTaskView(task.id);
       void engine.startTask(task, teamRunOpts(task));
