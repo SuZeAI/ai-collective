@@ -21,7 +21,7 @@ from backend.application.service.team_service import TeamService
 from backend.application.service.workspace_service import WorkspaceService
 from backend.domain.errors import NotFoundError
 from backend.domain.models import PlatformHook, Workspace, can_delete, can_modify, is_visible_to
-from backend.domain.thirty_part.registry import list_platforms
+from backend.domain.third_party.registry import list_platforms
 
 logger = logging.getLogger(__name__)
 
