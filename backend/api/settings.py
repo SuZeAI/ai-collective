@@ -289,6 +289,12 @@ class AgentSettings(BaseSettings):
     ask_user_timeout_seconds: int = Field(
         default=600, validation_alias=_alias("AGENT_ASK_USER_TIMEOUT_SECONDS")
     )
+    # Max time a run may sit paused (POST /llm/agent-graph/pause) before it is
+    # auto-resumed. Without a bound, an abandoned pause holds its slot in the
+    # task queue's concurrency cap (MemoryTaskQueue) forever.
+    pause_timeout_seconds: int = Field(
+        default=1800, validation_alias=_alias("AGENT_PAUSE_TIMEOUT_SECONDS")
+    )
     # Mesh fan-out concurrency (falls back to subagent_max_concurrent when unset).
     mesh_fanout_max_concurrent: int | None = Field(
         default=None, validation_alias=_alias("MESH_FANOUT_MAX_CONCURRENT")

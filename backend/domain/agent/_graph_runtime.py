@@ -117,9 +117,19 @@ async def wait_while_paused(
         })
     polls = 0
     heartbeat_every = max(1, int(15 / PAUSE_POLL_SECONDS))  # ~15s
+    max_polls = max(1, int(settings.agent.pause_timeout_seconds / PAUSE_POLL_SECONDS))
     while task_run_registry.is_paused(conversation_id):
         await asyncio.sleep(PAUSE_POLL_SECONDS)
         polls += 1
+        if polls >= max_polls:
+            # Abandoned pause — auto-resume so this run stops permanently
+            # occupying a task-queue concurrency slot.
+            logger.warning(
+                "Run %s auto-resumed after sitting paused for %ds with no response",
+                conversation_id, settings.agent.pause_timeout_seconds,
+            )
+            task_run_registry.signal_resume(conversation_id)
+            break
         # Heartbeat so idle SSE connections survive proxy timeouts during a
         # long hold. The UI treats repeated run_paused events as idempotent.
         if stream_writer and polls % heartbeat_every == 0:
