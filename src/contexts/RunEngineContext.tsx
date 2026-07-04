@@ -214,9 +214,10 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
   // ---- The streaming loop -----------------------------------------------------
   // Opens the SSE run stream for a task and feeds every event into shared state.
   // Lives in the provider so it keeps running regardless of which page is mounted.
-  const runStream = useCallback(async (updated: Task, formattedInput: string, opts: RunOpts) => {
-    const controller = new AbortController();
-    controllersRef.current.set(updated.id, controller);
+  // `controller` is created and registered in controllersRef by the caller
+  // (startTask/continueTask) synchronously, before any await — see the
+  // comment on those functions for why that ordering matters.
+  const runStream = useCallback(async (updated: Task, formattedInput: string, opts: RunOpts, controller: AbortController) => {
     setStreamingIds((prev) => new Set(prev).add(updated.id));
 
     // Reset thinking state for a fresh start/restart.
@@ -462,7 +463,11 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         endReason = "aborted";
       }
     } finally {
-      controllersRef.current.delete(updated.id);
+      // Only clear the map entry if it's still this run's controller — a
+      // stale delete here could wipe out a newer, still-live run's entry.
+      if (controllersRef.current.get(updated.id) === controller) {
+        controllersRef.current.delete(updated.id);
+      }
       setStreamingIds((prev) => {
         const next = new Set(prev);
         next.delete(updated.id);
@@ -481,7 +486,14 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
   // ---- Run lifecycle ----------------------------------------------------------
 
   const startTask = useCallback(async (task: Task, opts: RunOpts = {}) => {
+    // Check-and-reserve must happen synchronously, in one go, with no await in
+    // between — otherwise two rapid calls both pass the check before either
+    // registers a controller (registration used to happen inside runStream,
+    // after the upsertTask await below), letting the second call's stream
+    // silently overwrite/orphan the first's.
     if (controllersRef.current.has(task.id)) return;
+    const controller = new AbortController();
+    controllersRef.current.set(task.id, controller);
     setUpdatingTaskIds((prev) => new Set(prev).add(task.id));
     try {
       const updated = await api.upsertTask({ ...task, status: "in-progress" });
@@ -496,9 +508,12 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         const formattedInput =
           opts.formattedInput ??
           `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}`;
-        await runStream(updated, formattedInput, opts);
+        await runStream(updated, formattedInput, opts, controller);
+      } else {
+        controllersRef.current.delete(task.id);
       }
     } catch (e) {
+      controllersRef.current.delete(task.id);
       if (!(e instanceof DOMException && e.name === "AbortError")) console.error(e);
     } finally {
       setUpdatingTaskIds((prev) => {
@@ -544,6 +559,9 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
   ) => {
     if (!content || controllersRef.current.has(task.id)) return;
     if (task.assignedAgents.length === 0) return;
+    // Reserve synchronously (see startTask's comment — same race applies here).
+    const controller = new AbortController();
+    controllersRef.current.set(task.id, controller);
     setUpdatingTaskIds((prev) => new Set(prev).add(task.id));
     setInterjectErrors((prev) => { const next = { ...prev }; delete next[task.id]; return next; });
     try {
@@ -571,8 +589,9 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         `[User follow-up after reviewing the previous result — continue the task accordingly, ` +
         `building on the work already done instead of starting over]: ${content}` +
         (transcriptTail ? `\n\n[Recent conversation from the previous run, for context]:\n${transcriptTail}` : "");
-      await runStream(updated, formattedInput, opts);
+      await runStream(updated, formattedInput, opts, controller);
     } catch (e) {
+      controllersRef.current.delete(task.id);
       if (!(e instanceof DOMException && e.name === "AbortError")) {
         console.error(e);
         setInterjectErrors((prev) => ({
