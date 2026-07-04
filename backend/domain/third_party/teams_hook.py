@@ -3,11 +3,24 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Dict, Optional
 
-from backend.domain.thirty_part.base_hook import BaseHookProcessor, IncomingMessage, _http_post
+from backend.domain.third_party.base_hook import BaseHookProcessor, IncomingMessage, _header, _http_post
+from backend.domain.third_party.bot_framework_auth import verify_bot_framework_token
 
 
 class TeamsHookProcessor(BaseHookProcessor):
     platform = "teams"
+
+    def verify_request(
+        self, headers: Dict[str, str], raw_body: bytes, config: Dict[str, Any]
+    ) -> bool:
+        app_id = (config.get("app_id") or "").strip()
+        authorization = _header(headers, "Authorization")
+        if not authorization:
+            # No Bot Framework Authorization header present: this is a plain
+            # Incoming Webhook config (outbound-only, no app_id registered),
+            # so there is nothing to verify — accept as before.
+            return not app_id
+        return verify_bot_framework_token(authorization, expected_audience=app_id or None)
 
     def extract_message(self, body: Dict[str, Any]) -> Optional[IncomingMessage]:
         # Bot Framework Activity object

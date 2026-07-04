@@ -2,22 +2,22 @@ from __future__ import annotations
 
 from typing import Dict, Optional, Type
 
-from backend.domain.thirty_part.base_hook import BaseHookProcessor
-from backend.domain.thirty_part.telegram_hook import TelegramHookProcessor
-from backend.domain.thirty_part.discord_hook import DiscordHookProcessor
-from backend.domain.thirty_part.slack_hook import SlackHookProcessor
-from backend.domain.thirty_part.teams_hook import TeamsHookProcessor
-from backend.domain.thirty_part.whatsapp_hook import WhatsAppHookProcessor
-from backend.domain.thirty_part.messenger_hook import MessengerHookProcessor
-from backend.domain.thirty_part.instagram_hook import InstagramHookProcessor
-from backend.domain.thirty_part.line_hook import LINEHookProcessor
-from backend.domain.thirty_part.viber_hook import ViberHookProcessor
-from backend.domain.thirty_part.zalo_hook import ZaloHookProcessor
-from backend.domain.thirty_part.signal_hook import SignalHookProcessor
-from backend.domain.thirty_part.skype_hook import SkypeHookProcessor
-from backend.domain.thirty_part.wire_hook import WireHookProcessor
-from backend.domain.thirty_part.wechat_hook import WeChatHookProcessor
-from backend.domain.thirty_part.snapchat_hook import SnapchatHookProcessor
+from backend.domain.third_party.base_hook import BaseHookProcessor
+from backend.domain.third_party.telegram_hook import TelegramHookProcessor
+from backend.domain.third_party.discord_hook import DiscordHookProcessor
+from backend.domain.third_party.slack_hook import SlackHookProcessor
+from backend.domain.third_party.teams_hook import TeamsHookProcessor
+from backend.domain.third_party.whatsapp_hook import WhatsAppHookProcessor
+from backend.domain.third_party.messenger_hook import MessengerHookProcessor
+from backend.domain.third_party.instagram_hook import InstagramHookProcessor
+from backend.domain.third_party.line_hook import LINEHookProcessor
+from backend.domain.third_party.viber_hook import ViberHookProcessor
+from backend.domain.third_party.zalo_hook import ZaloHookProcessor
+from backend.domain.third_party.signal_hook import SignalHookProcessor
+from backend.domain.third_party.skype_hook import SkypeHookProcessor
+from backend.domain.third_party.wire_hook import WireHookProcessor
+from backend.domain.third_party.wechat_hook import WeChatHookProcessor
+from backend.domain.third_party.snapchat_hook import SnapchatHookProcessor
 
 _REGISTRY: Dict[str, Type[BaseHookProcessor]] = {
     "telegram": TelegramHookProcessor,
@@ -73,6 +73,13 @@ PLATFORM_CONFIG_FIELDS: Dict[str, list] = {
     ],
     "teams": [
         {"key": "webhook_url", "label": "Incoming Webhook URL", "input": "text", "required": True},
+        {
+            "key": "app_id",
+            "label": "Bot App ID (for inbound signature verification)",
+            "input": "text",
+            "required": False,
+            "placeholder": "Azure Bot Service app id — enables Bot Framework JWT verification on inbound messages",
+        },
     ],
     "whatsapp_business": [
         {"key": "access_token", "label": "Meta Access Token", "input": "text", "required": True},
@@ -112,6 +119,13 @@ PLATFORM_CONFIG_FIELDS: Dict[str, list] = {
     ],
     "wire_messaging": [
         {"key": "bearer_token", "label": "Bearer Token", "input": "text", "required": True},
+        {
+            "key": "webhook_secret",
+            "label": "Webhook Secret (optional, for inbound verification)",
+            "input": "text",
+            "required": False,
+            "placeholder": "Shared secret sent as X-Webhook-Secret by whatever forwards Wire callbacks here",
+        },
     ],
     "wechat_messaging": [
         {"key": "app_id", "label": "App ID", "input": "text", "required": True},

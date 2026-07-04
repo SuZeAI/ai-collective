@@ -5,7 +5,8 @@ import json
 from typing import Any, Dict, Optional
 from urllib import parse, request as urllib_request
 
-from backend.domain.thirty_part.base_hook import BaseHookProcessor, IncomingMessage, _http_post
+from backend.domain.third_party.base_hook import BaseHookProcessor, IncomingMessage, _header, _http_post
+from backend.domain.third_party.bot_framework_auth import verify_bot_framework_token
 
 MS_TOKEN_URL = "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token"
 
@@ -27,6 +28,13 @@ def _get_bot_token(app_id: str, app_password: str) -> str:
 
 class SkypeHookProcessor(BaseHookProcessor):
     platform = "skype_messaging"
+
+    def verify_request(
+        self, headers: Dict[str, str], raw_body: bytes, config: Dict[str, Any]
+    ) -> bool:
+        app_id = (config.get("app_id") or "").strip()
+        authorization = _header(headers, "Authorization")
+        return verify_bot_framework_token(authorization, expected_audience=app_id or None)
 
     def extract_message(self, body: Dict[str, Any]) -> Optional[IncomingMessage]:
         if body.get("type") != "message":
