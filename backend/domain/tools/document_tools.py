@@ -307,6 +307,8 @@ class DocumentToolkit(BaseToolkit):
             openai_api_key=settings.openai_api_key,
             open_weight_api_key=settings.open_weight_api_key,
             kimi_api_key=settings.kimi_api_key,
+            deepseek_api_key=settings.deepseek_api_key,
+            glm_api_key=settings.glm_api_key,
             base_url=settings.llm_api_base,
         )
 

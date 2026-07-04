@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Trash2, Plug, Settings2, Globe, CheckCircle2, Eye, EyeOff, Pencil,
 } from "lucide-react";
-import { api, type ThirdPartyConnection, type PlatformDef } from "@/lib/api";
+import { api, type Connection, type PlatformDef } from "@/lib/api";
+import { PLATFORM_ICONS, PLATFORM_COLORS } from "@/lib/platforms";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,32 +19,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-const PLATFORM_ICONS: Record<string, string> = {
-  telegram: "✈️", discord: "🎮", slack: "💬", teams: "🟦",
-  whatsapp_business: "💚", facebook_messenger: "💙", instagram: "📸",
-  line_messaging: "🟢", viber_messaging: "💜", zalo_messaging: "🔵",
-  signal_messaging: "🔒", skype_messaging: "🌐", wire_messaging: "⚡",
-  wechat_messaging: "🟩", snapchat_messaging: "👻",
-};
-
-const PLATFORM_COLORS: Record<string, string> = {
-  telegram: "from-sky-500 to-blue-600",
-  discord: "from-indigo-500 to-violet-600",
-  slack: "from-amber-500 to-orange-500",
-  teams: "from-blue-500 to-indigo-600",
-  whatsapp_business: "from-emerald-500 to-green-600",
-  facebook_messenger: "from-blue-400 to-indigo-500",
-  instagram: "from-pink-500 to-rose-600",
-  line_messaging: "from-green-500 to-teal-600",
-  viber_messaging: "from-violet-500 to-purple-600",
-  zalo_messaging: "from-blue-500 to-sky-600",
-  signal_messaging: "from-slate-500 to-gray-600",
-  skype_messaging: "from-sky-400 to-blue-500",
-  wire_messaging: "from-zinc-500 to-slate-600",
-  wechat_messaging: "from-green-400 to-emerald-500",
-  snapchat_messaging: "from-yellow-400 to-amber-500",
-};
-
 // ─── Connection Form Dialog ───────────────────────────────────────────────────
 function ConnectionDialog({
   open,
@@ -54,9 +29,9 @@ function ConnectionDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  existing?: ThirdPartyConnection;
+  existing?: Connection;
   platforms: PlatformDef[];
-  onSave: (data: Partial<ThirdPartyConnection> & Pick<ThirdPartyConnection, "platform" | "name">) => void;
+  onSave: (data: Partial<Connection> & Pick<Connection, "platform" | "name">) => void;
 }) {
   const [platform, setPlatform] = useState(existing?.platform || "");
   const [name, setName] = useState(existing?.name || "");
@@ -217,7 +192,7 @@ function ConnectionCard({
   onEdit,
   onDelete,
 }: {
-  connection: ThirdPartyConnection;
+  connection: Connection;
   platforms: PlatformDef[];
   onEdit: () => void;
   onDelete: () => void;
@@ -303,7 +278,7 @@ export default function Settings() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<ThirdPartyConnection | undefined>();
+  const [editing, setEditing] = useState<Connection | undefined>();
   const [filterPlatform, setFilterPlatform] = useState<string>("all");
 
   const { data: connections = [], isLoading } = useQuery({
@@ -335,10 +310,10 @@ export default function Settings() {
   });
 
   const openNew = () => { setEditing(undefined); setDialogOpen(true); };
-  const openEdit = (c: ThirdPartyConnection) => { setEditing(c); setDialogOpen(true); };
+  const openEdit = (c: Connection) => { setEditing(c); setDialogOpen(true); };
   const closeDialog = () => { setDialogOpen(false); setEditing(undefined); };
 
-  const handleSave = (data: Partial<ThirdPartyConnection> & Pick<ThirdPartyConnection, "platform" | "name">) => {
+  const handleSave = (data: Partial<Connection> & Pick<Connection, "platform" | "name">) => {
     upsert.mutate(data as any);
   };
 
@@ -347,7 +322,7 @@ export default function Settings() {
     ? connections
     : connections.filter((c) => c.platform === filterPlatform);
 
-  const groupedByPlatform = platforms.reduce<Record<string, ThirdPartyConnection[]>>((acc, p) => {
+  const groupedByPlatform = platforms.reduce<Record<string, Connection[]>>((acc, p) => {
     acc[p.platform] = filtered.filter((c) => c.platform === p.platform);
     return acc;
   }, {});
@@ -363,7 +338,7 @@ export default function Settings() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
             <p className="text-sm text-muted-foreground">
-              Manage global third-party connections. Authenticate once and reuse across workspaces.
+              Manage global third-party connections. Authenticate once and reuse across companies.
             </p>
           </div>
         </div>
@@ -401,7 +376,7 @@ export default function Settings() {
           <div>
             <h2 className="text-base font-semibold">Third Party Connections</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Add your platform credentials here once — then pick them when creating workspace hooks.
+              Add your platform credentials here once — then pick them when creating company hooks.
             </p>
           </div>
 
@@ -440,7 +415,7 @@ export default function Settings() {
             </div>
             <h3 className="text-base font-semibold mb-1">No connections yet</h3>
             <p className="text-sm text-muted-foreground max-w-xs mb-5">
-              Add credentials for Telegram, Discord, Slack, and other platforms. Reuse them freely across workspaces.
+              Add credentials for Telegram, Discord, Slack, and other platforms. Reuse them freely across companies.
             </p>
             <Button onClick={openNew} className="gap-2 bg-teal-600 hover:bg-teal-500" size="sm">
               <Plus className="h-4 w-4" />

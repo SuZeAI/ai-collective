@@ -32,8 +32,8 @@ class MongoTokenUsageRepository:
             total_tokens=int(item.get("total_tokens", 0)),
             user_id=str(item.get("user_id", "system")),
             timestamp=_parse_timestamp(item.get("timestamp")),
-            agent_name=str(item.get("agent_name", "")),
-            team_id=str(item.get("team_id", "")),
+            staff_name=str(item.get("agent_name", "")),
+            department_id=str(item.get("department_id", "")),
         )
 
     def add(self, record: TokenUsageRecord) -> TokenUsageRecord:
@@ -49,8 +49,8 @@ class MongoTokenUsageRepository:
                 "user_id": record.user_id,
                 # ISO strings sort lexicographically == chronologically (UTC)
                 "timestamp": record.timestamp.isoformat(),
-                "agent_name": record.agent_name,
-                "team_id": record.team_id,
+                "agent_name": record.staff_name,
+                "department_id": record.department_id,
             }
         )
         return record

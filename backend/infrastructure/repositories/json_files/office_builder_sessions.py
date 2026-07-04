@@ -26,7 +26,7 @@ class JsonOfficeBuilderSessionRepository:
                     plan=dict(item["plan"]) if isinstance(item.get("plan"), dict) else None,
                     created_at=parse_iso_utc(str(item.get("createdAt", ""))) or now,
                     updated_at=parse_iso_utc(str(item.get("updatedAt", ""))) or now,
-                    workspace_id=str(item.get("workspaceId", "") or ""),
+                    company_id=str(item.get("workspaceId", "") or ""),
                     owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
                 )
                 self._items[session.id] = session
@@ -42,7 +42,7 @@ class JsonOfficeBuilderSessionRepository:
                 "plan": s.plan,
                 "createdAt": s.created_at.isoformat(),
                 "updatedAt": s.updated_at.isoformat(),
-                "workspaceId": s.workspace_id,
+                "workspaceId": s.company_id,
                 "owner_id": s.owner_id,
             }
             for s in self._items.values()

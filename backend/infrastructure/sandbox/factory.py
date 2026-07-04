@@ -15,7 +15,7 @@ def create_sandbox_adapter(session_id: Optional[str] = None) -> Sandbox:
     k8s    → AioSandbox backed by a K8s pod via the provisioner service
 
     When *session_id* is a conversation-scoped thread id (``conv-...``) the
-    sandbox is keyed by it, so every agent in a chat reuses one container/Pod.
+    sandbox is keyed by it, so every staff in a chat reuses one container/Pod.
     In docker mode the conversation's host workspace is bind-mounted into the
     container so uploaded files are visible inside it.
     """

@@ -1,10 +1,10 @@
-"""memory tool — agent-facing access to the shared run working memory.
+"""memory tool — staff-facing access to the shared run working memory.
 
-Bound by default to every agent in a graph run (next to ``ask_user``), so any
-agent can deliberately persist a key fact, decision, or artifact reference and
-any later agent — in this run or after a pause/resume — can recall it. The
+Bound by default to every staff in a graph run (next to ``ask_user``), so any
+staff can deliberately persist a key fact, decision, or artifact reference and
+any later staff — in this run or after a pause/resume — can recall it. The
 runtime already auto-captures a compressed record of every completed turn; this
-toolkit is for the *important* details an agent wants kept verbatim.
+toolkit is for the *important* details an staff wants kept verbatim.
 
 See ``backend/domain/memory/working_memory.py`` for the model and
 ``docs/AGENT_MEMORY.md`` for the full design.
@@ -23,19 +23,19 @@ logger = get_logger(__name__)
 
 
 class MemoryToolkit(BaseToolkit):
-    """Toolkit exposing ``memory_save`` and ``memory_recall`` for one agent."""
+    """Toolkit exposing ``memory_save`` and ``memory_recall`` for one staff."""
 
     name: str = "memory"
 
     def __init__(
         self,
         conversation_id: str,
-        agent_name: str | None = None,
+        staff_name: str | None = None,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self._conversation_id = conversation_id
-        self._agent_name = agent_name or "agent"
+        self._staff_name = staff_name or "staff"
 
     @tool(parse_docstring=True)
     async def memory_save(
@@ -46,7 +46,7 @@ class MemoryToolkit(BaseToolkit):
     ) -> str:
         """Save an important fact to the shared working memory of this task.
 
-        Every agent working on this task (now and after pauses/handoffs) sees
+        Every staff working on this task (now and after pauses/handoffs) sees
         the working memory, so save anything a teammate must not lose: a key
         finding, a decision and its reason, an artifact location (file path,
         URL, sheet ID), or an open TODO. Keep it short and self-contained —
@@ -59,7 +59,7 @@ class MemoryToolkit(BaseToolkit):
             kind: One of "finding", "decision", "artifact", "todo". Defaults
                 to "finding".
             pin: Set true only for critical facts that must stay verbatim in
-                every agent's context (pinned notes are never compacted away).
+                every staff's context (pinned notes are never compacted away).
         """
         from backend.infrastructure import working_memory_store
 
@@ -68,7 +68,7 @@ class MemoryToolkit(BaseToolkit):
             return "[memory_save error] content must not be empty."
         saved = working_memory_store.record_note(
             self._conversation_id,
-            agent=self._agent_name,
+            staff=self._staff_name,
             content=content,
             kind=(kind or "finding").strip().lower(),
             pinned=bool(pin),
@@ -76,8 +76,8 @@ class MemoryToolkit(BaseToolkit):
         if not saved:
             return "[memory_save unavailable] Working memory is disabled for this run."
         logger.info(
-            "memory_save: agent=%s conversation=%s pinned=%s chars=%d",
-            self._agent_name, self._conversation_id, pin, len(content),
+            "memory_save: staff=%s conversation=%s pinned=%s chars=%d",
+            self._staff_name, self._conversation_id, pin, len(content),
         )
         return "Saved to shared working memory."
 

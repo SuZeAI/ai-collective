@@ -3,43 +3,43 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import datetime
 
-from backend.domain.models import Agent, Team, Task, Message, Analytics
+from backend.domain.models import Staff, Department, Task, Message, Analytics
 
 
-class InMemoryAgentRepository:
-    def __init__(self, initial: list[Agent]):
-        self._items: dict[str, Agent] = {a.id: a for a in initial}
+class InMemoryStaffRepository:
+    def __init__(self, initial: list[Staff]):
+        self._items: dict[str, Staff] = {a.id: a for a in initial}
 
-    def list(self) -> list[Agent]:
+    def list(self) -> list[Staff]:
         return list(self._items.values())
 
-    def get(self, agent_id: str) -> Agent | None:
-        return self._items.get(agent_id)
+    def get(self, staff_id: str) -> Staff | None:
+        return self._items.get(staff_id)
 
-    def upsert(self, agent: Agent) -> Agent:
-        self._items[agent.id] = agent
-        return agent
+    def upsert(self, staff: Staff) -> Staff:
+        self._items[staff.id] = staff
+        return staff
 
-    def delete(self, agent_id: str) -> None:
-        self._items.pop(agent_id, None)
+    def delete(self, staff_id: str) -> None:
+        self._items.pop(staff_id, None)
 
 
-class InMemoryTeamRepository:
-    def __init__(self, initial: list[Team]):
-        self._items: dict[str, Team] = {t.id: t for t in initial}
+class InMemoryDepartmentRepository:
+    def __init__(self, initial: list[Department]):
+        self._items: dict[str, Department] = {t.id: t for t in initial}
 
-    def list(self) -> list[Team]:
+    def list(self) -> list[Department]:
         return list(self._items.values())
 
-    def get(self, team_id: str) -> Team | None:
-        return self._items.get(team_id)
+    def get(self, department_id: str) -> Department | None:
+        return self._items.get(department_id)
 
-    def upsert(self, team: Team) -> Team:
-        self._items[team.id] = team
-        return team
+    def upsert(self, department: Department) -> Department:
+        self._items[department.id] = department
+        return department
 
-    def delete(self, team_id: str) -> None:
-        self._items.pop(team_id, None)
+    def delete(self, department_id: str) -> None:
+        self._items.pop(department_id, None)
 
 
 class InMemoryTaskRepository:
@@ -60,7 +60,7 @@ class InMemoryTaskRepository:
         self._items.pop(task_id, None)
 
 
-class InMemoryConversationRepository:
+class InMemoryMeetingRepository:
     def __init__(self, initial: list[Message]):
         self._items: list[Message] = list(initial)
 

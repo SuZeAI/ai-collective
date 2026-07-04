@@ -46,7 +46,7 @@ def _headers(api_key: str) -> Dict[str, str]:
         "HTTP-Referer": "https://github.com/mvanhorn/last30days-openclaw",
         "X-Title": "last30days",
         "Content-Type": "application/json",
-        "User-Agent": "ai-collective/openrouter-search-tool",
+        "User-Staff": "ai-collective/openrouter-search-tool",
     }
 
 

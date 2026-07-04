@@ -1,21 +1,21 @@
-"""Shared working memory for multi-agent runs — the anti-context-loss layer.
+"""Shared working memory for multi-staff runs — the anti-context-loss layer.
 
-Problem this solves: each agent turn is a *stateless* LLM call. Context flows
+Problem this solves: each staff turn is a *stateless* LLM call. Context flows
 only through (a) windowed logs that silently drop old entries, (b) top-k
 knowledge-graph retrieval that may miss what matters, and (c) tail truncation
-by the token budget. On long runs, agents forget what earlier agents found.
+by the token budget. On long runs, staff forget what earlier staff found.
 
-The working memory is a per-conversation blackboard shared by every agent in a
+The working memory is a per-conversation blackboard shared by every staff in a
 run (and across paused/resumed and follow-up runs of the same conversation):
 
 - **Notes** — small structured records (finding / decision / artifact / todo /
   guidance / result) written automatically at every turn boundary and
-  explicitly by agents through the ``memory`` toolkit.
+  explicitly by staff through the ``memory`` toolkit.
 - **Rolling summary** — when the note list exceeds its cap, the *oldest*
   unpinned notes are folded into a compact summary instead of being dropped.
   Nothing silently disappears; it degrades into a one-line bullet.
 - **Digest** — a deterministic, token-bounded rendering injected near the top
-  of every agent prompt, so it survives tail truncation.
+  of every staff prompt, so it survives tail truncation.
 
 This module is pure domain logic (no I/O). Persistence and the per-process
 registry live in ``backend.infrastructure.working_memory_store``.
@@ -68,7 +68,7 @@ def _one_line(text: str, limit: int) -> str:
 class MemoryNote:
     seq: int
     turn: int
-    agent: str
+    staff: str
     kind: str
     content: str
     pinned: bool = False
@@ -77,7 +77,7 @@ class MemoryNote:
         return {
             "seq": self.seq,
             "turn": self.turn,
-            "agent": self.agent,
+            "staff": self.staff,
             "kind": self.kind,
             "content": self.content,
             "pinned": self.pinned,
@@ -88,7 +88,7 @@ class MemoryNote:
         return cls(
             seq=int(data.get("seq", 0)),
             turn=int(data.get("turn", 0)),
-            agent=str(data.get("agent", "")),
+            staff=str(data.get("staff", "")),
             kind=str(data.get("kind", "finding")),
             content=str(data.get("content", "")),
             pinned=bool(data.get("pinned", False)),
@@ -97,7 +97,7 @@ class MemoryNote:
     def render(self) -> str:
         pin = "📌 " if self.pinned else ""
         turn = f"t{self.turn}" if self.turn else "t?"
-        return f"- {pin}[{turn}|{self.agent}|{self.kind}] {self.content}"
+        return f"- {pin}[{turn}|{self.staff}|{self.kind}] {self.content}"
 
 
 @dataclass
@@ -118,7 +118,7 @@ class WorkingMemory:
     def add_note(
         self,
         *,
-        agent: str,
+        staff: str,
         content: str,
         kind: str = "finding",
         turn: int = 0,
@@ -130,12 +130,12 @@ class WorkingMemory:
             return None
         if kind not in NOTE_KINDS:
             kind = "finding"
-        # Skip exact repeats of a recent note (agents sometimes re-save).
+        # Skip exact repeats of a recent note (staff sometimes re-save).
         for prior in self.notes[-5:]:
-            if prior.content == content and prior.agent == agent and prior.kind == kind:
+            if prior.content == content and prior.staff == staff and prior.kind == kind:
                 return prior
         note = MemoryNote(
-            seq=self.next_seq, turn=turn, agent=agent, kind=kind,
+            seq=self.next_seq, turn=turn, staff=staff, kind=kind,
             content=content, pinned=pinned,
         )
         self.next_seq += 1
@@ -166,7 +166,7 @@ class WorkingMemory:
             for idx, note in enumerate(self.notes):
                 if not note.pinned:
                     summary_lines.append(
-                        f"• t{note.turn} {note.agent} ({note.kind}): "
+                        f"• t{note.turn} {note.staff} ({note.kind}): "
                         + _one_line(note.content, 160)
                     )
                     del self.notes[idx]
@@ -200,7 +200,7 @@ class WorkingMemory:
             return self.notes[-limit:]
         scored: list[tuple[float, int, MemoryNote]] = []
         for note in self.notes:
-            haystack = f"{note.agent} {note.kind} {note.content}".lower()
+            haystack = f"{note.staff} {note.kind} {note.content}".lower()
             hits = sum(1 for t in terms if t in haystack)
             if hits:
                 scored.append((hits / len(terms), note.seq, note))
@@ -223,7 +223,7 @@ class WorkingMemory:
         budget = max(200, int(max_chars or WORKING_MEMORY_DIGEST_CHARS))
 
         header = (
-            "[WORKING MEMORY — shared across all agents in this task. "
+            "[WORKING MEMORY — shared across all staff in this task. "
             "Trust it as ground truth for what has already been done; do not redo it.]"
         )
         head_sections: list[str] = [header]

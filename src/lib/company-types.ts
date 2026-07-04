@@ -22,13 +22,13 @@ export const COMPANY_TYPES: CompanyTypeDef[] = [
   {
     value: "marketing",
     icon: Megaphone,
-    suggested: ["projects", "conversations", "documentLibrary", "marketplace"],
+    suggested: ["projects", "meetings", "documentLibrary", "recruiting"],
     accent: "bg-pink-500/15 text-pink-500 border-pink-500/30",
   },
   {
     value: "research",
     icon: FlaskConical,
-    suggested: ["documentLibrary", "tasks", "conversations"],
+    suggested: ["documentLibrary", "tasks", "meetings"],
     accent: "bg-violet-500/15 text-violet-500 border-violet-500/30",
   },
   {
@@ -43,7 +43,7 @@ export const COMPANY_TYPE_MAP = Object.fromEntries(
   COMPANY_TYPES.map((t) => [t.value, t]),
 ) as Record<CompanyType, CompanyTypeDef>;
 
-/** Resolve a workspace's type, falling back to "general" for missing/unknown. */
+/** Resolve a company's type, falling back to "general" for missing/unknown. */
 export const companyTypeOf = (ws?: { type?: CompanyType } | null): CompanyType =>
   ws?.type && COMPANY_TYPE_MAP[ws.type] ? ws.type : "general";
 

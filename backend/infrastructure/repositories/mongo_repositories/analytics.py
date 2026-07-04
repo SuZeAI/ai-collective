@@ -16,8 +16,8 @@ class MongoAnalyticsRepository:
         return Analytics(
             tasks_completed=int(doc.get("tasksCompleted", 0)),
             avg_completion_time=str(doc.get("avgCompletionTime", "")),
-            team_efficiency=int(doc.get("teamEfficiency", 0)),
-            agent_productivity={str(k): int(v) for k, v in (doc.get("agentProductivity") or {}).items()},
+            department_efficiency=int(doc.get("teamEfficiency", 0)),
+            staff_productivity={str(k): int(v) for k, v in (doc.get("agentProductivity") or {}).items()},
         )
 
     def get(self) -> Analytics:
@@ -30,8 +30,8 @@ class MongoAnalyticsRepository:
                 "_id": self._SINGLETON_ID,
                 "tasksCompleted": analytics.tasks_completed,
                 "avgCompletionTime": analytics.avg_completion_time,
-                "teamEfficiency": analytics.team_efficiency,
-                "agentProductivity": dict(analytics.agent_productivity),
+                "teamEfficiency": analytics.department_efficiency,
+                "agentProductivity": dict(analytics.staff_productivity),
             },
             upsert=True,
         )

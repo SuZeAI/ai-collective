@@ -242,6 +242,9 @@ function PricingDialog({
                 <SelectItem value="openai">OpenAI</SelectItem>
                 <SelectItem value="google">Google</SelectItem>
                 <SelectItem value="open_weight">Open Weight (OpenRouter)</SelectItem>
+                <SelectItem value="kimi">Kimi (Moonshot)</SelectItem>
+                <SelectItem value="deepseek">DeepSeek</SelectItem>
+                <SelectItem value="glm">GLM (Zhipu)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -436,7 +439,7 @@ export default function AdminMonitoring() {
                   index={3}
                   label="Users"
                   value={String(health.counts.users)}
-                  sub={`${health.counts.agents} agents · ${health.counts.teams} teams`}
+                  sub={`${health.counts.staff} staff · ${health.counts.departments} departments`}
                   icon={UsersIcon}
                   color="hsl(32 90% 52%)"
                 />
@@ -474,7 +477,7 @@ export default function AdminMonitoring() {
                     <p>
                       Entities:{" "}
                       <span className="text-foreground font-medium">
-                        {health.counts.tasks} tasks · {health.counts.workspaces} offices
+                        {health.counts.tasks} tasks · {health.counts.companies} offices
                       </span>
                     </p>
                   </div>
@@ -540,7 +543,7 @@ export default function AdminMonitoring() {
                   <div className="flex flex-col items-center justify-center py-14 gap-3">
                     <Coins className="w-9 h-9 text-muted-foreground/30" />
                     <p className="text-sm text-muted-foreground">
-                      No LLM usage recorded yet — run a chat or agent task and it will show up here.
+                      No LLM usage recorded yet — run a chat or staff task and it will show up here.
                     </p>
                   </div>
                 ) : (
@@ -816,13 +819,13 @@ export default function AdminMonitoring() {
 
                 <dl className="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-xs">
                   {[
-                    ["Backend", fileStorage.backend === "s3" ? "s3 (MinIO is system of record)" : "local (host workspace volume)"],
+                    ["Backend", fileStorage.backend === "s3" ? "s3 (MinIO is system of record)" : "local (host company volume)"],
                     ["Sandbox mode", fileStorage.sandboxMode],
-                    ["Workspace path", fileStorage.workspaceBase],
+                    ["Company path", fileStorage.companyBase],
                     ["MinIO endpoint", fileStorage.minioEnabled ? fileStorage.minioEndpoint : "—"],
                     ["MinIO bucket", fileStorage.minioEnabled ? fileStorage.minioBucket : "—"],
                     ["Library objects (S3)", `${fileStorage.libraryObjectCount} · ${formatBytes(fileStorage.libraryObjectBytes)}`],
-                    ["Conversation objects (S3)", `${fileStorage.sandboxObjectCount} · ${formatBytes(fileStorage.sandboxTotalBytes)}`],
+                    ["Meeting objects (S3)", `${fileStorage.sandboxObjectCount} · ${formatBytes(fileStorage.sandboxTotalBytes)}`],
                   ].map(([k, v]) => (
                     <div key={k} className="flex justify-between gap-4 border-b border-border/40 pb-2">
                       <dt className="text-muted-foreground shrink-0">{k}</dt>
@@ -833,8 +836,8 @@ export default function AdminMonitoring() {
 
                 <p className="text-[11px] text-muted-foreground mt-4 leading-relaxed">
                   {fileStorage.backend === "s3"
-                    ? "Files (uploads, agent outputs, document library) are durably stored in MinIO and restored into the working directory on restart — surviving container/Pod recreation."
-                    : "Files live only on the host workspace volume. Set FILE_STORAGE_BACKEND=s3 + MINIO_ENABLED=true for durability across Pod recreation (required in k8s sandbox mode)."}
+                    ? "Files (uploads, staff outputs, document library) are durably stored in MinIO and restored into the working directory on restart — surviving container/Pod recreation."
+                    : "Files live only on the host company volume. Set FILE_STORAGE_BACKEND=s3 + MINIO_ENABLED=true for durability across Pod recreation (required in k8s sandbox mode)."}
                 </p>
               </div>
             </>
@@ -865,8 +868,8 @@ export default function AdminMonitoring() {
                   <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead className="text-right">Agents</TableHead>
-                    <TableHead className="text-right">Teams</TableHead>
+                    <TableHead className="text-right">Staff</TableHead>
+                    <TableHead className="text-right">Departments</TableHead>
                     <TableHead className="text-right">Tasks</TableHead>
                     <TableHead className="text-right">Tokens ({days}d)</TableHead>
                     <TableHead className="text-right">Cost ({days}d)</TableHead>
@@ -891,8 +894,8 @@ export default function AdminMonitoring() {
                           {u.role}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">{u.agents}</TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">{u.teams}</TableCell>
+                      <TableCell className="text-right text-xs tabular-nums">{u.staff}</TableCell>
+                      <TableCell className="text-right text-xs tabular-nums">{u.departments}</TableCell>
                       <TableCell className="text-right text-xs tabular-nums">{u.tasks}</TableCell>
                       <TableCell className="text-right text-xs tabular-nums">
                         {formatTokens(u.inputTokens + u.outputTokens)}

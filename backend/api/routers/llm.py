@@ -11,22 +11,22 @@ from pydantic import BaseModel, Field
 
 from backend.api.deps import (
     current_owner_id_dep,
-    get_agent_graph_service,
-    get_agent_service,
+    get_staff_graph_service,
+    get_staff_service,
     get_graph_context_service,
     get_llm_service,
     get_skill_tool_manager,
     get_task_service,
 )
-from backend.api.schemas.agent_graph import GraphRunRequest, GraphRunResponse, GraphTurnSchema
-from backend.application.ports.agent_graph import CustomGraphSpec, GraphAgentDefinition
-from backend.application.service.agent_service import AgentService
+from backend.api.schemas.staff_graph import GraphRunRequest, GraphRunResponse, GraphTurnSchema
+from backend.application.ports.staff_graph import CustomGraphSpec, GraphStaffDefinition
+from backend.application.service.staff_service import StaffService
 from backend.application.service.graph_context_service import GraphContextService
 from backend.application.service.llm_service import LLMService
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.infrastructure import task_run_registry
-from backend.infrastructure.llm.usage_tracker import current_usage_team
+from backend.infrastructure.llm.usage_tracker import current_usage_department
 from backend.log import get_logger
 
 
@@ -37,7 +37,7 @@ logger = get_logger(__name__)
 class ChatRequest(BaseModel):
     prompt: str = Field(min_length=1)
     system: str | None = None
-    agentId: str | None = None
+    staffId: str | None = None
     conversationId: str | None = None
 
 
@@ -49,7 +49,7 @@ class ChatResponse(BaseModel):
 async def chat(
     req: ChatRequest,
     service: LLMService | None = Depends(get_llm_service),
-    agent_service: AgentService = Depends(get_agent_service),
+    staff_service: StaffService = Depends(get_staff_service),
     tool_manager: SkillToolManager = Depends(get_skill_tool_manager),
 ) -> ChatResponse:
     if not service:
@@ -57,25 +57,25 @@ async def chat(
     system_prompt = req.system
     tools: list[object] = []
     subagent_enabled = False
-    if req.agentId:
+    if req.staffId:
         try:
-            agent = agent_service.get_agent(req.agentId)
+            staff = staff_service.get_staff(req.staffId)
             if not system_prompt:
-                system_prompt = agent.system_prompt or None
-            subagent_enabled = bool(getattr(agent, "subagent_enabled", False))
+                system_prompt = staff.system_prompt or None
+            subagent_enabled = bool(getattr(staff, "subagent_enabled", False))
 
-            skills = agent_service.get_agent_skills(req.agentId)
+            skills = staff_service.get_staff_skills(req.staffId)
             for skill in skills:
                 toolkit = tool_manager.get_tool_for_skill(skill)
                 if toolkit:
                     tools.extend(toolkit.get_tools())
         except Exception as exc:
-            logger.exception("Failed to resolve tools for agent '%s': %s", req.agentId, exc)
+            logger.exception("Failed to resolve tools for staff '%s': %s", req.staffId, exc)
             if not system_prompt:
                 system_prompt = None
 
-    # Agent Mode: expose the `task` tool (subagent delegation) and run tool
-    # calls in parallel. Subagents inherit the agent's tools (minus `task`).
+    # Staff Mode: expose the `task` tool (subagent delegation) and run tool
+    # calls in parallel. Subagents inherit the staff's tools (minus `task`).
     if subagent_enabled:
         from backend.api.settings import settings
         from backend.domain.tools.task import TaskToolkit
@@ -88,18 +88,18 @@ async def chat(
         tools.extend(task_toolkit.get_tools())
 
     # When the direct chat is scoped to a conversation that has files, provision
-    # the shared sandbox and inject the file/document tools so the agent can read
-    # the uploads (mirrors the agent-graph path).
+    # the shared sandbox and inject the file/document tools so the staff can read
+    # the uploads (mirrors the staff-graph path).
     prompt = req.prompt
     if req.conversationId:
         try:
-            from backend.domain.agent._graph_runtime import (
+            from backend.domain.staff._graph_runtime import (
                 attach_conversation_sandbox,
                 uploads_hint,
             )
 
-            agent_name = req.agentId or "assistant"
-            if attach_conversation_sandbox(tools, conversation_id=req.conversationId, agent_name=agent_name):
+            staff_name = req.staffId or "assistant"
+            if attach_conversation_sandbox(tools, conversation_id=req.conversationId, staff_name=staff_name):
                 prompt = uploads_hint(req.conversationId) + prompt
         except Exception as exc:  # noqa: BLE001 - never break a chat over file wiring
             logger.warning("attach_conversation_sandbox (direct chat) failed: %s", exc)
@@ -114,7 +114,7 @@ async def chat(
 
 
 class InterjectRequest(BaseModel):
-    """Human-in-the-loop message posted while an agent-graph run is streaming."""
+    """Human-in-the-loop message posted while an staff-graph run is streaming."""
 
     conversation_id: str = Field(min_length=1)
     content: str = Field(min_length=1, max_length=8000)
@@ -125,11 +125,11 @@ class InterjectResponse(BaseModel):
     message_id: str | None = None
 
 
-@router.post("/agent-graph/interject", response_model=InterjectResponse)
-async def interject_agent_graph(req: InterjectRequest) -> InterjectResponse:
+@router.post("/staff-graph/interject", response_model=InterjectResponse)
+async def interject_staff_graph(req: InterjectRequest) -> InterjectResponse:
     """Queue a user message for an active run.
 
-    The next agent turn drains the queue, injects the message into its context
+    The next staff turn drains the queue, injects the message into its context
     (and into the knowledge graph), and emits a ``user_message_injected``
     stream event. Returns 409 when the run is no longer active so the client
     can tell the user their guidance was not consumed.
@@ -147,16 +147,16 @@ async def interject_agent_graph(req: InterjectRequest) -> InterjectResponse:
 
 
 class UserResponseRequest(BaseModel):
-    """Answer to an agent's ask_user question on an active run."""
+    """Answer to an staff's ask_user question on an active run."""
 
     conversation_id: str = Field(min_length=1)
     request_id: str = Field(min_length=1)
     response: str = Field(min_length=1, max_length=8000)
 
 
-@router.post("/agent-graph/respond")
-async def respond_agent_graph(req: UserResponseRequest) -> dict:
-    """Deliver the user's answer to an agent blocked on the ask_user tool.
+@router.post("/staff-graph/respond")
+async def respond_staff_graph(req: UserResponseRequest) -> dict:
+    """Deliver the user's answer to an staff blocked on the ask_user tool.
 
     The tool's poll loop picks the answer up, emits ``user_input_received``
     on the stream, and returns the answer to the LLM so it continues its turn.
@@ -179,14 +179,14 @@ async def respond_agent_graph(req: UserResponseRequest) -> dict:
 
 
 class RunControlRequest(BaseModel):
-    """Targets an actively streaming agent-graph run by conversation id."""
+    """Targets an actively streaming staff-graph run by conversation id."""
 
     conversation_id: str = Field(min_length=1)
 
 
-@router.post("/agent-graph/pause")
-async def pause_agent_graph(req: RunControlRequest) -> dict:
-    """Interrupt an active run: the current agent finishes its turn, then the
+@router.post("/staff-graph/pause")
+async def pause_staff_graph(req: RunControlRequest) -> dict:
+    """Interrupt an active run: the current staff finishes its turn, then the
     run holds at the turn boundary so the user can chat before resuming."""
     if not task_run_registry.signal_pause(req.conversation_id):
         raise HTTPException(
@@ -196,9 +196,9 @@ async def pause_agent_graph(req: RunControlRequest) -> dict:
     return {"paused": True}
 
 
-@router.post("/agent-graph/resume")
-async def resume_agent_graph(req: RunControlRequest) -> dict:
-    """Release a held run; the next agent turn proceeds (and picks up any
+@router.post("/staff-graph/resume")
+async def resume_staff_graph(req: RunControlRequest) -> dict:
+    """Release a held run; the next staff turn proceeds (and picks up any
     interjected messages queued during the hold)."""
     if not task_run_registry.signal_resume(req.conversation_id):
         raise HTTPException(
@@ -209,77 +209,77 @@ async def resume_agent_graph(req: RunControlRequest) -> dict:
 
 
 def _build_custom_graph_spec(
-    req: GraphRunRequest, agent_id_to_name: dict[str, str]
+    req: GraphRunRequest, staff_id_to_name: dict[str, str]
 ) -> CustomGraphSpec | None:
-    """Translate the request's agent-id-based custom graph into a name-based
+    """Translate the request's staff-id-based custom graph into a name-based
     CustomGraphSpec the orchestrators understand. Returns None unless mode is
     'custom' with a graph attached."""
     if req.mode != "custom" or req.custom_graph is None:
         return None
     edges = tuple(
-        (agent_id_to_name[e.source], agent_id_to_name[e.target])
+        (staff_id_to_name[e.source], staff_id_to_name[e.target])
         for e in req.custom_graph.edges
-        if e.source in agent_id_to_name and e.target in agent_id_to_name
+        if e.source in staff_id_to_name and e.target in staff_id_to_name
     )
     entry = tuple(
-        agent_id_to_name[n]
+        staff_id_to_name[n]
         for n in (req.custom_graph.entry or [])
-        if n in agent_id_to_name
+        if n in staff_id_to_name
     )
     return CustomGraphSpec(edges=edges, entry=entry)
 
 
-@router.post("/agent-graph/run", response_model=GraphRunResponse)
-async def run_agent_graph(
+@router.post("/staff-graph/run", response_model=GraphRunResponse)
+async def run_staff_graph(
     req: GraphRunRequest,
-    agent_service: AgentService = Depends(get_agent_service),
+    staff_service: StaffService = Depends(get_staff_service),
     tool_manager: SkillToolManager = Depends(get_skill_tool_manager),
     graph_context_service: GraphContextService = Depends(get_graph_context_service),
 ) -> GraphRunResponse:
-    service = get_agent_graph_service(mode=req.mode)
+    service = get_staff_graph_service(mode=req.mode)
     if not service:
         raise HTTPException(status_code=503, detail="LLM not configured")
 
-    # Fetch agents from database by ID and bind tools
+    # Fetch staff from database by ID and bind tools
     definitions = []
-    agent_id_to_name: dict[str, str] = {}  # for translating custom_graph ids -> names
-    for agent_id in req.agents:
+    staff_id_to_name: dict[str, str] = {}  # for translating custom_graph ids -> names
+    for staff_id in req.staff:
         try:
-            agent = agent_service.get_agent(agent_id)
+            staff = staff_service.get_staff(staff_id)
 
-            # Get tools for this agent's skills
-            agent_tools = {}
-            skills = agent_service.get_agent_skills(agent_id)
+            # Get tools for this staff's skills
+            staff_tools = {}
+            skills = staff_service.get_staff_skills(staff_id)
             for skill in skills:
                 tool = tool_manager.get_tool_for_skill(skill)
                 if tool:
-                    agent_tools[skill.id] = tool
-                    logger.info(f"Bound tool '{skill.tool_name}' for skill '{skill.id}' (agent: {agent.name})")
+                    staff_tools[skill.id] = tool
+                    logger.info(f"Bound tool '{skill.tool_name}' for skill '{skill.id}' (staff: {staff.name})")
                 else:
-                    logger.debug(f"No tool available for skill '{skill.id}' (agent: {agent.name})")
+                    logger.debug(f"No tool available for skill '{skill.id}' (staff: {staff.name})")
 
             definitions.append(
-                GraphAgentDefinition(
-                    name=agent.name,
-                    role=agent.role,
-                    system_prompt=agent.system_prompt,
-                    description=agent.description,
-                    skill_ids=list(agent.skill_ids),
-                    tools=agent_tools or None,
-                    subagent_enabled=bool(getattr(agent, "subagent_enabled", False)),
+                GraphStaffDefinition(
+                    name=staff.name,
+                    role=staff.role,
+                    system_prompt=staff.system_prompt,
+                    description=staff.description,
+                    skill_ids=list(staff.skill_ids),
+                    tools=staff_tools or None,
+                    subagent_enabled=bool(getattr(staff, "subagent_enabled", False)),
                 )
             )
-            agent_id_to_name[agent_id] = agent.name
+            staff_id_to_name[staff_id] = staff.name
         except Exception as e:
             raise HTTPException(
                 status_code=404,
-                detail=f"Agent '{agent_id}' not found: {str(e)}"
+                detail=f"Staff '{staff_id}' not found: {str(e)}"
             )
 
     graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
     conversation_id = req.conversation_id
 
-    team_token = current_usage_team.set(req.team_id or "")
+    team_token = current_usage_department.set(req.department_id or "")
     try:
         result = await service.run_with_definitions(
             user_input=req.user_input,
@@ -288,66 +288,66 @@ async def run_agent_graph(
             conversation_id=conversation_id,
             graph_context_provider=graph_context_service,
             graph_config=graph_config,
-            custom_graph=_build_custom_graph_spec(req, agent_id_to_name),
+            custom_graph=_build_custom_graph_spec(req, staff_id_to_name),
         )
     finally:
-        current_usage_team.reset(team_token)
+        current_usage_department.reset(team_token)
     return GraphRunResponse.from_result(result)
 
 
-@router.post("/agent-graph/run-stream")
-async def run_agent_graph_stream(
+@router.post("/staff-graph/run-stream")
+async def run_staff_graph_stream(
     req: GraphRunRequest,
-    agent_service: AgentService = Depends(get_agent_service),
+    staff_service: StaffService = Depends(get_staff_service),
     tool_manager: SkillToolManager = Depends(get_skill_tool_manager),
     graph_context_service: GraphContextService = Depends(get_graph_context_service),
     task_service=Depends(get_task_service),
     owner_id: str = Depends(current_owner_id_dep),
 ):
-    """Stream agent responses in real-time using Server-Sent Events"""
-    service = get_agent_graph_service(mode=req.mode)
+    """Stream staff responses in real-time using Server-Sent Events"""
+    service = get_staff_graph_service(mode=req.mode)
     if not service:
         raise HTTPException(status_code=503, detail="LLM not configured")
 
-    # Fetch agents from database by ID and bind tools
+    # Fetch staff from database by ID and bind tools
     definitions = []
-    agent_name_to_id: dict[str, str] = {}  # Mapping agent name to ID for stream response
-    for agent_id in req.agents:
+    staff_name_to_id: dict[str, str] = {}  # Mapping staff name to ID for stream response
+    for staff_id in req.staff:
         try:
-            agent = agent_service.get_agent(agent_id)
+            staff = staff_service.get_staff(staff_id)
 
-            # Get tools for this agent's skills
-            agent_tools = {}
-            skills = agent_service.get_agent_skills(agent_id)
+            # Get tools for this staff's skills
+            staff_tools = {}
+            skills = staff_service.get_staff_skills(staff_id)
             for skill in skills:
                 tool = tool_manager.get_tool_for_skill(skill)
                 if tool:
-                    agent_tools[skill.id] = tool
-                    logger.info(f"Bound tool '{skill.tool_name}' for skill '{skill.id}' (agent: {agent.name})")
+                    staff_tools[skill.id] = tool
+                    logger.info(f"Bound tool '{skill.tool_name}' for skill '{skill.id}' (staff: {staff.name})")
                 else:
-                    logger.debug(f"No tool available for skill '{skill.id}' (agent: {agent.name})")
+                    logger.debug(f"No tool available for skill '{skill.id}' (staff: {staff.name})")
 
             definitions.append(
-                GraphAgentDefinition(
-                    name=agent.name,
-                    role=agent.role,
-                    system_prompt=agent.system_prompt,
-                    description=agent.description,
-                    skill_ids=list(agent.skill_ids),
-                    tools=agent_tools or None,
-                    subagent_enabled=bool(getattr(agent, "subagent_enabled", False)),
+                GraphStaffDefinition(
+                    name=staff.name,
+                    role=staff.role,
+                    system_prompt=staff.system_prompt,
+                    description=staff.description,
+                    skill_ids=list(staff.skill_ids),
+                    tools=staff_tools or None,
+                    subagent_enabled=bool(getattr(staff, "subagent_enabled", False)),
                 )
             )
-            agent_name_to_id[agent.name] = agent_id  # Store mapping
+            staff_name_to_id[staff.name] = staff_id  # Store mapping
         except Exception as e:
             raise HTTPException(
                 status_code=404,
-                detail=f"Agent '{agent_id}' not found: {str(e)}"
+                detail=f"Staff '{staff_id}' not found: {str(e)}"
             )
 
     graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
     conversation_id = req.conversation_id
-    agent_id_to_name = {agent_id: name for name, agent_id in agent_name_to_id.items()}
+    staff_id_to_name = {staff_id: name for name, staff_id in staff_name_to_id.items()}
 
     # Long-term memory scope for this run: owner + the task's team (Business Unit
     # proxy). Recall/inject is done by the LTM middleware; consolidation runs at
@@ -355,15 +355,15 @@ async def run_agent_graph_stream(
     from backend.domain.memory.long_term_memory import MemoryScope
     from backend.infrastructure import long_term_memory_store as ltm_store
 
-    workspace_id = None
+    company_id = None
     if conversation_id:
         try:
             task = task_service.get_task(conversation_id)
-            workspace_id = getattr(task, "team_id", None) if task else None
+            company_id = getattr(task, "department_id", None) if task else None
         except Exception:  # noqa: BLE001 — scope is best-effort
-            workspace_id = None
-    memory_scope = MemoryScope(workspace_id=workspace_id, owner_id=owner_id).normalized()
-    custom_graph_spec = _build_custom_graph_spec(req, agent_id_to_name)
+            company_id = None
+    memory_scope = MemoryScope(company_id=company_id, owner_id=owner_id).normalized()
+    custom_graph_spec = _build_custom_graph_spec(req, staff_id_to_name)
 
     # Register a cancel flag so stop/pause can signal this stream to halt
     cancel_flag = task_run_registry.register(conversation_id) if conversation_id else None
@@ -377,7 +377,7 @@ async def run_agent_graph_stream(
         return bool(cancel_flag and cancel_flag.cancelled)
 
     async def event_generator():
-        """Generate Server-Sent Events for agent turns and intermediate events.
+        """Generate Server-Sent Events for staff turns and intermediate events.
 
         Stop/pause sets the run's cancel flag (see tasks.py). We poll it both
         between events and *while waiting* for the next event, and on cancel we
@@ -389,7 +389,7 @@ async def run_agent_graph_stream(
         # end-of-run consolidation see it without a threaded argument.
         scope_token = ltm_store.current_memory_scope.set(memory_scope)
         # Attribute this run's token spend to its department/team for cost monitoring.
-        team_token = current_usage_team.set(req.team_id or "")
+        team_token = current_usage_department.set(req.department_id or "")
         agen = service.run_stream_with_definitions(
             user_input=req.user_input,
             definitions=definitions,
@@ -438,13 +438,13 @@ async def run_agent_graph_stream(
                     turn_payload = event_data.get("turn")
                     if turn_payload is not None and hasattr(turn_payload, "__dataclass_fields__"):
                         event_data["turn"] = asdict(turn_payload)
-                    # Map agent_name to agent_id if needed
+                    # Map staff_name to staff_id if needed
                     if "agent_name" in event_data and "agent_id" not in event_data:
-                        event_data["agent_id"] = agent_name_to_id.get(event_data["agent_name"], event_data["agent_name"])
+                        event_data["agent_id"] = staff_name_to_id.get(event_data["agent_name"], event_data["agent_name"])
                     if isinstance(event_data.get("turn"), dict):
-                        turn_agent_name = event_data["turn"].get("agent_name")
-                        if turn_agent_name and "agent_id" not in event_data["turn"]:
-                            event_data["turn"]["agent_id"] = agent_name_to_id.get(turn_agent_name, turn_agent_name)
+                        turn_staff_name = event_data["turn"].get("agent_name")
+                        if turn_staff_name and "agent_id" not in event_data["turn"]:
+                            event_data["turn"]["agent_id"] = staff_name_to_id.get(turn_staff_name, turn_staff_name)
                     # Emit custom event as-is
                     yield f"data: {json.dumps(event_data)}\n\n"
                 else:
@@ -452,16 +452,16 @@ async def run_agent_graph_stream(
                     turn = event
                     turn_schema = GraphTurnSchema(
                         turn=turn.turn,
-                        agent_id=agent_name_to_id.get(turn.agent_name, turn.agent_name),
-                        agent_name=turn.agent_name,
-                        agent_role=turn.agent_role,
+                        staff_id=staff_name_to_id.get(turn.staff_name, turn.staff_name),
+                        staff_name=turn.staff_name,
+                        staff_role=turn.staff_role,
                         content=turn.content,
                     )
                     yield f"data: {json.dumps(turn_schema.model_dump())}\n\n"
 
             if cancelled:
                 logger.info(
-                    "[AgentGraph] STOP — run cancelled, aborting in-flight work | conversation_id=%s",
+                    "[StaffGraph] STOP — run cancelled, aborting in-flight work | conversation_id=%s",
                     conversation_id,
                 )
                 yield f"data: {json.dumps({'type': 'cancelled'})}\n\n"
@@ -492,7 +492,7 @@ async def run_agent_graph_stream(
             with contextlib.suppress(Exception):
                 await agen.aclose()
             ltm_store.current_memory_scope.reset(scope_token)
-            current_usage_team.reset(team_token)
+            current_usage_department.reset(team_token)
             if conversation_id:
                 task_run_registry.unregister(conversation_id)
 

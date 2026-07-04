@@ -14,15 +14,15 @@ current_usage_user: contextvars.ContextVar[str] = contextvars.ContextVar(
     "current_usage_user", default="system"
 )
 
-# Which AI staff member (agent) and department (team) the current LLM call belongs
-# to. current_usage_agent is set per-agent-turn in the graph runtime's safe_chat();
-# current_usage_team is set per-run in the agent-graph API routes. Empty => the call
-# could not be attributed (e.g. background work, single-agent chat).
-current_usage_agent: contextvars.ContextVar[str] = contextvars.ContextVar(
-    "current_usage_agent", default=""
+# Which AI staff member (staff) and department (team) the current LLM call belongs
+# to. current_usage_staff is set per-staff-turn in the graph runtime's safe_chat();
+# current_usage_department is set per-run in the staff-graph API routes. Empty => the call
+# could not be attributed (e.g. background work, single-staff chat).
+current_usage_staff: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "current_usage_staff", default=""
 )
-current_usage_team: contextvars.ContextVar[str] = contextvars.ContextVar(
-    "current_usage_team", default=""
+current_usage_department: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "current_usage_department", default=""
 )
 
 
@@ -35,8 +35,8 @@ class UsageRecorder(Protocol):
         input_tokens: int,
         output_tokens: int,
         user_id: str,
-        agent_name: str,
-        team_id: str,
+        staff_name: str,
+        department_id: str,
     ) -> None: ...
 
 
@@ -117,8 +117,8 @@ class UsageTrackingCallback(BaseCallbackHandler):
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
                 user_id=current_usage_user.get(),
-                agent_name=current_usage_agent.get(),
-                team_id=current_usage_team.get(),
+                staff_name=current_usage_staff.get(),
+                department_id=current_usage_department.get(),
             )
         except Exception:
             get_logger().exception("Failed to record LLM token usage")

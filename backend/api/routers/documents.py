@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from fastapi.responses import StreamingResponse
 
 from backend.api.deps import current_owner_id_dep, current_user_dep, get_document_library_service
-from backend.api.routers.conversations import _ALLOWED_UPLOAD_TYPES, _MAX_UPLOAD_BYTES
+from backend.api.routers.meetings import _ALLOWED_UPLOAD_TYPES, _MAX_UPLOAD_BYTES
 from backend.api.schemas.library_document import (
     AttachToProjectRequest,
     IngestUrlRequest,
@@ -31,7 +31,7 @@ def _parse_tags(raw: str | None) -> list[str]:
 
 @router.get("/documents", response_model=list[LibraryDocumentSchema])
 def list_documents(
-    workspace_id: str | None = Query(default=None),
+    company_id: str | None = Query(default=None),
     service: DocumentLibraryService = Depends(get_document_library_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> list[LibraryDocumentSchema]:
@@ -39,13 +39,13 @@ def list_documents(
         LibraryDocumentSchema.from_domain(d)
         for d in service.list_documents()
         if is_visible_to(owner_id, d.owner_id)
-        and (workspace_id is None or d.workspace_id == workspace_id)
+        and (company_id is None or d.company_id == company_id)
     ]
 
 
 @router.post("/documents", response_model=LibraryDocumentSchema, status_code=201)
 async def upload_document(
-    workspaceId: str = Form(...),
+    companyId: str = Form(...),
     file: UploadFile = File(...),
     description: str | None = Form(default=None),
     tags: str | None = Form(default=None),
@@ -65,7 +65,7 @@ async def upload_document(
         raise HTTPException(status_code=400, detail="Invalid filename.")
 
     doc = service.create_document(
-        workspace_id=workspaceId,
+        company_id=companyId,
         filename=raw_name,
         content_type=file.content_type,
         data=content,
@@ -118,7 +118,7 @@ async def ingest_url(
         name += ".md"
 
     doc = service.create_document(
-        workspace_id=req.workspaceId,
+        company_id=req.companyId,
         filename=name,
         content_type="text/markdown",
         data=text.encode("utf-8"),

@@ -25,7 +25,7 @@ class MongoLibraryDocumentRepository:
                 created_at = datetime.now(timezone.utc)
         return LibraryDocument(
             id=str(item["id"]),
-            workspace_id=str(item.get("workspaceId", "")),
+            company_id=str(item.get("workspaceId", "")),
             name=str(item.get("name", "")),
             content_type=str(item.get("contentType", "") or ""),
             size=int(item.get("size", 0) or 0),
@@ -43,7 +43,7 @@ class MongoLibraryDocumentRepository:
         return {
             "id": d.id,
             "_id": d.id,
-            "workspaceId": d.workspace_id,
+            "workspaceId": d.company_id,
             "name": d.name,
             "contentType": d.content_type,
             "size": d.size,

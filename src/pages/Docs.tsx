@@ -20,9 +20,9 @@ const GITHUB_URL = "https://github.com/SuZeAI/ai-collective";
 const NAV_STRUCTURE = [
   { id: "intro",         icon: BookOpen,   items: ["what-is","architecture","key-concepts","pricing"] },
   { id: "getting-started", icon: Rocket,   items: ["quickstart","installation","configuration"] },
-  { id: "concepts",      icon: Layers,     items: ["agents","skills","teams","tasks","conversations","playground","analytics","workspaces","settings"] },
-  { id: "guides",        icon: Lightbulb,  items: ["guide-first-agent","guide-build-team","guide-run-task","guide-skills"] },
-  { id: "api-reference", icon: Terminal,   items: ["api-agents","api-skills","api-teams","api-tasks","api-chat"] },
+  { id: "concepts",      icon: Layers,     items: ["staff","skills","departments","tasks","meetings","playground","analytics","companies","settings"] },
+  { id: "guides",        icon: Lightbulb,  items: ["guide-first-staff","guide-build-department","guide-run-task","guide-skills"] },
+  { id: "api-reference", icon: Terminal,   items: ["api-staff","api-skills","api-departments","api-tasks","api-chat"] },
   { id: "deployment",    icon: Package,    items: ["deploy-docker","deploy-env"] },
   { id: "contributing",  icon: Heart,      items: ["contributing-guide","contributing-dev"] },
 ];
@@ -47,7 +47,7 @@ function DocSidebar({
     pricing: { en: "Pricing & Plans", vi: "Bảng giá & Gói dịch vụ", zh: "定价与计划", ja: "料金とプラン" },
     playground: { en: "Playground", vi: "Thử nghiệm (Playground)", zh: "演练场", ja: "プレイグラウンド" },
     analytics: { en: "Analytics", vi: "Phân tích & Thống kê", zh: "分析", ja: "分析" },
-    workspaces: { en: "Workspaces", vi: "Không gian làm việc", zh: "工作空间", ja: "ワークスペース" },
+    companies: { en: "Companies", vi: "Không gian làm việc", zh: "工作空间", ja: "ワークスペース" },
     settings: { en: "Settings", vi: "Cài đặt", zh: "设置", ja: "設定" },
   };
 
@@ -191,7 +191,7 @@ export default function Docs() {
     pricing: { en: "Pricing & Plans", vi: "Bảng giá & Gói dịch vụ", zh: "定价与计划", ja: "料金とプラン" },
     playground: { en: "Playground", vi: "Thử nghiệm (Playground)", zh: "演练场", ja: "プレイグラウンド" },
     analytics: { en: "Analytics", vi: "Phân tích & Thống kê", zh: "分析", ja: "分析" },
-    workspaces: { en: "Workspaces", vi: "Không gian làm việc", zh: "工作空间", ja: "ワークスペース" },
+    companies: { en: "Companies", vi: "Không gian làm việc", zh: "工作空间", ja: "ワークスペース" },
     settings: { en: "Settings", vi: "Cài đặt", zh: "设置", ja: "設定" },
   };
 

@@ -16,7 +16,7 @@ def parse_iso_utc(value: str | None) -> datetime | None:
     return dt.astimezone(timezone.utc)
 
 
-def default_agent_system_prompt(*, name: str, role: str, description: str) -> str:
+def default_staff_system_prompt(*, name: str, role: str, description: str) -> str:
     return (
         f"You are {name}, working as a {role}. "
         f"Your mission: {description.strip() or f'perform the responsibilities of a {role}'}. "

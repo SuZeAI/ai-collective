@@ -44,7 +44,7 @@ def _headers(api_key: str, beta_header: str) -> Dict[str, str]:
         "Authorization": f"Bearer {api_key}",
         "parallel-beta": beta_header,
         "Content-Type": "application/json",
-        "User-Agent": "ai-collective/parallel-search-tool",
+        "User-Staff": "ai-collective/parallel-search-tool",
     }
 
 

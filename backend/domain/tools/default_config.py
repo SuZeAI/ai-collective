@@ -118,7 +118,7 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 			},
 			{
 				"key": "user_agent",
-				"label": "User Agent",
+				"label": "User Staff",
 				"input": "text",
 				"required": False,
 				"default": "ai-collective/http-tool",
@@ -198,16 +198,16 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 		],
 	},
 	"a2a": {
-		"label": "A2A Agent (Agent2Agent)",
+		"label": "A2A Staff (Agent2Agent)",
 		"third_party": "A2A",
 		"config_fields": [
 			{
 				"key": "url",
-				"label": "Agent URL",
+				"label": "Staff URL",
 				"input": "text",
 				"required": True,
 				"default": "",
-				"placeholder": "https://other-agent.example.com  (base URL or agent-card .json)",
+				"placeholder": "https://other-staff.example.com  (base URL or staff-card .json)",
 			},
 			{
 				"key": "headers",
