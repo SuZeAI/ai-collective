@@ -8,15 +8,17 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import PlainTextResponse
 
 from backend.api.deps import (
-    get_agent_service,
+    get_staff_service,
     get_skill_tool_manager,
-    get_workspace_service,
+    get_company_service,
+    get_connection_service,
 )
-from backend.application.ports.agent_graph import GraphAgentDefinition
-from backend.application.service.agent_service import AgentService
-from backend.application.service.workspace_service import WorkspaceService
+from backend.application.ports.staff_graph import GraphStaffDefinition
+from backend.application.service.staff_service import StaffService
+from backend.application.service.company_service import CompanyService
+from backend.application.service.connection_service import ConnectionService
 from backend.domain.errors import NotFoundError
-from backend.domain.models import PlatformHook, Workspace
+from backend.domain.models import Connection, Company
 from backend.domain.thirty_part.registry import get_processor
 from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.log import get_logger
@@ -27,65 +29,82 @@ logger = get_logger(__name__)
 
 async def _process_message(
     platform: str,
-    hook: PlatformHook,
-    workspace: Workspace,
+    hook: Connection,
+    workspace: Company,
     chat_id: str,
     text: str,
-    agent_service: AgentService,
+    staff_service: StaffService,
     tool_manager: SkillToolManager,
 ) -> None:
-    """Run agent graph with user message and send response back to platform."""
+    """Run staff graph with user message and send response back to platform."""
     processor = get_processor(platform)
     if not processor:
         logger.warning(f"No processor for platform {platform}")
         return
 
     try:
-        from backend.api.deps import get_agent_graph_service, get_team_service
-        graph_service = get_agent_graph_service()
-        team_service = get_team_service()
+        from backend.api.deps import get_staff_graph_service, get_department_service
+        graph_service = get_staff_graph_service()
+        department_service = get_department_service()
 
         if not graph_service:
             await processor.send_response(hook.config, chat_id, "⚠️ AI service is not configured.")
             return
 
-        # Resolve agents from primary team
-        team_id = workspace.primary_team_id or (workspace.team_ids[0] if workspace.team_ids else None)
-        if not team_id:
-            await processor.send_response(hook.config, chat_id, "⚠️ No team configured for this workspace.")
-            return
+        # Resolve which staff handle this hook, with per-connection routing
+        # overrides taking priority over the company's primary department:
+        #   1. routing_staff_ids → exactly those staff
+        #   2. routing_department_id → that department's staff
+        #   3. (fallback) company primary department / first department
+        routing_staff_ids = list(getattr(hook, "routing_staff_ids", []) or [])
+        routing_department_id = getattr(hook, "routing_department_id", "") or ""
+        max_rounds_default = 6
 
-        team = team_service.get_team(team_id)
-        agent_defs: list[GraphAgentDefinition] = []
-        for agent_id in team.agents:
+        if routing_staff_ids:
+            staff_ids = routing_staff_ids
+        else:
+            department_id = (
+                routing_department_id
+                or workspace.primary_department_id
+                or (workspace.department_ids[0] if workspace.department_ids else None)
+            )
+            if not department_id:
+                await processor.send_response(hook.config, chat_id, "⚠️ No department configured for this workspace.")
+                return
+            department = department_service.get_department(department_id)
+            staff_ids = department.staff
+            max_rounds_default = department.max_steps or 6
+
+        staff_defs: list[GraphStaffDefinition] = []
+        for staff_id in staff_ids:
             try:
-                agent = agent_service.get_agent(agent_id)
-                skills = agent_service.get_agent_skills(agent_id)
+                staff = staff_service.get_staff(staff_id)
+                skills = staff_service.get_staff_skills(staff_id)
                 tools = []
                 for skill in skills:
                     tk = tool_manager.get_tool_for_skill(skill)
                     if tk:
                         tools.extend(tk.get_tools())
-                agent_defs.append(
-                    GraphAgentDefinition(
-                        agent_id=agent.id,
-                        name=agent.name,
-                        role=agent.role,
-                        system_prompt=agent.system_prompt or f"You are {agent.name}, a {agent.role}.",
+                staff_defs.append(
+                    GraphStaffDefinition(
+                        staff_id=staff.id,
+                        name=staff.name,
+                        role=staff.role,
+                        system_prompt=staff.system_prompt or f"You are {staff.name}, a {staff.role}.",
                         tools=tools,
                     )
                 )
             except Exception as e:
-                logger.warning(f"Could not load agent {agent_id}: {e}")
+                logger.warning(f"Could not load staff {staff_id}: {e}")
 
-        if not agent_defs:
-            await processor.send_response(hook.config, chat_id, "⚠️ No agents available in the configured team.")
+        if not staff_defs:
+            await processor.send_response(hook.config, chat_id, "⚠️ No staff available in the configured department.")
             return
 
         result = await graph_service.run_with_definitions(
             user_input=text,
-            definitions=agent_defs,
-            max_rounds=team.max_steps or 6,
+            definitions=staff_defs,
+            max_rounds=max_rounds_default,
         )
 
         # Extract final output text
@@ -109,23 +128,32 @@ async def _process_message(
             logger.warning("Failed to deliver error notification to %s/%s", platform, chat_id)
 
 
-@router.get("/{platform}/{workspace_id}/{hook_id}")
+def _resolve_hook(connections: ConnectionService, company_id: str, hook_id: str) -> Connection:
+    """Resolve an inbound-webhook Connection by id, verifying it belongs to company_id.
+
+    Inbound webhooks are now Connection rows (``kind="inbound_webhook"``) instead of
+    being embedded on the Company.
+    """
+    try:
+        hook = connections.get_connection(hook_id)
+    except NotFoundError:
+        raise HTTPException(status_code=404, detail="Hook not found")
+    if hook.kind != "inbound_webhook" or (hook.company_id or "") != company_id:
+        raise HTTPException(status_code=404, detail="Hook not found")
+    return hook
+
+
+@router.get("/{platform}/{company_id}/{hook_id}")
 async def webhook_verify(
     platform: str,
-    workspace_id: str,
+    company_id: str,
     hook_id: str,
     request: Request,
-    service: WorkspaceService = Depends(get_workspace_service),
+    service: CompanyService = Depends(get_company_service),
+    connections: ConnectionService = Depends(get_connection_service),
 ):
     """Handle GET-based webhook verification (Facebook, Instagram, WhatsApp, WeChat)."""
-    try:
-        workspace = service.get_workspace(workspace_id)
-    except (NotFoundError, KeyError):
-        raise HTTPException(status_code=404, detail="Workspace not found")
-
-    hook = next((h for h in workspace.platform_hooks if h.id == hook_id), None)
-    if not hook:
-        raise HTTPException(status_code=404, detail="Hook not found")
+    hook = _resolve_hook(connections, company_id, hook_id)
 
     processor = get_processor(platform)
     if not processor:
@@ -139,29 +167,28 @@ async def webhook_verify(
     return PlainTextResponse(content="OK")
 
 
-@router.post("/{platform}/{workspace_id}/{hook_id}")
+@router.post("/{platform}/{company_id}/{hook_id}")
 async def webhook_receive(
     platform: str,
-    workspace_id: str,
+    company_id: str,
     hook_id: str,
     request: Request,
     background_tasks: BackgroundTasks,
-    service: WorkspaceService = Depends(get_workspace_service),
-    agent_service: AgentService = Depends(get_agent_service),
+    service: CompanyService = Depends(get_company_service),
+    staff_service: StaffService = Depends(get_staff_service),
     tool_manager: SkillToolManager = Depends(get_skill_tool_manager),
+    connections: ConnectionService = Depends(get_connection_service),
 ):
-    """Receive incoming message from platform, process via agent graph, reply."""
-    try:
-        workspace = service.get_workspace(workspace_id)
-    except (NotFoundError, KeyError):
-        raise HTTPException(status_code=404, detail="Workspace not found")
-
-    hook = next((h for h in workspace.platform_hooks if h.id == hook_id), None)
-    if not hook:
-        raise HTTPException(status_code=404, detail="Hook not found")
+    """Receive incoming message from platform, process via staff graph, reply."""
+    hook = _resolve_hook(connections, company_id, hook_id)
 
     if not hook.enabled:
         return {"ok": True, "status": "hook_disabled"}
+
+    try:
+        workspace = service.get_company(company_id)
+    except (NotFoundError, KeyError):
+        raise HTTPException(status_code=404, detail="Company not found")
 
     processor = get_processor(platform)
     if not processor:
@@ -217,7 +244,7 @@ async def webhook_receive(
         workspace=workspace,
         chat_id=incoming.chat_id,
         text=incoming.text,
-        agent_service=agent_service,
+        staff_service=staff_service,
         tool_manager=tool_manager,
     )
 

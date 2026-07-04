@@ -8,7 +8,7 @@ Pika, Kling gateways, a self-hosted service, ...) by setting ``create_endpoint``
 ``status_endpoint`` and ``api_key``.
 
 If a provider returns the finished URL synchronously on creation, polling is
-skipped. Used by the Video Producer agent to render short-form clips.
+skipped. Used by the Video Producer staff to render short-form clips.
 """
 
 from __future__ import annotations

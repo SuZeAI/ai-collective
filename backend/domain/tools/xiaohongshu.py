@@ -28,7 +28,7 @@ def _request_json(
     retries: int = _DEFAULT_RETRIES,
 ) -> Dict[str, Any]:
     headers = {
-        "User-Agent": "ai-collective/xiaohongshu-tool",
+        "User-Staff": "ai-collective/xiaohongshu-tool",
     }
     data = None
     if payload is not None:

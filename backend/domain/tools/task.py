@@ -19,7 +19,7 @@ from typing import Any, List
 from langchain.tools import tool
 
 from backend.application.ports.llm import LLMProvider
-from backend.domain.agent.subagents import (
+from backend.domain.staff.subagents import (
     filter_tools,
     get_available_subagent_names,
     get_subagent_config,
@@ -58,16 +58,16 @@ class TaskToolkit(BaseToolkit):
         llm: LLMProvider,
         subagent_tools: List[Tool],
         max_concurrent: int = DEFAULT_MAX_CONCURRENT_SUBAGENTS,
-        parent_agent_name: str | None = None,
+        parent_staff_name: str | None = None,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
         # Stored as extra attributes (model_config allows extra fields).
         self._llm = llm
-        # Snapshot the parent agent's tools to hand to subagents.
+        # Snapshot the parent staff's tools to hand to subagents.
         self._subagent_tools = list(subagent_tools)
         self._max_concurrent = max(1, int(max_concurrent))
-        self._parent_agent_name = parent_agent_name
+        self._parent_staff_name = parent_staff_name
         # Lazily created so it binds to the active event loop.
         self._semaphore: asyncio.Semaphore | None = None
 
@@ -86,7 +86,7 @@ class TaskToolkit(BaseToolkit):
 
         Available subagent_type values:
         - general-purpose: Complex, multi-step tasks needing exploration and
-          action. Inherits all of this agent's tools.
+          action. Inherits all of this staff's tools.
         - research: Search and synthesize information from search/browse tools.
         - coding: Run bash commands and edit files inside the sandbox.
 
@@ -119,7 +119,7 @@ class TaskToolkit(BaseToolkit):
         _emit_event(
             {
                 "type": EventType.SUBAGENT_START.value,
-                "agent_name": self._parent_agent_name,
+                "agent_name": self._parent_staff_name,
                 "subagent_type": subagent_type,
                 "description": description,
             }
@@ -138,7 +138,7 @@ class TaskToolkit(BaseToolkit):
                 _emit_event(
                     {
                         "type": EventType.SUBAGENT_COMPLETE.value,
-                        "agent_name": self._parent_agent_name,
+                        "agent_name": self._parent_staff_name,
                         "subagent_type": subagent_type,
                         "description": description,
                         "error": str(exc),
@@ -149,7 +149,7 @@ class TaskToolkit(BaseToolkit):
         _emit_event(
             {
                 "type": EventType.SUBAGENT_COMPLETE.value,
-                "agent_name": self._parent_agent_name,
+                "agent_name": self._parent_staff_name,
                 "subagent_type": subagent_type,
                 "description": description,
             }

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 # Per-user token/cost consumption, broken down by department (team), staff
-# (agent) and human (user). Powers the Cost Monitoring page. Mirrors the camelCase
+# (staff) and human (user). Powers the Cost Monitoring page. Mirrors the camelCase
 # shape used by the admin monitoring schemas.
 
 
@@ -16,8 +16,8 @@ class ConsumptionTotalsSchema(BaseModel):
     cost: float
 
 
-class TeamConsumptionSchema(BaseModel):
-    teamId: str
+class DepartmentConsumptionSchema(BaseModel):
+    departmentId: str
     name: str
     inputTokens: int
     outputTokens: int
@@ -25,8 +25,8 @@ class TeamConsumptionSchema(BaseModel):
     cost: float
 
 
-class AgentConsumptionSchema(BaseModel):
-    agentName: str
+class StaffConsumptionSchema(BaseModel):
+    staffName: str
     name: str
     role: str = ""
     inputTokens: int
@@ -55,8 +55,8 @@ class DailyConsumptionSchema(BaseModel):
 class ConsumptionSchema(BaseModel):
     days: int
     totals: ConsumptionTotalsSchema
-    byTeam: list[TeamConsumptionSchema]
-    byAgent: list[AgentConsumptionSchema]
+    byDepartment: list[DepartmentConsumptionSchema]
+    byStaff: list[StaffConsumptionSchema]
     byUser: list[UserConsumptionSchema]
     byDay: list[DailyConsumptionSchema]
 
@@ -71,20 +71,20 @@ class ConsumptionSchema(BaseModel):
                 requests=s["totals"]["requests"],
                 cost=s["totals"]["cost"],
             ),
-            byTeam=[
-                TeamConsumptionSchema(
-                    teamId=t["team_id"],
+            byDepartment=[
+                DepartmentConsumptionSchema(
+                    departmentId=t["department_id"],
                     name=t["name"],
                     inputTokens=t["input_tokens"],
                     outputTokens=t["output_tokens"],
                     requests=t["requests"],
                     cost=t["cost"],
                 )
-                for t in s["by_team"]
+                for t in s["by_department"]
             ],
-            byAgent=[
-                AgentConsumptionSchema(
-                    agentName=a["agent_name"],
+            byStaff=[
+                StaffConsumptionSchema(
+                    staffName=a["agent_name"],
                     name=a["name"],
                     role=a.get("role", ""),
                     inputTokens=a["input_tokens"],
@@ -92,7 +92,7 @@ class ConsumptionSchema(BaseModel):
                     requests=a["requests"],
                     cost=a["cost"],
                 )
-                for a in s["by_agent"]
+                for a in s["by_staff"]
             ],
             byUser=[
                 UserConsumptionSchema(

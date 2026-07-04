@@ -5,13 +5,13 @@ to one ``conversation_id`` and reset when a run ends, long-term memory persists
 durable facts across tasks. Each record is scoped along three independent
 dimensions so it can be recalled at any granularity:
 
-* ``workspace_id`` — the Business Unit the knowledge belongs to.
+* ``company_id`` — the Business Unit the knowledge belongs to.
 * ``owner_id`` — the user it belongs to.
-* ``agent_id`` — the agent that learned it (persona / experience).
+* ``staff_id`` — the staff that learned it (persona / experience).
 
 Any dimension may be ``None`` ("applies broadly"). A recall query supplies a
 concrete scope and matches every record that is equal-or-broader on each
-dimension, so a workspace-wide fact surfaces for any agent in that workspace.
+dimension, so a workspace-wide fact surfaces for any staff in that workspace.
 
 This module is pure domain logic (dataclasses + scoring). Persistence lives in
 the repositories; orchestration in ``long_term_memory_service``.
@@ -41,9 +41,9 @@ def _clip(text: str, limit: int = 1000) -> str:
 class MemoryScope:
     """Three-dimensional scope. ``None`` on a dimension means 'applies broadly'."""
 
-    workspace_id: str | None = None
+    company_id: str | None = None
     owner_id: str | None = None
-    agent_id: str | None = None
+    staff_id: str | None = None
 
     @staticmethod
     def _norm(value: str | None) -> str | None:
@@ -52,9 +52,9 @@ class MemoryScope:
 
     def normalized(self) -> "MemoryScope":
         return MemoryScope(
-            workspace_id=self._norm(self.workspace_id),
+            company_id=self._norm(self.company_id),
             owner_id=self._norm(self.owner_id),
-            agent_id=self._norm(self.agent_id),
+            staff_id=self._norm(self.staff_id),
         )
 
     def matches(self, record: "MemoryRecord") -> bool:
@@ -73,9 +73,9 @@ class MemoryScope:
             return query_val == rec_val
 
         return (
-            dim_ok(self.workspace_id, record.workspace_id)
+            dim_ok(self.company_id, record.company_id)
             and dim_ok(self.owner_id, record.owner_id)
-            and dim_ok(self.agent_id, record.agent_id)
+            and dim_ok(self.staff_id, record.staff_id)
         )
 
 
@@ -84,9 +84,9 @@ class MemoryRecord:
     id: str
     content: str
     kind: str = "fact"
-    workspace_id: str | None = None
+    company_id: str | None = None
     owner_id: str | None = None
-    agent_id: str | None = None
+    staff_id: str | None = None
     embedding: list[float] | None = None
     importance: float = 0.5
     source_conversation_id: str | None = None
@@ -95,16 +95,16 @@ class MemoryRecord:
     access_count: int = 0
 
     def scope(self) -> MemoryScope:
-        return MemoryScope(self.workspace_id, self.owner_id, self.agent_id)
+        return MemoryScope(self.company_id, self.owner_id, self.staff_id)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "content": self.content,
             "kind": self.kind,
-            "workspace_id": self.workspace_id,
+            "workspace_id": self.company_id,
             "owner_id": self.owner_id,
-            "agent_id": self.agent_id,
+            "agent_id": self.staff_id,
             "embedding": self.embedding,
             "importance": self.importance,
             "source_conversation_id": self.source_conversation_id,
@@ -122,9 +122,9 @@ class MemoryRecord:
             id=str(data.get("id", "")),
             content=str(data.get("content", "")),
             kind=kind if kind in MEMORY_KINDS else "fact",
-            workspace_id=(data.get("workspace_id") or None),
+            company_id=(data.get("workspace_id") or None),
             owner_id=(data.get("owner_id") or None),
-            agent_id=(data.get("agent_id") or None),
+            staff_id=(data.get("agent_id") or None),
             embedding=embedding,
             importance=float(data.get("importance", 0.5) or 0.5),
             source_conversation_id=(data.get("source_conversation_id") or None),
@@ -166,7 +166,7 @@ def render_digest(records: list[MemoryRecord], *, max_chars: int = 2000) -> str:
     )
     lines = [header]
     for rec in records:
-        scope_bits = [b for b in (rec.agent_id, rec.kind) if b]
+        scope_bits = [b for b in (rec.staff_id, rec.kind) if b]
         tag = f"[{'/'.join(scope_bits)}] " if scope_bits else ""
         lines.append(f"- {tag}{_clip(rec.content, 300)}")
     out = "\n".join(lines)

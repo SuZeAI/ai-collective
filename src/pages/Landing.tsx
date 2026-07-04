@@ -59,7 +59,7 @@ const LOCAL_COPY = {
   en: {
     hero: {
       h1: "Build on the AI Collective Platform",
-      sub: "A high-performance multi-agent orchestration platform for programmable AI workforces. Deploy sequential, ring, mesh, or supervisor agent topologies with atomic tool integration.",
+      sub: "A high-performance multi-staff orchestration platform for programmable AI workforces. Deploy sequential, ring, mesh, or supervisor staff topologies with atomic tool integration.",
       cta1: "Start building",
       cta2: "See developer docs"
     },
@@ -67,10 +67,10 @@ const LOCAL_COPY = {
       title: "Choose how to get started",
       buildOwn: {
         title: "Deploy on your own",
-        sub: "Launch your own custom multi-agent workforce with:",
+        sub: "Launch your own custom multi-staff workforce with:",
         bullets: [
-          "Sequential, Ring, Mesh, or Supervisor agent topologies",
-          "50+ atomic skill toolkits (Google Workspace, browser automation, social media)",
+          "Sequential, Ring, Mesh, or Supervisor staff topologies",
+          "50+ atomic skill toolkits (Google Company, browser automation, social media)",
           "Automatic token budget management and context-window optimization",
           "Flexible backend: local run (JSON) or distributed scaling (Docker/RabbitMQ)",
           "Interactive Human-in-the-Loop steering capabilities",
@@ -82,7 +82,7 @@ const LOCAL_COPY = {
         title: "Enterprise Deployments",
         sub: "Need custom tool integrations, Kubernetes sandboxes, or hosted orchestration?",
         bullets: [
-          "Enterprise onboarding and custom agent topology design",
+          "Enterprise onboarding and custom staff topology design",
           "Custom API and database integrations with SLA guarantees",
           "Managed high-throughput RabbitMQ and Redis clustering",
           "Advanced secure code execution sandbox configuration (Docker/K8s)",
@@ -105,16 +105,16 @@ const LOCAL_COPY = {
           capabilities: [
             "Automated spaCy & LLM-based entity extraction",
             "Real-time graph building and state context loading",
-            "High token efficiency for agent debate rounds"
+            "High token efficiency for staff debate rounds"
           ]
         },
         {
           name: "Anthropic Claude",
-          desc: "Premier logic engine for multi-agent mesh coordinator and code generation.",
+          desc: "Premier logic engine for multi-staff mesh coordinator and code generation.",
           modelKey: "claude-3-5-sonnet",
           capabilities: [
             "Advanced prompt caching to reduce token overhead",
-            "Superior tool selection and agent delegation flow",
+            "Superior tool selection and staff delegation flow",
             "Structured code execution validation"
           ]
         },
@@ -124,13 +124,13 @@ const LOCAL_COPY = {
           modelKey: "gpt-4o",
           capabilities: [
             "Strict JSON schema enforcement for inputs/outputs",
-            "Multi-agent ring debate consensus formatting",
+            "Multi-staff ring debate consensus formatting",
             "Broad external API integrations"
           ]
         },
         {
           name: "Open Weight (Qwen)",
-          desc: "High-parameter open weight engine for self-hosted or air-gapped secure agent clusters.",
+          desc: "High-parameter open weight engine for self-hosted or air-gapped secure staff clusters.",
           modelKey: "qwen3.5-397B-A17B",
           capabilities: [
             "Self-hosted orchestration with zero data leakage",
@@ -141,38 +141,38 @@ const LOCAL_COPY = {
       ]
     },
     tools: {
-      title: "Capabilities of the Agent Mesh",
+      title: "Capabilities of the Staff Mesh",
       sub: "Explore the advanced runtime services powering the AI Collective platform.",
       cta: "See developer docs",
       list: [
-        { name: "Multi-Agent Topologies", desc: "Orchestrate sequential pipelines, ring debate patterns, mesh coordinator networks, or supervisor structures." },
-        { name: "50+ Skill Toolkits", desc: "Equip agents with Google Drive/Calendar, Playwright web scrapers, social feeds, and productivity tools." },
-        { name: "Subagent Delegation", desc: "Allow main agents to spawn and run parallel subagents concurrently with strict turn limits." },
-        { name: "Real-time SSE Streaming", desc: "Follow execution progress turn-by-turn with transparent event logs (agent_start, llm_request, subagent_complete)." },
+        { name: "Multi-Staff Topologies", desc: "Orchestrate sequential pipelines, ring debate patterns, mesh coordinator networks, or supervisor structures." },
+        { name: "50+ Skill Toolkits", desc: "Equip staff with Google Drive/Calendar, Playwright web scrapers, social feeds, and productivity tools." },
+        { name: "subagent Delegation", desc: "Allow main staff to spawn and run parallel subagents concurrently with strict turn limits." },
+        { name: "Real-time SSE Streaming", desc: "Follow execution progress turn-by-turn with transparent event logs (staff_start, llm_request, subagent_complete)." },
         { name: "Secure Sandbox Execution", desc: "Safely execute Python/Bash commands inside isolated local, Docker, or Kubernetes sandbox environments." },
-        { name: "Knowledge Graph Memory", desc: "Extract conversation context dynamically via NLP (spaCy) or LLMs to build a queryable semantic memory." },
+        { name: "Knowledge Graph Memory", desc: "Extract meeting context dynamically via NLP (spaCy) or LLMs to build a queryable semantic memory." },
         { name: "Context & Token Budgeting", desc: "Automatically trim and optimize context windows when approaching token limits." },
-        { name: "Human-in-the-Loop", desc: "Intervene in ongoing multi-agent discussions to steer agents or provide manual task inputs." },
-        { name: "Multi-Workspace Isolation", desc: "Secure multi-tenant data segmentation using JWT validation, Google OAuth, and database isolation." }
+        { name: "Human-in-the-Loop", desc: "Intervene in ongoing multi-staff discussions to steer staff or provide manual task inputs." },
+        { name: "Multi-Company Isolation", desc: "Secure multi-tenant data segmentation using JWT validation, Google OAuth, and database isolation." }
       ]
     },
     console: {
-      title: "Manage Teams inside the AI Collective Console",
-      sub: "Integrate powerful multi-agent teams into your existing application stack via clean FastAPI endpoints and interactive dashboards.",
+      title: "Manage Departments inside the AI Collective Console",
+      sub: "Integrate powerful multi-staff departments into your existing application stack via clean FastAPI endpoints and interactive dashboards.",
       devTitle: "Built for AI Engineers",
       desc: "Monitor, test, and tune your workforce:",
       bullets: [
-        "Create, edit, and configure custom agents and tools in real-time",
-        "Trace agent execution steps, token cost logs, and message histories",
-        "Interact directly with teams during multi-round runs"
+        "Create, edit, and configure custom staff and tools in real-time",
+        "Trace staff execution steps, token cost logs, and message histories",
+        "Interact directly with departments during multi-round runs"
       ]
     },
     usecases: {
-      title: "Real-world Multi-Agent Use Cases",
+      title: "Real-world Multi-Staff Use Cases",
       list: [
         {
           name: "Financial Debate",
-          desc: "Spawn a team of analysts debating market indicators using real-time Brave search tools under a Ring topology."
+          desc: "Spawn a department of analysts debating market indicators using real-time Brave search tools under a Ring topology."
         },
         {
           name: "Editorial Pipeline",
@@ -180,7 +180,7 @@ const LOCAL_COPY = {
         },
         {
           name: "Software Auditing",
-          desc: "Run automated vulnerability scanner agents that execute and test code within secure, isolated sandboxes."
+          desc: "Run automated vulnerability scanner staff that execute and test code within secure, isolated sandboxes."
         },
         {
           name: "Parallel Web Crawling",
@@ -210,7 +210,7 @@ const LOCAL_COPY = {
       features: "Features",
       models: "Models",
       useCases: "Use cases",
-      aiAgents: "AI agents",
+      aiStaff: "AI staff",
       dataPipelines: "Data pipelines",
       codeReview: "Code review",
       companySize: "Company size",
@@ -233,27 +233,27 @@ const LOCAL_COPY = {
     testimonials: [
       {
         logo: "CODEMESH",
-        text: "“On AgentBench, the AI Collective multi-agent mesh architecture gave us immediate latency improvements and clean orchestration.”",
+        text: "“On StaffBench, the AI Collective multi-staff mesh architecture gave us immediate latency improvements and clean orchestration.”",
         author: "Marcus Vance, CEO"
       },
       {
         logo: "EVENTPASS",
-        text: "“Deploying multi-agent workflows was simple. The reliability and flexibility of the LangGraph topology options made the transition seamless.”",
+        text: "“Deploying multi-staff workflows was simple. The reliability and flexibility of the LangGraph topology options made the transition seamless.”",
         author: "Taylor Addison, Engineering Chief of Staff"
       },
       {
         logo: "SPARKAGENT",
-        text: "“The ability to run secure code execution sandbox alongside specialized toolkits has elevated our agent performance by a wide margin.”",
-        author: "SparkAgent Core Team"
+        text: "“The ability to run secure code execution sandbox alongside specialized toolkits has elevated our staff performance by a wide margin.”",
+        author: "SparkStaff Core Department"
       },
       {
         logo: "SHOPMESH",
         text: "“AI Collective handles ticket triage, multi-step workflows, and complex conversational queries with robust human-in-the-loop support.”",
-        author: "ShopMesh Dev Team"
+        author: "ShopMesh Dev Department"
       }
     ],
     footerSitemap: {
-      rights: "All rights reserved. Integrating agent mesh networks across public and local systems.",
+      rights: "All rights reserved. Integrating staff mesh networks across public and local systems.",
       products: "Products",
       orchestrator: "Orchestrator",
       pricing: "Pricing",
@@ -271,7 +271,7 @@ const LOCAL_COPY = {
   vi: {
     hero: {
       h1: "Xây dựng trên Nền tảng AI Collective",
-      sub: "Nền tảng điều phối đa tác nhân (multi-agent) hiệu năng cao cho lực lượng lao động AI lập trình được. Triển khai các cấu trúc Sequential, Ring, Mesh hoặc Supervisor với tích hợp công cụ nguyên tử.",
+      sub: "Nền tảng điều phối đa tác nhân (multi-staff) hiệu năng cao cho lực lượng lao động AI lập trình được. Triển khai các cấu trúc Sequential, Ring, Mesh hoặc Supervisor với tích hợp công cụ nguyên tử.",
       cta1: "Bắt đầu xây dựng",
       cta2: "Xem tài liệu lập trình"
     },
@@ -282,7 +282,7 @@ const LOCAL_COPY = {
         sub: "Khởi chạy lực lượng lao động đa tác nhân tùy chỉnh của bạn với:",
         bullets: [
           "Các cấu trúc tác nhân: Sequential, Ring, Mesh hoặc Supervisor",
-          "Hơn 50 bộ công cụ nguyên tử (Google Workspace, tự động hóa trình duyệt, mạng xã hội)",
+          "Hơn 50 bộ công cụ nguyên tử (Google Company, tự động hóa trình duyệt, mạng xã hội)",
           "Tự động quản lý ngân sách Token và tối ưu hóa cửa sổ ngữ cảnh",
           "Backend linh hoạt: chạy local (JSON) hoặc mở rộng phân tán (Docker/RabbitMQ)",
           "Tương tác điều hướng trực tiếp bằng cơ chế Human-in-the-loop",
@@ -360,12 +360,12 @@ const LOCAL_COPY = {
         { name: "Điều phối Đa tác nhân", desc: "Điều phối luồng tuần tự, tranh luận vòng tròn, mạng điều phối mesh hoặc cấu trúc supervisor." },
         { name: "Hơn 50 bộ công cụ", desc: "Trang bị cho tác nhân Google Drive, Sheets, công cụ tìm kiếm Brave, mạng xã hội và các tiện ích hệ thống." },
         { name: "Ủy thác Tác nhân con", desc: "Cho phép tác nhân chính tạo và chạy song song các tác nhân con đồng thời với giới hạn lượt nghiêm ngặt." },
-        { name: "Luồng SSE thời gian thực", desc: "Theo dõi tiến trình thực thi từng lượt với các sự kiện chi tiết (agent_start, llm_request, subagent_complete)." },
+        { name: "Luồng SSE thời gian thực", desc: "Theo dõi tiến trình thực thi từng lượt với các sự kiện chi tiết (staff_start, llm_request, subagent_complete)." },
         { name: "Môi trường Sandbox an toàn", desc: "Thực thi an toàn các lệnh Python/Bash trong các sandbox biệt lập trên Local, Docker hoặc Kubernetes." },
         { name: "Bộ nhớ biểu đồ tri thức", desc: "Trích xuất ngữ cảnh động qua NLP (spaCy) hoặc LLM để xây dựng bộ nhớ ngữ nghĩa có thể truy vấn." },
         { name: "Quản lý ngân sách Token", desc: "Tự động cắt tỉa và tối ưu hóa cửa sổ ngữ cảnh khi tiệm cận giới hạn token để kiểm soát chi phí." },
         { name: "Human-in-the-Loop", desc: "Can thiệp trực tiếp vào các cuộc thảo luận của tác nhân để hướng dẫn hoặc cung cấp dữ liệu đầu vào thủ công." },
-        { name: "Phân vùng Workspace", desc: "Phân vùng dữ liệu an toàn cho nhiều workspace bằng JWT và cơ chế xác thực Google OAuth." }
+        { name: "Phân vùng Company", desc: "Phân vùng dữ liệu an toàn cho nhiều company bằng JWT và cơ chế xác thực Google OAuth." }
       ]
     },
     console: {
@@ -422,7 +422,7 @@ const LOCAL_COPY = {
       features: "Tính năng",
       models: "Mô hình",
       useCases: "Trường hợp sử dụng",
-      aiAgents: "Tác nhân AI",
+      aiStaff: "Tác nhân AI",
       dataPipelines: "Luồng dữ liệu",
       codeReview: "Kiểm định mã nguồn",
       companySize: "Quy mô công ty",
@@ -445,7 +445,7 @@ const LOCAL_COPY = {
     testimonials: [
       {
         logo: "CODEMESH",
-        text: "“Trên AgentBench, kiến trúc mesh đa tác nhân của AI Collective đã mang lại cải tiến độ trễ tức thì và điều phối gọn gàng cho chúng tôi.”",
+        text: "“Trên StaffBench, kiến trúc mesh đa tác nhân của AI Collective đã mang lại cải tiến độ trễ tức thì và điều phối gọn gàng cho chúng tôi.”",
         author: "Marcus Vance, CEO"
       },
       {
@@ -456,12 +456,12 @@ const LOCAL_COPY = {
       {
         logo: "SPARKAGENT",
         text: "“Khả năng chạy sandbox thực thi mã an toàn bên cạnh các bộ công cụ chuyên dụng đã nâng cao hiệu suất tác nhân của chúng tôi lên một mức vượt trội.”",
-        author: "SparkAgent Core Team"
+        author: "SparkStaff Core Department"
       },
       {
         logo: "SHOPMESH",
         text: "“AI Collective xử lý phân loại ticket, quy trình nhiều bước và các câu hỏi hội thoại phức tạp với sự hỗ trợ Human-in-the-loop mạnh mẽ.”",
-        author: "ShopMesh Dev Team"
+        author: "ShopMesh Dev Department"
       }
     ],
     footerSitemap: {
@@ -494,7 +494,7 @@ const LOCAL_COPY = {
         sub: "启动您定制的多智能体员工：",
         bullets: [
           "顺序、环形、网状或主管智能体拓扑",
-          "50+ 原子级技能工具包（Google Workspace、浏览器自动化、社交媒体）",
+          "50+ 原子级技能工具包（Google Company、浏览器自动化、社交媒体）",
           "自动代币预算管理和上下文窗口优化",
           "灵活的后端：本地运行 (JSON) 或分布式扩展 (Docker/RabbitMQ)",
           "交互式人机协同 (Human-in-the-Loop) 指导能力",
@@ -565,14 +565,14 @@ const LOCAL_COPY = {
       ]
     },
     tools: {
-      title: "智能体网格 (Agent Mesh) 能力",
+      title: "智能体网格 (Staff Mesh) 能力",
       sub: "探索为 AI Collective 平台提供支持的高级运行时服务。",
       cta: "查看开发者文档",
       list: [
         { name: "多智能体拓扑", desc: "编排顺序流水线、环形辩论模式、网状协调器网络或主管结构。" },
         { name: "50+ 技能工具包", desc: "为智能体装备 Google Drive/日历、Playwright 网页抓取、社交动态和生产力工具。" },
         { name: "子智能体委派", desc: "允许主智能体并发生成并运行具有严格轮次限制的并行子智能体。" },
-        { name: "实时 SSE 流式传输", desc: "通过透明的事件日志（agent_start, llm_request, subagent_complete）逐轮跟踪执行进度。" },
+        { name: "实时 SSE 流式传输", desc: "通过透明的事件日志（staff_start, llm_request, subagent_complete）逐轮跟踪执行进度。" },
         { name: "安全沙箱执行", desc: "在隔离的本地、Docker 或 Kubernetes 沙箱环境中安全地执行 Python/Bash 命令。" },
         { name: "知识图谱记忆", desc: "通过 NLP (spaCy) 或 LLM 动态提取对话上下文，构建可查询的语义记忆。" },
         { name: "上下文与代币预算", desc: "在接近代币限制时自动修剪和优化上下文窗口。" },
@@ -634,7 +634,7 @@ const LOCAL_COPY = {
       features: "功能",
       models: "模型",
       useCases: "使用场景",
-      aiAgents: "AI 智能体",
+      aiStaff: "AI 智能体",
       dataPipelines: "数据流水线",
       codeReview: "代码评审",
       companySize: "公司规模",
@@ -657,7 +657,7 @@ const LOCAL_COPY = {
     testimonials: [
       {
         logo: "CODEMESH",
-        text: "“在 AgentBench 上，AI Collective 的多智能体网格架构为我们带来了即时的延迟改善和干净的编排。”",
+        text: "“在 StaffBench 上，AI Collective 的多智能体网格架构为我们带来了即时的延迟改善和干净的编排。”",
         author: "Marcus Vance, CEO"
       },
       {
@@ -668,7 +668,7 @@ const LOCAL_COPY = {
       {
         logo: "SPARKAGENT",
         text: "“在专用工具包旁运行安全代码执行沙箱的能力，极大地提升了我们智能体的表现。”",
-        author: "SparkAgent 核心团队"
+        author: "SparkStaff 核心团队"
       },
       {
         logo: "SHOPMESH",
@@ -706,7 +706,7 @@ const LOCAL_COPY = {
         sub: "以下を使用して、独自のカスタムマルチエージェント労働力を起動します：",
         bullets: [
           "シーケンシャル、リング、メッシュ、またはスーパーバイザーのエージェントトポロジー",
-          "50以上の原子スキルツールキット（Google Workspace、ブラウザ自動化、ソーシャルメディア）",
+          "50以上の原子スキルツールキット（Google Company、ブラウザ自動化、ソーシャルメディア）",
           "自動トークン予算管理とコンテキストウィンドウの最適化",
           "柔軟なバックエンド：ローカル実行 (JSON) 或いは分散スケーリング (Docker/RabbitMQ)",
           "対話型ヒューマンインザループ（Human-in-the-Loop）ステアリング機能",
@@ -777,14 +777,14 @@ const LOCAL_COPY = {
       ]
     },
     tools: {
-      title: "エージェントメッシュ (Agent Mesh) の機能",
+      title: "エージェントメッシュ (Staff Mesh) の機能",
       sub: "AI Collective プラットフォームを駆動する高度なランタイムサービスを探索してください。",
       cta: "開発者ドキュメントを見る",
       list: [
         { name: "マルチエージェントトポロジー", desc: "シーケンシャルパイプライン、リング討論パターン、メッシュコーディネーターネットワーク、またはスーパーバイザー構造を編成します。" },
         { name: "50以上のスキルツールキット", desc: "エージェントに Google ドライブ/カレンダー、Playwright ウェブスクレイパー、ソーシャルフィード、生産性ツールを装備します。" },
         { name: "サブエージェント委任", desc: "メインエージェントが、厳密なターン制限を持つ並列サブエージェントを同時に生成して実行できるようにします。" },
-        { name: "リアルタイム SSE ストリーミング", desc: "透明なイベントログ（agent_start、llm_request、subagent_complete）で実行プロセスをターンごとに追跡します。" },
+        { name: "リアルタイム SSE ストリーミング", desc: "透明なイベントログ（staff_start、llm_request、subagent_complete）で実行プロセスをターンごとに追跡します。" },
         { name: "安全なサンドボックス実行", desc: "分離されたローカル、Docker、または Kubernetes サンドボックス環境内で Python/Bash コマンドを安全に実行します。" },
         { name: "ナレッジグラフメモリ", desc: "NLP (spaCy) または LLM を介して会話コンテキストを動的に抽出し、クエリ可能なセマンティックメモリを構築します。" },
         { name: "コンテキストとトークンバジェット", desc: "トークン制限に近づいたときに、コンテキストウィンドウを自動的にトリミングおよび最適化します。" },
@@ -846,7 +846,7 @@ const LOCAL_COPY = {
       features: "機能",
       models: "モデル",
       useCases: "ユースケース",
-      aiAgents: "AI エージェント",
+      aiStaff: "AI エージェント",
       dataPipelines: "データパイプライン",
       codeReview: "コードレビュー",
       companySize: "会社規模",
@@ -869,7 +869,7 @@ const LOCAL_COPY = {
     testimonials: [
       {
         logo: "CODEMESH",
-        text: "“AgentBenchにおいて、AI Collectiveのマルチエージェントメッシュアーキテクチャは、即時のレイテンシ改善とクリーンなオーケストレーションを私たちにもたらしました。”",
+        text: "“StaffBenchにおいて、AI Collectiveのマルチエージェントメッシュアーキテクチャは、即時のレイテンシ改善とクリーンなオーケストレーションを私たちにもたらしました。”",
         author: "Marcus Vance, CEO"
       },
       {
@@ -880,7 +880,7 @@ const LOCAL_COPY = {
       {
         logo: "SPARKAGENT",
         text: "“専用ツールキットと並行して安全なコード実行サンドボックスを実行する機能により、エージェントのパフォーマンスが大幅に向上しました。”",
-        author: "SparkAgent コアチーム"
+        author: "SparkStaff コアチーム"
       },
       {
         logo: "SHOPMESH",
@@ -989,7 +989,7 @@ export default function Landing() {
                           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">{t.header.products}</p>
                           <div className="space-y-2.5">
                             <Link to="/meet" className="block text-sm text-foreground hover:text-accent transition-colors font-medium">AI Collective</Link>
-                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Agent Mesh</Link>
+                            <Link to="/meet" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Staff Mesh</Link>
                           </div>
                         </div>
                         <div>
@@ -1063,7 +1063,7 @@ export default function Landing() {
                         <div>
                           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">{t.header.useCases}</p>
                           <div className="space-y-2.5">
-                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.header.aiAgents}</Link>
+                            <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.header.aiStaff}</Link>
                             <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.header.dataPipelines}</Link>
                             <Link to="/solutions" className="block text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{t.header.codeReview}</Link>
                           </div>
@@ -1225,7 +1225,7 @@ export default function Landing() {
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">{t.header.products}</p>
                         <div className="flex flex-col gap-2">
                           <Link to="/meet" onClick={() => setMobileMenuOpen(false)} className="text-sm text-foreground hover:text-accent transition-colors font-medium">AI Collective</Link>
-                          <Link to="/meet" onClick={() => setMobileMenuOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Agent Mesh</Link>
+                          <Link to="/meet" onClick={() => setMobileMenuOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Staff Mesh</Link>
                         </div>
                       </div>
                       <div>
@@ -1303,7 +1303,7 @@ export default function Landing() {
                       <div>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">{t.header.useCases}</p>
                         <div className="flex flex-col gap-2">
-                          <Link to="/solutions" onClick={() => setMobileMenuOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">{t.header.aiAgents}</Link>
+                          <Link to="/solutions" onClick={() => setMobileMenuOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">{t.header.aiStaff}</Link>
                           <Link to="/solutions" onClick={() => setMobileMenuOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">{t.header.dataPipelines}</Link>
                           <Link to="/solutions" onClick={() => setMobileMenuOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">{t.header.codeReview}</Link>
                         </div>
@@ -1440,7 +1440,7 @@ export default function Landing() {
 
           <div className="lg:col-span-6 flex justify-center">
             <FadeIn delay={0.1}>
-              {/* Balanced Dynamic Spiderweb Multi-Agent Mesh with Descending Spider */}
+              {/* Balanced Dynamic Spiderweb Multi-Staff Mesh with Descending Spider */}
               <div className="relative w-full max-w-[500px] aspect-square flex items-center justify-center bg-transparent">
                 <svg viewBox="0 0 400 400" className="w-full h-full text-foreground" fill="none">
                   <style>{`
@@ -1704,7 +1704,7 @@ export default function Landing() {
                       stroke-dasharray: 754;
                       animation: drawOuter 36s linear infinite;
                     }
-                    .agent-text {
+                    .staff-text {
                       font-family: var(--font-mono, monospace);
                       font-weight: 700;
                       font-size: 13.5px;
@@ -1870,49 +1870,49 @@ export default function Landing() {
                     <line x1="70" y1="180" x2="280" y2="310" stroke="currentColor" strokeWidth="1" strokeDasharray="3,6" />
                   </g>
 
-                  {/* Agent Mesh Nodes */}
+                  {/* Staff Mesh Nodes */}
                   
-                  {/* 1. Supervisor Agent */}
+                  {/* 1. Supervisor Staff */}
                   <g className="cursor-pointer">
                     <circle cx="200" cy="90" r="10" fill="currentColor" />
                     <circle cx="200" cy="90" r="18" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
-                    <text x="200" y="62" textAnchor="middle" className="agent-text">
+                    <text x="200" y="62" textAnchor="middle" className="staff-text">
                       SUPERVISOR
                     </text>
                   </g>
 
-                  {/* 2. Coder Agent */}
+                  {/* 2. Coder Staff */}
                   <g className="cursor-pointer">
                     <circle cx="330" cy="180" r="8" fill="currentColor" />
                     <circle cx="330" cy="180" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
-                    <text x="355" y="184" textAnchor="start" className="agent-text">
+                    <text x="355" y="184" textAnchor="start" className="staff-text">
                       CODER
                     </text>
                   </g>
 
-                  {/* 3. Search Agent */}
+                  {/* 3. Search Staff */}
                   <g className="cursor-pointer">
                     <circle cx="280" cy="310" r="8" fill="currentColor" />
                     <circle cx="280" cy="310" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
-                    <text x="280" y="342" textAnchor="middle" className="agent-text">
+                    <text x="280" y="342" textAnchor="middle" className="staff-text">
                       SEARCH
                     </text>
                   </g>
 
-                  {/* 4. Writer Agent */}
+                  {/* 4. Writer Staff */}
                   <g className="cursor-pointer">
                     <circle cx="120" cy="310" r="8" fill="currentColor" />
                     <circle cx="120" cy="310" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
-                    <text x="120" y="342" textAnchor="middle" className="agent-text">
+                    <text x="120" y="342" textAnchor="middle" className="staff-text">
                       WRITER
                     </text>
                   </g>
 
-                  {/* 5. Browser Agent */}
+                  {/* 5. Browser Staff */}
                   <g className="cursor-pointer">
                     <circle cx="70" cy="180" r="8" fill="currentColor" />
                     <circle cx="70" cy="180" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
-                    <text x="45" y="184" textAnchor="end" className="agent-text">
+                    <text x="45" y="184" textAnchor="end" className="staff-text">
                       BROWSER
                     </text>
                   </g>
@@ -2179,7 +2179,7 @@ export default function Landing() {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <div className="text-[10px] text-zinc-500 uppercase font-semibold">Active Agent Team</div>
+                  <div className="text-[10px] text-zinc-500 uppercase font-semibold">Active Staff Department</div>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="bg-zinc-900 border border-white/5 rounded-lg px-2.5 py-1.5 text-[10px]">
                       <span className="text-zinc-500 font-semibold block text-[8px] uppercase">Lead</span>
@@ -2187,11 +2187,11 @@ export default function Landing() {
                     </div>
                     <div className="bg-zinc-900 border border-white/5 rounded-lg px-2.5 py-1.5 text-[10px]">
                       <span className="text-zinc-500 font-semibold block text-[8px] uppercase">Sandbox Exec</span>
-                      <span className="text-zinc-300 font-medium">Coder Agent</span>
+                      <span className="text-zinc-300 font-medium">Coder Staff</span>
                     </div>
                     <div className="bg-zinc-900 border border-white/5 rounded-lg px-2.5 py-1.5 text-[10px]">
                       <span className="text-accent font-semibold block text-[8px] uppercase">Human-In-Loop</span>
-                      <span className="text-zinc-300 font-medium">Auditor Agent</span>
+                      <span className="text-zinc-300 font-medium">Auditor Staff</span>
                     </div>
                   </div>
                 </div>
@@ -2200,7 +2200,7 @@ export default function Landing() {
                   <div className="bg-zinc-900 border border-white/5 rounded-lg p-3 space-y-2 text-[10px]">
                     <div className="flex items-start gap-2">
                       <span className="text-emerald-500 font-semibold uppercase text-[8px] mt-0.5 px-1 rounded bg-emerald-500/10 border border-emerald-500/20">SSE</span>
-                      <span className="text-zinc-400">Event: <span className="text-zinc-300">agent_turn_start</span> ➔ Coder Agent</span>
+                      <span className="text-zinc-400">Event: <span className="text-zinc-300">staff_turn_start</span> ➔ Coder Staff</span>
                     </div>
                     <div className="flex items-start gap-2 pl-4 border-l border-zinc-800">
                       <span className="text-zinc-500 mt-0.5">&gt;</span>

@@ -1,4 +1,4 @@
-export type Agent = {
+export type Staff = {
   id: string;
   name: string;
   role: string;
@@ -71,10 +71,10 @@ export type GoogleSheetOAuthStatusResponse = {
   error: string;
 };
 
-export type TeamMode = "mesh" | "sequential" | "ring" | "supervisor" | "tree" | "custom";
+export type DepartmentMode = "mesh" | "sequential" | "ring" | "supervisor" | "tree" | "custom";
 
-// For mode === "custom": the user-drawn flow graph. Node ids equal agent ids
-// (one node per agent); positions are kept so the editor can restore the layout.
+// For mode === "custom": the user-drawn flow graph. Node ids equal staff ids
+// (one node per staff); positions are kept so the editor can restore the layout.
 export type CustomFlowNode = { id: string; position: { x: number; y: number } };
 export type CustomFlowEdge = { id: string; source: string; target: string };
 export type CustomFlow = {
@@ -82,17 +82,17 @@ export type CustomFlow = {
   edges: CustomFlowEdge[];
 };
 
-export type Team = {
+export type Department = {
   id: string;
   name: string;
   description: string;
-  agents: string[];
+  staff: string[];
   activeTasks: number;
   avatar?: string;
   avatar_icon?: string;
   avatar_color?: string;
   avatar_url?: string;
-  mode?: TeamMode;
+  mode?: DepartmentMode;
   maxSteps?: number;
   owner_id?: string;
   flow?: CustomFlow | null;
@@ -115,10 +115,10 @@ export type Task = {
   id: string;
   title: string;
   description: string;
-  teamId: string;
+  departmentId: string;
   status: "pending" | "in-progress" | "in-review" | "paused" | "stopped" | "completed" | string;
   progress: number;
-  assignedAgents: string[];
+  assignedStaff: string[];
   startTime?: string | null;
   endTime?: string | null;
   owner_id?: string;
@@ -141,7 +141,7 @@ export type Project = {
   name: string;
   description?: string;
   leadId?: string;
-  plannerAgentId?: string;
+  plannerStaffId?: string;
   plannerSystemPrompt?: string;
   issueCounter?: number;
   createdAt?: string | null;
@@ -186,7 +186,7 @@ export type DraftIssue = {
 
 export type Message = {
   id: string;
-  agentId: string;
+  staffId: string;
   content: string;
   timestamp: string;
   taskId?: string | null;
@@ -240,16 +240,17 @@ export type PlatformHook = {
 };
 
 // A company's "type" tailors which operational options are *suggested* inside
-// it (never hides any — see COMPANY_TYPES). Persisted on the workspace.
+// it (never hides any — see COMPANY_TYPES). Persisted on the company.
 export type CompanyType = "software" | "marketing" | "research" | "general";
 
-export type Workspace = {
+export type Company = {
   id: string;
   name: string;
   description: string;
-  teamIds: string[];
-  primaryTeamId: string;
-  platformHooks: PlatformHook[];
+  departmentIds: string[];
+  primaryDepartmentId: string;
+  // Client-populated from inbound-webhook Connections (not returned by the API).
+  platformHooks?: PlatformHook[];
   createdAt: string;
   type?: CompanyType;
   avatar?: string;
@@ -259,12 +260,21 @@ export type Workspace = {
   owner_id?: string;
 };
 
-export type ThirdPartyConnection = {
+// Unified third-party integration (formerly PlatformHook + ThirdPartyConnection).
+// `kind: "inbound_webhook"` = a per-company webhook (carries `companyId`);
+// `kind: "outbound"` = an account-level connection.
+export type Connection = {
   id: string;
   platform: string;
   name: string;
-  config: Record<string, string>;
+  config: Record<string, unknown>;
   description: string;
+  enabled: boolean;
+  kind: "inbound_webhook" | "outbound";
+  companyId: string;
+  // Per-connection routing override (inbound webhooks). Empty → company primary department.
+  routingDepartmentId: string;
+  routingStaffIds: string[];
   createdAt: string;
 };
 
@@ -287,13 +297,13 @@ export type PlatformDef = {
 export type Analytics = {
   tasksCompleted: number;
   avgCompletionTime: string;
-  teamEfficiency: number;
-  agentProductivity: Record<string, number>;
+  departmentEfficiency: number;
+  staffProductivity: Record<string, number>;
 };
 
 export type ActivityFeedItem = {
   id: string;
-  agentId: string;
+  staffId: string;
   action: string;
   time: string;
 };
@@ -301,7 +311,7 @@ export type ActivityFeedItem = {
 export type ChatRequest = {
   prompt: string;
   system?: string;
-  agentId?: string;
+  staffId?: string;
   conversationId?: string;
 };
 
@@ -309,7 +319,7 @@ export type ChatResponse = {
   response: string;
 };
 
-// ─── Office Builder (chat to create office → departments → humans → skills) ──
+// ─── Office Builder (chat to create office → departments → staff → skills) ──
 
 export type OfficeSkillPlan = {
   name: string;
@@ -317,7 +327,7 @@ export type OfficeSkillPlan = {
   tool_name?: string | null;
 };
 
-export type OfficeHumanPlan = {
+export type OfficeStaffPlan = {
   name: string;
   role: string;
   description: string;
@@ -327,19 +337,19 @@ export type OfficeHumanPlan = {
 export type OfficeDepartmentPlan = {
   name: string;
   description: string;
-  mode: TeamMode | string;
-  humans: OfficeHumanPlan[];
+  mode: DepartmentMode | string;
+  staff: OfficeStaffPlan[];
 };
 
-// Build the run-stream custom_graph payload from a team's saved flow. Returns
-// undefined unless the team is in custom mode with at least one wired edge, so
+// Build the run-stream custom_graph payload from a department's saved flow. Returns
+// undefined unless the department is in custom mode with at least one wired edge, so
 // callers can fall back to another mode when the flow was never drawn.
 export function buildCustomGraphPayload(
-  team: Pick<Team, "mode" | "flow">,
+  department: Pick<Department, "mode" | "flow">,
 ): { edges: { source: string; target: string }[] } | undefined {
-  if (team.mode !== "custom" || !team.flow?.edges?.length) return undefined;
+  if (department.mode !== "custom" || !department.flow?.edges?.length) return undefined;
   return {
-    edges: team.flow.edges.map((e) => ({ source: e.source, target: e.target })),
+    edges: department.flow.edges.map((e) => ({ source: e.source, target: e.target })),
   };
 }
 
@@ -367,9 +377,9 @@ export type OfficeBuilderStreamEvent =
   | { type: "error"; detail: string };
 
 export type ApplyOfficePlanResponse = {
-  workspace: Workspace;
-  team_ids: string[];
-  agent_ids: string[];
+  company: Company;
+  department_ids: string[];
+  staff_ids: string[];
   skill_ids: string[];
   reused_skill_ids: string[];
 };
@@ -381,7 +391,7 @@ export type OfficeBuilderSession = {
   plan: OfficePlan | null;
   createdAt: string;
   updatedAt: string;
-  workspaceId: string;
+  companyId: string;
   owner_id?: string;
 };
 
@@ -392,7 +402,7 @@ export type OfficeBuilderSessionSummary = {
   hasPlan: boolean;
   createdAt: string;
   updatedAt: string;
-  workspaceId: string;
+  companyId: string;
   owner_id?: string;
 };
 
@@ -473,10 +483,10 @@ export type UsageSummary = {
   byDay: DailyUsage[];
 };
 
-// Per-user cost monitoring: token/cost broken down by department (team),
-// staff (agent) and human (user). Served by GET /consumption.
-export type TeamConsumption = {
-  teamId: string;
+// Per-user cost monitoring: token/cost broken down by department (department),
+// staff (staff) and human (user). Served by GET /consumption.
+export type DepartmentConsumption = {
+  departmentId: string;
   name: string;
   inputTokens: number;
   outputTokens: number;
@@ -484,8 +494,8 @@ export type TeamConsumption = {
   cost: number;
 };
 
-export type AgentConsumption = {
-  agentName: string;
+export type StaffConsumption = {
+  staffName: string;
   name: string;
   role: string;
   inputTokens: number;
@@ -497,8 +507,8 @@ export type AgentConsumption = {
 export type Consumption = {
   days: number;
   totals: UsageTotals;
-  byTeam: TeamConsumption[];
-  byAgent: AgentConsumption[];
+  byDepartment: DepartmentConsumption[];
+  byStaff: StaffConsumption[];
   byUser: UserUsage[];
   byDay: DailyUsage[];
 };
@@ -517,13 +527,13 @@ export type SystemHealth = {
   llm: { provider: string; model: string; configured: boolean };
   taskQueueBackend: string;
   lockBackend: string;
-  counts: { users: number; agents: number; teams: number; tasks: number; workspaces: number };
+  counts: { users: number; staff: number; departments: number; tasks: number; companies: number };
 };
 
 export type FileStorageStats = {
   backend: string;            // "local" | "s3"
   sandboxMode: string;
-  workspaceBase: string;
+  companyBase: string;
   minioEnabled: boolean;
   minioConnected: boolean;
   minioEndpoint: string;
@@ -544,10 +554,10 @@ export type AdminUserActivity = {
   role: string;
   provider: string;
   joinedAt: string;
-  agents: number;
-  teams: number;
+  staff: number;
+  departments: number;
   tasks: number;
-  workspaces: number;
+  companies: number;
   inputTokens: number;
   outputTokens: number;
   requests: number;
@@ -569,7 +579,20 @@ export type LoginResponse = {
   user: AuthUser;
 };
 
-export type ThreadFile = {
+// Backend returns snake_case `joined_at`; normalize every auth response to the
+// camelCase `joinedAt` the UI/type expects (previously only uploadAvatar did this).
+export function mapAuthUser(raw: any): AuthUser {
+  return {
+    id: raw.id,
+    name: raw.name,
+    email: raw.email,
+    avatar: raw.avatar ?? undefined,
+    role: raw.role,
+    joinedAt: raw.joinedAt ?? raw.joined_at ?? undefined,
+  };
+}
+
+export type MeetingFile = {
   id: string;
   conversationId: string;
   filename: string;
@@ -577,13 +600,13 @@ export type ThreadFile = {
   contentType?: string | null;
   relPath: string;
   uploadedBy: string;
-  producedByAgent?: string | null;
+  producedByStaff?: string | null;
   createdAt: string;
 };
 
 export type LibraryDocument = {
   id: string;
-  workspaceId: string;
+  companyId: string;
   name: string;
   contentType: string;
   size: number;
@@ -695,10 +718,10 @@ export function saveBlob(blob: Blob, filename: string): void {
 }
 
 export const api = {
-  listAgents: () => apiFetch<Agent[]>("/agents"),
-  upsertAgent: (payload: Partial<Agent> & Pick<Agent, "name" | "role">) =>
-    apiFetch<Agent>("/agents", { method: "POST", body: JSON.stringify(payload) }),
-  deleteAgent: (id: string) => apiFetch<{ deleted: boolean }>(`/agents/${id}`, { method: "DELETE" }),
+  listStaff: () => apiFetch<Staff[]>("/staff"),
+  upsertStaff: (payload: Partial<Staff> & Pick<Staff, "name" | "role">) =>
+    apiFetch<Staff>("/staff", { method: "POST", body: JSON.stringify(payload) }),
+  deleteStaff: (id: string) => apiFetch<{ deleted: boolean }>(`/staff/${id}`, { method: "DELETE" }),
 
   listSkills: () => apiFetch<Skill[]>("/skills"),
   listSkillTools: () => apiFetch<string[]>("/skills/tools"),
@@ -714,17 +737,17 @@ export const api = {
     apiFetch<Skill>("/skills", { method: "POST", body: JSON.stringify(payload) }),
   deleteSkill: (id: string) => apiFetch<{ deleted: boolean }>(`/skills/${id}`, { method: "DELETE" }),
 
-  listTeams: () => apiFetch<Team[]>("/teams"),
-  upsertTeam: (payload: Partial<Team> & Pick<Team, "name" | "agents">) =>
-    apiFetch<Team>("/teams", { method: "POST", body: JSON.stringify(payload) }),
-  deleteTeam: (id: string) => apiFetch<{ deleted: boolean }>(`/teams/${id}`, { method: "DELETE" }),
+  listDepartments: () => apiFetch<Department[]>("/departments"),
+  upsertDepartment: (payload: Partial<Department> & Pick<Department, "name" | "staff">) =>
+    apiFetch<Department>("/departments", { method: "POST", body: JSON.stringify(payload) }),
+  deleteDepartment: (id: string) => apiFetch<{ deleted: boolean }>(`/departments/${id}`, { method: "DELETE" }),
 
   listTasks: () => apiFetch<Task[]>("/tasks"),
   upsertTask: (payload: Partial<Task> & Pick<Task, "title">) =>
     apiFetch<Task>("/tasks", { method: "POST", body: JSON.stringify(payload) }),
   deleteTask: (id: string) => apiFetch<{ deleted: boolean }>(`/tasks/${id}`, { method: "DELETE" }),
 
-  // Explicit "fresh start": wipe a task's conversation history + graph context.
+  // Explicit "fresh start": wipe a task's meeting history + graph context.
   // (Restart no longer clears messages automatically — it continues the dialogue.)
   clearTaskHistory: (id: string) =>
     apiFetch<{ cleared: boolean }>(`/tasks/${id}/history`, { method: "DELETE" }),
@@ -761,53 +784,53 @@ export const api = {
     projectId: string;
     epicId?: string | null;
     sprintId?: string | null;
-    teamId?: string;
+    departmentId?: string;
     issues: DraftIssue[];
   }) =>
     apiFetch<Task[]>("/planner/commit", { method: "POST", body: JSON.stringify(payload) }),
 
-  // Marketplace: shared "default" items users can browse and clone into their scope.
-  listMarketplaceSkills: () => apiFetch<Skill[]>("/marketplace/skills"),
-  listMarketplaceAgents: () => apiFetch<Agent[]>("/marketplace/agents"),
-  listMarketplaceTeams: () => apiFetch<Team[]>("/marketplace/teams"),
-  listMarketplaceTasks: () => apiFetch<Task[]>("/marketplace/tasks"),
-  listMarketplaceDocuments: () => apiFetch<LibraryDocument[]>("/marketplace/documents"),
-  // `workspaceId` is required only for documents (the office to copy into).
-  copyFromMarketplace: (payload: { type: "skill" | "agent" | "team" | "task" | "document"; id: string; workspaceId?: string }) =>
-    apiFetch<{ type: string; id: string }>("/marketplace/copy", {
+  // Recruiting: shared "default" items users can browse and clone into their scope.
+  listRecruitingSkills: () => apiFetch<Skill[]>("/recruiting/skills"),
+  listRecruitingStaff: () => apiFetch<Staff[]>("/recruiting/staff"),
+  listRecruitingDepartments: () => apiFetch<Department[]>("/recruiting/departments"),
+  listRecruitingTasks: () => apiFetch<Task[]>("/recruiting/tasks"),
+  listRecruitingDocuments: () => apiFetch<LibraryDocument[]>("/recruiting/documents"),
+  // `companyId` is required only for documents (the office to copy into).
+  copyFromRecruiting: (payload: { type: "skill" | "staff" | "department" | "task" | "document"; id: string; companyId?: string }) =>
+    apiFetch<{ type: string; id: string }>("/recruiting/copy", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
 
-  listConversations: (taskId?: string) => {
+  listMeetings: (taskId?: string) => {
     const qs = taskId ? `?task_id=${encodeURIComponent(taskId)}` : "";
-    return apiFetch<Message[]>(`/conversations${qs}`);
+    return apiFetch<Message[]>(`/meetings${qs}`);
   },
   getTaskGraphContext: (taskId: string) => apiFetch<GraphContextSnapshot>(`/tasks/${encodeURIComponent(taskId)}/graph-context`),
-  addConversation: (payload: { agentId: string; content: string; taskId?: string | null }) =>
-    apiFetch<Message>("/conversations", { method: "POST", body: JSON.stringify(payload) }),
+  addMeeting: (payload: { staffId: string; content: string; taskId?: string | null }) =>
+    apiFetch<Message>("/meetings", { method: "POST", body: JSON.stringify(payload) }),
   // Human-in-the-loop: queue a user message for an actively streaming run.
-  // The next agent turn picks it up and injects it into its context.
-  interjectAgentGraph: (payload: { conversation_id: string; content: string }) =>
-    apiFetch<{ queued: boolean; message_id: string | null }>("/llm/agent-graph/interject", {
+  // The next staff turn picks it up and injects it into its context.
+  interjectStaffGraph: (payload: { conversation_id: string; content: string }) =>
+    apiFetch<{ queued: boolean; message_id: string | null }>("/llm/staff-graph/interject", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  // Interrupt an active run: current agent finishes its turn, then the run
+  // Interrupt an active run: current staff finishes its turn, then the run
   // holds at the turn boundary so the user can chat before resuming.
-  pauseAgentGraph: (payload: { conversation_id: string }) =>
-    apiFetch<{ paused: boolean }>("/llm/agent-graph/pause", {
+  pauseStaffGraph: (payload: { conversation_id: string }) =>
+    apiFetch<{ paused: boolean }>("/llm/staff-graph/pause", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  resumeAgentGraph: (payload: { conversation_id: string }) =>
-    apiFetch<{ resumed: boolean }>("/llm/agent-graph/resume", {
+  resumeStaffGraph: (payload: { conversation_id: string }) =>
+    apiFetch<{ resumed: boolean }>("/llm/staff-graph/resume", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  // Answer an agent's ask_user question (the agent is blocked waiting on it).
-  respondAgentGraph: (payload: { conversation_id: string; request_id: string; response: string }) =>
-    apiFetch<{ delivered: boolean }>("/llm/agent-graph/respond", {
+  // Answer an staff's ask_user question (the staff is blocked waiting on it).
+  respondStaffGraph: (payload: { conversation_id: string; request_id: string; response: string }) =>
+    apiFetch<{ delivered: boolean }>("/llm/staff-graph/respond", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -819,16 +842,16 @@ export const api = {
       timeoutMs: options?.timeoutMs,
     }),
 
-  runAgentGraphStream: async function* (payload: {
+  runStaffGraphStream: async function* (payload: {
     user_input: string;
-    agents: string[];
+    staff: string[];
     max_rounds?: number;
-    mode?: TeamMode;
+    mode?: DepartmentMode;
     conversation_id?: string;
-    // Department/team this run belongs to, for per-team cost attribution.
-    team_id?: string;
+    // Department/department this run belongs to, for per-department cost attribution.
+    department_id?: string;
     signal?: AbortSignal;
-    // For mode === "custom": the directed flow over agent ids drawn by the user.
+    // For mode === "custom": the directed flow over staff ids drawn by the user.
     custom_graph?: {
       edges: { source: string; target: string }[];
       entry?: string[];
@@ -849,14 +872,14 @@ export const api = {
     };
   }) {
     const base = getApiBase().replace(/\/$/, "");
-    const url = `${base}/llm/agent-graph/run-stream`;
+    const url = `${base}/llm/staff-graph/run-stream`;
     const body = JSON.stringify({
       user_input: payload.user_input,
-      agents: payload.agents,
+      staff: payload.staff,
       max_rounds: payload.max_rounds ?? 6,
       mode: payload.mode ?? "sequential",
       conversation_id: payload.conversation_id,
-      team_id: payload.team_id,
+      department_id: payload.department_id,
       custom_graph: payload.custom_graph,
       graph_config: payload.graph_config,
     });
@@ -995,7 +1018,7 @@ export const api = {
     title?: string;
     messages: OfficeChatMessage[];
     plan?: OfficePlan | null;
-    workspaceId?: string;
+    companyId?: string;
   }) =>
     apiFetch<OfficeBuilderSession>("/office-builder/sessions", {
       method: "POST",
@@ -1009,16 +1032,22 @@ export const api = {
   getAnalytics: () => apiFetch<Analytics>("/analytics"),
   listActivityFeed: () => apiFetch<ActivityFeedItem[]>("/activity-feed"),
 
-  listWorkspaces: () => apiFetch<Workspace[]>("/workspaces"),
-  getWorkspace: (id: string) => apiFetch<Workspace>(`/workspaces/${id}`),
-  upsertWorkspace: (payload: Partial<Workspace> & Pick<Workspace, "name">) =>
-    apiFetch<Workspace>("/workspaces", { method: "POST", body: JSON.stringify(payload) }),
-  deleteWorkspace: (id: string) => apiFetch<{ deleted: boolean }>(`/workspaces/${id}`, { method: "DELETE" }),
-  listPlatforms: () => apiFetch<PlatformDef[]>("/workspaces/platforms"),
+  listCompanies: () => apiFetch<Company[]>("/companies"),
+  getCompany: (id: string) => apiFetch<Company>(`/companies/${id}`),
+  upsertCompany: (payload: Partial<Company> & Pick<Company, "name">) =>
+    apiFetch<Company>("/companies", { method: "POST", body: JSON.stringify(payload) }),
+  deleteCompany: (id: string) => apiFetch<{ deleted: boolean }>(`/companies/${id}`, { method: "DELETE" }),
+  listPlatforms: () => apiFetch<PlatformDef[]>("/companies/platforms"),
 
-  listConnections: () => apiFetch<ThirdPartyConnection[]>("/connections"),
-  upsertConnection: (payload: Partial<ThirdPartyConnection> & Pick<ThirdPartyConnection, "platform" | "name">) =>
-    apiFetch<ThirdPartyConnection>("/connections", { method: "POST", body: JSON.stringify(payload) }),
+  listConnections: (companyId?: string, kind?: "inbound_webhook" | "outbound") => {
+    const qs = new URLSearchParams();
+    if (companyId !== undefined) qs.set("company_id", companyId);
+    if (kind) qs.set("kind", kind);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return apiFetch<Connection[]>(`/connections${suffix}`);
+  },
+  upsertConnection: (payload: Partial<Connection> & Pick<Connection, "platform" | "name">) =>
+    apiFetch<Connection>("/connections", { method: "POST", body: JSON.stringify(payload) }),
   deleteConnection: (id: string) => apiFetch<{ deleted: boolean }>(`/connections/${id}`, { method: "DELETE" }),
 
   // Cost monitoring (per-user; scoped to the caller's own runs)
@@ -1041,31 +1070,31 @@ export const api = {
       { method: "DELETE" },
     ),
 
-  // Project (conversation) files
-  listConversationFiles: (taskId: string) =>
-    apiFetch<ThreadFile[]>(`/conversations/${encodeURIComponent(taskId)}/files`),
-  uploadConversationFile: (taskId: string, file: File) => {
+  // Project (meeting) files
+  listMeetingFiles: (taskId: string) =>
+    apiFetch<MeetingFile[]>(`/meetings/${encodeURIComponent(taskId)}/files`),
+  uploadMeetingFile: (taskId: string, file: File) => {
     const fd = new FormData();
     fd.append("file", file);
-    return apiUpload<ThreadFile>(`/conversations/${encodeURIComponent(taskId)}/files`, fd);
+    return apiUpload<MeetingFile>(`/meetings/${encodeURIComponent(taskId)}/files`, fd);
   },
   downloadConversationFile: (taskId: string, relPath: string) =>
-    apiDownload(`/conversations/${encodeURIComponent(taskId)}/files/download?rel_path=${encodeURIComponent(relPath)}`),
+    apiDownload(`/meetings/${encodeURIComponent(taskId)}/files/download?rel_path=${encodeURIComponent(relPath)}`),
 
   // Document Library (Business Unit scope)
-  listDocuments: (workspaceId?: string) =>
+  listDocuments: (companyId?: string) =>
     apiFetch<LibraryDocument[]>(
-      `/library/documents${workspaceId ? `?workspace_id=${encodeURIComponent(workspaceId)}` : ""}`,
+      `/library/documents${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`,
     ),
-  uploadDocument: (workspaceId: string, file: File, opts?: { description?: string; tags?: string[] }) => {
+  uploadDocument: (companyId: string, file: File, opts?: { description?: string; tags?: string[] }) => {
     const fd = new FormData();
-    fd.append("workspaceId", workspaceId);
+    fd.append("companyId", companyId);
     fd.append("file", file);
     if (opts?.description) fd.append("description", opts.description);
     if (opts?.tags?.length) fd.append("tags", opts.tags.join(","));
     return apiUpload<LibraryDocument>("/library/documents", fd);
   },
-  ingestUrl: (payload: { workspaceId: string; url: string; name?: string; description?: string; tags?: string[] }) =>
+  ingestUrl: (payload: { companyId: string; url: string; name?: string; description?: string; tags?: string[] }) =>
     apiFetch<LibraryDocument>("/library/documents/ingest-url", { method: "POST", body: JSON.stringify(payload) }),
   downloadDocument: (id: string) => apiDownload(`/library/documents/${encodeURIComponent(id)}/download`),
   attachDocumentToProject: (id: string, taskId: string) =>
@@ -1077,14 +1106,18 @@ export const api = {
     apiFetch<{ deleted: boolean }>(`/library/documents/${encodeURIComponent(id)}`, { method: "DELETE" }),
 
   // Auth
-  login: (email: string, password: string) =>
-    apiFetch<LoginResponse>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
-  register: (name: string, email: string, password: string) =>
-    apiFetch<LoginResponse>("/auth/register", { method: "POST", body: JSON.stringify({ name, email, password }) }),
+  login: async (email: string, password: string): Promise<LoginResponse> => {
+    const r = await apiFetch<any>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+    return { ...r, user: mapAuthUser(r.user) };
+  },
+  register: async (name: string, email: string, password: string): Promise<LoginResponse> => {
+    const r = await apiFetch<any>("/auth/register", { method: "POST", body: JSON.stringify({ name, email, password }) });
+    return { ...r, user: mapAuthUser(r.user) };
+  },
   logout: () => apiFetch<void>("/auth/logout", { method: "POST" }),
-  getCurrentUser: () => apiFetch<AuthUser>("/auth/me"),
-  updateProfile: (payload: { name?: string; email?: string; avatar?: string | null }) =>
-    apiFetch<AuthUser>("/auth/profile", { method: "PATCH", body: JSON.stringify(payload) }),
+  getCurrentUser: async (): Promise<AuthUser> => mapAuthUser(await apiFetch<any>("/auth/me")),
+  updateProfile: async (payload: { name?: string; email?: string; avatar?: string | null }): Promise<AuthUser> =>
+    mapAuthUser(await apiFetch<any>("/auth/profile", { method: "PATCH", body: JSON.stringify(payload) })),
   changePassword: (current_password: string, new_password: string) =>
     apiFetch<void>("/auth/password", { method: "PATCH", body: JSON.stringify({ current_password, new_password }) }),
   uploadAvatar: async (file: File): Promise<AuthUser> => {
@@ -1107,13 +1140,6 @@ export const api = {
       throw new Error(detail);
     }
     const data = await res.json();
-    return {
-      id: data.id,
-      name: data.name,
-      email: data.email,
-      avatar: data.avatar ?? undefined,
-      role: data.role,
-      joinedAt: data.joined_at ?? undefined,
-    };
+    return mapAuthUser(data);
   },
 };

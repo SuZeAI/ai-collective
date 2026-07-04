@@ -77,7 +77,7 @@ def build_chat_agent(
     if extra_middleware:
         middleware = middleware + list(extra_middleware)
 
-    agent = create_agent(
+    staff = create_agent(
         model=model,
         tools=resolved_tools,
         system_prompt=system_prompt,
@@ -87,6 +87,6 @@ def build_chat_agent(
     if cache_key is not None:
         if len(_AGENT_CACHE) >= _AGENT_CACHE_MAX:
             _AGENT_CACHE.clear()
-        _AGENT_CACHE[cache_key] = agent
+        _AGENT_CACHE[cache_key] = staff
 
-    return agent
+    return staff

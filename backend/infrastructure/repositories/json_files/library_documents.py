@@ -20,7 +20,7 @@ class JsonLibraryDocumentRepository:
             try:
                 doc = LibraryDocument(
                     id=str(item["id"]),
-                    workspace_id=str(item.get("workspaceId", "")),
+                    company_id=str(item.get("workspaceId", "")),
                     name=str(item.get("name", "")),
                     content_type=str(item.get("contentType", "") or ""),
                     size=int(item.get("size", 0) or 0),
@@ -41,7 +41,7 @@ class JsonLibraryDocumentRepository:
         self._store.write([
             {
                 "id": d.id,
-                "workspaceId": d.workspace_id,
+                "workspaceId": d.company_id,
                 "name": d.name,
                 "contentType": d.content_type,
                 "size": d.size,

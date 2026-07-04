@@ -30,7 +30,7 @@ class MongoOfficeBuilderSessionRepository:
             plan=dict(item["plan"]) if isinstance(item.get("plan"), dict) else None,
             created_at=self._parse_dt(item.get("createdAt")),
             updated_at=self._parse_dt(item.get("updatedAt")),
-            workspace_id=str(item.get("workspaceId", "") or ""),
+            company_id=str(item.get("workspaceId", "") or ""),
             owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
         )
 
@@ -43,7 +43,7 @@ class MongoOfficeBuilderSessionRepository:
             "plan": s.plan,
             "createdAt": s.created_at.isoformat(),
             "updatedAt": s.updated_at.isoformat(),
-            "workspaceId": s.workspace_id,
+            "workspaceId": s.company_id,
             "owner_id": s.owner_id,
         }
 

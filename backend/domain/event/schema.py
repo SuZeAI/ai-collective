@@ -4,7 +4,7 @@ from enum import Enum
 
 
 class EventType(str, Enum):
-	"""Canonical event types emitted by agent graph streaming."""
+	"""Canonical event types emitted by staff graph streaming."""
 
 	AGENT_START = "agent_start"
 	AGENT_TURN_START = "agent_turn_start"

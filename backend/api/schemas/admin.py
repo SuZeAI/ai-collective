@@ -145,10 +145,10 @@ class LLMHealthSchema(BaseModel):
 
 class EntityCountsSchema(BaseModel):
     users: int
-    agents: int
-    teams: int
+    staff: int
+    departments: int
     tasks: int
-    workspaces: int
+    companies: int
 
 
 class SystemHealthSchema(BaseModel):
@@ -164,7 +164,7 @@ class SystemHealthSchema(BaseModel):
 
 
 class FileStorageStatsSchema(BaseModel):
-    """File byte-store (uploads / agent outputs / document library) status & usage."""
+    """File byte-store (uploads / staff outputs / document library) status & usage."""
     backend: str                 # "local" | "s3"
     sandboxMode: str             # local | docker | k8s
     workspaceBase: str
@@ -190,10 +190,10 @@ class UserActivitySchema(BaseModel):
     role: str
     provider: str
     joinedAt: str
-    agents: int
-    teams: int
+    staff: int
+    departments: int
     tasks: int
-    workspaces: int
+    companies: int
     inputTokens: int
     outputTokens: int
     requests: int
@@ -208,10 +208,10 @@ class UserActivitySchema(BaseModel):
             role=a["role"],
             provider=a["provider"],
             joinedAt=a["joined_at"],
-            agents=a["agents"],
-            teams=a["teams"],
+            staff=a["staff"],
+            departments=a["departments"],
             tasks=a["tasks"],
-            workspaces=a["workspaces"],
+            companies=a["companies"],
             inputTokens=a["input_tokens"],
             outputTokens=a["output_tokens"],
             requests=a["requests"],

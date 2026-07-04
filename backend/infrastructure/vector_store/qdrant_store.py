@@ -79,9 +79,9 @@ class QdrantVectorStore:
         scope = scope.normalized()
         must = []
         for field_name, value in (
-            ("workspace_id", scope.workspace_id),
+            ("workspace_id", scope.company_id),
             ("owner_id", scope.owner_id),
-            ("agent_id", scope.agent_id),
+            ("agent_id", scope.staff_id),
         ):
             if value is None:
                 continue

@@ -1,0 +1,1056 @@
+from __future__ import annotations
+
+import asyncio
+import logging
+import re
+from typing import TypedDict
+from uuid import uuid4
+
+from langgraph.config import get_stream_writer
+from langgraph.graph import END, START, StateGraph
+
+from backend.application.ports.staff_graph import (
+    StaffGraphOrchestrator,
+    GraphStaffDefinition,
+    GraphContextProvider,
+    GraphRunResult,
+    GraphTurn,
+)
+from backend.application.ports.llm import LLMProvider
+from backend.domain.event.schema import EventType
+from backend.domain.memory.knowledge_graph import GraphContextConfig
+from backend.domain.staff.token_budget import apply_context_token_budget
+from backend.domain.staff._graph_runtime import (
+    FANOUT_SYNTHESIS_GUIDANCE,
+    MESH_FANOUT_MAX_CONCURRENT,
+    attach_conversation_sandbox,
+    drain_human_guidance,
+    ensure_working_memory,
+    memory_toolkit_tools,
+    record_guidance_in_memory,
+    record_turn_in_memory,
+    recursion_config,
+    run_fanout_wave,
+    run_to_final_state,
+    safe_chat,
+    wait_while_paused,
+    working_memory_block,
+)
+
+
+logger = logging.getLogger(__name__)
+
+from backend.api.settings import settings
+
+MAX_CONTEXT_TOKENS = max(1024, settings.staff.context_token_limit)
+RESERVED_OUTPUT_TOKENS = max(256, settings.staff.output_token_reserve)
+
+_DELEGATION_LOG_WINDOW = 6  # last N delegation entries shown to lead
+
+_LEAD_ROUTING_PROMPT = """
+## SUPERVISOR ROLE
+You are the **lead staff_member**. Your job is to complete the user's request by either answering directly or delegating sub-tasks to specialist workers, then synthesizing their results.
+
+### Delegation syntax (place ONLY at the very end of your response):
+- Delegate to a worker:
+  ```
+  <DELEGATE_TO>ExactWorkerName</DELEGATE_TO>
+  <TASK>Clear, self-contained task description for the worker</TASK>
+  ```
+- Dispatch a PARALLEL wave (several workers at once, run concurrently):
+  ```
+  <FANOUT>
+  <DELEGATE_TO>WorkerA</DELEGATE_TO><TASK>independent self-contained task for A</TASK>
+  <DELEGATE_TO>WorkerB</DELEGATE_TO><TASK>independent self-contained task for B</TASK>
+  </FANOUT>
+  ```
+- Return final answer to user:
+  ```
+  <FINAL_ANSWER>Your complete answer here</FINAL_ANSWER>
+  ```
+
+### Rules:
+1. Write your reasoning first, then ONE control block at the very end.
+2. Delegate to one worker with `<DELEGATE_TO>`, OR dispatch 2 to {max_concurrent} workers
+   at once with `<FANOUT>` when their tasks are INDEPENDENT (no ordering dependency).
+   After a fan-out wave you receive all results together and synthesize them.
+3. Workers report directly back to you — you decide what to do next.
+4. When the task is complete (or rounds are nearly exhausted), output `<FINAL_ANSWER>`.
+5. Do not repeat work already done by workers — build on their results.
+6. If a worker's result is insufficient, delegate again with a more specific task.
+
+### Available workers:
+{worker_profiles}
+
+### Round budget: {rounds_used}/{max_rounds} used — {remaining} remaining.
+"""
+
+_WORKER_PROMPT = """
+## WORKER ROLE
+You are a specialist worker. The lead staff_member has assigned you a specific task. Execute it thoroughly and return your results directly — the lead will handle next steps.
+
+### Task assigned by lead:
+{task}
+
+### Original user request (for context):
+{original_input}
+"""
+
+
+class SupervisorState(TypedDict):
+    input: str               # Latest message: initial input or subagent result
+    original_input: str      # Original user request (never changes)
+    turns: list[GraphTurn]
+    delegation_log: list[str]  # Chronological log of delegations + results
+    current_task: str        # Task text currently being executed by a worker
+    current_worker: str | None  # Name of currently active worker (None when lead is up)
+    final_answer_reached: bool
+    rounds: int
+    final_response: str
+    final_staff: str | None
+
+
+class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
+    """
+    Supervisor topology: one lead staff_member orchestrates N worker staff.
+
+    Flow:
+        START → Lead
+        Lead → DELEGATE_TO(Worker_i) → Worker_i → Lead  (loop)
+        Lead → FINAL_ANSWER → END
+        Lead → rounds exhausted → END
+
+    The lead decides which worker to call and what task to assign.
+    Workers always report back to the lead.
+    Only the lead can end the conversation.
+    """
+
+    _DELEGATE_TO_RE = re.compile(
+        r"<\s*DELEGATE_TO\s*>(.*?)<\s*/\s*DELEGATE_TO\s*>",
+        re.IGNORECASE | re.DOTALL,
+    )
+    _TASK_RE = re.compile(
+        r"<\s*TASK\s*>(.*?)<\s*/\s*TASK\s*>",
+        re.IGNORECASE | re.DOTALL,
+    )
+    _FINAL_ANSWER_RE = re.compile(
+        r"<\s*FINAL_ANSWER\s*>(.*?)<\s*/\s*FINAL_ANSWER\s*>",
+        re.IGNORECASE | re.DOTALL,
+    )
+    _CONTROL_BLOCK_RE = re.compile(
+        r"<\s*(FANOUT|DELEGATE_TO|TASK|FINAL_ANSWER)\s*>.*?<\s*/\s*\1\s*>",
+        re.IGNORECASE | re.DOTALL,
+    )
+    _FANOUT_RE = re.compile(
+        r"<\s*FANOUT\s*>(.*?)<\s*/\s*FANOUT\s*>",
+        re.IGNORECASE | re.DOTALL,
+    )
+    _FANOUT_PAIR_RE = re.compile(
+        r"<\s*DELEGATE_TO\s*>(.*?)<\s*/\s*DELEGATE_TO\s*>\s*"
+        r"<\s*TASK\s*>(.*?)<\s*/\s*TASK\s*>",
+        re.IGNORECASE | re.DOTALL,
+    )
+
+    # ------------------------------------------------------------------ #
+    # Public interface                                                     #
+    # ------------------------------------------------------------------ #
+
+    async def run(
+        self,
+        *,
+        user_input: str,
+        staff: list[GraphStaffDefinition],
+        llm: LLMProvider,
+        max_rounds: int,
+        conversation_id: str | None = None,
+        graph_context_provider: GraphContextProvider | None = None,
+        graph_config: GraphContextConfig | None = None,
+        custom_graph=None,  # accepted for protocol parity; ignored by this mode
+    ) -> GraphRunResult:
+        if not staff:
+            raise ValueError("At least one staff_member definition is required")
+
+        self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
+        graph = self._build_graph(staff, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
+        final_state = await run_to_final_state(graph, self._initial_state(user_input, staff), max_rounds)
+
+        turns = list(final_state.get("turns", []))
+        return GraphRunResult(
+            turns=turns,
+            final_response=final_state.get("final_response") or (turns[-1].content if turns else ""),
+            final_staff=final_state.get("final_staff"),
+            rounds=int(final_state.get("rounds", len(turns))),
+        )
+
+    async def run_stream(
+        self,
+        *,
+        user_input: str,
+        staff: list[GraphStaffDefinition],
+        llm: LLMProvider,
+        max_rounds: int,
+        conversation_id: str | None = None,
+        graph_context_provider: GraphContextProvider | None = None,
+        graph_config: GraphContextConfig | None = None,
+        custom_graph=None,  # accepted for protocol parity; ignored by this mode
+    ):
+        if not staff:
+            raise ValueError("At least one staff_member definition is required")
+
+        self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
+        graph = self._build_graph(staff, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
+
+        async for event in graph.astream(
+            self._initial_state(user_input, staff),
+            config=recursion_config(max_rounds),
+            stream_mode="custom",
+        ):
+            if isinstance(event, dict):
+                yield event
+
+    # ------------------------------------------------------------------ #
+    # Graph construction                                                   #
+    # ------------------------------------------------------------------ #
+
+    def _build_graph(
+        self,
+        staff: list[GraphStaffDefinition],
+        llm: LLMProvider,
+        max_rounds: int,
+        conversation_id: str | None,
+        graph_context_provider: GraphContextProvider | None,
+        graph_config: GraphContextConfig | None,
+    ):
+        lead = staff[0]
+        workers = staff[1:]
+        worker_names = [w.name for w in workers]
+        all_node_names = [a.name for a in staff]
+
+        builder: StateGraph = StateGraph(SupervisorState)
+
+        # Lead node
+        builder.add_node(
+            lead.name,
+            self._make_lead_node(
+                lead=lead,
+                workers=workers,
+                llm=llm,
+                max_rounds=max_rounds,
+                conversation_id=conversation_id,
+                graph_context_provider=graph_context_provider,
+                graph_config=graph_config,
+            ),
+        )
+
+        # Worker nodes
+        for worker in workers:
+            builder.add_node(
+                worker.name,
+                self._make_worker_node(
+                    worker=worker,
+                    llm=llm,
+                    conversation_id=conversation_id,
+                    graph_context_provider=graph_context_provider,
+                    graph_config=graph_config,
+                ),
+            )
+            # Workers always return to lead
+            builder.add_edge(worker.name, lead.name)
+
+        # Lead conditional routing
+        def lead_router(state: SupervisorState) -> str:
+            if state.get("final_answer_reached") or state["rounds"] >= max_rounds:
+                return "end"
+            target = state.get("current_worker")
+            if target and target in worker_names:
+                return target
+            return "end"
+
+        routing_map: dict[str, str] = {"end": END}
+        for name in worker_names:
+            routing_map[name] = name
+
+        builder.add_conditional_edges(lead.name, lead_router, routing_map)
+        builder.add_edge(START, lead.name)
+
+        return builder.compile()
+
+    @staticmethod
+    def _initial_state(user_input: str, staff: list[GraphStaffDefinition]) -> SupervisorState:
+        return {
+            "input": user_input,
+            "original_input": user_input,
+            "turns": [],
+            "delegation_log": [],
+            "current_task": "",
+            "current_worker": None,
+            "final_answer_reached": False,
+            "rounds": 0,
+            "final_response": "",
+            "final_staff": None,
+        }
+
+    # ------------------------------------------------------------------ #
+    # Node factories                                                       #
+    # ------------------------------------------------------------------ #
+
+    def _make_lead_node(
+        self,
+        *,
+        lead: GraphStaffDefinition,
+        workers: list[GraphStaffDefinition],
+        llm: LLMProvider,
+        max_rounds: int,
+        conversation_id: str | None,
+        graph_context_provider: GraphContextProvider | None,
+        graph_config: GraphContextConfig | None,
+    ):
+        worker_profiles = "\n".join(
+            f"- {w.name}: {w.role}" + (f" — {w.description}" if w.description else "")
+            for w in workers
+        ) or "- (no workers available)"
+
+        async def lead_node(state: SupervisorState) -> dict:
+            stream_writer = get_stream_writer()
+
+            # Human-in-the-loop: hold at the turn boundary while interrupted.
+            await wait_while_paused(
+                conversation_id=conversation_id,
+                stream_writer=stream_writer,
+                staff_name=lead.name,
+            )
+
+            rounds_used = state["rounds"]
+            remaining = max(0, max_rounds - rounds_used)
+
+            stream_writer({
+                "type": EventType.AGENT_START.value,
+                "agent_name": lead.name,
+                "staff_role": lead.role,
+                "turn": rounds_used + 1,
+                "is_lead": True,
+            })
+            stream_writer({"type": EventType.CONTEXT_BUILDING.value, "agent_name": lead.name})
+
+            # Human-in-the-loop: the lead is the routing brain, so mid-run user
+            # guidance lands here and steers the next delegation/final answer.
+            human_guidance = drain_human_guidance(
+                conversation_id=conversation_id,
+                stream_writer=stream_writer,
+                graph_context_provider=graph_context_provider,
+                graph_config=graph_config,
+            )
+
+            # Shared working memory: pin guidance, then build the digest that
+            # keeps prior findings alive across log windows and truncation.
+            ensure_working_memory(conversation_id, state["original_input"])
+            if human_guidance:
+                record_guidance_in_memory(conversation_id, human_guidance)
+            memory_block = working_memory_block(conversation_id)
+
+            # Knowledge graph context
+            graph_ctx = ""
+            if graph_context_provider and conversation_id:
+                pack = graph_context_provider.build_graph_context(
+                    conversation_id=conversation_id,
+                    query=state["original_input"],
+                    config=graph_config,
+                )
+                graph_ctx = pack.text
+                if graph_ctx:
+                    stream_writer({
+                        "type": EventType.CONTEXT_RETRIEVED.value,
+                        "agent_name": lead.name,
+                        "node_ids": pack.node_ids,
+                        "edge_ids": pack.edge_ids,
+                        "chunk_ids": pack.chunk_ids,
+                    })
+
+            # Build lead context
+            recent_log = state.get("delegation_log", [])[-_DELEGATION_LOG_WINDOW:]
+            log_text = "\n".join(recent_log) if recent_log else "(no prior delegations)"
+
+            routing_guidance = _LEAD_ROUTING_PROMPT.format(
+                worker_profiles=worker_profiles,
+                rounds_used=rounds_used,
+                max_rounds=max_rounds,
+                remaining=remaining,
+                max_concurrent=MESH_FANOUT_MAX_CONCURRENT,
+            )
+
+            context_parts: list[str] = []
+            # First so the guidance survives tail-truncation by the token budget.
+            if human_guidance:
+                context_parts += [human_guidance, ""]
+            context_parts += [
+                f"[User request]: {state['original_input']}",
+            ]
+            # Early so the shared memory survives tail-truncation.
+            if memory_block:
+                context_parts += ["", memory_block]
+            if graph_ctx:
+                context_parts += ["", f"[Context]:\n{graph_ctx}"]
+            if recent_log:
+                context_parts += ["", f"[Delegation history]:\n{log_text}"]
+            if state.get("input") and state["input"] != state["original_input"]:
+                context_parts += ["", f"[Latest worker report]:\n{state['input']}"]
+
+            user_input_text = "\n".join(context_parts)
+            full_system = f"{lead.system_prompt}\n\n{routing_guidance}"
+
+            budget_result = apply_context_token_budget(
+                llm=llm,
+                system_prompt=full_system,
+                user_input=user_input_text,
+                max_context_tokens=MAX_CONTEXT_TOKENS,
+                reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
+            )
+            user_input_text = budget_result.text
+
+            bound_tools: list = []
+            if lead.tools:
+                for toolkit in lead.tools.values():
+                    bound_tools.extend(toolkit.get_tools())
+
+            # Default human-in-the-loop tool: the lead can interrupt and ask
+            # the user before deciding the next delegation/final answer.
+            if conversation_id:
+                from backend.domain.tools.ask_user import AskUserToolkit
+
+                bound_tools.extend(
+                    AskUserToolkit(
+                        conversation_id=conversation_id,
+                        staff_name=lead.name,
+                    ).get_tools()
+                )
+            # Default memory tools: save/recall shared working-memory notes.
+            bound_tools.extend(memory_toolkit_tools(conversation_id, lead.name))
+
+            attach_conversation_sandbox(
+                bound_tools, conversation_id=conversation_id, staff_name=lead.name
+            )
+
+            stream_writer({
+                "type": EventType.LLM_REQUEST_START.value,
+                "agent_name": lead.name,
+                "context_length": len(user_input_text),
+                "context_tokens": budget_result.input_tokens,
+                "context_token_limit": budget_result.max_input_tokens,
+                "context_truncated": budget_result.truncated,
+                "tokenizer_family": budget_result.tokenizer_family,
+                "llm_provider": budget_result.provider,
+                "llm_model": budget_result.model,
+            })
+
+            raw_output = await safe_chat(llm,
+                system=full_system,
+                user=user_input_text,
+                tools=bound_tools or None,
+            )
+
+            stream_writer({
+                "type": EventType.LLM_RESPONSE_COMPLETE.value,
+                "agent_name": lead.name,
+                "response_length": len(raw_output),
+            })
+
+            reasoning, action = self._split_reasoning_and_action(raw_output)
+
+            # Parallel fan-out: lead may dispatch several workers at once.
+            fanout_pairs = self._parse_fanout(action, [w.name for w in workers], lead.name)
+            if fanout_pairs:
+                logger.debug(
+                    "lead_node: FANOUT -> %s", [n for n, _ in fanout_pairs]
+                )
+                return await self._execute_lead_fanout(
+                    lead=lead,
+                    workers=workers,
+                    fanout_pairs=fanout_pairs,
+                    lead_reasoning=reasoning,
+                    lead_system=full_system,
+                    state=state,
+                    llm=llm,
+                    stream_writer=stream_writer,
+                    conversation_id=conversation_id,
+                    graph_context_provider=graph_context_provider,
+                    graph_config=graph_config,
+                    human_guidance=human_guidance,
+                )
+
+            final_answer = self._extract_final_answer(action)
+            target_worker, task_text = self._extract_delegation(action)
+
+            new_turn = GraphTurn(
+                turn=rounds_used + 1,
+                staff_name=lead.name,
+                staff_role=lead.role,
+                content=reasoning,
+            )
+
+            new_log = list(state.get("delegation_log", []))
+            # Keep mid-run human guidance visible in later lead turns (the
+            # interject queue is drained once, so persist it in the log).
+            if human_guidance:
+                new_log.append(f"[Turn {rounds_used + 1}] {human_guidance}")
+            if target_worker and task_text:
+                new_log.append(f"[Turn {rounds_used + 1}] {lead.name} → {target_worker}: {task_text}")
+
+            # Working memory: keep the routing decision / final answer alive
+            # even after the delegation-log window rolls past it.
+            if target_worker and task_text:
+                record_turn_in_memory(
+                    conversation_id,
+                    staff_name=lead.name,
+                    turn=rounds_used + 1,
+                    content=f"Delegated to {target_worker}: {task_text}",
+                    kind="decision",
+                )
+            elif final_answer:
+                record_turn_in_memory(
+                    conversation_id,
+                    staff_name=lead.name,
+                    turn=rounds_used + 1,
+                    content=f"Final answer delivered: {final_answer}",
+                    kind="result",
+                )
+
+            if graph_context_provider and conversation_id:
+                graph_context_provider.ingest_message(
+                    conversation_id=conversation_id,
+                    message_id=f"staff_member-{lead.name}-{uuid4().hex}",
+                    speaker=lead.name,
+                    content=reasoning,
+                    config=graph_config,
+                )
+                stream_writer({"type": EventType.MESSAGE_INGESTED.value, "agent_name": lead.name})
+
+            stream_writer({
+                "type": EventType.TURN_COMPLETE.value,
+                "turn": new_turn,
+                "delegate_to": target_worker,
+                "final_answer_reached": bool(final_answer),
+            })
+
+            return {
+                **state,
+                "input": final_answer or state["input"],
+                "turns": [*state["turns"], new_turn],
+                "delegation_log": new_log,
+                "current_task": task_text or "",
+                "current_worker": target_worker,
+                "final_answer_reached": bool(final_answer),
+                "final_response": final_answer or reasoning,
+                "final_staff": lead.name,
+                "rounds": rounds_used + 1,
+            }
+
+        return lead_node
+
+    def _make_worker_node(
+        self,
+        *,
+        worker: GraphStaffDefinition,
+        llm: LLMProvider,
+        conversation_id: str | None,
+        graph_context_provider: GraphContextProvider | None,
+        graph_config: GraphContextConfig | None,
+    ):
+        async def worker_node(state: SupervisorState) -> dict:
+            stream_writer = get_stream_writer()
+
+            # Human-in-the-loop: hold at the turn boundary while interrupted.
+            await wait_while_paused(
+                conversation_id=conversation_id,
+                stream_writer=stream_writer,
+                staff_name=worker.name,
+            )
+
+            rounds_used = state["rounds"]
+
+            stream_writer({
+                "type": EventType.AGENT_START.value,
+                "agent_name": worker.name,
+                "staff_role": worker.role,
+                "turn": rounds_used + 1,
+                "is_worker": True,
+            })
+            stream_writer({"type": EventType.CONTEXT_BUILDING.value, "agent_name": worker.name})
+
+            task_text = state.get("current_task") or state.get("input", "")
+            worker_system = (
+                f"{worker.system_prompt}\n\n"
+                + _WORKER_PROMPT.format(
+                    task=task_text,
+                    original_input=state["original_input"],
+                )
+            )
+
+            # Shared working memory: workers see what the lead and sibling
+            # workers already found, instead of starting blind.
+            memory_block = working_memory_block(conversation_id)
+
+            graph_ctx = ""
+            if graph_context_provider and conversation_id:
+                pack = graph_context_provider.build_graph_context(
+                    conversation_id=conversation_id,
+                    query=task_text or state["original_input"],
+                    config=graph_config,
+                )
+                graph_ctx = pack.text
+                if graph_ctx:
+                    stream_writer({
+                        "type": EventType.CONTEXT_RETRIEVED.value,
+                        "agent_name": worker.name,
+                        "node_ids": pack.node_ids,
+                        "edge_ids": pack.edge_ids,
+                        "chunk_ids": pack.chunk_ids,
+                    })
+
+            worker_context_parts = [task_text]
+            # Memory before graph context so it survives tail-truncation.
+            if memory_block:
+                worker_context_parts.append(memory_block)
+            if graph_ctx:
+                worker_context_parts.append(f"[Context]:\n{graph_ctx}")
+            user_input_text = "\n\n".join(worker_context_parts)
+
+            budget_result = apply_context_token_budget(
+                llm=llm,
+                system_prompt=worker_system,
+                user_input=user_input_text,
+                max_context_tokens=MAX_CONTEXT_TOKENS,
+                reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
+            )
+            user_input_text = budget_result.text
+
+            bound_tools: list = []
+            if worker.tools:
+                for toolkit in worker.tools.values():
+                    bound_tools.extend(toolkit.get_tools())
+
+            # Default human-in-the-loop tool: workers can interrupt and ask
+            # the user a question mid-task.
+            if conversation_id:
+                from backend.domain.tools.ask_user import AskUserToolkit
+
+                bound_tools.extend(
+                    AskUserToolkit(
+                        conversation_id=conversation_id,
+                        staff_name=worker.name,
+                    ).get_tools()
+                )
+            # Default memory tools: save/recall shared working-memory notes.
+            bound_tools.extend(memory_toolkit_tools(conversation_id, worker.name))
+
+            attach_conversation_sandbox(
+                bound_tools, conversation_id=conversation_id, staff_name=worker.name
+            )
+
+            stream_writer({
+                "type": EventType.LLM_REQUEST_START.value,
+                "agent_name": worker.name,
+                "context_length": len(user_input_text),
+                "context_tokens": budget_result.input_tokens,
+                "context_token_limit": budget_result.max_input_tokens,
+                "context_truncated": budget_result.truncated,
+                "tokenizer_family": budget_result.tokenizer_family,
+                "llm_provider": budget_result.provider,
+                "llm_model": budget_result.model,
+            })
+
+            output = await safe_chat(llm,
+                system=worker_system,
+                user=user_input_text,
+                tools=bound_tools or None,
+            )
+
+            stream_writer({
+                "type": EventType.LLM_RESPONSE_COMPLETE.value,
+                "agent_name": worker.name,
+                "response_length": len(output),
+            })
+
+            new_turn = GraphTurn(
+                turn=rounds_used + 1,
+                staff_name=worker.name,
+                staff_role=worker.role,
+                content=output,
+            )
+
+            new_log = list(state.get("delegation_log", []))
+            new_log.append(f"[Turn {rounds_used + 1}] {worker.name} → Lead: {output[:300]}{'...' if len(output) > 300 else ''}")
+
+            # Working memory: the full-fidelity note outlives the windowed
+            # delegation log above (which only keeps the last few entries).
+            record_turn_in_memory(
+                conversation_id,
+                staff_name=worker.name,
+                turn=rounds_used + 1,
+                content=output,
+                kind="result",
+            )
+
+            if graph_context_provider and conversation_id:
+                graph_context_provider.ingest_message(
+                    conversation_id=conversation_id,
+                    message_id=f"staff_member-{worker.name}-{uuid4().hex}",
+                    speaker=worker.name,
+                    content=output,
+                    config=graph_config,
+                )
+                stream_writer({"type": EventType.MESSAGE_INGESTED.value, "agent_name": worker.name})
+
+            stream_writer({
+                "type": EventType.TURN_COMPLETE.value,
+                "turn": new_turn,
+                "reporting_to_lead": True,
+            })
+
+            return {
+                **state,
+                "input": f"[{worker.name} result]: {output}",
+                "turns": [*state["turns"], new_turn],
+                "delegation_log": new_log,
+                "current_task": "",
+                "current_worker": None,
+                "final_response": output,
+                "final_staff": worker.name,
+                "rounds": rounds_used + 1,
+            }
+
+        return worker_node
+
+    # ------------------------------------------------------------------ #
+    # Helpers                                                              #
+    # ------------------------------------------------------------------ #
+
+    def _split_reasoning_and_action(self, message: str) -> tuple[str, str]:
+        if not message:
+            return "", ""
+        actions = [m.group(0).strip() for m in self._CONTROL_BLOCK_RE.finditer(message)]
+        action_payload = "\n".join(a for a in actions if a).strip()
+        reasoning = self._CONTROL_BLOCK_RE.sub("", message)
+        reasoning = re.sub(r"\n{3,}", "\n\n", reasoning).strip()
+        return reasoning, action_payload
+
+    def _extract_delegation(self, action_payload: str) -> tuple[str | None, str]:
+        delegate_match = self._DELEGATE_TO_RE.search(action_payload)
+        task_match = self._TASK_RE.search(action_payload)
+        if not delegate_match:
+            return None, ""
+        target = delegate_match.group(1).strip()
+        task = task_match.group(1).strip() if task_match else ""
+        return target or None, task
+
+    def _extract_final_answer(self, action_payload: str) -> str:
+        match = self._FINAL_ANSWER_RE.search(action_payload)
+        return match.group(1).strip() if match else ""
+
+    # ------------------------------------------------------------------ #
+    # Parallel fan-out                                                     #
+    # ------------------------------------------------------------------ #
+
+    def _get_fanout_semaphore(self) -> asyncio.Semaphore:
+        """Lazily create the wave-concurrency semaphore on the active loop."""
+        sem = getattr(self, "_fanout_semaphore", None)
+        if sem is None:
+            sem = asyncio.Semaphore(MESH_FANOUT_MAX_CONCURRENT)
+            self._fanout_semaphore = sem
+        return sem
+
+    def _parse_fanout(
+        self,
+        action_payload: str,
+        worker_names: list[str],
+        lead_name: str,
+    ) -> list[tuple[str, str]]:
+        """Parse a `<FANOUT>` block into ordered (worker_name, task) pairs.
+
+        Returns [] (→ caller falls back to single delegation) unless at least
+        two distinct valid workers are found. Checked BEFORE single delegation
+        so the inner DELEGATE_TO tags are not misread as one delegation.
+        """
+        match = self._FANOUT_RE.search(action_payload)
+        if not match:
+            return []
+
+        normalized = {name.lower(): name for name in worker_names}
+        pairs: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for raw_name, raw_task in self._FANOUT_PAIR_RE.findall(match.group(1)):
+            candidate = raw_name.strip().strip("`\"'<>")
+            target = normalized.get(candidate.lower())
+            if not target or target.lower() == lead_name.lower() or target in seen:
+                continue
+            seen.add(target)
+            pairs.append((target, raw_task.strip()))
+
+        if len(pairs) < 2:
+            return []
+        return pairs[:MESH_FANOUT_MAX_CONCURRENT]
+
+    def _build_worker_chat_kwargs(
+        self,
+        *,
+        worker: GraphStaffDefinition,
+        task_text: str,
+        state: SupervisorState,
+        llm: LLMProvider,
+        conversation_id: str | None,
+        graph_context_provider: GraphContextProvider | None,
+        graph_config: GraphContextConfig | None,
+    ) -> dict:
+        """Assemble safe_chat kwargs for one fan-out worker (mirrors worker_node).
+
+        Built sequentially in the node (before the gather) so graph-context
+        reads are not raced across branches.
+        """
+        worker_system = (
+            f"{worker.system_prompt}\n\n"
+            + _WORKER_PROMPT.format(
+                task=task_text,
+                original_input=state["original_input"],
+            )
+        )
+        memory_block = working_memory_block(conversation_id)
+
+        graph_ctx = ""
+        if graph_context_provider and conversation_id:
+            pack = graph_context_provider.build_graph_context(
+                conversation_id=conversation_id,
+                query=task_text or state["original_input"],
+                config=graph_config,
+            )
+            graph_ctx = pack.text
+
+        worker_context_parts = [task_text]
+        if memory_block:
+            worker_context_parts.append(memory_block)
+        if graph_ctx:
+            worker_context_parts.append(f"[Context]:\n{graph_ctx}")
+        user_input_text = "\n\n".join(worker_context_parts)
+
+        budget_result = apply_context_token_budget(
+            llm=llm,
+            system_prompt=worker_system,
+            user_input=user_input_text,
+            max_context_tokens=MAX_CONTEXT_TOKENS,
+            reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
+        )
+        user_input_text = budget_result.text
+
+        bound_tools: list = []
+        if worker.tools:
+            for toolkit in worker.tools.values():
+                bound_tools.extend(toolkit.get_tools())
+        if conversation_id:
+            from backend.domain.tools.ask_user import AskUserToolkit
+
+            bound_tools.extend(
+                AskUserToolkit(
+                    conversation_id=conversation_id,
+                    staff_name=worker.name,
+                ).get_tools()
+            )
+        bound_tools.extend(memory_toolkit_tools(conversation_id, worker.name))
+
+        attach_conversation_sandbox(
+            bound_tools, conversation_id=conversation_id, staff_name=worker.name
+        )
+
+        return {
+            "system": worker_system,
+            "user": user_input_text,
+            "tools": bound_tools or None,
+        }
+
+    async def _execute_lead_fanout(
+        self,
+        *,
+        lead: GraphStaffDefinition,
+        workers: list[GraphStaffDefinition],
+        fanout_pairs: list[tuple[str, str]],
+        lead_reasoning: str,
+        lead_system: str,
+        state: SupervisorState,
+        llm: LLMProvider,
+        stream_writer,
+        conversation_id: str | None,
+        graph_context_provider: GraphContextProvider | None,
+        graph_config: GraphContextConfig | None,
+        human_guidance: str,
+    ) -> dict:
+        """Run a parallel worker wave then synthesize, returning merged state.
+
+        Turn layout (1 superstep = 1 round):
+            lead (fan-out decision) | worker_1 .. worker_N | lead (synthesis)
+        """
+        turns = list(state["turns"])
+        worker_by_name = {w.name: w for w in workers}
+        base_turn = state["rounds"] + 1  # lead's fan-out decision turn
+
+        new_log = list(state.get("delegation_log", []))
+        if human_guidance:
+            new_log.append(f"[Turn {base_turn}] {human_guidance}")
+
+        # Lead's fan-out decision recorded as its own turn.
+        record_turn_in_memory(
+            conversation_id,
+            staff_name=lead.name,
+            turn=base_turn,
+            content=f"Dispatched parallel wave: {[n for n, _ in fanout_pairs]}",
+            kind="decision",
+        )
+        if graph_context_provider and conversation_id:
+            graph_context_provider.ingest_message(
+                conversation_id=conversation_id,
+                message_id=f"staff_member-{lead.name}-{uuid4().hex}",
+                speaker=lead.name,
+                content=lead_reasoning,
+                config=graph_config,
+            )
+        lead_turn = GraphTurn(
+            turn=base_turn,
+            staff_name=lead.name,
+            staff_role=lead.role,
+            content=lead_reasoning,
+        )
+        target_names = [n for n, _ in fanout_pairs]
+        new_log.append(f"[Turn {base_turn}] {lead.name} → FANOUT {target_names}")
+        stream_writer({
+            "type": EventType.TURN_COMPLETE.value,
+            "turn": lead_turn,
+            "fanout_dispatch": True,
+        })
+        stream_writer({
+            "type": EventType.FANOUT_START.value,
+            "agent_name": lead.name,
+            "targets": target_names,
+        })
+
+        prebuilt: dict[str, dict] = {}
+        branches: list[tuple[GraphStaffDefinition, str]] = []
+        for worker_name, task_text in fanout_pairs:
+            worker = worker_by_name[worker_name]
+            prebuilt[worker_name] = self._build_worker_chat_kwargs(
+                worker=worker,
+                task_text=task_text,
+                state=state,
+                llm=llm,
+                conversation_id=conversation_id,
+                graph_context_provider=graph_context_provider,
+                graph_config=graph_config,
+            )
+            branches.append((worker, task_text))
+
+        results = await run_fanout_wave(
+            branches=branches,
+            llm=llm,
+            build_branch_chat_kwargs=lambda w, _t: prebuilt[w.name],
+            semaphore=self._get_fanout_semaphore(),
+            stream_writer=stream_writer,
+            conversation_id=conversation_id,
+            graph_context_provider=graph_context_provider,
+            graph_config=graph_config,
+            base_turn_number=base_turn,
+            split_fn=None,
+        )
+
+        stream_writer({
+            "type": EventType.FANOUT_COMPLETE.value,
+            "agent_name": lead.name,
+            "targets": target_names,
+        })
+
+        worker_turns = []
+        for r in results:
+            worker_turns.append(
+                GraphTurn(
+                    turn=r.turn,
+                    staff_name=r.staff_name,
+                    staff_role=r.staff_role,
+                    content=r.content,
+                )
+            )
+            snippet = r.content[:300] + ("..." if len(r.content) > 300 else "")
+            new_log.append(f"[Turn {r.turn}] {r.staff_name} → Lead: {snippet}")
+
+        # Lead synthesizes the wave's results, then emits one control action.
+        synthesis_user = (
+            "Your parallel wave returned these worker results:\n\n"
+            + "\n\n".join(
+                f"### {r.staff_name} (task: {r.task})\n{r.content}" for r in results
+            )
+        )
+        synthesis_system = f"{lead_system}\n\n{FANOUT_SYNTHESIS_GUIDANCE}"
+        synth_raw = await safe_chat(
+            llm,
+            staff_name=lead.name,
+            system=synthesis_system,
+            user=synthesis_user,
+        )
+        synth_reasoning, synth_action = self._split_reasoning_and_action(synth_raw)
+        final_answer = self._extract_final_answer(synth_action)
+        target_worker, next_task = self._extract_delegation(synth_action)
+
+        synthesis_turn_number = base_turn + len(results) + 1
+        record_turn_in_memory(
+            conversation_id,
+            staff_name=lead.name,
+            turn=synthesis_turn_number,
+            content=final_answer or synth_reasoning,
+            kind="result" if final_answer else "decision",
+        )
+        if graph_context_provider and conversation_id:
+            graph_context_provider.ingest_message(
+                conversation_id=conversation_id,
+                message_id=f"staff_member-{lead.name}-{uuid4().hex}",
+                speaker=lead.name,
+                content=synth_reasoning,
+                config=graph_config,
+            )
+        synthesis_turn = GraphTurn(
+            turn=synthesis_turn_number,
+            staff_name=lead.name,
+            staff_role=lead.role,
+            content=synth_reasoning,
+        )
+        if target_worker and next_task:
+            new_log.append(
+                f"[Turn {synthesis_turn_number}] {lead.name} → {target_worker}: {next_task}"
+            )
+        stream_writer({
+            "type": EventType.TURN_COMPLETE.value,
+            "turn": synthesis_turn,
+            "delegate_to": target_worker,
+            "final_answer_reached": bool(final_answer),
+        })
+
+        return {
+            **state,
+            "input": final_answer or state["input"],
+            "turns": [*turns, lead_turn, *worker_turns, synthesis_turn],
+            "delegation_log": new_log,
+            "current_task": next_task or "",
+            "current_worker": target_worker,
+            "final_answer_reached": bool(final_answer),
+            "final_response": final_answer or synth_reasoning,
+            "final_staff": lead.name,
+            "rounds": base_turn,
+        }
+
+    @staticmethod
+    def _ingest_user_message(
+        user_input: str,
+        conversation_id: str | None,
+        graph_context_provider: GraphContextProvider | None,
+        graph_config: GraphContextConfig | None,
+    ) -> None:
+        if graph_context_provider and conversation_id:
+            graph_context_provider.ingest_message(
+                conversation_id=conversation_id,
+                message_id=f"user-{uuid4().hex}",
+                speaker="user",
+                content=user_input,
+                config=graph_config,
+            )

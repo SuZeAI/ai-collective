@@ -1,10 +1,10 @@
 """Sandbox middleware — provisions a per-conversation sandbox when a chat has files.
 
 This is the "sandbox middleware" entry point. It does NOT run as a LangChain
-``AgentMiddleware`` (tools must be bound before the agent is built, and the
+``AgentMiddleware`` (tools must be bound before the staff is built, and the
 conversation id isn't available that deep). Instead it exposes a provisioning
-helper that the orchestrator nodes call when assembling an agent's tools — see
-``backend.domain.agent._graph_runtime.attach_conversation_sandbox``.
+helper that the orchestrator nodes call when assembling an staff's tools — see
+``backend.domain.staff._graph_runtime.attach_conversation_sandbox``.
 
 Responsibilities:
   * Ensure the shared, conversation-scoped workspace exists on the host.
@@ -28,7 +28,7 @@ from backend.log import get_logger
 logger = get_logger(__name__)
 
 # Conversations whose remote sandbox has already been restored in this process,
-# so we don't re-push every file on every agent turn.
+# so we don't re-push every file on every staff turn.
 _restored: set[str] = set()
 _restored_lock = threading.Lock()
 
@@ -141,7 +141,7 @@ def _restore_local_once(conversation_id: str, thread_id: str, workspace: str) ->
 def _restore_remote_once(conversation_id: str, thread_id: str, workspace: str) -> None:
     """Fire-and-forget restore of backed-up files into the live sandbox (Pod).
 
-    Runs in a background thread so it never blocks an agent node, and only once
+    Runs in a background thread so it never blocks an staff node, and only once
     per conversation per process.
     """
     with _restored_lock:
@@ -206,8 +206,8 @@ def push_upload_to_sandbox(conversation_id: str, rel_path: str, content: bytes) 
 def backup_conversation_workspace(conversation_id: str) -> None:
     """Sync a conversation's host workspace up to MinIO (best-effort).
 
-    Useful in local/docker mode where agent-written files live on the host. In
-    k8s mode agent outputs live only in the Pod; surfacing them is left to the
+    Useful in local/docker mode where staff-written files live on the host. In
+    k8s mode staff outputs live only in the Pod; surfacing them is left to the
     upload path / explicit backup tooling.
     """
     try:

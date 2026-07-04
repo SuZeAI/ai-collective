@@ -10,8 +10,8 @@ header; supply your key via the skill ``api_key`` config or the ``GEMINI_API_KEY
   - GeminiTTSToolkit   -> Gemini TTS ``:generateContent`` (text -> speech, PCM wrapped to WAV)
   - GeminiVideoToolkit -> Veo ``:predictLongRunning`` (text/image -> video, async + poll)
 
-Note: plain text generation is intentionally NOT a tool here — that is the agent's
-own LLM job. Use Gemini as an agent LLM backend via ``infrastructure/llm`` instead.
+Note: plain text generation is intentionally NOT a tool here — that is the staff's
+own LLM job. Use Gemini as an staff LLM backend via ``infrastructure/llm`` instead.
 """
 
 from __future__ import annotations

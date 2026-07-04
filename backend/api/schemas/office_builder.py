@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from backend.api.schemas.workspace import WorkspaceSchema
+from backend.api.schemas.company import CompanySchema
 
 
 # ─── Plan (the LLM-generated org blueprint) ─────────────────────────────────
@@ -13,7 +13,7 @@ class SkillPlan(BaseModel):
     tool_name: str | None = None  # must reference an available tool, or None
 
 
-class HumanPlan(BaseModel):
+class StaffPlan(BaseModel):
     name: str
     role: str
     description: str = ""
@@ -24,7 +24,7 @@ class DepartmentPlan(BaseModel):
     name: str
     description: str = ""
     mode: str = "sequential"  # sequential | mesh | ring | supervisor | tree
-    humans: list[HumanPlan] = Field(default_factory=list)
+    staff: list[StaffPlan] = Field(default_factory=list)
 
 
 class OfficePlan(BaseModel):
@@ -32,7 +32,7 @@ class OfficePlan(BaseModel):
     description: str = ""
     # software | marketing | research | general — chosen by the user before
     # creating; stored on the workspace as its company type.
-    company_type: str = "general"
+    type: str = "general"
     departments: list[DepartmentPlan] = Field(default_factory=list)
 
 
@@ -62,7 +62,7 @@ class OfficeBuilderSessionSchema(BaseModel):
     plan: OfficePlan | None = None
     createdAt: str
     updatedAt: str
-    workspaceId: str = ""
+    companyId: str = ""
     owner_id: str = "default"
 
     @staticmethod
@@ -74,7 +74,7 @@ class OfficeBuilderSessionSchema(BaseModel):
             plan=OfficePlan.model_validate(s.plan) if s.plan else None,
             createdAt=s.created_at.isoformat(),
             updatedAt=s.updated_at.isoformat(),
-            workspaceId=s.workspace_id,
+            companyId=s.company_id,
             owner_id=getattr(s, "owner_id", "default") or "default",
         )
 
@@ -86,7 +86,7 @@ class OfficeBuilderSessionSummarySchema(BaseModel):
     hasPlan: bool
     createdAt: str
     updatedAt: str
-    workspaceId: str = ""
+    companyId: str = ""
     owner_id: str = "default"
 
     @staticmethod
@@ -98,7 +98,7 @@ class OfficeBuilderSessionSummarySchema(BaseModel):
             hasPlan=bool(s.plan),
             createdAt=s.created_at.isoformat(),
             updatedAt=s.updated_at.isoformat(),
-            workspaceId=s.workspace_id,
+            companyId=s.company_id,
             owner_id=getattr(s, "owner_id", "default") or "default",
         )
 
@@ -108,7 +108,7 @@ class UpsertOfficeBuilderSessionRequest(BaseModel):
     title: str = ""
     messages: list[OfficeChatMessage] = Field(default_factory=list)
     plan: OfficePlan | None = None
-    workspaceId: str = ""
+    companyId: str = ""
 
 
 # ─── Apply (materialize the plan) ───────────────────────────────────────────
@@ -118,8 +118,8 @@ class ApplyOfficePlanRequest(BaseModel):
 
 
 class ApplyOfficePlanResponse(BaseModel):
-    workspace: WorkspaceSchema
-    team_ids: list[str] = Field(default_factory=list)
-    agent_ids: list[str] = Field(default_factory=list)
+    workspace: CompanySchema
+    department_ids: list[str] = Field(default_factory=list)
+    staff_ids: list[str] = Field(default_factory=list)
     skill_ids: list[str] = Field(default_factory=list)
     reused_skill_ids: list[str] = Field(default_factory=list)

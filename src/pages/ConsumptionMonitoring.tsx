@@ -70,7 +70,7 @@ type Lang = "en" | "vi" | "zh" | "ja";
 const COPY: Record<string, Record<Lang, string>> = {
   title: { en: "Cost Monitoring", vi: "Giám sát chi phí", zh: "成本监控", ja: "コスト監視" },
   subtitle: {
-    en: "Token usage and cost across your departments, staff and team members.",
+    en: "Token usage and cost across your departments, staff and department members.",
     vi: "Lượng token và chi phí theo phòng ban, nhân sự và thành viên của bạn.",
     zh: "按部门、员工和成员统计的 Token 用量与成本。",
     ja: "部門・スタッフ・メンバー別のトークン使用量とコスト。",
@@ -87,7 +87,7 @@ const COPY: Record<string, Record<Lang, string>> = {
   basedOnPricing: { en: "based on pricing table", vi: "theo bảng giá", zh: "基于价格表", ja: "価格表に基づく" },
   dailyTrend: { en: "Daily Token Usage", vi: "Token theo ngày", zh: "每日 Token 用量", ja: "日次トークン使用量" },
   noUsage: {
-    en: "No usage recorded yet — run a team task and your cost will show up here.",
+    en: "No usage recorded yet — run a department task and your cost will show up here.",
     vi: "Chưa có dữ liệu — chạy một tác vụ của đội nhóm và chi phí sẽ hiện ở đây.",
     zh: "暂无数据 — 运行团队任务后成本将显示在此。",
     ja: "データなし — チームタスクを実行するとコストが表示されます。",
@@ -239,16 +239,16 @@ export default function ConsumptionMonitoring() {
 
   const chartData = (data?.byDay ?? []).map((d) => ({ ...d, label: d.date.slice(5) }));
 
-  const teamRows: BreakdownRow[] = (data?.byTeam ?? []).map((t) => ({
-    key: t.teamId || t.name,
+  const departmentRows: BreakdownRow[] = (data?.byDepartment ?? []).map((t) => ({
+    key: t.departmentId || t.name,
     name: t.name,
     inputTokens: t.inputTokens,
     outputTokens: t.outputTokens,
     requests: t.requests,
     cost: t.cost,
   }));
-  const agentRows: BreakdownRow[] = (data?.byAgent ?? []).map((a) => ({
-    key: a.agentName || a.name,
+  const staffRows: BreakdownRow[] = (data?.byStaff ?? []).map((a) => ({
+    key: a.staffName || a.name,
     name: a.name,
     sub: a.role || undefined,
     inputTokens: a.inputTokens,
@@ -412,10 +412,10 @@ export default function ConsumptionMonitoring() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="departments">
-              <BreakdownTable icon={Building} title={tr("departments")} rows={teamRows} tr={tr} />
+              <BreakdownTable icon={Building} title={tr("departments")} rows={departmentRows} tr={tr} />
             </TabsContent>
             <TabsContent value="staff">
-              <BreakdownTable icon={Cpu} title={tr("staff")} rows={agentRows} tr={tr} />
+              <BreakdownTable icon={Cpu} title={tr("staff")} rows={staffRows} tr={tr} />
             </TabsContent>
             <TabsContent value="members">
               <BreakdownTable icon={UsersIcon} title={tr("members")} rows={userRows} tr={tr} />

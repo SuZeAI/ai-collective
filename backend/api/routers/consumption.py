@@ -17,7 +17,7 @@ def get_consumption(
     service: MonitoringService = Depends(get_monitoring_service),
 ) -> ConsumptionSchema:
     """Token/cost consumption for the calling user, broken down by department
-    (team), staff (agent) and human (user). Scoped to the caller's own runs —
+    (department), staff (staff) and human (user). Scoped to the caller's own runs —
     no admin role required; visibility is enforced by owner_id filtering.
     """
     return ConsumptionSchema.from_summary(service.get_consumption(owner_id, days))

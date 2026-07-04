@@ -37,9 +37,9 @@ class MongoLongTermMemoryRepository:
         # to the query value. Broad queries (None) impose no constraint there.
         clauses: list[dict[str, Any]] = []
         for field_name, value in (
-            ("workspace_id", scope.workspace_id),
+            ("workspace_id", scope.company_id),
             ("owner_id", scope.owner_id),
-            ("agent_id", scope.agent_id),
+            ("agent_id", scope.staff_id),
         ):
             if value is not None:
                 clauses.append({"$or": [{field_name: None}, {field_name: value}]})

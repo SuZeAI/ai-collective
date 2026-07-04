@@ -23,7 +23,7 @@ export type AppendTarget = {
 };
 
 type AppendFromOverallDialogProps = {
-  /** Dialog title, e.g. "Append humans from Overall". */
+  /** Dialog title, e.g. "Append staff from Overall". */
   title: string;
   /** Helper text under the title. */
   description?: string;
@@ -31,7 +31,7 @@ type AppendFromOverallDialogProps = {
   items: AppendItem[];
   /** Shown when `items` is empty. */
   emptyText: string;
-  /** Optional target choices (e.g. which department receives the humans). */
+  /** Optional target choices (e.g. which department receives the staff). */
   targets?: AppendTarget[];
   /** Label for the target select, e.g. "Add to department". */
   targetLabel?: string;

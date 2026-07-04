@@ -19,7 +19,7 @@ class JsonActivityFeedRepository:
                 self._items.append(
                     ActivityFeedItem(
                         id=str(item["id"]),
-                        agent_id=str(item.get("agentId", "")),
+                        staff_id=str(item.get("agentId", "")),
                         action=str(item.get("action", "")),
                         time=str(item.get("time", "")),
                     )
@@ -29,7 +29,7 @@ class JsonActivityFeedRepository:
 
     def _persist(self) -> None:
         self._store.write(
-            [{"id": i.id, "agentId": i.agent_id, "action": i.action, "time": i.time} for i in self._items]
+            [{"id": i.id, "agentId": i.staff_id, "action": i.action, "time": i.time} for i in self._items]
         )
 
     def list(self) -> list[ActivityFeedItem]:

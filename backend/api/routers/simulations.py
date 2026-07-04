@@ -14,5 +14,5 @@ router = APIRouter(prefix="/simulations", tags=["simulations"])
 async def plan(req: SimulationPlanRequest, service: SimulationService = Depends(get_simulation_service)) -> SimulationPlanResponse:
     steps = await service.plan(req.task_description)
     return SimulationPlanResponse(
-        steps=[SimulationStepSchema(agent=s.agent, msg=s.msg, delay_ms=s.delay_ms, phase=s.phase) for s in steps]
+        steps=[SimulationStepSchema(staff=s.staff, msg=s.msg, delay_ms=s.delay_ms, phase=s.phase) for s in steps]
     )

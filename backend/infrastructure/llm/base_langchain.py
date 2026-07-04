@@ -61,12 +61,12 @@ class LangChainLLMProvider(LLMProvider):
         get_logger().info(f"Starting chat with system prompt: \n{system}\n")
         get_logger().info(f"User input: \n{user}")
 
-        # Delegate the ReAct loop to LangChain's create_agent. The round bound,
+        # Delegate the ReAct loop to LangChain's create_staff. The round bound,
         # per-tool timeout and tool-retry/model-fallback behaviour live in the
         # middleware stack (see middleware.build_default_middleware). The
         # ``parallel_tools`` flag is accepted for interface compatibility;
-        # create_agent already executes a turn's tool calls concurrently.
-        agent = build_chat_agent(
+        # create_staff already executes a turn's tool calls concurrently.
+        staff = build_chat_agent(
             self._llm,
             tools=resolved_tools,
             system_prompt=system,
@@ -74,12 +74,12 @@ class LangChainLLMProvider(LLMProvider):
             tool_timeout=self._tool_timeout,
         )
 
-        result = await agent.ainvoke({"messages": [{"role": "user", "content": user}]})
+        result = await staff.ainvoke({"messages": [{"role": "user", "content": user}]})
         messages = result.get("messages") if isinstance(result, dict) else None
         if not messages:
-            get_logger().warning("Agent returned no messages; returning empty string.")
+            get_logger().warning("Staff returned no messages; returning empty string.")
             return ""
-        get_logger().info(f"Agent final message: {messages[-1]}")
+        get_logger().info(f"Staff final message: {messages[-1]}")
         return self._extract_text_content(messages[-1])
 
     def _extract_text_content(self, result: Any) -> str:

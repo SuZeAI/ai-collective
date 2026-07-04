@@ -16,8 +16,8 @@ class JsonAnalyticsRepository:
         self._analytics = Analytics(
             tasks_completed=int(data.get("tasksCompleted", 0)),
             avg_completion_time=str(data.get("avgCompletionTime", "")),
-            team_efficiency=int(data.get("teamEfficiency", 0)),
-            agent_productivity={str(k): int(v) for k, v in (data.get("agentProductivity") or {}).items()},
+            department_efficiency=int(data.get("teamEfficiency", 0)),
+            staff_productivity={str(k): int(v) for k, v in (data.get("agentProductivity") or {}).items()},
         )
 
     def _persist(self) -> None:
@@ -25,8 +25,8 @@ class JsonAnalyticsRepository:
             {
                 "tasksCompleted": self._analytics.tasks_completed,
                 "avgCompletionTime": self._analytics.avg_completion_time,
-                "teamEfficiency": self._analytics.team_efficiency,
-                "agentProductivity": dict(self._analytics.agent_productivity),
+                "teamEfficiency": self._analytics.department_efficiency,
+                "agentProductivity": dict(self._analytics.staff_productivity),
             }
         )
 
