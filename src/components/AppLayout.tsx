@@ -139,7 +139,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { user, logout, isGuest } = useAuth();
+  const { user, logout } = useAuth();
 
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
@@ -403,9 +403,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       <div className="flex flex-col gap-0.5">
                         <span className="font-semibold text-sm truncate">{user.name}</span>
                         <span className="text-xs text-muted-foreground truncate">{user.email}</span>
-                        {isGuest && (
-                          <span className="text-[10px] text-amber-500 mt-0.5">{t.auth.guestMode}</span>
-                        )}
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />

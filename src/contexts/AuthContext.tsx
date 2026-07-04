@@ -14,19 +14,16 @@ type AuthContextValue = {
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
-  loginAsGuest: () => void;
   loginWithToken: (token: string) => Promise<void>;
   logout: () => void;
   updateUser: (data: Partial<AuthUser>) => void;
   isLoading: boolean;
-  isGuest: boolean;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const TOKEN_KEY = "ai-collective-token";
 const USER_KEY = "ai-collective-user";
-const GUEST_KEY = "ai-collective-guest";
 
 function getApiBase(): string {
   // Same-origin relative default: requests flow through the nginx proxy to the
@@ -55,15 +52,14 @@ async function authFetch<T>(path: string, options: RequestInit = {}): Promise<T>
   return res.json() as Promise<T>;
 }
 
-function loadPersistedAuth(): { user: AuthUser | null; token: string | null; isGuest: boolean } {
+function loadPersistedAuth(): { user: AuthUser | null; token: string | null } {
   try {
     const token = localStorage.getItem(TOKEN_KEY);
     const raw = localStorage.getItem(USER_KEY);
-    const isGuest = localStorage.getItem(GUEST_KEY) === "1";
     const user = raw ? (JSON.parse(raw) as AuthUser) : null;
-    return { user, token, isGuest };
+    return { user, token };
   } catch {
-    return { user: null, token: null, isGuest: false };
+    return { user: null, token: null };
   }
 }
 
@@ -71,18 +67,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const persisted = loadPersistedAuth();
   const [user, setUser] = useState<AuthUser | null>(persisted.user);
   const [token, setToken] = useState<string | null>(persisted.token);
-  const [isGuest, setIsGuest] = useState(persisted.isGuest);
   const [isLoading, setIsLoading] = useState(false);
 
-  const persistAuth = (t: string | null, u: AuthUser, guest = false) => {
+  const persistAuth = (t: string | null, u: AuthUser) => {
     if (t) localStorage.setItem(TOKEN_KEY, t);
     else localStorage.removeItem(TOKEN_KEY);
     localStorage.setItem(USER_KEY, JSON.stringify(u));
-    if (guest) localStorage.setItem(GUEST_KEY, "1");
-    else localStorage.removeItem(GUEST_KEY);
     setToken(t);
     setUser(u);
-    setIsGuest(guest);
   };
 
   const login = async (email: string, password: string) => {
@@ -92,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
-      persistAuth(res.access_token, res.user, false);
+      persistAuth(res.access_token, res.user);
     } finally {
       setIsLoading(false);
     }
@@ -105,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         method: "POST",
         body: JSON.stringify({ name, email, password }),
       });
-      persistAuth(res.access_token, res.user, false);
+      persistAuth(res.access_token, res.user);
     } finally {
       setIsLoading(false);
     }
@@ -120,30 +112,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       if (!res.ok) throw new Error("Invalid token");
       const user: AuthUser = await res.json();
-      persistAuth(rawToken, user, false);
+      persistAuth(rawToken, user);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const loginAsGuest = useCallback(() => {
-    const guestUser: AuthUser = {
-      id: "guest",
-      name: "Guest",
-      email: "guest@local",
-      role: "Guest",
-      joinedAt: new Date().toISOString(),
-    };
-    persistAuth(null, guestUser, true);
-  }, []);
-
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(GUEST_KEY);
     setToken(null);
     setUser(null);
-    setIsGuest(false);
   }, []);
 
   const updateUser = useCallback((data: Partial<AuthUser>) => {
@@ -156,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, loginAsGuest, loginWithToken, logout, updateUser, isLoading, isGuest }}>
+    <AuthContext.Provider value={{ user, token, login, register, loginWithToken, logout, updateUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
