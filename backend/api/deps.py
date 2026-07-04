@@ -136,19 +136,19 @@ def _repos():
         workspaces = MongoWorkspaceRepository(db)
         connections = MongoConnectionRepository(db)
     else:
-        agents = JsonAgentRepository(JsonFileStore(STORAGE_DIR / "agents.json"))
-        skills = JsonSkillRepository(JsonFileStore(STORAGE_DIR / "skills.json"))
-        teams = JsonTeamRepository(JsonFileStore(STORAGE_DIR / "teams.json"))
-        tasks = JsonTaskRepository(JsonFileStore(STORAGE_DIR / "tasks.json"))
-        conversations = JsonConversationRepository(JsonFileStore(STORAGE_DIR / "conversations.json"))
-        analytics = JsonAnalyticsRepository(JsonFileStore(STORAGE_DIR / "analytics.json"))
-        activity_feed = JsonActivityFeedRepository(JsonFileStore(STORAGE_DIR / "activity_feed.json"))
+        agents = JsonAgentRepository(_store("agents.json"))
+        skills = JsonSkillRepository(_store("skills.json"))
+        teams = JsonTeamRepository(_store("teams.json"))
+        tasks = JsonTaskRepository(_store("tasks.json"))
+        conversations = JsonConversationRepository(_store("conversations.json"))
+        analytics = JsonAnalyticsRepository(_store("analytics.json"))
+        activity_feed = JsonActivityFeedRepository(_store("activity_feed.json"))
         graph_knowledge = JsonGraphKnowledgeRepository(
-            JsonFileStore(STORAGE_DIR / "graph_knowledge.json"),
-            JsonFileStore(STORAGE_DIR / "graph_knowledge_events.json"),
+            _store("graph_knowledge.json"),
+            _store("graph_knowledge_events.json"),
         )
-        workspaces = JsonWorkspaceRepository(JsonFileStore(STORAGE_DIR / "workspaces.json"))
-        connections = JsonConnectionRepository(JsonFileStore(STORAGE_DIR / "connections.json"))
+        workspaces = JsonWorkspaceRepository(_store("workspaces.json"))
+        connections = JsonConnectionRepository(_store("connections.json"))
 
     # Optional Neo4j knowledge-graph backend (overrides the STORAGE_BACKEND repo
     # above). Falls back to that repo if the driver/server is unavailable so the
@@ -469,7 +469,7 @@ def seed_default_data() -> None:
                 seed_records = _load_seed_records(filename)
                 if not seed_records:
                     continue
-                store = JsonFileStore(STORAGE_DIR / filename)
+                store = _store(filename)
                 live = store.read()
                 if not isinstance(live, list):
                     live = []
