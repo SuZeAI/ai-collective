@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentAvatar } from "@/components/AgentAvatar";
-import { api, type Agent, type Skill, type Task, type Team } from "@/lib/api";
+import { api, type Agent, type LibraryDocument, type Skill, type Task, type Team } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
 
-type Kind = "task" | "team" | "agent" | "skill";
+type Kind = "task" | "team" | "agent" | "skill" | "document";
 
 // Page-local copy keyed by the active language (the global locales only carry
 // the nav label). Keeps the page self-contained without bloating locales/index.
@@ -18,7 +19,7 @@ const COPY = {
   en: {
     subtitle: "Discover ready-made resources and copy them into your own business units.",
     search: "Search…",
-    tabs: { task: "Projects", team: "Departments", agent: "Staff", skill: "Skills & Tools" },
+    tabs: { task: "Projects", team: "Departments", agent: "Staff", skill: "Skills & Tools", document: "Documents" },
     copy: "Copy to my unit",
     copying: "Copying…",
     copied: "Copied",
@@ -26,11 +27,12 @@ const COPY = {
     toastOk: "Copied to your unit",
     toastDesc: "An independent copy was created — edit it freely without touching the original.",
     toastErr: "Copy failed",
+    docNeedsCompany: "Select a company first to recruit a document into it.",
   },
   vi: {
     subtitle: "Khám phá các tài nguyên dựng sẵn và sao chép về đơn vị thành viên của bạn.",
     search: "Tìm kiếm…",
-    tabs: { task: "Dự án", team: "Phòng ban", agent: "Hồ sơ Nhân sự Số", skill: "Nghiệp vụ & Công cụ" },
+    tabs: { task: "Dự án", team: "Phòng ban", agent: "Hồ sơ Nhân sự Số", skill: "Nghiệp vụ & Công cụ", document: "Tài liệu" },
     copy: "Sao chép về đơn vị của tôi",
     copying: "Đang sao chép…",
     copied: "Đã sao chép",
@@ -38,11 +40,12 @@ const COPY = {
     toastOk: "Đã sao chép về đơn vị thành viên của bạn",
     toastDesc: "Một bản sao độc lập đã được tạo — bạn sửa thoải mái mà không ảnh hưởng bản gốc.",
     toastErr: "Sao chép thất bại",
+    docNeedsCompany: "Hãy chọn một công ty trước để tuyển tài liệu vào đó.",
   },
   zh: {
     subtitle: "发现现成的资源并复制到你自己的成员单位。",
     search: "搜索…",
-    tabs: { task: "项目", team: "部门架构", agent: "数字化员工", skill: "业务与工具" },
+    tabs: { task: "项目", team: "部门架构", agent: "数字化员工", skill: "业务与工具", document: "文档" },
     copy: "复制到我的单位",
     copying: "复制中…",
     copied: "已复制",
@@ -50,11 +53,12 @@ const COPY = {
     toastOk: "已复制到你的成员单位",
     toastDesc: "已创建独立副本——可自由编辑而不影响原件。",
     toastErr: "复制失败",
+    docNeedsCompany: "请先选择一家公司，再将文档招募进去。",
   },
   ja: {
     subtitle: "既製のリソースを見つけて、自分の拠点にコピーします。",
     search: "検索…",
-    tabs: { task: "プロジェクト", team: "部門構成", agent: "デジタル人材", skill: "業務とツール" },
+    tabs: { task: "プロジェクト", team: "部門構成", agent: "デジタル人材", skill: "業務とツール", document: "ドキュメント" },
     copy: "自分の拠点にコピー",
     copying: "コピー中…",
     copied: "コピー済み",
@@ -62,6 +66,7 @@ const COPY = {
     toastOk: "拠点にコピーしました",
     toastDesc: "独立したコピーが作成されました。元に影響を与えずに自由に編集できます。",
     toastErr: "コピーに失敗しました",
+    docNeedsCompany: "ドキュメントを採用するには、先に会社を選択してください。",
   },
 } as const;
 
@@ -76,12 +81,14 @@ type CardData = {
 export default function Marketplace() {
   const { t, language } = useLanguage();
   const { toast } = useToast();
+  const scope = useWorkspaceScope();
   const c = COPY[language] ?? COPY.en;
 
   const [skills, setSkills] = useState<Skill[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [documents, setDocuments] = useState<LibraryDocument[]>([]);
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [copiedIds, setCopiedIds] = useState<Set<string>>(new Set());
@@ -90,17 +97,19 @@ export default function Marketplace() {
     let cancelled = false;
     (async () => {
       try {
-        const [sk, ag, tm, tk] = await Promise.all([
+        const [sk, ag, tm, tk, dc] = await Promise.all([
           api.listMarketplaceSkills(),
           api.listMarketplaceAgents(),
           api.listMarketplaceTeams(),
           api.listMarketplaceTasks(),
+          api.listMarketplaceDocuments(),
         ]);
         if (cancelled) return;
         setSkills(sk);
         setAgents(ag);
         setTeams(tm);
         setTasks(tk);
+        setDocuments(dc);
       } catch (e) {
         console.error("Failed to load marketplace:", e);
       }
@@ -111,9 +120,18 @@ export default function Marketplace() {
   }, []);
 
   const handleCopy = async (kind: Kind, id: string) => {
+    // Documents are office-bound, so they copy into the active company.
+    if (kind === "document" && !scope.workspace) {
+      toast({ title: c.toastErr, description: c.docNeedsCompany, variant: "destructive" });
+      return;
+    }
     setBusyId(id);
     try {
-      await api.copyFromMarketplace({ type: kind, id });
+      await api.copyFromMarketplace({
+        type: kind,
+        id,
+        ...(kind === "document" ? { workspaceId: scope.workspace?.id } : {}),
+      });
       setCopiedIds((prev) => new Set(prev).add(id));
       toast({ title: c.toastOk, description: c.toastDesc });
     } catch (e) {
@@ -160,8 +178,14 @@ export default function Marketplace() {
           avatar_url: x.avatar_url,
         }),
       ),
+      document: documents.map((x) =>
+        toCard(x.id, x.name, x.description || x.sourceUrl || "", x.source, {
+          avatar: x.name?.[0]?.toUpperCase(),
+          avatar_icon: "file-text",
+        }),
+      ),
     };
-  }, [tasks, teams, agents, skills]);
+  }, [tasks, teams, agents, skills, documents]);
 
   const renderGrid = (kind: Kind) => {
     const q = search.trim().toLowerCase();
@@ -219,7 +243,7 @@ export default function Marketplace() {
     );
   };
 
-  const order: Kind[] = ["task", "team", "agent", "skill"];
+  const order: Kind[] = ["task", "team", "agent", "skill", "document"];
 
   return (
     <div className="p-6 max-w-6xl mx-auto">

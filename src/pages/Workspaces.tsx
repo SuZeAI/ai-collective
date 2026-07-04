@@ -6,7 +6,9 @@ import {
   BrainCircuit, Users, Webhook, Settings2, RefreshCw,
   MessageCircle, Zap, Globe, Link2, Download,
 } from "lucide-react";
-import { api, canDeleteItem, canEditItem, type Workspace, type PlatformHook, type PlatformDef, type Team, type ThirdPartyConnection } from "@/lib/api";
+import { api, canDeleteItem, canEditItem, type Workspace, type PlatformHook, type PlatformDef, type Team, type ThirdPartyConnection, type CompanyType } from "@/lib/api";
+import { COMPANY_TYPES, COMPANY_TYPE_MAP, companyTypeOf } from "@/lib/company-types";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +20,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -350,8 +356,10 @@ function WorkspaceDialog({
   onSave: (data: Partial<Workspace> & Pick<Workspace, "name">) => void;
   workspaces?: Workspace[];
 }) {
+  const { t: lang } = useLanguage();
   const [name, setName] = useState(existing?.name || "");
   const [desc, setDesc] = useState(existing?.description || "");
+  const [type, setType] = useState<CompanyType>(existing?.type ?? "general");
   const [teamIds, setTeamIds] = useState<string[]>(existing?.teamIds || []);
   const [primaryTeamId, setPrimaryTeamId] = useState(existing?.primaryTeamId || "");
   const [hooks, setHooks] = useState<PlatformHook[]>(existing?.platformHooks || []);
@@ -361,6 +369,7 @@ function WorkspaceDialog({
     if (open) {
       setName(existing?.name || "");
       setDesc(existing?.description || "");
+      setType(existing?.type ?? "general");
       setTeamIds(existing?.teamIds || []);
       setPrimaryTeamId(existing?.primaryTeamId || "");
       setHooks(existing?.platformHooks || []);
@@ -403,6 +412,7 @@ function WorkspaceDialog({
       id: existing?.id,
       name: name.trim(),
       description: desc,
+      type,
       teamIds,
       primaryTeamId: primaryTeamId || teamIds[0] || "",
       platformHooks: hooks,
@@ -417,7 +427,7 @@ function WorkspaceDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BrainCircuit className="h-4 w-4 text-teal-400" />
-              {existing ? "Edit Office" : "New Office"}
+              {existing ? "Edit Company" : "New Company"}
             </DialogTitle>
           </DialogHeader>
 
@@ -428,9 +438,9 @@ function WorkspaceDialog({
                 <div className="flex items-center gap-2.5">
                   <Download className="h-4 w-4 text-teal-400 shrink-0" />
                   <div>
-                    <h4 className="text-xs font-semibold text-foreground">Import settings from another Office</h4>
+                    <h4 className="text-xs font-semibold text-foreground">Import settings from another Company</h4>
                     <p className="text-[10px] text-muted-foreground leading-normal">
-                      Clone departments and platform hooks instantly from an existing office.
+                      Clone departments and platform hooks instantly from an existing company.
                     </p>
                   </div>
                 </div>
@@ -454,13 +464,31 @@ function WorkspaceDialog({
             {/* Name + Description */}
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
-                <Label className="text-xs">Office Name <span className="text-rose-400">*</span></Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My AI Office" />
+                <Label className="text-xs">Company Name <span className="text-rose-400">*</span></Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My AI Company" />
               </div>
               <div className="grid gap-1.5">
                 <Label className="text-xs">Description</Label>
-                <Input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="What this office does" />
+                <Input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="What this company does" />
               </div>
+            </div>
+
+            {/* Company type — drives which options are suggested inside it */}
+            <div className="grid gap-1.5">
+              <Label className="text-xs">{lang.companyTypeLabel}</Label>
+              <Select value={type} onValueChange={(v) => setType(v as CompanyType)}>
+                <SelectTrigger className="h-9 text-xs w-full sm:w-[260px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {COMPANY_TYPES.map((ct) => (
+                    <SelectItem key={ct.value} value={ct.value} className="text-xs">
+                      <span className="inline-flex items-center gap-1.5">
+                        <ct.icon className="h-3.5 w-3.5" />
+                        {lang.companyTypes[ct.value]}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Teams */}
@@ -624,8 +652,11 @@ function WorkspaceCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { t: lang } = useLanguage();
   const [expanded, setExpanded] = useState(false);
   const wsTeams = teams.filter((t) => workspace.teamIds.includes(t.id));
+  const wsType = companyTypeOf(workspace);
+  const wsTypeDef = COMPANY_TYPE_MAP[wsType];
 
   return (
     <motion.div
@@ -641,7 +672,13 @@ function WorkspaceCard({
           {workspace.avatar || workspace.name[0]}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm">{workspace.name}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-sm truncate">{workspace.name}</h3>
+            <span className={cn("shrink-0 inline-flex items-center gap-1 rounded-full text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 border", wsTypeDef.accent)}>
+              <wsTypeDef.icon className="h-2.5 w-2.5" />
+              {lang.companyTypes[wsType]}
+            </span>
+          </div>
           <p className="text-xs text-muted-foreground truncate">{workspace.description || "No description"}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -752,6 +789,7 @@ export default function Workspaces() {
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Workspace | undefined>();
+  const [deleting, setDeleting] = useState<Workspace | undefined>();
 
   const { data: workspaces = [], isLoading: wsLoading } = useQuery({
     queryKey: ["workspaces"],
@@ -785,11 +823,21 @@ export default function Workspaces() {
   const remove = useMutation({
     mutationFn: api.deleteWorkspace,
     onSuccess: () => {
+      // The workspace and all of its related data (departments, documents,
+      // office-builder sessions, …) are cleaned up server-side. Refresh the
+      // department list so deleted ones stop showing in the New Company dialog.
       qc.invalidateQueries({ queryKey: ["workspaces"] });
-      toast({ title: "Office deleted" });
+      qc.invalidateQueries({ queryKey: ["teams"] });
+      toast({ title: "Company deleted" });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
+
+  const confirmDelete = () => {
+    if (!deleting) return;
+    remove.mutate(deleting.id);
+    setDeleting(undefined);
+  };
 
   const openNew = () => { setEditing(undefined); setDialogOpen(true); };
   const openEdit = (ws: Workspace) => { setEditing(ws); setDialogOpen(true); };
@@ -809,23 +857,23 @@ export default function Workspaces() {
               <BrainCircuit className="h-5 w-5 text-teal-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Offices</h1>
+              <h1 className="text-2xl font-bold tracking-tight">Manage Companies</h1>
               <p className="text-sm text-muted-foreground">
-                Group departments + messaging platform hooks. Messages from any platform trigger your departments.
+                Create and control companies — group departments + messaging platform hooks. Messages from any platform trigger your departments.
               </p>
             </div>
           </div>
         </div>
         <Button onClick={openNew} className="gap-2 bg-teal-600 hover:bg-teal-500 shadow-lg shadow-teal-500/20">
           <Plus className="h-4 w-4" />
-          New Office
+          New Company
         </Button>
       </div>
 
       {/* Stats bar */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Offices", value: workspaces.length, icon: BrainCircuit, color: "text-teal-400" },
+          { label: "Companies", value: workspaces.length, icon: BrainCircuit, color: "text-teal-400" },
           { label: "Active Hooks", value: workspaces.reduce((s, w) => s + w.platformHooks.filter(h => h.enabled).length, 0), icon: Plug, color: "text-emerald-400" },
           { label: "Platforms", value: platforms.length, icon: Globe, color: "text-sky-400" },
         ].map(({ label, value, icon: Icon, color }) => (
@@ -860,7 +908,7 @@ export default function Workspaces() {
       {wsLoading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
           <RefreshCw className="h-5 w-5 animate-spin mr-2" />
-          Loading offices...
+          Loading companies...
         </div>
       ) : workspaces.length === 0 ? (
         <motion.div
@@ -871,13 +919,13 @@ export default function Workspaces() {
           <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br from-teal-500/10 to-cyan-600/10 border border-teal-500/20 mb-6">
             <BrainCircuit className="h-9 w-9 text-teal-400/60" />
           </div>
-          <h2 className="text-xl font-semibold mb-2">No offices yet</h2>
+          <h2 className="text-xl font-semibold mb-2">No companies yet</h2>
           <p className="text-sm text-muted-foreground max-w-sm mb-6">
-            Create an office to link your departments with messaging platforms like Telegram, Discord, Slack, WhatsApp, and more.
+            Create a company to link your departments with messaging platforms like Telegram, Discord, Slack, WhatsApp, and more.
           </p>
           <Button onClick={openNew} className="gap-2 bg-teal-600 hover:bg-teal-500">
             <Plus className="h-4 w-4" />
-            Create your first office
+            Create your first company
           </Button>
         </motion.div>
       ) : (
@@ -890,7 +938,7 @@ export default function Workspaces() {
                 teams={teams}
                 platforms={platforms}
                 onEdit={() => openEdit(ws)}
-                onDelete={() => remove.mutate(ws.id)}
+                onDelete={() => setDeleting(ws)}
               />
             ))}
           </div>
@@ -932,6 +980,33 @@ export default function Workspaces() {
         onSave={handleSave}
         workspaces={workspaces}
       />
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(undefined)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete company?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleting ? (
+                <>
+                  Are you sure you want to delete <span className="font-semibold text-foreground">{deleting.name}</span>?
+                  This permanently removes the company along with all of its related data — departments links,
+                  platform hooks, document library, and office-builder history. This action cannot be undone.
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-rose-600 hover:bg-rose-500 text-white"
+            >
+              Delete company
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

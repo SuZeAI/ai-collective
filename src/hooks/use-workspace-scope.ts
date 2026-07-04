@@ -4,6 +4,12 @@ import { api, type Workspace } from "@/lib/api";
 // Sentinel stored in localStorage when "Overall" (all offices) is selected.
 export const OVERALL_WORKSPACE_ID = "__overall__";
 
+// Workspace id used to tag documents that belong to the shared "default" catalog
+// (curated by admins in the "All" scope and offered in Recruiting), rather than
+// to any single company. Documents are workspace-bound, so catalog docs need a
+// stable home that isn't a real office.
+export const CATALOG_WORKSPACE_ID = "__default__";
+
 export function getActiveWorkspaceId(): string | null {
   try {
     const v = localStorage.getItem("activeWorkspaceId");
@@ -11,6 +17,20 @@ export function getActiveWorkspaceId(): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Switch the active office (or Overall when `id` is null). Persists the choice
+ * and broadcasts it so every `useWorkspaceScope()` consumer and the sidebar
+ * re-resolve. Shared by the sidebar switcher and the Overview "Companies" grid.
+ */
+export function setActiveWorkspaceId(id: string | null): void {
+  try {
+    localStorage.setItem("activeWorkspaceId", id ?? OVERALL_WORKSPACE_ID);
+  } catch {
+    /* ignore storage failures */
+  }
+  window.dispatchEvent(new CustomEvent("activeWorkspaceChanged", { detail: id }));
 }
 
 export type WorkspaceScope = {

@@ -19,7 +19,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { COMPANY_TYPES } from "@/lib/company-types";
+import type { CompanyType } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const EXAMPLE_PROMPTS = [
@@ -335,10 +339,12 @@ function formatSessionTime(iso: string): string {
 export default function OfficeBuilder() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const [sessions, setSessions] = useState<OfficeBuilderSessionSummary[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [appliedWorkspaceId, setAppliedWorkspaceId] = useState<string>("");
+  const [companyType, setCompanyType] = useState<CompanyType>("general");
   const [messages, setMessages] = useState<OfficeChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [plan, setPlan] = useState<OfficePlan | null>(null);
@@ -492,7 +498,7 @@ export default function OfficeBuilder() {
     if (!plan || creating) return;
     setCreating(true);
     try {
-      const res = await api.applyOfficePlan({ plan });
+      const res = await api.applyOfficePlan({ plan: { ...plan, company_type: companyType } });
       toast({
         title: "Office created",
         description: `"${res.workspace.name}" — ${res.team_ids.length} departments, ${res.agent_ids.length} humans, ${res.skill_ids.length} new skills.`,
@@ -523,10 +529,10 @@ export default function OfficeBuilder() {
         <div>
           <h1 className="text-xl font-bold flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-teal-400" />
-            Office Builder
+            AI Office Designer
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Describe your company — AI designs a full office with departments, humans, skills and tools.
+            Describe your company — AI builds a full company (departments, staff, skills &amp; tools), then pick a type and create it.
           </p>
         </div>
         {(messages.length > 0 || plan) && (
@@ -746,14 +752,31 @@ export default function OfficeBuilder() {
                 </Badge>
               )}
               {plan && !appliedWorkspaceId && (
-                <Button size="sm" onClick={createOffice} disabled={busy} className="text-xs gap-1.5 shrink-0">
-                  {creating ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  )}
-                  {creating ? "Creating…" : "Create Office"}
-                </Button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Select value={companyType} onValueChange={(v) => setCompanyType(v as CompanyType)} disabled={busy}>
+                    <SelectTrigger className="h-8 w-[150px] text-xs" title={t.companyTypeLabel}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMPANY_TYPES.map((ct) => (
+                        <SelectItem key={ct.value} value={ct.value} className="text-xs">
+                          <span className="inline-flex items-center gap-1.5">
+                            <ct.icon className="h-3 w-3" />
+                            {t.companyTypes[ct.value]}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" onClick={createOffice} disabled={busy} className="text-xs gap-1.5">
+                    {creating ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    )}
+                    {creating ? "Creating…" : "Create Company"}
+                  </Button>
+                </div>
               )}
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-4">

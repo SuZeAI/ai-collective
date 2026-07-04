@@ -4,10 +4,11 @@ import { motion } from "framer-motion";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
   BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit,
-  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban,
+  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, Building2, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban, Star,
 } from "lucide-react";
 import { api, type Workspace } from "@/lib/api";
-import { OVERALL_WORKSPACE_ID } from "@/hooks/use-workspace-scope";
+import { OVERALL_WORKSPACE_ID, setActiveWorkspaceId } from "@/hooks/use-workspace-scope";
+import { COMPANY_TYPE_MAP, companyTypeOf, suggestedNavKeys } from "@/lib/company-types";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -27,14 +28,18 @@ type NavItemKey =
   | "monitoring" | "consumption" | "marketplace" | "documentLibrary";
 
 type NavGroup = {
-  groupKey: "overviewGroup" | "operationsGroup" | "orgGroup" | "officeGroup" | "devGroup" | "systemGroup" | "adminGroup";
+  groupKey: "overviewGroup" | "companiesGroup" | "catalogGroup" | "operationsGroup" | "orgGroup" | "officeGroup" | "devGroup" | "systemGroup" | "adminGroup";
   adminOnly?: boolean;
+  // Where the group appears: "overall" = only the All scope (company create/
+  // control), "company" = only inside a selected company, "both" = everywhere.
+  visibleIn: "overall" | "company" | "both";
   items: { key: NavItemKey; url: string; icon: React.ElementType }[];
 };
 
 const NAV_GROUPS: NavGroup[] = [
   {
     groupKey: "overviewGroup",
+    visibleIn: "both",
     items: [
       { key: "dashboard", url: "/dashboard", icon: Layout },
       { key: "analytics", url: "/analytics", icon: BarChart3 },
@@ -42,7 +47,31 @@ const NAV_GROUPS: NavGroup[] = [
     ]
   },
   {
+    // All-scope only: the company control center — create (AI) + manage.
+    // Hidden for admins (admins curate the shared catalog instead, below).
+    groupKey: "companiesGroup",
+    visibleIn: "overall",
+    items: [
+      { key: "officeBuilder", url: "/office-builder", icon: Sparkles },
+      { key: "workspaces", url: "/workspaces", icon: Building2 },
+    ]
+  },
+  {
+    // Admin-only, All-scope: the shared "default" catalog admins curate. These
+    // feed Recruiting (Marketplace) for every company to copy from.
+    groupKey: "catalogGroup",
+    adminOnly: true,
+    visibleIn: "overall",
+    items: [
+      { key: "teams", url: "/teams", icon: Users },
+      { key: "agents", url: "/agents", icon: Cpu },
+      { key: "skills", url: "/skills", icon: Wrench },
+      { key: "documentLibrary", url: "/documents", icon: FolderOpen },
+    ]
+  },
+  {
     groupKey: "orgGroup",
+    visibleIn: "company",
     items: [
       { key: "teams", url: "/teams", icon: Users },
       { key: "agents", url: "/agents", icon: Cpu },
@@ -51,6 +80,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     groupKey: "operationsGroup",
+    visibleIn: "company",
     items: [
       { key: "projects", url: "/projects", icon: FolderKanban },
       { key: "tasks", url: "/tasks", icon: CheckCircle2 },
@@ -59,8 +89,8 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     groupKey: "officeGroup",
+    visibleIn: "company",
     items: [
-      { key: "officeBuilder", url: "/office-builder", icon: Sparkles },
       { key: "virtualOffice", url: "/virtual-office", icon: Building },
       { key: "documentLibrary", url: "/documents", icon: FolderOpen },
       { key: "marketplace", url: "/marketplace", icon: ShoppingBag },
@@ -68,6 +98,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     groupKey: "systemGroup",
+    visibleIn: "company",
     items: [
       { key: "playground", url: "/playground", icon: Play },
     ]
@@ -75,6 +106,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     groupKey: "adminGroup",
     adminOnly: true,
+    visibleIn: "both",
     items: [
       { key: "monitoring", url: "/admin/monitoring", icon: ShieldCheck },
     ]
@@ -140,18 +172,39 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         .catch((err) => console.error("Error refreshing workspaces:", err));
     };
 
+    // "workspaceChanged" → office list edited; "activeWorkspaceChanged" → the
+    // selected office switched (e.g. from the Overview "Companies" grid). Both
+    // must re-sync the sidebar's active office and the scope-aware nav.
     window.addEventListener("workspaceChanged", handleWorkspaceRefresh);
-    return () => window.removeEventListener("workspaceChanged", handleWorkspaceRefresh);
+    window.addEventListener("activeWorkspaceChanged", handleWorkspaceRefresh);
+    return () => {
+      window.removeEventListener("workspaceChanged", handleWorkspaceRefresh);
+      window.removeEventListener("activeWorkspaceChanged", handleWorkspaceRefresh);
+    };
   }, []);
 
   const handleSelectWorkspace = (ws: Workspace | null) => {
     setActiveWorkspace(ws);
-    localStorage.setItem("activeWorkspaceId", ws ? ws.id : OVERALL_WORKSPACE_ID);
-    window.dispatchEvent(new CustomEvent("activeWorkspaceChanged", { detail: ws?.id ?? null }));
+    setActiveWorkspaceId(ws ? ws.id : null);
   };
 
   const isAdmin = user?.role === "admin" || user?.role === "system";
-  const navGroups = NAV_GROUPS.filter((group) => !group.adminOnly || isAdmin);
+  // "All" scope = company create/control/monitor; inside a company = that
+  // company's operations. Groups declare where they belong via `visibleIn`.
+  const isOverall = !activeWorkspace;
+  const navGroups = NAV_GROUPS.filter(
+    (group) =>
+      (!group.adminOnly || isAdmin) &&
+      (group.visibleIn === "both" || group.visibleIn === (isOverall ? "overall" : "company")) &&
+      // Admins in the "All" scope don't create/control companies — their All
+      // view is the shared catalog (catalogGroup) + System Monitoring only.
+      !(isOverall && isAdmin && (group.groupKey === "overviewGroup" || group.groupKey === "companiesGroup")),
+  );
+  // Flexible company-type rule: inside a company, mark (never hide) the options
+  // best suited to its type with a "suggested" star.
+  const companyType = companyTypeOf(activeWorkspace);
+  const suggestedKeys = isOverall ? new Set<string>() : suggestedNavKeys(companyType);
+  const typeDef = COMPANY_TYPE_MAP[companyType];
 
   const allNavItems = navGroups.flatMap((g) => g.items).map((item) => ({
     ...item,
@@ -225,15 +278,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       </button>
                     );
                   })}
-                  <button
-                    onClick={() => navigate("/workspaces")}
-                    className="w-10 h-10 rounded-xl border border-dashed border-sidebar-border/70 flex items-center justify-center text-sidebar-foreground/45 hover:text-sidebar-foreground hover:border-sidebar-foreground/60 hover:bg-sidebar-accent/20 transition-all group relative shrink-0"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <div className="absolute left-14 bg-popover text-popover-foreground border shadow-md px-2 py-1 rounded-md text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 translate-x-1 group-hover:translate-x-0 pointer-events-none z-50">
-                      {t.nav.manageWorkspaces}
-                    </div>
-                  </button>
+                  {/* Company creation is a non-admin action; admins curate the
+                      shared catalog instead and don't create companies. */}
+                  {!isAdmin && (
+                    <button
+                      onClick={() => navigate("/workspaces")}
+                      className="w-10 h-10 rounded-xl border border-dashed border-sidebar-border/70 flex items-center justify-center text-sidebar-foreground/45 hover:text-sidebar-foreground hover:border-sidebar-foreground/60 hover:bg-sidebar-accent/20 transition-all group relative shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <div className="absolute left-14 bg-popover text-popover-foreground border shadow-md px-2 py-1 rounded-md text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 translate-x-1 group-hover:translate-x-0 pointer-events-none z-50">
+                        {t.nav.manageWorkspaces}
+                      </div>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -242,8 +299,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <div className="text-[9px] font-bold text-sidebar-foreground/40 uppercase tracking-widest">
                   {t.nav.workspaces}
                 </div>
-                <div className="font-bold text-[13px] text-sidebar-foreground truncate mt-1">
-                  {activeWorkspace?.name || "Overall Collective"}
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="font-bold text-[13px] text-sidebar-foreground truncate">
+                    {activeWorkspace?.name || "Overall Collective"}
+                  </span>
+                  {isOverall ? (
+                    <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-teal-500/15 text-teal-500 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 border border-teal-500/25">
+                      <Globe className="w-2.5 h-2.5" />
+                      {t.nav.monitoringBadge}
+                    </span>
+                  ) : (
+                    <span className={cn("shrink-0 inline-flex items-center gap-1 rounded-full text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 border", typeDef.accent)}>
+                      <typeDef.icon className="w-2.5 h-2.5" />
+                      {t.companyTypes[companyType]}
+                    </span>
+                  )}
                 </div>
                 <div className="text-[10px] text-sidebar-foreground/45 truncate mt-0.5 leading-normal">
                   {activeWorkspace?.description || "All offices & shared resources"}
@@ -259,6 +329,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       {group.items.map((item) => {
                         const isActive = location.pathname === item.url;
                         const title = t.nav[item.key];
+                        const suggested = suggestedKeys.has(item.key);
                         return (
                           <Link
                             key={item.key}
@@ -279,6 +350,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                               )}
                             />
                             <span className="truncate">{title}</span>
+                            {suggested && (
+                              <span className="ml-auto shrink-0" title={t.nav.suggestedBadge}>
+                                <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                              </span>
+                            )}
                           </Link>
                         );
                       })}
