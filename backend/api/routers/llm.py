@@ -23,7 +23,10 @@ from backend.application.ports.agent_graph import CustomGraphSpec, GraphAgentDef
 from backend.application.service.agent_service import AgentService
 from backend.application.service.graph_context_service import GraphContextService
 from backend.application.service.llm_service import LLMService
+from backend.application.service.task_service import TaskService
+from backend.domain.errors import NotFoundError
 from backend.domain.memory.knowledge_graph import GraphContextConfig
+from backend.domain.models import is_visible_to
 from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.infrastructure import task_run_registry
 from backend.infrastructure.llm.usage_tracker import current_usage_team
@@ -32,6 +35,21 @@ from backend.log import get_logger
 
 router = APIRouter(prefix="/llm", tags=["llm"])
 logger = get_logger(__name__)
+
+
+def _require_conversation_access(task_service: TaskService, conversation_id: str, owner_id: str) -> None:
+    """Raise 404 unless the conversation's task exists and is visible to owner_id.
+
+    Conversation ids are task ids; without this check any caller who can guess
+    or enumerate a task id could interject/respond/pause/resume another
+    owner's active run.
+    """
+    try:
+        task = task_service.get_task(conversation_id)
+    except NotFoundError:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    if not is_visible_to(owner_id, task.owner_id):
+        raise HTTPException(status_code=404, detail="Conversation not found")
 
 
 class ChatRequest(BaseModel):
@@ -51,9 +69,13 @@ async def chat(
     service: LLMService | None = Depends(get_llm_service),
     agent_service: AgentService = Depends(get_agent_service),
     tool_manager: SkillToolManager = Depends(get_skill_tool_manager),
+    task_service: TaskService = Depends(get_task_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ) -> ChatResponse:
     if not service:
         raise HTTPException(status_code=503, detail="LLM not configured")
+    if req.conversationId:
+        _require_conversation_access(task_service, req.conversationId, owner_id)
     system_prompt = req.system
     tools: list[object] = []
     subagent_enabled = False
@@ -126,7 +148,11 @@ class InterjectResponse(BaseModel):
 
 
 @router.post("/agent-graph/interject", response_model=InterjectResponse)
-async def interject_agent_graph(req: InterjectRequest) -> InterjectResponse:
+async def interject_agent_graph(
+    req: InterjectRequest,
+    task_service: TaskService = Depends(get_task_service),
+    owner_id: str = Depends(current_owner_id_dep),
+) -> InterjectResponse:
     """Queue a user message for an active run.
 
     The next agent turn drains the queue, injects the message into its context
@@ -134,6 +160,7 @@ async def interject_agent_graph(req: InterjectRequest) -> InterjectResponse:
     stream event. Returns 409 when the run is no longer active so the client
     can tell the user their guidance was not consumed.
     """
+    _require_conversation_access(task_service, req.conversation_id, owner_id)
     content = req.content.strip()
     if not content:
         raise HTTPException(status_code=422, detail="content must not be blank")
@@ -155,12 +182,17 @@ class UserResponseRequest(BaseModel):
 
 
 @router.post("/agent-graph/respond")
-async def respond_agent_graph(req: UserResponseRequest) -> dict:
+async def respond_agent_graph(
+    req: UserResponseRequest,
+    task_service: TaskService = Depends(get_task_service),
+    owner_id: str = Depends(current_owner_id_dep),
+) -> dict:
     """Deliver the user's answer to an agent blocked on the ask_user tool.
 
     The tool's poll loop picks the answer up, emits ``user_input_received``
     on the stream, and returns the answer to the LLM so it continues its turn.
     """
+    _require_conversation_access(task_service, req.conversation_id, owner_id)
     response = req.response.strip()
     if not response:
         raise HTTPException(status_code=422, detail="response must not be blank")
@@ -185,9 +217,14 @@ class RunControlRequest(BaseModel):
 
 
 @router.post("/agent-graph/pause")
-async def pause_agent_graph(req: RunControlRequest) -> dict:
+async def pause_agent_graph(
+    req: RunControlRequest,
+    task_service: TaskService = Depends(get_task_service),
+    owner_id: str = Depends(current_owner_id_dep),
+) -> dict:
     """Interrupt an active run: the current agent finishes its turn, then the
     run holds at the turn boundary so the user can chat before resuming."""
+    _require_conversation_access(task_service, req.conversation_id, owner_id)
     if not task_run_registry.signal_pause(req.conversation_id):
         raise HTTPException(
             status_code=409,
@@ -197,9 +234,14 @@ async def pause_agent_graph(req: RunControlRequest) -> dict:
 
 
 @router.post("/agent-graph/resume")
-async def resume_agent_graph(req: RunControlRequest) -> dict:
+async def resume_agent_graph(
+    req: RunControlRequest,
+    task_service: TaskService = Depends(get_task_service),
+    owner_id: str = Depends(current_owner_id_dep),
+) -> dict:
     """Release a held run; the next agent turn proceeds (and picks up any
     interjected messages queued during the hold)."""
+    _require_conversation_access(task_service, req.conversation_id, owner_id)
     if not task_run_registry.signal_resume(req.conversation_id):
         raise HTTPException(
             status_code=409,
@@ -235,10 +277,14 @@ async def run_agent_graph(
     agent_service: AgentService = Depends(get_agent_service),
     tool_manager: SkillToolManager = Depends(get_skill_tool_manager),
     graph_context_service: GraphContextService = Depends(get_graph_context_service),
+    task_service: TaskService = Depends(get_task_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ) -> GraphRunResponse:
     service = get_agent_graph_service(mode=req.mode)
     if not service:
         raise HTTPException(status_code=503, detail="LLM not configured")
+    if req.conversation_id:
+        _require_conversation_access(task_service, req.conversation_id, owner_id)
 
     # Fetch agents from database by ID and bind tools
     definitions = []
