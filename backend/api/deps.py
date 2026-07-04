@@ -2,8 +2,21 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import NamedTuple
 
 from backend.api.settings import settings
+from backend.application.ports.repositories import (
+    ActivityFeedRepository,
+    AgentRepository,
+    AnalyticsRepository,
+    ConnectionRepository,
+    ConversationRepository,
+    GraphKnowledgeRepository,
+    SkillRepository,
+    TaskRepository,
+    TeamRepository,
+    WorkspaceRepository,
+)
 from backend.application.service.agent_service import AgentService
 from backend.application.service.agent_graph_service import AgentGraphService
 from backend.application.service.activity_feed_service import ActivityFeedService
@@ -118,8 +131,23 @@ def _init_task_queue():
     return q
 
 
+class Repos(NamedTuple):
+    """Named bundle of repo singletons — access by field, not position, so
+    adding/reordering a repo can't silently swap two unrelated getters."""
+    agents: AgentRepository
+    skills: SkillRepository
+    teams: TeamRepository
+    tasks: TaskRepository
+    conversations: ConversationRepository
+    analytics: AnalyticsRepository
+    activity_feed: ActivityFeedRepository
+    graph_knowledge: GraphKnowledgeRepository
+    workspaces: WorkspaceRepository
+    connections: ConnectionRepository
+
+
 @lru_cache
-def _repos():
+def _repos() -> Repos:
     _init_task_queue()
     if settings.storage_backend == "mongo":
         import pymongo
@@ -172,42 +200,51 @@ def _repos():
                 exc_info=True,
             )
 
-    return agents, skills, teams, tasks, conversations, analytics, activity_feed, graph_knowledge, workspaces, connections
+    return Repos(
+        agents=agents,
+        skills=skills,
+        teams=teams,
+        tasks=tasks,
+        conversations=conversations,
+        analytics=analytics,
+        activity_feed=activity_feed,
+        graph_knowledge=graph_knowledge,
+        workspaces=workspaces,
+        connections=connections,
+    )
 
 
 def get_agent_service() -> AgentService:
-    agents, skills, _, _, _, _, _, _, _, _ = _repos()
-    return AgentService(agents, skills)
+    repos = _repos()
+    return AgentService(repos.agents, repos.skills)
 
 
 def get_skill_service() -> SkillService:
-    _, skills, _, _, _, _, _, _, _, _ = _repos()
-    return SkillService(skills)
+    return SkillService(_repos().skills)
 
 
 def get_team_service() -> TeamService:
-    _, _, teams, _, _, _, _, _, _, _ = _repos()
-    return TeamService(teams)
+    return TeamService(_repos().teams)
 
 
 def get_task_service() -> TaskService:
-    _, _, _, tasks, _, _, _, _, _, _ = _repos()
-    return TaskService(tasks)
+    return TaskService(_repos().tasks)
 
 
 def get_marketplace_service() -> MarketplaceService:
-    agents, skills, teams, tasks, _, _, _, _, _, _ = _repos()
+    repos = _repos()
     return MarketplaceService(
-        AgentService(agents, skills),
-        SkillService(skills),
-        TeamService(teams),
-        TaskService(tasks),
+        AgentService(repos.agents, repos.skills),
+        SkillService(repos.skills),
+        TeamService(repos.teams),
+        TaskService(repos.tasks),
         get_document_library_service(),
     )
 
 
 def get_conversation_service() -> ConversationService:
-    _, _, _, _, conversations, _, _, graph_knowledge, _, _ = _repos()
+    repos = _repos()
+    conversations, graph_knowledge = repos.conversations, repos.graph_knowledge
     graph_llm = None
     if settings.graph_build_mode == "llm":
         graph_llm = create_llm_provider(
@@ -231,17 +268,16 @@ def get_conversation_service() -> ConversationService:
 
 
 def get_analytics_service() -> AnalyticsService:
-    _, _, _, tasks, _, analytics, _, _, _, _ = _repos()
-    return AnalyticsService(analytics, tasks)
+    repos = _repos()
+    return AnalyticsService(repos.analytics, repos.tasks)
 
 
 def get_activity_feed_service() -> ActivityFeedService:
-    _, _, _, _, _, _, feed, _, _, _ = _repos()
-    return ActivityFeedService(feed)
+    return ActivityFeedService(_repos().activity_feed)
 
 
 def get_graph_context_service() -> GraphContextService:
-    _, _, _, _, _, _, _, graph_knowledge, _, _ = _repos()
+    graph_knowledge = _repos().graph_knowledge
     graph_llm = None
     if settings.graph_build_mode == "llm":
         graph_llm = create_llm_provider(
@@ -262,13 +298,11 @@ def get_graph_context_service() -> GraphContextService:
 
 
 def get_workspace_service() -> WorkspaceService:
-    _, _, _, _, _, _, _, _, workspaces, _ = _repos()
-    return WorkspaceService(workspaces)
+    return WorkspaceService(_repos().workspaces)
 
 
 def get_connection_service() -> ConnectionService:
-    _, _, _, _, _, _, _, _, _, connections = _repos()
-    return ConnectionService(connections)
+    return ConnectionService(_repos().connections)
 
 
 @lru_cache
@@ -565,15 +599,15 @@ def get_monitoring_service():
 
     init_usage_tracking()
     usage_repo, pricing_repo = _monitoring_stores()
-    agents, _, teams, tasks, _, _, _, _, workspaces, _ = _repos()
+    repos = _repos()
     return MonitoringService(
         usage=usage_repo,
         pricing=pricing_repo,
         users=_user_store(),
-        agents=agents,
-        teams=teams,
-        tasks=tasks,
-        workspaces=workspaces,
+        agents=repos.agents,
+        teams=repos.teams,
+        tasks=repos.tasks,
+        workspaces=repos.workspaces,
     )
 
 
