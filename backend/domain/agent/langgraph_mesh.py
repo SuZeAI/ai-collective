@@ -727,6 +727,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
 
             logger.debug("[%s] mesh_node: invoking LLM...", agent.name)
             response = await safe_chat(llm,
+                agent_name=agent.name,
                 system=system_prompt_with_routing,
                 user=user_input,
                 tools=bound_tools or None,

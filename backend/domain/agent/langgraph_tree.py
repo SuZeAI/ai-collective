@@ -563,6 +563,7 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
             })
 
             raw_output = await safe_chat(llm,
+                agent_name=agent.name,
                 system=full_system,
                 user=user_input_text,
                 tools=bound_tools or None,

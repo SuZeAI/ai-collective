@@ -333,6 +333,7 @@ class LangGraphAgentOrchestrator(AgentGraphOrchestrator):
             })
             
             output = await safe_chat(llm,
+                agent_name=agent.name,
                 system=agent.system_prompt,
                 user=user_input,
                 tools=bound_tools or None,
