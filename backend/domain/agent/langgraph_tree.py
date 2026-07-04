@@ -20,10 +20,9 @@ from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.agent.token_budget import apply_context_token_budget
 from backend.domain.agent._graph_runtime import (
-    attach_conversation_sandbox,
+    build_agent_tools,
     drain_human_guidance,
     ensure_working_memory,
-    memory_toolkit_tools,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
@@ -506,30 +505,7 @@ class LangGraphTreeOrchestrator(AgentGraphOrchestrator):
 
             user_input_text = "\n".join(context_parts)
 
-            bound_tools: list = []
-            if agent.tools:
-                for toolkit in agent.tools.values():
-                    bound_tools.extend(toolkit.get_tools())
-
-            # Default human-in-the-loop tool: every agent can interrupt and ask
-            # the user a question mid-run (subagents inherit it too).
-            if conversation_id:
-                from backend.domain.tools.ask_user import AskUserToolkit
-
-                bound_tools.extend(
-                    AskUserToolkit(
-                        conversation_id=conversation_id,
-                        agent_name=agent.name,
-                    ).get_tools()
-                )
-            # Default memory tools: save/recall shared working-memory notes.
-            bound_tools.extend(memory_toolkit_tools(conversation_id, agent.name))
-
-            # Sandbox: scope to the shared conversation workspace + inject tools
-            # when the chat has files (before TaskToolkit so subagents inherit).
-            attach_conversation_sandbox(
-                bound_tools, conversation_id=conversation_id, agent_name=agent.name
-            )
+            bound_tools = build_agent_tools(agent, conversation_id=conversation_id)
 
             if agent.subagent_enabled:
                 from backend.domain.tools.task import TaskToolkit

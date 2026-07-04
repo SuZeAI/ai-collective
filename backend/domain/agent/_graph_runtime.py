@@ -346,6 +346,38 @@ def attach_conversation_sandbox(
         return False
 
 
+def build_agent_tools(agent: GraphAgentDefinition, *, conversation_id: str | None) -> list[Any]:
+    """Build the tool list every topology binds before calling the LLM for a
+    turn: this agent's skill tools + the default human-in-the-loop ask-user
+    tool + shared working-memory tools + the conversation sandbox (when
+    files are present).
+
+    Every topology (ring/orchestrator/tree/supervisor/mesh) built this exact
+    sequence inline; centralising it here is what keeps them from drifting
+    out of sync (e.g. one topology forgetting the ask-user tool).
+
+    Callers append any topology-specific tools afterwards (e.g. TaskToolkit
+    for subagent delegation — whether that applies varies per topology/role,
+    so it deliberately stays out of this helper).
+    """
+    bound_tools: list[Any] = []
+    if agent.tools:
+        for toolkit in agent.tools.values():
+            bound_tools.extend(toolkit.get_tools())
+
+    if conversation_id:
+        from backend.domain.tools.ask_user import AskUserToolkit
+
+        bound_tools.extend(
+            AskUserToolkit(conversation_id=conversation_id, agent_name=agent.name).get_tools()
+        )
+    bound_tools.extend(memory_toolkit_tools(conversation_id, agent.name))
+
+    attach_conversation_sandbox(bound_tools, conversation_id=conversation_id, agent_name=agent.name)
+
+    return bound_tools
+
+
 def uploads_hint(conversation_id: str | None) -> str:
     """One-line note listing files available in the shared workspace, or ''.
 

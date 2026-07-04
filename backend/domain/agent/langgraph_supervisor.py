@@ -23,10 +23,9 @@ from backend.domain.agent.token_budget import apply_context_token_budget
 from backend.domain.agent._graph_runtime import (
     FANOUT_SYNTHESIS_GUIDANCE,
     MESH_FANOUT_MAX_CONCURRENT,
-    attach_conversation_sandbox,
+    build_agent_tools,
     drain_human_guidance,
     ensure_working_memory,
-    memory_toolkit_tools,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
@@ -408,28 +407,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             )
             user_input_text = budget_result.text
 
-            bound_tools: list = []
-            if lead.tools:
-                for toolkit in lead.tools.values():
-                    bound_tools.extend(toolkit.get_tools())
-
-            # Default human-in-the-loop tool: the lead can interrupt and ask
-            # the user before deciding the next delegation/final answer.
-            if conversation_id:
-                from backend.domain.tools.ask_user import AskUserToolkit
-
-                bound_tools.extend(
-                    AskUserToolkit(
-                        conversation_id=conversation_id,
-                        agent_name=lead.name,
-                    ).get_tools()
-                )
-            # Default memory tools: save/recall shared working-memory notes.
-            bound_tools.extend(memory_toolkit_tools(conversation_id, lead.name))
-
-            attach_conversation_sandbox(
-                bound_tools, conversation_id=conversation_id, agent_name=lead.name
-            )
+            bound_tools = build_agent_tools(lead, conversation_id=conversation_id)
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
@@ -625,28 +603,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             )
             user_input_text = budget_result.text
 
-            bound_tools: list = []
-            if worker.tools:
-                for toolkit in worker.tools.values():
-                    bound_tools.extend(toolkit.get_tools())
-
-            # Default human-in-the-loop tool: workers can interrupt and ask
-            # the user a question mid-task.
-            if conversation_id:
-                from backend.domain.tools.ask_user import AskUserToolkit
-
-                bound_tools.extend(
-                    AskUserToolkit(
-                        conversation_id=conversation_id,
-                        agent_name=worker.name,
-                    ).get_tools()
-                )
-            # Default memory tools: save/recall shared working-memory notes.
-            bound_tools.extend(memory_toolkit_tools(conversation_id, worker.name))
-
-            attach_conversation_sandbox(
-                bound_tools, conversation_id=conversation_id, agent_name=worker.name
-            )
+            bound_tools = build_agent_tools(worker, conversation_id=conversation_id)
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
@@ -842,24 +799,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
         )
         user_input_text = budget_result.text
 
-        bound_tools: list = []
-        if worker.tools:
-            for toolkit in worker.tools.values():
-                bound_tools.extend(toolkit.get_tools())
-        if conversation_id:
-            from backend.domain.tools.ask_user import AskUserToolkit
-
-            bound_tools.extend(
-                AskUserToolkit(
-                    conversation_id=conversation_id,
-                    agent_name=worker.name,
-                ).get_tools()
-            )
-        bound_tools.extend(memory_toolkit_tools(conversation_id, worker.name))
-
-        attach_conversation_sandbox(
-            bound_tools, conversation_id=conversation_id, agent_name=worker.name
-        )
+        bound_tools = build_agent_tools(worker, conversation_id=conversation_id)
 
         return {
             "system": worker_system,
