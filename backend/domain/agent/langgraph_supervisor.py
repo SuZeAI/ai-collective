@@ -172,7 +172,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
 
         self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
         graph = self._build_graph(agents, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
-        final_state = await run_to_final_state(graph, self._initial_state(user_input, agents), max_rounds)
+        final_state, error = await run_to_final_state(graph, self._initial_state(user_input, agents), max_rounds)
 
         turns = list(final_state.get("turns", []))
         return GraphRunResult(
@@ -180,6 +180,7 @@ class LangGraphSupervisorOrchestrator(AgentGraphOrchestrator):
             final_response=final_state.get("final_response") or (turns[-1].content if turns else ""),
             final_agent=final_state.get("final_agent"),
             rounds=int(final_state.get("rounds", len(turns))),
+            error=error,
         )
 
     async def run_stream(

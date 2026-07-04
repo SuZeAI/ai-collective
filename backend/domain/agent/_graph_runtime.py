@@ -534,24 +534,27 @@ async def run_fanout_wave(
     return results
 
 
-async def run_to_final_state(graph: Any, initial: dict, max_rounds: int) -> dict:
+async def run_to_final_state(graph: Any, initial: dict, max_rounds: int) -> tuple[dict, str | None]:
     """Run ``graph`` to completion and return its final state.
 
     Uses values-mode streaming so the latest state snapshot is retained: if the
     recursion limit is reached or a node raises, the best partial state is
-    returned rather than losing every turn produced so far.
+    returned rather than losing every turn produced so far. The second
+    element of the returned tuple is non-None when that partial-state
+    fallback happened, so callers can tell a crash apart from a clean finish
+    instead of it looking identical to success.
     """
     config = recursion_config(max_rounds)
     last_state: dict = initial
+    error: str | None = None
     try:
         async for state in graph.astream(initial, config=config, stream_mode="values"):
             if isinstance(state, dict):
                 last_state = state
     except GraphRecursionError:
-        logger.warning(
-            "Graph hit recursion limit (max_rounds=%s); returning partial state.",
-            max_rounds,
-        )
-    except Exception:
+        error = f"Graph hit recursion limit (max_rounds={max_rounds})"
+        logger.warning("%s; returning partial state.", error)
+    except Exception as exc:
+        error = f"{type(exc).__name__}: {exc}"
         logger.exception("Graph execution failed; returning partial state.")
-    return last_state
+    return last_state, error

@@ -211,7 +211,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             "rounds": 0,
         }
 
-        final_state = await run_to_final_state(graph, initial, max_rounds)
+        final_state, error = await run_to_final_state(graph, initial, max_rounds)
         turns = list(final_state.get("turns", []))
         final_response = final_state.get("final_response") or (
             turns[-1].content if turns else ""
@@ -226,6 +226,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             final_response=final_response,
             final_agent=turns[-1].agent_name if turns else None,
             rounds=rounds,
+            error=error,
         )
 
     async def run_stream(
@@ -393,7 +394,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             "last_action": "",
             "rounds": 0,
         }
-        final_state = await run_to_final_state(graph, initial, max_rounds)
+        final_state, error = await run_to_final_state(graph, initial, max_rounds)
         turns = list(final_state.get("turns", []))
         final_response = final_state.get("final_response") or (
             turns[-1].content if turns else ""
@@ -404,6 +405,7 @@ class MultiAgentMeshOrchestrator(AgentGraphOrchestrator):
             final_response=final_response,
             final_agent=turns[-1].agent_name if turns else None,
             rounds=rounds,
+            error=error,
         )
 
     async def _run_single_agent_stream(

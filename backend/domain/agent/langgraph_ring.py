@@ -97,7 +97,7 @@ class LangGraphRingOrchestrator(AgentGraphOrchestrator):
             graph_config=graph_config,
         )
         initial = self._make_initial_state(user_input)
-        final_state = await run_to_final_state(graph, initial, max_rounds)
+        final_state, error = await run_to_final_state(graph, initial, max_rounds)
 
         turns = list(final_state.get("turns", []))
         return GraphRunResult(
@@ -105,6 +105,7 @@ class LangGraphRingOrchestrator(AgentGraphOrchestrator):
             final_response=final_state.get("final_response") or (turns[-1].content if turns else ""),
             final_agent=final_state.get("final_agent"),
             rounds=int(final_state.get("rounds", len(turns))),
+            error=error,
         )
 
     async def run_stream(

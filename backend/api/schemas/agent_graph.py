@@ -71,6 +71,7 @@ class GraphRunResponse(BaseModel):
     final_agent: str | None = None
     final_response: str
     turns: list[GraphTurnSchema]
+    error: str | None = None
 
     @staticmethod
     def from_result(result: GraphRunResult) -> "GraphRunResponse":
@@ -78,6 +79,7 @@ class GraphRunResponse(BaseModel):
             rounds=result.rounds,
             final_agent=result.final_agent,
             final_response=result.final_response,
+            error=result.error,
             turns=[
                 GraphTurnSchema(
                     turn=t.turn,
