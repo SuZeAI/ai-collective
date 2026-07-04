@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp, Zap, Users, Clock, Activity, CheckCircle2, ListTodo, Building2, ArrowUpRight, Sparkles,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { useAgentSimulation } from "@/hooks/use-agent-simulation";
 import { api, type Agent, type Analytics, type ActivityFeedItem, type Task, type Workspace, type Team } from "@/lib/api";
 import { useWorkspaceScope, setActiveWorkspaceId } from "@/hooks/use-workspace-scope";
@@ -46,7 +46,7 @@ const metricConfig = [
   { key: "time", icon: Clock, label: "Avg. Completion" },
 ];
 
-const statusVariant: Record<string, string> = {
+const statusVariant: Record<string, NonNullable<BadgeProps["variant"]>> = {
   completed: "default",
   "in-progress": "secondary",
   pending: "outline",
@@ -312,7 +312,7 @@ export default function Dashboard() {
                         </p>
                       </div>
                       <Badge
-                        variant={(statusVariant[task.status] ?? "outline") as any}
+                        variant={statusVariant[task.status] ?? "outline"}
                         className="flex-shrink-0 capitalize text-[11px] font-semibold"
                       >
                         {task.status}
