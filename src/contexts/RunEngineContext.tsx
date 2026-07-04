@@ -446,8 +446,11 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         emit(updated.id, event);
       }
 
-      // Auto-complete only when the stream finished naturally (not cancelled).
-      if (messages.length > 0 && !controller.signal.aborted) {
+      // Auto-complete only when the stream finished naturally (not cancelled,
+      // stopped, aborted, or errored). Do not gate on messages.length: a run
+      // that only calls tools/subagents without a final turn_complete message
+      // still finishes naturally and must transition out of "in-progress".
+      if (endReason === "completed" && !controller.signal.aborted) {
         const completed = await api.upsertTask({ ...updated, status: "completed", progress: 100 });
         applyTask(completed);
       }
