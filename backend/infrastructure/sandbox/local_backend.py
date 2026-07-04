@@ -200,13 +200,23 @@ class LocalContainerBackend(SandboxBackend):
         port: int,
         extra_mounts: Optional[list[tuple[str, str, bool]]] = None,
     ) -> str:
+        sandbox_settings = settings.sandbox
         cmd = [
             "docker", "run",
-            "--security-opt", "seccomp=unconfined",
             "--rm", "-d",
             "-p", f"{port}:8080",
             "--name", container_name,
         ]
+        if sandbox_settings.seccomp_unconfined:
+            cmd.extend(["--security-opt", "seccomp=unconfined"])
+        if sandbox_settings.no_new_privileges:
+            cmd.extend(["--security-opt", "no-new-privileges"])
+        if sandbox_settings.memory_limit:
+            cmd.extend(["--memory", sandbox_settings.memory_limit])
+        if sandbox_settings.cpu_limit:
+            cmd.extend(["--cpus", sandbox_settings.cpu_limit])
+        if sandbox_settings.pids_limit:
+            cmd.extend(["--pids-limit", str(sandbox_settings.pids_limit)])
         for key, value in self._environment.items():
             cmd.extend(["-e", f"{key}={value}"])
         if extra_mounts:

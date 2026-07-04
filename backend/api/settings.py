@@ -374,6 +374,18 @@ class SandboxSettings(BaseSettings):
     timeout: int = Field(default=120, validation_alias=_alias("SANDBOX_TIMEOUT"))
     workspace: str | None = Field(default=None, validation_alias=_alias("SANDBOX_WORKSPACE"))
 
+    # Container hardening (local Docker backend only — k8s hardening is the
+    # provisioner service's responsibility). seccomp defaults to unconfined
+    # because the vendor sandbox image's exact syscall needs aren't documented
+    # here; the rest are safe-by-default resource/privilege limits that guard
+    # against a runaway or malicious LLM-executed process without requiring
+    # image-specific tuning.
+    seccomp_unconfined: bool = Field(default=True, validation_alias=_alias("SANDBOX_SECCOMP_UNCONFINED"))
+    no_new_privileges: bool = Field(default=True, validation_alias=_alias("SANDBOX_NO_NEW_PRIVILEGES"))
+    memory_limit: str = Field(default="2g", validation_alias=_alias("SANDBOX_MEMORY_LIMIT"))
+    cpu_limit: str = Field(default="2", validation_alias=_alias("SANDBOX_CPU_LIMIT"))
+    pids_limit: int = Field(default=512, validation_alias=_alias("SANDBOX_PIDS_LIMIT"))
+
 
 class MinioSettings(BaseSettings):
     """S3-compatible object storage for backing up conversation sandbox files."""

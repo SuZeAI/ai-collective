@@ -147,6 +147,11 @@ Cross-cutting behaviours layered on the `create_agent` path. See
 | `SANDBOX_MODE` | `local` | `local` \| `docker` \| `k8s` |
 | `SANDBOX_PROVISIONER_URL` | — | Required when sandbox mode is `k8s` |
 | `SANDBOX_TIMEOUT` | `120` | Command timeout (seconds) |
+| `SANDBOX_SECCOMP_UNCONFINED` | `true` | Local backend only. Vendor sandbox image's syscall needs aren't documented; set `false` to use Docker's default seccomp profile if your deployment doesn't need the broader syscalls |
+| `SANDBOX_NO_NEW_PRIVILEGES` | `true` | Local backend only. Blocks privilege escalation via setuid binaries inside the container |
+| `SANDBOX_MEMORY_LIMIT` | `2g` | Local backend only. Docker `--memory` limit per sandbox container |
+| `SANDBOX_CPU_LIMIT` | `2` | Local backend only. Docker `--cpus` limit per sandbox container |
+| `SANDBOX_PIDS_LIMIT` | `512` | Local backend only. Docker `--pids-limit`, guards against fork bombs |
 
 ## Knowledge graph
 
