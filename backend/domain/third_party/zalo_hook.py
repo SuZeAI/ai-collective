@@ -5,7 +5,7 @@ import json
 from typing import Any, Dict, Optional
 from urllib import error, request as urllib_request
 
-from backend.domain.thirty_part.base_hook import BaseHookProcessor, IncomingMessage
+from backend.domain.third_party.base_hook import BaseHookProcessor, IncomingMessage
 
 ZALO_API = "https://openapi.zalo.me/v2.0/oa"
 

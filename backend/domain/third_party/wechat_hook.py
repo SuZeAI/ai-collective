@@ -8,7 +8,7 @@ import time
 from typing import Any, Dict, Optional
 from urllib import request as urllib_request
 
-from backend.domain.thirty_part.base_hook import BaseHookProcessor, IncomingMessage, _http_post
+from backend.domain.third_party.base_hook import BaseHookProcessor, IncomingMessage, _http_post
 
 WECHAT_API = "https://api.weixin.qq.com/cgi-bin"
 _token_cache: Dict[str, Any] = {}

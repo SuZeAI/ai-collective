@@ -4,8 +4,8 @@ import asyncio
 import hmac
 from typing import Any, Dict, Optional
 
-from backend.domain.thirty_part.base_hook import BaseHookProcessor, IncomingMessage, _http_post
-from backend.domain.thirty_part.whatsapp_hook import verify_meta_signature
+from backend.domain.third_party.base_hook import BaseHookProcessor, IncomingMessage, _http_post
+from backend.domain.third_party.whatsapp_hook import verify_meta_signature
 
 GRAPH_API = "https://graph.facebook.com/v19.0"
 
