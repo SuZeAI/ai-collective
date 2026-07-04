@@ -90,6 +90,16 @@ export default function TeamBuilder() {
     return map;
   }, [agentList]);
 
+  // Stable reference for CustomFlowEditor's `agents` prop — a fresh array
+  // literal on every render (even with identical content) makes its
+  // reconciliation effect re-run every render, which feeds back into a
+  // render loop via onChange/setFlow. Only recompute when the selection or
+  // underlying agent data actually changes.
+  const customFlowAgents = useMemo(
+    () => selectedAgents.map((id) => agentById.get(id)).filter((a): a is Agent => Boolean(a)),
+    [selectedAgents, agentById],
+  );
+
   const toggleAgent = (id: string) => {
     setSelectedAgents((prev) => prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]);
   };
@@ -594,7 +604,7 @@ export default function TeamBuilder() {
                       Drag from a node's right handle to another node's left handle to route work. Move nodes freely; select an edge and press Delete to remove it.
                     </p>
                     <CustomFlowEditor
-                      agents={selectedAgents.map((id) => agentById.get(id)).filter((a): a is Agent => Boolean(a))}
+                      agents={customFlowAgents}
                       initialFlow={flow}
                       onChange={setFlow}
                     />
