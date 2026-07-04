@@ -59,6 +59,7 @@ from backend.application.service.user_service import UserService
 from backend.infrastructure.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
 from backend.infrastructure.repositories.json_files import JsonUserRepository
 from backend.infrastructure.repositories.json_store import JsonFileStore
+from backend.infrastructure.security import BcryptPasswordHasher
 from backend.infrastructure.repositories.mongo_repositories import (
     MongoActivityFeedRepository,
     MongoAgentRepository,
@@ -351,8 +352,13 @@ def _user_store():
     return JsonUserRepository(_store("users.json"))
 
 
+@lru_cache
+def _password_hasher() -> BcryptPasswordHasher:
+    return BcryptPasswordHasher()
+
+
 def get_user_service() -> UserService:
-    return UserService(_user_store())
+    return UserService(_user_store(), _password_hasher())
 
 
 @lru_cache
