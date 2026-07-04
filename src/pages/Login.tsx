@@ -69,7 +69,7 @@ const SOCIAL_PROVIDERS = [
 ] as const;
 
 export default function Login() {
-  const { login, register, loginAsGuest, isLoading } = useAuth();
+  const { login, register, isLoading } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("login");
@@ -109,11 +109,6 @@ export default function Login() {
       setError(e?.message || t.auth.errorDefault);
     }
   });
-
-  const handleGuest = () => {
-    loginAsGuest();
-    navigate("/dashboard");
-  };
 
   const handleSocial = async (provider: string) => {
     if (provider === "Google") {
@@ -559,21 +554,6 @@ export default function Login() {
             )}
           </AnimatePresence>
 
-          {/* Divider */}
-          <div className="my-4 flex items-center gap-3">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted-foreground">{t.auth.or}</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-
-          {/* Guest login */}
-          <Button variant="outline" className="w-full" onClick={handleGuest}>
-            {t.auth.guestBtn}
-          </Button>
-
-          <p className="text-center text-xs text-muted-foreground mt-6">
-            {t.auth.guestNote}
-          </p>
         </motion.div>
       </div>
 
