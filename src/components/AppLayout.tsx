@@ -3,8 +3,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
-  BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit,
-  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, Building2, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban, Star,
+  BarChart3, Cpu, Play, Wrench, ChevronRight,
+  LogOut, User, UserCircle, Sparkles, Globe, ShieldCheck, Building, Building2, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban, Star,
 } from "lucide-react";
 import { api, type Workspace } from "@/lib/api";
 import { OVERALL_WORKSPACE_ID, setActiveWorkspaceId } from "@/hooks/use-workspace-scope";

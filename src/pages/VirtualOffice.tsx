@@ -1,20 +1,19 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Play, Pause, Square, Sparkles, Cpu, CheckCircle2,
-  MessageSquare, Wrench, Search, User, Loader2,
-  Coffee, Monitor, Building, Send, X, Plus,
-  ChevronRight, RefreshCw, Layers, Terminal, PlayCircle
+  Cpu,
+  MessageSquare, User, Loader2,
+  Building, Send, X,
+  Layers
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useTheme } from "next-themes";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { ConversationFiles } from "@/components/ConversationFiles";
-import { api, buildCustomGraphPayload, type Agent, type Task, type Team, type Message } from "@/lib/api";
+import { api, buildCustomGraphPayload, type Agent, type Task, type Team } from "@/lib/api";
 import { useRunEngine } from "@/contexts/RunEngineContext";
 import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
-import { useLanguage } from "@/contexts/LanguageContext";
 
 interface AgentState {
   agentId: string;
@@ -32,7 +31,6 @@ interface FlyingDocument {
 }
 
 export default function VirtualOffice() {
-  const { t } = useLanguage();
   const scope = useWorkspaceScope();
   const { theme } = useTheme();
   const isDark = theme !== "light";

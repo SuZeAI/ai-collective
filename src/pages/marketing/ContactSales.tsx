@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Check, ExternalLink, HelpCircle, AlertCircle, Info, Landmark, Layers, ShieldCheck, Mail, ArrowLeft, Search } from "lucide-react";
+import { ArrowRight, Check, ExternalLink, HelpCircle, Info, Landmark, Layers, ShieldCheck, Mail, ArrowLeft, Search } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";

@@ -9,7 +9,6 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Button } from "@/components/ui/button";
 
 // ─── TRANSLATIONS & CONTENTS ───────────────────────────────────────────────
 
