@@ -32,7 +32,7 @@ from backend.application.service.marketplace_service import MarketplaceService
 from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.domain.agent.langgraph_orchestrator import LangGraphAgentOrchestrator
 from backend.domain.agent.langgraph_mesh import MultiAgentMeshOrchestrator
-from backend.infrastructure.lock_provider import create_lock_provider
+from backend.infrastructure.lock_provider import get_shared_lock_provider
 from backend.domain.agent.langgraph_ring import LangGraphRingOrchestrator
 from backend.domain.agent.langgraph_supervisor import LangGraphSupervisorOrchestrator
 from backend.domain.agent.langgraph_tree import LangGraphTreeOrchestrator
@@ -105,13 +105,9 @@ STORAGE_DIR = _resolve_dir(settings.storage_dir, PROJECT_ROOT / "local_database"
 SEED_DIR = _resolve_dir(settings.seed_dir, PROJECT_ROOT / "storage")
 
 
-@lru_cache
 def _lock_provider():
-    """Singleton lock provider — initialised once from settings."""
-    return create_lock_provider(
-        backend=settings.lock_backend,
-        redis_url=settings.redis_url,
-    )
+    """Process-wide singleton lock provider, initialised once from settings."""
+    return get_shared_lock_provider()
 
 
 def _store(filename: str) -> JsonFileStore:

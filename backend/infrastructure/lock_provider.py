@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import threading
 from contextlib import contextmanager
+from functools import lru_cache
 from typing import Generator
 
 from backend.log import get_logger
@@ -92,3 +93,19 @@ def create_lock_provider(
     p = ThreadingLockProvider()
     logger.info("[Lock] initialised threading lock provider")
     return p
+
+
+@lru_cache
+def get_shared_lock_provider() -> "ThreadingLockProvider | RedisLockProvider":
+    """Process-wide singleton lock provider, configured from settings.
+
+    Callers that need distributed locking outside the JsonFileStore path
+    (e.g. working_memory_store, long_term_memory_store, thread_files — which
+    do their own raw file I/O rather than going through a repository) should
+    use this instead of a private ``threading.Lock``, so they honor
+    ``LOCK_BACKEND=redis`` in multi-instance deployments like every JSON
+    repository does.
+    """
+    from backend.api.settings import settings
+
+    return create_lock_provider(backend=settings.lock_backend, redis_url=settings.redis_url)
