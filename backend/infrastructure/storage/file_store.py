@@ -80,9 +80,20 @@ class FileStore:
     # ── path helpers ─────────────────────────────────────────────────────────────
 
     def local_path(self, scope_id: str, rel_path: str = "") -> str:
-        return os.path.join(self._local_root, scope_id, rel_path) if rel_path else os.path.join(
-            self._local_root, scope_id
+        """Join scope_id/rel_path onto the store root, confined to that root.
+
+        Both segments can originate from request input (e.g. a document
+        library ``workspaceId`` form field); without confinement a value like
+        ``../../../etc`` would escape ``_local_root`` entirely (path traversal
+        / arbitrary file write).
+        """
+        root = os.path.abspath(self._local_root)
+        dest = os.path.abspath(
+            os.path.join(root, scope_id, rel_path) if rel_path else os.path.join(root, scope_id)
         )
+        if os.path.commonpath([root, dest]) != root:
+            raise ValueError(f"Path escapes storage root: scope_id={scope_id!r} rel_path={rel_path!r}")
+        return dest
 
     # ── operations ───────────────────────────────────────────────────────────────
 

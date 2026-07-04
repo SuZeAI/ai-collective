@@ -29,6 +29,16 @@ def _parse_tags(raw: str | None) -> list[str]:
     return [t.strip() for t in raw.split(",") if t.strip()]
 
 
+def _validate_workspace_id(workspace_id: str) -> None:
+    """Reject workspace ids that could escape the library's storage root.
+
+    workspace_id becomes the FileStore scope_id (a single path segment); it
+    must not contain path separators or traversal sequences.
+    """
+    if not workspace_id or "/" in workspace_id or "\\" in workspace_id or workspace_id in (".", ".."):
+        raise HTTPException(status_code=400, detail="Invalid workspaceId.")
+
+
 @router.get("/documents", response_model=list[LibraryDocumentSchema])
 def list_documents(
     workspace_id: str | None = Query(default=None),
@@ -53,6 +63,7 @@ async def upload_document(
     current_user: User = Depends(current_user_dep),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> LibraryDocumentSchema:
+    _validate_workspace_id(workspaceId)
     if file.content_type not in _ALLOWED_UPLOAD_TYPES:
         raise HTTPException(status_code=400, detail=f"Unsupported file type '{file.content_type}'.")
     content = await file.read()
@@ -91,6 +102,8 @@ async def ingest_url(
     from backend.domain.tools._ssrf import BlockedURLError
     from backend.domain.tools.document_tools import _strip_html
     from backend.domain.tools.http import HTTPError, request
+
+    _validate_workspace_id(req.workspaceId)
 
     def _fetch() -> str:
         raw = request("GET", req.url, raw=True, retries=2)
