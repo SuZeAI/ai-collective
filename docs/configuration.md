@@ -133,6 +133,8 @@ Cross-cutting behaviours layered on the `create_agent` path. See
 | `STORAGE_DIR` | `<root>/storage` | JSON storage directory |
 | `MONGO_URI` / `MONGO_DB` | local defaults | MongoDB connection |
 
+**`json` backend and multiple instances:** each JSON repository caches its collection in memory per-process and rewrites the whole file on every write. `tasks.py`/`connections.py` merge into the current on-disk state under one lock acquisition (via `JsonFileStore.read_modify_write`) so concurrent writers across instances can't silently drop each other's writes, but every repository's `list()`/`get()` still reads from that process's in-memory cache — a second instance's write isn't visible until this instance's own next write refreshes its cache. Use `mongo` for genuine multi-instance/production deployments; `json` is intended for single-instance/local dev regardless of `LOCK_BACKEND`.
+
 ## Task queue / locks / sandbox
 
 | Variable | Default | Description |
