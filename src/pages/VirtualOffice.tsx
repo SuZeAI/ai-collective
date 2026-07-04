@@ -306,6 +306,8 @@ export default function VirtualOffice() {
   canvasPosRef.current = agentCanvasPositions;
   const visibleAgentsRef = useRef(visibleAgents);
   visibleAgentsRef.current = visibleAgents;
+  const selectedTaskIdRef = useRef(selectedTaskId);
+  selectedTaskIdRef.current = selectedTaskId;
 
   // Drive the office-map animations from engine stream events. The engine owns
   // the run loop and conversation/thinking state; here we only translate events
@@ -348,6 +350,12 @@ export default function VirtualOffice() {
           return { ...prev, [turnAgentId]: { ...ag, status: "collaborating", emote: "\ud83d\udcac", message: "Reviewing code outputs" } };
         });
       } else if (eventType === "run_ended") {
+        // A run_ended event fires for whichever task just finished, but this
+        // page renders only the currently-selected task's agents \u2014 a
+        // different task finishing elsewhere must not idle-out agents that
+        // belong to the task the user is actively viewing.
+        const endedTaskId = event.taskId || event.task_id;
+        if (endedTaskId && endedTaskId !== selectedTaskIdRef.current) return;
         lastActiveAgentIdRef.current = null;
         setAgentRealtimeStates((prev) => {
           const next = { ...prev };
