@@ -2,7 +2,7 @@
 
 The backend can receive messages from ~15 messaging platforms, run the
 configured agent team, and reply. Webhook processors live in
-`backend/domain/thirty_part/` and are dispatched by `backend/api/routers/webhook.py`.
+`backend/domain/third_party/` and are dispatched by `backend/api/routers/webhook.py`.
 
 ## Endpoints
 
@@ -60,9 +60,9 @@ Replies go out through each processor's `send_response`. Notes:
 
 ## Adding a platform
 
-1. Implement a `BaseHookProcessor` subclass in `domain/thirty_part/` with
+1. Implement a `BaseHookProcessor` subclass in `domain/third_party/` with
    `extract_message`, `send_response`, and (recommended) `verify_request`.
-2. Register it in `domain/thirty_part/registry.py` (`_REGISTRY`, labels, config
+2. Register it in `domain/third_party/registry.py` (`_REGISTRY`, labels, config
    fields).
 3. Reuse `base_hook` helpers (`_http_post`, `hmac_sha256_hex`,
    `hmac_sha256_b64`, `_header`) rather than re-rolling HTTP/crypto.
