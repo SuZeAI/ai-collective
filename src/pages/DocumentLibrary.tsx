@@ -67,6 +67,10 @@ export default function DocumentLibrary() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const refresh = () => {
+    // Office membership is still resolving: workspaceId is momentarily null
+    // even for a company scope (not yet "Overall"). Wait rather than flashing
+    // the "no documents" empty state for a company that does have docs.
+    if (!scope.isOverall && !scope.ready) return;
     if (!workspaceId) { setDocs([]); return; }
     setLoading(true);
     api.listDocuments(workspaceId)
@@ -75,7 +79,11 @@ export default function DocumentLibrary() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(refresh, [workspaceId]);
+  useEffect(refresh, [workspaceId, scope.isOverall, scope.ready]);
+
+  // Combined with the effect's early-return above so the skeleton spinner
+  // (rather than the empty state) shows while scope is still resolving.
+  const effectiveLoading = loading || (!scope.isOverall && !scope.ready);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -220,7 +228,7 @@ export default function DocumentLibrary() {
             </Tabs>
           </div>
 
-          {loading ? (
+          {effectiveLoading ? (
             <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
           ) : filtered.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border py-16 text-center">

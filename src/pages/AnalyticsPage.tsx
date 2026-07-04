@@ -120,8 +120,12 @@ export default function AnalyticsPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [allTasks, setTasks] = useState<Task[]>([]);
   const [allTeams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  // Office membership is still resolving: the scoped filters below read empty
+  // id sets in the meantime, which would otherwise flash "0" metrics before
+  // the real numbers land — keep showing skeletons until scope catches up.
+  const loading = dataLoading || (!scope.isOverall && !scope.ready);
 
   // Office scoping: every chart below works off these lists.
   const tasks = useMemo(
@@ -183,7 +187,7 @@ export default function AnalyticsPage() {
         };
       })
       .sort((a, b) => b.value - a.value);
-  }, [analytics, agentById]);
+  }, [analytics, agentById, scope]);
 
   const taskStatusData = [
     { name: "Completed", value: completedTasks, color: KPI_COLORS.success },

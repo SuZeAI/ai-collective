@@ -158,6 +158,11 @@ export default function Dashboard() {
     { value: avgCompletion, trend: "avg time" },
   ];
 
+  // Office membership is still resolving: the scoped filters above read empty
+  // id sets in the meantime, which would otherwise flash "0" metrics before
+  // the real numbers land — keep showing skeletons until scope catches up.
+  const metricsLoading = isLoading || (!scope.isOverall && !scope.ready);
+
   // Admins have no company control center: their "All" view is the shared
   // catalog, so send them to Departments instead of the Company Overview.
   if (scope.isOverall && isAdmin) return <Navigate to="/teams" replace />;
@@ -193,7 +198,7 @@ export default function Dashboard() {
             label={cfg.label}
             value={metricValues[i].value}
             trend={metricValues[i].trend}
-            isLoading={isLoading}
+            isLoading={metricsLoading}
           />
         ))}
       </motion.div>
