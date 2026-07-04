@@ -36,6 +36,7 @@ from backend.api.settings import settings
 
 MAX_CONTEXT_TOKENS = max(1024, settings.agent.context_token_limit)
 RESERVED_OUTPUT_TOKENS = max(256, settings.agent.output_token_reserve)
+SUBAGENT_MAX_CONCURRENT = max(1, settings.agent.subagent_max_concurrent)
 
 # Max recent history entries kept in ring state to limit token growth
 _RING_HISTORY_WINDOW = 8
@@ -343,6 +344,19 @@ class LangGraphRingOrchestrator(AgentGraphOrchestrator):
                 bound_tools, conversation_id=conversation_id, agent_name=agent.name
             )
 
+            # Agent Mode: expose the `task` tool so this agent can delegate to
+            # subagents (which inherit these tools minus `task`).
+            if agent.subagent_enabled:
+                from backend.domain.tools.task import TaskToolkit
+
+                task_toolkit = TaskToolkit(
+                    llm=llm,
+                    subagent_tools=list(bound_tools),
+                    max_concurrent=SUBAGENT_MAX_CONCURRENT,
+                    parent_agent_name=agent.name,
+                )
+                bound_tools.extend(task_toolkit.get_tools())
+
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
                 "agent_name": agent.name,
@@ -360,6 +374,7 @@ class LangGraphRingOrchestrator(AgentGraphOrchestrator):
                 system=agent.system_prompt,
                 user=user_input,
                 tools=bound_tools or None,
+                parallel_tools=agent.subagent_enabled,
             )
 
             stream_writer({
