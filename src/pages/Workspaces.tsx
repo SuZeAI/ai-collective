@@ -152,7 +152,7 @@ function AddHookDialog({
     setSelectedConnId(connId);
     const conn = connections.find((c) => c.id === connId);
     if (conn) {
-      setConfig(conn.config as Record<string, string>);
+      setConfig(conn.config);
       if (!name) setName(conn.name);
     }
   };

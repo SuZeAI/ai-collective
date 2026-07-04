@@ -61,16 +61,14 @@ function ConnectionDialog({
   const [platform, setPlatform] = useState(existing?.platform || "");
   const [name, setName] = useState(existing?.name || "");
   const [description, setDescription] = useState(existing?.description || "");
-  const [config, setConfig] = useState<Record<string, string>>(
-    (existing?.config as Record<string, string>) || {}
-  );
+  const [config, setConfig] = useState<Record<string, string>>(existing?.config || {});
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
 
   const reset = () => {
     setPlatform(existing?.platform || "");
     setName(existing?.name || "");
     setDescription(existing?.description || "");
-    setConfig((existing?.config as Record<string, string>) || {});
+    setConfig(existing?.config || {});
     setShowSecrets({});
   };
 
