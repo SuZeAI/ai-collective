@@ -37,12 +37,29 @@ async function authFetch<T>(path: string, options: RequestInit = {}): Promise<T>
   return res.json() as Promise<T>;
 }
 
+// Guards against a stale/corrupted localStorage entry (e.g. left over from a
+// backend field rename, or hand-edited) being trusted as a valid AuthUser
+// everywhere useAuth() is read — only the required core fields are checked;
+// optional fields are left to be `undefined` rather than validated.
+function isValidAuthUser(value: unknown): value is AuthUser {
+  if (!value || typeof value !== "object") return false;
+  const u = value as Record<string, unknown>;
+  return typeof u.id === "string" && typeof u.name === "string" && typeof u.email === "string";
+}
+
 function loadPersistedAuth(): { user: AuthUser | null; token: string | null } {
   try {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     const raw = localStorage.getItem(AUTH_USER_KEY);
-    const user = raw ? (JSON.parse(raw) as AuthUser) : null;
-    return { user, token };
+    const parsed: unknown = raw ? JSON.parse(raw) : null;
+    if (parsed !== null && !isValidAuthUser(parsed)) {
+      // Corrupt/incompatible record — log out rather than trust a malformed
+      // user object throughout the app.
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(AUTH_USER_KEY);
+      return { user: null, token: null };
+    }
+    return { user: parsed, token };
   } catch {
     return { user: null, token: null };
   }
@@ -54,15 +71,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(persisted.token);
   const [isLoading, setIsLoading] = useState(false);
 
-  const persistAuth = (t: string | null, u: AuthUser) => {
+  const persistAuth = useCallback((t: string | null, u: AuthUser) => {
     if (t) localStorage.setItem(AUTH_TOKEN_KEY, t);
     else localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.setItem(AUTH_USER_KEY, JSON.stringify(u));
     setToken(t);
     setUser(u);
-  };
+  }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
     try {
       const res = await authFetch<{ access_token: string; token_type: string; user: AuthUser }>("/auth/login", {
@@ -73,9 +90,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [persistAuth]);
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = useCallback(async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
       const res = await authFetch<{ access_token: string; token_type: string; user: AuthUser }>("/auth/register", {
@@ -86,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [persistAuth]);
 
   const loginWithToken = useCallback(async (rawToken: string) => {
     setIsLoading(true);
@@ -101,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [persistAuth]);
 
   const logout = useCallback(() => {
     localStorage.removeItem(AUTH_TOKEN_KEY);
