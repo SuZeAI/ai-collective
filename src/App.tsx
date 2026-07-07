@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
@@ -12,40 +12,54 @@ import { AppLayout } from "@/components/AppLayout";
 import { useCompanyScope } from "@/hooks/use-company-scope";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
-import Landing from "@/pages/Landing";
-import Login from "@/pages/Login";
-import Profile from "@/pages/Profile";
-import Dashboard from "@/pages/Dashboard";
-import StaffBuilder from "@/pages/StaffBuilder";
-import Skills from "./pages/Skills";
-import DepartmentBuilder from "@/pages/DepartmentBuilder";
-import TaskManager from "@/pages/TaskManager";
-import Projects from "@/pages/Projects";
-import Backlog from "@/pages/Backlog";
-import Roadmap from "@/pages/Roadmap";
-import Reports from "@/pages/Reports";
-import Meetings from "@/pages/Meetings";
-import AnalyticsPage from "@/pages/AnalyticsPage";
-import Playground from "@/pages/Playground";
-import Companies from "@/pages/Companies";
-import Platform from "@/pages/Platform";
-import OfficeBuilder from "@/pages/OfficeBuilder";
-import VirtualOffice from "@/pages/VirtualOffice";
-import Recruiting from "@/pages/Recruiting";
-import DocumentLibrary from "@/pages/DocumentLibrary";
-import Settings from "@/pages/Settings";
-import AdminMonitoring from "@/pages/AdminMonitoring";
-import ConsumptionMonitoring from "@/pages/ConsumptionMonitoring";
-import Docs from "@/pages/Docs";
-import NotFound from "@/pages/NotFound";
+
+// Every route is code-split so a first-time visitor only downloads the app
+// shell + whichever page they land on, instead of all ~40 pages (including
+// admin monitoring, the virtual-office canvas, and the full marketing site)
+// up front. AuthCallback/NotFound stay eager — they're tiny and one is the
+// OAuth redirect target, where an extra chunk fetch just adds latency.
 import AuthCallback from "@/pages/AuthCallback";
-import MeetCollective from "@/pages/marketing/MeetCollective";
-import Pricing from "@/pages/marketing/Pricing";
-import Solutions from "@/pages/marketing/Solutions";
-import Resources from "@/pages/marketing/Resources";
-import Changelog from "@/pages/marketing/Changelog";
-import ContactSales from "@/pages/marketing/ContactSales";
-import SupportCenter from "@/pages/marketing/SupportCenter";
+import NotFound from "@/pages/NotFound";
+const Landing = lazy(() => import("@/pages/Landing"));
+const Login = lazy(() => import("@/pages/Login"));
+const Profile = lazy(() => import("@/pages/Profile"));
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const StaffBuilder = lazy(() => import("@/pages/StaffBuilder"));
+const Skills = lazy(() => import("@/pages/Skills"));
+const DepartmentBuilder = lazy(() => import("@/pages/DepartmentBuilder"));
+const TaskManager = lazy(() => import("@/pages/TaskManager"));
+const Projects = lazy(() => import("@/pages/Projects"));
+const Backlog = lazy(() => import("@/pages/Backlog"));
+const Roadmap = lazy(() => import("@/pages/Roadmap"));
+const Reports = lazy(() => import("@/pages/Reports"));
+const Meetings = lazy(() => import("@/pages/Meetings"));
+const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
+const Playground = lazy(() => import("@/pages/Playground"));
+const Companies = lazy(() => import("@/pages/Companies"));
+const Platform = lazy(() => import("@/pages/Platform"));
+const OfficeBuilder = lazy(() => import("@/pages/OfficeBuilder"));
+const VirtualOffice = lazy(() => import("@/pages/VirtualOffice"));
+const Recruiting = lazy(() => import("@/pages/Recruiting"));
+const DocumentLibrary = lazy(() => import("@/pages/DocumentLibrary"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const AdminMonitoring = lazy(() => import("@/pages/AdminMonitoring"));
+const ConsumptionMonitoring = lazy(() => import("@/pages/ConsumptionMonitoring"));
+const Docs = lazy(() => import("@/pages/Docs"));
+const MeetCollective = lazy(() => import("@/pages/marketing/MeetCollective"));
+const Pricing = lazy(() => import("@/pages/marketing/Pricing"));
+const Solutions = lazy(() => import("@/pages/marketing/Solutions"));
+const Resources = lazy(() => import("@/pages/marketing/Resources"));
+const Changelog = lazy(() => import("@/pages/marketing/Changelog"));
+const ContactSales = lazy(() => import("@/pages/marketing/ContactSales"));
+const SupportCenter = lazy(() => import("@/pages/marketing/SupportCenter"));
+
+function RouteFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-screen text-sm text-muted-foreground">
+      Loading…
+    </div>
+  );
+}
 
 const queryClient = new QueryClient();
 
@@ -146,6 +160,7 @@ const App = () => (
             {/* Lives above the router so in-flight task runs survive navigation. */}
             <RunEngineProvider>
             <BrowserRouter>
+              <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
@@ -184,6 +199,7 @@ const App = () => (
                 <Route path="/support" element={<SupportCenter />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </Suspense>
             </BrowserRouter>
             </RunEngineProvider>
           </TooltipProvider>
