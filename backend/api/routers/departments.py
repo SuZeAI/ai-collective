@@ -85,7 +85,7 @@ def upsert_department(
 ) -> DepartmentSchema:
     department_id = req.id or f"team_{uuid4().hex}"
     is_new_team = req.id is None
-    existing = service._repo.get(department_id) if req.id else None
+    existing = service.try_get_department(department_id) if req.id else None
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):
         raise NotFoundError(f"Department '{department_id}' not found")
     if existing is not None and not can_modify(owner_id, existing.owner_id):
@@ -125,7 +125,7 @@ def delete_department(
     service: DepartmentService = Depends(get_department_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
-    existing = service._repo.get(department_id)
+    existing = service.try_get_department(department_id)
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):
         raise NotFoundError(f"Department '{department_id}' not found")
     if existing is not None and not can_delete(owner_id, existing.owner_id):

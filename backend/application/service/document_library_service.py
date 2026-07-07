@@ -41,8 +41,11 @@ class DocumentLibraryService:
     def list_documents(self) -> list[LibraryDocument]:
         return self._repo.list()
 
+    def try_get_document(self, doc_id: str) -> LibraryDocument | None:
+        return self._repo.get(doc_id)
+
     def get_document(self, doc_id: str) -> LibraryDocument:
-        doc = self._repo.get(doc_id)
+        doc = self.try_get_document(doc_id)
         if doc is None:
             raise NotFoundError(f"Document {doc_id!r} not found")
         return doc
