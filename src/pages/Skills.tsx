@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ExternalLink, Pencil, Plus, ShieldCheck, Trash2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,27 @@ function getConfigVariableNames(config: Record<string, unknown> | undefined): st
   if (!config) return [];
   return Object.keys(config).filter((key) => key.trim().length > 0);
 }
+
+// Memoized so retyping in the preset-search box only re-renders rows whose
+// membership in the filtered list actually changed, not every row on every
+// keystroke — same pattern as KanbanCard/StaffCard/PlanStats elsewhere.
+const PresetSuggestionRow = memo(function PresetSuggestionRow({
+  preset,
+  onSelect,
+}: {
+  preset: SkillToolPreset;
+  onSelect: (preset: SkillToolPreset) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="w-full text-left px-2.5 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors font-medium"
+      onMouseDown={() => onSelect(preset)}
+    >
+      {preset.label} <span className="text-[10px] text-muted-foreground ml-1">({preset.tool_name})</span>
+    </button>
+  );
+});
 
 function isHexColor(value: string): boolean {
   return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
@@ -232,14 +253,20 @@ export default function Skills() {
     }
   }, [selectedPreset]);
 
-  const handleToolChange = (nextToolName: ToolName) => {
+  const handleToolChange = useCallback((nextToolName: ToolName) => {
     setToolName(nextToolName);
     const nextPreset = presetByTool.get(nextToolName) ?? toToolPreset(nextToolName);
     setConfigValues(buildDefaultConfigValues(nextPreset));
     if (!editingSkillId) {
       setName(nextPreset.label || "");
     }
-  };
+  }, [presetByTool, editingSkillId]);
+
+  const handlePresetSelect = useCallback((p: SkillToolPreset) => {
+    handleToolChange(p.tool_name);
+    setPresetSearch(p.label);
+    setShowPresetSuggestions(false);
+  }, [handleToolChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -630,18 +657,7 @@ export default function Skills() {
                     {showPresetSuggestions && filteredPresets.length > 0 && (
                       <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-md border bg-popover/95 backdrop-blur-md text-popover-foreground shadow-lg p-1 space-y-0.5">
                         {filteredPresets.map((p) => (
-                          <button
-                            key={p.tool_name}
-                            type="button"
-                            className="w-full text-left px-2.5 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors font-medium"
-                            onMouseDown={() => {
-                              handleToolChange(p.tool_name);
-                              setPresetSearch(p.label);
-                              setShowPresetSuggestions(false);
-                            }}
-                          >
-                            {p.label} <span className="text-[10px] text-muted-foreground ml-1">({p.tool_name})</span>
-                          </button>
+                          <PresetSuggestionRow key={p.tool_name} preset={p} onSelect={handlePresetSelect} />
                         ))}
                       </div>
                     )}
