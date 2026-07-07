@@ -28,10 +28,6 @@ export type AuthTranslations = {
   loggingIn: string;
   registering: string;
   or: string;
-  guestBtn: string;
-  guestNote: string;
-  guestMode: string;
-  guestModeNote: string;
   profileBtn: string;
   logoutBtn: string;
   editProfile: string;
@@ -376,10 +372,6 @@ export const translations: Record<Language, Translations> = {
       loggingIn: "Signing in…",
       registering: "Creating account…",
       or: "or",
-      guestBtn: "Continue as Guest",
-      guestNote: "Guest mode stores data locally only. No account required.",
-      guestMode: "Guest",
-      guestModeNote: "You are in guest mode. Your data is stored locally. Sign in for full access.",
       profileBtn: "My Profile",
       logoutBtn: "Sign Out",
       editProfile: "Edit Profile",
@@ -737,10 +729,6 @@ export const translations: Record<Language, Translations> = {
       loggingIn: "Đang đăng nhập…",
       registering: "Đang tạo tài khoản…",
       or: "hoặc",
-      guestBtn: "Tiếp tục với tư cách khách",
-      guestNote: "Chế độ khách lưu dữ liệu cục bộ. Không cần tài khoản.",
-      guestMode: "Khách",
-      guestModeNote: "Bạn đang ở chế độ khách. Dữ liệu được lưu cục bộ. Đăng nhập để truy cập đầy đủ.",
       profileBtn: "Hồ sơ của tôi",
       logoutBtn: "Đăng xuất",
       editProfile: "Chỉnh sửa hồ sơ",
@@ -1098,10 +1086,6 @@ export const translations: Record<Language, Translations> = {
       loggingIn: "登录中…",
       registering: "创建账户中…",
       or: "或",
-      guestBtn: "以访客身份继续",
-      guestNote: "访客模式仅在本地存储数据，无需账户。",
-      guestMode: "访客",
-      guestModeNote: "您处于访客模式。数据存储在本地。登录以获得完整访问权限。",
       profileBtn: "我的资料",
       logoutBtn: "退出登录",
       editProfile: "编辑资料",
@@ -1459,10 +1443,6 @@ export const translations: Record<Language, Translations> = {
       loggingIn: "ログイン中…",
       registering: "アカウント作成中…",
       or: "または",
-      guestBtn: "ゲストとして続ける",
-      guestNote: "ゲストモードはデータをローカルのみに保存します。アカウント不要。",
-      guestMode: "ゲスト",
-      guestModeNote: "ゲストモードです。データはローカルに保存されます。フルアクセスにはサインインしてください。",
       profileBtn: "マイプロフィール",
       logoutBtn: "サインアウト",
       editProfile: "プロフィール編集",

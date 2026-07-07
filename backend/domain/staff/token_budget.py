@@ -93,6 +93,14 @@ def _truncate_by_token_budget(
     tokenizer_family: str,
     model: str,
 ) -> str:
+    """Truncate to the last max_tokens (keep the tail, drop the head).
+
+    Every topology builds its context by appending the newest information
+    (latest worker report / most recent message) at the *end* of the joined
+    text, with older instructions/history first. Keeping the tail preserves
+    that freshest content instead of silently dropping it while keeping
+    stale, already-acted-on context.
+    """
     if max_tokens <= 0:
         return ""
 
@@ -109,7 +117,7 @@ def _truncate_by_token_budget(
             encoded = enc.encode(content)
             if len(encoded) <= max_tokens:
                 return content
-            return enc.decode(encoded[:max_tokens]).rstrip()
+            return enc.decode(encoded[-max_tokens:]).lstrip()
         except Exception:
             pass
 
@@ -117,7 +125,7 @@ def _truncate_by_token_budget(
     char_budget = int(max_tokens * approx_chars_per_token)
     if len(content) <= char_budget:
         return content
-    return content[:char_budget].rstrip()
+    return content[-char_budget:].lstrip()
 
 
 def apply_context_token_budget(

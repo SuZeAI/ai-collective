@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { getApiBase } from "@/lib/api-base";
 
 type Tab = "login" | "register";
 type LoginForm = { email: string; password: string };
@@ -69,7 +70,7 @@ const SOCIAL_PROVIDERS = [
 ] as const;
 
 export default function Login() {
-  const { login, register, loginAsGuest, isLoading } = useAuth();
+  const { login, register, isLoading } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("login");
@@ -110,16 +111,11 @@ export default function Login() {
     }
   });
 
-  const handleGuest = () => {
-    loginAsGuest();
-    navigate("/dashboard");
-  };
-
   const handleSocial = async (provider: string) => {
     if (provider === "Google") {
       setGoogleLoading(true);
       try {
-        const base = ((import.meta as any).env?.VITE_API_BASE_URL as string || "/api/v1").replace(/\/$/, "");
+        const base = getApiBase().replace(/\/$/, "");
         const res = await fetch(`${base}/auth/google/login`);
         if (!res.ok) throw new Error("Failed to start Google login");
         const { authorize_url } = await res.json();
@@ -559,21 +555,6 @@ export default function Login() {
             )}
           </AnimatePresence>
 
-          {/* Divider */}
-          <div className="my-4 flex items-center gap-3">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted-foreground">{t.auth.or}</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-
-          {/* Guest login */}
-          <Button variant="outline" className="w-full" onClick={handleGuest}>
-            {t.auth.guestBtn}
-          </Button>
-
-          <p className="text-center text-xs text-muted-foreground mt-6">
-            {t.auth.guestNote}
-          </p>
         </motion.div>
       </div>
 

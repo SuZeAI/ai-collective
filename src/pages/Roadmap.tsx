@@ -15,19 +15,24 @@ export default function Roadmap() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
         const [projects, allEpics, allTasks] = await Promise.all([api.listProjects(), api.listEpics(), api.listTasks()]);
+        if (cancelled) return;
         const proj = projects.find((p) => p.key === projectKey);
         setProject(proj);
         setEpics(allEpics.filter((e) => e.projectId === proj?.id));
         setIssues(allTasks.filter((t) => t.projectId === proj?.id));
       } catch (e) {
-        console.error(e);
+        if (!cancelled) console.error(e);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [projectKey]);
 
   const issuesByEpic = useMemo(() => {

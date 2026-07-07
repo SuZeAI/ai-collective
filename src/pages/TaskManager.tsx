@@ -1,7 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useParams, Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -15,7 +13,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, ChevronDown, ChevronUp, X, Eye, EyeOff, Send, UserRound, Hand, HelpCircle, Zap, LayoutGrid, Flag, CalendarClock, Tag, Building2, MessageSquare } from "lucide-react";
+import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, X, Eye, Send, UserRound, Hand, HelpCircle, Zap, LayoutGrid, Flag, CalendarClock, Tag, Building2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -120,108 +118,6 @@ const formatTaskDateTime = (date: Date) => {
   });
 };
 
-type GraphViewport = {
-  scale: number;
-  panX: number;
-  panY: number;
-};
-
-type GraphNodePosition = {
-  x: number;
-  y: number;
-};
-
-const GRAPH_VIEWBOX_WIDTH = 560;
-const GRAPH_VIEWBOX_HEIGHT = 300;
-const GRAPH_MIN_SCALE = 0.6;
-const GRAPH_MAX_SCALE = 2.5;
-
-const ellipsis = (value: string, maxLength: number) => {
-  if (value.length <= maxLength) return value;
-  return `${value.slice(0, Math.max(0, maxLength - 3))}...`;
-};
-
-const uniqueById = <T extends { id: string }>(items: T[]) => {
-  const seen = new Set<string>();
-  const out: T[] = [];
-  for (const item of items) {
-    if (seen.has(item.id)) continue;
-    seen.add(item.id);
-    out.push(item);
-  }
-  return out;
-};
-
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-
-const getSvgPoint = (event: { clientX: number; clientY: number }, element: SVGSVGElement | null) => {
-  if (!element) return { x: 0, y: 0 };
-  const rect = element.getBoundingClientRect();
-  const viewBox = element.viewBox.baseVal;
-  const vbWidth = viewBox?.width || GRAPH_VIEWBOX_WIDTH;
-  const vbHeight = viewBox?.height || GRAPH_VIEWBOX_HEIGHT;
-  const viewAspect = vbWidth / vbHeight;
-  const rectAspect = rect.width / rect.height;
-
-  let renderedWidth = rect.width;
-  let renderedHeight = rect.height;
-  let offsetX = 0;
-  let offsetY = 0;
-
-  if (rectAspect > viewAspect) {
-    renderedWidth = rect.height * viewAspect;
-    offsetX = (rect.width - renderedWidth) / 2;
-  } else {
-    renderedHeight = rect.width / viewAspect;
-    offsetY = (rect.height - renderedHeight) / 2;
-  }
-
-  return {
-    x: ((event.clientX - rect.left - offsetX) / renderedWidth) * vbWidth,
-    y: ((event.clientY - rect.top - offsetY) / renderedHeight) * vbHeight,
-  };
-};
-
-const createDefaultViewport = (): GraphViewport => ({
-  scale: 1,
-  panX: 0,
-  panY: 0,
-});
-
-const createNodePositionMap = (nodes: GraphContextSnapshot["nodes"], width: number, height: number) => {
-  const layout = getGraphLayout(nodes, width, height);
-  return Object.fromEntries(layout.map((entry) => [entry.node.id, { x: entry.x, y: entry.y }])) as Record<string, GraphNodePosition>;
-};
-
-const getGraphDisplayNodes = (
-  snapshot: GraphContextSnapshot | undefined,
-  highlight: GraphHighlight | undefined,
-  maxNodes = 18,
-) => {
-  if (!snapshot) return [];
-  const activeIds = new Set(highlight?.nodeIds ?? []);
-  const prioritized = [
-    ...snapshot.nodes.filter((node) => activeIds.has(node.id)).sort((a, b) => b.salience_score - a.salience_score),
-    ...snapshot.nodes
-      .filter((node) => !activeIds.has(node.id))
-      .sort((a, b) => b.salience_score - a.salience_score || b.updated_at.localeCompare(a.updated_at)),
-  ];
-  return uniqueById(prioritized).slice(0, maxNodes);
-};
-
-const getGraphLayout = (nodes: GraphContextSnapshot["nodes"], width: number, height: number) => {
-  if (nodes.length === 0) return [];
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const radius = Math.max(80, Math.min(width, height) * 0.36);
-  return nodes.map((node, index) => {
-    const angle = nodes.length === 1 ? -Math.PI / 2 : (index / nodes.length) * Math.PI * 2 - Math.PI / 2;
-    const x = centerX + Math.cos(angle) * radius;
-    const y = centerY + Math.sin(angle) * radius;
-    return { node, x, y };
-  });
-};
-
 // ---- Kanban board pieces ----------------------------------------------------
 
 type KanbanCardProps = {
@@ -233,7 +129,7 @@ type KanbanCardProps = {
   onOpen: (taskId: string) => void;
 };
 
-function KanbanCard({ task, department, assignee, progress, isSelected, onOpen }: KanbanCardProps) {
+const KanbanCard = memo(function KanbanCard({ task, department, assignee, progress, isSelected, onOpen }: KanbanCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: CSS.Translate.toString(transform), zIndex: 50 } : undefined;
   const priority = PRIORITY_CONFIG[priorityOf(task)];
@@ -318,7 +214,7 @@ function KanbanCard({ task, department, assignee, progress, isSelected, onOpen }
       )}
     </div>
   );
-}
+});
 
 type KanbanColumnProps = {
   status: Task["status"];
@@ -363,9 +259,6 @@ export default function TaskManager() {
     meetings: taskConversations,
     thinkingStaff,
     activeFanouts,
-    graphSnapshots: taskGraphSnapshots,
-    graphHighlights: taskGraphHighlights,
-    loadingGraphTaskIds,
     heldTaskIds,
     pendingInterjections,
     userInputRequests,
@@ -404,10 +297,6 @@ export default function TaskManager() {
   const [dueDate, setDueDate] = useState("");
   const [labelsInput, setLabelsInput] = useState("");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
-  // Graph viewport/layout are per-viewer presentation over engine-owned snapshots.
-  const [taskGraphViewports, setTaskGraphViewports] = useState<Record<string, GraphViewport>>({});
-  const [taskGraphPositions, setTaskGraphPositions] = useState<Record<string, Record<string, GraphNodePosition>>>({});
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -418,22 +307,6 @@ export default function TaskManager() {
   // User comment drafts per task (separate from the staff live-chat composer).
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const chatEndRef = useRef<HTMLDivElement | null>(null);
-  const [graphPanelVisible, setGraphPanelVisible] = useState(false);
-  const [graphActivityCollapsed, setGraphActivityCollapsed] = useState(false);
-  const graphSvgRef = useRef<SVGSVGElement | null>(null);
-  const graphDragRef = useRef<{
-    taskId: string;
-    pointerId: number;
-    startPoint: { x: number; y: number };
-    startViewport: GraphViewport;
-  } | null>(null);
-  const graphNodeDragRef = useRef<{
-    taskId: string;
-    nodeId: string;
-    pointerId: number;
-    startPoint: { x: number; y: number };
-    startPositions: Record<string, GraphNodePosition>;
-  } | null>(null);
 
   // A small activation distance lets a plain click open the detail dialog while
   // an actual drag (>6px) starts the board move.
@@ -574,7 +447,6 @@ export default function TaskManager() {
       const target = taskList.find((t) => t.id === taskIdParam);
       if (target && isTaskInScope(target)) {
         setViewTaskId(taskIdParam);
-        setTaskGraphViewports((prev) => prev[taskIdParam] ? prev : { ...prev, [taskIdParam]: createDefaultViewport() });
         void loadTaskGraphContext(taskIdParam);
       }
     }
@@ -597,28 +469,9 @@ export default function TaskManager() {
     }
   }, [taskConversations, viewTaskId, userInputRequests]);
 
-  const handleSelectTask = (taskId: string) => {
-    setSearchParams({ id: taskId });
-    openTaskView(taskId);
-  };
-
   const closeTaskView = () => {
     setViewTaskId(null);
     setSearchParams({});
-    graphDragRef.current = null;
-    graphNodeDragRef.current = null;
-  };
-
-  const toggleTaskExpanded = (taskId: string) => {
-    setExpandedTaskIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(taskId)) {
-        next.delete(taskId);
-      } else {
-        next.add(taskId);
-      }
-      return next;
-    });
   };
 
   const resetForm = () => {
@@ -657,173 +510,28 @@ export default function TaskManager() {
     setOpen(true);
   };
 
-  const openTaskView = (taskId: string) => {
-    setViewTaskId(taskId);
-    setTaskGraphViewports((prev) => prev[taskId] ? prev : { ...prev, [taskId]: createDefaultViewport() });
-    void loadTaskGraphContext(taskId);
-  };
+  const loadTaskGraphContext = useCallback(
+    (taskId: string) => engine.loadGraph(taskId),
+    [engine.loadGraph],
+  );
 
-  const syncTaskGraphPositions = (taskId: string, snapshot?: GraphContextSnapshot) => {
-    setTaskGraphPositions((prev) => {
-      const graph = snapshot ?? taskGraphSnapshots[taskId];
-      if (!graph) return prev;
-      const existing = prev[taskId] ?? {};
-      const base = createNodePositionMap(graph.nodes, GRAPH_VIEWBOX_WIDTH, GRAPH_VIEWBOX_HEIGHT);
-      const next: Record<string, GraphNodePosition> = {};
-      for (const node of graph.nodes) {
-        next[node.id] = existing[node.id] ?? base[node.id] ?? { x: GRAPH_VIEWBOX_WIDTH / 2, y: GRAPH_VIEWBOX_HEIGHT / 2 };
-      }
-      return {
-        ...prev,
-        [taskId]: next,
-      };
-    });
-  };
+  const openTaskView = useCallback(
+    (taskId: string) => {
+      setViewTaskId(taskId);
+      void loadTaskGraphContext(taskId);
+    },
+    [loadTaskGraphContext],
+  );
 
-  // Snapshots are owned by the engine; keep the local layout positions in sync
-  // whenever a snapshot changes (engine.loadGraph / live message_ingested events).
-  useEffect(() => {
-    for (const taskId of Object.keys(taskGraphSnapshots)) {
-      syncTaskGraphPositions(taskId, taskGraphSnapshots[taskId]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taskGraphSnapshots]);
-
-  const loadTaskGraphContext = (taskId: string) => engine.loadGraph(taskId);
-  const refreshTaskGraphContext = (taskId: string) => engine.refreshGraph(taskId);
-
-  const updateGraphViewport = (taskId: string, updater: (current: GraphViewport) => GraphViewport) => {
-    setTaskGraphViewports((prev) => {
-      const current = prev[taskId] ?? createDefaultViewport();
-      return {
-        ...prev,
-        [taskId]: updater(current),
-      };
-    });
-  };
-
-  const startGraphDrag = (taskId: string, event: ReactPointerEvent<SVGSVGElement>) => {
-    if (event.button !== 0) return;
-    const viewport = taskGraphViewports[taskId] ?? createDefaultViewport();
-    const point = getSvgPoint(event.nativeEvent, graphSvgRef.current);
-    graphDragRef.current = {
-      taskId,
-      pointerId: event.pointerId,
-      startPoint: point,
-      startViewport: viewport,
-    };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const moveGraphDrag = (taskId: string, event: ReactPointerEvent<SVGSVGElement>) => {
-    const drag = graphDragRef.current;
-    if (!drag || drag.taskId !== taskId || drag.pointerId !== event.pointerId) return;
-    const point = getSvgPoint(event.nativeEvent, graphSvgRef.current);
-    const deltaX = point.x - drag.startPoint.x;
-    const deltaY = point.y - drag.startPoint.y;
-    setTaskGraphViewports((prev) => ({
-      ...prev,
-      [taskId]: {
-        ...drag.startViewport,
-        panX: drag.startViewport.panX + deltaX,
-        panY: drag.startViewport.panY + deltaY,
-      },
-    }));
-  };
-
-  const endGraphDrag = (taskId: string, event: ReactPointerEvent<SVGSVGElement>) => {
-    const drag = graphDragRef.current;
-    if (!drag || drag.taskId !== taskId || drag.pointerId !== event.pointerId) return;
-    graphDragRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  };
-
-  const wheelGraph = (taskId: string, event: ReactWheelEvent<SVGSVGElement>) => {
-    event.preventDefault();
-    const point = getSvgPoint(event.nativeEvent, graphSvgRef.current);
-    const zoomFactor = event.deltaY < 0 ? 1.12 : 0.9;
-    updateGraphViewport(taskId, (current) => {
-      const nextScale = clamp(current.scale * zoomFactor, GRAPH_MIN_SCALE, GRAPH_MAX_SCALE);
-      const worldX = (point.x - current.panX) / current.scale;
-      const worldY = (point.y - current.panY) / current.scale;
-      return {
-        scale: nextScale,
-        panX: point.x - worldX * nextScale,
-        panY: point.y - worldY * nextScale,
-      };
-    });
-  };
-
-  const startNodeDrag = (taskId: string, nodeId: string, event: ReactPointerEvent<SVGGElement>) => {
-    if (event.button !== 0) return;
-    const snapshot = taskGraphSnapshots[taskId];
-    const currentPositions = taskGraphPositions[taskId] ?? createNodePositionMap(snapshot?.nodes ?? [], GRAPH_VIEWBOX_WIDTH, GRAPH_VIEWBOX_HEIGHT);
-    const point = getSvgPoint(event.nativeEvent, graphSvgRef.current);
-    graphNodeDragRef.current = {
-      taskId,
-      nodeId,
-      pointerId: event.pointerId,
-      startPoint: point,
-      startPositions: currentPositions,
-    };
-    event.stopPropagation();
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const moveNodeDrag = (taskId: string, event: ReactPointerEvent<SVGElement>) => {
-    const drag = graphNodeDragRef.current;
-    if (!drag || drag.taskId !== taskId || drag.pointerId !== event.pointerId) return;
-    const snapshot = taskGraphSnapshots[taskId];
-    if (!snapshot) return;
-    const point = getSvgPoint(event.nativeEvent, graphSvgRef.current);
-    const deltaX = point.x - drag.startPoint.x;
-    const deltaY = point.y - drag.startPoint.y;
-    const graph = snapshot;
-    const edgeNeighbors = new Map<string, Set<string>>();
-    for (const edge of graph.edges) {
-      if (!edgeNeighbors.has(edge.src)) edgeNeighbors.set(edge.src, new Set());
-      if (!edgeNeighbors.has(edge.dst)) edgeNeighbors.set(edge.dst, new Set());
-      edgeNeighbors.get(edge.src)?.add(edge.dst);
-      edgeNeighbors.get(edge.dst)?.add(edge.src);
-    }
-
-    setTaskGraphPositions((prev) => {
-      const basePositions = drag.startPositions;
-      const next: Record<string, GraphNodePosition> = { ...basePositions };
-      const draggedStart = basePositions[drag.nodeId] ?? { x: GRAPH_VIEWBOX_WIDTH / 2, y: GRAPH_VIEWBOX_HEIGHT / 2 };
-      next[drag.nodeId] = {
-        x: draggedStart.x + deltaX,
-        y: draggedStart.y + deltaY,
-      };
-
-      const directNeighbors = edgeNeighbors.get(drag.nodeId) ?? new Set<string>();
-      for (const neighborId of directNeighbors) {
-        if (neighborId === drag.nodeId) continue;
-        const neighborStart = basePositions[neighborId];
-        if (!neighborStart) continue;
-        next[neighborId] = {
-          x: neighborStart.x + deltaX * 0.28,
-          y: neighborStart.y + deltaY * 0.28,
-        };
-      }
-
-      return {
-        ...prev,
-        [taskId]: next,
-      };
-    });
-  };
-
-  const endNodeDrag = (taskId: string, event: ReactPointerEvent<SVGElement>) => {
-    const drag = graphNodeDragRef.current;
-    if (!drag || drag.taskId !== taskId || drag.pointerId !== event.pointerId) return;
-    graphNodeDragRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  };
+  // Stable identity so memoized KanbanCard rows don't re-render on every
+  // unrelated TaskManager state change.
+  const handleSelectTask = useCallback(
+    (taskId: string) => {
+      setSearchParams({ id: taskId });
+      openTaskView(taskId);
+    },
+    [setSearchParams, openTaskView],
+  );
 
   const saveTask = async () => {
     if (!title.trim()) return;
@@ -875,6 +583,7 @@ export default function TaskManager() {
   const moveTaskToStatus = (task: Task, status: Task["status"]) => {
     if (task.status === status) return;
     if (!canEditItem(task)) return;
+    if (updatingTaskIds.has(task.id)) return;
     if (status === "in-progress") {
       openTaskView(task.id);
       void engine.startTask(task, departmentRunOpts(task));
@@ -901,6 +610,7 @@ export default function TaskManager() {
   // the engine aborts on stop/pause and clears run state when restarting.
   const updateTaskStatus = (task: Task, status: Task["status"]) => {
     if (task.status === status) return;
+    if (updatingTaskIds.has(task.id)) return;
     if (status === "in-progress") {
       openTaskView(task.id);
       void engine.startTask(task, departmentRunOpts(task));
@@ -974,8 +684,6 @@ export default function TaskManager() {
     try {
       await engine.removeTask(id);
       // Clear page-local presentation state for the removed task.
-      setTaskGraphViewports((prev) => { const next = { ...prev }; delete next[id]; return next; });
-      setTaskGraphPositions((prev) => { const next = { ...prev }; delete next[id]; return next; });
       setHumanInputs((prev) => { const next = { ...prev }; delete next[id]; return next; });
       if (editingTaskId === id) {
         resetForm();
@@ -1290,29 +998,6 @@ export default function TaskManager() {
             const isConversationLoading = loadingConversationTaskIds.has(selectedTask.id);
             const isRestart = selectedTask.status === "completed";
             const Icon = statusIcons[selectedTask.status] ?? Circle;
-            const graphSnapshot = taskGraphSnapshots[selectedTask.id];
-            const graphHighlight = taskGraphHighlights[selectedTask.id];
-            const graphLoading = loadingGraphTaskIds.has(selectedTask.id);
-            const graphNodes = getGraphDisplayNodes(graphSnapshot, graphHighlight);
-            const graphLayout = getGraphLayout(graphNodes, 560, 300);
-            const graphLayoutById = new Map(graphLayout.map((entry) => [entry.node.id, entry]));
-            const graphPositions = taskGraphPositions[selectedTask.id] ?? createNodePositionMap(graphNodes, GRAPH_VIEWBOX_WIDTH, GRAPH_VIEWBOX_HEIGHT);
-            const activeNodeIds = new Set(graphHighlight?.nodeIds ?? []);
-            const activeEdgeIds = new Set(graphHighlight?.edgeIds ?? []);
-            const activeChunkIds = new Set(graphHighlight?.chunkIds ?? []);
-            const graphEdges = (graphSnapshot?.edges ?? [])
-              .filter((edge) => graphLayoutById.has(edge.src) && graphLayoutById.has(edge.dst))
-              .sort((left, right) => {
-                const leftActive = activeEdgeIds.has(left.id) ? 1 : 0;
-                const rightActive = activeEdgeIds.has(right.id) ? 1 : 0;
-                return rightActive - leftActive || right.weight - left.weight;
-              })
-              .slice(0, 24);
-            const graphNodeById = new Map((graphSnapshot?.nodes ?? []).map((node) => [node.id, node]));
-            const activeNodeLabels = Array.from(activeNodeIds)
-              .map((nodeId) => graphNodeById.get(nodeId)?.value || nodeId)
-              .slice(0, 6);
-            const viewport = taskGraphViewports[selectedTask.id] ?? createDefaultViewport();
 
             return (
               <div className="flex-1 h-full min-h-0 flex flex-col bg-background select-text">

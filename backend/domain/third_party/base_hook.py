@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 from urllib import error, request as urllib_request
 
+from backend.domain.tools._ssrf import validate_public_url
+
 
 def _header(headers: Dict[str, str], name: str) -> str:
     """Case-insensitive header lookup (HTTP headers are case-insensitive)."""
@@ -18,6 +20,13 @@ def _header(headers: Dict[str, str], name: str) -> str:
         if key.lower() == name_lower:
             return value or ""
     return ""
+
+
+def split_text(text: str, limit: int) -> list:
+    """Chunk text into pieces no longer than limit (for platform message-length caps)."""
+    if len(text) <= limit:
+        return [text]
+    return [text[i : i + limit] for i in range(0, len(text), limit)]
 
 
 def hmac_sha256_hex(secret: str, message: bytes) -> str:
@@ -80,6 +89,10 @@ class BaseHookProcessor(ABC):
 
 
 def _http_post(url: str, data: Dict, headers: Dict[str, str], timeout: int = 20) -> Dict:
+    # Admin-configured webhook/service URLs (Teams, Discord, Skype, etc.) must not
+    # be allowed to reach internal services — the same SSRF guard used for
+    # LLM-supplied URLs applies here since these values come from user config.
+    validate_public_url(url)
     payload = json.dumps(data).encode("utf-8")
     headers = {"Content-Type": "application/json", **headers}
     req = urllib_request.Request(url=url, method="POST", data=payload, headers=headers)

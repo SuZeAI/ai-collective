@@ -4,14 +4,14 @@ import asyncio
 import hmac
 from typing import Any, Dict, Optional
 
-from backend.domain.thirty_part.base_hook import BaseHookProcessor, IncomingMessage, _http_post
-from backend.domain.thirty_part.whatsapp_hook import verify_meta_signature
+from backend.domain.third_party.base_hook import BaseHookProcessor, IncomingMessage, _http_post
+from backend.domain.third_party.whatsapp_hook import verify_meta_signature
 
 GRAPH_API = "https://graph.facebook.com/v19.0"
 
 
-class InstagramHookProcessor(BaseHookProcessor):
-    platform = "instagram"
+class MessengerHookProcessor(BaseHookProcessor):
+    platform = "facebook_messenger"
 
     def verify_request(
         self, headers: Dict[str, str], raw_body: bytes, config: Dict[str, Any]
@@ -19,7 +19,7 @@ class InstagramHookProcessor(BaseHookProcessor):
         return verify_meta_signature(headers, raw_body, config.get("app_secret", ""))
 
     def extract_message(self, body: Dict[str, Any]) -> Optional[IncomingMessage]:
-        if body.get("object") != "instagram":
+        if body.get("object") != "page":
             return None
         for entry in body.get("entry", []):
             for messaging in entry.get("messaging", []):
@@ -51,11 +51,12 @@ class InstagramHookProcessor(BaseHookProcessor):
     async def send_response(self, config: Dict[str, Any], chat_id: str, text: str) -> None:
         access_token = config.get("page_access_token", "")
         if not access_token:
-            raise ValueError("Missing page_access_token in Instagram hook config")
+            raise ValueError("Missing page_access_token in Messenger hook config")
         url = f"{GRAPH_API}/me/messages"
         headers = {"Authorization": f"Bearer {access_token}"}
         data = {
             "recipient": {"id": chat_id},
-            "message": {"text": text[:1000]},
+            "message": {"text": text[:2000]},
+            "messaging_type": "RESPONSE",
         }
         await asyncio.to_thread(_http_post, url, data, headers)

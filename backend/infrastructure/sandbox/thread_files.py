@@ -16,17 +16,36 @@ from __future__ import annotations
 
 import json
 import os
-import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
+from backend.infrastructure.lock_provider import get_shared_lock_provider
 from backend.log import get_logger
 
 logger = get_logger(__name__)
 
-_storage_lock = threading.Lock()
+_LOCK_KEY = "thread_files"
+
+# conversation_has_files is called synchronously at the start of *every* agent
+# turn across all 5 topologies (build_agent_tools -> attach_conversation_sandbox),
+# which otherwise re-does a disk read (or Mongo round-trip) every single turn.
+# A conversation only ever transitions False -> True (files are never removed
+# mid-conversation — purge_thread_files only runs on task deletion, which ends
+# it), so caching "known to have files" and skipping the I/O once True is safe
+# and eliminates nearly all of the redundant per-turn cost.
+_has_files_cache: set[str] = set()
+
+
+def _storage_lock():
+    """Distributed (or in-process, per LOCK_BACKEND) lock guarding thread_files.json.
+
+    This module does its own raw file I/O rather than going through a JSON
+    repository, so without this it would bypass LOCK_BACKEND=redis entirely —
+    a private threading.Lock only serializes writers within one process.
+    """
+    return get_shared_lock_provider().acquire(_LOCK_KEY)
 
 
 def _storage_path() -> Path:
@@ -77,13 +96,14 @@ def record_thread_file(
         _record_mongo(record)
     else:
         _record_json(record)
+    _has_files_cache.add(conversation_id)
     return record
 
 
 def _record_json(record: dict) -> None:
     try:
         path = _storage_path()
-        with _storage_lock:
+        with _storage_lock():
             files: list[dict] = []
             if path.exists():
                 try:
@@ -140,7 +160,7 @@ def _list_json(conversation_id: str) -> list[dict]:
     path = _storage_path()
     if not path.exists():
         return []
-    with _storage_lock:
+    with _storage_lock():
         try:
             files = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
@@ -167,11 +187,25 @@ def _list_mongo(conversation_id: str) -> list[dict]:
 def conversation_has_files(conversation_id: str) -> bool:
     """True if *conversation_id* has any recorded file or an on-disk upload.
 
+    Called synchronously at the start of every agent turn (via
+    build_agent_tools/attach_conversation_sandbox in every topology), so a
+    cache hit short-circuits the disk/Mongo check entirely — see
+    ``_has_files_cache``.
+
     Tolerant: a transient store failure falls back to the on-disk ``uploads/``
     check, and any unexpected error returns ``False`` so a run never breaks.
     """
     if not conversation_id:
         return False
+    if conversation_id in _has_files_cache:
+        return True
+    if _conversation_has_files_uncached(conversation_id):
+        _has_files_cache.add(conversation_id)
+        return True
+    return False
+
+
+def _conversation_has_files_uncached(conversation_id: str) -> bool:
     try:
         if _is_mongo():
             try:
@@ -236,7 +270,7 @@ def purge_thread_files(conversation_id: str) -> None:
         path = _storage_path()
         if not path.exists():
             return
-        with _storage_lock:
+        with _storage_lock():
             try:
                 files = json.loads(path.read_text(encoding="utf-8"))
             except (json.JSONDecodeError, OSError):

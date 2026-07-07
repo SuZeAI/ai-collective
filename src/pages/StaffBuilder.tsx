@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { FlaskConical, Pencil, Plus, Trash2, X, Copy, Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -134,6 +134,7 @@ export default function StaffBuilder() {
   const [copied, setCopied] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [skillSearch, setSkillSearch] = useState("");
+  const testRunIdRef = useRef(0);
 
   const filteredRoles = useMemo(() => {
     const term = role.trim().toLowerCase();
@@ -172,7 +173,7 @@ export default function StaffBuilder() {
 
   const selectedSkills = useMemo(() => {
     const byId = new Map(skillCatalog.map((s) => [s.id, s] as const));
-    return selectedSkillIds.map((id) => byId.get(id)).filter(Boolean) as Skill[];
+    return selectedSkillIds.map((id) => byId.get(id)).filter((s): s is Skill => s !== undefined);
   }, [skillCatalog, selectedSkillIds]);
 
   const validSkillIdSet = useMemo(() => new Set(skillCatalog.map((s) => s.id)), [skillCatalog]);
@@ -273,14 +274,20 @@ export default function StaffBuilder() {
   };
 
   const openTestDialog = (staff: Staff) => {
+    // Invalidate any in-flight test run for a previously-open staff member so
+    // a late response can't land in this (possibly different) staff's dialog.
+    testRunIdRef.current += 1;
     setTestingStaff(staff);
     setTestPrompt("");
     setTestOutput("");
+    setTestError("");
+    setIsTesting(false);
     setTestOpen(true);
   };
 
   const runStaffTest = async () => {
     if (!testingStaff || !testPrompt.trim() || isTesting) return;
+    const runId = ++testRunIdRef.current;
     setIsTesting(true);
     setTestOutput("");
     setTestError("");
@@ -290,13 +297,17 @@ export default function StaffBuilder() {
         prompt: testPrompt.trim(),
         staffId: testingStaff.id,
       });
+      if (testRunIdRef.current !== runId) return;
       setTestOutput(result.response || "(No response)");
     } catch (e) {
+      if (testRunIdRef.current !== runId) return;
       const errorMsg = e instanceof Error ? e.message : "Failed to call test endpoint";
       setTestError(errorMsg);
       setTestOutput("");
     } finally {
-      setIsTesting(false);
+      if (testRunIdRef.current === runId) {
+        setIsTesting(false);
+      }
     }
   };
 

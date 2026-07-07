@@ -5,12 +5,13 @@ import hmac
 import time
 from typing import Any, Dict, Optional
 
-from backend.domain.thirty_part.base_hook import (
+from backend.domain.third_party.base_hook import (
     BaseHookProcessor,
     IncomingMessage,
     _header,
     _http_post,
     hmac_sha256_hex,
+    split_text,
 )
 
 SLACK_API = "https://slack.com/api"
@@ -70,11 +71,5 @@ class SlackHookProcessor(BaseHookProcessor):
             raise ValueError("Missing bot_token in Slack hook config")
         url = f"{SLACK_API}/chat.postMessage"
         headers = {"Authorization": f"Bearer {bot_token}"}
-        for chunk in _split(text, 3000):
+        for chunk in split_text(text, 3000):
             await asyncio.to_thread(_http_post, url, {"channel": chat_id, "text": chunk}, headers)
-
-
-def _split(text: str, limit: int) -> list[str]:
-    if len(text) <= limit:
-        return [text]
-    return [text[i:i+limit] for i in range(0, len(text), limit)]

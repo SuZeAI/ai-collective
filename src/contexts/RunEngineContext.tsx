@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { api, type GraphContextSnapshot, type Message, type Task } from "@/lib/api";
 
@@ -214,9 +214,10 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
   // ---- The streaming loop -----------------------------------------------------
   // Opens the SSE run stream for a task and feeds every event into shared state.
   // Lives in the provider so it keeps running regardless of which page is mounted.
-  const runStream = useCallback(async (updated: Task, formattedInput: string, opts: RunOpts) => {
-    const controller = new AbortController();
-    controllersRef.current.set(updated.id, controller);
+  // `controller` is created and registered in controllersRef by the caller
+  // (startTask/continueTask) synchronously, before any await — see the
+  // comment on those functions for why that ordering matters.
+  const runStream = useCallback(async (updated: Task, formattedInput: string, opts: RunOpts, controller: AbortController) => {
     setStreamingIds((prev) => new Set(prev).add(updated.id));
 
     // Reset thinking state for a fresh start/restart.
@@ -446,8 +447,11 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         emit(updated.id, event);
       }
 
-      // Auto-complete only when the stream finished naturally (not cancelled).
-      if (messages.length > 0 && !controller.signal.aborted) {
+      // Auto-complete only when the stream finished naturally (not cancelled,
+      // stopped, aborted, or errored). Do not gate on messages.length: a run
+      // that only calls tools/subagents without a final turn_complete message
+      // still finishes naturally and must transition out of "in-progress".
+      if (endReason === "completed" && !controller.signal.aborted) {
         const completed = await api.upsertTask({ ...updated, status: "completed", progress: 100 });
         applyTask(completed);
       }
@@ -459,7 +463,11 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         endReason = "aborted";
       }
     } finally {
-      controllersRef.current.delete(updated.id);
+      // Only clear the map entry if it's still this run's controller — a
+      // stale delete here could wipe out a newer, still-live run's entry.
+      if (controllersRef.current.get(updated.id) === controller) {
+        controllersRef.current.delete(updated.id);
+      }
       setStreamingIds((prev) => {
         const next = new Set(prev);
         next.delete(updated.id);
@@ -478,7 +486,14 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
   // ---- Run lifecycle ----------------------------------------------------------
 
   const startTask = useCallback(async (task: Task, opts: RunOpts = {}) => {
+    // Check-and-reserve must happen synchronously, in one go, with no await in
+    // between — otherwise two rapid calls both pass the check before either
+    // registers a controller (registration used to happen inside runStream,
+    // after the upsertTask await below), letting the second call's stream
+    // silently overwrite/orphan the first's.
     if (controllersRef.current.has(task.id)) return;
+    const controller = new AbortController();
+    controllersRef.current.set(task.id, controller);
     setUpdatingTaskIds((prev) => new Set(prev).add(task.id));
     try {
       const updated = await api.upsertTask({ ...task, status: "in-progress" });
@@ -493,9 +508,12 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         const formattedInput =
           opts.formattedInput ??
           `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}`;
-        await runStream(updated, formattedInput, opts);
+        await runStream(updated, formattedInput, opts, controller);
+      } else {
+        controllersRef.current.delete(task.id);
       }
     } catch (e) {
+      controllersRef.current.delete(task.id);
       if (!(e instanceof DOMException && e.name === "AbortError")) console.error(e);
     } finally {
       setUpdatingTaskIds((prev) => {
@@ -541,6 +559,9 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
   ) => {
     if (!content || controllersRef.current.has(task.id)) return;
     if (task.assignedStaff.length === 0) return;
+    // Reserve synchronously (see startTask's comment — same race applies here).
+    const controller = new AbortController();
+    controllersRef.current.set(task.id, controller);
     setUpdatingTaskIds((prev) => new Set(prev).add(task.id));
     setInterjectErrors((prev) => { const next = { ...prev }; delete next[task.id]; return next; });
     try {
@@ -568,8 +589,9 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         `[User follow-up after reviewing the previous result — continue the task accordingly, ` +
         `building on the work already done instead of starting over]: ${content}` +
         (transcriptTail ? `\n\n[Recent meeting from the previous run, for context]:\n${transcriptTail}` : "");
-      await runStream(updated, formattedInput, opts);
+      await runStream(updated, formattedInput, opts, controller);
     } catch (e) {
+      controllersRef.current.delete(task.id);
       if (!(e instanceof DOMException && e.name === "AbortError")) {
         console.error(e);
         setInterjectErrors((prev) => ({
@@ -746,42 +768,85 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const value: RunEngineValue = {
-    tasks,
-    meetings,
-    thinkingStaff,
-    activeFanouts,
-    graphSnapshots,
-    graphHighlights,
-    loadingGraphTaskIds,
-    heldTaskIds,
-    pendingInterjections,
-    userInputRequests,
-    loadingConversationTaskIds,
-    updatingTaskIds,
-    sendingInterjectTaskIds,
-    holdTogglingTaskIds,
-    respondingRequestIds,
-    interjectErrors,
-    isStreaming,
-    upsertTask,
-    removeTask,
-    ingestTasks,
-    ingestMeetings,
-    startTask,
-    stopTask,
-    pauseTask,
-    setStatus,
-    continueTask,
-    interject,
-    respond,
-    hold,
-    clearRunState,
-    clearHistory,
-    loadGraph,
-    refreshGraph,
-    subscribe,
-  };
+  // Memoized so a re-render of this provider for an unrelated reason (or one
+  // where none of these values actually changed) doesn't hand every consumer
+  // a brand-new object reference and force them all to re-render too — with
+  // this many fields, an unmemoized literal here is a context-wide re-render
+  // storm for every screen that reads from useRunEngine().
+  const value: RunEngineValue = useMemo(
+    () => ({
+      tasks,
+      meetings,
+      thinkingStaff,
+      activeFanouts,
+      graphSnapshots,
+      graphHighlights,
+      loadingGraphTaskIds,
+      heldTaskIds,
+      pendingInterjections,
+      userInputRequests,
+      loadingConversationTaskIds,
+      updatingTaskIds,
+      sendingInterjectTaskIds,
+      holdTogglingTaskIds,
+      respondingRequestIds,
+      interjectErrors,
+      isStreaming,
+      upsertTask,
+      removeTask,
+      ingestTasks,
+      ingestMeetings,
+      startTask,
+      stopTask,
+      pauseTask,
+      setStatus,
+      continueTask,
+      interject,
+      respond,
+      hold,
+      clearRunState,
+      clearHistory,
+      loadGraph,
+      refreshGraph,
+      subscribe,
+    }),
+    [
+      tasks,
+      meetings,
+      thinkingStaff,
+      activeFanouts,
+      graphSnapshots,
+      graphHighlights,
+      loadingGraphTaskIds,
+      heldTaskIds,
+      pendingInterjections,
+      userInputRequests,
+      loadingConversationTaskIds,
+      updatingTaskIds,
+      sendingInterjectTaskIds,
+      holdTogglingTaskIds,
+      respondingRequestIds,
+      interjectErrors,
+      isStreaming,
+      upsertTask,
+      removeTask,
+      ingestTasks,
+      ingestMeetings,
+      startTask,
+      stopTask,
+      pauseTask,
+      setStatus,
+      continueTask,
+      interject,
+      respond,
+      hold,
+      clearRunState,
+      clearHistory,
+      loadGraph,
+      refreshGraph,
+      subscribe,
+    ],
+  );
 
   return <RunEngineContext.Provider value={value}>{children}</RunEngineContext.Provider>;
 }

@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import {
   User, Mail, Lock, Shield, Calendar, LogOut,
-  Check, AlertCircle, Pencil, Camera, Upload,
+  Check, Pencil, Camera, Upload,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -40,7 +40,7 @@ function UserAvatar({ name, src, size = "lg" }: { name: string; src?: string; si
 }
 
 export default function Profile() {
-  const { user, logout, updateUser, isGuest } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
 
@@ -90,16 +90,12 @@ export default function Profile() {
     setProfileStatus("saving");
     setProfileError(null);
     try {
-      if (!isGuest) {
-        const updated = await api.updateProfile({
-          name: data.name,
-          email: data.email,
-          avatar: avatarUrl || null,
-        });
-        updateUser(updated);
-      } else {
-        updateUser({ name: data.name, email: data.email, avatar: avatarUrl || undefined });
-      }
+      const updated = await api.updateProfile({
+        name: data.name,
+        email: data.email,
+        avatar: avatarUrl || null,
+      });
+      updateUser(updated);
       setProfileStatus("ok");
       setEditMode(false);
       setTimeout(() => setProfileStatus("idle"), 2000);
@@ -190,12 +186,6 @@ export default function Profile() {
           </div>
         </div>
 
-        {isGuest && (
-          <div className="mt-4 flex items-center gap-2 text-sm text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            {t.auth.guestModeNote}
-          </div>
-        )}
       </motion.div>
 
       {/* Edit profile */}
@@ -313,56 +303,53 @@ export default function Profile() {
         </motion.div>
       )}
 
-      {/* Change password – hidden for guests */}
-      {!isGuest && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="rounded-2xl border border-border bg-card p-6"
-        >
-          <div className="flex items-center gap-2 mb-5">
-            <div className="w-7 h-7 rounded-lg bg-violet-500/15 flex items-center justify-center">
-              <Lock className="w-3.5 h-3.5 text-violet-400" />
-            </div>
-            <h2 className="font-semibold">{t.auth.changePassword}</h2>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="rounded-2xl border border-border bg-card p-6"
+      >
+        <div className="flex items-center gap-2 mb-5">
+          <div className="w-7 h-7 rounded-lg bg-violet-500/15 flex items-center justify-center">
+            <Lock className="w-3.5 h-3.5 text-violet-400" />
           </div>
-          <form onSubmit={onChangePassword} className="space-y-4">
+          <h2 className="font-semibold">{t.auth.changePassword}</h2>
+        </div>
+        <form onSubmit={onChangePassword} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="cur-pw">{t.auth.currentPassword}</Label>
+            <Input id="cur-pw" type="password" autoComplete="current-password" {...passwordForm.register("current", { required: true })} />
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="cur-pw">{t.auth.currentPassword}</Label>
-              <Input id="cur-pw" type="password" autoComplete="current-password" {...passwordForm.register("current", { required: true })} />
+              <Label htmlFor="new-pw">{t.auth.newPassword}</Label>
+              <Input id="new-pw" type="password" autoComplete="new-password" {...passwordForm.register("newPw", { required: true, minLength: 6 })} />
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="new-pw">{t.auth.newPassword}</Label>
-                <Input id="new-pw" type="password" autoComplete="new-password" {...passwordForm.register("newPw", { required: true, minLength: 6 })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="conf-pw">{t.auth.confirmPassword}</Label>
-                <Input id="conf-pw" type="password" autoComplete="new-password" {...passwordForm.register("confirm", { required: true })} />
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="conf-pw">{t.auth.confirmPassword}</Label>
+              <Input id="conf-pw" type="password" autoComplete="new-password" {...passwordForm.register("confirm", { required: true })} />
             </div>
+          </div>
 
-            {pwError && (
-              <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{pwError}</p>
-            )}
+          {pwError && (
+            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{pwError}</p>
+          )}
 
-            <Button type="submit" variant="outline" disabled={pwStatus === "saving"}>
-              {pwStatus === "saving" ? (
-                <span className="flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  {t.auth.saving}
-                </span>
-              ) : pwStatus === "ok" ? (
-                <span className="flex items-center gap-2">
-                  <Check className="w-4 h-4" />
-                  {t.auth.saved}
-                </span>
-              ) : t.auth.changePassword}
-            </Button>
-          </form>
-        </motion.div>
-      )}
+          <Button type="submit" variant="outline" disabled={pwStatus === "saving"}>
+            {pwStatus === "saving" ? (
+              <span className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                {t.auth.saving}
+              </span>
+            ) : pwStatus === "ok" ? (
+              <span className="flex items-center gap-2">
+                <Check className="w-4 h-4" />
+                {t.auth.saved}
+              </span>
+            ) : t.auth.changePassword}
+          </Button>
+        </form>
+      </motion.div>
 
       {/* Account info */}
       <motion.div

@@ -1,15 +1,17 @@
 """AIO Sandbox — HTTP client to a running all-in-one sandbox container.
 
 Implements the Sandbox ABC: session-based shell operations + file operations.
-A threading lock serializes shell commands to prevent concurrent requests from
-corrupting the container's single persistent shell session.
+An asyncio lock serializes shell commands to prevent concurrent requests from
+corrupting the container's single persistent shell session; the (synchronous,
+``requests``-based) HTTP calls themselves run on a worker thread via
+``asyncio.to_thread`` so a slow sandbox response never blocks the event loop.
 """
 from __future__ import annotations
 
+import asyncio
 import base64
 import logging
 import shlex
-import threading
 import uuid
 from collections import OrderedDict
 from typing import Any, Optional
@@ -54,7 +56,7 @@ class AioSandbox(Sandbox):
     def __init__(self, id: str, base_url: str):
         self._id = id
         self._base_url = base_url.rstrip("/")
-        self._lock = threading.Lock()
+        self._lock = asyncio.Lock()
         self._last_output: "OrderedDict[str, SandboxResult]" = OrderedDict()
 
     def _store_output(self, id: str, result: SandboxResult) -> None:
@@ -75,18 +77,22 @@ class AioSandbox(Sandbox):
     # ── Shell operations ──────────────────────────────────────────────────────
 
     async def exec_command(self, id: str, exec_dir: str, command: str) -> SandboxResult:
-        with self._lock:
+        async with self._lock:
             try:
                 full_command = f"cd {shlex.quote(exec_dir)} && {command}" if exec_dir else command
-                data = _post(self._base_url, "/v1/sandbox/shell/exec", {"id": id, "command": full_command})
+                data = await asyncio.to_thread(
+                    _post, self._base_url, "/v1/sandbox/shell/exec", {"id": id, "command": full_command}
+                )
                 output = data.get("output", "")
 
                 if output and _ERROR_OBSERVATION_SIGNATURE in output:
                     logger.warning("ErrorObservation in sandbox output for session %s, retrying", id)
-                    data = _post(self._base_url, "/v1/sandbox/shell/exec", {
-                        "id": str(uuid.uuid4()),
-                        "command": full_command,
-                    })
+                    data = await asyncio.to_thread(
+                        _post,
+                        self._base_url,
+                        "/v1/sandbox/shell/exec",
+                        {"id": str(uuid.uuid4()), "command": full_command},
+                    )
                     output = data.get("output", "")
 
                 result = SandboxResult(output=output or "(no output)", exit_code=data.get("exit_code"))
@@ -103,10 +109,12 @@ class AioSandbox(Sandbox):
         return self._last_output.get(id, SandboxResult(output="(process complete)"))
 
     async def write_to_process(self, id: str, input: str, press_enter: bool) -> Any:
-        with self._lock:
+        async with self._lock:
             try:
                 text = input + ("\n" if press_enter else "")
-                data = _post(self._base_url, f"/v1/sandbox/shell/{id}/write", {"input": text})
+                data = await asyncio.to_thread(
+                    _post, self._base_url, f"/v1/sandbox/shell/{id}/write", {"input": text}
+                )
                 output = data.get("output", "")
                 if output:
                     self._store_output(id, SandboxResult(output=output))
@@ -116,9 +124,11 @@ class AioSandbox(Sandbox):
                 return f"Error: {e}"
 
     async def kill_process(self, id: str) -> Any:
-        with self._lock:
+        async with self._lock:
             try:
-                resp = requests.delete(f"{self._base_url}/v1/sandbox/shell/{id}", timeout=10)
+                resp = await asyncio.to_thread(
+                    requests.delete, f"{self._base_url}/v1/sandbox/shell/{id}", timeout=10
+                )
                 self._last_output.pop(id, None)
                 return "Process killed" if resp.ok else f"Kill returned status {resp.status_code}"
             except requests.RequestException as e:
@@ -144,30 +154,36 @@ class AioSandbox(Sandbox):
 
     async def write_file(self, path: str, content: str, append: bool = False) -> None:
         encoded = base64.b64encode(content.encode("utf-8")).decode()
+        encoded_path = base64.b64encode(path.encode("utf-8")).decode()
         mode = "ab" if append else "wb"
         py_cmd = (
             f"python3 -c \""
-            f"import base64,os; os.makedirs(os.path.dirname(os.path.abspath({path!r})), exist_ok=True); "
-            f"open({path!r}, {mode!r}).write(base64.b64decode('{encoded}'))\""
+            f"import base64,os; p=base64.b64decode('{encoded_path}').decode('utf-8'); "
+            f"os.makedirs(os.path.dirname(os.path.abspath(p)), exist_ok=True); "
+            f"open(p, {mode!r}).write(base64.b64decode('{encoded}'))\""
         )
         await self.exec_command(f"_write_{uuid.uuid4().hex[:6]}", "/", py_cmd)
 
     async def write_bytes(self, path: str, data: bytes, append: bool = False) -> None:
         """Write raw bytes into the container (binary-safe; for pdf/xlsx/etc)."""
         encoded = base64.b64encode(data).decode()
+        encoded_path = base64.b64encode(path.encode("utf-8")).decode()
         mode = "ab" if append else "wb"
         py_cmd = (
             f"python3 -c \""
-            f"import base64,os; os.makedirs(os.path.dirname(os.path.abspath({path!r})), exist_ok=True); "
-            f"open({path!r}, {mode!r}).write(base64.b64decode('{encoded}'))\""
+            f"import base64,os; p=base64.b64decode('{encoded_path}').decode('utf-8'); "
+            f"os.makedirs(os.path.dirname(os.path.abspath(p)), exist_ok=True); "
+            f"open(p, {mode!r}).write(base64.b64decode('{encoded}'))\""
         )
         await self.exec_command(f"_wb_{uuid.uuid4().hex[:6]}", "/", py_cmd)
 
     async def read_bytes(self, path: str) -> bytes:
         """Read a file's raw bytes out of the container (binary-safe)."""
+        encoded_path = base64.b64encode(path.encode("utf-8")).decode()
         py_cmd = (
             f"python3 -c \"import base64,sys; "
-            f"sys.stdout.write(base64.b64encode(open({path!r},'rb').read()).decode())\""
+            f"p=base64.b64decode('{encoded_path}').decode('utf-8'); "
+            f"sys.stdout.write(base64.b64encode(open(p,'rb').read()).decode())\""
         )
         result = await self.exec_command(f"_rb_{uuid.uuid4().hex[:6]}", "/", py_cmd)
         try:

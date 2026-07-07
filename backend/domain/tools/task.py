@@ -127,7 +127,14 @@ class TaskToolkit(BaseToolkit):
 
         async with self._get_semaphore():
             try:
-                result = await self._llm.chat(
+                # safe_chat bounds the call with a timeout + retry, matching
+                # every other LLM call in the graph — a bare llm.chat() here
+                # could hang indefinitely and hold this semaphore slot forever.
+                from backend.domain.agent._graph_runtime import safe_chat
+
+                result = await safe_chat(
+                    self._llm,
+                    agent_name=self._parent_agent_name or "",
                     system=config.system_prompt,
                     user=prompt,
                     tools=filtered or None,

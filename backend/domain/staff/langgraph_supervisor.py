@@ -23,10 +23,9 @@ from backend.domain.staff.token_budget import apply_context_token_budget
 from backend.domain.staff._graph_runtime import (
     FANOUT_SYNTHESIS_GUIDANCE,
     MESH_FANOUT_MAX_CONCURRENT,
-    attach_conversation_sandbox,
+    build_agent_tools,
     drain_human_guidance,
     ensure_working_memory,
-    memory_toolkit_tools,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
@@ -172,7 +171,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
 
         self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
         graph = self._build_graph(staff, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
-        final_state = await run_to_final_state(graph, self._initial_state(user_input, staff), max_rounds)
+        final_state, error = await run_to_final_state(graph, self._initial_state(user_input, staff), max_rounds)
 
         turns = list(final_state.get("turns", []))
         return GraphRunResult(
@@ -180,6 +179,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             final_response=final_state.get("final_response") or (turns[-1].content if turns else ""),
             final_staff=final_state.get("final_staff"),
             rounds=int(final_state.get("rounds", len(turns))),
+            error=error,
         )
 
     async def run_stream(
@@ -407,28 +407,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             )
             user_input_text = budget_result.text
 
-            bound_tools: list = []
-            if lead.tools:
-                for toolkit in lead.tools.values():
-                    bound_tools.extend(toolkit.get_tools())
-
-            # Default human-in-the-loop tool: the lead can interrupt and ask
-            # the user before deciding the next delegation/final answer.
-            if conversation_id:
-                from backend.domain.tools.ask_user import AskUserToolkit
-
-                bound_tools.extend(
-                    AskUserToolkit(
-                        conversation_id=conversation_id,
-                        staff_name=lead.name,
-                    ).get_tools()
-                )
-            # Default memory tools: save/recall shared working-memory notes.
-            bound_tools.extend(memory_toolkit_tools(conversation_id, lead.name))
-
-            attach_conversation_sandbox(
-                bound_tools, conversation_id=conversation_id, staff_name=lead.name
-            )
+            bound_tools = build_agent_tools(lead, conversation_id=conversation_id)
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
@@ -443,6 +422,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             })
 
             raw_output = await safe_chat(llm,
+                agent_name=lead.name,
                 system=full_system,
                 user=user_input_text,
                 tools=bound_tools or None,
@@ -623,28 +603,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             )
             user_input_text = budget_result.text
 
-            bound_tools: list = []
-            if worker.tools:
-                for toolkit in worker.tools.values():
-                    bound_tools.extend(toolkit.get_tools())
-
-            # Default human-in-the-loop tool: workers can interrupt and ask
-            # the user a question mid-task.
-            if conversation_id:
-                from backend.domain.tools.ask_user import AskUserToolkit
-
-                bound_tools.extend(
-                    AskUserToolkit(
-                        conversation_id=conversation_id,
-                        staff_name=worker.name,
-                    ).get_tools()
-                )
-            # Default memory tools: save/recall shared working-memory notes.
-            bound_tools.extend(memory_toolkit_tools(conversation_id, worker.name))
-
-            attach_conversation_sandbox(
-                bound_tools, conversation_id=conversation_id, staff_name=worker.name
-            )
+            bound_tools = build_agent_tools(worker, conversation_id=conversation_id)
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
@@ -659,6 +618,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             })
 
             output = await safe_chat(llm,
+                agent_name=worker.name,
                 system=worker_system,
                 user=user_input_text,
                 tools=bound_tools or None,
@@ -839,24 +799,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         )
         user_input_text = budget_result.text
 
-        bound_tools: list = []
-        if worker.tools:
-            for toolkit in worker.tools.values():
-                bound_tools.extend(toolkit.get_tools())
-        if conversation_id:
-            from backend.domain.tools.ask_user import AskUserToolkit
-
-            bound_tools.extend(
-                AskUserToolkit(
-                    conversation_id=conversation_id,
-                    staff_name=worker.name,
-                ).get_tools()
-            )
-        bound_tools.extend(memory_toolkit_tools(conversation_id, worker.name))
-
-        attach_conversation_sandbox(
-            bound_tools, conversation_id=conversation_id, staff_name=worker.name
-        )
+        bound_tools = build_agent_tools(worker, conversation_id=conversation_id)
 
         return {
             "system": worker_system,

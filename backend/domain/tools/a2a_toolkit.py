@@ -45,7 +45,7 @@ from langchain.messages import ToolMessage
 from langchain.tools import BaseTool
 
 from backend.api.settings import settings
-from backend.domain.tools._ssrf import validate_public_url
+from backend.domain.tools._ssrf import make_ssrf_safe_async_transport, validate_public_url
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools.mcp_toolkit import (
     _parse_timeout,
@@ -248,7 +248,9 @@ class A2AAgentTool(BaseTool):
     async def _send(self, message_text: str) -> str:
         validate_public_url(self._spec.rpc_url)
         deadline = self._timeout_seconds
-        async with httpx.AsyncClient(timeout=httpx.Timeout(deadline)) as client:
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(deadline), transport=make_ssrf_safe_async_transport()
+        ) as client:
             params = {
                 "message": {
                     "role": "user",
@@ -370,7 +372,9 @@ class A2AToolkit(BaseToolkit):
         validate_public_url(self._spec.url)
         last_error: Exception | None = None
         async with httpx.AsyncClient(
-            timeout=httpx.Timeout(A2A_DISCOVERY_TIMEOUT_SECONDS), follow_redirects=True
+            timeout=httpx.Timeout(A2A_DISCOVERY_TIMEOUT_SECONDS),
+            follow_redirects=True,
+            transport=make_ssrf_safe_async_transport(),
         ) as client:
             for card_url in self._spec.candidate_card_urls():
                 try:

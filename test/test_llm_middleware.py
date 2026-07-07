@@ -10,15 +10,17 @@ from __future__ import annotations
 
 import asyncio
 
+from langchain.agents.middleware import (
+    ContextEditingMiddleware,
+    ModelRetryMiddleware,
+    ToolCallLimitMiddleware,
+    ToolRetryMiddleware,
+)
 from langchain_core.messages import AIMessage, ToolMessage
 
 from backend.api.settings import settings
 from backend.infrastructure.llm.middleware import (
-    ContextEditingMiddleware,
     LoopDetectionMiddleware,
-    ModelRetryMiddleware,
-    ToolCallLimitMiddleware,
-    ToolRetryMiddleware,
     ToolTimeoutMiddleware,
     build_default_middleware,
 )

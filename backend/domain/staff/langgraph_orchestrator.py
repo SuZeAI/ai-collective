@@ -18,10 +18,9 @@ from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.staff.token_budget import apply_context_token_budget
 from backend.domain.staff._graph_runtime import (
-    attach_conversation_sandbox,
+    build_agent_tools,
     drain_human_guidance,
     ensure_working_memory,
-    memory_toolkit_tools,
     uploads_hint,
     record_guidance_in_memory,
     record_turn_in_memory,
@@ -104,7 +103,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
                 config=graph_config,
             )
 
-        final_state = await run_to_final_state(graph, initial, len(selected_agents))
+        final_state, error = await run_to_final_state(graph, initial, len(selected_agents))
         turns = list(final_state.get("turns", []))
         final_response = final_state.get("final_response") or (turns[-1].content if turns else "")
         final_staff = final_state.get("final_staff")
@@ -114,6 +113,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
             final_response=final_response,
             final_staff=final_staff,
             rounds=rounds,
+            error=error,
         )
 
     async def run_stream(
@@ -224,31 +224,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
                 "sandbox_workspace": sandbox_workspace,
             })
 
-            bound_tools = []
-            if staff_member.tools:
-                for toolkit in staff_member.tools.values():
-                    bound_tools.extend(toolkit.get_tools())
-
-            # Default human-in-the-loop tool: every staff_member can interrupt and ask
-            # the user a question mid-run (subagents inherit it too).
-            if conversation_id:
-                from backend.domain.tools.ask_user import AskUserToolkit
-
-                bound_tools.extend(
-                    AskUserToolkit(
-                        conversation_id=conversation_id,
-                        staff_name=staff_member.name,
-                    ).get_tools()
-                )
-            # Default memory tools: save/recall shared working-memory notes.
-            bound_tools.extend(memory_toolkit_tools(conversation_id, staff_member.name))
-
-            # Sandbox: when this chat has files, scope the run to the shared
-            # conversation workspace and auto-inject the sandbox tools (before
-            # TaskToolkit so subagents inherit them).
-            attach_conversation_sandbox(
-                bound_tools, conversation_id=conversation_id, staff_name=staff_member.name
-            )
+            bound_tools = build_agent_tools(staff_member, conversation_id=conversation_id)
 
             # Staff Mode: expose the `task` tool so this staff_member can delegate to
             # subagents (which inherit these tools minus `task`).
@@ -333,6 +309,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
             })
             
             output = await safe_chat(llm,
+                staff_name=staff_member.name,
                 system=staff_member.system_prompt,
                 user=user_input,
                 tools=bound_tools or None,

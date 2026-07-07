@@ -19,7 +19,7 @@ from backend.application.service.company_service import CompanyService
 from backend.application.service.connection_service import ConnectionService
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Connection, Company
-from backend.domain.thirty_part.registry import get_processor
+from backend.domain.third_party.registry import get_processor
 from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.log import get_logger
 

@@ -133,6 +133,8 @@ Cross-cutting behaviours layered on the `create_agent` path. See
 | `STORAGE_DIR` | `<root>/storage` | JSON storage directory |
 | `MONGO_URI` / `MONGO_DB` | local defaults | MongoDB connection |
 
+**`json` backend and multiple instances:** each JSON repository caches its collection in memory per-process and rewrites the whole file on every write. `tasks.py`/`connections.py` merge into the current on-disk state under one lock acquisition (via `JsonFileStore.read_modify_write`) so concurrent writers across instances can't silently drop each other's writes, but every repository's `list()`/`get()` still reads from that process's in-memory cache — a second instance's write isn't visible until this instance's own next write refreshes its cache. Use `mongo` for genuine multi-instance/production deployments; `json` is intended for single-instance/local dev regardless of `LOCK_BACKEND`.
+
 ## Task queue / locks / sandbox
 
 | Variable | Default | Description |
@@ -145,6 +147,11 @@ Cross-cutting behaviours layered on the `create_agent` path. See
 | `SANDBOX_MODE` | `local` | `local` \| `docker` \| `k8s` |
 | `SANDBOX_PROVISIONER_URL` | — | Required when sandbox mode is `k8s` |
 | `SANDBOX_TIMEOUT` | `120` | Command timeout (seconds) |
+| `SANDBOX_SECCOMP_UNCONFINED` | `true` | Local backend only. Vendor sandbox image's syscall needs aren't documented; set `false` to use Docker's default seccomp profile if your deployment doesn't need the broader syscalls |
+| `SANDBOX_NO_NEW_PRIVILEGES` | `true` | Local backend only. Blocks privilege escalation via setuid binaries inside the container |
+| `SANDBOX_MEMORY_LIMIT` | `2g` | Local backend only. Docker `--memory` limit per sandbox container |
+| `SANDBOX_CPU_LIMIT` | `2` | Local backend only. Docker `--cpus` limit per sandbox container |
+| `SANDBOX_PIDS_LIMIT` | `512` | Local backend only. Docker `--pids-limit`, guards against fork bombs |
 
 ## Knowledge graph
 

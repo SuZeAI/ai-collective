@@ -12,19 +12,13 @@ from urllib.parse import urlencode
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-from backend.domain.tools._ssrf import BlockedURLError, validate_public_url
+from backend.domain.tools._ssrf import build_ssrf_safe_opener, validate_public_url
 from backend.api.settings import settings
 
-
-class _SSRFSafeRedirectHandler(urllib.request.HTTPRedirectHandler):
-    """Re-validate the target of every redirect to prevent redirect-based SSRF."""
-
-    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[override]
-        validate_public_url(newurl)
-        return super().redirect_request(req, fp, code, msg, headers, newurl)
-
-
-_SSRF_SAFE_OPENER = urllib.request.build_opener(_SSRFSafeRedirectHandler())
+# Pins every connection (including redirect hops) to the IP address that was
+# validated as public, closing the DNS-rebinding TOCTOU window between
+# validate_public_url's check and urllib's own (re-)resolution at connect time.
+_SSRF_SAFE_OPENER = build_ssrf_safe_opener()
 
 DEFAULT_TIMEOUT = 30
 DEBUG = settings.security.last30days_debug

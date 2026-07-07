@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Plus, Sparkles, Trash2, Loader2, X, Check, Layers, CalendarRange } from "lucide-react";
 import {
@@ -32,20 +32,30 @@ export default function Backlog() {
   const [issues, setIssues] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Guards against a stale in-flight load (e.g. the user navigated to a
+  // different project, or the component unmounted) overwriting state with
+  // results for the wrong project.
+  const projectKeyRef = useRef(projectKey);
+  projectKeyRef.current = projectKey;
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
   const load = async () => {
+    const requestedKey = projectKey;
     try {
       const [projects, allEpics, allSprints, allTasks] = await Promise.all([
         api.listProjects(), api.listEpics(), api.listSprints(), api.listTasks(),
       ]);
+      if (!mountedRef.current || projectKeyRef.current !== requestedKey) return;
       const proj = projects.find((p) => p.key === projectKey);
       setProject(proj);
       setEpics(allEpics.filter((e) => e.projectId === proj?.id));
       setSprints(allSprints.filter((s) => s.projectId === proj?.id));
       setIssues(allTasks.filter((t) => t.projectId === proj?.id));
     } catch (e) {
-      console.error(e);
+      if (mountedRef.current && projectKeyRef.current === requestedKey) console.error(e);
     } finally {
-      setLoading(false);
+      if (mountedRef.current && projectKeyRef.current === requestedKey) setLoading(false);
     }
   };
 

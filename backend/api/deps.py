@@ -2,8 +2,21 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import NamedTuple
 
 from backend.api.settings import settings
+from backend.application.ports.repositories import (
+    ActivityFeedRepository,
+    AnalyticsRepository,
+    ConnectionRepository,
+    GraphKnowledgeRepository,
+    MeetingRepository,
+    SkillRepository,
+    StaffRepository,
+    TaskRepository,
+    DepartmentRepository,
+    CompanyRepository,
+)
 from backend.application.service.staff_service import StaffService
 from backend.application.service.staff_graph_service import StaffGraphService
 from backend.application.service.activity_feed_service import ActivityFeedService
@@ -19,7 +32,7 @@ from backend.application.service.recruiting_service import RecruitingService
 from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.domain.staff.langgraph_orchestrator import LangGraphStaffOrchestrator
 from backend.domain.staff.langgraph_mesh import MultiAgentMeshOrchestrator
-from backend.infrastructure.lock_provider import create_lock_provider
+from backend.infrastructure.lock_provider import get_shared_lock_provider
 from backend.domain.staff.langgraph_ring import LangGraphRingOrchestrator
 from backend.domain.staff.langgraph_supervisor import LangGraphSupervisorOrchestrator
 from backend.domain.staff.langgraph_tree import LangGraphTreeOrchestrator
@@ -46,6 +59,7 @@ from backend.application.service.user_service import UserService
 from backend.infrastructure.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
 from backend.infrastructure.repositories.json_files import JsonUserRepository
 from backend.infrastructure.repositories.json_store import JsonFileStore
+from backend.infrastructure.security import BcryptPasswordHasher
 from backend.infrastructure.repositories.mongo_repositories import (
     MongoActivityFeedRepository,
     MongoStaffRepository,
@@ -91,13 +105,9 @@ STORAGE_DIR = _resolve_dir(settings.storage_dir, PROJECT_ROOT / "local_database"
 SEED_DIR = _resolve_dir(settings.seed_dir, PROJECT_ROOT / "storage")
 
 
-@lru_cache
 def _lock_provider():
-    """Singleton lock provider — initialised once from settings."""
-    return create_lock_provider(
-        backend=settings.lock_backend,
-        redis_url=settings.redis_url,
-    )
+    """Process-wide singleton lock provider, initialised once from settings."""
+    return get_shared_lock_provider()
 
 
 def _store(filename: str) -> JsonFileStore:
@@ -118,8 +128,23 @@ def _init_task_queue():
     return q
 
 
+class Repos(NamedTuple):
+    """Named bundle of repo singletons — access by field, not position, so
+    adding/reordering a repo can't silently swap two unrelated getters."""
+    staff: StaffRepository
+    skills: SkillRepository
+    departments: DepartmentRepository
+    tasks: TaskRepository
+    conversations: MeetingRepository
+    analytics: AnalyticsRepository
+    activity_feed: ActivityFeedRepository
+    graph_knowledge: GraphKnowledgeRepository
+    companies: CompanyRepository
+    connections: ConnectionRepository
+
+
 @lru_cache
-def _repos():
+def _repos() -> Repos:
     _init_task_queue()
     if settings.storage_backend == "mongo":
         import pymongo
@@ -136,19 +161,19 @@ def _repos():
         companies = MongoCompanyRepository(db)
         connections = MongoConnectionRepository(db)
     else:
-        staff = JsonStaffRepository(JsonFileStore(STORAGE_DIR / "agents.json"))
-        skills = JsonSkillRepository(JsonFileStore(STORAGE_DIR / "skills.json"))
-        departments = JsonDepartmentRepository(JsonFileStore(STORAGE_DIR / "teams.json"))
-        tasks = JsonTaskRepository(JsonFileStore(STORAGE_DIR / "tasks.json"))
-        conversations = JsonMeetingRepository(JsonFileStore(STORAGE_DIR / "conversations.json"))
-        analytics = JsonAnalyticsRepository(JsonFileStore(STORAGE_DIR / "analytics.json"))
-        activity_feed = JsonActivityFeedRepository(JsonFileStore(STORAGE_DIR / "activity_feed.json"))
+        staff = JsonStaffRepository(_store("agents.json"))
+        skills = JsonSkillRepository(_store("skills.json"))
+        departments = JsonDepartmentRepository(_store("teams.json"))
+        tasks = JsonTaskRepository(_store("tasks.json"))
+        conversations = JsonMeetingRepository(_store("conversations.json"))
+        analytics = JsonAnalyticsRepository(_store("analytics.json"))
+        activity_feed = JsonActivityFeedRepository(_store("activity_feed.json"))
         graph_knowledge = JsonGraphKnowledgeRepository(
-            JsonFileStore(STORAGE_DIR / "graph_knowledge.json"),
-            JsonFileStore(STORAGE_DIR / "graph_knowledge_events.json"),
+            _store("graph_knowledge.json"),
+            _store("graph_knowledge_events.json"),
         )
-        companies = JsonCompanyRepository(JsonFileStore(STORAGE_DIR / "workspaces.json"))
-        connections = JsonConnectionRepository(JsonFileStore(STORAGE_DIR / "connections.json"))
+        companies = JsonCompanyRepository(_store("workspaces.json"))
+        connections = JsonConnectionRepository(_store("connections.json"))
 
     # Optional Neo4j knowledge-graph backend (overrides the STORAGE_BACKEND repo
     # above). Falls back to that repo if the driver/server is unavailable so the
@@ -172,42 +197,51 @@ def _repos():
                 exc_info=True,
             )
 
-    return staff, skills, departments, tasks, conversations, analytics, activity_feed, graph_knowledge, companies, connections
+    return Repos(
+        staff=staff,
+        skills=skills,
+        departments=departments,
+        tasks=tasks,
+        conversations=conversations,
+        analytics=analytics,
+        activity_feed=activity_feed,
+        graph_knowledge=graph_knowledge,
+        companies=companies,
+        connections=connections,
+    )
 
 
 def get_staff_service() -> StaffService:
-    staff, skills, _, _, _, _, _, _, _, _ = _repos()
-    return StaffService(staff, skills)
+    repos = _repos()
+    return StaffService(repos.staff, repos.skills)
 
 
 def get_skill_service() -> SkillService:
-    _, skills, _, _, _, _, _, _, _, _ = _repos()
-    return SkillService(skills)
+    return SkillService(_repos().skills)
 
 
 def get_department_service() -> DepartmentService:
-    _, _, departments, _, _, _, _, _, _, _ = _repos()
-    return DepartmentService(departments)
+    return DepartmentService(_repos().departments)
 
 
 def get_task_service() -> TaskService:
-    _, _, _, tasks, _, _, _, _, _, _ = _repos()
-    return TaskService(tasks)
+    return TaskService(_repos().tasks)
 
 
 def get_recruiting_service() -> RecruitingService:
-    staff, skills, departments, tasks, _, _, _, _, _, _ = _repos()
+    repos = _repos()
     return RecruitingService(
-        StaffService(staff, skills),
-        SkillService(skills),
-        DepartmentService(departments),
-        TaskService(tasks),
+        StaffService(repos.staff, repos.skills),
+        SkillService(repos.skills),
+        DepartmentService(repos.departments),
+        TaskService(repos.tasks),
         get_document_library_service(),
     )
 
 
 def get_meeting_service() -> MeetingService:
-    _, _, _, _, conversations, _, _, graph_knowledge, _, _ = _repos()
+    repos = _repos()
+    conversations, graph_knowledge = repos.conversations, repos.graph_knowledge
     graph_llm = None
     if settings.graph_build_mode == "llm":
         graph_llm = create_llm_provider(
@@ -233,17 +267,16 @@ def get_meeting_service() -> MeetingService:
 
 
 def get_analytics_service() -> AnalyticsService:
-    _, _, _, tasks, _, analytics, _, _, _, _ = _repos()
-    return AnalyticsService(analytics, tasks)
+    repos = _repos()
+    return AnalyticsService(repos.analytics, repos.tasks)
 
 
 def get_activity_feed_service() -> ActivityFeedService:
-    _, _, _, _, _, _, feed, _, _, _ = _repos()
-    return ActivityFeedService(feed)
+    return ActivityFeedService(_repos().activity_feed)
 
 
 def get_graph_context_service() -> GraphContextService:
-    _, _, _, _, _, _, _, graph_knowledge, _, _ = _repos()
+    graph_knowledge = _repos().graph_knowledge
     graph_llm = None
     if settings.graph_build_mode == "llm":
         graph_llm = create_llm_provider(
@@ -266,13 +299,11 @@ def get_graph_context_service() -> GraphContextService:
 
 
 def get_company_service() -> CompanyService:
-    _, _, _, _, _, _, _, _, companies, _ = _repos()
-    return CompanyService(companies)
+    return CompanyService(_repos().companies)
 
 
 def get_connection_service() -> ConnectionService:
-    _, _, _, _, _, _, _, _, _, connections = _repos()
-    return ConnectionService(connections)
+    return ConnectionService(_repos().connections)
 
 
 @lru_cache
@@ -321,8 +352,13 @@ def _user_store():
     return JsonUserRepository(_store("users.json"))
 
 
+@lru_cache
+def _password_hasher() -> BcryptPasswordHasher:
+    return BcryptPasswordHasher()
+
+
 def get_user_service() -> UserService:
-    return UserService(_user_store())
+    return UserService(_user_store(), _password_hasher())
 
 
 @lru_cache
@@ -473,7 +509,7 @@ def seed_default_data() -> None:
                 seed_records = _load_seed_records(filename)
                 if not seed_records:
                     continue
-                store = JsonFileStore(STORAGE_DIR / filename)
+                store = _store(filename)
                 live = store.read()
                 if not isinstance(live, list):
                     live = []
@@ -569,15 +605,15 @@ def get_monitoring_service():
 
     init_usage_tracking()
     usage_repo, pricing_repo = _monitoring_stores()
-    staff, _, departments, tasks, _, _, _, _, companies, _ = _repos()
+    repos = _repos()
     return MonitoringService(
         usage=usage_repo,
         pricing=pricing_repo,
         users=_user_store(),
-        staff=staff,
-        departments=departments,
-        tasks=tasks,
-        companies=companies,
+        staff=repos.staff,
+        departments=repos.departments,
+        tasks=repos.tasks,
+        companies=repos.companies,
     )
 
 
@@ -587,13 +623,13 @@ def _llm_provider():
     return create_llm_provider(
         provider=settings.llm_provider,
         model=settings.llm_model,
-        google_api_key=settings.google_api_key,
-        anthropic_api_key=settings.anthropic_api_key,
-        openai_api_key=settings.openai_api_key,
-        open_weight_api_key=settings.open_weight_api_key,
-        kimi_api_key=settings.kimi_api_key,
-        deepseek_api_key=settings.deepseek_api_key,
-        glm_api_key=settings.glm_api_key,
+        google_api_key=settings.google_api_keys(),
+        anthropic_api_key=settings.anthropic_api_keys(),
+        openai_api_key=settings.openai_api_keys(),
+        open_weight_api_key=settings.open_weight_api_keys(),
+        kimi_api_key=settings.kimi_api_keys(),
+        deepseek_api_key=settings.deepseek_api_keys(),
+        glm_api_key=settings.glm_api_keys(),
         base_url=settings.llm_api_base,
         max_tool_rounds=settings.staff_max_tool_rounds,
         tool_timeout_seconds=settings.tool_timeout_seconds,
