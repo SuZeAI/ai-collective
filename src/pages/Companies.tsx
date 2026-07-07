@@ -353,7 +353,7 @@ export default function Companies() {
 
   const upsert = useMutation({
     mutationFn: (data: Partial<Company> & Pick<Company, "name">) =>
-      api.upsertCompany(data as any),
+      api.upsertCompany(data),
     onSuccess: (saved, variables) => {
       qc.invalidateQueries({ queryKey: ["companies"] });
       const isNew = !variables.id;
@@ -398,7 +398,7 @@ export default function Companies() {
   const closeDialog = () => { setDialogOpen(false); setEditing(undefined); };
 
   const handleSave = (data: Partial<Company> & Pick<Company, "name">) => {
-    upsert.mutate(data as any);
+    upsert.mutate(data);
   };
 
   return (
