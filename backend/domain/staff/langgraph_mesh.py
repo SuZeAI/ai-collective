@@ -23,10 +23,9 @@ from backend.domain.staff.token_budget import apply_context_token_budget
 from backend.domain.staff._graph_runtime import (
     FANOUT_SYNTHESIS_GUIDANCE,
     MESH_FANOUT_MAX_CONCURRENT,
-    attach_conversation_sandbox,
+    build_agent_tools,
     drain_human_guidance,
     ensure_working_memory,
-    memory_toolkit_tools,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
@@ -211,7 +210,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             "rounds": 0,
         }
 
-        final_state = await run_to_final_state(graph, initial, max_rounds)
+        final_state, error = await run_to_final_state(graph, initial, max_rounds)
         turns = list(final_state.get("turns", []))
         final_response = final_state.get("final_response") or (
             turns[-1].content if turns else ""
@@ -226,6 +225,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             final_response=final_response,
             final_staff=turns[-1].staff_name if turns else None,
             rounds=rounds,
+            error=error,
         )
 
     async def run_stream(
@@ -393,7 +393,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             "last_action": "",
             "rounds": 0,
         }
-        final_state = await run_to_final_state(graph, initial, max_rounds)
+        final_state, error = await run_to_final_state(graph, initial, max_rounds)
         turns = list(final_state.get("turns", []))
         final_response = final_state.get("final_response") or (
             turns[-1].content if turns else ""
@@ -404,6 +404,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             final_response=final_response,
             final_staff=turns[-1].staff_name if turns else None,
             rounds=rounds,
+            error=error,
         )
 
     async def _run_single_agent_stream(
@@ -668,30 +669,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 budget_result.truncated, budget_result.provider, budget_result.model,
             )
 
-            bound_tools = []
-            if staff_member.tools:
-                for toolkit in staff_member.tools.values():
-                    bound_tools.extend(toolkit.get_tools())
-
-            # Default human-in-the-loop tool: every staff_member can interrupt and ask
-            # the user a question mid-run (subagents inherit it too).
-            if conversation_id:
-                from backend.domain.tools.ask_user import AskUserToolkit
-
-                bound_tools.extend(
-                    AskUserToolkit(
-                        conversation_id=conversation_id,
-                        staff_name=staff_member.name,
-                    ).get_tools()
-                )
-            # Default memory tools: save/recall shared working-memory notes.
-            bound_tools.extend(memory_toolkit_tools(conversation_id, staff_member.name))
-
-            # Sandbox: scope to the shared conversation workspace + inject tools
-            # when the chat has files (before TaskToolkit so subagents inherit).
-            attach_conversation_sandbox(
-                bound_tools, conversation_id=conversation_id, staff_name=staff_member.name
-            )
+            bound_tools = build_agent_tools(staff_member, conversation_id=conversation_id)
 
             # Staff Mode: expose the `task` tool so this staff_member can delegate to
             # subagents (which inherit these tools minus `task`).
@@ -727,6 +705,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
 
             logger.debug("[%s] mesh_node: invoking LLM...", staff_member.name)
             response = await safe_chat(llm,
+                staff_name=staff_member.name,
                 system=system_prompt_with_routing,
                 user=user_input,
                 tools=bound_tools or None,
@@ -1082,23 +1061,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         )
         user_input = budget_result.text
 
-        bound_tools: list = []
-        if branch_agent.tools:
-            for toolkit in branch_agent.tools.values():
-                bound_tools.extend(toolkit.get_tools())
-        if conversation_id:
-            from backend.domain.tools.ask_user import AskUserToolkit
-
-            bound_tools.extend(
-                AskUserToolkit(
-                    conversation_id=conversation_id,
-                    staff_name=branch_agent.name,
-                ).get_tools()
-            )
-        bound_tools.extend(memory_toolkit_tools(conversation_id, branch_agent.name))
-        attach_conversation_sandbox(
-            bound_tools, conversation_id=conversation_id, staff_name=branch_agent.name
-        )
+        bound_tools = build_agent_tools(branch_agent, conversation_id=conversation_id)
         if branch_agent.subagent_enabled:
             from backend.domain.tools.task import TaskToolkit
 

@@ -117,9 +117,19 @@ async def wait_while_paused(
         })
     polls = 0
     heartbeat_every = max(1, int(15 / PAUSE_POLL_SECONDS))  # ~15s
+    max_polls = max(1, int(settings.staff.pause_timeout_seconds / PAUSE_POLL_SECONDS))
     while task_run_registry.is_paused(conversation_id):
         await asyncio.sleep(PAUSE_POLL_SECONDS)
         polls += 1
+        if polls >= max_polls:
+            # Abandoned pause — auto-resume so this run stops permanently
+            # occupying a task-queue concurrency slot.
+            logger.warning(
+                "Run %s auto-resumed after sitting paused for %ds with no response",
+                conversation_id, settings.staff.pause_timeout_seconds,
+            )
+            task_run_registry.signal_resume(conversation_id)
+            break
         # Heartbeat so idle SSE connections survive proxy timeouts during a
         # long hold. The UI treats repeated run_paused events as idempotent.
         if stream_writer and polls % heartbeat_every == 0:
@@ -346,6 +356,38 @@ def attach_conversation_sandbox(
         return False
 
 
+def build_agent_tools(agent: GraphStaffDefinition, *, conversation_id: str | None) -> list[Any]:
+    """Build the tool list every topology binds before calling the LLM for a
+    turn: this staff member's skill tools + the default human-in-the-loop
+    ask-user tool + shared working-memory tools + the conversation sandbox
+    (when files are present).
+
+    Every topology (ring/orchestrator/tree/supervisor/mesh) built this exact
+    sequence inline; centralising it here is what keeps them from drifting
+    out of sync (e.g. one topology forgetting the ask-user tool).
+
+    Callers append any topology-specific tools afterwards (e.g. TaskToolkit
+    for subagent delegation — whether that applies varies per topology/role,
+    so it deliberately stays out of this helper).
+    """
+    bound_tools: list[Any] = []
+    if agent.tools:
+        for toolkit in agent.tools.values():
+            bound_tools.extend(toolkit.get_tools())
+
+    if conversation_id:
+        from backend.domain.tools.ask_user import AskUserToolkit
+
+        bound_tools.extend(
+            AskUserToolkit(conversation_id=conversation_id, staff_name=agent.name).get_tools()
+        )
+    bound_tools.extend(memory_toolkit_tools(conversation_id, agent.name))
+
+    attach_conversation_sandbox(bound_tools, conversation_id=conversation_id, staff_name=agent.name)
+
+    return bound_tools
+
+
 def uploads_hint(conversation_id: str | None) -> str:
     """One-line note listing files available in the shared workspace, or ''.
 
@@ -534,24 +576,27 @@ async def run_fanout_wave(
     return results
 
 
-async def run_to_final_state(graph: Any, initial: dict, max_rounds: int) -> dict:
+async def run_to_final_state(graph: Any, initial: dict, max_rounds: int) -> tuple[dict, str | None]:
     """Run ``graph`` to completion and return its final state.
 
     Uses values-mode streaming so the latest state snapshot is retained: if the
     recursion limit is reached or a node raises, the best partial state is
-    returned rather than losing every turn produced so far.
+    returned rather than losing every turn produced so far. The second
+    element of the returned tuple is non-None when that partial-state
+    fallback happened, so callers can tell a crash apart from a clean finish
+    instead of it looking identical to success.
     """
     config = recursion_config(max_rounds)
     last_state: dict = initial
+    error: str | None = None
     try:
         async for state in graph.astream(initial, config=config, stream_mode="values"):
             if isinstance(state, dict):
                 last_state = state
     except GraphRecursionError:
-        logger.warning(
-            "Graph hit recursion limit (max_rounds=%s); returning partial state.",
-            max_rounds,
-        )
-    except Exception:
+        error = f"Graph hit recursion limit (max_rounds={max_rounds})"
+        logger.warning("%s; returning partial state.", error)
+    except Exception as exc:
+        error = f"{type(exc).__name__}: {exc}"
         logger.exception("Graph execution failed; returning partial state.")
-    return last_state
+    return last_state, error

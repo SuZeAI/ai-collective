@@ -4,15 +4,16 @@ import dataclasses
 import uuid
 from datetime import datetime, timezone
 
-from backend.api.security import hash_password, verify_password
 from backend.application.ports.repositories import UserRepository
+from backend.application.ports.security import PasswordHasher
 from backend.domain.errors import NotFoundError, ValidationError
 from backend.domain.models import User
 
 
 class UserService:
-    def __init__(self, repo: UserRepository) -> None:
+    def __init__(self, repo: UserRepository, hasher: PasswordHasher) -> None:
         self._repo = repo
+        self._hasher = hasher
 
     def find_by_id(self, user_id: str) -> User:
         user = self._repo.find_by_id(user_id)
@@ -30,7 +31,7 @@ class UserService:
             id=str(uuid.uuid4()),
             name=name.strip(),
             email=email.strip().lower(),
-            hashed_password=hash_password(password),
+            hashed_password=self._hasher.hash(password),
             role="user",
             joined_at=datetime.now(timezone.utc).isoformat(),
         )
@@ -38,7 +39,7 @@ class UserService:
 
     def authenticate(self, email: str, password: str) -> User:
         user = self._repo.find_by_email(email)
-        if not user or not verify_password(password, user.hashed_password):
+        if not user or not self._hasher.verify(password, user.hashed_password):
             raise ValidationError("Invalid email or password")
         return user
 
@@ -122,13 +123,13 @@ class UserService:
                 id=str(uuid.uuid4()),
                 name=name,
                 email=email,
-                hashed_password=hash_password(password),
+                hashed_password=self._hasher.hash(password),
                 role="admin",
                 joined_at=datetime.now(timezone.utc).isoformat(),
             )
             return self._repo.save(user), "created"
 
-        password_matches = bool(existing.hashed_password) and verify_password(
+        password_matches = bool(existing.hashed_password) and self._hasher.verify(
             password, existing.hashed_password
         )
         if existing.role == "admin" and existing.name == name and password_matches:
@@ -138,13 +139,13 @@ class UserService:
             existing,
             role="admin",
             name=name,
-            hashed_password=existing.hashed_password if password_matches else hash_password(password),
+            hashed_password=existing.hashed_password if password_matches else self._hasher.hash(password),
         )
         return self._repo.save(updated), "updated"
 
     def change_password(self, user_id: str, current_password: str, new_password: str) -> None:
         user = self.find_by_id(user_id)
-        if not verify_password(current_password, user.hashed_password):
+        if not self._hasher.verify(current_password, user.hashed_password):
             raise ValidationError("Current password is incorrect")
-        updated = dataclasses.replace(user, hashed_password=hash_password(new_password))
+        updated = dataclasses.replace(user, hashed_password=self._hasher.hash(new_password))
         self._repo.save(updated)

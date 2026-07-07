@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -35,7 +35,7 @@ const EXAMPLE_PROMPTS = [
 // Remember which session the user was working on across visits.
 const ACTIVE_SESSION_KEY = "ai-collective-office-builder-session";
 
-function PlanStats({ plan }: { plan: OfficePlan }) {
+const PlanStats = memo(function PlanStats({ plan }: { plan: OfficePlan }) {
   const staff = plan.departments.reduce((n, d) => n + d.staff.length, 0);
   const skills = plan.departments.reduce(
     (n, d) => n + d.staff.reduce((m, h) => m + h.skills.length, 0),
@@ -54,9 +54,9 @@ function PlanStats({ plan }: { plan: OfficePlan }) {
       </Badge>
     </div>
   );
-}
+});
 
-function StaffCard({ human }: { human: OfficeStaffPlan }) {
+const StaffCard = memo(function StaffCard({ human }: { human: OfficeStaffPlan }) {
   return (
     <div className="rounded-lg border border-border/40 bg-background/60 p-3">
       <div className="flex items-center gap-2.5">
@@ -84,9 +84,9 @@ function StaffCard({ human }: { human: OfficeStaffPlan }) {
       )}
     </div>
   );
-}
+});
 
-function DepartmentCard({ dept }: { dept: OfficeDepartmentPlan }) {
+const DepartmentCard = memo(function DepartmentCard({ dept }: { dept: OfficeDepartmentPlan }) {
   return (
     <div className="rounded-xl border border-border/50 bg-muted/20 p-3">
       <div className="flex items-center gap-2.5 mb-1">
@@ -110,10 +110,10 @@ function DepartmentCard({ dept }: { dept: OfficeDepartmentPlan }) {
       </div>
     </div>
   );
-}
+});
 
 // ─── "AI is working" overlay shown on the preview while a plan is generated ──
-function GhostDepartmentCard({ index }: { index: number }) {
+const GhostDepartmentCard = memo(function GhostDepartmentCard({ index }: { index: number }) {
   return (
     <motion.div
       initial={{ opacity: 0, x: -14 }}
@@ -158,7 +158,7 @@ function GhostDepartmentCard({ index }: { index: number }) {
       </div>
     </motion.div>
   );
-}
+});
 
 function DesigningOverlay({ updating }: { updating: boolean }) {
   return (
@@ -352,6 +352,11 @@ export default function OfficeBuilder() {
   const [thinking, setThinking] = useState(false); // waiting for the first token
   const [streaming, setStreaming] = useState(false); // tokens are arriving
   const [creating, setCreating] = useState(false);
+  // Aborts the in-flight chat stream on unmount/navigation so the backend
+  // (and the LLM call behind it) actually stops instead of continuing to
+  // stream to a page the user has already left.
+  const streamControllerRef = useRef<AbortController | null>(null);
+  useEffect(() => () => streamControllerRef.current?.abort(), []);
   const [built, setBuilt] = useState(false);
   const [loadingSession, setLoadingSession] = useState(false);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
@@ -461,8 +466,10 @@ export default function OfficeBuilder() {
       setMessages([...nextMessages, { role: "assistant", content: t }]);
     };
 
+    const controller = new AbortController();
+    streamControllerRef.current = controller;
     try {
-      for await (const ev of api.officeBuilderChatStream({ messages: nextMessages, plan })) {
+      for await (const ev of api.officeBuilderChatStream({ messages: nextMessages, plan, signal: controller.signal })) {
         if (ev.type === "delta") {
           if (!assistantText) {
             setThinking(false);
@@ -483,12 +490,14 @@ export default function OfficeBuilder() {
       if (!assistantText) showAssistant("…");
       await persistSession([...nextMessages, { role: "assistant", content: assistantText }], nextPlan);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       const detail = err instanceof Error ? err.message : "Plan generation failed";
       const withError: OfficeChatMessage[] = [...nextMessages, { role: "assistant", content: `⚠️ ${detail}` }];
       setMessages(withError);
       toast({ title: "Office Builder", description: detail, variant: "destructive" });
       await persistSession(withError, nextPlan);
     } finally {
+      if (streamControllerRef.current === controller) streamControllerRef.current = null;
       setThinking(false);
       setStreaming(false);
     }

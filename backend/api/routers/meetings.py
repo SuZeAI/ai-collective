@@ -7,14 +7,21 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
-from backend.api.deps import current_user_dep, get_meeting_service
+from backend.api.deps import (
+    current_owner_id_dep,
+    current_user_dep,
+    get_meeting_service,
+    get_task_service,
+)
 from backend.api.schemas.common import (
     CreateMessageRequest,
     MessageSchema,
     MeetingFileSchema,
 )
 from backend.application.service.meeting_service import MeetingService
-from backend.domain.models import Message, User
+from backend.application.service.task_service import TaskService
+from backend.domain.errors import NotFoundError
+from backend.domain.models import Message, User, is_owned_by, is_visible_to
 from backend.log import get_logger
 
 logger = get_logger(__name__)
@@ -42,16 +49,47 @@ _ALLOWED_UPLOAD_TYPES = {
 _MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
 
 
+def _require_task_access(task_service: TaskService, task_id: str, owner_id: str) -> None:
+    """Raise 404 unless task_id exists and is visible to owner_id.
+
+    Without this, any caller who knows/enumerates a task_id could read or
+    inject messages and download files for tasks they don't own.
+    """
+    try:
+        task = task_service.get_task(task_id)
+    except NotFoundError:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if not is_visible_to(owner_id, task.owner_id):
+        raise HTTPException(status_code=404, detail="Task not found")
+
+
 @router.get("", response_model=list[MessageSchema])
 def list_messages(
     task_id: str | None = Query(default=None),
     service: MeetingService = Depends(get_meeting_service),
+    task_service: TaskService = Depends(get_task_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ) -> list[MessageSchema]:
-    return [MessageSchema.from_domain(m) for m in service.list_messages(task_id=task_id)]
+    if task_id is not None:
+        _require_task_access(task_service, task_id, owner_id)
+        messages = service.list_messages(task_id=task_id)
+    else:
+        # No task_id: scope to tasks this owner can see rather than returning
+        # every message across every owner's conversations.
+        visible_task_ids = {t.id for t in task_service.list_tasks() if is_owned_by(owner_id, t.owner_id)}
+        messages = [m for m in service.list_messages(task_id=None) if m.task_id in visible_task_ids]
+    return [MessageSchema.from_domain(m) for m in messages]
 
 
 @router.post("", response_model=MessageSchema)
-def add_message(req: CreateMessageRequest, service: MeetingService = Depends(get_meeting_service)) -> MessageSchema:
+def add_message(
+    req: CreateMessageRequest,
+    service: MeetingService = Depends(get_meeting_service),
+    task_service: TaskService = Depends(get_task_service),
+    owner_id: str = Depends(current_owner_id_dep),
+) -> MessageSchema:
+    if req.taskId:
+        _require_task_access(task_service, req.taskId, owner_id)
     message = Message(
         id=f"m_{uuid4().hex}",
         staff_id=req.staffId,
@@ -64,15 +102,25 @@ def add_message(req: CreateMessageRequest, service: MeetingService = Depends(get
 
 
 @router.get("/{task_id}/files", response_model=list[MeetingFileSchema])
-def list_files(task_id: str) -> list[MeetingFileSchema]:
+def list_files(
+    task_id: str,
+    task_service: TaskService = Depends(get_task_service),
+    owner_id: str = Depends(current_owner_id_dep),
+) -> list[MeetingFileSchema]:
     """List files attached to a conversation (user uploads + staff outputs)."""
     from backend.infrastructure.sandbox.thread_files import list_thread_files
 
+    _require_task_access(task_service, task_id, owner_id)
     return [MeetingFileSchema.from_record(r) for r in list_thread_files(task_id)]
 
 
 @router.get("/{task_id}/files/download")
-def download_file(task_id: str, rel_path: str = Query(...)):
+def download_file(
+    task_id: str,
+    rel_path: str = Query(...),
+    task_service: TaskService = Depends(get_task_service),
+    owner_id: str = Depends(current_owner_id_dep),
+):
     """Download a file attached to a conversation by its rel_path.
 
     Reads via the FileStore (host dir in local mode, MinIO in s3 mode). The
@@ -84,6 +132,8 @@ def download_file(task_id: str, rel_path: str = Query(...)):
     from backend.infrastructure.sandbox.sandbox_session import conversation_thread_id
     from backend.infrastructure.sandbox.thread_files import list_thread_files
     from backend.infrastructure.storage.file_store import get_file_store
+
+    _require_task_access(task_service, task_id, owner_id)
 
     norm = os.path.normpath(rel_path)
     if norm.startswith("..") or os.path.isabs(norm) or not norm.startswith("uploads" + os.sep):
@@ -108,6 +158,8 @@ async def upload_file(
     task_id: str,
     file: UploadFile = File(...),
     current_user: User = Depends(current_user_dep),
+    task_service: TaskService = Depends(get_task_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ) -> MeetingFileSchema:
     """Upload a document into a conversation's shared sandbox workspace.
 
@@ -116,6 +168,7 @@ async def upload_file(
     sandbox tools for every staff in that chat. In docker/k8s mode the bytes are
     also pushed into the live sandbox and backed up to MinIO (best-effort).
     """
+    _require_task_access(task_service, task_id, owner_id)
     if file.content_type not in _ALLOWED_UPLOAD_TYPES:
         raise HTTPException(
             status_code=400,

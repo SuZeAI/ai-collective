@@ -20,10 +20,9 @@ from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.staff.token_budget import apply_context_token_budget
 from backend.domain.staff._graph_runtime import (
-    attach_conversation_sandbox,
+    build_agent_tools,
     drain_human_guidance,
     ensure_working_memory,
-    memory_toolkit_tools,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
@@ -236,7 +235,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
         self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
         tree = _build_tree(staff)
         graph = self._build_graph(tree, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
-        final_state = await run_to_final_state(graph, self._initial_state(user_input), max_rounds)
+        final_state, error = await run_to_final_state(graph, self._initial_state(user_input), max_rounds)
 
         turns = list(final_state.get("turns", []))
         return GraphRunResult(
@@ -244,6 +243,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
             final_response=final_state.get("final_response") or (turns[-1].content if turns else ""),
             final_staff=final_state.get("final_staff"),
             rounds=int(final_state.get("rounds", len(turns))),
+            error=error,
         )
 
     async def run_stream(
@@ -505,30 +505,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
 
             user_input_text = "\n".join(context_parts)
 
-            bound_tools: list = []
-            if staff_member.tools:
-                for toolkit in staff_member.tools.values():
-                    bound_tools.extend(toolkit.get_tools())
-
-            # Default human-in-the-loop tool: every staff_member can interrupt and ask
-            # the user a question mid-run (subagents inherit it too).
-            if conversation_id:
-                from backend.domain.tools.ask_user import AskUserToolkit
-
-                bound_tools.extend(
-                    AskUserToolkit(
-                        conversation_id=conversation_id,
-                        staff_name=staff_member.name,
-                    ).get_tools()
-                )
-            # Default memory tools: save/recall shared working-memory notes.
-            bound_tools.extend(memory_toolkit_tools(conversation_id, staff_member.name))
-
-            # Sandbox: scope to the shared conversation workspace + inject tools
-            # when the chat has files (before TaskToolkit so subagents inherit).
-            attach_conversation_sandbox(
-                bound_tools, conversation_id=conversation_id, staff_name=staff_member.name
-            )
+            bound_tools = build_agent_tools(staff_member, conversation_id=conversation_id)
 
             if staff_member.subagent_enabled:
                 from backend.domain.tools.task import TaskToolkit
@@ -563,6 +540,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
             })
 
             raw_output = await safe_chat(llm,
+                staff_name=staff_member.name,
                 system=full_system,
                 user=user_input_text,
                 tools=bound_tools or None,

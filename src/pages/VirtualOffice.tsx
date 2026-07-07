@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Play, Pause, Square, Sparkles, Cpu, CheckCircle2,
-  MessageSquare, Wrench, Search, User, Loader2,
-  Coffee, Monitor, Building, Send, X, Plus,
-  ChevronRight, RefreshCw, Layers, Terminal, PlayCircle
+  Cpu,
+  MessageSquare, User, Loader2,
+  Building, Send, X,
+  Layers
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -306,6 +306,8 @@ export default function VirtualOffice() {
   canvasPosRef.current = staffCanvasPositions;
   const visibleStaffRef = useRef(visibleStaff);
   visibleStaffRef.current = visibleStaff;
+  const selectedTaskIdRef = useRef(selectedTaskId);
+  selectedTaskIdRef.current = selectedTaskId;
 
   // Drive the office-map animations from engine stream events. The engine owns
   // the run loop and meeting/thinking state; here we only translate events
@@ -348,6 +350,12 @@ export default function VirtualOffice() {
           return { ...prev, [turnStaffId]: { ...ag, status: "collaborating", emote: "\ud83d\udcac", message: "Reviewing code outputs" } };
         });
       } else if (eventType === "run_ended") {
+        // A run_ended event fires for whichever task just finished, but this
+        // page renders only the currently-selected task's staff \u2014 a
+        // different task finishing elsewhere must not idle-out staff that
+        // belong to the task the user is actively viewing.
+        const endedTaskId = event.taskId || event.task_id;
+        if (endedTaskId && endedTaskId !== selectedTaskIdRef.current) return;
         lastActiveStaffIdRef.current = null;
         setStaffRealtimeStates((prev) => {
           const next = { ...prev };

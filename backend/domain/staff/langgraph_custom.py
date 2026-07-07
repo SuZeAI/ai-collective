@@ -80,13 +80,14 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
         )
         self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
 
-        final_state = await run_to_final_state(graph, self._initial_state(user_input), max_rounds)
+        final_state, error = await run_to_final_state(graph, self._initial_state(user_input), max_rounds)
         turns = list(final_state.get("turns", []))
         return GraphRunResult(
             turns=turns,
             final_response=final_state.get("final_response") or (turns[-1].content if turns else ""),
             final_staff=final_state.get("final_staff"),
             rounds=int(final_state.get("rounds", len(turns))),
+            error=error,
         )
 
     async def run_stream(

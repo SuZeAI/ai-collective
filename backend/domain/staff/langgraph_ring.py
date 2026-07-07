@@ -18,10 +18,9 @@ from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.staff.token_budget import apply_context_token_budget
 from backend.domain.staff._graph_runtime import (
-    attach_conversation_sandbox,
+    build_agent_tools,
     drain_human_guidance,
     ensure_working_memory,
-    memory_toolkit_tools,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
@@ -36,6 +35,7 @@ from backend.api.settings import settings
 
 MAX_CONTEXT_TOKENS = max(1024, settings.staff.context_token_limit)
 RESERVED_OUTPUT_TOKENS = max(256, settings.staff.output_token_reserve)
+SUBAGENT_MAX_CONCURRENT = max(1, settings.staff.subagent_max_concurrent)
 
 # Max recent history entries kept in ring state to limit token growth
 _RING_HISTORY_WINDOW = 8
@@ -96,7 +96,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             graph_config=graph_config,
         )
         initial = self._make_initial_state(user_input)
-        final_state = await run_to_final_state(graph, initial, max_rounds)
+        final_state, error = await run_to_final_state(graph, initial, max_rounds)
 
         turns = list(final_state.get("turns", []))
         return GraphRunResult(
@@ -104,6 +104,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             final_response=final_state.get("final_response") or (turns[-1].content if turns else ""),
             final_staff=final_state.get("final_staff"),
             rounds=int(final_state.get("rounds", len(turns))),
+            error=error,
         )
 
     async def run_stream(
@@ -318,30 +319,20 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             )
             user_input = budget_result.text
 
-            bound_tools: list = []
-            if staff_member.tools:
-                for toolkit in staff_member.tools.values():
-                    bound_tools.extend(toolkit.get_tools())
+            bound_tools = build_agent_tools(staff_member, conversation_id=conversation_id)
 
-            # Default human-in-the-loop tool: every staff_member can interrupt and ask
-            # the user a question mid-run.
-            if conversation_id:
-                from backend.domain.tools.ask_user import AskUserToolkit
+            # Staff Mode: expose the `task` tool so this staff_member can delegate to
+            # subagents (which inherit these tools minus `task`).
+            if staff_member.subagent_enabled:
+                from backend.domain.tools.task import TaskToolkit
 
-                bound_tools.extend(
-                    AskUserToolkit(
-                        conversation_id=conversation_id,
-                        staff_name=staff_member.name,
-                    ).get_tools()
+                task_toolkit = TaskToolkit(
+                    llm=llm,
+                    subagent_tools=list(bound_tools),
+                    max_concurrent=SUBAGENT_MAX_CONCURRENT,
+                    parent_staff_name=staff_member.name,
                 )
-            # Default memory tools: save/recall shared working-memory notes.
-            bound_tools.extend(memory_toolkit_tools(conversation_id, staff_member.name))
-
-            # Sandbox: scope to the shared conversation workspace + inject tools
-            # when the chat has files.
-            attach_conversation_sandbox(
-                bound_tools, conversation_id=conversation_id, staff_name=staff_member.name
-            )
+                bound_tools.extend(task_toolkit.get_tools())
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
@@ -356,9 +347,11 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             })
 
             output = await safe_chat(llm,
+                staff_name=staff_member.name,
                 system=staff_member.system_prompt,
                 user=user_input,
                 tools=bound_tools or None,
+                parallel_tools=staff_member.subagent_enabled,
             )
 
             stream_writer({

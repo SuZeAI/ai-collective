@@ -2,10 +2,9 @@ import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import {
-  ArrowRight, Star, ChevronRight, Bot, Check, Globe, HelpCircle,
-  Menu, X, ChevronDown, Play, BookOpen, Users, Code, Sparkles,
-  Search, Cpu, Layers, History, Zap, FileText, Database,
-  ExternalLink, Settings, Shield, Mail, ArrowUpRight
+  ArrowRight, Star, Bot, Check,
+  Menu, X, ChevronDown, Play, Sparkles,
+  ExternalLink, Mail, ArrowUpRight
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";

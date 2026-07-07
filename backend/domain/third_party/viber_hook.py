@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Dict, Optional
 
-from backend.domain.thirty_part.base_hook import BaseHookProcessor, IncomingMessage, _http_post
+from backend.domain.third_party.base_hook import BaseHookProcessor, IncomingMessage, _http_post
 
 VIBER_API = "https://chatapi.viber.com/pa"
 

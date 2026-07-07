@@ -31,19 +31,24 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
         const [projects, allSprints, allTasks] = await Promise.all([api.listProjects(), api.listSprints(), api.listTasks()]);
+        if (cancelled) return;
         const proj = projects.find((p) => p.key === projectKey);
         setProject(proj);
         setSprints(allSprints.filter((s) => s.projectId === proj?.id));
         setIssues(allTasks.filter((t) => t.projectId === proj?.id));
       } catch (e) {
-        console.error(e);
+        if (!cancelled) console.error(e);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [projectKey]);
 
   const statusCounts = useMemo(() => {

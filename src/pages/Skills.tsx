@@ -199,6 +199,10 @@ export default function Skills() {
   const [oauthCredentialsPath, setOauthCredentialsPath] = useState("");
   const [oauthServiceAccountPath, setOauthServiceAccountPath] = useState("");
   const pollRef = useRef<number | null>(null);
+  // Bumped whenever the open form changes (create/edit/reset) so a still-running
+  // poll from a previous skill's OAuth flow can't write its result into a
+  // different, currently-open form.
+  const oauthSessionRef = useRef(0);
 
   const presetByTool = useMemo(() => {
     return new Map(toolPresets.map((preset) => [preset.tool_name, preset]));
@@ -286,6 +290,12 @@ export default function Skills() {
   }, [selectedPreset, editingSkillId]);
 
   const resetForm = () => {
+    oauthSessionRef.current += 1;
+    if (pollRef.current !== null) {
+      window.clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+    setAuthDialogOpen(false);
     const defaultPreset = toolPresets[0];
     setEditingSkillId(null);
     setToolName(defaultPreset?.tool_name ?? "");
@@ -321,10 +331,27 @@ export default function Skills() {
       pollRef.current = null;
     }
 
+    const session = oauthSessionRef.current;
     const startedAt = Date.now();
     pollRef.current = window.setInterval(async () => {
+      // The form was reset/switched since this flow started (e.g. the user
+      // opened a different skill for editing) — stop polling and discard.
+      if (oauthSessionRef.current !== session) {
+        if (pollRef.current !== null) {
+          window.clearInterval(pollRef.current);
+          pollRef.current = null;
+        }
+        return;
+      }
       try {
         const status = await api.getSheetOAuthStatus(state);
+        if (oauthSessionRef.current !== session) {
+          if (pollRef.current !== null) {
+            window.clearInterval(pollRef.current);
+            pollRef.current = null;
+          }
+          return;
+        }
         if (status.status === "authorized") {
           setOauthStatus("authorized");
           setOauthAuthEmail(status.email || "");
@@ -398,6 +425,19 @@ export default function Skills() {
   };
 
   const openEditDialog = (skill: Skill) => {
+    // Invalidate any in-flight OAuth poll from a previously-open form before
+    // adopting this skill's config, so a late-arriving result can't land here.
+    oauthSessionRef.current += 1;
+    if (pollRef.current !== null) {
+      window.clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+    setAuthDialogOpen(false);
+    setOauthUrl("");
+    setOauthState("");
+    setOauthStatus("idle");
+    setOauthMessage("");
+
     const skillToolName = String(skill.tool_name || "").trim();
     const inferredByThirdParty = toolPresets.find(
       (preset) => preset.third_party.trim().toLowerCase() === String(skill.third_party || "").trim().toLowerCase(),

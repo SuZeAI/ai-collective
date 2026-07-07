@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from backend.domain.thirty_part.base_hook import BaseHookProcessor, IncomingMessage
+from backend.domain.third_party.base_hook import BaseHookProcessor, IncomingMessage
 
 
 class SnapchatHookProcessor(BaseHookProcessor):

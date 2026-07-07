@@ -20,7 +20,7 @@ backend/
 │   ├── models.py        # Frozen dataclasses (Agent, Team, Task, User, ...)
 │   ├── agent/           # LangGraph multi-agent topologies
 │   ├── tools/           # LLM tool implementations (http, browser, messaging…)
-│   ├── thirty_part/     # Inbound webhook processors (15 platforms)
+│   ├── third_party/     # Inbound webhook processors (15 platforms)
 │   ├── service/         # Domain services (e.g. skill→tool binding)
 │   └── memory/          # Knowledge-graph dataclasses
 ├── infrastructure/      # Adapters

@@ -27,20 +27,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StaffAvatar } from "@/components/StaffAvatar";
 import { getStaffRoleColor } from "@/lib/staff-role-ui";
-import { api, type Staff, type Analytics, type Task, type Department } from "@/lib/api";
+import { api, avgCompletionOf, type Staff, type Analytics, type Task, type Department } from "@/lib/api";
 import { useCompanyScope } from "@/hooks/use-company-scope";
-
-// Client-side average completion for office-scoped views (backend aggregates globally).
-function avgCompletionOf(tasks: Task[]): string {
-  const durations = tasks
-    .filter((t) => t.status === "completed" && t.startTime && t.endTime)
-    .map((t) => new Date(t.endTime as string).getTime() - new Date(t.startTime as string).getTime())
-    .filter((ms) => Number.isFinite(ms) && ms > 0);
-  if (durations.length === 0) return "—";
-  const minutes = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length / 60000);
-  if (minutes < 60) return `${minutes}m`;
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-}
 
 const ROLE_COLORS: Record<string, string> = {
   manager: "hsl(350 75% 55%)",
@@ -132,8 +120,12 @@ export default function AnalyticsPage() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [allTasks, setTasks] = useState<Task[]>([]);
   const [allDepartments, setDepartments] = useState<Department[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  // Office membership is still resolving: the scoped filters below read empty
+  // id sets in the meantime, which would otherwise flash "0" metrics before
+  // the real numbers land — keep showing skeletons until scope catches up.
+  const loading = dataLoading || (!scope.isOverall && !scope.ready);
 
   // Office scoping: every chart below works off these lists.
   const tasks = useMemo(
@@ -195,7 +187,7 @@ export default function AnalyticsPage() {
         };
       })
       .sort((a, b) => b.value - a.value);
-  }, [analytics, staffById]);
+  }, [analytics, staffById, scope]);
 
   const taskStatusData = [
     { name: "Completed", value: completedTasks, color: KPI_COLORS.success },

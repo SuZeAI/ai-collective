@@ -4,26 +4,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp, Zap, Users, Clock, Activity, CheckCircle2, ListTodo, Building2, ArrowUpRight, Sparkles,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { useStaffSimulation } from "@/hooks/use-staff-simulation";
-import { api, type Staff, type Analytics, type ActivityFeedItem, type Task, type Company, type Department } from "@/lib/api";
+import { api, avgCompletionOf, type Staff, type Analytics, type ActivityFeedItem, type Task, type Company, type Department } from "@/lib/api";
 import { useCompanyScope, setActiveCompanyId } from "@/hooks/use-company-scope";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { companyTypeOf } from "@/lib/company-types";
-
-// Client-side average completion time for office-scoped views (the backend
-// analytics endpoint aggregates globally).
-function avgCompletionOf(tasks: Task[]): string {
-  const durations = tasks
-    .filter((t) => t.status === "completed" && t.startTime && t.endTime)
-    .map((t) => new Date(t.endTime as string).getTime() - new Date(t.startTime as string).getTime())
-    .filter((ms) => Number.isFinite(ms) && ms > 0);
-  if (durations.length === 0) return "—";
-  const minutes = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length / 60000);
-  if (minutes < 60) return `${minutes}m`;
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-}
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -46,7 +33,7 @@ const metricConfig = [
   { key: "time", icon: Clock, label: "Avg. Completion" },
 ];
 
-const statusVariant: Record<string, string> = {
+const statusVariant: Record<string, NonNullable<BadgeProps["variant"]>> = {
   completed: "default",
   "in-progress": "secondary",
   pending: "outline",
@@ -171,6 +158,11 @@ export default function Dashboard() {
     { value: avgCompletion, trend: "avg time" },
   ];
 
+  // Office membership is still resolving: the scoped filters above read empty
+  // id sets in the meantime, which would otherwise flash "0" metrics before
+  // the real numbers land — keep showing skeletons until scope catches up.
+  const metricsLoading = isLoading || (!scope.isOverall && !scope.ready);
+
   // Admins have no company control center: their "All" view is the shared
   // catalog, so send them to Departments instead of the Company Overview.
   if (scope.isOverall && isAdmin) return <Navigate to="/departments" replace />;
@@ -206,7 +198,7 @@ export default function Dashboard() {
             label={cfg.label}
             value={metricValues[i].value}
             trend={metricValues[i].trend}
-            isLoading={isLoading}
+            isLoading={metricsLoading}
           />
         ))}
       </motion.div>
@@ -312,7 +304,7 @@ export default function Dashboard() {
                         </p>
                       </div>
                       <Badge
-                        variant={(statusVariant[task.status] ?? "outline") as any}
+                        variant={statusVariant[task.status] ?? "outline"}
                         className="flex-shrink-0 capitalize text-[11px] font-semibold"
                       >
                         {task.status}

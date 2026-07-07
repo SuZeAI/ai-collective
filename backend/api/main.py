@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.api.settings import settings
 from backend.domain.errors import NotFoundError, ValidationError
+from backend.log import get_logger
 from backend.api.routers import (
     activity_feed,
     admin_monitoring,
@@ -105,6 +106,14 @@ def create_app() -> FastAPI:
     @app.exception_handler(ValidationError)
     async def validation_handler(_, exc: ValidationError):
         return JSONResponse(status_code=422, content={"detail": str(exc)})
+
+    @app.exception_handler(Exception)
+    async def unhandled_exception_handler(_, exc: Exception):
+        # Catch-all so unexpected errors (ValueError, KeyError, etc. that
+        # aren't NotFoundError/ValidationError) return a structured 500
+        # instead of falling through to FastAPI's bare default response.
+        get_logger(__name__).exception("Unhandled exception", exc_info=exc)
+        return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
     app.include_router(health.router, prefix=settings.api_prefix)
     app.include_router(activity_feed.router, prefix=settings.api_prefix)

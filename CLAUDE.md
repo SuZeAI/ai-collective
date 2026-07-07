@@ -68,19 +68,17 @@ backend/
 - `api/deps.py` is the composition root wiring concrete adapters into services.
 - Domain errors (`NotFoundError`, `ValidationError`) → HTTP 404/422 via handlers in `api/main.py`.
 
-**`backend/api/settings.py` is the single source of truth for config.** Layering: code defaults < `config.yml` < `.env` < OS environment. Settings are nested by section (`settings.llm.provider`, `settings.staff.context_token_limit`, `settings.security.allow_private_http`), with flat `@property` delegates kept for older call-sites. Per-tool credentials are *not* here — they live in each skill's `config` dict (DB-stored, edited via UI).
+**`backend/api/settings.py` is the single source of truth for config.** Layering: code defaults < `config.yml` < `.env` < OS environment. Settings are nested by section (`settings.llm.provider`, `settings.agent.context_token_limit`, `settings.security.allow_private_http`), with flat `@property` delegates kept for older call-sites. Per-tool credentials are *not* here — they live in each skill's `config` dict (DB-stored, edited via UI).
 
-### Terminology unification (in progress — read this before touching naming)
+### Terminology unification (UI labels only — code identifiers are unchanged)
 
-The domain/API/UI vocabulary was renamed: **Agent → Staff, Team → Department, Workspace → Company, Conversation → Meeting, Marketplace → Recruiting**. Code and current docs use the new names (`backend/domain/staff/`, `backend/api/routers/staff.py`, `departments.py`, `companies.py`, `meetings.py`, `recruiting.py`; frontend `StaffBuilder.tsx`, `DepartmentBuilder.tsx`, etc.).
+The user-facing vocabulary was renamed: **Agent → Staff, Team → Department, Workspace → Company, Conversation → Meeting, Marketplace → Recruiting**. This rename is **display-text only** (`src/locales/index.ts` nav labels, e.g. `agents: "Staff"`, `teams: "Departments"`, `marketplace: "Recruiting"`) — it was *not* carried through to code identifiers. File/route/module names still use the original terms everywhere: `backend/domain/agent/` (topologies live here, not `domain/staff/` — that directory doesn't exist), `backend/api/routers/agents.py`, `teams.py`, `workspaces.py`, `conversations.py`, `marketplace.py`; frontend `AgentBuilder.tsx`, `TeamBuilder.tsx`, `Workspaces.tsx`, `Conversations.tsx`, `Marketplace.tsx`. Settings are under `settings.agent`, never `settings.staff`. When editing code, use the old (actual) names; only user-visible strings should say Staff/Department/Company/Meeting/Recruiting. `docs/company-model.md` has the label mapping and explains the "All"/company scope split.
 
-Some older docs still reference the pre-rename path `backend/domain/agent/` — that directory no longer exists; the code is at `backend/domain/staff/` (`docs/agent-orchestration.md`, `docs/AGENT_MEMORY.md`, `docs/STREAMING_GUIDE.md`, `docs/architecture.md` have stale paths). Trust the actual filesystem over these docs for paths. `docs/company-model.md` has the authoritative renaming map (old label → new label) and explains the "All"/company scope split.
-
-Also unified: `Connection` model merges what used to be separate `PlatformHook` + `ThirdPartyConnection` concepts (inbound webhooks + outbound third-party API config now share one model/repository — `backend/api/routers/connections.py`, `connections` repository).
+`PlatformHook` (embedded in `Workspace`, used by `backend/api/routers/webhook.py`) and `ThirdPartyConnection` (own repo, used by `backend/api/routers/connections.py`) are still two separate models — they have not been merged into a single `Connection` model.
 
 ### Agent execution (LangGraph)
 
-Five topologies in `backend/domain/staff/`, selected via `api/deps.get_agent_graph_service(mode=...)`:
+Five topologies in `backend/domain/agent/`, selected via `api/deps.get_agent_graph_service(mode=...)`:
 
 | Mode | File |
 |------|------|

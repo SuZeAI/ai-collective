@@ -4,7 +4,7 @@ import asyncio
 import hmac
 from typing import Any, Dict, Optional
 
-from backend.domain.thirty_part.base_hook import (
+from backend.domain.third_party.base_hook import (
     BaseHookProcessor,
     IncomingMessage,
     _header,

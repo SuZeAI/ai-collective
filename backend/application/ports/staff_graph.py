@@ -34,6 +34,9 @@ class GraphRunResult:
     final_response: str
     final_staff: str | None
     rounds: int
+    # Set when a node crashed and run_to_final_state fell back to the last
+    # good partial state, so callers can tell that apart from a clean finish.
+    error: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
