@@ -296,21 +296,9 @@ class DocumentToolkit(BaseToolkit):
 
     @staticmethod
     def _default_llm():
-        from backend.api.settings import settings
-        from backend.infrastructure.llm.factory import create_llm_provider
+        from backend.infrastructure.llm.factory import build_default_llm_provider
 
-        return create_llm_provider(
-            provider=settings.llm_provider,
-            model=settings.llm_model,
-            google_api_key=settings.google_api_keys(),
-            anthropic_api_key=settings.anthropic_api_keys(),
-            openai_api_key=settings.openai_api_keys(),
-            open_weight_api_key=settings.open_weight_api_keys(),
-            kimi_api_key=settings.kimi_api_keys(),
-            deepseek_api_key=settings.deepseek_api_keys(),
-            glm_api_key=settings.glm_api_keys(),
-            base_url=settings.llm_api_base,
-        )
+        return build_default_llm_provider()
 
     # ── parsers (lazy imports) ─────────────────────────────────────────────────────
 
