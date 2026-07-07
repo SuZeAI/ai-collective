@@ -442,7 +442,7 @@ export default function TaskManager() {
   const taskIdParam = searchParams.get("id");
 
   useEffect(() => {
-    if (!scope.ready) return; // wait until office membership is resolved
+    if (scope.pending) return; // wait until office membership is resolved
     if (taskIdParam && taskList.length > 0) {
       const target = taskList.find((t) => t.id === taskIdParam);
       if (target && isTaskInScope(target)) {

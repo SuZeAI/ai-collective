@@ -125,7 +125,7 @@ export default function AnalyticsPage() {
   // Office membership is still resolving: the scoped filters below read empty
   // id sets in the meantime, which would otherwise flash "0" metrics before
   // the real numbers land — keep showing skeletons until scope catches up.
-  const loading = dataLoading || (!scope.isOverall && !scope.ready);
+  const loading = dataLoading || scope.pending;
 
   // Office scoping: every chart below works off these lists.
   const tasks = useMemo(
