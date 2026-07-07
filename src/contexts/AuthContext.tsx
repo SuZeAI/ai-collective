@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useMemo } from "react";
 import { AUTH_TOKEN_KEY, AUTH_USER_KEY, getApiBase, parseErrorDetail } from "@/lib/api-base";
 
 export type AuthUser = {
@@ -136,11 +136,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, token, login, register, loginWithToken, logout, updateUser, isLoading }}>
-      {children}
-    </AuthContext.Provider>
+  // Memoized so a re-render for an unrelated reason doesn't hand every
+  // useAuth() consumer a brand-new object reference — RequireAuth in
+  // App.tsx wraps every route, so an unmemoized value here re-renders the
+  // entire authenticated app on every AuthProvider render.
+  const value = useMemo(
+    () => ({ user, token, login, register, loginWithToken, logout, updateUser, isLoading }),
+    [user, token, login, register, loginWithToken, logout, updateUser, isLoading],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
