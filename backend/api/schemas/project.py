@@ -21,7 +21,7 @@ class ProjectSchema(BaseModel):
     name: str
     description: str = ""
     leadId: str = ""
-    plannerAgentId: str = ""
+    plannerStaffId: str = ""
     plannerSystemPrompt: str = ""
     issueCounter: int = 0
     createdAt: str | None = None
@@ -39,7 +39,7 @@ class ProjectSchema(BaseModel):
             name=p.name,
             description=p.description,
             leadId=getattr(p, "lead_id", "") or "",
-            plannerAgentId=getattr(p, "planner_agent_id", "") or "",
+            plannerStaffId=getattr(p, "planner_staff_id", "") or "",
             plannerSystemPrompt=getattr(p, "planner_system_prompt", "") or "",
             issueCounter=getattr(p, "issue_counter", 0) or 0,
             createdAt=_to_utc_iso(getattr(p, "created_at", None)),
@@ -57,7 +57,7 @@ class UpsertProjectRequest(BaseModel):
     name: str
     description: str = ""
     leadId: str = ""
-    plannerAgentId: str = ""
+    plannerStaffId: str = ""
     plannerSystemPrompt: str = ""
     avatar: str = ""
     avatar_icon: str = ""

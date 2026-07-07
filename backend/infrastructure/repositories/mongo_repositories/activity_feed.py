@@ -15,7 +15,7 @@ class MongoActivityFeedRepository:
     def _doc_to_item(self, item: dict[str, Any]) -> ActivityFeedItem:
         return ActivityFeedItem(
             id=str(item["id"]),
-            agent_id=str(item.get("agentId", "")),
+            staff_id=str(item.get("agentId", "")),
             action=str(item.get("action", "")),
             time=str(item.get("time", "")),
         )
@@ -24,7 +24,7 @@ class MongoActivityFeedRepository:
         return {
             "id": i.id,
             "_id": i.id,
-            "agentId": i.agent_id,
+            "agentId": i.staff_id,
             "action": i.action,
             "time": i.time,
         }

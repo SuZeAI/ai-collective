@@ -16,10 +16,10 @@ class TaskSchema(BaseModel):
     id: str
     title: str
     description: str
-    teamId: str
+    departmentId: str
     status: str
     progress: int
-    assignedAgents: list[str]
+    assignedStaff: list[str]
     startTime: str | None = None
     endTime: str | None = None
     owner_id: str = "default"
@@ -51,10 +51,10 @@ class TaskSchema(BaseModel):
             id=t.id,
             title=t.title,
             description=t.description,
-            teamId=t.team_id,
+            departmentId=t.department_id,
             status=t.status.value if hasattr(t.status, "value") else str(t.status),
             progress=t.progress,
-            assignedAgents=list(t.assigned_agents),
+            assignedStaff=list(t.assigned_staff),
             startTime=_to_utc_iso(t.start_time),
             endTime=_to_utc_iso(t.end_time),
             owner_id=getattr(t, "owner_id", "default") or "default",
@@ -78,10 +78,10 @@ class UpsertTaskRequest(BaseModel):
     id: str | None = None
     title: str
     description: str = ""
-    teamId: str = ""
+    departmentId: str = ""
     status: str = "pending"
     progress: int = 0
-    assignedAgents: list[str] = Field(default_factory=list)
+    assignedStaff: list[str] = Field(default_factory=list)
     startTime: str | None = None
     endTime: str | None = None
     priority: str = "medium"

@@ -10,22 +10,22 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from backend.api.deps import (
     current_owner_id_dep,
-    get_agent_service,
-    get_conversation_service,
+    get_staff_service,
+    get_meeting_service,
     get_graph_context_service,
     get_project_service,
     get_task_service,
-    get_team_service,
+    get_department_service,
 )
 from backend.api.schemas.task import TaskSchema, UpsertTaskRequest
-from backend.application.service.agent_service import AgentService
-from backend.application.service.conversation_service import ConversationService
+from backend.application.service.staff_service import StaffService
+from backend.application.service.meeting_service import MeetingService
 from backend.application.service.graph_context_service import GraphContextService
 from backend.application.service.project_service import ProjectService
 from backend.application.service.task_service import TaskService
-from backend.application.service.team_service import TeamService
+from backend.application.service.department_service import DepartmentService
 from backend.domain.errors import NotFoundError
-from backend.domain.enums import AgentStatus
+from backend.domain.enums import StaffStatus
 from backend.domain.enums import IssueType, TaskPriority, TaskStatus
 from backend.domain.models import Message, Task, can_delete, can_modify, is_owned_by, is_visible_to
 from backend.infrastructure import task_run_registry
@@ -50,35 +50,35 @@ def _parse_iso_datetime(value: str | None) -> datetime | None:
         return None
 
 
-def _sync_runtime_state(task_service: TaskService, team_service: TeamService, agent_service: AgentService) -> None:
+def _sync_runtime_state(task_service: TaskService, department_service: DepartmentService, staff_service: StaffService) -> None:
     tasks = task_service.list_tasks()
-    teams = team_service.list_teams()
-    agents = agent_service.list_agents()
+    departments = department_service.list_departments()
+    staff = staff_service.list_staff()
 
     running_tasks = [t for t in tasks if t.status == TaskStatus.in_progress]
-    active_tasks_by_team: dict[str, int] = {}
+    active_tasks_by_department: dict[str, int] = {}
     for task in running_tasks:
-        active_tasks_by_team[task.team_id] = active_tasks_by_team.get(task.team_id, 0) + 1
+        active_tasks_by_department[task.department_id] = active_tasks_by_department.get(task.department_id, 0) + 1
 
-    team_by_id = {t.id: t for t in teams}
-    for team in teams:
-        active_count = active_tasks_by_team.get(team.id, 0)
-        if team.active_tasks != active_count:
-            team_service.upsert_team(replace(team, active_tasks=active_count))
+    department_by_id = {t.id: t for t in departments}
+    for department in departments:
+        active_count = active_tasks_by_department.get(department.id, 0)
+        if department.active_tasks != active_count:
+            department_service.upsert_department(replace(department, active_tasks=active_count))
 
-    active_agent_ids: set[str] = set()
+    active_staff_ids: set[str] = set()
     for task in running_tasks:
-        team = team_by_id.get(task.team_id)
-        if team:
-            active_agent_ids.update(team.agents)
-        active_agent_ids.update(task.assigned_agents)
+        department = department_by_id.get(task.department_id)
+        if department:
+            active_staff_ids.update(department.staff)
+        active_staff_ids.update(task.assigned_staff)
 
-    for agent in agents:
-        if agent.id in active_agent_ids:
-            if agent.status != AgentStatus.active:
-                agent_service.upsert_agent(replace(agent, status=AgentStatus.active))
-        elif agent.status == AgentStatus.active:
-            agent_service.upsert_agent(replace(agent, status=AgentStatus.idle))
+    for staff in staff:
+        if staff.id in active_staff_ids:
+            if staff.status != StaffStatus.active:
+                staff_service.upsert_staff(replace(staff, status=StaffStatus.active))
+        elif staff.status == StaffStatus.active:
+            staff_service.upsert_staff(replace(staff, status=StaffStatus.idle))
 
 
 @router.get("/queue/status")
@@ -103,9 +103,9 @@ def list_tasks(
 def upsert_task(
     req: UpsertTaskRequest,
     service: TaskService = Depends(get_task_service),
-    team_service: TeamService = Depends(get_team_service),
-    agent_service: AgentService = Depends(get_agent_service),
-    conv_service: ConversationService = Depends(get_conversation_service),
+    department_service: DepartmentService = Depends(get_department_service),
+    staff_service: StaffService = Depends(get_staff_service),
+    conv_service: MeetingService = Depends(get_meeting_service),
     graph_context_service: GraphContextService = Depends(get_graph_context_service),
     project_service: ProjectService = Depends(get_project_service),
     owner_id: str = Depends(current_owner_id_dep),
@@ -161,7 +161,7 @@ def upsert_task(
             conv_service.add_message(
                 Message(
                     id=f"session_{uuid4().hex}",
-                    agent_id="system",
+                    staff_id="system",
                     content=f"— New session started {now.isoformat()} —",
                     timestamp=now,
                     task_id=task_id,
@@ -215,10 +215,10 @@ def upsert_task(
         id=task_id,
         title=req.title,
         description=req.description,
-        team_id=req.teamId,
+        department_id=req.teamId,
         status=next_status,
         progress=progress,
-        assigned_agents=list(req.assignedAgents),
+        assigned_staff=list(req.assignedAgents),
         start_time=start_time,
         end_time=end_time,
         owner_id=previous_task.owner_id if previous_task else owner_id,
@@ -238,10 +238,10 @@ def upsert_task(
     logger.info("[Task] upsert saved | task_id=%s | status=%s | progress=%s%%",
                 task_id, next_status.value, saved.progress)
 
-    _sync_runtime_state(service, team_service, agent_service)
+    _sync_runtime_state(service, department_service, staff_service)
 
-    # NOTE: the actual agent run is driven entirely by the SSE endpoint
-    # POST /llm/agent-graph/run-stream, which registers its own control handle
+    # NOTE: the actual staff run is driven entirely by the SSE endpoint
+    # POST /llm/staff-graph/run-stream, which registers its own control handle
     # under conversation_id (== task_id), holds it for the run's lifetime, and
     # writes completion when the stream ends. Starting a parallel background
     # job here would register/unregister the same registry key and clobber the
@@ -255,9 +255,9 @@ def upsert_task(
 def delete_task(
     task_id: str,
     service: TaskService = Depends(get_task_service),
-    team_service: TeamService = Depends(get_team_service),
-    agent_service: AgentService = Depends(get_agent_service),
-    conv_service: ConversationService = Depends(get_conversation_service),
+    department_service: DepartmentService = Depends(get_department_service),
+    staff_service: StaffService = Depends(get_staff_service),
+    conv_service: MeetingService = Depends(get_meeting_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
     existing = service._repo.get(task_id)
@@ -275,7 +275,7 @@ def delete_task(
         cleanup_conversation_sandbox(task_id)
     except Exception:  # noqa: BLE001 - best-effort; never block task deletion
         pass
-    _sync_runtime_state(service, team_service, agent_service)
+    _sync_runtime_state(service, department_service, staff_service)
     return {"deleted": True}
 
 
@@ -283,7 +283,7 @@ def delete_task(
 def clear_task_history(
     task_id: str,
     service: TaskService = Depends(get_task_service),
-    conv_service: ConversationService = Depends(get_conversation_service),
+    conv_service: MeetingService = Depends(get_meeting_service),
     graph_context_service: GraphContextService = Depends(get_graph_context_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:

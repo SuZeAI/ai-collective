@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 
 
-class AgentStatus(str, Enum):
+class StaffStatus(str, Enum):
     active = "active"
     idle = "idle"
     thinking = "thinking"

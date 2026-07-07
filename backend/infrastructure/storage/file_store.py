@@ -18,7 +18,7 @@ Backends:
                 dir (so sandbox tools / the host FS can read it) AND MinIO; ``get`` falls back to
                 MinIO when the host copy is missing; ``restore_to_dir`` rehydrates the host dir.
 
-Everything is best-effort: failures log and degrade so a request/agent run never breaks.
+Everything is best-effort: failures log and degrade so a request/staff run never breaks.
 """
 from __future__ import annotations
 

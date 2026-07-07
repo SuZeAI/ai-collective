@@ -6,19 +6,19 @@ json_files/ but persists data to a MongoDB collection via pymongo.
 Usage (configured through deps.py when STORAGE_BACKEND=mongo):
     client = pymongo.MongoClient(settings.mongo_uri)
     db = client[settings.mongo_db]
-    agents = MongoAgentRepository(db)
+    agents = MongoStaffRepository(db)
 
 Public import path is unchanged:
-    from backend.infrastructure.repositories.mongo_repositories import MongoAgentRepository
+    from backend.infrastructure.repositories.mongo_repositories import MongoStaffRepository
 """
 from backend.infrastructure.repositories.mongo_repositories.activity_feed import (
     MongoActivityFeedRepository,
 )
-from backend.infrastructure.repositories.mongo_repositories.agents import MongoAgentRepository
+from backend.infrastructure.repositories.mongo_repositories.staff import MongoStaffRepository
 from backend.infrastructure.repositories.mongo_repositories.analytics import MongoAnalyticsRepository
 from backend.infrastructure.repositories.mongo_repositories.connections import MongoConnectionRepository
 from backend.infrastructure.repositories.mongo_repositories.conversations import (
-    MongoConversationRepository,
+    MongoMeetingRepository,
 )
 from backend.infrastructure.repositories.mongo_repositories.epics import MongoEpicRepository
 from backend.infrastructure.repositories.mongo_repositories.graph_knowledge import (
@@ -34,19 +34,19 @@ from backend.infrastructure.repositories.mongo_repositories.projects import Mong
 from backend.infrastructure.repositories.mongo_repositories.skills import MongoSkillRepository
 from backend.infrastructure.repositories.mongo_repositories.sprints import MongoSprintRepository
 from backend.infrastructure.repositories.mongo_repositories.tasks import MongoTaskRepository
-from backend.infrastructure.repositories.mongo_repositories.teams import MongoTeamRepository
+from backend.infrastructure.repositories.mongo_repositories.departments import MongoDepartmentRepository
 from backend.infrastructure.repositories.mongo_repositories.token_usage import (
     MongoTokenUsageRepository,
 )
 from backend.infrastructure.repositories.mongo_repositories.users import MongoUserRepository
-from backend.infrastructure.repositories.mongo_repositories.workspaces import MongoWorkspaceRepository
+from backend.infrastructure.repositories.mongo_repositories.companies import MongoCompanyRepository
 
 __all__ = [
     "MongoActivityFeedRepository",
-    "MongoAgentRepository",
+    "MongoStaffRepository",
     "MongoAnalyticsRepository",
     "MongoConnectionRepository",
-    "MongoConversationRepository",
+    "MongoMeetingRepository",
     "MongoEpicRepository",
     "MongoGraphKnowledgeRepository",
     "MongoModelPricingRepository",
@@ -55,8 +55,8 @@ __all__ = [
     "MongoSkillRepository",
     "MongoSprintRepository",
     "MongoTaskRepository",
-    "MongoTeamRepository",
+    "MongoDepartmentRepository",
     "MongoTokenUsageRepository",
     "MongoUserRepository",
-    "MongoWorkspaceRepository",
+    "MongoCompanyRepository",
 ]

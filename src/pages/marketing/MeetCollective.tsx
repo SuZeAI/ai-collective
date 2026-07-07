@@ -21,7 +21,7 @@ const FEATURE_DATA = [
   { name: "Knowledge Graph Memory", desc: "Dynamically extract conversation context via NLP (spaCy) or LLMs into a queryable semantic graph." },
   { name: "Secure Sandbox", desc: "Safely execute Python and Bash inside isolated Local, Docker, or Kubernetes sandbox environments." },
   { name: "Real-time SSE Streaming", desc: "Follow execution step-by-step with transparent agent_start, llm_request, and subagent_complete events." },
-  { name: "50+ Skill Toolkits", desc: "Google Workspace, Playwright, social media, search, and productivity tools ready out of the box." },
+  { name: "50+ Skill Toolkits", desc: "Google Company, Playwright, social media, search, and productivity tools ready out of the box." },
   { name: "Human-in-the-Loop", desc: "Intervene directly in running agent discussions to steer agents or inject manual inputs." },
 ];
 

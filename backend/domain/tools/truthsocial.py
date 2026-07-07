@@ -31,7 +31,7 @@ def _request_json(url: str, *, token: str, timeout: int = 30) -> Dict[str, Any]:
         method="GET",
         headers={
             "Authorization": f"Bearer {token}",
-            "User-Agent": "ai-collective/truthsocial-tool",
+            "User-Staff": "ai-collective/truthsocial-tool",
         },
     )
 

@@ -82,7 +82,7 @@ def _request_json(url: str, *, timeout: int = 15) -> Dict[str, Any]:
         except Exception as exc:
             raise PolymarketAPIError(str(exc)) from exc
 
-    req = request.Request(url=url, method="GET", headers={"User-Agent": "ai-collective/polymarket-tool"})
+    req = request.Request(url=url, method="GET", headers={"User-Staff": "ai-collective/polymarket-tool"})
     try:
         with request.urlopen(req, timeout=timeout) as resp:
             body = resp.read().decode("utf-8")

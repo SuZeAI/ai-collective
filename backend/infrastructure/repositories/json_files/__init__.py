@@ -1,13 +1,13 @@
 """JSON-file repository adapters, one module per entity.
 
 Public import path is unchanged:
-    from backend.infrastructure.repositories.json_files import JsonAgentRepository
+    from backend.infrastructure.repositories.json_files import JsonStaffRepository
 """
 from backend.infrastructure.repositories.json_files.activity_feed import JsonActivityFeedRepository
-from backend.infrastructure.repositories.json_files.agents import JsonAgentRepository
+from backend.infrastructure.repositories.json_files.staff import JsonStaffRepository
 from backend.infrastructure.repositories.json_files.analytics import JsonAnalyticsRepository
 from backend.infrastructure.repositories.json_files.connections import JsonConnectionRepository
-from backend.infrastructure.repositories.json_files.conversations import JsonConversationRepository
+from backend.infrastructure.repositories.json_files.conversations import JsonMeetingRepository
 from backend.infrastructure.repositories.json_files.epics import JsonEpicRepository
 from backend.infrastructure.repositories.json_files.model_pricing import JsonModelPricingRepository
 from backend.infrastructure.repositories.json_files.office_builder_sessions import (
@@ -17,17 +17,17 @@ from backend.infrastructure.repositories.json_files.projects import JsonProjectR
 from backend.infrastructure.repositories.json_files.skills import JsonSkillRepository
 from backend.infrastructure.repositories.json_files.sprints import JsonSprintRepository
 from backend.infrastructure.repositories.json_files.tasks import JsonTaskRepository
-from backend.infrastructure.repositories.json_files.teams import JsonTeamRepository
+from backend.infrastructure.repositories.json_files.departments import JsonDepartmentRepository
 from backend.infrastructure.repositories.json_files.token_usage import JsonTokenUsageRepository
 from backend.infrastructure.repositories.json_files.users import JsonUserRepository
-from backend.infrastructure.repositories.json_files.workspaces import JsonWorkspaceRepository
+from backend.infrastructure.repositories.json_files.companies import JsonCompanyRepository
 
 __all__ = [
     "JsonActivityFeedRepository",
-    "JsonAgentRepository",
+    "JsonStaffRepository",
     "JsonAnalyticsRepository",
     "JsonConnectionRepository",
-    "JsonConversationRepository",
+    "JsonMeetingRepository",
     "JsonEpicRepository",
     "JsonModelPricingRepository",
     "JsonOfficeBuilderSessionRepository",
@@ -35,8 +35,8 @@ __all__ = [
     "JsonSkillRepository",
     "JsonSprintRepository",
     "JsonTaskRepository",
-    "JsonTeamRepository",
+    "JsonDepartmentRepository",
     "JsonTokenUsageRepository",
     "JsonUserRepository",
-    "JsonWorkspaceRepository",
+    "JsonCompanyRepository",
 ]

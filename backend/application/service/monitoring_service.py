@@ -5,13 +5,13 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from backend.application.ports.repositories import (
-    AgentRepository,
+    StaffRepository,
     ModelPricingRepository,
     TaskRepository,
-    TeamRepository,
+    DepartmentRepository,
     TokenUsageRepository,
     UserRepository,
-    WorkspaceRepository,
+    CompanyRepository,
 )
 from backend.domain.errors import ValidationError
 from backend.domain.models import ModelPricing, TokenUsageRecord
@@ -25,18 +25,18 @@ class MonitoringService:
         usage: TokenUsageRepository,
         pricing: ModelPricingRepository,
         users: UserRepository,
-        agents: AgentRepository,
-        teams: TeamRepository,
+        staff: StaffRepository,
+        departments: DepartmentRepository,
         tasks: TaskRepository,
-        workspaces: WorkspaceRepository,
+        companies: CompanyRepository,
     ) -> None:
         self._usage = usage
         self._pricing = pricing
         self._users = users
-        self._agents = agents
-        self._teams = teams
+        self._agents = staff
+        self._teams = departments
         self._tasks = tasks
-        self._workspaces = workspaces
+        self._companies = companies
 
     # ── Token usage ──────────────────────────────────────────────────────────
 
@@ -105,11 +105,11 @@ class MonitoringService:
 
     def get_consumption(self, owner_id: str, days: int = 30) -> dict[str, Any]:
         """Token/cost consumption for one owner, broken down by department
-        (team), staff (agent) and human (user).
+        (department), staff (staff) and human (user).
 
         Powers the per-user Cost Monitoring page. Only records triggered by the
         given owner are counted, so each user sees just their own spend. Records
-        captured before per-agent/per-team attribution shipped fall under an
+        captured before per-staff/per-department attribution shipped fall under an
         "unattributed" bucket.
         """
         days = max(1, min(int(days), 365))
@@ -123,17 +123,17 @@ class MonitoringService:
             return {"input_tokens": 0, "output_tokens": 0, "requests": 0, "cost": 0.0}
 
         totals = _bucket()
-        by_team: dict[str, dict[str, Any]] = defaultdict(_bucket)
-        by_agent: dict[str, dict[str, Any]] = defaultdict(_bucket)
+        by_department: dict[str, dict[str, Any]] = defaultdict(_bucket)
+        by_staff: dict[str, dict[str, Any]] = defaultdict(_bucket)
         by_user: dict[str, dict[str, Any]] = defaultdict(_bucket)
         by_day: dict[str, dict[str, Any]] = defaultdict(_bucket)
 
         for r in records:
             cost = self._cost_of(r, pricing_by_model) or 0.0
             day = r.timestamp.astimezone(timezone.utc).date().isoformat()
-            team_key = r.team_id or "unattributed"
-            agent_key = r.agent_name or "unattributed"
-            for bucket in (totals, by_team[team_key], by_agent[agent_key], by_user[r.user_id], by_day[day]):
+            department_key = r.department_id or "unattributed"
+            agent_key = r.staff_name or "unattributed"
+            for bucket in (totals, by_department[department_key], by_staff[agent_key], by_user[r.user_id], by_day[day]):
                 bucket["input_tokens"] += r.input_tokens
                 bucket["output_tokens"] += r.output_tokens
                 bucket["requests"] += 1
@@ -152,14 +152,14 @@ class MonitoringService:
         return {
             "days": days,
             "totals": {**totals, "total_tokens": totals["input_tokens"] + totals["output_tokens"]},
-            "by_team": [
-                {"team_id": key, "name": _name_team(key), **data}
-                for key, data in sorted(by_team.items(), key=lambda kv: -kv[1]["cost"])
+            "by_department": [
+                {"department_id": key, "name": _name_team(key), **data}
+                for key, data in sorted(by_department.items(), key=lambda kv: -kv[1]["cost"])
             ],
-            "by_agent": [
+            "by_staff": [
                 {"agent_name": key, "name": "Unattributed" if key == "unattributed" else key,
                  "role": agent_roles.get(key, ""), **data}
-                for key, data in sorted(by_agent.items(), key=lambda kv: -kv[1]["cost"])
+                for key, data in sorted(by_staff.items(), key=lambda kv: -kv[1]["cost"])
             ],
             "by_user": [
                 {"user_id": uid, "name": user_names.get(uid, uid), **data}
@@ -188,10 +188,10 @@ class MonitoringService:
     def get_entity_counts(self) -> dict[str, int]:
         return {
             "users": len(self._users.list()),
-            "agents": len(self._agents.list()),
-            "teams": len(self._teams.list()),
+            "staff": len(self._agents.list()),
+            "departments": len(self._teams.list()),
             "tasks": len(self._tasks.list()),
-            "workspaces": len(self._workspaces.list()),
+            "companies": len(self._companies.list()),
         }
 
     # ── User activity ────────────────────────────────────────────────────────
@@ -213,10 +213,10 @@ class MonitoringService:
         def _count_owned(items: list[Any], owner_id: str) -> int:
             return sum(1 for item in items if getattr(item, "owner_id", "") == owner_id)
 
-        agents = self._agents.list()
-        teams = self._teams.list()
+        staff = self._agents.list()
+        departments = self._teams.list()
         tasks = self._tasks.list()
-        workspaces = self._workspaces.list()
+        companies = self._companies.list()
 
         result = []
         for user in sorted(self._users.list(), key=lambda u: u.joined_at, reverse=True):
@@ -231,10 +231,10 @@ class MonitoringService:
                     "role": user.role,
                     "provider": user.provider,
                     "joined_at": user.joined_at,
-                    "agents": _count_owned(agents, user.id),
-                    "teams": _count_owned(teams, user.id),
+                    "staff": _count_owned(staff, user.id),
+                    "departments": _count_owned(departments, user.id),
                     "tasks": _count_owned(tasks, user.id),
-                    "workspaces": _count_owned(workspaces, user.id),
+                    "companies": _count_owned(companies, user.id),
                     **usage,
                 }
             )

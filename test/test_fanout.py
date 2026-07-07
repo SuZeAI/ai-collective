@@ -12,13 +12,13 @@ from __future__ import annotations
 import asyncio
 import time
 
-from backend.application.ports.agent_graph import GraphAgentDefinition
-from backend.domain.agent._graph_runtime import (
+from backend.application.ports.staff_graph import GraphStaffDefinition
+from backend.domain.staff._graph_runtime import (
     MESH_FANOUT_MAX_CONCURRENT,
     run_fanout_wave,
 )
-from backend.domain.agent.langgraph_mesh import MultiAgentMeshOrchestrator
-from backend.domain.agent.langgraph_supervisor import LangGraphSupervisorOrchestrator
+from backend.domain.staff.langgraph_mesh import MultiAgentMeshOrchestrator
+from backend.domain.staff.langgraph_supervisor import LangGraphSupervisorOrchestrator
 
 
 # --------------------------------------------------------------------------- #
@@ -128,8 +128,8 @@ class _FakeLLM:
         return f"echo: {user}"
 
 
-def _agent(name: str) -> GraphAgentDefinition:
-    return GraphAgentDefinition(name=name, role=f"role-{name}", system_prompt="sys")
+def _agent(name: str) -> GraphStaffDefinition:
+    return GraphStaffDefinition(name=name, role=f"role-{name}", system_prompt="sys")
 
 
 def _kwargs_builder(agent_def, task_text):
@@ -273,9 +273,9 @@ def test_e2e_mesh_fanout_full_graph():
         branch_response="branch result",
     )
     agents = [
-        GraphAgentDefinition(name="Hub", role="coordinator", system_prompt="coordinate"),
-        GraphAgentDefinition(name="Alice", role="researcher", system_prompt="research"),
-        GraphAgentDefinition(name="Bob", role="analyst", system_prompt="analyze"),
+        GraphStaffDefinition(name="Hub", role="coordinator", system_prompt="coordinate"),
+        GraphStaffDefinition(name="Alice", role="researcher", system_prompt="research"),
+        GraphStaffDefinition(name="Bob", role="analyst", system_prompt="analyze"),
     ]
     res = asyncio.run(MultiAgentMeshOrchestrator().run(
         user_input="Investigate.", agents=agents, llm=llm, max_rounds=6,
@@ -302,9 +302,9 @@ def test_e2e_supervisor_fanout_full_graph():
         branch_response="worker output",
     )
     agents = [
-        GraphAgentDefinition(name="Lead", role="lead", system_prompt="lead"),
-        GraphAgentDefinition(name="W1", role="worker", system_prompt="w1"),
-        GraphAgentDefinition(name="W2", role="worker", system_prompt="w2"),
+        GraphStaffDefinition(name="Lead", role="lead", system_prompt="lead"),
+        GraphStaffDefinition(name="W1", role="worker", system_prompt="w1"),
+        GraphStaffDefinition(name="W2", role="worker", system_prompt="w2"),
     ]
     res = asyncio.run(LangGraphSupervisorOrchestrator().run(
         user_input="Do the job.", agents=agents, llm=llm, max_rounds=6,
@@ -339,8 +339,8 @@ def test_e2e_mesh_sequential_unchanged_when_no_fanout():
             return {}
 
     agents = [
-        GraphAgentDefinition(name="Hub", role="c", system_prompt="coordinate"),
-        GraphAgentDefinition(name="Bob", role="a", system_prompt="analyze"),
+        GraphStaffDefinition(name="Hub", role="c", system_prompt="coordinate"),
+        GraphStaffDefinition(name="Bob", role="a", system_prompt="analyze"),
     ]
     res = asyncio.run(MultiAgentMeshOrchestrator().run(
         user_input="hi", agents=agents, llm=SeqLLM(), max_rounds=6,

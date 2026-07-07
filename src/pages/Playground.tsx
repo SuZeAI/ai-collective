@@ -15,8 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { useAgentSimulation } from "@/hooks/use-agent-simulation";
-import { getAgentRoleColor } from "@/lib/agent-role-ui";
+import { useStaffSimulation } from "@/hooks/use-staff-simulation";
+import { getStaffRoleColor } from "@/lib/staff-role-ui";
 
 const workflowSteps = [
   { label: "Planning", emoji: "📋" },
@@ -60,7 +60,7 @@ const exampleTasks = [
 
 export default function Playground() {
   const { isSimulating, messages, currentStep, runSimulation, reset } =
-    useAgentSimulation();
+    useStaffSimulation();
   const [input, setInput] = useState("");
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
 
@@ -72,7 +72,7 @@ export default function Playground() {
     }
   };
 
-  const uniqueAgents = [...new Set(messages.map((m) => m.role))];
+  const uniqueStaff = [...new Set(messages.map((m) => m.role))];
   const categories = [...new Set(exampleTasks.map((t) => t.category))];
   const visibleTasks = filterCategory
     ? exampleTasks.filter((t) => t.category === filterCategory)
@@ -121,7 +121,7 @@ export default function Playground() {
               <div className="flex items-center gap-2">
                 <div
                   className={`w-2 h-2 rounded-full ${
-                    isSimulating ? "bg-agent-dev animate-pulse" : "bg-green-500"
+                    isSimulating ? "bg-staff-dev animate-pulse" : "bg-green-500"
                   }`}
                 />
                 <span className="text-xs font-semibold">
@@ -132,7 +132,7 @@ export default function Playground() {
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Users className="w-3.5 h-3.5" />
                 <span>
-                  <strong className="text-foreground">{uniqueAgents.length}</strong>{" "}
+                  <strong className="text-foreground">{uniqueStaff.length}</strong>{" "}
                   personnel active
                 </span>
               </div>
@@ -176,7 +176,7 @@ export default function Playground() {
                 if (e.key === "Enter" && (e.metaKey || e.ctrlKey))
                   handleSubmit();
               }}
-              placeholder="Describe a task for the team to work on together…"
+              placeholder="Describe a task for the department to work on together…"
               className="min-h-[96px] resize-none text-sm bg-background/50 border-border/60 focus-visible:ring-1 focus-visible:ring-primary/30"
               disabled={isSimulating}
             />
@@ -262,8 +262,8 @@ export default function Playground() {
             </div>
           )}
 
-          {/* Active Agents Panel */}
-          {uniqueAgents.length > 0 && (
+          {/* Active Staff Panel */}
+          {uniqueStaff.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -273,7 +273,7 @@ export default function Playground() {
                 Participating Personnel
               </span>
               <div className="space-y-2.5">
-                {uniqueAgents.map((role) => {
+                {uniqueStaff.map((role) => {
                   const count = messages.filter((m) => m.role === role).length;
                   const pct = messages.length
                     ? Math.round((count / messages.length) * 100)
@@ -281,7 +281,7 @@ export default function Playground() {
                   return (
                     <div key={role} className="flex items-center gap-2.5">
                       <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${getAgentRoleColor(role)}`}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${getStaffRoleColor(role)}`}
                       >
                         {role[0]}
                       </div>
@@ -381,7 +381,7 @@ export default function Playground() {
                 <div
                   className={`w-2 h-2 rounded-full ${
                     isSimulating
-                      ? "bg-agent-dev animate-pulse"
+                      ? "bg-staff-dev animate-pulse"
                       : messages.length > 0
                       ? "bg-green-500"
                       : "bg-muted-foreground/30"
@@ -409,7 +409,7 @@ export default function Playground() {
                     className="flex gap-3 items-start"
                   >
                     <div
-                      className={`mt-0.5 w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-bold ${getAgentRoleColor(m.role)}`}
+                      className={`mt-0.5 w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-bold ${getStaffRoleColor(m.role)}`}
                     >
                       {m.role[0]}
                     </div>
@@ -437,7 +437,7 @@ export default function Playground() {
                   <div>
                     <p className="text-sm font-medium mb-1">Ready to run</p>
                     <p className="text-xs text-muted-foreground max-w-[200px] leading-relaxed">
-                      Pick an example task or type your own to see the team
+                      Pick an example task or type your own to see the department
                       collaborate live.
                     </p>
                   </div>

@@ -1,6 +1,6 @@
 """Per-process registry + pluggable persistence for run working memory.
 
-One ``WorkingMemory`` per conversation_id, shared by every agent node and
+One ``WorkingMemory`` per conversation_id, shared by every staff node and
 memory tool call in the process. Persistence follows ``STORAGE_BACKEND``:
 
 - ``json`` (default) — atomic snapshot files under
@@ -15,7 +15,7 @@ memory tool call in the process. Persistence follows ``STORAGE_BACKEND``:
   conversation are already serialized.
 
 Best-effort by design: persistence failures are logged, never raised — losing
-a snapshot must not break an agent run. If Mongo is configured but
+a snapshot must not break an staff run. If Mongo is configured but
 unreachable at first use, the store falls back to file persistence (with an
 error log) rather than disabling memory entirely.
 """
@@ -209,7 +209,7 @@ def set_task(conversation_id: str, task: str) -> None:
 def record_note(
     conversation_id: str,
     *,
-    agent: str,
+    staff: str,
     content: str,
     kind: str = "finding",
     turn: int = 0,
@@ -220,7 +220,7 @@ def record_note(
         memory = get_memory(conversation_id)
         if memory is None:
             return False
-        note = memory.add_note(agent=agent, content=content, kind=kind, turn=turn, pinned=pinned)
+        note = memory.add_note(staff=staff, content=content, kind=kind, turn=turn, pinned=pinned)
         if note is not None:
             _persist(memory)
         return note is not None

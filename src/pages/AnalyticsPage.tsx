@@ -25,10 +25,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AgentAvatar } from "@/components/AgentAvatar";
-import { getAgentRoleColor } from "@/lib/agent-role-ui";
-import { api, avgCompletionOf, type Agent, type Analytics, type Task, type Team } from "@/lib/api";
-import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
+import { StaffAvatar } from "@/components/StaffAvatar";
+import { getStaffRoleColor } from "@/lib/staff-role-ui";
+import { api, avgCompletionOf, type Staff, type Analytics, type Task, type Department } from "@/lib/api";
+import { useCompanyScope } from "@/hooks/use-company-scope";
 
 const ROLE_COLORS: Record<string, string> = {
   manager: "hsl(350 75% 55%)",
@@ -115,11 +115,11 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function AnalyticsPage() {
-  const scope = useWorkspaceScope();
+  const scope = useCompanyScope();
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
   const [allTasks, setTasks] = useState<Task[]>([]);
-  const [allTeams, setTeams] = useState<Team[]>([]);
+  const [allDepartments, setDepartments] = useState<Department[]>([]);
   const [dataLoading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   // Office membership is still resolving: the scoped filters below read empty
@@ -129,12 +129,12 @@ export default function AnalyticsPage() {
 
   // Office scoping: every chart below works off these lists.
   const tasks = useMemo(
-    () => (scope.isOverall ? allTasks : allTasks.filter((t) => scope.teamIds.has(t.teamId))),
+    () => (scope.isOverall ? allTasks : allTasks.filter((t) => scope.departmentIds.has(t.departmentId))),
     [allTasks, scope],
   );
-  const teams = useMemo(
-    () => (scope.isOverall ? allTeams : allTeams.filter((t) => scope.teamIds.has(t.id))),
-    [allTeams, scope],
+  const departments = useMemo(
+    () => (scope.isOverall ? allDepartments : allDepartments.filter((t) => scope.departmentIds.has(t.id))),
+    [allDepartments, scope],
   );
 
   useEffect(() => {
@@ -144,15 +144,15 @@ export default function AnalyticsPage() {
       try {
         const [an, ags, tks, tms] = await Promise.all([
           api.getAnalytics(),
-          api.listAgents(),
+          api.listStaff(),
           api.listTasks(),
-          api.listTeams(),
+          api.listDepartments(),
         ]);
         if (cancelled) return;
         setAnalytics(an);
-        setAgents(ags);
+        setStaff(ags);
         setTasks(tks);
-        setTeams(tms);
+        setDepartments(tms);
       } catch (e) {
         console.error(e);
       } finally {
@@ -164,30 +164,30 @@ export default function AnalyticsPage() {
     };
   }, [refreshKey]);
 
-  const agentById = useMemo(() => {
-    const map = new Map<string, Agent>();
-    agents.forEach((a) => map.set(a.id, a));
+  const staffById = useMemo(() => {
+    const map = new Map<string, Staff>();
+    staff.forEach((a) => map.set(a.id, a));
     return map;
-  }, [agents]);
+  }, [staff]);
 
   const completedTasks = tasks.filter((t) => t.status === "completed").length;
   const inProgressTasks = tasks.filter((t) => t.status === "in-progress").length;
   const pendingTasks = tasks.length - completedTasks - inProgressTasks;
 
   const productivityData = useMemo(() => {
-    return Object.entries(analytics?.agentProductivity ?? {})
-      .filter(([agentId]) => scope.isOverall || scope.agentIds.has(agentId))
-      .map(([agentId, value]) => {
-        const agent = agentById.get(agentId);
+    return Object.entries(analytics?.staffProductivity ?? {})
+      .filter(([staffId]) => scope.isOverall || scope.staffIds.has(staffId))
+      .map(([staffId, value]) => {
+        const staff = staffById.get(staffId);
         return {
-          name: agent?.name ?? agentId,
-          role: agent?.role ?? "",
+          name: staff?.name ?? staffId,
+          role: staff?.role ?? "",
           value: Number(value),
-          agent,
+          staff,
         };
       })
       .sort((a, b) => b.value - a.value);
-  }, [analytics, agentById, scope]);
+  }, [analytics, staffById, scope]);
 
   const taskStatusData = [
     { name: "Completed", value: completedTasks, color: KPI_COLORS.success },
@@ -212,7 +212,7 @@ export default function AnalyticsPage() {
       label: "Department Efficiency",
       value: scope.isOverall
         ? analytics
-          ? `${analytics.teamEfficiency}%`
+          ? `${analytics.departmentEfficiency}%`
           : "—"
         : tasks.length > 0
           ? `${Math.round((completedTasks / tasks.length) * 100)}%`
@@ -222,7 +222,7 @@ export default function AnalyticsPage() {
     },
     {
       label: "Active Departments",
-      value: String(teams.length),
+      value: String(departments.length),
       icon: Users,
       color: KPI_COLORS.info,
     },
@@ -243,8 +243,8 @@ export default function AnalyticsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-1">Analytics</h1>
           <p className="text-muted-foreground text-sm">
-            {scope.workspace
-              ? <>Performance metrics of office <span className="font-semibold text-foreground">{scope.workspace.name}</span>.</>
+            {scope.company
+              ? <>Performance metrics of office <span className="font-semibold text-foreground">{scope.company.name}</span>.</>
               : "Department performance metrics and productivity insights across all offices."}
           </p>
         </div>
@@ -276,7 +276,7 @@ export default function AnalyticsPage() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
-        {/* Agent Productivity */}
+        {/* Staff Productivity */}
         <div className="glass-card p-5">
           <div className="flex items-center gap-2 mb-5">
             <Activity className="w-4 h-4 text-primary" />
@@ -317,14 +317,14 @@ export default function AnalyticsPage() {
                     transition={{ delay: i * 0.06 }}
                     className="flex items-center gap-3"
                   >
-                    {item.agent ? (
-                      <AgentAvatar
-                        agent={item.agent}
-                        className={`w-8 h-8 shrink-0 text-sm ${getAgentRoleColor(item.role)}`}
+                    {item.staff ? (
+                      <StaffAvatar
+                        staff={item.staff}
+                        className={`w-8 h-8 shrink-0 text-sm ${getStaffRoleColor(item.role)}`}
                       />
                     ) : (
                       <div
-                        className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-xs font-bold ${getAgentRoleColor(item.role)}`}
+                        className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-xs font-bold ${getStaffRoleColor(item.role)}`}
                       >
                         {item.name[0]}
                       </div>
@@ -557,14 +557,14 @@ export default function AnalyticsPage() {
           )}
         </div>
 
-        {/* Teams Overview */}
+        {/* Departments Overview */}
         <div className="glass-card p-5">
           <div className="flex items-center gap-2 mb-5">
             <Users className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold">Departments</h3>
             {!loading && (
               <span className="ml-auto text-xs text-muted-foreground">
-                {teams.length} active
+                {departments.length} active
               </span>
             )}
           </div>
@@ -581,35 +581,35 @@ export default function AnalyticsPage() {
                 </div>
               ))}
             </div>
-          ) : teams.length === 0 ? (
+          ) : departments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
               <Users className="w-9 h-9 text-muted-foreground/30" />
               <p className="text-sm text-muted-foreground">No departments yet</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {teams.map((team, i) => (
+              {departments.map((department, i) => (
                 <motion.div
-                  key={team.id}
+                  key={department.id}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/40 transition-colors"
                 >
-                  <AgentAvatar
-                    agent={team}
+                  <StaffAvatar
+                    staff={department}
                     className="w-9 h-9 shrink-0 bg-primary/10 text-primary text-sm"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold truncate">{team.name}</p>
+                    <p className="text-xs font-semibold truncate">{department.name}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {team.agents.length} member
-                      {team.agents.length !== 1 ? "s" : ""}
-                      {team.activeTasks ? ` · ${team.activeTasks} active` : ""}
+                      {department.staff.length} member
+                      {department.staff.length !== 1 ? "s" : ""}
+                      {department.activeTasks ? ` · ${department.activeTasks} active` : ""}
                     </p>
                   </div>
-                  {team.activeTasks > 0 && (
-                    <div className="w-2 h-2 rounded-full bg-agent-dev animate-pulse shrink-0" />
+                  {department.activeTasks > 0 && (
+                    <div className="w-2 h-2 rounded-full bg-staff-dev animate-pulse shrink-0" />
                   )}
                 </motion.div>
               ))}

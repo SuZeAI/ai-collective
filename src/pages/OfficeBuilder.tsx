@@ -13,7 +13,7 @@ import {
   type OfficeChatMessage,
   type OfficePlan,
   type OfficeDepartmentPlan,
-  type OfficeHumanPlan,
+  type OfficeStaffPlan,
   type OfficeBuilderSessionSummary,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 
 const EXAMPLE_PROMPTS = [
   "Create a software company office with engineering, product and QA departments",
-  "Build a digital marketing agency: content, social media and analytics teams",
+  "Build a digital marketing agency: content, social media and analytics departments",
   "Set up a market research office with web research and reporting departments",
 ];
 
@@ -36,9 +36,9 @@ const EXAMPLE_PROMPTS = [
 const ACTIVE_SESSION_KEY = "ai-collective-office-builder-session";
 
 const PlanStats = memo(function PlanStats({ plan }: { plan: OfficePlan }) {
-  const humans = plan.departments.reduce((n, d) => n + d.humans.length, 0);
+  const staff = plan.departments.reduce((n, d) => n + d.staff.length, 0);
   const skills = plan.departments.reduce(
-    (n, d) => n + d.humans.reduce((m, h) => m + h.skills.length, 0),
+    (n, d) => n + d.staff.reduce((m, h) => m + h.skills.length, 0),
     0,
   );
   return (
@@ -47,7 +47,7 @@ const PlanStats = memo(function PlanStats({ plan }: { plan: OfficePlan }) {
         <Users className="h-3 w-3" /> {plan.departments.length} departments
       </Badge>
       <Badge variant="secondary" className="text-[10px] gap-1">
-        <User className="h-3 w-3" /> {humans} humans
+        <User className="h-3 w-3" /> {staff} staff
       </Badge>
       <Badge variant="secondary" className="text-[10px] gap-1">
         <Wrench className="h-3 w-3" /> {skills} skills
@@ -56,7 +56,7 @@ const PlanStats = memo(function PlanStats({ plan }: { plan: OfficePlan }) {
   );
 });
 
-const HumanCard = memo(function HumanCard({ human }: { human: OfficeHumanPlan }) {
+const StaffCard = memo(function StaffCard({ human }: { human: OfficeStaffPlan }) {
   return (
     <div className="rounded-lg border border-border/40 bg-background/60 p-3">
       <div className="flex items-center gap-2.5">
@@ -104,8 +104,8 @@ const DepartmentCard = memo(function DepartmentCard({ dept }: { dept: OfficeDepa
         </Badge>
       </div>
       <div className="mt-2 grid gap-2 pl-3 border-l-2 border-border/40 ml-3.5">
-        {dept.humans.map((h, i) => (
-          <HumanCard key={`${h.name}-${i}`} human={h} />
+        {dept.staff.map((h, i) => (
+          <StaffCard key={`${h.name}-${i}`} human={h} />
         ))}
       </div>
     </div>
@@ -198,7 +198,7 @@ function DesigningOverlay({ updating }: { updating: boolean }) {
       </div>
 
       <p className="text-[10px] text-muted-foreground/70">
-        Departments → Humans → Skills & Tools
+        Departments → Staff → Skills & Tools
       </p>
     </motion.div>
   );
@@ -207,7 +207,7 @@ function DesigningOverlay({ updating }: { updating: boolean }) {
 // ─── "Under construction" overlay shown while the office is being created ────
 const BUILD_STEPS = [
   { icon: Wrench, label: "Creating skills…" },
-  { icon: User, label: "Hiring humans…" },
+  { icon: User, label: "Hiring staff…" },
   { icon: Users, label: "Forming departments…" },
   { icon: Building2, label: "Opening the office…" },
 ];
@@ -223,7 +223,7 @@ function ConstructionOverlay({ plan, done }: { plan: OfficePlan; done: boolean }
   // One tower per department, height follows headcount.
   const towers = plan.departments
     .slice(0, 5)
-    .map((d) => Math.min(5, Math.max(2, d.humans.length + 1)));
+    .map((d) => Math.min(5, Math.max(2, d.staff.length + 1)));
   const cycle = towers.length * 0.2 + 5 * 0.3 + 1.2;
   const StepIcon = BUILD_STEPS[step].icon;
 
@@ -343,7 +343,7 @@ export default function OfficeBuilder() {
 
   const [sessions, setSessions] = useState<OfficeBuilderSessionSummary[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [appliedWorkspaceId, setAppliedWorkspaceId] = useState<string>("");
+  const [appliedCompanyId, setAppliedCompanyId] = useState<string>("");
   const [companyType, setCompanyType] = useState<CompanyType>("general");
   const [messages, setMessages] = useState<OfficeChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -392,7 +392,7 @@ export default function OfficeBuilder() {
       setMessages(s.messages);
       setPlan(s.plan);
       setPlanRev((v) => v + 1);
-      setAppliedWorkspaceId(s.workspaceId || "");
+      setAppliedCompanyId(s.companyId || "");
       setInput("");
       localStorage.setItem(ACTIVE_SESSION_KEY, s.id);
     } catch (err) {
@@ -412,7 +412,7 @@ export default function OfficeBuilder() {
     setSessionId(null);
     setMessages([]);
     setPlan(null);
-    setAppliedWorkspaceId("");
+    setAppliedCompanyId("");
     setInput("");
     localStorage.removeItem(ACTIVE_SESSION_KEY);
   };
@@ -420,14 +420,14 @@ export default function OfficeBuilder() {
   const persistSession = async (
     nextMessages: OfficeChatMessage[],
     nextPlan: OfficePlan | null,
-    workspaceId?: string,
+    companyId?: string,
   ): Promise<string | null> => {
     try {
       const saved = await api.upsertOfficeBuilderSession({
         id: sessionId,
         messages: nextMessages,
         plan: nextPlan,
-        workspaceId: workspaceId ?? appliedWorkspaceId,
+        companyId: companyId ?? appliedCompanyId,
       });
       setSessionId(saved.id);
       localStorage.setItem(ACTIVE_SESSION_KEY, saved.id);
@@ -510,18 +510,18 @@ export default function OfficeBuilder() {
       const res = await api.applyOfficePlan({ plan: { ...plan, company_type: companyType } });
       toast({
         title: "Office created",
-        description: `"${res.workspace.name}" — ${res.team_ids.length} departments, ${res.agent_ids.length} humans, ${res.skill_ids.length} new skills.`,
+        description: `"${res.company.name}" — ${res.department_ids.length} departments, ${res.staff_ids.length} staff, ${res.skill_ids.length} new skills.`,
       });
-      setAppliedWorkspaceId(res.workspace.id);
+      setAppliedCompanyId(res.company.id);
       // Keep the session in history, marked as applied.
-      await persistSession(messages, plan, res.workspace.id);
+      await persistSession(messages, plan, res.company.id);
       // Let the "office is open" animation play before leaving the page.
       setBuilt(true);
       await new Promise((r) => setTimeout(r, 1600));
-      // Refresh the sidebar workspace switcher and jump to the new office.
-      localStorage.setItem("activeWorkspaceId", res.workspace.id);
-      window.dispatchEvent(new CustomEvent("workspaceChanged"));
-      navigate("/workspaces");
+      // Refresh the sidebar company switcher and jump to the new office.
+      localStorage.setItem("activeCompanyId", res.company.id);
+      window.dispatchEvent(new CustomEvent("companyChanged"));
+      navigate("/companies");
     } catch (err) {
       const detail = err instanceof Error ? err.message : "Office creation failed";
       toast({ title: "Office Builder", description: detail, variant: "destructive" });
@@ -565,7 +565,7 @@ export default function OfficeBuilder() {
           <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin px-2 pb-2 space-y-1">
             {sessions.length === 0 && (
               <p className="px-2 py-4 text-[11px] text-muted-foreground/70 text-center">
-                No chats yet. Your office-building conversations will appear here.
+                No chats yet. Your office-building meetings will appear here.
               </p>
             )}
             {sessions.map((s) => (
@@ -588,10 +588,10 @@ export default function OfficeBuilder() {
                     <p className="text-[11px] font-medium leading-snug line-clamp-2">{s.title}</p>
                     <div className="mt-1 flex items-center gap-1.5">
                       <span className="text-[9px] text-muted-foreground">{formatSessionTime(s.updatedAt)}</span>
-                      {s.hasPlan && !s.workspaceId && (
+                      {s.hasPlan && !s.companyId && (
                         <Badge variant="outline" className="text-[8px] px-1 py-0">draft</Badge>
                       )}
-                      {s.workspaceId && (
+                      {s.companyId && (
                         <Badge variant="outline" className="text-[8px] px-1 py-0 text-emerald-500 border-emerald-500/40">
                           created
                         </Badge>
@@ -635,7 +635,7 @@ export default function OfficeBuilder() {
                     <p className="text-sm font-semibold">Chat to create a full office</p>
                     <p className="text-xs text-muted-foreground mt-1 max-w-sm">
                       Tell me what kind of company you want. I'll design the departments,
-                      staff each one with humans, and equip every human with skills and tools.
+                      staff each one with staff, and equip every human with skills and tools.
                     </p>
                   </div>
                   <div className="grid gap-2 w-full max-w-md">
@@ -755,12 +755,12 @@ export default function OfficeBuilder() {
                   )}
                 </div>
               </div>
-              {plan && appliedWorkspaceId && (
+              {plan && appliedCompanyId && (
                 <Badge variant="outline" className="text-[9px] gap-1 shrink-0 text-emerald-500 border-emerald-500/40">
                   <CheckCircle2 className="h-2.5 w-2.5" /> Created
                 </Badge>
               )}
-              {plan && !appliedWorkspaceId && (
+              {plan && !appliedCompanyId && (
                 <div className="flex items-center gap-1.5 shrink-0">
                   <Select value={companyType} onValueChange={(v) => setCompanyType(v as CompanyType)} disabled={busy}>
                     <SelectTrigger className="h-8 w-[150px] text-xs" title={t.companyTypeLabel}>
@@ -793,7 +793,7 @@ export default function OfficeBuilder() {
                 <div className="h-full flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
                   <Building2 className="h-8 w-8 opacity-30" />
                   <p className="text-xs">The generated org structure will appear here.</p>
-                  <p className="text-[10px] opacity-70">Office → Departments → Humans → Skills & Tools</p>
+                  <p className="text-[10px] opacity-70">Office → Departments → Staff → Skills & Tools</p>
                 </div>
               ) : (
                 <div key={planRev} className="space-y-3">

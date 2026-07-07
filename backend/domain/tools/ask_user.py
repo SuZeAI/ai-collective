@@ -1,6 +1,6 @@
-"""ask_user tool — agent-initiated human-in-the-loop interrupt.
+"""ask_user tool — staff-initiated human-in-the-loop interrupt.
 
-Lets an agent pause mid-turn to ask the user a question (a clarification, a
+Lets an staff pause mid-turn to ask the user a question (a clarification, a
 choice between options, an approval) and block until the user answers — the
 same UX as LangGraph's ``interrupt()`` primitive, but built on this project's
 custom-stream events instead of checkpointers:
@@ -9,12 +9,12 @@ custom-stream events instead of checkpointers:
    stream writer (the SSE stream the frontend already consumes).
 2. The frontend renders a question card (options become buttons, plus an
    optional free-text box) and posts the answer to
-   ``POST /llm/agent-graph/respond``.
+   ``POST /llm/staff-graph/respond``.
 3. The answer lands in a per-run slot in ``task_run_registry``; the tool's
    poll loop picks it up and returns it to the LLM, which continues its turn.
 
 The wait releases on run cancellation/unregistration, and on timeout the tool
-returns a graceful "no response" message so the agent can proceed on its own
+returns a graceful "no response" message so the staff can proceed on its own
 judgement instead of dying.
 """
 
@@ -35,7 +35,7 @@ logger = get_logger(__name__)
 
 # How long ask_user waits for an answer before giving up, and how often it
 # re-checks the response slot.
-ASK_USER_TIMEOUT_SECONDS = max(30, settings.agent.ask_user_timeout_seconds)
+ASK_USER_TIMEOUT_SECONDS = max(30, settings.staff.ask_user_timeout_seconds)
 _POLL_SECONDS = 0.25
 _HEARTBEAT_EVERY_POLLS = max(1, int(15 / _POLL_SECONDS))  # ~15s, keeps SSE alive
 
@@ -60,13 +60,13 @@ class AskUserToolkit(BaseToolkit):
     def __init__(
         self,
         conversation_id: str,
-        agent_name: str | None = None,
+        staff_name: str | None = None,
         timeout_seconds: int = ASK_USER_TIMEOUT_SECONDS,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self._conversation_id = conversation_id
-        self._agent_name = agent_name
+        self._staff_name = staff_name
         self._timeout_seconds = max(5, int(timeout_seconds))
 
     @tool(parse_docstring=True)
@@ -111,15 +111,15 @@ class AskUserToolkit(BaseToolkit):
         payload = {
             "type": EventType.USER_INPUT_REQUEST.value,
             "request_id": request_id,
-            "agent_name": self._agent_name,
+            "agent_name": self._staff_name,
             "question": question,
             "options": clean_options,
             "allow_free_text": bool(allow_free_text) or not clean_options,
         }
         _emit_event(payload)
         logger.info(
-            "ask_user: agent=%s conversation=%s request=%s options=%d",
-            self._agent_name, self._conversation_id, request_id, len(clean_options),
+            "ask_user: staff=%s conversation=%s request=%s options=%d",
+            self._staff_name, self._conversation_id, request_id, len(clean_options),
         )
 
         polls = 0
@@ -134,7 +134,7 @@ class AskUserToolkit(BaseToolkit):
                     _emit_event({
                         "type": EventType.USER_INPUT_RECEIVED.value,
                         "request_id": request_id,
-                        "agent_name": self._agent_name,
+                        "agent_name": self._staff_name,
                     })
                     return f"The user answered: {response}"
 
@@ -149,7 +149,7 @@ class AskUserToolkit(BaseToolkit):
             _emit_event({
                 "type": EventType.USER_INPUT_RECEIVED.value,
                 "request_id": request_id,
-                "agent_name": self._agent_name,
+                "agent_name": self._staff_name,
                 "timed_out": True,
             })
             return (

@@ -6,7 +6,7 @@ Provider-agnostic but defaults to the OpenAI Images API contract
 OpenAI-compatible image service (OpenAI, Azure OpenAI, OpenRouter, a self-hosted
 gateway, etc.) and supply your own ``api_key``.
 
-Used by content-production agents to create character art, scene visuals and
+Used by content-production staff to create character art, scene visuals and
 video thumbnails.
 """
 

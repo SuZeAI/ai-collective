@@ -1,6 +1,6 @@
 """Thread-file (attachment) store — tracks files attached to a conversation.
 
-A conversation "has files" once a user uploads a document or an agent writes one
+A conversation "has files" once a user uploads a document or an staff writes one
 into the shared workspace. This store records that metadata so the orchestrator
 can cheaply decide whether to provision the conversation sandbox + inject the
 sandbox tools (see ``attach_conversation_sandbox``).
@@ -10,7 +10,7 @@ Mirrors ``sandbox_session``'s dual-mode persistence: MongoDB when
 (the gitignored live store, NOT the committed ``storage/`` seed catalog).
 
 Every function is best-effort: failures log and degrade gracefully — they must
-never raise, because ``conversation_has_files`` gates every agent run.
+never raise, because ``conversation_has_files`` gates every staff run.
 """
 from __future__ import annotations
 

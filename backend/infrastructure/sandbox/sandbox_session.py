@@ -1,6 +1,6 @@
-"""Sandbox session tracking — per-agent-run thread_id via contextvars.
+"""Sandbox session tracking — per-staff-run thread_id via contextvars.
 
-Each agent node invocation gets a unique thread_id that:
+Each staff node invocation gets a unique thread_id that:
   - Scopes all sandbox bash sessions within that run (prevents cross-run pollution)
   - Creates an isolated workspace directory: {SANDBOX_WORKSPACE}/{thread_id}/
   - Is persisted to MongoDB (mongo) or, in json mode, to
@@ -24,7 +24,7 @@ from backend.log import get_logger
 
 logger = get_logger(__name__)
 
-# Per-asyncio-task context variable — set once per agent node run.
+# Per-asyncio-task context variable — set once per staff node run.
 _current_thread_id: ContextVar[Optional[str]] = ContextVar("sandbox_thread_id", default=None)
 
 _storage_lock = threading.Lock()
@@ -70,16 +70,16 @@ def get_thread_workspace(base_workspace: str, thread_id: Optional[str] = None) -
 
 
 def new_thread_id(
-    agent_name: str,
+    staff_name: str,
     task_id: Optional[str] = None,
     run_id: Optional[str] = None,
 ) -> str:
     """Generate a new thread_id, set it in context, and persist to storage.
 
     Also creates the isolated workspace directory under SANDBOX_WORKSPACE so
-    it is ready the moment the agent starts using sandbox tools.
+    it is ready the moment the staff starts using sandbox tools.
 
-    Call this at the start of each agent node invocation.
+    Call this at the start of each staff node invocation.
     """
     thread_id = uuid4().hex
     _current_thread_id.set(thread_id)
@@ -87,14 +87,14 @@ def new_thread_id(
     workspace_path = _ensure_thread_workspace(thread_id)
     _persist_session(
         thread_id=thread_id,
-        agent_name=agent_name,
+        staff_name=staff_name,
         task_id=task_id,
         run_id=run_id or uuid4().hex,
         workspace_path=workspace_path,
     )
     logger.debug(
-        "Sandbox thread_id=%s created for agent=%s task_id=%s workspace=%s",
-        thread_id, agent_name, task_id, workspace_path,
+        "Sandbox thread_id=%s created for staff=%s task_id=%s workspace=%s",
+        thread_id, staff_name, task_id, workspace_path,
     )
     return thread_id
 
@@ -107,7 +107,7 @@ _CONV_THREAD_PREFIX = "conv-"
 def conversation_thread_id(conversation_id: str) -> str:
     """Deterministic, filesystem-safe thread_id for a whole conversation.
 
-    Same conversation_id always maps to the same id, so every agent in the chat
+    Same conversation_id always maps to the same id, so every staff in the chat
     resolves to the *same* shared workspace ``{SANDBOX_WORKSPACE}/conv-<hash>/``.
     Hashing avoids path-traversal / odd-char issues and gives a stable length.
     """
@@ -134,7 +134,7 @@ def ensure_conversation_workspace(conversation_id: str) -> str:
 def use_conversation_thread(conversation_id: str) -> str:
     """Bind the contextvar to the conversation-scoped (shared) thread_id.
 
-    Overwrites any random per-turn id set earlier in the agent node, ensures the
+    Overwrites any random per-turn id set earlier in the staff node, ensures the
     shared workspace exists, and persists a session record. Call this at node
     start *only* when the conversation has files (see ``attach_conversation_sandbox``).
     """
@@ -143,7 +143,7 @@ def use_conversation_thread(conversation_id: str) -> str:
     workspace = ensure_conversation_workspace(conversation_id)
     _persist_session(
         thread_id=tid,
-        agent_name="conversation",
+        staff_name="conversation",
         task_id=conversation_id,
         run_id=tid,
         workspace_path=workspace,
@@ -173,14 +173,14 @@ def _ensure_thread_workspace(thread_id: str) -> str:
 
 def _persist_session(
     thread_id: str,
-    agent_name: str,
+    staff_name: str,
     task_id: Optional[str],
     run_id: str,
     workspace_path: str = "",
 ) -> None:
     record = {
         "thread_id": thread_id,
-        "agent_name": agent_name,
+        "agent_name": staff_name,
         "taskId": task_id,
         "run_id": run_id,
         "workspace_path": workspace_path,

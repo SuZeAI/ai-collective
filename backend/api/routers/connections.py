@@ -9,7 +9,7 @@ from backend.api.deps import current_user_dep, get_connection_service
 from backend.api.schemas.connection import ConnectionSchema, UpsertConnectionRequest
 from backend.application.service.connection_service import ConnectionService
 from backend.domain.errors import NotFoundError
-from backend.domain.models import ThirdPartyConnection
+from backend.domain.models import Connection
 
 router = APIRouter(prefix="/connections", tags=["connections"])
 
@@ -27,10 +27,14 @@ def require_admin(user=Depends(current_user_dep)):
 
 @router.get("", response_model=list[ConnectionSchema])
 def list_connections(
+    company_id: str | None = None,
+    kind: str | None = None,
     service: ConnectionService = Depends(get_connection_service),
-    _: object = Depends(require_admin),
 ):
-    return [ConnectionSchema.from_domain(c) for c in service.list_connections()]
+    return [
+        ConnectionSchema.from_domain(c)
+        for c in service.list_connections(company_id=company_id, kind=kind)
+    ]
 
 
 @router.post("", response_model=ConnectionSchema)
@@ -45,13 +49,19 @@ def upsert_connection(
     except NotFoundError:
         existing = None
     created_at = existing.created_at if existing else datetime.now(timezone.utc)
-    conn = ThirdPartyConnection(
+    conn = Connection(
         id=conn_id,
         platform=req.platform,
         name=req.name,
         config=dict(req.config or {}),
         description=req.description or "",
         created_at=created_at,
+        enabled=req.enabled,
+        kind=req.kind or "outbound",
+        company_id=req.companyId or "",
+        owner_id=existing.owner_id if existing else "default",
+        routing_department_id=req.routingDepartmentId or "",
+        routing_staff_ids=list(req.routingStaffIds or []),
     )
     saved = service.upsert_connection(conn)
     return ConnectionSchema.from_domain(saved)

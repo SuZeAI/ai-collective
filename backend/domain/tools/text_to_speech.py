@@ -7,7 +7,7 @@ supply your own ``api_key``.
 
 Returns the audio as base64 (so it can be passed downstream or stored by the
 caller) and, when ``output_dir`` is configured, also writes the file to disk and
-returns its path. Used by the Video Producer agent to generate voiceovers.
+returns its path. Used by the Video Producer staff to generate voiceovers.
 """
 
 from __future__ import annotations

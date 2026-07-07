@@ -51,7 +51,7 @@ Return ONLY a valid JSON array. Each element must have:
 
 Rules:
 - Exclude stopwords and single characters
-- Exclude generic words like "message", "task", "agent", "history"
+- Exclude generic words like "message", "task", "staff", "history"
 - Maximum 15 entities
 - If no meaningful entities, return []
 """
@@ -121,7 +121,7 @@ _STOPWORDS = {
     "mesage",
     "message",
     "graph_context",
-    "agent",
+    "staff",
     "ask",
 }
 
@@ -134,7 +134,7 @@ _GENERIC_ENTITY_TERMS = {
     "mesage",
     "graph",
     "context",
-    "agent",
+    "staff",
 }
 
 _CONTROL_BLOCK_RE = re.compile(

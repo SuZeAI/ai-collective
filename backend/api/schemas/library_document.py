@@ -7,7 +7,7 @@ from backend.domain.models import DEFAULT_OWNER_ID, LibraryDocument
 
 class LibraryDocumentSchema(BaseModel):
     id: str
-    workspaceId: str
+    companyId: str
     name: str
     contentType: str
     size: int
@@ -24,7 +24,7 @@ class LibraryDocumentSchema(BaseModel):
     def from_domain(d: LibraryDocument) -> "LibraryDocumentSchema":
         return LibraryDocumentSchema(
             id=d.id,
-            workspaceId=d.workspace_id,
+            companyId=d.company_id,
             name=d.name,
             contentType=d.content_type,
             size=d.size,
@@ -40,7 +40,7 @@ class LibraryDocumentSchema(BaseModel):
 
 
 class IngestUrlRequest(BaseModel):
-    workspaceId: str
+    companyId: str
     url: str
     name: str | None = None
     description: str | None = None

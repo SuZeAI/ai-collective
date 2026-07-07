@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FolderKanban, Plus, Pencil, Trash2, Bot, Columns3, ListTodo, Map as MapIcon, BarChart3 } from "lucide-react";
-import { api, canEditItem, canDeleteItem, type Agent, type Project } from "@/lib/api";
+import { api, canEditItem, canDeleteItem, type Staff, type Project } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,7 +15,7 @@ const PLANNER_NONE = "__none__";
 export default function Projects() {
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -23,17 +23,17 @@ export default function Projects() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [leadId, setLeadId] = useState(PLANNER_NONE);
-  const [plannerAgentId, setPlannerAgentId] = useState(PLANNER_NONE);
+  const [plannerStaffId, setPlannerStaffId] = useState(PLANNER_NONE);
   const [plannerSystemPrompt, setPlannerSystemPrompt] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const agentById = useMemo(() => new Map(agents.map((a) => [a.id, a])), [agents]);
+  const staffById = useMemo(() => new Map(staff.map((a) => [a.id, a])), [staff]);
 
   const load = async () => {
     try {
-      const [p, a] = await Promise.all([api.listProjects(), api.listAgents()]);
+      const [p, a] = await Promise.all([api.listProjects(), api.listStaff()]);
       setProjects(p);
-      setAgents(a);
+      setStaff(a);
     } catch (e) {
       console.error(e);
     }
@@ -47,7 +47,7 @@ export default function Projects() {
     setName("");
     setDescription("");
     setLeadId(PLANNER_NONE);
-    setPlannerAgentId(PLANNER_NONE);
+    setPlannerStaffId(PLANNER_NONE);
     setPlannerSystemPrompt("");
   };
 
@@ -59,7 +59,7 @@ export default function Projects() {
     setName(p.name);
     setDescription(p.description ?? "");
     setLeadId(p.leadId || PLANNER_NONE);
-    setPlannerAgentId(p.plannerAgentId || PLANNER_NONE);
+    setPlannerStaffId(p.plannerStaffId || PLANNER_NONE);
     setPlannerSystemPrompt(p.plannerSystemPrompt ?? "");
     setOpen(true);
   };
@@ -74,7 +74,7 @@ export default function Projects() {
         name: name.trim(),
         description: description.trim(),
         leadId: leadId === PLANNER_NONE ? "" : leadId,
-        plannerAgentId: plannerAgentId === PLANNER_NONE ? "" : plannerAgentId,
+        plannerStaffId: plannerStaffId === PLANNER_NONE ? "" : plannerStaffId,
         plannerSystemPrompt: plannerSystemPrompt.trim(),
       });
       resetForm();
@@ -135,17 +135,17 @@ export default function Projects() {
                     <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value={PLANNER_NONE}>None</SelectItem>
-                      {agents.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                      {staff.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Bot className="w-3 h-3" /> Planner agent</label>
-                  <Select value={plannerAgentId} onValueChange={setPlannerAgentId}>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Bot className="w-3 h-3" /> Planner staff</label>
+                  <Select value={plannerStaffId} onValueChange={setPlannerStaffId}>
                     <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value={PLANNER_NONE}>None</SelectItem>
-                      {agents.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                      {staff.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -154,7 +154,7 @@ export default function Projects() {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Planner instructions (optional override)</label>
                 <Textarea
-                  placeholder="How should the planner break work into issues? Leave blank to use the selected agent's own system prompt."
+                  placeholder="How should the planner break work into issues? Leave blank to use the selected staff's own system prompt."
                   value={plannerSystemPrompt}
                   onChange={(e) => setPlannerSystemPrompt(e.target.value)}
                   className="min-h-[80px] resize-none text-xs"
@@ -179,7 +179,7 @@ export default function Projects() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.map((p) => {
-              const planner = p.plannerAgentId ? agentById.get(p.plannerAgentId) : undefined;
+              const planner = p.plannerStaffId ? staffById.get(p.plannerStaffId) : undefined;
               return (
                 <Card key={p.id} className="p-4 flex flex-col gap-3 hover:border-primary/40 transition-colors">
                   <div className="flex items-start justify-between gap-2">

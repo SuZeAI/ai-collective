@@ -2,11 +2,11 @@ import { createContext, useCallback, useContext, useMemo, useRef, useState } fro
 import type { ReactNode } from "react";
 import { api, type GraphContextSnapshot, type Message, type Task } from "@/lib/api";
 
-// ask_user tool: an agent is blocked waiting for the user's answer.
+// ask_user tool: an staff is blocked waiting for the user's answer.
 export type UserInputRequest = {
   requestId: string;
-  agentId?: string;
-  agentName?: string;
+  staffId?: string;
+  staffName?: string;
   question: string;
   options: string[];
   allowFreeText: boolean;
@@ -16,8 +16,8 @@ export type GraphHighlight = {
   nodeIds: string[];
   edgeIds: string[];
   chunkIds: string[];
-  agentId?: string;
-  agentName?: string;
+  staffId?: string;
+  staffName?: string;
   updatedAt: string;
 };
 
@@ -31,7 +31,7 @@ export type RunEndedEvent = { type: "run_ended"; taskId: string; reason: "comple
 type EngineEvent = RunStreamEvent | RunEndedEvent;
 type EventListener = (event: EngineEvent) => void;
 
-// Team config the caller passes at start time — the engine is team-agnostic.
+// Department config the caller passes at start time — the engine is department-agnostic.
 type RunOpts = {
   mode?: "mesh" | "sequential" | "ring" | "supervisor" | "tree" | "custom";
   maxSteps?: number;
@@ -43,8 +43,8 @@ type RunOpts = {
 export type RunEngineValue = {
   // Authoritative shared state (keyed by taskId where applicable)
   tasks: Task[];
-  conversations: Record<string, Message[]>;
-  thinkingAgents: Record<string, Set<string>>;
+  meetings: Record<string, Message[]>;
+  thinkingStaff: Record<string, Set<string>>;
   activeFanouts: Record<string, { coordinator?: string; targets: string[] }>;
   graphSnapshots: Record<string, GraphContextSnapshot>;
   graphHighlights: Record<string, GraphHighlight>;
@@ -66,7 +66,7 @@ export type RunEngineValue = {
   upsertTask: (payload: Partial<Task> & Pick<Task, "title">) => Promise<Task>;
   removeTask: (id: string) => Promise<void>;
   ingestTasks: (tasks: Task[]) => void;
-  ingestConversations: (taskId: string, messages: Message[]) => void;
+  ingestMeetings: (taskId: string, messages: Message[]) => void;
 
   // Run lifecycle
   startTask: (task: Task, opts?: RunOpts) => Promise<void>;
@@ -94,8 +94,8 @@ const RunEngineContext = createContext<RunEngineValue | null>(null);
 
 export function RunEngineProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [conversations, setConversations] = useState<Record<string, Message[]>>({});
-  const [thinkingAgents, setThinkingAgents] = useState<Record<string, Set<string>>>({});
+  const [meetings, setConversations] = useState<Record<string, Message[]>>({});
+  const [thinkingStaff, setThinkingStaff] = useState<Record<string, Set<string>>>({});
   const [activeFanouts, setActiveFanouts] = useState<Record<string, { coordinator?: string; targets: string[] }>>({});
   const [graphSnapshots, setGraphSnapshots] = useState<Record<string, GraphContextSnapshot>>({});
   const [graphHighlights, setGraphHighlights] = useState<Record<string, GraphHighlight>>({});
@@ -200,7 +200,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Restart housekeeping: reset transient interaction state but KEEP the
-  // transcript (and graph) so a re-run continues the long conversation instead
+  // transcript (and graph) so a re-run continues the long meeting instead
   // of wiping it. Use clearRunState (full wipe) only for an explicit reset.
   const clearTransientRunState = useCallback((taskId: string) => {
     setGraphHighlights((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
@@ -221,7 +221,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     setStreamingIds((prev) => new Set(prev).add(updated.id));
 
     // Reset thinking state for a fresh start/restart.
-    setThinkingAgents((prev) => {
+    setThinkingStaff((prev) => {
       const next = { ...prev };
       delete next[updated.id];
       return next;
@@ -232,14 +232,14 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
 
     try {
       const messages: Message[] = [];
-      for await (const event of api.runAgentGraphStream({
+      for await (const event of api.runStaffGraphStream({
         user_input: formattedInput,
-        agents: updated.assignedAgents,
+        staff: updated.assignedStaff,
         max_rounds: opts.maxSteps ?? 6,
         mode: opts.mode ?? "sequential",
         custom_graph: opts.customGraph,
         conversation_id: updated.id,
-        team_id: updated.teamId,
+        department_id: updated.departmentId,
         signal: controller.signal,
       })) {
         if (controller.signal.aborted) { endReason = "aborted"; break; }
@@ -251,20 +251,20 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         }
 
         const eventType = event.type;
-        const agentId = event.agent_id || event.agentId || event.agent_name || event.agentName;
+        const staffId = event.agent_id || event.staffId || event.agent_name || event.staffName;
 
         if (eventType === "llm_request_start") {
-          if (agentId) {
-            setThinkingAgents((prev) => ({
+          if (staffId) {
+            setThinkingStaff((prev) => ({
               ...prev,
-              [updated.id]: new Set([...(prev[updated.id] ?? []), agentId]),
+              [updated.id]: new Set([...(prev[updated.id] ?? []), staffId]),
             }));
           }
         } else if (eventType === "subagent_start") {
-          if (agentId) {
-            setThinkingAgents((prev) => ({
+          if (staffId) {
+            setThinkingStaff((prev) => ({
               ...prev,
-              [updated.id]: new Set([...(prev[updated.id] ?? []), agentId]),
+              [updated.id]: new Set([...(prev[updated.id] ?? []), staffId]),
             }));
           }
           console.debug("subagent_start", event.subagent_type, event.description);
@@ -275,7 +275,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
           setActiveFanouts((prev) => ({
             ...prev,
             [updated.id]: {
-              coordinator: event.agent_name ? String(event.agent_name) : (agentId ? String(agentId) : undefined),
+              coordinator: event.agent_name ? String(event.agent_name) : (staffId ? String(staffId) : undefined),
               targets,
             },
           }));
@@ -297,8 +297,8 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
                   ...list,
                   {
                     requestId,
-                    agentId: agentId ? String(agentId) : undefined,
-                    agentName: event.agent_name ? String(event.agent_name) : undefined,
+                    staffId: staffId ? String(staffId) : undefined,
+                    staffName: event.agent_name ? String(event.agent_name) : undefined,
                     question: String(event.question ?? ""),
                     options: Array.isArray(event.options) ? event.options.map(String) : [],
                     allowFreeText: event.allow_free_text !== false,
@@ -345,8 +345,8 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
               nodeIds: Array.isArray(event.node_ids) ? event.node_ids.map(String) : [],
               edgeIds: Array.isArray(event.edge_ids) ? event.edge_ids.map(String) : [],
               chunkIds: Array.isArray(event.chunk_ids) ? event.chunk_ids.map(String) : [],
-              agentId: agentId ? String(agentId) : undefined,
-              agentName: event.agent_name ? String(event.agent_name) : agentId ? String(agentId) : undefined,
+              staffId: staffId ? String(staffId) : undefined,
+              staffName: event.agent_name ? String(event.agent_name) : staffId ? String(staffId) : undefined,
               updatedAt: new Date().toISOString(),
             },
           }));
@@ -359,19 +359,19 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
                 nodeIds: Array.isArray(event.node_ids) ? event.node_ids.map(String) : [],
                 edgeIds: Array.isArray(event.edge_ids) ? event.edge_ids.map(String) : [],
                 chunkIds: Array.isArray(event.chunk_ids) ? event.chunk_ids.map(String) : [],
-                agentId: agentId ? String(agentId) : undefined,
-                agentName: event.agent_name ? String(event.agent_name) : agentId ? String(agentId) : undefined,
+                staffId: staffId ? String(staffId) : undefined,
+                staffName: event.agent_name ? String(event.agent_name) : staffId ? String(staffId) : undefined,
                 updatedAt: new Date().toISOString(),
               },
             }));
           }
         } else if (eventType === "llm_response_complete") {
-          if (agentId) {
-            setThinkingAgents((prev) => {
+          if (staffId) {
+            setThinkingStaff((prev) => {
               const next = { ...prev };
               if (next[updated.id]) {
                 const newSet = new Set(next[updated.id]);
-                newSet.delete(agentId);
+                newSet.delete(staffId);
                 if (newSet.size > 0) next[updated.id] = newSet;
                 else delete next[updated.id];
               }
@@ -380,20 +380,20 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
           }
         } else if (eventType === "turn_complete" && event.turn) {
           const turn = event.turn;
-          const turnAgentId = turn.agent_id || turn.agentId || turn.agent_name || turn.agentName;
-          if (turnAgentId) {
+          const turnStaffId = turn.agent_id || turn.staffId || turn.agent_name || turn.staffName;
+          if (turnStaffId) {
             const message: Message = {
-              id: `${Date.now()}-${turnAgentId}-${turn.turn}`,
-              agentId: turnAgentId,
+              id: `${Date.now()}-${turnStaffId}-${turn.turn}`,
+              staffId: turnStaffId,
               content: turn.content || "",
               timestamp: new Date().toISOString(),
               taskId: updated.id,
             };
-            setThinkingAgents((prev) => {
+            setThinkingStaff((prev) => {
               const next = { ...prev };
               if (next[updated.id]) {
                 const newSet = new Set(next[updated.id]);
-                newSet.delete(turnAgentId);
+                newSet.delete(turnStaffId);
                 if (newSet.size > 0) next[updated.id] = newSet;
                 else delete next[updated.id];
               }
@@ -406,8 +406,8 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
             }));
             refreshGraph(updated.id);
             try {
-              await api.addConversation({
-                agentId: message.agentId,
+              await api.addMeeting({
+                staffId: message.staffId,
                 content: message.content,
                 taskId: message.taskId,
               });
@@ -417,10 +417,10 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
           }
         } else if (event.content && !eventType) {
           // Fallback for old-style turn objects (not wrapped in turn_complete).
-          if (agentId) {
+          if (staffId) {
             const message: Message = {
-              id: `${Date.now()}-${agentId}-${event.turn}`,
-              agentId,
+              id: `${Date.now()}-${staffId}-${event.turn}`,
+              staffId,
               content: event.content || "",
               timestamp: new Date().toISOString(),
               taskId: updated.id,
@@ -432,8 +432,8 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
             }));
             refreshGraph(updated.id);
             try {
-              await api.addConversation({
-                agentId: message.agentId,
+              await api.addMeeting({
+                staffId: message.staffId,
                 content: message.content,
                 taskId: message.taskId,
               });
@@ -473,7 +473,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         next.delete(updated.id);
         return next;
       });
-      setThinkingAgents((prev) => { const next = { ...prev }; delete next[updated.id]; return next; });
+      setThinkingStaff((prev) => { const next = { ...prev }; delete next[updated.id]; return next; });
       setActiveFanouts((prev) => { const next = { ...prev }; delete next[updated.id]; return next; });
       setPendingInterjections((prev) => { const next = { ...prev }; delete next[updated.id]; return next; });
       setHeldTaskIds((prev) => { const next = new Set(prev); next.delete(updated.id); return next; });
@@ -498,9 +498,9 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     try {
       const updated = await api.upsertTask({ ...task, status: "in-progress" });
       applyTask(updated);
-      if (updated.assignedAgents.length > 0) {
+      if (updated.assignedStaff.length > 0) {
         // On restart from completed/stopped, keep the transcript (long-running
-        // conversation) and only reset transient interaction state. Use the
+        // meeting) and only reset transient interaction state. Use the
         // explicit "Clear history" action for a full wipe.
         if (task.status === "completed" || task.status === "stopped") {
           clearTransientRunState(updated.id);
@@ -558,7 +558,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     opts: RunOpts & { transcriptTail?: string },
   ) => {
     if (!content || controllersRef.current.has(task.id)) return;
-    if (task.assignedAgents.length === 0) return;
+    if (task.assignedStaff.length === 0) return;
     // Reserve synchronously (see startTask's comment — same race applies here).
     const controller = new AbortController();
     controllersRef.current.set(task.id, controller);
@@ -567,14 +567,14 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     try {
       const message: Message = {
         id: `${Date.now()}-followup`,
-        agentId: "user",
+        staffId: "user",
         content,
         timestamp: new Date().toISOString(),
         taskId: task.id,
       };
       setConversations((prev) => ({ ...prev, [task.id]: [...(prev[task.id] ?? []), message] }));
       try {
-        await api.addConversation({ agentId: "user", content, taskId: task.id });
+        await api.addMeeting({ staffId: "user", content, taskId: task.id });
       } catch (e) {
         console.error("Failed to save follow-up message:", e);
       }
@@ -588,7 +588,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}\n\n` +
         `[User follow-up after reviewing the previous result — continue the task accordingly, ` +
         `building on the work already done instead of starting over]: ${content}` +
-        (transcriptTail ? `\n\n[Recent conversation from the previous run, for context]:\n${transcriptTail}` : "");
+        (transcriptTail ? `\n\n[Recent meeting from the previous run, for context]:\n${transcriptTail}` : "");
       await runStream(updated, formattedInput, opts, controller);
     } catch (e) {
       controllersRef.current.delete(task.id);
@@ -614,11 +614,11 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     setSendingInterjectTaskIds((prev) => new Set(prev).add(task.id));
     setInterjectErrors((prev) => { const next = { ...prev }; delete next[task.id]; return next; });
     try {
-      const res = await api.interjectAgentGraph({ conversation_id: task.id, content });
+      const res = await api.interjectStaffGraph({ conversation_id: task.id, content });
       const messageId = res.message_id ?? `${Date.now()}-user`;
       const message: Message = {
         id: messageId,
-        agentId: "user",
+        staffId: "user",
         content,
         timestamp: new Date().toISOString(),
         taskId: task.id,
@@ -629,7 +629,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         [task.id]: new Set([...(prev[task.id] ?? []), messageId]),
       }));
       try {
-        await api.addConversation({ agentId: "user", content, taskId: task.id });
+        await api.addMeeting({ staffId: "user", content, taskId: task.id });
       } catch (e) {
         console.error("Failed to save user message:", e);
       }
@@ -656,7 +656,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     setRespondingRequestIds((prev) => new Set(prev).add(request.requestId));
     setInterjectErrors((prev) => { const next = { ...prev }; delete next[task.id]; return next; });
     try {
-      await api.respondAgentGraph({ conversation_id: task.id, request_id: request.requestId, response: content });
+      await api.respondStaffGraph({ conversation_id: task.id, request_id: request.requestId, response: content });
       setUserInputRequests((prev) => {
         const list = prev[task.id];
         if (!list) return prev;
@@ -668,14 +668,14 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
       });
       const message: Message = {
         id: `${Date.now()}-answer-${request.requestId}`,
-        agentId: "user",
+        staffId: "user",
         content,
         timestamp: new Date().toISOString(),
         taskId: task.id,
       };
       setConversations((prev) => ({ ...prev, [task.id]: [...(prev[task.id] ?? []), message] }));
       try {
-        await api.addConversation({ agentId: "user", content, taskId: task.id });
+        await api.addMeeting({ staffId: "user", content, taskId: task.id });
       } catch (e) {
         console.error("Failed to save user answer:", e);
       }
@@ -701,10 +701,10 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     setInterjectErrors((prev) => { const next = { ...prev }; delete next[task.id]; return next; });
     try {
       if (holdRun) {
-        await api.pauseAgentGraph({ conversation_id: task.id });
+        await api.pauseStaffGraph({ conversation_id: task.id });
         setHeldTaskIds((prev) => new Set(prev).add(task.id));
       } else {
-        await api.resumeAgentGraph({ conversation_id: task.id });
+        await api.resumeStaffGraph({ conversation_id: task.id });
         setHeldTaskIds((prev) => {
           const next = new Set(prev);
           next.delete(task.id);
@@ -758,7 +758,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const ingestConversations = useCallback((taskId: string, messages: Message[]) => {
+  const ingestMeetings = useCallback((taskId: string, messages: Message[]) => {
     // Seed only when the engine has no live transcript — never overwrite a run
     // in progress (its optimistic messages would duplicate against backend ids).
     setConversations((prev) => {
@@ -776,8 +776,8 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
   const value: RunEngineValue = useMemo(
     () => ({
       tasks,
-      conversations,
-      thinkingAgents,
+      meetings,
+      thinkingStaff,
       activeFanouts,
       graphSnapshots,
       graphHighlights,
@@ -795,7 +795,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
       upsertTask,
       removeTask,
       ingestTasks,
-      ingestConversations,
+      ingestMeetings,
       startTask,
       stopTask,
       pauseTask,
@@ -812,8 +812,8 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     }),
     [
       tasks,
-      conversations,
-      thinkingAgents,
+      meetings,
+      thinkingStaff,
       activeFanouts,
       graphSnapshots,
       graphHighlights,
@@ -831,7 +831,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
       upsertTask,
       removeTask,
       ingestTasks,
-      ingestConversations,
+      ingestMeetings,
       startTask,
       stopTask,
       pauseTask,

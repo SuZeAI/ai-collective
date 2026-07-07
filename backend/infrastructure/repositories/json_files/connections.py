@@ -3,7 +3,7 @@ from __future__ import annotations
 import threading
 from datetime import datetime, timezone
 
-from backend.domain.models import ThirdPartyConnection
+from backend.domain.models import DEFAULT_OWNER_ID, Connection
 from backend.infrastructure.repositories.json_store import JsonFileStore
 
 
@@ -14,16 +14,16 @@ class JsonConnectionRepository:
         data = store.read()
         if not isinstance(data, list):
             data = []
-        self._items: dict[str, ThirdPartyConnection] = {}
+        self._items: dict[str, Connection] = {}
         for item in data:
             parsed = self._parse_item(item)
             if parsed is not None:
                 self._items[parsed.id] = parsed
 
     @staticmethod
-    def _parse_item(item: dict) -> ThirdPartyConnection | None:
+    def _parse_item(item: dict) -> Connection | None:
         try:
-            return ThirdPartyConnection(
+            return Connection(
                 id=str(item["id"]),
                 platform=str(item.get("platform", "")),
                 name=str(item.get("name", "")),
@@ -32,12 +32,18 @@ class JsonConnectionRepository:
                 created_at=datetime.fromisoformat(item["created_at"]).replace(tzinfo=timezone.utc)
                 if item.get("created_at")
                 else datetime.now(timezone.utc),
+                enabled=bool(item.get("enabled", True)),
+                kind=str(item.get("kind", "outbound") or "outbound"),
+                company_id=str(item.get("company_id", "") or ""),
+                owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
+                routing_department_id=str(item.get("routing_department_id", "") or ""),
+                routing_staff_ids=list(item.get("routing_staff_ids") or []),
             )
         except Exception:
             return None
 
     @staticmethod
-    def _serialize_item(c: ThirdPartyConnection) -> dict:
+    def _serialize_item(c: Connection) -> dict:
         return {
             "id": c.id,
             "platform": c.platform,
@@ -45,17 +51,23 @@ class JsonConnectionRepository:
             "config": dict(c.config),
             "description": c.description,
             "created_at": c.created_at.isoformat(),
+            "enabled": c.enabled,
+            "kind": c.kind,
+            "company_id": c.company_id,
+            "owner_id": c.owner_id,
+            "routing_department_id": c.routing_department_id,
+            "routing_staff_ids": list(c.routing_staff_ids),
         }
 
-    def list(self) -> list[ThirdPartyConnection]:
+    def list(self) -> list[Connection]:
         with self._lock:
             return list(self._items.values())
 
-    def get(self, conn_id: str) -> ThirdPartyConnection | None:
+    def get(self, conn_id: str) -> Connection | None:
         with self._lock:
             return self._items.get(conn_id)
 
-    def upsert(self, conn: ThirdPartyConnection) -> ThirdPartyConnection:
+    def upsert(self, conn: Connection) -> Connection:
         with self._lock:
             self._items = self._merge_and_persist({conn.id: conn}, remove_ids=())
         return conn
@@ -65,8 +77,8 @@ class JsonConnectionRepository:
             self._items = self._merge_and_persist({}, remove_ids=(conn_id,))
 
     def _merge_and_persist(
-        self, upserts: dict[str, ThirdPartyConnection], remove_ids: tuple[str, ...]
-    ) -> dict[str, ThirdPartyConnection]:
+        self, upserts: dict[str, Connection], remove_ids: tuple[str, ...]
+    ) -> dict[str, Connection]:
         """Merge this change into the *current on-disk* state (not just this
         process's in-memory cache) under one lock acquisition, so a concurrent
         writer in another process/instance can't have its update silently
@@ -82,7 +94,7 @@ class JsonConnectionRepository:
             return list(merged.values())
 
         new_raw = self._store.read_modify_write(modify)
-        result: dict[str, ThirdPartyConnection] = {}
+        result: dict[str, Connection] = {}
         for item in new_raw:
             parsed = self._parse_item(item)
             if parsed is not None:

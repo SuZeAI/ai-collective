@@ -5,9 +5,9 @@ import {
   TrendingUp, Zap, Users, Clock, Activity, CheckCircle2, ListTodo, Building2, ArrowUpRight, Sparkles,
 } from "lucide-react";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
-import { useAgentSimulation } from "@/hooks/use-agent-simulation";
-import { api, avgCompletionOf, type Agent, type Analytics, type ActivityFeedItem, type Task, type Workspace, type Team } from "@/lib/api";
-import { useWorkspaceScope, setActiveWorkspaceId } from "@/hooks/use-workspace-scope";
+import { useStaffSimulation } from "@/hooks/use-staff-simulation";
+import { api, avgCompletionOf, type Staff, type Analytics, type ActivityFeedItem, type Task, type Company, type Department } from "@/lib/api";
+import { useCompanyScope, setActiveCompanyId } from "@/hooks/use-company-scope";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { companyTypeOf } from "@/lib/company-types";
@@ -29,7 +29,7 @@ const metricConfig = [
   { key: "completed", icon: CheckCircle2, label: "Tasks Completed" },
   { key: "active", icon: ListTodo, label: "Active Tasks" },
   { key: "efficiency", icon: Zap, label: "Department Efficiency" },
-  { key: "agents", icon: Users, label: "Active Personnel" },
+  { key: "staff", icon: Users, label: "Active Personnel" },
   { key: "time", icon: Clock, label: "Avg. Completion" },
 ];
 
@@ -41,30 +41,30 @@ const statusVariant: Record<string, NonNullable<BadgeProps["variant"]>> = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  useAgentSimulation();
-  const scope = useWorkspaceScope();
+  useStaffSimulation();
+  const scope = useCompanyScope();
   const { t } = useLanguage();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin" || user?.role === "system";
   const [isLoading, setIsLoading] = useState(true);
-  const [allAgents, setAgents] = useState<Agent[]>([]);
+  const [allStaff, setStaff] = useState<Staff[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [allActivityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
   const [allTasks, setTasks] = useState<Task[]>([]);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
 
   // Office scoping: a specific office shows only its personnel/tasks/activity.
-  const agents = useMemo(
-    () => (scope.isOverall ? allAgents : allAgents.filter((a) => scope.agentIds.has(a.id))),
-    [allAgents, scope],
+  const staff = useMemo(
+    () => (scope.isOverall ? allStaff : allStaff.filter((a) => scope.staffIds.has(a.id))),
+    [allStaff, scope],
   );
   const tasks = useMemo(
-    () => (scope.isOverall ? allTasks : allTasks.filter((t) => scope.teamIds.has(t.teamId))),
+    () => (scope.isOverall ? allTasks : allTasks.filter((t) => scope.departmentIds.has(t.departmentId))),
     [allTasks, scope],
   );
   const activityFeed = useMemo(
-    () => (scope.isOverall ? allActivityFeed : allActivityFeed.filter((f) => scope.agentIds.has(f.agentId))),
+    () => (scope.isOverall ? allActivityFeed : allActivityFeed.filter((f) => scope.staffIds.has(f.staffId))),
     [allActivityFeed, scope],
   );
 
@@ -74,20 +74,20 @@ export default function Dashboard() {
       try {
         setIsLoading(true);
         const [a, an, feed, tsk, ws, tm] = await Promise.all([
-          api.listAgents(),
+          api.listStaff(),
           api.getAnalytics(),
           api.listActivityFeed(),
           api.listTasks(),
-          api.listWorkspaces().catch(() => [] as Workspace[]),
-          api.listTeams().catch(() => [] as Team[]),
+          api.listCompanies().catch(() => [] as Company[]),
+          api.listDepartments().catch(() => [] as Department[]),
         ]);
         if (cancelled) return;
-        setAgents(a);
+        setStaff(a);
         setAnalytics(an);
         setActivityFeed(feed);
         setTasks(tsk);
-        setWorkspaces(ws);
-        setTeams(tm);
+        setCompanies(ws);
+        setDepartments(tm);
       } catch (e) {
         console.error(e);
       } finally {
@@ -97,52 +97,52 @@ export default function Dashboard() {
     return () => { cancelled = true; };
   }, []);
 
-  const agentById = useMemo(() => {
-    const map = new Map<string, Agent>();
-    allAgents.forEach((a) => map.set(a.id, a));
+  const staffById = useMemo(() => {
+    const map = new Map<string, Staff>();
+    allStaff.forEach((a) => map.set(a.id, a));
     return map;
-  }, [allAgents]);
+  }, [allStaff]);
 
-  // Map each team to its owning office, so deep links from the Overall view can
+  // Map each department to its owning office, so deep links from the Overall view can
   // switch into the right company before opening a task.
-  const teamToWorkspaceId = useMemo(() => {
+  const departmentToCompanyId = useMemo(() => {
     const map = new Map<string, string>();
-    for (const ws of workspaces) for (const tid of ws.teamIds) map.set(tid, ws.id);
+    for (const ws of companies) for (const tid of ws.departmentIds) map.set(tid, ws.id);
     return map;
-  }, [workspaces]);
+  }, [companies]);
 
   // Per-company monitoring rollup for the Overall "Companies" grid. Membership
-  // mirrors useWorkspaceScope: workspace.teamIds → team.agents → tasks by team.
+  // mirrors useCompanyScope: company.departmentIds → department.staff → tasks by department.
   const companyStats = useMemo(() => {
     if (!scope.isOverall) return [];
-    return workspaces.map((ws) => {
-      const teamIds = new Set(ws.teamIds);
-      const agentIds = new Set(teams.filter((t) => teamIds.has(t.id)).flatMap((t) => t.agents));
-      const companyTasks = allTasks.filter((t) => teamIds.has(t.teamId));
+    return companies.map((ws) => {
+      const departmentIds = new Set(ws.departmentIds);
+      const staffIds = new Set(departments.filter((t) => departmentIds.has(t.id)).flatMap((t) => t.staff));
+      const companyTasks = allTasks.filter((t) => departmentIds.has(t.departmentId));
       const activeTasks = companyTasks.filter((t) => t.status === "in-progress").length;
-      const staffCount = allAgents.filter((a) => agentIds.has(a.id)).length;
-      const activeStaff = allAgents.filter((a) => agentIds.has(a.id) && a.status === "active").length;
+      const staffCount = allStaff.filter((a) => staffIds.has(a.id)).length;
+      const activeStaff = allStaff.filter((a) => staffIds.has(a.id) && a.status === "active").length;
       return { ws, taskCount: companyTasks.length, activeTasks, staffCount, active: activeTasks > 0 || activeStaff > 0 };
     });
-  }, [scope.isOverall, workspaces, teams, allTasks, allAgents]);
+  }, [scope.isOverall, companies, departments, allTasks, allStaff]);
 
   // From the Overall view, opening a task first switches into its owning office
   // (company-specific routes are guarded against the All scope).
   const openTask = (task: Task) => {
     if (scope.isOverall) {
-      const wsId = teamToWorkspaceId.get(task.teamId);
-      if (wsId) setActiveWorkspaceId(wsId);
+      const wsId = departmentToCompanyId.get(task.departmentId);
+      if (wsId) setActiveCompanyId(wsId);
     }
     navigate(`/tasks?id=${task.id}`);
   };
 
-  const activeAgentsCount = agents.filter((a) => a.status === "active").length;
+  const activeStaffCount = staff.filter((a) => a.status === "active").length;
   const activeTasks = tasks.filter((t) => t.status === "in-progress").length;
   const completedTasks = tasks.filter((t) => t.status === "completed").length;
   // Global metrics come from the analytics endpoint; office-scoped ones are
   // computed client-side from the scoped task list.
   const efficiency = scope.isOverall
-    ? analytics?.teamEfficiency ?? 0
+    ? analytics?.departmentEfficiency ?? 0
     : tasks.length > 0
       ? Math.round((completedTasks / tasks.length) * 100)
       : 0;
@@ -154,7 +154,7 @@ export default function Dashboard() {
     { value: String(completedTasks), trend: "+12%" },
     { value: String(activeTasks), trend: "in progress" },
     { value: `${efficiency}%`, trend: "+5%" },
-    { value: String(activeAgentsCount), trend: `of ${agents.length}` },
+    { value: String(activeStaffCount), trend: `of ${staff.length}` },
     { value: avgCompletion, trend: "avg time" },
   ];
 
@@ -165,7 +165,7 @@ export default function Dashboard() {
 
   // Admins have no company control center: their "All" view is the shared
   // catalog, so send them to Departments instead of the Company Overview.
-  if (scope.isOverall && isAdmin) return <Navigate to="/teams" replace />;
+  if (scope.isOverall && isAdmin) return <Navigate to="/departments" replace />;
 
   return (
     <motion.div
@@ -177,11 +177,11 @@ export default function Dashboard() {
       {/* Page header */}
       <motion.div variants={itemVariants}>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          {scope.workspace ? `${scope.workspace.name} — Overview` : "Company Overview"}
+          {scope.company ? `${scope.company.name} — Overview` : "Company Overview"}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {scope.workspace
-            ? `Operations of office "${scope.workspace.name}"`
+          {scope.company
+            ? `Operations of office "${scope.company.name}"`
             : "Overview of your company operations across all offices"}
         </p>
       </motion.div>
@@ -223,7 +223,7 @@ export default function Dashboard() {
               {companyStats.map(({ ws, taskCount, activeTasks, staffCount, active }) => (
                 <button
                   key={ws.id}
-                  onClick={() => setActiveWorkspaceId(ws.id)}
+                  onClick={() => setActiveCompanyId(ws.id)}
                   className="text-left glass-card p-4 hover:border-border transition-all group relative"
                 >
                   <div className="flex items-center gap-2.5">
@@ -256,7 +256,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <button
-              onClick={() => navigate("/workspaces")}
+              onClick={() => navigate("/companies")}
               className="w-full glass-card p-6 text-center text-muted-foreground hover:border-border transition-all"
             >
               <Building2 className="w-7 h-7 opacity-40 mx-auto mb-2" />
@@ -362,7 +362,7 @@ export default function Dashboard() {
               <div className="space-y-1.5">
                 <AnimatePresence>
                   {activityFeed.map((item, idx) => {
-                    const agent = agentById.get(item.agentId);
+                    const staff = staffById.get(item.staffId);
                     return (
                       <motion.div
                         key={item.id}
@@ -375,7 +375,7 @@ export default function Dashboard() {
                         <div className="min-w-0 flex-1">
                           <p className="text-xs leading-snug">
                             <span className="font-semibold text-foreground">
-                              {agent?.name || "System"}
+                              {staff?.name || "System"}
                             </span>{" "}
                             <span className="text-muted-foreground">{item.action}</span>
                           </p>

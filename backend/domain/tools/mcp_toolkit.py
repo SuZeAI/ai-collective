@@ -3,7 +3,7 @@
 A skill with ``tool_name = "mcp"`` turns an external MCP server into a regular
 toolkit: at bind time the toolkit connects to the server, discovers its tools
 (name, description, JSON input schema) and wraps each one as a LangChain
-``BaseTool`` the agents can call like any built-in tool.
+``BaseTool`` the staff can call like any built-in tool.
 
 Supported transports (``transport`` config field):
 

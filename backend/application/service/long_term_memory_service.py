@@ -1,6 +1,6 @@
 """Long-term memory orchestration: recall, remember, consolidate.
 
-Sits between the agent runtime and the LTM repository. Handles embedding,
+Sits between the staff runtime and the LTM repository. Handles embedding,
 similarity-based dedupe and the end-of-run consolidation that promotes salient
 short-term knowledge (working-memory notes, high-salience graph nodes) into
 durable cross-conversation memory.
@@ -184,9 +184,9 @@ class LongTermMemoryService:
             id=str(uuid.uuid4()),
             content=content,
             kind=kind,
-            workspace_id=scope.workspace_id,
+            company_id=scope.company_id,
             owner_id=scope.owner_id,
-            agent_id=scope.agent_id,
+            staff_id=scope.staff_id,
             embedding=embedding,
             importance=max(0.0, min(1.0, importance)),
             source_conversation_id=source_conversation_id,

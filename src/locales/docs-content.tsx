@@ -152,7 +152,7 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
                         │ REST API / WebSocket
 ┌───────────────────────▼─────────────────────────┐
 │              FastAPI Backend                     │
-│  Agent Manager ─── LangGraph Orchestrator        │
+│  Staff Manager ─── LangGraph Orchestrator        │
 │  Skill Registry        Task Runner               │
 │  Tool Executor     RabbitMQ Event Bus            │
 └───────────────────────┬─────────────────────────┘
@@ -195,7 +195,7 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
         <P>
           {lang === "vi"
             ? "AI Collective cung cấp các gói dịch vụ linh hoạt được thiết kế cho các nhà phát triển cá nhân, các đội ngũ đang phát triển và các doanh nghiệp lớn."
-            : "AI Collective offers flexible pricing tiers designed for individual developers, growing teams, and large enterprises."}
+            : "AI Collective offers flexible pricing tiers designed for individual developers, growing departments, and large enterprises."}
         </P>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
@@ -206,8 +206,8 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
               {lang === "vi" ? "Phù hợp để thử nghiệm và chạy các tác vụ cá nhân cục bộ." : "Ideal for testing, development, and personal projects."}
             </p>
             <UL>
-              <LI>{lang === "vi" ? "Chạy tác nhân cục bộ không giới hạn" : "Unlimited local agent executions"}</LI>
-              <LI>{lang === "vi" ? "1 không gian làm việc hoạt động" : "1 active workspace"}</LI>
+              <LI>{lang === "vi" ? "Chạy tác nhân cục bộ không giới hạn" : "Unlimited local staff executions"}</LI>
+              <LI>{lang === "vi" ? "1 không gian làm việc hoạt động" : "1 active company"}</LI>
               <LI>{lang === "vi" ? "Hỗ trợ cộng đồng qua Discord/GitHub" : "Community support"}</LI>
             </UL>
           </div>
@@ -219,10 +219,10 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
             <div className="font-bold text-lg mb-1">{lang === "vi" ? "Chuyên nghiệp (Pro)" : "Pro Plan"}</div>
             <div className="text-2xl font-extrabold mb-3">$29<span className="text-xs font-normal text-muted-foreground">/user/mo</span></div>
             <p className="text-xs text-muted-foreground mb-4">
-              {lang === "vi" ? "Dành cho các nhóm chạy dự án thực tế trên hạ tầng đám mây." : "For teams running production workloads on cloud infrastructures."}
+              {lang === "vi" ? "Dành cho các nhóm chạy dự án thực tế trên hạ tầng đám mây." : "For departments running production workloads on cloud infrastructures."}
             </p>
             <UL>
-              <LI>{lang === "vi" ? "Lên tới 10 không gian làm việc" : "Up to 10 active workspaces"}</LI>
+              <LI>{lang === "vi" ? "Lên tới 10 không gian làm việc" : "Up to 10 active companies"}</LI>
               <LI>{lang === "vi" ? "Hàng đợi tác vụ RabbitMQ tốc độ cao" : "High-speed RabbitMQ task queue"}</LI>
               <LI>{lang === "vi" ? "Thống kê chi phí & độ trễ chi tiết" : "Advanced cost & telemetry analytics"}</LI>
               <LI>{lang === "vi" ? "Hỗ trợ ưu tiên 24/7" : "Priority 24/7 email & Slack support"}</LI>
@@ -236,7 +236,7 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
               {lang === "vi" ? "Hạ tầng dành riêng cho tổ chức lớn với yêu cầu cao về bảo mật." : "Dedicated isolation for large organizations requiring custom SLAs and advanced security."}
             </p>
             <UL>
-              <LI>{lang === "vi" ? "Không giới hạn không gian làm việc" : "Unlimited workspaces"}</LI>
+              <LI>{lang === "vi" ? "Không giới hạn không gian làm việc" : "Unlimited companies"}</LI>
               <LI>{lang === "vi" ? "Triển khai Self-hosted hoặc On-premise" : "Self-hosted / On-premise deployment"}</LI>
               <LI>{lang === "vi" ? "Đăng nhập một lần (SSO / SAML)" : "Single Sign-On (SSO) & SAML"}</LI>
               <LI>{lang === "vi" ? "Kỹ sư hỗ trợ riêng biệt & cam kết SLA" : "Dedicated Support Engineer & Uptime SLAs"}</LI>
@@ -314,26 +314,26 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
       </div>
     ),
 
-    "agents": (
+    "staff": (
       <div>
-        <H1>{c.agents.h1}</H1>
-        <P>{c.agents.p1}</P>
-        <H2>{c.agents.schemaH2}</H2>
-        <CodeBlock lang="typescript" title="types/Agent" code={`type Agent = {\n  id: string;\n  name: string;\n  role: string;\n  description: string;\n  system_prompt?: string;\n  skill_ids: string[];\n  status: "active" | "idle" | "thinking" | string;\n  avatar: string;\n}`} />
-        <H2>{c.agents.rolesH2}</H2>
-        <P>{c.agents.rolesP}</P>
+        <H1>{c.staff.h1}</H1>
+        <P>{c.staff.p1}</P>
+        <H2>{c.staff.schemaH2}</H2>
+        <CodeBlock lang="typescript" title="types/Staff" code={`type Staff = {\n  id: string;\n  name: string;\n  role: string;\n  description: string;\n  system_prompt?: string;\n  skill_ids: string[];\n  status: "active" | "idle" | "thinking" | string;\n  avatar: string;\n}`} />
+        <H2>{c.staff.rolesH2}</H2>
+        <P>{c.staff.rolesP}</P>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 my-4">
-          {["Project Manager","Research Agent","Developer Agent","Marketing Agent","Reviewer Agent","Support Agent","Data Analyst Agent","QA Agent","Legal Advisor Agent"].map((r) => (
+          {["Project Manager","Research Staff","Developer Staff","Marketing Staff","Reviewer Staff","Support Staff","Data Analyst Staff","QA Staff","Legal Advisor Staff"].map((r) => (
             <div key={r} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40 border border-border/50 text-xs font-medium text-foreground/70">
               <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />{r}
             </div>
           ))}
         </div>
-        <Callout type="tip">{c.agents.callout}</Callout>
-        <H2>{c.agents.lifecycleH2}</H2>
+        <Callout type="tip">{c.staff.callout}</Callout>
+        <H2>{c.staff.lifecycleH2}</H2>
         <CodeBlock lang="text" code={`idle ──▶ thinking ──▶ active ──▶ idle\n                          │\n                          └──▶ error`} />
-        <H2>{c.agents.restH2}</H2>
-        <CodeBlock lang="bash" code={`curl -X POST http://localhost:8000/api/agents \\\n  -H "Content-Type: application/json" \\\n  -d '{"name":"Alice","role":"Research Agent","skill_ids":[],"status":"idle","avatar":"A"}'`} />
+        <H2>{c.staff.restH2}</H2>
+        <CodeBlock lang="bash" code={`curl -X POST http://localhost:8000/api/staff \\\n  -H "Content-Type: application/json" \\\n  -d '{"name":"Alice","role":"Research Staff","skill_ids":[],"status":"idle","avatar":"A"}'`} />
       </div>
     ),
 
@@ -357,23 +357,23 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
       </div>
     ),
 
-    "teams": (
+    "departments": (
       <div>
-        <H1>{c.teams.h1}</H1>
-        <P>{c.teams.p1}</P>
-        <H2>{c.teams.modesH2}</H2>
+        <H1>{c.departments.h1}</H1>
+        <P>{c.departments.p1}</P>
+        <H2>{c.departments.modesH2}</H2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-5">
           <div className="p-5 rounded-xl border-2 border-primary/20 bg-primary/5">
-            <div className="font-bold mb-2 flex items-center gap-2"><Pill color="blue">mesh</Pill> {c.teams.mesh.title}</div>
-            <p className="text-[13px] text-muted-foreground leading-relaxed">{c.teams.mesh.desc}</p>
+            <div className="font-bold mb-2 flex items-center gap-2"><Pill color="blue">mesh</Pill> {c.departments.mesh.title}</div>
+            <p className="text-[13px] text-muted-foreground leading-relaxed">{c.departments.mesh.desc}</p>
           </div>
           <div className="p-5 rounded-xl border-2 border-violet-200 bg-violet-500/5">
-            <div className="font-bold mb-2 flex items-center gap-2"><Pill color="purple">sequential</Pill> {c.teams.sequential.title}</div>
-            <p className="text-[13px] text-muted-foreground leading-relaxed">{c.teams.sequential.desc}</p>
+            <div className="font-bold mb-2 flex items-center gap-2"><Pill color="purple">sequential</Pill> {c.departments.sequential.title}</div>
+            <p className="text-[13px] text-muted-foreground leading-relaxed">{c.departments.sequential.desc}</p>
           </div>
         </div>
-        <H2>{c.teams.schemaH2}</H2>
-        <CodeBlock lang="typescript" code={`type Team = {\n  id: string;\n  name: string;\n  description: string;\n  agents: string[];\n  mode: "mesh" | "sequential";\n  activeTasks: number;\n}`} />
+        <H2>{c.departments.schemaH2}</H2>
+        <CodeBlock lang="typescript" code={`type Department = {\n  id: string;\n  name: string;\n  description: string;\n  staff: string[];\n  mode: "mesh" | "sequential";\n  activeTasks: number;\n}`} />
       </div>
     ),
 
@@ -384,21 +384,21 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
         <H2>{c.tasks.lifecycleH2}</H2>
         <CodeBlock lang="text" code={`pending ──▶ in-progress ──▶ completed\n                 │\n                 ├──▶ paused ──▶ in-progress\n                 └──▶ stopped`} />
         <H2>{c.tasks.schemaH2}</H2>
-        <CodeBlock lang="typescript" code={`type Task = {\n  id: string;\n  title: string;\n  description: string;\n  status: "pending" | "in-progress" | "paused" | "stopped" | "completed";\n  progress: number;\n  team_id?: string;\n  result?: string;\n}`} />
+        <CodeBlock lang="typescript" code={`type Task = {\n  id: string;\n  title: string;\n  description: string;\n  status: "pending" | "in-progress" | "paused" | "stopped" | "completed";\n  progress: number;\n  department_id?: string;\n  result?: string;\n}`} />
         <H2>{c.tasks.graphH2}</H2>
         <P>{c.tasks.graphP}</P>
         <Callout type="info">{c.tasks.graphCallout}</Callout>
       </div>
     ),
 
-    "conversations": (
+    "meetings": (
       <div>
-        <H1>{c.conversations.h1}</H1>
-        <P>{c.conversations.p1}</P>
-        <H2>{c.conversations.formatH2}</H2>
-        <CodeBlock lang="typescript" code={`type Message = {\n  id: string;\n  role: "user" | "assistant" | "system" | "tool";\n  content: string;\n  agent_id?: string;\n  task_id?: string;\n  timestamp: string;\n}`} />
-        <H2>{c.conversations.filterH2}</H2>
-        <P>{c.conversations.filterP}</P>
+        <H1>{c.meetings.h1}</H1>
+        <P>{c.meetings.p1}</P>
+        <H2>{c.meetings.formatH2}</H2>
+        <CodeBlock lang="typescript" code={`type Message = {\n  id: string;\n  role: "user" | "assistant" | "system" | "tool";\n  content: string;\n  staff_id?: string;\n  task_id?: string;\n  timestamp: string;\n}`} />
+        <H2>{c.meetings.filterH2}</H2>
+        <P>{c.meetings.filterP}</P>
       </div>
     ),
 
@@ -408,14 +408,14 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
         <P>
           {lang === "vi" 
             ? "Môi trường Thử nghiệm (Playground) cung cấp một giao diện tương tác trực tiếp để thử nghiệm nhanh các tác nhân hoặc nhóm tác nhân AI của bạn mà không cần tạo và quản lý các nhiệm vụ (Tasks) chính thức."
-            : "The Playground provides an interactive chat interface to quickly test your AI agents or teams without having to create and monitor formal executing tasks."}
+            : "The Playground provides an interactive chat interface to quickly test your AI staff or departments without having to create and monitor formal executing tasks."}
         </P>
         <H2>{lang === "vi" ? "Cách hoạt động" : "How it Works"}</H2>
         <UL>
           <LI>
             {lang === "vi"
               ? "Chọn Tác nhân hoặc Nhóm: Sử dụng trình thả xuống ở góc trên cùng để chọn đối tượng bạn muốn trò chuyện."
-              : "Select Agent or Team: Use the dropdown in the header to choose who you want to interact with."}
+              : "Select Staff or Department: Use the dropdown in the header to choose who you want to interact with."}
           </LI>
           <LI>
             {lang === "vi"
@@ -425,14 +425,14 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
           <LI>
             {lang === "vi"
               ? "Theo dõi Cuộc gọi Công cụ: Xem trực tiếp cách các tác nhân quyết định gọi các kỹ năng như duyệt web hoặc thực thi mã."
-              : "Inspect Tool Calls: Directly view when agents decide to call skills such as web scraping or database read."}
+              : "Inspect Tool Calls: Directly view when staff decide to call skills such as web scraping or database read."}
           </LI>
         </UL>
         <H2>{lang === "vi" ? "Mục đích sử dụng" : "When to Use"}</H2>
         <P>
           {lang === "vi"
             ? "Chế độ Thử nghiệm là lựa chọn lý tưởng nhất để tinh chỉnh các câu lệnh hệ thống (system prompts) của tác nhân hoặc kiểm tra xem các kỹ năng (skills) có hoạt động như mong đợi hay không trước khi ghép chúng vào các luồng công việc phức tạp."
-            : "The Playground is ideal for refining agent system prompts and verifying whether custom tools and integrations work as intended before deploying them in automated multi-step flows."}
+            : "The Playground is ideal for refining staff system prompts and verifying whether custom tools and integrations work as intended before deploying them in automated multi-step flows."}
         </P>
       </div>
     ),
@@ -443,7 +443,7 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
         <P>
           {lang === "vi"
             ? "Trang Phân tích cung cấp các biểu đồ trực quan hóa chi tiết về hiệu năng hoạt động của hệ thống tác nhân và các chỉ số tài nguyên sử dụng."
-            : "The Analytics dashboard offers visual charts and detailed telemetry covering agent execution performance and system resources."}
+            : "The Analytics dashboard offers visual charts and detailed telemetry covering staff execution performance and system resources."}
         </P>
         <H2>{lang === "vi" ? "Các chỉ số chính" : "Key Metrics Tracked"}</H2>
         <UL>
@@ -463,31 +463,31 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
             <strong>{lang === "vi" ? "Lưu lượng Hàng đợi Event Bus" : "Event Queue Statistics"}:</strong>{" "}
             {lang === "vi"
               ? "Giám sát số lượng thông điệp chạy qua bus sự kiện RabbitMQ để đảm bảo hệ thống không bị nghẽn."
-              : "Monitors active messages routing through RabbitMQ to ensure smooth agent communication."}
+              : "Monitors active messages routing through RabbitMQ to ensure smooth staff communication."}
           </LI>
         </UL>
       </div>
     ),
 
-    "workspaces": (
+    "companies": (
       <div>
-        <H1>{lang === "vi" ? "Không gian làm việc (Workspaces)" : lang === "zh" ? "工作空间" : lang === "ja" ? "ワークスペース" : "Workspaces"}</H1>
+        <H1>{lang === "vi" ? "Không gian làm việc (Companies)" : lang === "zh" ? "工作空间" : lang === "ja" ? "ワークスペース" : "Companies"}</H1>
         <P>
           {lang === "vi"
-            ? "Không gian làm việc (Workspaces) cho phép bạn phân tách dự án, nhóm tác nhân và các nhiệm vụ thành các môi trường riêng biệt để dễ dàng quản lý."
-            : "Workspaces allow developers to compartmentalize project environments, keeping agents, teams, tasks, and historical logs completely isolated from one another."}
+            ? "Không gian làm việc (Companies) cho phép bạn phân tách dự án, nhóm tác nhân và các nhiệm vụ thành các môi trường riêng biệt để dễ dàng quản lý."
+            : "Companies allow developers to compartmentalize project environments, keeping staff, departments, tasks, and historical logs completely isolated from one another."}
         </P>
         <H2>{lang === "vi" ? "Tính năng cốt lõi" : "Core Features"}</H2>
         <UL>
           <LI>
             {lang === "vi"
               ? "Phân tách dữ liệu: Mỗi không gian làm việc hoạt động độc lập và không chia sẻ tác nhân hay cấu hình với nhau."
-              : "Absolute Data Isolation: Switch between separate scopes where agents and tasks are completely self-contained."}
+              : "Absolute Data Isolation: Switch between separate scopes where staff and tasks are completely self-contained."}
           </LI>
           <LI>
             {lang === "vi"
               ? "Quản lý Dự án: Đặt tên và tổ chức các không gian làm việc để phù hợp với từng phòng ban hoặc khách hàng khác nhau."
-              : "Project Management: Easily name, describe, and filter workspaces to match different departments or customers."}
+              : "Project Management: Easily name, describe, and filter companies to match different departments or customers."}
           </LI>
           <LI>
             {lang === "vi"
@@ -512,7 +512,7 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
             <strong>{lang === "vi" ? "Khóa API Nhà cung cấp" : "Provider API Keys"}:</strong>{" "}
             {lang === "vi"
               ? "Cập nhật khóa API cho Anthropic Claude, OpenAI GPT, và Google Gemini để cấp quyền chạy mô hình."
-              : "Safely update keys for Anthropic, OpenAI, or Gemini to authorize agent model requests."}
+              : "Safely update keys for Anthropic, OpenAI, or Gemini to authorize staff model requests."}
           </LI>
           <LI>
             <strong>{lang === "vi" ? "Cấu hình Hệ thống" : "System Integrations"}:</strong>{" "}
@@ -530,39 +530,39 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
       </div>
     ),
 
-    "guide-first-agent": (
+    "guide-first-staff": (
       <div>
-        <H1>{c["guide-first-agent"].h1}</H1>
-        <P>{c["guide-first-agent"].p1}</P>
-        <H2>{c["guide-first-agent"].step1H2}</H2>
-        <P>{c["guide-first-agent"].step1P}</P>
-        <H2>{c["guide-first-agent"].step2H2}</H2>
-        <CodeBlock lang="text" code={`Name:        Alice\nRole:        Research Agent\nDescription: Expert at web research, data extraction, and summarization.`} />
-        <H2>{c["guide-first-agent"].step3H2}</H2>
-        <P>{c["guide-first-agent"].step3P}</P>
-        <H2>{c["guide-first-agent"].step4H2}</H2>
-        <P>{c["guide-first-agent"].step4P}</P>
-        <H2>{c["guide-first-agent"].step5H2}</H2>
-        <P>{c["guide-first-agent"].step5P}</P>
-        <Callout type="tip">{c["guide-first-agent"].callout}</Callout>
+        <H1>{c["guide-first-staff"].h1}</H1>
+        <P>{c["guide-first-staff"].p1}</P>
+        <H2>{c["guide-first-staff"].step1H2}</H2>
+        <P>{c["guide-first-staff"].step1P}</P>
+        <H2>{c["guide-first-staff"].step2H2}</H2>
+        <CodeBlock lang="text" code={`Name:        Alice\nRole:        Research Staff\nDescription: Expert at web research, data extraction, and summarization.`} />
+        <H2>{c["guide-first-staff"].step3H2}</H2>
+        <P>{c["guide-first-staff"].step3P}</P>
+        <H2>{c["guide-first-staff"].step4H2}</H2>
+        <P>{c["guide-first-staff"].step4P}</P>
+        <H2>{c["guide-first-staff"].step5H2}</H2>
+        <P>{c["guide-first-staff"].step5P}</P>
+        <Callout type="tip">{c["guide-first-staff"].callout}</Callout>
       </div>
     ),
 
-    "guide-build-team": (
+    "guide-build-department": (
       <div>
-        <H1>{c["guide-build-team"].h1}</H1>
-        <P>{c["guide-build-team"].p1}</P>
-        <H2>{c["guide-build-team"].compositionH2}</H2>
+        <H1>{c["guide-build-department"].h1}</H1>
+        <P>{c["guide-build-department"].p1}</P>
+        <H2>{c["guide-build-department"].compositionH2}</H2>
         <div className="space-y-2 my-4">
-          {c["guide-build-team"].teamRoles.map(({ role, purpose }) => (
+          {c["guide-build-department"].departmentRoles.map(({ role, purpose }) => (
             <div key={role} className="flex items-start gap-3 px-4 py-3 rounded-lg border border-border/50 bg-muted/20">
               <span className="text-sm font-bold text-foreground/80 w-40 flex-shrink-0">{role}</span>
               <span className="text-sm text-muted-foreground">{purpose}</span>
             </div>
           ))}
         </div>
-        <H2>{c["guide-build-team"].createH2}</H2>
-        <P>{c["guide-build-team"].createP}</P>
+        <H2>{c["guide-build-department"].createH2}</H2>
+        <P>{c["guide-build-department"].createP}</P>
       </div>
     ),
 
@@ -573,7 +573,7 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
         <H2>{c["guide-run-task"].uiH2}</H2>
         <P>{c["guide-run-task"].uiP}</P>
         <H2>{c["guide-run-task"].restH2}</H2>
-        <CodeBlock lang="bash" code={`curl -X POST http://localhost:8000/api/tasks \\\n  -H "Content-Type: application/json" \\\n  -d '{"title":"Market research","team_id":"team_abc"}'`} />
+        <CodeBlock lang="bash" code={`curl -X POST http://localhost:8000/api/tasks \\\n  -H "Content-Type: application/json" \\\n  -d '{"title":"Market research","department_id":"department_abc"}'`} />
         <H2>{c["guide-run-task"].monitorH2}</H2>
         <P>{c["guide-run-task"].monitorP}</P>
         <CodeBlock lang="bash" code={`curl http://localhost:8000/api/tasks/{task_id}`} />
@@ -595,20 +595,20 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
       </div>
     ),
 
-    "api-agents": (
+    "api-staff": (
       <div>
-        <H1>{c["api-agents"].h1}</H1>
-        <P>{c["api-agents"].p1}</P>
-        <H2>{c["api-agents"].endpointsH2}</H2>
+        <H1>{c["api-staff"].h1}</H1>
+        <P>{c["api-staff"].p1}</P>
+        <H2>{c["api-staff"].endpointsH2}</H2>
         <div className="rounded-xl border border-border/60 overflow-hidden my-4 divide-y divide-border/40">
-          <ApiRow method="GET" path="/agents" desc="List all agents" />
-          <ApiRow method="POST" path="/agents" desc="Create an agent" />
-          <ApiRow method="GET" path="/agents/:id" desc="Get agent by ID" />
-          <ApiRow method="PUT" path="/agents/:id" desc="Update agent" />
-          <ApiRow method="DELETE" path="/agents/:id" desc="Delete agent" />
+          <ApiRow method="GET" path="/staff" desc="List all staff" />
+          <ApiRow method="POST" path="/staff" desc="Create an staff" />
+          <ApiRow method="GET" path="/staff/:id" desc="Get staff by ID" />
+          <ApiRow method="PUT" path="/staff/:id" desc="Update staff" />
+          <ApiRow method="DELETE" path="/staff/:id" desc="Delete staff" />
         </div>
-        <H2>{c["api-agents"].createH2}</H2>
-        <CodeBlock lang="json" title="POST /api/agents" code={`{\n  "name": "Alice",\n  "role": "Research Agent",\n  "skill_ids": [],\n  "status": "idle",\n  "avatar": "A"\n}`} />
+        <H2>{c["api-staff"].createH2}</H2>
+        <CodeBlock lang="json" title="POST /api/staff" code={`{\n  "name": "Alice",\n  "role": "Research Staff",\n  "skill_ids": [],\n  "status": "idle",\n  "avatar": "A"\n}`} />
       </div>
     ),
 
@@ -627,15 +627,15 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
       </div>
     ),
 
-    "api-teams": (
+    "api-departments": (
       <div>
-        <H1>{c["api-teams"].h1}</H1>
+        <H1>{c["api-departments"].h1}</H1>
         <div className="rounded-xl border border-border/60 overflow-hidden my-4 divide-y divide-border/40">
-          <ApiRow method="GET" path="/teams" desc="List all teams" />
-          <ApiRow method="POST" path="/teams" desc="Create a team" />
-          <ApiRow method="GET" path="/teams/:id" desc="Get team by ID" />
-          <ApiRow method="PUT" path="/teams/:id" desc="Update team" />
-          <ApiRow method="DELETE" path="/teams/:id" desc="Delete team" />
+          <ApiRow method="GET" path="/departments" desc="List all departments" />
+          <ApiRow method="POST" path="/departments" desc="Create a department" />
+          <ApiRow method="GET" path="/departments/:id" desc="Get department by ID" />
+          <ApiRow method="PUT" path="/departments/:id" desc="Update department" />
+          <ApiRow method="DELETE" path="/departments/:id" desc="Delete department" />
         </div>
       </div>
     ),
@@ -660,9 +660,9 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
         <H1>{c["api-chat"].h1}</H1>
         <P>{c["api-chat"].p1}</P>
         <div className="rounded-xl border border-border/60 overflow-hidden my-4 divide-y divide-border/40">
-          <ApiRow method="POST" path="/chat" desc="Send prompt to a specific agent" />
+          <ApiRow method="POST" path="/chat" desc="Send prompt to a specific staff" />
         </div>
-        <CodeBlock lang="json" title="POST /api/chat" code={`{\n  "prompt": "What are the top Python web frameworks?",\n  "agentId": "agent_abc123"\n}`} />
+        <CodeBlock lang="json" title="POST /api/chat" code={`{\n  "prompt": "What are the top Python web frameworks?",\n  "staffId": "staff_abc123"\n}`} />
       </div>
     ),
 

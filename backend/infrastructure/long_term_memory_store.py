@@ -3,7 +3,7 @@
 Mirrors ``working_memory_store``: it lazily builds the right repository for the
 configured ``STORAGE_BACKEND`` (mongo → ``MongoLongTermMemoryRepository``, else
 file JSON), wraps it in a ``LongTermMemoryService``, and exposes thin,
-never-raising helpers the agent runtime and middleware call directly (no DI).
+never-raising helpers the staff runtime and middleware call directly (no DI).
 
 Everything degrades gracefully: when ``LONG_TERM_MEMORY_ENABLED`` is false the
 helpers are no-ops, and any persistence/embedding failure is logged, never
@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 _lock = threading.RLock()
 _service: LongTermMemoryService | None = None
 
-# The scope of the currently-running agent graph. Set once per run (in the
+# The scope of the currently-running staff graph. Set once per run (in the
 # run-stream / chat endpoint) so the LTM middleware and run-end consolidation
 # can read it without threading a scope argument through every topology — the
 # same pattern as ``current_usage_user`` in usage_tracker.

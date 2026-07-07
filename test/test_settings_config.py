@@ -54,8 +54,18 @@ def _unresolved_keys() -> list[str]:
     raw = _raw_config()
     registry, subsections = build_section_registry()
     unresolved: list[str] = []
+    # Sections consumed by dedicated, standalone loaders (not the pydantic
+    # Settings registry) — `models:` by infrastructure/llm/config and
+    # `middleware:` by infrastructure/llm/middleware/config. Their schema is
+    # validated by those loaders, so they are intentionally exempt here.
+    loader_managed = {"models", "middleware"}
+    # Individual leaves consumed by a standalone loader rather than a Settings
+    # field (e.g. `llm.active_model` is read by infrastructure/llm/config).
+    loader_managed_leaves = {"llm.active_model"}
     for section, body in raw.items():
         if section == "config_version" or not isinstance(body, dict):
+            continue
+        if section in loader_managed:
             continue
         if section == "secrets":
             # secrets keys map straight to their UPPER env name; validity is
@@ -68,7 +78,7 @@ def _unresolved_keys() -> list[str]:
                 for sub_key in value:
                     if str(sub_key).lower() not in sub_map[key]:
                         unresolved.append(f"{section}.{key}.{sub_key}")
-            elif str(key).lower() not in alias_map:
+            elif str(key).lower() not in alias_map and f"{section}.{key}" not in loader_managed_leaves:
                 unresolved.append(f"{section}.{key}")
     return unresolved
 

@@ -63,19 +63,20 @@ export type Translations = {
   nav: {
     label: string;
     dashboard: string;
-    agents: string;
+    staff: string;
     skills: string;
-    teams: string;
+    departments: string;
     tasks: string;
     projects: string;
-    conversations: string;
+    meetings: string;
     analytics: string;
     playground: string;
-    workspaces: string;
+    companies: string;
     officeBuilder: string;
     virtualOffice: string;
-    marketplace: string;
+    recruiting: string;
     documentLibrary: string;
+    platform: string;
     settings: string;
     overviewGroup: string;
     companiesGroup: string;
@@ -85,10 +86,11 @@ export type Translations = {
     officeGroup: string;
     devGroup: string;
     systemGroup: string;
+    integrationsGroup: string;
     adminGroup: string;
     monitoring: string;
     consumption: string;
-    manageWorkspaces: string;
+    manageCompanies: string;
     monitoringBadge: string;
     selectCompanyToManage: string;
     suggestedBadge: string;
@@ -282,7 +284,7 @@ export type Translations = {
         h1: string; p1: string;
         apiKeysH2: string; frontendH2: string; frontendP: string;
       };
-      agents: {
+      staff: {
         h1: string; p1: string; schemaH2: string;
         rolesH2: string; rolesP: string; callout: string;
         lifecycleH2: string; restH2: string;
@@ -291,7 +293,7 @@ export type Translations = {
         h1: string; p1: string; typesH2: string;
         types: Array<{ desc: string }>; toolsH2: string; schemaH2: string;
       };
-      teams: {
+      departments: {
         h1: string; p1: string; modesH2: string;
         mesh: { title: string; desc: string };
         sequential: { title: string; desc: string };
@@ -301,11 +303,11 @@ export type Translations = {
         h1: string; p1: string; lifecycleH2: string; schemaH2: string;
         graphH2: string; graphP: string; graphCallout: string;
       };
-      conversations: {
+      meetings: {
         h1: string; p1: string; formatH2: string;
         filterH2: string; filterP: string;
       };
-      "guide-first-agent": {
+      "guide-first-staff": {
         h1: string; p1: string;
         step1H2: string; step1P: string;
         step2H2: string;
@@ -313,9 +315,9 @@ export type Translations = {
         step4H2: string; step4P: string;
         step5H2: string; step5P: string; callout: string;
       };
-      "guide-build-team": {
+      "guide-build-department": {
         h1: string; p1: string; compositionH2: string;
-        teamRoles: Array<{ role: string; purpose: string }>;
+        departmentRoles: Array<{ role: string; purpose: string }>;
         createH2: string; createP: string;
       };
       "guide-run-task": {
@@ -328,9 +330,9 @@ export type Translations = {
         webSearchH2: string; webSearchP: string;
         sheetsH2: string; sheetsCallout: string; customH2: string;
       };
-      "api-agents": { h1: string; p1: string; endpointsH2: string; createH2: string };
+      "api-staff": { h1: string; p1: string; endpointsH2: string; createH2: string };
       "api-skills": { h1: string; presetsH2: string };
-      "api-teams": { h1: string };
+      "api-departments": { h1: string };
       "api-tasks": { h1: string };
       "api-chat": { h1: string; p1: string };
       "deploy-docker": { h1: string; p1: string };
@@ -350,16 +352,16 @@ export type Translations = {
 export const translations: Record<Language, Translations> = {
   en: {
     auth: {
-      badge: "Multi-Agent AI Platform",
-      heroTitle: "Build AI agent teams that work together",
-      heroSub: "Orchestrate specialized AI agents — researcher, developer, reviewer — to collaborate and complete complex tasks autonomously.",
-      heroBullets: ["40+ built-in agent role templates", "Skill system with 10+ integrations", "Real-time task graph visualization", "Self-hosted & MIT licensed"],
+      badge: "Multi-Staff AI Platform",
+      heroTitle: "Build AI staff departments that work together",
+      heroSub: "Orchestrate specialized AI staff — researcher, developer, reviewer — to collaborate and complete complex tasks autonomously.",
+      heroBullets: ["40+ built-in staff role templates", "Skill system with 10+ integrations", "Real-time task graph visualization", "Self-hosted & MIT licensed"],
       loginTab: "Sign In",
       registerTab: "Register",
       loginTitle: "Welcome back",
       loginSubtitle: "Sign in to continue to AI Collective",
       registerTitle: "Create an account",
-      registerSubtitle: "Start building your AI agent team",
+      registerSubtitle: "Start building your AI staff department",
       email: "Email",
       password: "Password",
       name: "Full Name",
@@ -400,26 +402,28 @@ export const translations: Record<Language, Translations> = {
       phoneNote: "We'll send a verification code to your number.",
     },
     nav: {
-      label: "Navigation", dashboard: "Company Overview", agents: "Staff",
-      skills: "Skills & Tools", teams: "Departments", tasks: "Task Board", projects: "Projects",
-      conversations: "Meetings", analytics: "Performance & Cost", playground: "Training", workspaces: "Manage Companies",
+      label: "Navigation", dashboard: "Company Overview", staff: "Staff",
+      skills: "Skills & Tools", departments: "Departments", tasks: "Task Board", projects: "Projects",
+      meetings: "Meetings", analytics: "Performance & Cost", playground: "Training", companies: "Manage Companies",
       officeBuilder: "AI Office Designer",
       virtualOffice: "Office Map",
-      marketplace: "Recruiting",
+      recruiting: "Recruiting",
       documentLibrary: "Documents",
+      platform: "Platform",
       settings: "Settings",
       overviewGroup: "Overview",
       companiesGroup: "Companies",
       catalogGroup: "Catalog",
       operationsGroup: "Operations",
       orgGroup: "Organization",
-      officeGroup: "Workspace",
+      officeGroup: "Company",
       devGroup: "System Setup",
       systemGroup: "Tools",
+      integrationsGroup: "Integrations",
       adminGroup: "Administration",
       monitoring: "System Monitoring",
       consumption: "Usage & Billing",
-      manageWorkspaces: "Manage Companies",
+      manageCompanies: "Manage Companies",
       monitoringBadge: "Monitoring",
       selectCompanyToManage: "Select a company to open this page.",
       suggestedBadge: "Suggested for this company type",
@@ -464,26 +468,26 @@ export const translations: Record<Language, Translations> = {
       hero: {
         badge: "Open Source · MIT License",
         h1: ["An open-source AI collective", "that researches, codes,", "and creates"],
-        sub: "Build specialized agent teams — each with their own role, skills, and memory. Submit a task, watch them collaborate, get production-ready results.",
+        sub: "Build specialized staff departments — each with their own role, skills, and memory. Submit a task, watch them collaborate, get production-ready results.",
         cta1: "Get Started", cta2: "Read the Docs",
       },
       features: {
         label: "What's included",
         title: "Everything you need to build\nAI-powered workflows",
         items: [
-          { title: "Multi-Agent Architecture", desc: "Specialized agents with distinct roles — PM, Researcher, Developer, Reviewer — each with a focused system prompt." },
-          { title: "Skill System", desc: "Attach tools and integrations to any agent: web search, Google Sheets, code execution, REST APIs, browser automation." },
-          { title: "Team Execution Modes", desc: "Mesh mode for open collaboration or sequential mode for strict pipelines. Configure per team." },
-          { title: "Real-time Task Graph", desc: "SVG visualization of agent interactions with pan & zoom. Watch your agents work in real time." },
+          { title: "Multi-Staff Architecture", desc: "Specialized staff with distinct roles — PM, Researcher, Developer, Reviewer — each with a focused system prompt." },
+          { title: "Skill System", desc: "Attach tools and integrations to any staff: web search, Google Sheets, code execution, REST APIs, browser automation." },
+          { title: "Department Execution Modes", desc: "Mesh mode for open collaboration or sequential mode for strict pipelines. Configure per department." },
+          { title: "Real-time Task Graph", desc: "SVG visualization of staff interactions with pan & zoom. Watch your staff work in real time." },
           { title: "LangGraph Powered", desc: "The orchestration layer is built on LangGraph — battle-tested, composable, and production-ready." },
           { title: "Self-Hosted & MIT", desc: "Full control over your data and infrastructure. No vendor lock-in. Deploy on any cloud or on-premise." },
         ],
       },
       modular: {
         label: "Modular by design",
-        title: "Compose agents,\nskills, and teams",
-        desc: "Every agent is a configurable unit. Assign any combination of skills — web search, code execution, Google integrations, custom APIs — and compose them into teams with a single config.",
-        bullets: ["40+ built-in agent role templates", "10+ integrations out of the box", "Custom JavaScript skill support", "REST API for programmatic control"],
+        title: "Compose staff,\nskills, and departments",
+        desc: "Every staff is a configurable unit. Assign any combination of skills — web search, code execution, Google integrations, custom APIs — and compose them into departments with a single config.",
+        bullets: ["40+ built-in staff role templates", "10+ integrations out of the box", "Custom JavaScript skill support", "REST API for programmatic control"],
       },
       openSource: {
         label: "Open Source",
@@ -498,35 +502,35 @@ export const translations: Record<Language, Translations> = {
       common: { login: "Login", startBuilding: "Start building", contactSales: "Contact sales", devDocs: "Developer docs", viewPricing: "View pricing" },
       meet: {
         badge: "Meet AI Collective", h1: "A new era of programmable AI",
-        sub: "AI Collective is a high-performance multi-agent orchestration platform that lets you deploy, coordinate, and scale AI workforces — with full control over topology, tools, and execution environment.",
+        sub: "AI Collective is a high-performance multi-staff orchestration platform that lets you deploy, coordinate, and scale AI workforces — with full control over topology, tools, and execution environment.",
         productsLabel: "Products", productsTitle: "Two ways to deploy",
-        product1Name: "AI Collective", product1Desc: "The full platform — build, configure, and monitor multi-agent teams via dashboard and REST API.", product1Cta: "Open console",
-        product2Name: "Agent Mesh", product2Desc: "A standalone mesh orchestrator layer for integrating multi-agent routing into your existing stack.", product2Cta: "Read the docs",
+        product1Name: "AI Collective", product1Desc: "The full platform — build, configure, and monitor multi-staff departments via dashboard and REST API.", product1Cta: "Open console",
+        product2Name: "Staff Mesh", product2Desc: "A standalone mesh orchestrator layer for integrating multi-staff routing into your existing stack.", product2Cta: "Read the docs",
         featuresLabel: "Features", featuresTitle: "Everything you need to orchestrate AI",
         modelsLabel: "Models", modelsTitle: "Fully LLM-agnostic", modelsSub: "Configure, swap, or route model engines at runtime — no code changes required.",
-        ctaTitle: "Ready to build?", ctaSub: "Deploy your first multi-agent workforce in minutes.", ctaFree: "Start building free",
+        ctaTitle: "Ready to build?", ctaSub: "Deploy your first multi-staff workforce in minutes.", ctaFree: "Start building free",
       },
       pricing: {
         badge: "Pricing", h1: "Simple, transparent pricing", sub: "Start free with open source. Scale with managed hosting. Grow with enterprise.",
         plan1Name: "Open Source", plan1Price: "Free", plan1Period: "forever", plan1Desc: "Self-host the full AI Collective platform on your own infrastructure.", plan1Cta: "Get started on GitHub",
-        plan2Name: "Pro", plan2Price: "$49", plan2Period: "per month", plan2Desc: "Managed hosting, distributed backends, and priority support for growing teams.", plan2Cta: "Start free trial",
+        plan2Name: "Pro", plan2Price: "$49", plan2Period: "per month", plan2Desc: "Managed hosting, distributed backends, and priority support for growing departments.", plan2Cta: "Start free trial",
         plan3Name: "Enterprise", plan3Price: "Custom", plan3Period: "tailored pricing", plan3Desc: "Dedicated infrastructure, custom integrations, and guaranteed SLAs for large deployments.", plan3Cta: "Contact sales",
         apiLabel: "API Pricing", apiTitle: "Pay-as-you-go model costs", apiSub: "LLM token costs are passed through at provider rates. No markup.",
-        ctaTitle: "Have questions?", ctaSub: "Our team is ready to help you find the right plan.", ctaGithub: "Explore on GitHub",
+        ctaTitle: "Have questions?", ctaSub: "Our department is ready to help you find the right plan.", ctaGithub: "Explore on GitHub",
       },
       solutions: {
-        badge: "Solutions", h1: "AI Collective for every team", sub: "From startup prototyping to enterprise-grade orchestration — deploy the right multi-agent solution for your use case.",
-        useCasesLabel: "Use Cases", useCasesTitle: "What teams build with AI Collective",
+        badge: "Solutions", h1: "AI Collective for every department", sub: "From startup prototyping to enterprise-grade orchestration — deploy the right multi-staff solution for your use case.",
+        useCasesLabel: "Use Cases", useCasesTitle: "What departments build with AI Collective",
         sizeLabel: "Company Size", sizeTitle: "Right for your scale",
         industriesLabel: "Industries", industriesTitle: "Built for regulated, high-stakes domains",
-        ctaTitle: "Find your solution", ctaSub: "Talk to our team to design the right agent architecture.",
+        ctaTitle: "Find your solution", ctaSub: "Talk to our department to design the right staff architecture.",
       },
       resources: {
         badge: "Resources", h1: "Everything you need to ship faster", sub: "Guides, reference docs, the changelog, and community resources — all in one place.",
         card1Label: "Documentation", card1Title: "Developer Docs", card1Desc: "Full API reference, topology guides, tool integration recipes, and deployment playbooks.", card1Cta: "Open docs",
         card2Label: "Open Source", card2Title: "GitHub Repository", card2Desc: "Explore the source code, contribute, file issues, and track development on GitHub.", card2Cta: "View on GitHub",
         card3Label: "Updates", card3Title: "Changelog", card3Desc: "Follow every release — new topologies, toolkit additions, performance improvements, and breaking changes.", card3Cta: "See changelog",
-        articlesLabel: "From the Team", articlesTitle: "Latest articles & guides",
+        articlesLabel: "From the Department", articlesTitle: "Latest articles & guides",
         newsletterTitle: "Stay up to date", newsletterSub: "Product updates, new toolkits, and engineering deep-dives — monthly, no spam.", newsletterBtn: "Subscribe", newsletterNote: "Unsubscribe at any time.",
       },
       changelog: {
@@ -535,7 +539,7 @@ export const translations: Record<Language, Translations> = {
       contactSales: {
         badge: "Contact Sales",
         h1: "Contact sales",
-        sub: "Our sales team can provide resources for custom support with the AI Collective API or large, complex deployments. Or to get started now, explore our self-serve plans.",
+        sub: "Our sales department can provide resources for custom support with the AI Collective API or large, complex deployments. Or to get started now, explore our self-serve plans.",
         supportCardTitle: "More help, right this way",
         supportCardDesc: "Browse articles, see product details, and get answers to technical questions.",
         supportCardCta: "Visit support center",
@@ -566,7 +570,7 @@ export const translations: Record<Language, Translations> = {
         submitBtn: "Submit",
         submitting: "Submitting...",
         successTitle: "Thank you!",
-        successDesc: "Your request has been submitted. Our team will review it and contact you shortly.",
+        successDesc: "Your request has been submitted. Our department will review it and contact you shortly.",
       },
     },
     docs: {
@@ -578,30 +582,30 @@ export const translations: Record<Language, Translations> = {
       },
       nav: {
         sections: { intro: "Introduction", "getting-started": "Getting Started", concepts: "Core Concepts", guides: "Guides", "api-reference": "API Reference", deployment: "Deployment", contributing: "Contributing" },
-        items: { "what-is": "What is AI Collective?", architecture: "Architecture", "key-concepts": "Key Concepts", quickstart: "Quick Start", installation: "Installation", configuration: "Configuration", agents: "Agents", skills: "Skills", teams: "Teams", tasks: "Tasks", conversations: "Conversations", "guide-first-agent": "Create Your First Agent", "guide-build-team": "Build a Team", "guide-run-task": "Run a Task", "guide-skills": "Add Skills & APIs", "api-agents": "Agents API", "api-skills": "Skills API", "api-teams": "Teams API", "api-tasks": "Tasks API", "api-chat": "Chat API", "deploy-docker": "Docker", "deploy-env": "Environment Variables", "contributing-guide": "How to Contribute", "contributing-dev": "Development Setup" },
+        items: { "what-is": "What is AI Collective?", architecture: "Architecture", "key-concepts": "Key Concepts", quickstart: "Quick Start", installation: "Installation", configuration: "Configuration", staff: "Staff", skills: "Skills", departments: "Departments", tasks: "Tasks", meetings: "Meetings", "guide-first-staff": "Create Your First Staff", "guide-build-department": "Build a Department", "guide-run-task": "Run a Task", "guide-skills": "Add Skills & APIs", "api-staff": "Staff API", "api-skills": "Skills API", "api-departments": "Departments API", "api-tasks": "Tasks API", "api-chat": "Chat API", "deploy-docker": "Docker", "deploy-env": "Environment Variables", "contributing-guide": "How to Contribute", "contributing-dev": "Development Setup" },
       },
       content: {
         "what-is": {
           h1: "What is AI Collective?",
-          p1: "AI Collective is an open-source multi-agent orchestration platform that lets you build teams of specialized AI agents which collaborate autonomously to complete complex tasks — just like a real project team.",
-          p2: "Instead of using a single monolithic AI, AI Collective distributes work across purpose-built agents: a Project Manager agent that plans, a Research agent that gathers information, a Developer agent that writes code, and a Reviewer agent that validates every output before delivery.",
+          p1: "AI Collective is an open-source multi-staff orchestration platform that lets you build departments of specialized AI staff which collaborate autonomously to complete complex tasks — just like a real project department.",
+          p2: "Instead of using a single monolithic AI, AI Collective distributes work across purpose-built staff: a Project Manager staff that plans, a Research staff that gathers information, a Developer staff that writes code, and a Reviewer staff that validates every output before delivery.",
           callout: "AI Collective is self-hosted and fully open source (MIT License). You can run it locally in minutes or deploy it on any cloud provider.",
           keyFeaturesH2: "Key Features",
-          features: ["Multi-agent collaboration — agents communicate through an event-driven message bus (RabbitMQ)", "Customizable roles — 40+ built-in role templates from PM to Doctor to Lawyer, or define your own", "Skill system — attach integrations (Google Sheets, APIs, web browsing) to individual agents", "Team modes — choose between mesh (all agents collaborate) or sequential (pipeline) execution", "Real-time task graph — visualize agent activity with pan & zoom graph view", "LangChain / LangGraph backend — powered by battle-tested AI orchestration primitives", "React + FastAPI stack — modern, maintainable codebase with TypeScript and Python"],
+          features: ["Multi-staff collaboration — staff communicate through an event-driven message bus (RabbitMQ)", "Customizable roles — 40+ built-in role templates from PM to Doctor to Lawyer, or define your own", "Skill system — attach integrations (Google Sheets, APIs, web browsing) to individual staff", "Department modes — choose between mesh (all staff collaborate) or sequential (pipeline) execution", "Real-time task graph — visualize staff activity with pan & zoom graph view", "LangChain / LangGraph backend — powered by battle-tested AI orchestration primitives", "React + FastAPI stack — modern, maintainable codebase with TypeScript and Python"],
           whoForH2: "Who is it for?",
-          audience: [{ title: "Developers", desc: "Build AI-powered workflows without managing complex agent infrastructure." }, { title: "Teams", desc: "Automate research, writing, coding, and review pipelines with AI specialists." }, { title: "Researchers", desc: "Experiment with multi-agent architectures and collaboration strategies." }],
+          audience: [{ title: "Developers", desc: "Build AI-powered workflows without managing complex staff infrastructure." }, { title: "Departments", desc: "Automate research, writing, coding, and review pipelines with AI specialists." }, { title: "Researchers", desc: "Experiment with multi-staff architectures and collaboration strategies." }],
         },
         architecture: {
           h1: "Architecture",
-          p1: "AI Collective is split into two layers: a FastAPI backend that runs the AI agents, and a React frontend that provides the visual management interface.",
+          p1: "AI Collective is split into two layers: a FastAPI backend that runs the AI staff, and a React frontend that provides the visual management interface.",
           lifecycleH2: "Request Lifecycle",
           lifecycleP: "When you submit a task, this is what happens:",
-          lifecycle: ["Frontend sends a POST /api/tasks request with the task description and assigned team", "The Task Runner spins up a LangGraph graph with each agent as a node", "Agents receive messages, process them via the LLM provider, and emit events to RabbitMQ", "The Event Bus routes agent outputs to dependent agents (e.g., PM → Developer)", "Each agent's tool calls (web search, code execution, API calls) are handled by the Skill Executor", "Final output is collected by the Reviewer agent and returned to the frontend via REST"],
+          lifecycle: ["Frontend sends a POST /api/tasks request with the task description and assigned department", "The Task Runner spins up a LangGraph graph with each staff as a node", "Staff receive messages, process them via the LLM provider, and emit events to RabbitMQ", "The Event Bus routes staff outputs to dependent staff (e.g., PM → Developer)", "Each staff's tool calls (web search, code execution, API calls) are handled by the Skill Executor", "Final output is collected by the Reviewer staff and returned to the frontend via REST"],
         },
         "key-concepts": {
           h1: "Key Concepts",
           p1: "Before diving in, here are the five primitives that make up every AI Collective deployment:",
-          concepts: [{ title: "Agent", desc: "An AI worker with a defined role, personality, and set of skills. Each agent has its own system prompt and tool access." }, { title: "Skill", desc: "A capability you attach to an agent — a web search tool, a Google Sheets integration, a custom JavaScript function, or a REST API call." }, { title: "Team", desc: "A named group of agents that collaborate on tasks. Teams can run in mesh mode (all-to-all) or sequential mode (pipeline)." }, { title: "Task", desc: "A unit of work assigned to a team. Tasks have a lifecycle: pending → in-progress → completed (or paused / stopped)." }, { title: "Conversation", desc: "The full message history of every agent interaction during a task. Browse and replay any agent conversation." }],
+          concepts: [{ title: "Staff", desc: "An AI worker with a defined role, personality, and set of skills. Each staff has its own system prompt and tool access." }, { title: "Skill", desc: "A capability you attach to an staff — a web search tool, a Google Sheets integration, a custom JavaScript function, or a REST API call." }, { title: "Department", desc: "A named group of staff that collaborate on tasks. Departments can run in mesh mode (all-to-all) or sequential mode (pipeline)." }, { title: "Task", desc: "A unit of work assigned to a department. Tasks have a lifecycle: pending → in-progress → completed (or paused / stopped)." }, { title: "Meeting", desc: "The full message history of every staff interaction during a task. Browse and replay any staff meeting." }],
         },
         quickstart: {
           h1: "Quick Start", p1: "Get AI Collective running locally in under 5 minutes.",
@@ -616,75 +620,75 @@ export const translations: Record<Language, Translations> = {
           tableHeaders: ["Component", "Minimum", "Recommended"],
           pythonH2: "Python dependencies", pythonP: "The backend is managed with pyproject.toml. Key dependencies:",
           frontendH2: "Frontend dependencies", frontendP: "The frontend uses React 18, Vite, shadcn/ui, and Tailwind CSS.",
-          rabbitH2: "Optional: RabbitMQ", rabbitP: "For multi-agent event broadcasting, you can run RabbitMQ locally via Docker:",
+          rabbitH2: "Optional: RabbitMQ", rabbitP: "For multi-staff event broadcasting, you can run RabbitMQ locally via Docker:",
         },
         configuration: {
           h1: "Configuration", p1: "All configuration is done through environment variables in a .env file at the project root.",
           apiKeysH2: "API Keys", frontendH2: "Frontend configuration",
           frontendP: "The Vite dev server runs on port 8080 and expects the backend at localhost:8000. To change these:",
         },
-        agents: {
-          h1: "Agents", p1: "An agent is an AI worker with a defined role, a personality expressed through its system prompt, and a set of skills (tools) it can use to complete work.",
-          schemaH2: "Agent schema", rolesH2: "Agent roles", rolesP: "AI Collective ships with 40+ built-in role templates. Here are the most common ones:",
+        staff: {
+          h1: "Staff", p1: "An staff is an AI worker with a defined role, a personality expressed through its system prompt, and a set of skills (tools) it can use to complete work.",
+          schemaH2: "Staff schema", rolesH2: "Staff roles", rolesP: "AI Collective ships with 40+ built-in role templates. Here are the most common ones:",
           callout: "You can type any custom role name — the built-in list is just a starting suggestion.",
-          lifecycleH2: "Agent status lifecycle", restH2: "Create via REST API",
+          lifecycleH2: "Staff status lifecycle", restH2: "Create via REST API",
         },
         skills: {
-          h1: "Skills", p1: "A skill is a capability you attach to an agent — it can be a third-party API integration, a browser automation tool, a custom JavaScript function, or any other action the agent can invoke.",
+          h1: "Skills", p1: "A skill is a capability you attach to an staff — it can be a third-party API integration, a browser automation tool, a custom JavaScript function, or any other action the staff can invoke.",
           typesH2: "Skill types",
           types: [{ desc: "Connect to external services: Google Sheets, Slack, Notion, Airtable, REST APIs, and more." }, { desc: "Write custom JavaScript code that runs server-side. Great for data transformation or business logic." }],
           toolsH2: "Available built-in tools", schemaH2: "Skill schema",
         },
-        teams: {
-          h1: "Teams", p1: "A team is a named group of agents that collaborate on tasks. Teams are the unit of execution — you assign tasks to a team, not to individual agents.",
-          modesH2: "Team modes",
-          mesh: { title: "Mesh mode", desc: "All agents can communicate with each other. Best for creative or research tasks where agents need to debate and refine ideas together." },
-          sequential: { title: "Sequential mode", desc: "Agents run in a defined pipeline order. Best for structured workflows: Research → Write → Review → Publish." },
-          schemaH2: "Team schema",
+        departments: {
+          h1: "Departments", p1: "A department is a named group of staff that collaborate on tasks. Departments are the unit of execution — you assign tasks to a department, not to individual staff.",
+          modesH2: "Department modes",
+          mesh: { title: "Mesh mode", desc: "All staff can communicate with each other. Best for creative or research tasks where staff need to debate and refine ideas together." },
+          sequential: { title: "Sequential mode", desc: "Staff run in a defined pipeline order. Best for structured workflows: Research → Write → Review → Publish." },
+          schemaH2: "Department schema",
         },
         tasks: {
-          h1: "Tasks", p1: "A task is a unit of work you submit to a team. It has a title, description, and a lifecycle that progresses from pending to completed.",
+          h1: "Tasks", p1: "A task is a unit of work you submit to a department. It has a title, description, and a lifecycle that progresses from pending to completed.",
           lifecycleH2: "Task lifecycle", schemaH2: "Task schema",
-          graphH2: "Task graph visualization", graphP: "The Task Manager page shows a real-time SVG graph of agent interactions. Each node is an agent, and edges show message flow between them. You can pan and zoom to explore large agent networks.",
+          graphH2: "Task graph visualization", graphP: "The Task Manager page shows a real-time SVG graph of staff interactions. Each node is an staff, and edges show message flow between them. You can pan and zoom to explore large staff networks.",
           graphCallout: "The graph uses a force-directed layout powered by a custom SVG renderer — no third-party graph library required.",
         },
-        conversations: {
-          h1: "Conversations", p1: "Every message exchanged between agents during a task is recorded as a conversation. The Conversations page lets you browse, filter, and replay all agent communications.",
+        meetings: {
+          h1: "Meetings", p1: "Every message exchanged between staff during a task is recorded as a meeting. The Meetings page lets you browse, filter, and replay all staff communications.",
           formatH2: "Message format", filterH2: "Filtering",
-          filterP: "Filter conversations by agent name, role, task, or date range. Messages support full-text search and are rendered with Markdown formatting.",
+          filterP: "Filter meetings by staff name, role, task, or date range. Messages support full-text search and are rendered with Markdown formatting.",
         },
-        "guide-first-agent": {
-          h1: "Create Your First Agent", p1: "This guide walks you through creating a Research Agent from scratch using the UI.",
-          step1H2: "Step 1: Open Agent Builder", step1P: "Navigate to Agents in the sidebar, then click New Agent in the top right.",
+        "guide-first-staff": {
+          h1: "Create Your First Staff", p1: "This guide walks you through creating a Research Staff from scratch using the UI.",
+          step1H2: "Step 1: Open Staff Builder", step1P: "Navigate to Staff in the sidebar, then click New Staff in the top right.",
           step2H2: "Step 2: Fill in the details",
-          step3H2: "Step 3: Choose an avatar", step3P: "Select icon mode and pick the search icon. Choose a teal background color to match the Research Agent role.",
+          step3H2: "Step 3: Choose an avatar", step3P: "Select icon mode and pick the search icon. Choose a teal background color to match the Research Staff role.",
           step4H2: "Step 4: Assign skills", step4P: "Check Web Search and Web Scrape skills from the skill panel. If you don't have skills yet, go to the Skills page first.",
-          step5H2: "Step 5: Save", step5P: "Click Create Agent. Alice will now appear in your agent roster with an idle status.",
+          step5H2: "Step 5: Save", step5P: "Click Create Staff. Alice will now appear in your staff roster with an idle status.",
           callout: "Test Alice immediately by clicking the Test button on her card and entering a research question.",
         },
-        "guide-build-team": {
-          h1: "Build a Team", p1: "Teams combine multiple agents into a collaborative unit. Let's build a research & writing team.",
-          compositionH2: "Recommended team composition",
-          teamRoles: [{ role: "Project Manager", purpose: "Coordinates task breakdown and delegates to other agents" }, { role: "Research Agent", purpose: "Gathers information from the web and synthesizes findings" }, { role: "Developer Agent", purpose: "Writes code or technical documentation" }, { role: "Reviewer Agent", purpose: "Validates all outputs before delivery" }],
-          createH2: "Create the team", createP: "Go to Teams → New Team, add all four agents in order, select mesh mode for collaborative tasks, then save.",
+        "guide-build-department": {
+          h1: "Build a Department", p1: "Departments combine multiple staff into a collaborative unit. Let's build a research & writing department.",
+          compositionH2: "Recommended department composition",
+          departmentRoles: [{ role: "Project Manager", purpose: "Coordinates task breakdown and delegates to other staff" }, { role: "Research Staff", purpose: "Gathers information from the web and synthesizes findings" }, { role: "Developer Staff", purpose: "Writes code or technical documentation" }, { role: "Reviewer Staff", purpose: "Validates all outputs before delivery" }],
+          createH2: "Create the department", createP: "Go to Departments → New Department, add all four staff in order, select mesh mode for collaborative tasks, then save.",
         },
         "guide-run-task": {
-          h1: "Run a Task", p1: "With a team built, submit your first task.",
-          uiH2: "Via the UI", uiP: "Navigate to Tasks → New Task, fill in a title and description, assign your team, and click Create Task. The task will move to in-progress status and you can watch the agent graph animate in real time.",
+          h1: "Run a Task", p1: "With a department built, submit your first task.",
+          uiH2: "Via the UI", uiP: "Navigate to Tasks → New Task, fill in a title and description, assign your department, and click Create Task. The task will move to in-progress status and you can watch the staff graph animate in real time.",
           restH2: "Via REST API", monitorH2: "Monitor progress", monitorP: "Poll the task status endpoint, or watch the live graph in the Tasks UI:",
         },
         "guide-skills": {
-          h1: "Add Skills & APIs", p1: "Skills extend what agents can do. Here's how to add a web search skill.",
+          h1: "Add Skills & APIs", p1: "Skills extend what staff can do. Here's how to add a web search skill.",
           webSearchH2: "Create a web search skill", webSearchP: "Navigate to Skills → New Skill:",
           sheetsH2: "Create a Google Sheets integration",
           sheetsCallout: "Google OAuth requires setting up a project in Google Cloud Console and downloading credentials.json. See the Google integration guide for details.",
           customH2: "Custom JavaScript skill",
         },
-        "api-agents": { h1: "Agents API", p1: "Base URL: http://localhost:8000/api", endpointsH2: "Endpoints", createH2: "Create agent" },
+        "api-staff": { h1: "Staff API", p1: "Base URL: http://localhost:8000/api", endpointsH2: "Endpoints", createH2: "Create staff" },
         "api-skills": { h1: "Skills API", presetsH2: "Get tool presets" },
-        "api-teams": { h1: "Teams API" },
+        "api-departments": { h1: "Departments API" },
         "api-tasks": { h1: "Tasks API" },
-        "api-chat": { h1: "Chat API", p1: "Test individual agents directly without creating a full task." },
+        "api-chat": { h1: "Chat API", p1: "Test individual staff directly without creating a full task." },
         "deploy-docker": { h1: "Docker Deployment", p1: "Deploy the entire stack with Docker Compose." },
         "deploy-env": { h1: "Environment Variables" },
         "contributing-guide": {
@@ -755,13 +759,14 @@ export const translations: Record<Language, Translations> = {
       phoneNote: "Chúng tôi sẽ gửi mã xác minh đến số của bạn.",
     },
     nav: {
-      label: "Điều hướng", dashboard: "Tổng quan Công ty", agents: "Nhân sự",
-      skills: "Nghiệp vụ & Công cụ", teams: "Phòng ban", tasks: "Bảng Công việc", projects: "Dự án",
-      conversations: "Cuộc họp", analytics: "Hiệu suất & Chi phí", playground: "Đào tạo", workspaces: "Quản lý Công ty",
+      label: "Điều hướng", dashboard: "Tổng quan Công ty", staff: "Nhân sự",
+      skills: "Nghiệp vụ & Công cụ", departments: "Phòng ban", tasks: "Bảng Công việc", projects: "Dự án",
+      meetings: "Cuộc họp", analytics: "Hiệu suất & Chi phí", playground: "Đào tạo", companies: "Quản lý Công ty",
       officeBuilder: "AI Thiết kế Công ty",
       virtualOffice: "Sơ đồ Văn phòng",
-      marketplace: "Tuyển dụng",
+      recruiting: "Tuyển dụng",
       documentLibrary: "Tài liệu",
+      platform: "Nền tảng",
       settings: "Cài đặt",
       overviewGroup: "Tổng quan",
       companiesGroup: "Công ty",
@@ -771,10 +776,11 @@ export const translations: Record<Language, Translations> = {
       officeGroup: "Không gian",
       devGroup: "Thiết lập Hệ thống",
       systemGroup: "Công cụ",
+      integrationsGroup: "Kết nối",
       adminGroup: "Quản trị",
       monitoring: "Giám sát hệ thống",
       consumption: "Sử dụng & Chi phí",
-      manageWorkspaces: "Quản lý Công ty",
+      manageCompanies: "Quản lý Công ty",
       monitoringBadge: "Giám sát",
       selectCompanyToManage: "Chọn một company để mở trang này.",
       suggestedBadge: "Đề xuất cho loại công ty này",
@@ -856,7 +862,7 @@ export const translations: Record<Language, Translations> = {
         sub: "AI Collective là nền tảng điều phối đa tác nhân hiệu suất cao cho phép bạn triển khai, điều phối và mở rộng lực lượng lao động AI — với toàn quyền kiểm soát topo, công cụ và môi trường thực thi.",
         productsLabel: "Sản phẩm", productsTitle: "Hai cách triển khai",
         product1Name: "AI Collective", product1Desc: "Nền tảng đầy đủ — xây dựng, cấu hình và giám sát nhóm đa tác nhân qua dashboard và REST API.", product1Cta: "Mở bảng điều khiển",
-        product2Name: "Agent Mesh", product2Desc: "Lớp điều phối mesh độc lập để tích hợp định tuyến đa tác nhân vào stack hiện có của bạn.", product2Cta: "Xem tài liệu",
+        product2Name: "Staff Mesh", product2Desc: "Lớp điều phối mesh độc lập để tích hợp định tuyến đa tác nhân vào stack hiện có của bạn.", product2Cta: "Xem tài liệu",
         featuresLabel: "Tính năng", featuresTitle: "Tất cả những gì bạn cần để điều phối AI",
         modelsLabel: "Mô hình", modelsTitle: "Hoàn toàn linh hoạt về LLM", modelsSub: "Cấu hình, hoán đổi hoặc định tuyến engine mô hình khi chạy — không cần thay đổi code.",
         ctaTitle: "Sẵn sàng xây dựng?", ctaSub: "Triển khai lực lượng lao động đa tác nhân đầu tiên của bạn trong vài phút.", ctaFree: "Bắt đầu miễn phí",
@@ -933,7 +939,7 @@ export const translations: Record<Language, Translations> = {
       },
       nav: {
         sections: { intro: "Giới thiệu", "getting-started": "Bắt đầu", concepts: "Khái niệm cơ bản", guides: "Hướng dẫn", "api-reference": "Tham chiếu API", deployment: "Triển khai", contributing: "Đóng góp" },
-        items: { "what-is": "AI Collective là gì?", architecture: "Kiến trúc", "key-concepts": "Khái niệm chính", quickstart: "Khởi động nhanh", installation: "Cài đặt", configuration: "Cấu hình", agents: "Tác nhân", skills: "Kỹ năng", teams: "Nhóm", tasks: "Nhiệm vụ", conversations: "Hội thoại", "guide-first-agent": "Tạo tác nhân đầu tiên", "guide-build-team": "Xây dựng nhóm", "guide-run-task": "Chạy nhiệm vụ", "guide-skills": "Thêm kỹ năng & API", "api-agents": "API Tác nhân", "api-skills": "API Kỹ năng", "api-teams": "API Nhóm", "api-tasks": "API Nhiệm vụ", "api-chat": "API Trò chuyện", "deploy-docker": "Docker", "deploy-env": "Biến môi trường", "contributing-guide": "Cách đóng góp", "contributing-dev": "Thiết lập môi trường phát triển" },
+        items: { "what-is": "AI Collective là gì?", architecture: "Kiến trúc", "key-concepts": "Khái niệm chính", quickstart: "Khởi động nhanh", installation: "Cài đặt", configuration: "Cấu hình", staff: "Tác nhân", skills: "Kỹ năng", departments: "Nhóm", tasks: "Nhiệm vụ", meetings: "Hội thoại", "guide-first-staff": "Tạo tác nhân đầu tiên", "guide-build-department": "Xây dựng nhóm", "guide-run-task": "Chạy nhiệm vụ", "guide-skills": "Thêm kỹ năng & API", "api-staff": "API Tác nhân", "api-skills": "API Kỹ năng", "api-departments": "API Nhóm", "api-tasks": "API Nhiệm vụ", "api-chat": "API Trò chuyện", "deploy-docker": "Docker", "deploy-env": "Biến môi trường", "contributing-guide": "Cách đóng góp", "contributing-dev": "Thiết lập môi trường phát triển" },
       },
       content: {
         "what-is": {
@@ -978,7 +984,7 @@ export const translations: Record<Language, Translations> = {
           apiKeysH2: "API Keys", frontendH2: "Cấu hình Frontend",
           frontendP: "Dev server Vite chạy trên cổng 8080 và mong đợi backend tại localhost:8000. Để thay đổi:",
         },
-        agents: {
+        staff: {
           h1: "Tác nhân", p1: "Tác nhân là AI worker với vai trò xác định, cá tính được thể hiện qua system prompt, và bộ kỹ năng (công cụ) để hoàn thành công việc.",
           schemaH2: "Schema tác nhân", rolesH2: "Vai trò tác nhân", rolesP: "AI Collective đi kèm với hơn 40 mẫu vai trò tích hợp. Đây là các vai trò phổ biến nhất:",
           callout: "Bạn có thể nhập bất kỳ tên vai trò tùy chỉnh nào — danh sách tích hợp chỉ là gợi ý ban đầu.",
@@ -990,7 +996,7 @@ export const translations: Record<Language, Translations> = {
           types: [{ desc: "Kết nối với các dịch vụ bên ngoài: Google Sheets, Slack, Notion, Airtable, REST API, và nhiều hơn nữa." }, { desc: "Viết mã JavaScript tùy chỉnh chạy phía server. Phù hợp cho chuyển đổi dữ liệu hoặc logic nghiệp vụ." }],
           toolsH2: "Công cụ tích hợp sẵn", schemaH2: "Schema kỹ năng",
         },
-        teams: {
+        departments: {
           h1: "Nhóm", p1: "Nhóm là một tập hợp tác nhân được đặt tên cộng tác trên các nhiệm vụ. Nhóm là đơn vị thực thi — bạn giao nhiệm vụ cho nhóm, không phải tác nhân riêng lẻ.",
           modesH2: "Chế độ nhóm",
           mesh: { title: "Chế độ Mesh", desc: "Tất cả tác nhân có thể giao tiếp với nhau. Tốt nhất cho các nhiệm vụ sáng tạo hoặc nghiên cứu nơi các tác nhân cần tranh luận và tinh chỉnh ý tưởng cùng nhau." },
@@ -1003,24 +1009,24 @@ export const translations: Record<Language, Translations> = {
           graphH2: "Trực quan hóa đồ thị nhiệm vụ", graphP: "Trang Task Manager hiển thị đồ thị SVG thời gian thực về tương tác tác nhân. Mỗi nút là một tác nhân, và các cạnh hiển thị luồng thông điệp giữa chúng. Bạn có thể pan và zoom để khám phá các mạng tác nhân lớn.",
           graphCallout: "Đồ thị sử dụng bố cục lực hướng được hỗ trợ bởi renderer SVG tùy chỉnh — không cần thư viện đồ thị bên thứ ba.",
         },
-        conversations: {
+        meetings: {
           h1: "Hội thoại", p1: "Mọi thông điệp được trao đổi giữa các tác nhân trong quá trình thực hiện nhiệm vụ đều được ghi lại như một hội thoại. Trang Hội thoại cho phép bạn duyệt, lọc và phát lại tất cả giao tiếp của tác nhân.",
           formatH2: "Định dạng thông điệp", filterH2: "Lọc",
           filterP: "Lọc hội thoại theo tên tác nhân, vai trò, nhiệm vụ hoặc khoảng thời gian. Thông điệp hỗ trợ tìm kiếm toàn văn và được hiển thị với định dạng Markdown.",
         },
-        "guide-first-agent": {
-          h1: "Tạo tác nhân đầu tiên", p1: "Hướng dẫn này giúp bạn tạo một Research Agent từ đầu bằng giao diện người dùng.",
-          step1H2: "Bước 1: Mở Agent Builder", step1P: "Điều hướng đến Tác nhân trong thanh bên, sau đó nhấp Tác nhân mới ở trên cùng bên phải.",
+        "guide-first-staff": {
+          h1: "Tạo tác nhân đầu tiên", p1: "Hướng dẫn này giúp bạn tạo một Research Staff từ đầu bằng giao diện người dùng.",
+          step1H2: "Bước 1: Mở Staff Builder", step1P: "Điều hướng đến Tác nhân trong thanh bên, sau đó nhấp Tác nhân mới ở trên cùng bên phải.",
           step2H2: "Bước 2: Điền thông tin chi tiết",
-          step3H2: "Bước 3: Chọn avatar", step3P: "Chọn chế độ icon và chọn icon search. Chọn màu nền teal để phù hợp với vai trò Research Agent.",
+          step3H2: "Bước 3: Chọn avatar", step3P: "Chọn chế độ icon và chọn icon search. Chọn màu nền teal để phù hợp với vai trò Research Staff.",
           step4H2: "Bước 4: Gán kỹ năng", step4P: "Chọn kỹ năng Web Search và Web Scrape từ panel kỹ năng. Nếu chưa có kỹ năng, hãy vào trang Kỹ năng trước.",
           step5H2: "Bước 5: Lưu", step5P: "Nhấp Tạo tác nhân. Alice sẽ xuất hiện trong danh sách tác nhân với trạng thái idle.",
           callout: "Thử ngay Alice bằng cách nhấp nút Thử nghiệm trên thẻ của cô ấy và nhập câu hỏi nghiên cứu.",
         },
-        "guide-build-team": {
+        "guide-build-department": {
           h1: "Xây dựng nhóm", p1: "Nhóm kết hợp nhiều tác nhân thành một đơn vị cộng tác. Hãy xây dựng nhóm nghiên cứu & viết lách.",
           compositionH2: "Thành phần nhóm được khuyến nghị",
-          teamRoles: [{ role: "Project Manager", purpose: "Phối hợp phân công nhiệm vụ và ủy quyền cho các tác nhân khác" }, { role: "Research Agent", purpose: "Thu thập thông tin từ web và tổng hợp kết quả" }, { role: "Developer Agent", purpose: "Viết mã hoặc tài liệu kỹ thuật" }, { role: "Reviewer Agent", purpose: "Xác thực tất cả đầu ra trước khi bàn giao" }],
+          departmentRoles: [{ role: "Project Manager", purpose: "Phối hợp phân công nhiệm vụ và ủy quyền cho các tác nhân khác" }, { role: "Research Staff", purpose: "Thu thập thông tin từ web và tổng hợp kết quả" }, { role: "Developer Staff", purpose: "Viết mã hoặc tài liệu kỹ thuật" }, { role: "Reviewer Staff", purpose: "Xác thực tất cả đầu ra trước khi bàn giao" }],
           createH2: "Tạo nhóm", createP: "Vào Nhóm → Nhóm mới, thêm tất cả bốn tác nhân theo thứ tự, chọn chế độ mesh cho các nhiệm vụ cộng tác, sau đó lưu.",
         },
         "guide-run-task": {
@@ -1035,9 +1041,9 @@ export const translations: Record<Language, Translations> = {
           sheetsCallout: "Google OAuth yêu cầu thiết lập dự án trong Google Cloud Console và tải xuống credentials.json. Xem hướng dẫn tích hợp Google để biết chi tiết.",
           customH2: "Kỹ năng JavaScript tùy chỉnh",
         },
-        "api-agents": { h1: "API Tác nhân", p1: "URL cơ sở: http://localhost:8000/api", endpointsH2: "Các endpoint", createH2: "Tạo tác nhân" },
+        "api-staff": { h1: "API Tác nhân", p1: "URL cơ sở: http://localhost:8000/api", endpointsH2: "Các endpoint", createH2: "Tạo tác nhân" },
         "api-skills": { h1: "API Kỹ năng", presetsH2: "Lấy preset công cụ" },
-        "api-teams": { h1: "API Nhóm" },
+        "api-departments": { h1: "API Nhóm" },
         "api-tasks": { h1: "API Nhiệm vụ" },
         "api-chat": { h1: "API Trò chuyện", p1: "Thử nghiệm các tác nhân trực tiếp mà không cần tạo nhiệm vụ đầy đủ." },
         "deploy-docker": { h1: "Triển khai Docker", p1: "Triển khai toàn bộ stack với Docker Compose." },
@@ -1110,13 +1116,14 @@ export const translations: Record<Language, Translations> = {
       phoneNote: "我们将向您的号码发送验证码。",
     },
     nav: {
-      label: "导航", dashboard: "公司概览", agents: "员工",
-      skills: "业务与工具", teams: "部门", tasks: "任务看板", projects: "项目",
-      conversations: "会议", analytics: "绩效与成本", playground: "培训", workspaces: "管理公司",
+      label: "导航", dashboard: "公司概览", staff: "员工",
+      skills: "业务与工具", departments: "部门", tasks: "任务看板", projects: "项目",
+      meetings: "会议", analytics: "绩效与成本", playground: "培训", companies: "管理公司",
       officeBuilder: "AI 公司设计师",
       virtualOffice: "办公室平面图",
-      marketplace: "招聘",
+      recruiting: "招聘",
       documentLibrary: "文档",
+      platform: "平台",
       settings: "系统设置",
       overviewGroup: "概览",
       companiesGroup: "公司",
@@ -1126,10 +1133,11 @@ export const translations: Record<Language, Translations> = {
       officeGroup: "空间",
       devGroup: "系统设置",
       systemGroup: "工具",
+      integrationsGroup: "集成",
       adminGroup: "管理",
       monitoring: "系统监控",
       consumption: "用量与账单",
-      manageWorkspaces: "管理公司",
+      manageCompanies: "管理公司",
       monitoringBadge: "监控",
       selectCompanyToManage: "请选择一个公司以打开此页面。",
       suggestedBadge: "适合此公司类型",
@@ -1211,7 +1219,7 @@ export const translations: Record<Language, Translations> = {
         sub: "AI Collective 是一个高性能多智能体编排平台，让您可以部署、协调和扩展 AI 劳动力——完全控制拓扑、工具和执行环境。",
         productsLabel: "产品", productsTitle: "两种部署方式",
         product1Name: "AI Collective", product1Desc: "完整平台——通过仪表盘和 REST API 构建、配置和监控多智能体团队。", product1Cta: "打开控制台",
-        product2Name: "Agent Mesh", product2Desc: "独立的 Mesh 编排层，用于将多智能体路由集成到现有技术栈中。", product2Cta: "阅读文档",
+        product2Name: "Staff Mesh", product2Desc: "独立的 Mesh 编排层，用于将多智能体路由集成到现有技术栈中。", product2Cta: "阅读文档",
         featuresLabel: "功能", featuresTitle: "编排 AI 所需的一切",
         modelsLabel: "模型", modelsTitle: "完全 LLM 无关", modelsSub: "在运行时配置、交换或路由模型引擎——无需更改代码。",
         ctaTitle: "准备好构建了吗？", ctaSub: "在几分钟内部署您的第一个多智能体劳动力。", ctaFree: "免费开始构建",
@@ -1288,7 +1296,7 @@ export const translations: Record<Language, Translations> = {
       },
       nav: {
         sections: { intro: "介绍", "getting-started": "快速入门", concepts: "核心概念", guides: "指南", "api-reference": "API 参考", deployment: "部署", contributing: "贡献" },
-        items: { "what-is": "什么是 AI Collective？", architecture: "架构", "key-concepts": "关键概念", quickstart: "快速开始", installation: "安装", configuration: "配置", agents: "智能体", skills: "技能", teams: "团队", tasks: "任务", conversations: "对话", "guide-first-agent": "创建第一个智能体", "guide-build-team": "构建团队", "guide-run-task": "运行任务", "guide-skills": "添加技能与 API", "api-agents": "智能体 API", "api-skills": "技能 API", "api-teams": "团队 API", "api-tasks": "任务 API", "api-chat": "聊天 API", "deploy-docker": "Docker", "deploy-env": "环境变量", "contributing-guide": "如何贡献", "contributing-dev": "开发环境配置" },
+        items: { "what-is": "什么是 AI Collective？", architecture: "架构", "key-concepts": "关键概念", quickstart: "快速开始", installation: "安装", configuration: "配置", staff: "智能体", skills: "技能", departments: "团队", tasks: "任务", meetings: "对话", "guide-first-staff": "创建第一个智能体", "guide-build-department": "构建团队", "guide-run-task": "运行任务", "guide-skills": "添加技能与 API", "api-staff": "智能体 API", "api-skills": "技能 API", "api-departments": "团队 API", "api-tasks": "任务 API", "api-chat": "聊天 API", "deploy-docker": "Docker", "deploy-env": "环境变量", "contributing-guide": "如何贡献", "contributing-dev": "开发环境配置" },
       },
       content: {
         "what-is": {
@@ -1333,7 +1341,7 @@ export const translations: Record<Language, Translations> = {
           apiKeysH2: "API 密钥", frontendH2: "前端配置",
           frontendP: "Vite 开发服务器运行在 8080 端口，期望后端在 localhost:8000。若需更改：",
         },
-        agents: {
+        staff: {
           h1: "智能体", p1: "智能体是具有定义角色、通过系统提示表达的个性，以及用于完成工作的技能（工具）集的 AI 工作者。",
           schemaH2: "智能体 Schema", rolesH2: "智能体角色", rolesP: "AI Collective 内置 40+ 角色模板。以下是最常用的：",
           callout: "您可以输入任何自定义角色名称 — 内置列表只是起始建议。",
@@ -1345,7 +1353,7 @@ export const translations: Record<Language, Translations> = {
           types: [{ desc: "连接到外部服务：Google 表格、Slack、Notion、Airtable、REST API 等。" }, { desc: "编写在服务器端运行的自定义 JavaScript 代码。非常适合数据转换或业务逻辑。" }],
           toolsH2: "可用内置工具", schemaH2: "技能 Schema",
         },
-        teams: {
+        departments: {
           h1: "团队", p1: "团队是协作完成任务的命名智能体组。团队是执行单元 — 您将任务分配给团队，而不是单个智能体。",
           modesH2: "团队模式",
           mesh: { title: "网状模式", desc: "所有智能体可以相互通信。最适合需要智能体共同讨论和完善想法的创意或研究任务。" },
@@ -1358,12 +1366,12 @@ export const translations: Record<Language, Translations> = {
           graphH2: "任务图可视化", graphP: "任务管理器页面显示智能体交互的实时 SVG 图。每个节点是一个智能体，边显示它们之间的消息流。您可以平移和缩放以探索大型智能体网络。",
           graphCallout: "该图使用由自定义 SVG 渲染器驱动的力导向布局 — 无需第三方图库。",
         },
-        conversations: {
+        meetings: {
           h1: "对话", p1: "任务期间智能体之间交换的每条消息都被记录为对话。对话页面让您浏览、过滤和重放所有智能体通信。",
           formatH2: "消息格式", filterH2: "过滤",
           filterP: "按智能体名称、角色、任务或日期范围过滤对话。消息支持全文搜索并以 Markdown 格式渲染。",
         },
-        "guide-first-agent": {
+        "guide-first-staff": {
           h1: "创建第一个智能体", p1: "本指南带您从头使用 UI 创建一个研究智能体。",
           step1H2: "第 1 步：打开智能体构建器", step1P: "在侧边栏导航到智能体，然后点击右上角的新建智能体。",
           step2H2: "第 2 步：填写详细信息",
@@ -1372,10 +1380,10 @@ export const translations: Record<Language, Translations> = {
           step5H2: "第 5 步：保存", step5P: "点击创建智能体。Alice 现在将以 idle 状态出现在您的智能体列表中。",
           callout: "通过点击 Alice 卡片上的测试按钮并输入研究问题来立即测试 Alice。",
         },
-        "guide-build-team": {
+        "guide-build-department": {
           h1: "构建团队", p1: "团队将多个智能体组合成一个协作单元。让我们构建一个研究与写作团队。",
           compositionH2: "推荐的团队构成",
-          teamRoles: [{ role: "项目经理", purpose: "协调任务分解并委派给其他智能体" }, { role: "研究智能体", purpose: "从网络收集信息并综合研究发现" }, { role: "开发智能体", purpose: "编写代码或技术文档" }, { role: "审查智能体", purpose: "在交付前验证所有输出" }],
+          departmentRoles: [{ role: "项目经理", purpose: "协调任务分解并委派给其他智能体" }, { role: "研究智能体", purpose: "从网络收集信息并综合研究发现" }, { role: "开发智能体", purpose: "编写代码或技术文档" }, { role: "审查智能体", purpose: "在交付前验证所有输出" }],
           createH2: "创建团队", createP: "前往团队 → 新建团队，按顺序添加所有四个智能体，为协作任务选择网状模式，然后保存。",
         },
         "guide-run-task": {
@@ -1390,9 +1398,9 @@ export const translations: Record<Language, Translations> = {
           sheetsCallout: "Google OAuth 需要在 Google Cloud Console 中设置项目并下载 credentials.json。详情请参阅 Google 集成指南。",
           customH2: "自定义 JavaScript 技能",
         },
-        "api-agents": { h1: "智能体 API", p1: "基础 URL：http://localhost:8000/api", endpointsH2: "端点", createH2: "创建智能体" },
+        "api-staff": { h1: "智能体 API", p1: "基础 URL：http://localhost:8000/api", endpointsH2: "端点", createH2: "创建智能体" },
         "api-skills": { h1: "技能 API", presetsH2: "获取工具预设" },
-        "api-teams": { h1: "团队 API" },
+        "api-departments": { h1: "团队 API" },
         "api-tasks": { h1: "任务 API" },
         "api-chat": { h1: "聊天 API", p1: "无需创建完整任务即可直接测试单个智能体。" },
         "deploy-docker": { h1: "Docker 部署", p1: "使用 Docker Compose 部署整个技术栈。" },
@@ -1465,13 +1473,14 @@ export const translations: Record<Language, Translations> = {
       phoneNote: "お使いの番号に確認コードを送信します。",
     },
     nav: {
-      label: "ナビゲーション", dashboard: "会社概要", agents: "スタッフ",
-      skills: "業務とツール", teams: "部門", tasks: "タスクボード", projects: "プロジェクト",
-      conversations: "ミーティング", analytics: "実績とコスト", playground: "トレーニング", workspaces: "会社管理",
+      label: "ナビゲーション", dashboard: "会社概要", staff: "スタッフ",
+      skills: "業務とツール", departments: "部門", tasks: "タスクボード", projects: "プロジェクト",
+      meetings: "ミーティング", analytics: "実績とコスト", playground: "トレーニング", companies: "会社管理",
       officeBuilder: "AI 会社デザイナー",
       virtualOffice: "オフィス図面",
-      marketplace: "採用",
+      recruiting: "採用",
       documentLibrary: "ドキュメント",
+      platform: "プラットフォーム",
       settings: "システム設定",
       overviewGroup: "概要",
       companiesGroup: "会社",
@@ -1481,10 +1490,11 @@ export const translations: Record<Language, Translations> = {
       officeGroup: "スペース",
       devGroup: "システム設定",
       systemGroup: "ツール",
+      integrationsGroup: "連携",
       adminGroup: "管理",
       monitoring: "システム監視",
       consumption: "使用量と請求",
-      manageWorkspaces: "会社管理",
+      manageCompanies: "会社管理",
       monitoringBadge: "監視",
       selectCompanyToManage: "このページを開くには会社を選択してください。",
       suggestedBadge: "この会社タイプにおすすめ",
@@ -1568,7 +1578,7 @@ export const translations: Record<Language, Translations> = {
       },
       nav: {
         sections: { intro: "はじめに", "getting-started": "スタートガイド", concepts: "コアコンセプト", guides: "ガイド", "api-reference": "API リファレンス", deployment: "デプロイ", contributing: "コントリビューション" },
-        items: { "what-is": "AI Collective とは？", architecture: "アーキテクチャ", "key-concepts": "キーコンセプト", quickstart: "クイックスタート", installation: "インストール", configuration: "設定", agents: "エージェント", skills: "スキル", teams: "チーム", tasks: "タスク", conversations: "会話", "guide-first-agent": "最初のエージェントを作成", "guide-build-team": "チームを構築", "guide-run-task": "タスクを実行", "guide-skills": "スキルと API を追加", "api-agents": "エージェント API", "api-skills": "スキル API", "api-teams": "チーム API", "api-tasks": "タスク API", "api-chat": "チャット API", "deploy-docker": "Docker", "deploy-env": "環境変数", "contributing-guide": "コントリビューション方法", "contributing-dev": "開発環境のセットアップ" },
+        items: { "what-is": "AI Collective とは？", architecture: "アーキテクチャ", "key-concepts": "キーコンセプト", quickstart: "クイックスタート", installation: "インストール", configuration: "設定", staff: "エージェント", skills: "スキル", departments: "チーム", tasks: "タスク", meetings: "会話", "guide-first-staff": "最初のエージェントを作成", "guide-build-department": "チームを構築", "guide-run-task": "タスクを実行", "guide-skills": "スキルと API を追加", "api-staff": "エージェント API", "api-skills": "スキル API", "api-departments": "チーム API", "api-tasks": "タスク API", "api-chat": "チャット API", "deploy-docker": "Docker", "deploy-env": "環境変数", "contributing-guide": "コントリビューション方法", "contributing-dev": "開発環境のセットアップ" },
       },
       content: {
         "what-is": {
@@ -1613,7 +1623,7 @@ export const translations: Record<Language, Translations> = {
           apiKeysH2: "API キー", frontendH2: "フロントエンド設定",
           frontendP: "Vite 開発サーバーはポート 8080 で動作し、バックエンドが localhost:8000 にあることを期待します。変更するには：",
         },
-        agents: {
+        staff: {
           h1: "エージェント", p1: "エージェントは定義された役割、システムプロンプトで表現された個性、そして作業を完了するためのスキル（ツール）セットを持つ AI ワーカーです。",
           schemaH2: "エージェントスキーマ", rolesH2: "エージェントの役割", rolesP: "AI Collective には 40 以上の組み込み役割テンプレートが付属しています。最も一般的なものを紹介します：",
           callout: "任意のカスタム役割名を入力できます — 組み込みリストは出発点の提案にすぎません。",
@@ -1625,7 +1635,7 @@ export const translations: Record<Language, Translations> = {
           types: [{ desc: "外部サービスに接続：Google スプレッドシート、Slack、Notion、Airtable、REST API など。" }, { desc: "サーバーサイドで実行されるカスタム JavaScript コードを記述。データ変換やビジネスロジックに最適。" }],
           toolsH2: "利用可能な組み込みツール", schemaH2: "スキルスキーマ",
         },
-        teams: {
+        departments: {
           h1: "チーム", p1: "チームはタスクで協力する名前付きエージェントのグループです。チームは実行単位 — 個々のエージェントではなく、チームにタスクを割り当てます。",
           modesH2: "チームモード",
           mesh: { title: "メッシュモード", desc: "すべてのエージェントが相互に通信できます。エージェントがアイデアを議論・洗練する必要があるクリエイティブまたはリサーチタスクに最適。" },
@@ -1638,12 +1648,12 @@ export const translations: Record<Language, Translations> = {
           graphH2: "タスクグラフの可視化", graphP: "タスクマネージャーページにはエージェント連携のリアルタイム SVG グラフが表示されます。各ノードはエージェントで、エッジはそれらの間のメッセージフローを示します。パン＆ズームで大規模なエージェントネットワークを探索できます。",
           graphCallout: "グラフはカスタム SVG レンダラーによるフォースダイレクトレイアウトを使用 — サードパーティグラフライブラリ不要。",
         },
-        conversations: {
+        meetings: {
           h1: "会話", p1: "タスク中にエージェント間で交わされたすべてのメッセージは会話として記録されます。会話ページで、すべてのエージェント通信を閲覧、フィルタリング、再生できます。",
           formatH2: "メッセージフォーマット", filterH2: "フィルタリング",
           filterP: "エージェント名、役割、タスク、または日付範囲で会話をフィルタリング。メッセージは全文検索をサポートし、Markdown 形式でレンダリングされます。",
         },
-        "guide-first-agent": {
+        "guide-first-staff": {
           h1: "最初のエージェントを作成", p1: "このガイドでは、UI を使用してゼロからリサーチエージェントを作成する方法を説明します。",
           step1H2: "ステップ 1：エージェントビルダーを開く", step1P: "サイドバーのエージェントに移動し、右上の新規エージェントをクリックします。",
           step2H2: "ステップ 2：詳細を入力",
@@ -1652,10 +1662,10 @@ export const translations: Record<Language, Translations> = {
           step5H2: "ステップ 5：保存", step5P: "エージェントを作成をクリックします。Alice が idle ステータスでエージェントリストに表示されます。",
           callout: "Alice のカードのテストボタンをクリックしてリサーチの質問を入力することで、すぐに Alice をテストできます。",
         },
-        "guide-build-team": {
+        "guide-build-department": {
           h1: "チームを構築", p1: "チームは複数のエージェントを協力単位に組み合わせます。リサーチ＆ライティングチームを構築しましょう。",
           compositionH2: "推奨チーム構成",
-          teamRoles: [{ role: "プロジェクトマネージャー", purpose: "タスクの分解を調整し、他のエージェントに委任" }, { role: "リサーチエージェント", purpose: "ウェブから情報を収集し、発見を統合" }, { role: "開発者エージェント", purpose: "コードまたは技術ドキュメントを作成" }, { role: "レビュアーエージェント", purpose: "納品前にすべての出力を検証" }],
+          departmentRoles: [{ role: "プロジェクトマネージャー", purpose: "タスクの分解を調整し、他のエージェントに委任" }, { role: "リサーチエージェント", purpose: "ウェブから情報を収集し、発見を統合" }, { role: "開発者エージェント", purpose: "コードまたは技術ドキュメントを作成" }, { role: "レビュアーエージェント", purpose: "納品前にすべての出力を検証" }],
           createH2: "チームを作成", createP: "チーム → 新規チームに移動し、4 つのエージェントを順番に追加し、協力タスクのためにメッシュモードを選択して保存します。",
         },
         "guide-run-task": {
@@ -1670,9 +1680,9 @@ export const translations: Record<Language, Translations> = {
           sheetsCallout: "Google OAuth は Google Cloud Console でプロジェクトを設定し credentials.json をダウンロードする必要があります。詳細は Google 統合ガイドを参照してください。",
           customH2: "カスタム JavaScript スキル",
         },
-        "api-agents": { h1: "エージェント API", p1: "ベース URL：http://localhost:8000/api", endpointsH2: "エンドポイント", createH2: "エージェントを作成" },
+        "api-staff": { h1: "エージェント API", p1: "ベース URL：http://localhost:8000/api", endpointsH2: "エンドポイント", createH2: "エージェントを作成" },
         "api-skills": { h1: "スキル API", presetsH2: "ツールプリセットを取得" },
-        "api-teams": { h1: "チーム API" },
+        "api-departments": { h1: "チーム API" },
         "api-tasks": { h1: "タスク API" },
         "api-chat": { h1: "チャット API", p1: "完全なタスクを作成せずに個々のエージェントを直接テストします。" },
         "deploy-docker": { h1: "Docker デプロイ", p1: "Docker Compose でスタック全体をデプロイします。" },
@@ -1698,7 +1708,7 @@ export const translations: Record<Language, Translations> = {
         sub: "AI Collective は高性能なマルチエージェント編成プラットフォームで、AI 労働力を展開・調整・拡張できます — トポロジー、ツール、実行環境を完全にコントロール。",
         productsLabel: "製品", productsTitle: "2 つの展開方法",
         product1Name: "AI Collective", product1Desc: "完全なプラットフォーム — ダッシュボードと REST API でマルチエージェントチームを構築・設定・監視。", product1Cta: "コンソールを開く",
-        product2Name: "Agent Mesh", product2Desc: "既存のスタックにマルチエージェントルーティングを統合するためのスタンドアロン Mesh 編成レイヤー。", product2Cta: "ドキュメントを読む",
+        product2Name: "Staff Mesh", product2Desc: "既存のスタックにマルチエージェントルーティングを統合するためのスタンドアロン Mesh 編成レイヤー。", product2Cta: "ドキュメントを読む",
         featuresLabel: "機能", featuresTitle: "AI を編成するために必要なすべて",
         modelsLabel: "モデル", modelsTitle: "完全 LLM 非依存", modelsSub: "実行時にモデルエンジンを設定・交換・ルーティング — コード変更不要。",
         ctaTitle: "構築する準備はできましたか？", ctaSub: "数分で最初のマルチエージェント労働力を展開しましょう。", ctaFree: "無料で構築を始める",

@@ -5,19 +5,20 @@ import { useEffect, useState } from "react";
 // --- A tiny mutable "backend" the mocked api reads/writes, so a page's
 // remount-time reconcile reflects what the server actually has. ---------------
 const backend: { tasks: any[]; convos: Record<string, any[]> } = {
-  tasks: [{ id: "task-1", title: "T", teamId: "team-1", status: "pending", progress: 0, assignedAgents: ["a1"], description: "" }],
+  tasks: [{ id: "task-1", title: "T", departmentId: "department-1", status: "pending", progress: 0, assignedStaff: ["a1"], description: "" }],
   convos: {},
 };
 
+let releaseStream: () => void = () => {};
 const events: any[] = [
   { type: "llm_request_start", agent_id: "a1" },
-  { type: "turn_complete", turn: { agent_id: "a1", turn: 1, content: "Hello from agent" } },
+  { type: "turn_complete", turn: { agent_id: "a1", turn: 1, content: "Hello from staff" } },
 ];
 
 vi.mock("@/lib/api", () => ({
   api: {
     listTasks: vi.fn(async () => backend.tasks.map((t) => ({ ...t }))),
-    listConversations: vi.fn(async (taskId: string) => (backend.convos[taskId] ?? []).map((m) => ({ ...m }))),
+    listMeetings: vi.fn(async (taskId: string) => (backend.convos[taskId] ?? []).map((m) => ({ ...m }))),
     upsertTask: vi.fn(async (payload: any) => {
       const id = payload.id ?? "task-1";
       const existing = backend.tasks.find((t) => t.id === id);
@@ -27,31 +28,31 @@ vi.mock("@/lib/api", () => ({
       return { ...merged };
     }),
     deleteTask: vi.fn(async () => ({ deleted: true })),
-    addConversation: vi.fn(async (p: any) => {
-      const m = { id: `srv-${(backend.convos[p.taskId]?.length ?? 0) + 1}`, agentId: p.agentId, content: p.content, timestamp: "", taskId: p.taskId };
+    addMeeting: vi.fn(async (p: any) => {
+      const m = { id: `srv-${(backend.convos[p.taskId]?.length ?? 0) + 1}`, staffId: p.staffId, content: p.content, timestamp: "", taskId: p.taskId };
       backend.convos[p.taskId] = [...(backend.convos[p.taskId] ?? []), m];
       return { ...m };
     }),
     getTaskGraphContext: vi.fn(async () => ({ nodes: [], edges: [], chunks: [] })),
-    interjectAgentGraph: vi.fn(async () => ({ queued: true, message_id: "mi" })),
-    pauseAgentGraph: vi.fn(async () => ({ paused: true })),
-    resumeAgentGraph: vi.fn(async () => ({ resumed: true })),
-    respondAgentGraph: vi.fn(async () => ({ delivered: true })),
-    runAgentGraphStream: async function* () {
+    interjectStaffGraph: vi.fn(async () => ({ queued: true, message_id: "mi" })),
+    pauseStaffGraph: vi.fn(async () => ({ paused: true })),
+    resumeStaffGraph: vi.fn(async () => ({ resumed: true })),
+    respondStaffGraph: vi.fn(async () => ({ delivered: true })),
+    runStaffGraphStream: async function* () {
       for (const e of events) yield e;
-      await new Promise<void>(() => {}); // stay open
+      await new Promise<void>((resolve) => { releaseStream = resolve; }); // stay open
     },
   },
 }));
 
 import { RunEngineProvider, useRunEngine } from "@/contexts/RunEngineContext";
 
-const TASK: any = { id: "task-1", title: "T", teamId: "team-1", status: "pending", progress: 0, assignedAgents: ["a1"], description: "" };
+const TASK: any = { id: "task-1", title: "T", departmentId: "department-1", status: "pending", progress: 0, assignedStaff: ["a1"], description: "" };
 
 // Mirrors the real pages: fetch from backend on (re)mount and reconcile.
 function Consumer() {
   const engine = useRunEngine();
-  const { ingestTasks, ingestConversations } = engine;
+  const { ingestTasks, ingestMeetings } = engine;
   useEffect(() => {
     let active = true;
     (async () => {
@@ -60,8 +61,8 @@ function Consumer() {
       if (!active) return;
       ingestTasks(tasks);
       for (const t of tasks) {
-        const msgs = await api.listConversations(t.id);
-        if (active) ingestConversations(t.id, msgs);
+        const msgs = await api.listMeetings(t.id);
+        if (active) ingestMeetings(t.id, msgs);
       }
     })();
     return () => { active = false; };
@@ -73,7 +74,7 @@ function Consumer() {
     <div>
       <div data-testid="status">{task?.status ?? "none"}</div>
       <div data-testid="streaming">{engine.isStreaming("task-1") ? "yes" : "no"}</div>
-      <div data-testid="messages">{(engine.conversations["task-1"] ?? []).length}</div>
+      <div data-testid="messages">{(engine.meetings["task-1"] ?? []).length}</div>
       <button onClick={() => engine.startTask(TASK, { mode: "sequential", maxSteps: 6 })}>start</button>
     </div>
   );
@@ -91,7 +92,8 @@ function Harness() {
 
 describe("RunEngine persistence across navigation", () => {
   beforeEach(() => {
-    backend.tasks = [{ id: "task-1", title: "T", teamId: "team-1", status: "pending", progress: 0, assignedAgents: ["a1"], description: "" }];
+    releaseStream = () => {};
+    backend.tasks = [{ id: "task-1", title: "T", departmentId: "department-1", status: "pending", progress: 0, assignedStaff: ["a1"], description: "" }];
     backend.convos = {};
   });
 

@@ -7,52 +7,52 @@ from typing import NamedTuple
 from backend.api.settings import settings
 from backend.application.ports.repositories import (
     ActivityFeedRepository,
-    AgentRepository,
     AnalyticsRepository,
     ConnectionRepository,
-    ConversationRepository,
     GraphKnowledgeRepository,
+    MeetingRepository,
     SkillRepository,
+    StaffRepository,
     TaskRepository,
-    TeamRepository,
-    WorkspaceRepository,
+    DepartmentRepository,
+    CompanyRepository,
 )
-from backend.application.service.agent_service import AgentService
-from backend.application.service.agent_graph_service import AgentGraphService
+from backend.application.service.staff_service import StaffService
+from backend.application.service.staff_graph_service import StaffGraphService
 from backend.application.service.activity_feed_service import ActivityFeedService
 from backend.application.service.analytics_service import AnalyticsService
-from backend.application.service.conversation_service import ConversationService
+from backend.application.service.meeting_service import MeetingService
 from backend.application.service.graph_context_service import GraphContextService
 from backend.application.service.llm_service import LLMService
 from backend.application.service.simulation_service import SimulationService
 from backend.application.service.task_service import TaskService
-from backend.application.service.team_service import TeamService
+from backend.application.service.department_service import DepartmentService
 from backend.application.service.skill_service import SkillService
-from backend.application.service.marketplace_service import MarketplaceService
+from backend.application.service.recruiting_service import RecruitingService
 from backend.domain.service.skill_tool_service import SkillToolManager
-from backend.domain.agent.langgraph_orchestrator import LangGraphAgentOrchestrator
-from backend.domain.agent.langgraph_mesh import MultiAgentMeshOrchestrator
+from backend.domain.staff.langgraph_orchestrator import LangGraphStaffOrchestrator
+from backend.domain.staff.langgraph_mesh import MultiAgentMeshOrchestrator
 from backend.infrastructure.lock_provider import get_shared_lock_provider
-from backend.domain.agent.langgraph_ring import LangGraphRingOrchestrator
-from backend.domain.agent.langgraph_supervisor import LangGraphSupervisorOrchestrator
-from backend.domain.agent.langgraph_tree import LangGraphTreeOrchestrator
-from backend.domain.agent.langgraph_custom import LangGraphCustomOrchestrator
+from backend.domain.staff.langgraph_ring import LangGraphRingOrchestrator
+from backend.domain.staff.langgraph_supervisor import LangGraphSupervisorOrchestrator
+from backend.domain.staff.langgraph_tree import LangGraphTreeOrchestrator
+from backend.domain.staff.langgraph_custom import LangGraphCustomOrchestrator
 from backend.infrastructure.llm.factory import create_llm_provider
 from backend.infrastructure.repositories.json_files import (
     JsonActivityFeedRepository,
-    JsonAgentRepository,
+    JsonStaffRepository,
     JsonAnalyticsRepository,
     JsonConnectionRepository,
-    JsonConversationRepository,
+    JsonMeetingRepository,
     JsonModelPricingRepository,
     JsonOfficeBuilderSessionRepository,
     JsonSkillRepository,
     JsonTaskRepository,
-    JsonTeamRepository,
+    JsonDepartmentRepository,
     JsonTokenUsageRepository,
-    JsonWorkspaceRepository,
+    JsonCompanyRepository,
 )
-from backend.application.service.workspace_service import WorkspaceService
+from backend.application.service.company_service import CompanyService
 from backend.application.service.connection_service import ConnectionService
 from backend.application.service.office_builder_session_service import OfficeBuilderSessionService
 from backend.application.service.user_service import UserService
@@ -62,19 +62,19 @@ from backend.infrastructure.repositories.json_store import JsonFileStore
 from backend.infrastructure.security import BcryptPasswordHasher
 from backend.infrastructure.repositories.mongo_repositories import (
     MongoActivityFeedRepository,
-    MongoAgentRepository,
+    MongoStaffRepository,
     MongoAnalyticsRepository,
     MongoConnectionRepository,
-    MongoConversationRepository,
+    MongoMeetingRepository,
     MongoGraphKnowledgeRepository,
     MongoModelPricingRepository,
     MongoOfficeBuilderSessionRepository,
     MongoSkillRepository,
     MongoTaskRepository,
-    MongoTeamRepository,
+    MongoDepartmentRepository,
     MongoTokenUsageRepository,
     MongoUserRepository,
-    MongoWorkspaceRepository,
+    MongoCompanyRepository,
 )
 from backend.infrastructure import task_queue as _task_queue_module
 from backend.log import get_logger
@@ -131,15 +131,15 @@ def _init_task_queue():
 class Repos(NamedTuple):
     """Named bundle of repo singletons — access by field, not position, so
     adding/reordering a repo can't silently swap two unrelated getters."""
-    agents: AgentRepository
+    staff: StaffRepository
     skills: SkillRepository
-    teams: TeamRepository
+    departments: DepartmentRepository
     tasks: TaskRepository
-    conversations: ConversationRepository
+    conversations: MeetingRepository
     analytics: AnalyticsRepository
     activity_feed: ActivityFeedRepository
     graph_knowledge: GraphKnowledgeRepository
-    workspaces: WorkspaceRepository
+    companies: CompanyRepository
     connections: ConnectionRepository
 
 
@@ -150,29 +150,29 @@ def _repos() -> Repos:
         import pymongo
         client = pymongo.MongoClient(settings.mongo_uri)
         db = client[settings.mongo_db]
-        agents = MongoAgentRepository(db)
+        staff = MongoStaffRepository(db)
         skills = MongoSkillRepository(db)
-        teams = MongoTeamRepository(db)
+        departments = MongoDepartmentRepository(db)
         tasks = MongoTaskRepository(db)
-        conversations = MongoConversationRepository(db)
+        conversations = MongoMeetingRepository(db)
         analytics = MongoAnalyticsRepository(db)
         activity_feed = MongoActivityFeedRepository(db)
         graph_knowledge = MongoGraphKnowledgeRepository(db)
-        workspaces = MongoWorkspaceRepository(db)
+        companies = MongoCompanyRepository(db)
         connections = MongoConnectionRepository(db)
     else:
-        agents = JsonAgentRepository(_store("agents.json"))
+        staff = JsonStaffRepository(_store("agents.json"))
         skills = JsonSkillRepository(_store("skills.json"))
-        teams = JsonTeamRepository(_store("teams.json"))
+        departments = JsonDepartmentRepository(_store("teams.json"))
         tasks = JsonTaskRepository(_store("tasks.json"))
-        conversations = JsonConversationRepository(_store("conversations.json"))
+        conversations = JsonMeetingRepository(_store("conversations.json"))
         analytics = JsonAnalyticsRepository(_store("analytics.json"))
         activity_feed = JsonActivityFeedRepository(_store("activity_feed.json"))
         graph_knowledge = JsonGraphKnowledgeRepository(
             _store("graph_knowledge.json"),
             _store("graph_knowledge_events.json"),
         )
-        workspaces = JsonWorkspaceRepository(_store("workspaces.json"))
+        companies = JsonCompanyRepository(_store("workspaces.json"))
         connections = JsonConnectionRepository(_store("connections.json"))
 
     # Optional Neo4j knowledge-graph backend (overrides the STORAGE_BACKEND repo
@@ -198,48 +198,48 @@ def _repos() -> Repos:
             )
 
     return Repos(
-        agents=agents,
+        staff=staff,
         skills=skills,
-        teams=teams,
+        departments=departments,
         tasks=tasks,
         conversations=conversations,
         analytics=analytics,
         activity_feed=activity_feed,
         graph_knowledge=graph_knowledge,
-        workspaces=workspaces,
+        companies=companies,
         connections=connections,
     )
 
 
-def get_agent_service() -> AgentService:
+def get_staff_service() -> StaffService:
     repos = _repos()
-    return AgentService(repos.agents, repos.skills)
+    return StaffService(repos.staff, repos.skills)
 
 
 def get_skill_service() -> SkillService:
     return SkillService(_repos().skills)
 
 
-def get_team_service() -> TeamService:
-    return TeamService(_repos().teams)
+def get_department_service() -> DepartmentService:
+    return DepartmentService(_repos().departments)
 
 
 def get_task_service() -> TaskService:
     return TaskService(_repos().tasks)
 
 
-def get_marketplace_service() -> MarketplaceService:
+def get_recruiting_service() -> RecruitingService:
     repos = _repos()
-    return MarketplaceService(
-        AgentService(repos.agents, repos.skills),
+    return RecruitingService(
+        StaffService(repos.staff, repos.skills),
         SkillService(repos.skills),
-        TeamService(repos.teams),
+        DepartmentService(repos.departments),
         TaskService(repos.tasks),
         get_document_library_service(),
     )
 
 
-def get_conversation_service() -> ConversationService:
+def get_meeting_service() -> MeetingService:
     repos = _repos()
     conversations, graph_knowledge = repos.conversations, repos.graph_knowledge
     graph_llm = None
@@ -252,9 +252,11 @@ def get_conversation_service() -> ConversationService:
             openai_api_key=settings.openai_api_keys(),
             open_weight_api_key=settings.open_weight_api_keys(),
             kimi_api_key=settings.kimi_api_keys(),
+            deepseek_api_key=settings.deepseek_api_keys(),
+            glm_api_key=settings.glm_api_keys(),
             base_url=settings.llm_api_base,
         )
-    return ConversationService(
+    return MeetingService(
         conversations,
         GraphContextService(
             graph_knowledge,
@@ -285,6 +287,8 @@ def get_graph_context_service() -> GraphContextService:
             openai_api_key=settings.openai_api_keys(),
             open_weight_api_key=settings.open_weight_api_keys(),
             kimi_api_key=settings.kimi_api_keys(),
+            deepseek_api_key=settings.deepseek_api_keys(),
+            glm_api_key=settings.glm_api_keys(),
             base_url=settings.llm_api_base,
         )
     return GraphContextService(
@@ -294,8 +298,8 @@ def get_graph_context_service() -> GraphContextService:
     )
 
 
-def get_workspace_service() -> WorkspaceService:
-    return WorkspaceService(_repos().workspaces)
+def get_company_service() -> CompanyService:
+    return CompanyService(_repos().companies)
 
 
 def get_connection_service() -> ConnectionService:
@@ -441,8 +445,8 @@ def seed_admin_user() -> None:
 
 # Bundled default catalog shipped in storage/*.json (committed to git), keyed by
 # the Mongo collection it feeds. Only these are auto-imported on startup.
-# Order matters: agents/skills/teams are seeded before tasks so a seeded task's
-# referenced team and agents already exist in the live store.
+# Order matters: staff/skills/departments are seeded before tasks so a seeded task's
+# referenced team and staff already exist in the live store.
 _DEFAULT_DATA_FILES = (
     ("agents", "agents.json"),
     ("skills", "skills.json"),
@@ -463,7 +467,7 @@ def _load_seed_records(filename: str) -> list[dict]:
 
 
 def seed_default_data() -> None:
-    """Seed the bundled default agents/skills/teams/tasks into the live DB on startup.
+    """Seed the bundled default staff/skills/departments/tasks into the live DB on startup.
 
     The committed catalog lives in the seed dir (``storage/``); the live data
     lives in the local database (Mongo, or JSON files under ``local_database/``).
@@ -534,7 +538,7 @@ def seed_default_data() -> None:
 
 
 def get_skill_tool_manager() -> SkillToolManager:
-    """Get SkillToolManager for binding tools to skills during agent initialization."""
+    """Get SkillToolManager for binding tools to skills during staff initialization."""
     return SkillToolManager()
 
 
@@ -574,8 +578,8 @@ def init_usage_tracking() -> bool:
         input_tokens: int,
         output_tokens: int,
         user_id: str,
-        agent_name: str = "",
-        team_id: str = "",
+        staff_name: str = "",
+        department_id: str = "",
     ) -> None:
         usage_repo.add(
             TokenUsageRecord(
@@ -587,8 +591,8 @@ def init_usage_tracking() -> bool:
                 total_tokens=input_tokens + output_tokens,
                 user_id=user_id or "system",
                 timestamp=datetime.now(timezone.utc),
-                agent_name=agent_name or "",
-                team_id=team_id or "",
+                staff_name=staff_name or "",
+                department_id=department_id or "",
             )
         )
 
@@ -606,10 +610,10 @@ def get_monitoring_service():
         usage=usage_repo,
         pricing=pricing_repo,
         users=_user_store(),
-        agents=repos.agents,
-        teams=repos.teams,
+        staff=repos.staff,
+        departments=repos.departments,
         tasks=repos.tasks,
-        workspaces=repos.workspaces,
+        companies=repos.companies,
     )
 
 
@@ -624,8 +628,10 @@ def _llm_provider():
         openai_api_key=settings.openai_api_keys(),
         open_weight_api_key=settings.open_weight_api_keys(),
         kimi_api_key=settings.kimi_api_keys(),
+        deepseek_api_key=settings.deepseek_api_keys(),
+        glm_api_key=settings.glm_api_keys(),
         base_url=settings.llm_api_base,
-        max_tool_rounds=settings.agent_max_tool_rounds,
+        max_tool_rounds=settings.staff_max_tool_rounds,
         tool_timeout_seconds=settings.tool_timeout_seconds,
     )
 
@@ -641,7 +647,7 @@ def get_llm_service() -> LLMService | None:
     return LLMService(provider)
 
 
-def get_agent_graph_service(mode: str = "sequential") -> AgentGraphService | None:
+def get_staff_graph_service(mode: str = "sequential") -> StaffGraphService | None:
     provider = _llm_provider()
     if not provider:
         return None
@@ -656,9 +662,9 @@ def get_agent_graph_service(mode: str = "sequential") -> AgentGraphService | Non
     elif mode == "custom":
         orchestrator = LangGraphCustomOrchestrator()
     else:
-        orchestrator = LangGraphAgentOrchestrator()
+        orchestrator = LangGraphStaffOrchestrator()
     get_logger().info(f"{orchestrator.__class__.__name__} selected for mode='{mode}'")
-    return AgentGraphService(provider, orchestrator)
+    return StaffGraphService(provider, orchestrator)
 
 
 # ---------------------------------------------------------------------------

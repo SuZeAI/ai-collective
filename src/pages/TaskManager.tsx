@@ -20,13 +20,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { AgentAvatar } from "@/components/AgentAvatar";
+import { StaffAvatar } from "@/components/StaffAvatar";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
-import { ConversationFiles } from "@/components/ConversationFiles";
-import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Agent, type Team, type Task, type TaskPriority, type Project, type Sprint } from "@/lib/api";
-import { useRunEngine, type UserInputRequest } from "@/contexts/RunEngineContext";
-import { useWorkspaceScope } from "@/hooks/use-workspace-scope";
-import { getAgentRoleColor } from "@/lib/agent-role-ui";
+import { MeetingFiles } from "@/components/MeetingFiles";
+import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Staff, type GraphContextSnapshot, type Message, type Department, type Task, type TaskPriority, type Project, type Sprint } from "@/lib/api";
+import { useRunEngine, type GraphHighlight, type UserInputRequest } from "@/contexts/RunEngineContext";
+import { useCompanyScope } from "@/hooks/use-company-scope";
+import { getStaffRoleColor } from "@/lib/staff-role-ui";
 import { cn } from "@/lib/utils";
 
 const statusIcons = {
@@ -44,12 +44,12 @@ const statusColors: Record<string, string> = {
   "in-review": "text-violet-500",
   "paused": "text-amber-500",
   "stopped": "text-rose-500",
-  "completed": "text-agent-dev",
+  "completed": "text-staff-dev",
 };
 
 // Jira-style Kanban columns: one per task status. Dragging a card between
 // columns drives the status transition (and auto-run for "In Progress").
-// "In Review" is a manual column (a human reviews agent output before Done);
+// "In Review" is a manual column (a human reviews staff output before Done);
 // the run engine never auto-emits it.
 const BOARD_COLUMNS: { status: Task["status"]; label: string; accent: string }[] = [
   { status: "pending", label: "To Do", accent: "bg-muted-foreground/30" },
@@ -122,14 +122,14 @@ const formatTaskDateTime = (date: Date) => {
 
 type KanbanCardProps = {
   task: Task;
-  team?: Team;
-  assignee?: Agent;
+  department?: Department;
+  assignee?: Staff;
   progress: number;
   isSelected: boolean;
   onOpen: (taskId: string) => void;
 };
 
-const KanbanCard = memo(function KanbanCard({ task, team, assignee, progress, isSelected, onOpen }: KanbanCardProps) {
+const KanbanCard = memo(function KanbanCard({ task, department, assignee, progress, isSelected, onOpen }: KanbanCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: CSS.Translate.toString(transform), zIndex: 50 } : undefined;
   const priority = PRIORITY_CONFIG[priorityOf(task)];
@@ -191,13 +191,13 @@ const KanbanCard = memo(function KanbanCard({ task, team, assignee, progress, is
         <div className="flex items-center gap-1 min-w-0">
           {assignee ? (
             <>
-              <AgentAvatar agent={assignee} className="w-4 h-4 rounded-md text-[8px] shrink-0" iconClassName="w-2.5 h-2.5" />
+              <StaffAvatar staff={assignee} className="w-4 h-4 rounded-md text-[8px] shrink-0" iconClassName="w-2.5 h-2.5" />
               <span className="text-[9px] text-muted-foreground truncate">{assignee.name}</span>
             </>
-          ) : team ? (
+          ) : department ? (
             <>
-              <AgentAvatar agent={team} className="w-4 h-4 rounded-md text-[8px] shrink-0" iconClassName="w-2.5 h-2.5" />
-              <span className="text-[9px] text-muted-foreground truncate">{team.name}</span>
+              <StaffAvatar staff={department} className="w-4 h-4 rounded-md text-[8px] shrink-0" iconClassName="w-2.5 h-2.5" />
+              <span className="text-[9px] text-muted-foreground truncate">{department.name}</span>
             </>
           ) : (
             <span className="text-[9px] text-muted-foreground truncate">Unassigned</span>
@@ -250,14 +250,14 @@ function KanbanColumn({ status, label, accent, count, children }: KanbanColumnPr
 }
 
 export default function TaskManager() {
-  const scope = useWorkspaceScope();
+  const scope = useCompanyScope();
   // Shared run engine (lives above the router): owns the streaming loop and all
   // run-state so a task keeps running and stays in sync when navigating away.
   const engine = useRunEngine();
   const {
     tasks: taskList,
-    conversations: taskConversations,
-    thinkingAgents,
+    meetings: taskConversations,
+    thinkingStaff,
     activeFanouts,
     heldTaskIds,
     pendingInterjections,
@@ -271,8 +271,8 @@ export default function TaskManager() {
     isStreaming,
   } = engine;
 
-  const [teamList, setTeamList] = useState<Team[]>([]);
-  const [agentList, setAgentList] = useState<Agent[]>([]);
+  const [departmentList, setDepartmentList] = useState<Department[]>([]);
+  const [staffList, setStaffList] = useState<Staff[]>([]);
   // Project scoping: when reached via /projects/:key/board the board is filtered
   // to that project's issues and a sprint filter is offered.
   const { key: projectKeyParam } = useParams<{ key?: string }>();
@@ -289,7 +289,7 @@ export default function TaskManager() {
   const canCreateTask = !!activeProject || !scope.isOverall;
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
-  const [teamId, setTeamId] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
   // Jira-style create/edit form fields.
   const [assignMode, setAssignMode] = useState<"department" | "staff">("department");
   const [assigneeId, setAssigneeId] = useState("");
@@ -304,7 +304,7 @@ export default function TaskManager() {
   // Human-in-the-loop composer draft and ask_user free-text drafts (UI-local).
   const [humanInputs, setHumanInputs] = useState<Record<string, string>>({});
   const [userRequestDrafts, setUserRequestDrafts] = useState<Record<string, string>>({});
-  // User comment drafts per task (separate from the agent live-chat composer).
+  // User comment drafts per task (separate from the staff live-chat composer).
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -316,35 +316,35 @@ export default function TaskManager() {
     let cancelled = false;
     (async () => {
       try {
-        const [tasks, teams, agents, projects, sprints] = await Promise.all([
+        const [tasks, departments, staff, projects, sprints] = await Promise.all([
           api.listTasks(),
-          api.listTeams(),
-          api.listAgents(),
+          api.listDepartments(),
+          api.listStaff(),
           api.listProjects().catch(() => [] as Project[]),
           api.listSprints().catch(() => [] as Sprint[]),
         ]);
         if (cancelled) return;
         // Reconcile with the engine: it keeps the lead for any task it's actively
-        // streaming, and seeds conversations only where it has no live transcript.
+        // streaming, and seeds meetings only where it has no live transcript.
         engine.ingestTasks(tasks);
-        setTeamList(teams);
-        setAgentList(agents);
+        setDepartmentList(departments);
+        setStaffList(staff);
         setProjectList(projects);
         setSprintList(sprints);
 
-        // Load conversations for all tasks
+        // Load meetings for all tasks
         if (tasks.length > 0) {
           try {
             const results = await Promise.all(
-              tasks.map(async (task) => ({ id: task.id, messages: await api.listConversations(task.id) }))
+              tasks.map(async (task) => ({ id: task.id, messages: await api.listMeetings(task.id) }))
             );
             if (!cancelled) {
               for (const item of results) {
-                engine.ingestConversations(item.id, item.messages);
+                engine.ingestMeetings(item.id, item.messages);
               }
             }
           } catch (e) {
-            console.error("Failed to load conversations:", e);
+            console.error("Failed to load meetings:", e);
           }
         }
       } catch (e) {
@@ -357,29 +357,29 @@ export default function TaskManager() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const agentById = useMemo(() => {
-    const map = new Map<string, Agent>();
-    agentList.forEach((a) => map.set(a.id, a));
+  const staffById = useMemo(() => {
+    const map = new Map<string, Staff>();
+    staffList.forEach((a) => map.set(a.id, a));
     return map;
-  }, [agentList]);
+  }, [staffList]);
 
-  // Agents the active office can pick for an individual ("staff") assignment.
-  const scopedAgents = useMemo(() => {
-    if (scope.isOverall) return agentList;
+  // Staff the active office can pick for an individual ("staff") assignment.
+  const scopedStaff = useMemo(() => {
+    if (scope.isOverall) return staffList;
     const ids = new Set<string>();
-    teamList.filter((t) => scope.teamIds.has(t.id)).forEach((t) => (t.agents ?? []).forEach((a) => ids.add(a)));
-    return agentList.filter((a) => ids.has(a.id));
-  }, [agentList, teamList, scope]);
+    departmentList.filter((t) => scope.departmentIds.has(t.id)).forEach((t) => (t.staff ?? []).forEach((a) => ids.add(a)));
+    return staffList.filter((a) => ids.has(a.id));
+  }, [staffList, departmentList, scope]);
 
-  // The engine is team-agnostic; the page supplies the team's run config. Tasks
-  // assigned to an individual (no team) fall back to a single-agent sequential run.
-  const teamRunOpts = (task: Task) => {
-    const team = teamList.find((t) => t.id === task.teamId);
+  // The engine is department-agnostic; the page supplies the department's run config. Tasks
+  // assigned to an individual (no department) fall back to a single-staff sequential run.
+  const departmentRunOpts = (task: Task) => {
+    const department = departmentList.find((t) => t.id === task.departmentId);
     // Custom mode runs the user-drawn flow; if it was never wired, fall back to
     // sequential so the task still executes.
-    const customGraph = team ? buildCustomGraphPayload(team) : undefined;
-    const mode = team?.mode === "custom" && !customGraph ? "sequential" : (team?.mode ?? "sequential");
-    return { mode, maxSteps: team?.maxSteps ?? 6, customGraph };
+    const customGraph = department ? buildCustomGraphPayload(department) : undefined;
+    const mode = department?.mode === "custom" && !customGraph ? "sequential" : (department?.mode ?? "sequential");
+    return { mode, maxSteps: department?.maxSteps ?? 6, customGraph };
   };
 
   // Office scoping: a task belongs to the active office if its department is in
@@ -387,9 +387,9 @@ export default function TaskManager() {
   // member of a department in scope.
   const isTaskInScope = (task: Task) => {
     if (scope.isOverall) return true;
-    if (task.teamId && scope.teamIds.has(task.teamId)) return true;
+    if (task.departmentId && scope.departmentIds.has(task.departmentId)) return true;
     if (task.assigneeId) {
-      return teamList.some((t) => scope.teamIds.has(t.id) && (t.agents ?? []).includes(task.assigneeId as string));
+      return departmentList.some((t) => scope.departmentIds.has(t.id) && (t.staff ?? []).includes(task.assigneeId as string));
     }
     return false;
   };
@@ -407,18 +407,18 @@ export default function TaskManager() {
         return false;
       }
       if (!q) return true;
-      const team = teamList.find((t) => t.id === task.teamId);
-      const assignee = task.assigneeId ? agentById.get(task.assigneeId) : undefined;
+      const department = departmentList.find((t) => t.id === task.departmentId);
+      const assignee = task.assigneeId ? staffById.get(task.assigneeId) : undefined;
       return (
         task.title.toLowerCase().includes(q) ||
         (task.description ?? "").toLowerCase().includes(q) ||
-        (team?.name ?? "").toLowerCase().includes(q) ||
+        (department?.name ?? "").toLowerCase().includes(q) ||
         (assignee?.name ?? "").toLowerCase().includes(q) ||
         (task.labels ?? []).some((l) => l.toLowerCase().includes(q))
       );
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taskList, teamList, agentById, searchQuery, scope, activeProject, sprintFilter]);
+  }, [taskList, departmentList, staffById, searchQuery, scope, activeProject, sprintFilter]);
 
   // Group the in-scope tasks into board columns, urgent priority first.
   const tasksByStatus = useMemo(() => {
@@ -478,7 +478,7 @@ export default function TaskManager() {
     setEditingTaskId(null);
     setTitle("");
     setDesc("");
-    setTeamId("");
+    setDepartmentId("");
     setAssignMode("department");
     setAssigneeId("");
     setPriority("medium");
@@ -495,13 +495,13 @@ export default function TaskManager() {
     setEditingTaskId(task.id);
     setTitle(task.title);
     setDesc(task.description ?? "");
-    if (task.assigneeId && !task.teamId) {
+    if (task.assigneeId && !task.departmentId) {
       setAssignMode("staff");
       setAssigneeId(task.assigneeId);
-      setTeamId("");
+      setDepartmentId("");
     } else {
       setAssignMode("department");
-      setTeamId(task.teamId);
+      setDepartmentId(task.departmentId);
       setAssigneeId("");
     }
     setPriority(priorityOf(task));
@@ -535,10 +535,10 @@ export default function TaskManager() {
 
   const saveTask = async () => {
     if (!title.trim()) return;
-    if (assignMode === "department" && !teamId) return;
+    if (assignMode === "department" && !departmentId) return;
     if (assignMode === "staff" && !assigneeId) return;
     const existing = editingTaskId ? taskList.find((t) => t.id === editingTaskId) : undefined;
-    const team = teamList.find((t) => t.id === teamId);
+    const department = departmentList.find((t) => t.id === departmentId);
     const labels = labelsInput.split(",").map((s) => s.trim()).filter(Boolean);
     const base = {
       id: editingTaskId ?? undefined,
@@ -567,9 +567,9 @@ export default function TaskManager() {
     };
     try {
       if (assignMode === "staff") {
-        await engine.upsertTask({ ...base, teamId: "", assigneeId, assignedAgents: [assigneeId] });
+        await engine.upsertTask({ ...base, departmentId: "", assigneeId, assignedStaff: [assigneeId] });
       } else {
-        await engine.upsertTask({ ...base, teamId, assigneeId: null, assignedAgents: team?.agents || [] });
+        await engine.upsertTask({ ...base, departmentId, assigneeId: null, assignedStaff: department?.staff || [] });
       }
       resetForm();
       setOpen(false);
@@ -579,14 +579,14 @@ export default function TaskManager() {
   };
 
   // Drag a card between columns → drive the matching status transition. Moving
-  // into "In Progress" auto-runs the agents; the user keeps stop/pause controls.
+  // into "In Progress" auto-runs the staff; the user keeps stop/pause controls.
   const moveTaskToStatus = (task: Task, status: Task["status"]) => {
     if (task.status === status) return;
     if (!canEditItem(task)) return;
     if (updatingTaskIds.has(task.id)) return;
     if (status === "in-progress") {
       openTaskView(task.id);
-      void engine.startTask(task, teamRunOpts(task));
+      void engine.startTask(task, departmentRunOpts(task));
     } else if (status === "stopped") {
       void engine.stopTask(task);
     } else if (status === "paused") {
@@ -613,7 +613,7 @@ export default function TaskManager() {
     if (updatingTaskIds.has(task.id)) return;
     if (status === "in-progress") {
       openTaskView(task.id);
-      void engine.startTask(task, teamRunOpts(task));
+      void engine.startTask(task, departmentRunOpts(task));
     } else if (status === "stopped") {
       void engine.stopTask(task);
     } else if (status === "paused") {
@@ -621,25 +621,25 @@ export default function TaskManager() {
     }
   };
 
-  // Follow-up on a finished task: relaunch in the SAME conversation (graph
+  // Follow-up on a finished task: relaunch in the SAME meeting (graph
   // context preserved) with the message as the steering instruction. The engine
-  // owns the run; the page only supplies the team config and transcript tail.
+  // owns the run; the page only supplies the department config and transcript tail.
   const continueTaskWithMessage = async (task: Task) => {
     const content = (humanInputs[task.id] ?? "").trim();
     if (!content || updatingTaskIds.has(task.id) || isStreaming(task.id)) return;
-    if (task.assignedAgents.length === 0) return;
+    if (task.assignedStaff.length === 0) return;
     // Snapshot the recent transcript BEFORE the follow-up so the new run sees
     // verbatim what was said (the knowledge graph alone is lossy).
     const transcriptTail = (taskConversations[task.id] ?? [])
       .slice(-10)
       .map((m) => {
-        const speaker = m.agentId === "user" ? "User" : (agentById.get(m.agentId)?.name ?? m.agentId);
+        const speaker = m.staffId === "user" ? "User" : (staffById.get(m.staffId)?.name ?? m.staffId);
         const text = m.content.length > 600 ? `${m.content.slice(0, 600)}…` : m.content;
         return `${speaker}: ${text}`;
       })
       .join("\n---\n");
     setHumanInputs((prev) => ({ ...prev, [task.id]: "" }));
-    await engine.continueTask(task, content, { ...teamRunOpts(task), transcriptTail });
+    await engine.continueTask(task, content, { ...departmentRunOpts(task), transcriptTail });
   };
 
   // Composer dispatch: mid-run messages interject into the live run; messages
@@ -652,7 +652,7 @@ export default function TaskManager() {
     }
   };
 
-  // User comment thread (separate from the agent live-chat). Persisted on the
+  // User comment thread (separate from the staff live-chat). Persisted on the
   // task itself via upsert, so it survives reloads like every other task field.
   const addComment = async (task: Task) => {
     const content = (commentDrafts[task.id] ?? "").trim();
@@ -671,7 +671,7 @@ export default function TaskManager() {
 
   const clearHistory = async (id: string) => {
     if (updatingTaskIds.has(id)) return;
-    if (!window.confirm("Clear all conversation history and knowledge for this task? This cannot be undone.")) return;
+    if (!window.confirm("Clear all meeting history and knowledge for this task? This cannot be undone.")) return;
     try {
       await engine.clearHistory(id);
     } catch (e) {
@@ -697,7 +697,7 @@ export default function TaskManager() {
     }
   };
 
-  // Human-in-the-loop: send a message while agents are running (interjection).
+  // Human-in-the-loop: send a message while staff are running (interjection).
   const sendHumanMessage = async (task: Task) => {
     const content = (humanInputs[task.id] ?? "").trim();
     if (!content) return;
@@ -705,8 +705,8 @@ export default function TaskManager() {
     if (ok) setHumanInputs((prev) => ({ ...prev, [task.id]: "" }));
   };
 
-  // ask_user tool: deliver the user's answer to the blocked agent.
-  const respondToAgentQuestion = async (task: Task, request: UserInputRequest, response: string) => {
+  // ask_user tool: deliver the user's answer to the blocked staff.
+  const respondToStaffQuestion = async (task: Task, request: UserInputRequest, response: string) => {
     const content = response.trim();
     if (!content) return;
     const ok = await engine.respond(task, request, content);
@@ -776,37 +776,37 @@ export default function TaskManager() {
           </svg>
         </div>
 
-        {scope.workspace && (
+        {scope.company && (
           <AppendFromOverallDialog
             size="sm"
-            title={`Append tasks to "${scope.workspace.name}"`}
+            title={`Append tasks to "${scope.company.name}"`}
             description="Pick existing tasks from Overall and assign them to one of this office's departments."
             items={taskList
               .filter((t) => !isTaskInScope(t))
               .map((t) => ({ id: t.id, name: t.title, sub: t.description, badge: t.status }))}
             emptyText="Every task from Overall already belongs to this office."
-            targets={teamList
-              .filter((t) => scope.teamIds.has(t.id))
+            targets={departmentList
+              .filter((t) => scope.departmentIds.has(t.id))
               .map((t) => ({ id: t.id, name: t.name }))}
             targetLabel="Assign to department"
             noTargetText="This office has no departments yet. Add a department first."
             copyLabel="Create independent copies for this office (when unchecked, your own tasks are moved instead; shared tasks are always copied)."
             onAppend={async (ids, targetId, makeCopy) => {
-              const team = teamList.find((t) => t.id === targetId);
-              if (!team) return;
+              const department = departmentList.find((t) => t.id === targetId);
+              if (!department) return;
               for (const id of ids) {
                 const task = taskList.find((t) => t.id === id);
                 if (!task) continue;
                 if (!makeCopy && canEditItem(task)) {
-                  await engine.upsertTask({ ...task, teamId: team.id, assigneeId: null, assignedAgents: team.agents || [] });
+                  await engine.upsertTask({ ...task, departmentId: department.id, assigneeId: null, assignedStaff: department.staff || [] });
                 } else {
                   await engine.upsertTask({
                     title: task.title,
                     description: task.description,
-                    teamId: team.id,
+                    departmentId: department.id,
                     status: "pending",
                     progress: 0,
-                    assignedAgents: team.agents || [],
+                    assignedStaff: department.staff || [],
                   });
                 }
               }
@@ -859,10 +859,10 @@ export default function TaskManager() {
                   </button>
                 </div>
                 {assignMode === "department" ? (
-                  <Select value={teamId} onValueChange={setTeamId}>
+                  <Select value={departmentId} onValueChange={setDepartmentId}>
                     <SelectTrigger><SelectValue placeholder="Select a department" /></SelectTrigger>
                     <SelectContent>
-                      {(scope.isOverall ? teamList : teamList.filter((t) => scope.teamIds.has(t.id)))
+                      {(scope.isOverall ? departmentList : departmentList.filter((t) => scope.departmentIds.has(t.id)))
                         .map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
@@ -870,7 +870,7 @@ export default function TaskManager() {
                   <Select value={assigneeId} onValueChange={setAssigneeId}>
                     <SelectTrigger><SelectValue placeholder="Select a staff member" /></SelectTrigger>
                     <SelectContent>
-                      {scopedAgents.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                      {scopedStaff.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 )}
@@ -906,7 +906,7 @@ export default function TaskManager() {
               <Button
                 onClick={saveTask}
                 className="w-full"
-                disabled={!title.trim() || (assignMode === "department" ? !teamId : !assigneeId)}
+                disabled={!title.trim() || (assignMode === "department" ? !departmentId : !assigneeId)}
               >
                 {editingTaskId ? "Save Changes" : "Create Task"}
               </Button>
@@ -924,15 +924,15 @@ export default function TaskManager() {
               return (
                 <KanbanColumn key={col.status} status={col.status} label={col.label} accent={col.accent} count={columnTasks.length}>
                   {columnTasks.map((task) => {
-                    const team = task.teamId ? teamList.find((t) => t.id === task.teamId) : undefined;
-                    const assignee = task.assigneeId ? agentById.get(task.assigneeId) : undefined;
+                    const department = task.departmentId ? departmentList.find((t) => t.id === task.departmentId) : undefined;
+                    const assignee = task.assigneeId ? staffById.get(task.assigneeId) : undefined;
                     const messages = taskConversations[task.id] ?? [];
-                    const progress = task.status === "completed" ? 100 : Math.min(Math.round((messages.length / (team?.maxSteps ?? 6)) * 100), 99);
+                    const progress = task.status === "completed" ? 100 : Math.min(Math.round((messages.length / (department?.maxSteps ?? 6)) * 100), 99);
                     return (
                       <KanbanCard
                         key={task.id}
                         task={task}
-                        team={team}
+                        department={department}
                         assignee={assignee}
                         progress={progress}
                         isSelected={viewTaskId === task.id}
@@ -960,8 +960,8 @@ export default function TaskManager() {
               );
             }
 
-            const team = teamList.find((t) => t.id === selectedTask.teamId);
-            const assignee = selectedTask.assigneeId ? agentById.get(selectedTask.assigneeId) : undefined;
+            const department = departmentList.find((t) => t.id === selectedTask.departmentId);
+            const assignee = selectedTask.assigneeId ? staffById.get(selectedTask.assigneeId) : undefined;
             const messages = taskConversations[selectedTask.id] ?? [];
             const visibleMessages = messages.slice(-50);
             const openQuestions = userInputRequests[selectedTask.id] ?? [];
@@ -971,16 +971,16 @@ export default function TaskManager() {
             const dueDateObj = parseTaskDate(selectedTask.dueDate);
             const overdue = isOverdue(selectedTask.dueDate, selectedTask.status);
             // Finished tasks accept follow-up messages that relaunch the run in
-            // the same conversation (knowledge graph context preserved).
+            // the same meeting (knowledge graph context preserved).
             const canFollowUp =
               (selectedTask.status === "completed" || selectedTask.status === "stopped" || selectedTask.status === "paused") &&
-              selectedTask.assignedAgents.length > 0;
+              selectedTask.assignedStaff.length > 0;
             const composerEnabled = selectedTask.status === "in-progress" || canFollowUp;
             const composerBusy =
               selectedTask.status === "in-progress"
                 ? sendingInterjectTaskIds.has(selectedTask.id)
                 : updatingTaskIds.has(selectedTask.id);
-            const maxRounds = team?.maxSteps ?? 6;
+            const maxRounds = department?.maxSteps ?? 6;
             const calculatedProgress = selectedTask.status === "completed" ? 100 : Math.min(Math.round((messages.length / maxRounds) * 100), 99);
             const startDate = parseTaskDate(selectedTask.startTime);
             const endDate = parseTaskDate(selectedTask.endTime);
@@ -1029,7 +1029,7 @@ export default function TaskManager() {
                         className="h-8 text-xs px-3"
                         onClick={() => clearHistory(selectedTask.id)}
                         disabled={isUpdating}
-                        title="Wipe conversation history and knowledge for a fresh start"
+                        title="Wipe meeting history and knowledge for a fresh start"
                       >
                         <X className="w-3.5 h-3.5 mr-1.5" /> Clear history
                       </Button>
@@ -1048,7 +1048,7 @@ export default function TaskManager() {
                   </div>
                 </div>
 
-                {/* Detail columns workspace */}
+                {/* Detail columns company */}
                 <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[300px_1fr] divide-x divide-border">
                   {/* Panel 1: Settings / Metadata */}
                   <div className="h-full overflow-y-auto p-4 space-y-5 bg-muted/5 flex-shrink-0 scrollbar-thin">
@@ -1106,13 +1106,13 @@ export default function TaskManager() {
                       <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted text-xs font-semibold">
                         {assignee ? (
                           <>
-                            <AgentAvatar agent={assignee} className="w-4 h-4 rounded-md text-[9px]" iconClassName="w-2.5 h-2.5" />
+                            <StaffAvatar staff={assignee} className="w-4 h-4 rounded-md text-[9px]" iconClassName="w-2.5 h-2.5" />
                             {assignee.name}
                           </>
                         ) : (
                           <>
-                            <AgentAvatar agent={team || { avatar: "D", avatar_icon: "users" }} className="w-4 h-4 rounded-md text-[9px]" iconClassName="w-2.5 h-2.5" />
-                            {team?.name || "(Unassigned)"}
+                            <StaffAvatar staff={department || { avatar: "D", avatar_icon: "users" }} className="w-4 h-4 rounded-md text-[9px]" iconClassName="w-2.5 h-2.5" />
+                            {department?.name || "(Unassigned)"}
                           </>
                         )}
                       </div>
@@ -1153,12 +1153,12 @@ export default function TaskManager() {
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Personnel</label>
                       <div className="flex flex-wrap gap-1.5">
-                        {selectedTask.assignedAgents.map((aid) => {
-                          const agent = agentById.get(aid);
-                          return agent ? (
+                        {selectedTask.assignedStaff.map((aid) => {
+                          const staff = staffById.get(aid);
+                          return staff ? (
                             <span key={aid} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-background text-[11px] font-medium border border-border/60 shadow-sm">
-                              <AgentAvatar agent={agent} className="w-4 h-4 rounded-md text-[8px]" iconClassName="w-2.5 h-2.5" />
-                              {agent.name}
+                              <StaffAvatar staff={staff} className="w-4 h-4 rounded-md text-[8px]" iconClassName="w-2.5 h-2.5" />
+                              {staff.name}
                             </span>
                           ) : null;
                         })}
@@ -1176,7 +1176,7 @@ export default function TaskManager() {
                       )}
                     </div>
 
-                    {/* Comments: user-authored thread, separate from agent live-chat */}
+                    {/* Comments: user-authored thread, separate from staff live-chat */}
                     <div className="space-y-2 pt-3 border-t border-border/40">
                       <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                         <MessageSquare className="w-3 h-3" /> Comments ({taskComments.length})
@@ -1232,7 +1232,7 @@ export default function TaskManager() {
                     </div>
                   </div>
 
-                  {/* Panel 2: Live Chat/Conversation */}
+                  {/* Panel 2: Live Chat/Meeting */}
                   <div className="h-full flex flex-col overflow-hidden bg-background">
                     <div className="px-4 py-2 border-b border-border/40 bg-muted/5 flex items-center justify-between flex-shrink-0">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -1240,14 +1240,14 @@ export default function TaskManager() {
                       </span>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-3.5 scrollbar-thin">
-                      {isConversationLoading && messages.length === 0 && (thinkingAgents[selectedTask.id]?.size ?? 0) === 0 ? (
-                        <p className="text-xs text-muted-foreground animate-pulse">Loading conversation...</p>
-                      ) : visibleMessages.length > 0 || (thinkingAgents[selectedTask.id]?.size ?? 0) > 0 || openQuestions.length > 0 || !!activeFanouts[selectedTask.id] ? (
+                      {isConversationLoading && messages.length === 0 && (thinkingStaff[selectedTask.id]?.size ?? 0) === 0 ? (
+                        <p className="text-xs text-muted-foreground animate-pulse">Loading meeting...</p>
+                      ) : visibleMessages.length > 0 || (thinkingStaff[selectedTask.id]?.size ?? 0) > 0 || openQuestions.length > 0 || !!activeFanouts[selectedTask.id] ? (
                         <div className="space-y-3.5">
                           {visibleMessages.map((msg) => {
                             const ts = new Date(msg.timestamp);
                             // Human-in-the-loop message: distinct style + delivery badge
-                            if (msg.agentId === "user") {
+                            if (msg.staffId === "user") {
                               const isQueued = pendingInterjections[selectedTask.id]?.has(msg.id) ?? false;
                               return (
                                 <div key={msg.id} className="rounded-xl border border-primary/30 p-3.5 bg-primary/10 ml-8 shadow-sm">
@@ -1264,7 +1264,7 @@ export default function TaskManager() {
                                           : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                                       )}
                                     >
-                                      {isQueued ? "Waiting for next agent…" : "Added to agent context"}
+                                      {isQueued ? "Waiting for next staff…" : "Added to staff context"}
                                     </span>
                                     <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto">
                                       {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
@@ -1274,16 +1274,16 @@ export default function TaskManager() {
                                 </div>
                               );
                             }
-                            const agent = agentById.get(msg.agentId);
+                            const staff = staffById.get(msg.staffId);
                             return (
                               <div key={msg.id} className="rounded-xl border border-border/40 p-3.5 bg-card/45 hover:bg-muted/10 transition-colors shadow-sm">
                                 <div className="flex items-center gap-2 mb-2">
-                                  <AgentAvatar
-                                    agent={agent || { avatar: "?" }}
-                                    className={`w-6.5 h-6.5 rounded-md text-[9px] shadow-sm shrink-0 ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
+                                  <StaffAvatar
+                                    staff={staff || { avatar: "?" }}
+                                    className={`w-6.5 h-6.5 rounded-md text-[9px] shadow-sm shrink-0 ${staff?.avatar_color ? "" : getStaffRoleColor(staff?.role || "")}`}
                                     iconClassName="w-3 h-3"
                                   />
-                                  <span className="text-xs font-bold text-foreground">{agent?.name ?? msg.agentId}</span>
+                                  <span className="text-xs font-bold text-foreground">{staff?.name ?? msg.staffId}</span>
                                   <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto">
                                     {isNaN(ts.getTime()) ? msg.timestamp : ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                                   </span>
@@ -1297,22 +1297,22 @@ export default function TaskManager() {
                             );
                           })}
 
-                          {/* ask_user tool: agent question cards — the agent is
+                          {/* ask_user tool: staff question cards — the staff is
                               blocked until the user answers (or times out) */}
                           {openQuestions.map((request) => {
-                            const agent = request.agentId ? agentById.get(request.agentId) : undefined;
+                            const staff = request.staffId ? staffById.get(request.staffId) : undefined;
                             const draft = userRequestDrafts[request.requestId] ?? "";
                             const isResponding = respondingRequestIds.has(request.requestId);
                             return (
                               <div key={request.requestId} className="rounded-xl border border-violet-500/35 p-3.5 bg-violet-500/5 shadow-sm">
                                 <div className="flex items-center gap-2 mb-2">
-                                  <AgentAvatar
-                                    agent={agent || { avatar: "?", avatar_icon: "circle-help" }}
-                                    className={`w-6.5 h-6.5 rounded-md text-[9px] shadow-sm shrink-0 ${agent?.avatar_color ? "" : getAgentRoleColor(agent?.role || "")}`}
+                                  <StaffAvatar
+                                    staff={staff || { avatar: "?", avatar_icon: "circle-help" }}
+                                    className={`w-6.5 h-6.5 rounded-md text-[9px] shadow-sm shrink-0 ${staff?.avatar_color ? "" : getStaffRoleColor(staff?.role || "")}`}
                                     iconClassName="w-3 h-3"
                                   />
                                   <span className="text-xs font-bold text-foreground">
-                                    {agent?.name ?? request.agentName ?? "Agent"}
+                                    {staff?.name ?? request.staffName ?? "Staff"}
                                   </span>
                                   <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold border bg-violet-500/10 text-violet-400 border-violet-500/25 flex items-center gap-1">
                                     <HelpCircle className="w-2.5 h-2.5" /> needs your input
@@ -1329,7 +1329,7 @@ export default function TaskManager() {
                                         size="sm"
                                         variant="outline"
                                         className="h-7 px-2.5 text-[11px] font-semibold border-violet-500/30 hover:bg-violet-500/10"
-                                        onClick={() => void respondToAgentQuestion(selectedTask, request, opt)}
+                                        onClick={() => void respondToStaffQuestion(selectedTask, request, opt)}
                                         disabled={isResponding}
                                       >
                                         {opt}
@@ -1347,7 +1347,7 @@ export default function TaskManager() {
                                       onKeyDown={(e) => {
                                         if (e.key === "Enter") {
                                           e.preventDefault();
-                                          void respondToAgentQuestion(selectedTask, request, draft);
+                                          void respondToStaffQuestion(selectedTask, request, draft);
                                         }
                                       }}
                                       placeholder="Type your answer… (Enter to send)"
@@ -1357,7 +1357,7 @@ export default function TaskManager() {
                                     <Button
                                       size="sm"
                                       className="h-8 px-2.5 shrink-0"
-                                      onClick={() => void respondToAgentQuestion(selectedTask, request, draft)}
+                                      onClick={() => void respondToStaffQuestion(selectedTask, request, draft)}
                                       disabled={!draft.trim() || isResponding}
                                     >
                                       <Send className="w-3.5 h-3.5" />
@@ -1369,7 +1369,7 @@ export default function TaskManager() {
                           })}
 
                           {/* Parallel fan-out banner: shown while a coordinator's
-                              wave of agents runs concurrently. */}
+                              wave of staff runs concurrently. */}
                           {activeFanouts[selectedTask.id] && (
                             <div className="rounded-xl border border-amber-500/30 p-3 bg-amber-500/5">
                               <div className="flex items-center gap-2 flex-wrap">
@@ -1382,7 +1382,7 @@ export default function TaskManager() {
                                     key={`fanout-${t}`}
                                     className="text-[10px] px-1.5 py-0.5 rounded font-semibold border bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"
                                   >
-                                    {agentById.get(t)?.name ?? t}
+                                    {staffById.get(t)?.name ?? t}
                                   </span>
                                 ))}
                               </div>
@@ -1390,11 +1390,11 @@ export default function TaskManager() {
                           )}
 
                           {/* Thinking indicators */}
-                          {(thinkingAgents[selectedTask.id]?.size ?? 0) > 0 && (
-                            Array.from(thinkingAgents[selectedTask.id] ?? []).map((agentId) => {
-                              const agent = agentById.get(agentId);
+                          {(thinkingStaff[selectedTask.id]?.size ?? 0) > 0 && (
+                            Array.from(thinkingStaff[selectedTask.id] ?? []).map((staffId) => {
+                              const staff = staffById.get(staffId);
                               return (
-                                <div key={`thinking-${agentId}`} className="rounded-xl border border-primary/20 p-3.5 bg-primary/5">
+                                <div key={`thinking-${staffId}`} className="rounded-xl border border-primary/20 p-3.5 bg-primary/5">
                                   <div className="flex items-center gap-2">
                                     <div className="flex items-center gap-1 shrink-0">
                                       <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" />
@@ -1402,7 +1402,7 @@ export default function TaskManager() {
                                       <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0.4s" }} />
                                     </div>
                                     <span className="text-xs font-semibold text-primary/95">
-                                      {agent?.name ?? agentId} is processing...
+                                      {staff?.name ?? staffId} is processing...
                                     </span>
                                   </div>
                                 </div>
@@ -1416,9 +1416,9 @@ export default function TaskManager() {
                       )}
                     </div>
 
-                    {/* Human-in-the-loop composer: chat with the agents mid-run.
+                    {/* Human-in-the-loop composer: chat with the staff mid-run.
                         Messages are queued on the backend and injected into the
-                        context of the next agent turn. Interrupt holds the run
+                        context of the next staff turn. Interrupt holds the run
                         at the turn boundary; Resume releases it.
                         Hidden for shared default tasks — they are view-only for
                         regular users (running them requires the admin account). */}
@@ -1429,7 +1429,7 @@ export default function TaskManager() {
                           <div className="flex items-center justify-between gap-2 mb-2 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25">
                             <span className="text-[10px] font-semibold text-amber-500 flex items-center gap-1.5">
                               <Hand className="w-3 h-3" />
-                              Agents are holding — send your guidance, then resume.
+                              Staff are holding — send your guidance, then resume.
                             </span>
                             <Button
                               size="sm"
@@ -1460,7 +1460,7 @@ export default function TaskManager() {
                         </p>
                       )}
                       <div className="mb-2">
-                        <ConversationFiles taskId={selectedTask.id} workspaceId={scope.workspace?.id ?? null} />
+                        <MeetingFiles taskId={selectedTask.id} companyId={scope.company?.id ?? null} />
                       </div>
                       <div className="flex items-end gap-2">
                         <Textarea
@@ -1476,12 +1476,12 @@ export default function TaskManager() {
                           }}
                           placeholder={
                             !composerEnabled
-                              ? "Start the task to chat with the agents"
+                              ? "Start the task to chat with the staff"
                               : canFollowUp
                                 ? "Task finished — send a follow-up to continue the work with full context… (Enter to send)"
                                 : heldTaskIds.has(selectedTask.id)
                                   ? "Run is holding — discuss freely, then press Resume… (Enter to send)"
-                                  : "Guide the agents — your message becomes context for the next agent turn… (Enter to send)"
+                                  : "Guide the staff — your message becomes context for the next staff turn… (Enter to send)"
                           }
                           disabled={!composerEnabled || composerBusy}
                           className="min-h-[38px] max-h-[110px] text-xs resize-none flex-1 py-2"

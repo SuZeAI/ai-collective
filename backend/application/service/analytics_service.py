@@ -41,8 +41,8 @@ class AnalyticsService:
         return Analytics(
             tasks_completed=len(completed_tasks),
             avg_completion_time=avg_completion_time,
-            team_efficiency=base.team_efficiency,
-            agent_productivity=base.agent_productivity,
+            department_efficiency=base.department_efficiency,
+            staff_productivity=base.staff_productivity,
         )
 
     @staticmethod
