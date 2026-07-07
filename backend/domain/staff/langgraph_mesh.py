@@ -23,6 +23,7 @@ from backend.domain.staff.token_budget import apply_context_token_budget
 from backend.domain.staff._graph_runtime import (
     FANOUT_SYNTHESIS_GUIDANCE,
     MESH_FANOUT_MAX_CONCURRENT,
+    attach_subagent_toolkit,
     build_agent_tools,
     drain_human_guidance,
     ensure_working_memory,
@@ -42,7 +43,6 @@ logger = get_logger(__name__)
 
 MAX_CONTEXT_TOKENS = max(1024, settings.staff.context_token_limit)
 RESERVED_OUTPUT_TOKENS = max(256, settings.staff.output_token_reserve)
-SUBAGENT_MAX_CONCURRENT = max(1, settings.staff.subagent_max_concurrent)
 
 
 class MultiAgentMeshState(TypedDict):
@@ -670,19 +670,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             )
 
             bound_tools = build_agent_tools(staff_member, conversation_id=conversation_id)
-
-            # Staff Mode: expose the `task` tool so this staff_member can delegate to
-            # subagents (which inherit these tools minus `task`).
-            if staff_member.subagent_enabled:
-                from backend.domain.tools.task import TaskToolkit
-
-                task_toolkit = TaskToolkit(
-                    llm=llm,
-                    subagent_tools=list(bound_tools),
-                    max_concurrent=SUBAGENT_MAX_CONCURRENT,
-                    parent_staff_name=staff_member.name,
-                )
-                bound_tools.extend(task_toolkit.get_tools())
+            attach_subagent_toolkit(bound_tools, staff_member, llm=llm)
 
             logger.debug(
                 "[%s] mesh_node: bound_tools=%s",
@@ -1062,16 +1050,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         user_input = budget_result.text
 
         bound_tools = build_agent_tools(branch_agent, conversation_id=conversation_id)
-        if branch_agent.subagent_enabled:
-            from backend.domain.tools.task import TaskToolkit
-
-            task_toolkit = TaskToolkit(
-                llm=llm,
-                subagent_tools=list(bound_tools),
-                max_concurrent=SUBAGENT_MAX_CONCURRENT,
-                parent_staff_name=branch_agent.name,
-            )
-            bound_tools.extend(task_toolkit.get_tools())
+        attach_subagent_toolkit(bound_tools, branch_agent, llm=llm)
 
         return {
             "system": branch_agent.system_prompt,
