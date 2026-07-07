@@ -21,15 +21,84 @@ export type GraphHighlight = {
   updatedAt: string;
 };
 
-// Stream events are raw parsed JSON from the SSE generator — loosely typed.
-type RunStreamEvent = Record<string, any>;
+// One staff turn, as embedded in a "turn_complete" event's `turn` field
+// (backend/api/schemas/staff_graph.py GraphTurnSchema) — field names come from
+// the backend's JSON, not the frontend's camelCase convention.
+export type StaffTurnPayload = {
+  turn: number;
+  agent_id?: string;
+  agent_name?: string;
+  staffId?: string;
+  staffName?: string;
+  content: string;
+};
+
+// Known event `type` values emitted by /llm/staff-graph/run-stream, mirroring
+// backend/domain/event/schema.py's EventType plus a couple of stream-only
+// synthetic types ("cancelled" — see llm.py's event_generator).
+export type KnownStreamEventType =
+  | "agent_start"
+  | "agent_turn_start"
+  | "context_building"
+  | "context_retrieved"
+  | "llm_request_start"
+  | "llm_response_complete"
+  | "message_ingested"
+  | "subagent_start"
+  | "subagent_complete"
+  | "fanout_start"
+  | "fanout_complete"
+  | "turn_complete"
+  | "user_message_injected"
+  | "run_paused"
+  | "run_resumed"
+  | "user_input_request"
+  | "user_input_received"
+  | "cancelled";
+
+// Stream events are raw parsed JSON from the SSE generator. This is not a
+// strict discriminated union — a couple of terminal messages (`error`,
+// `graph_context`) carry no `type` field at all on the wire — but every field
+// any consumer actually reads is declared here, so a backend field rename
+// (this has happened: agent_name vs staff_name) is a compile error instead of
+// a silent runtime no-op.
+export type RunStreamEvent = {
+  type?: KnownStreamEventType;
+  agent_id?: string;
+  agent_name?: string;
+  staffId?: string;
+  staffName?: string;
+  error?: string;
+  subagent_type?: string;
+  description?: string;
+  targets?: unknown[];
+  request_id?: string;
+  question?: string;
+  options?: unknown[];
+  allow_free_text?: boolean;
+  message_ids?: unknown[];
+  node_ids?: unknown[];
+  edge_ids?: unknown[];
+  chunk_ids?: unknown[];
+  turn?: StaffTurnPayload;
+  content?: string;
+  task_id?: string;
+  taskId?: string;
+  graph_context?: {
+    text: string;
+    node_ids: string[];
+    edge_ids: string[];
+    chunk_ids: string[];
+    method?: string;
+  };
+};
 
 // A synthetic event emitted once a run loop ends, so animation-driven consumers
 // (VirtualOffice) can reset their state without inferring it from task status.
 export type RunEndedEvent = { type: "run_ended"; taskId: string; reason: "completed" | "stopped" | "aborted" | "error" };
 
-type EngineEvent = RunStreamEvent | RunEndedEvent;
-type EventListener = (event: EngineEvent) => void;
+export type EngineEvent = RunStreamEvent | RunEndedEvent;
+export type EventListener = (event: EngineEvent) => void;
 
 // Department config the caller passes at start time — the engine is department-agnostic.
 type RunOpts = {
@@ -350,21 +419,26 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
               updatedAt: new Date().toISOString(),
             },
           }));
-        } else if (eventType === "message_ingested" || eventType === "graph_context") {
+        } else if (eventType === "message_ingested") {
           refreshGraph(updated.id);
-          if (eventType === "graph_context") {
-            setGraphHighlights((prev) => ({
-              ...prev,
-              [updated.id]: {
-                nodeIds: Array.isArray(event.node_ids) ? event.node_ids.map(String) : [],
-                edgeIds: Array.isArray(event.edge_ids) ? event.edge_ids.map(String) : [],
-                chunkIds: Array.isArray(event.chunk_ids) ? event.chunk_ids.map(String) : [],
-                staffId: staffId ? String(staffId) : undefined,
-                staffName: event.agent_name ? String(event.agent_name) : staffId ? String(staffId) : undefined,
-                updatedAt: new Date().toISOString(),
-              },
-            }));
-          }
+        } else if (event.graph_context) {
+          // This terminal message carries no `type` field on the wire (see
+          // llm.py's event_generator) — it's identified by the presence of
+          // `graph_context` instead, nested under that key (not at the top
+          // level like context_retrieved's node_ids/edge_ids/chunk_ids).
+          const pack = event.graph_context;
+          refreshGraph(updated.id);
+          setGraphHighlights((prev) => ({
+            ...prev,
+            [updated.id]: {
+              nodeIds: pack.node_ids ?? [],
+              edgeIds: pack.edge_ids ?? [],
+              chunkIds: pack.chunk_ids ?? [],
+              staffId: staffId ? String(staffId) : undefined,
+              staffName: event.agent_name ? String(event.agent_name) : staffId ? String(staffId) : undefined,
+              updatedAt: new Date().toISOString(),
+            },
+          }));
         } else if (eventType === "llm_response_complete") {
           if (staffId) {
             setThinkingStaff((prev) => {

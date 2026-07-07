@@ -12,7 +12,7 @@ import { useTheme } from "next-themes";
 import { StaffAvatar } from "@/components/StaffAvatar";
 import { MeetingFiles } from "@/components/MeetingFiles";
 import { api, buildCustomGraphPayload, type Staff, type Task, type Department, type Message } from "@/lib/api";
-import { useRunEngine } from "@/contexts/RunEngineContext";
+import { useRunEngine, type EngineEvent } from "@/contexts/RunEngineContext";
 import { useCompanyScope } from "@/hooks/use-company-scope";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -314,7 +314,7 @@ export default function VirtualOffice() {
   // into staff emotes and flying-document handoffs. Subscribing to "*" means a
   // run started on the Task Manager page animates here too.
   useEffect(() => {
-    const unsubscribe = engine.subscribe("*", (event: any) => {
+    const unsubscribe = engine.subscribe("*", (event: EngineEvent) => {
       const eventType = event.type;
       const staffId = event.agent_id || event.staffId || event.agent_name || event.staffName;
 
