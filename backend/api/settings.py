@@ -360,7 +360,11 @@ class TaskQueueSettings(BaseSettings):
     model_config = _SECTION_CONFIG
 
     backend: str = Field(default="memory", validation_alias=_alias("TASK_QUEUE_BACKEND"))
-    max_concurrent: int = Field(default=3, validation_alias=_alias("TASK_QUEUE_MAX_CONCURRENT"))
+    # Max staff-graph runs executing at once, system-wide, across every
+    # company/user (excess runs queue). The work here is I/O-bound (LLM API
+    # calls), not CPU-bound, so threads are cheap — 3 was low enough to cap an
+    # entire multi-tenant deployment at 3 concurrent runs total by default.
+    max_concurrent: int = Field(default=10, validation_alias=_alias("TASK_QUEUE_MAX_CONCURRENT"))
     rabbitmq_url: str | None = Field(default=None, validation_alias=_alias("RABBITMQ_URL"))
 
 
