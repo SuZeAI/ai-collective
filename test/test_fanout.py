@@ -155,7 +155,7 @@ def test_run_fanout_wave_runs_concurrently_and_numbers_in_order():
 
     # 3 branches x 0.2s each: concurrent ⇒ ~0.2s, sequential would be ~0.6s.
     assert elapsed < 0.5, f"branches did not run concurrently (elapsed={elapsed:.2f}s)"
-    assert [r.agent_name for r in results] == ["A", "B", "C"]
+    assert [r.staff_name for r in results] == ["A", "B", "C"]
     assert [r.turn for r in results] == [6, 7, 8]  # base_turn_number + 1..N
     assert all(not r.error for r in results)
     assert results[0].content == "echo: A:ta"
@@ -199,7 +199,7 @@ def test_run_fanout_wave_one_branch_failure_does_not_kill_wave():
 
     results = asyncio.run(go())
     assert len(results) == 2
-    by_name = {r.agent_name: r for r in results}
+    by_name = {r.staff_name: r for r in results}
     assert by_name["A"].error is False
     assert by_name["B"].error is True
 
@@ -223,7 +223,7 @@ def test_run_fanout_wave_kwargs_builder_crash_isolated():
         )
 
     results = asyncio.run(go())
-    by_name = {r.agent_name: r for r in results}
+    by_name = {r.staff_name: r for r in results}
     assert by_name["A"].error is False
     assert by_name["B"].error is True
     assert "branch crashed" in by_name["B"].content
@@ -246,7 +246,7 @@ class _ScriptedLLM:
         self.branch_response = branch_response
 
     async def chat(self, *, system, user, tools=None, parallel_tools=False,
-                   max_tool_rounds=None):
+                   max_tool_rounds=None, **kwargs):
         if "PARALLEL WAVE SYNTHESIS" in system:
             return self.synthesis_response
         if self.coordinator_marker in system:
@@ -278,15 +278,15 @@ def test_e2e_mesh_fanout_full_graph():
         GraphStaffDefinition(name="Bob", role="analyst", system_prompt="analyze"),
     ]
     res = asyncio.run(MultiAgentMeshOrchestrator().run(
-        user_input="Investigate.", agents=agents, llm=llm, max_rounds=6,
+        user_input="Investigate.", staff=agents, llm=llm, max_rounds=6,
         conversation_id=None,
     ))
-    names = [t.agent_name for t in res.turns]
+    names = [t.staff_name for t in res.turns]
     nums = [t.turn for t in res.turns]
     assert names == ["Hub", "Alice", "Bob", "Hub"]
     assert nums == [1, 2, 3, 4]            # dense, gap-free
     assert res.rounds == 1                 # one wave == one round
-    assert res.final_agent == "Hub"
+    assert res.final_staff == "Hub"
 
 
 def test_e2e_supervisor_fanout_full_graph():
@@ -307,10 +307,10 @@ def test_e2e_supervisor_fanout_full_graph():
         GraphStaffDefinition(name="W2", role="worker", system_prompt="w2"),
     ]
     res = asyncio.run(LangGraphSupervisorOrchestrator().run(
-        user_input="Do the job.", agents=agents, llm=llm, max_rounds=6,
+        user_input="Do the job.", staff=agents, llm=llm, max_rounds=6,
         conversation_id=None,
     ))
-    names = [t.agent_name for t in res.turns]
+    names = [t.staff_name for t in res.turns]
     nums = [t.turn for t in res.turns]
     assert names == ["Lead", "W1", "W2", "Lead"]
     assert nums == [1, 2, 3, 4]
@@ -343,7 +343,7 @@ def test_e2e_mesh_sequential_unchanged_when_no_fanout():
         GraphStaffDefinition(name="Bob", role="a", system_prompt="analyze"),
     ]
     res = asyncio.run(MultiAgentMeshOrchestrator().run(
-        user_input="hi", agents=agents, llm=SeqLLM(), max_rounds=6,
+        user_input="hi", staff=agents, llm=SeqLLM(), max_rounds=6,
         conversation_id=None,
     ))
     nums = [t.turn for t in res.turns]

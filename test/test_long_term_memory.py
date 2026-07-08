@@ -27,13 +27,13 @@ def _service(tmp_path):
 # --------------------------------------------------------------------------- #
 
 def test_scope_broad_record_visible_everywhere():
-    broad = MemoryRecord(id="1", content="x", workspace_id="bu1")  # no owner/agent
+    broad = MemoryRecord(id="1", content="x", company_id="bu1")  # no owner/agent
     # a narrow query (specific owner+agent) still matches the broad record
     assert MemoryScope("bu1", "u1", "analyst").matches(broad)
 
 
 def test_scope_narrow_record_hidden_from_other_agents():
-    narrow = MemoryRecord(id="1", content="x", workspace_id="bu1", owner_id="u1", agent_id="analyst")
+    narrow = MemoryRecord(id="1", content="x", company_id="bu1", owner_id="u1", staff_id="analyst")
     assert MemoryScope("bu1", "u1", "analyst").matches(narrow)
     assert not MemoryScope("bu1", "u1", "writer").matches(narrow)
     assert not MemoryScope("bu2", "u1", "analyst").matches(narrow)
@@ -47,7 +47,7 @@ def test_remember_and_recall_roundtrip(tmp_path):
     svc = _service(tmp_path)
 
     async def run():
-        scope = MemoryScope(workspace_id="bu1", owner_id="u1")
+        scope = MemoryScope(company_id="bu1", owner_id="u1")
         await svc.remember(scope, "The fiscal year ends in June", kind="fact", importance=0.7)
         # recall from a narrower agent scope still sees the owner-scoped fact
         got = await svc.recall(MemoryScope("bu1", "u1", "analyst"), "when does the fiscal year end")

@@ -22,7 +22,7 @@ def test_set_task_is_idempotent():
 
 def test_add_note_clips_and_assigns_sequence():
     memory = _make_memory()
-    note = memory.add_note(agent="researcher", content="x" * 5000, kind="finding", turn=2)
+    note = memory.add_note(staff="researcher", content="x" * 5000, kind="finding", turn=2)
     assert note is not None
     assert note.seq == 1
     assert len(note.content) <= wm_module.WORKING_MEMORY_NOTE_CHARS
@@ -31,24 +31,24 @@ def test_add_note_clips_and_assigns_sequence():
 
 def test_add_note_rejects_empty_and_dedupes_recent():
     memory = _make_memory()
-    assert memory.add_note(agent="a", content="   ") is None
-    first = memory.add_note(agent="a", content="same fact")
-    repeat = memory.add_note(agent="a", content="same fact")
+    assert memory.add_note(staff="a", content="   ") is None
+    first = memory.add_note(staff="a", content="same fact")
+    repeat = memory.add_note(staff="a", content="same fact")
     assert repeat is first
     assert len(memory.notes) == 1
 
 
 def test_unknown_kind_falls_back_to_finding():
     memory = _make_memory()
-    note = memory.add_note(agent="a", content="fact", kind="banana")
+    note = memory.add_note(staff="a", content="fact", kind="banana")
     assert note.kind == "finding"
 
 
 def test_compaction_folds_oldest_unpinned_into_summary():
     memory = _make_memory()
-    pinned = memory.add_note(agent="user", content="critical guidance", kind="guidance", pinned=True)
+    pinned = memory.add_note(staff="user", content="critical guidance", kind="guidance", pinned=True)
     for i in range(WORKING_MEMORY_MAX_NOTES + 10):
-        memory.add_note(agent="worker", content=f"unique finding number {i}", turn=i + 1)
+        memory.add_note(staff="worker", content=f"unique finding number {i}", turn=i + 1)
 
     assert len(memory.notes) <= WORKING_MEMORY_MAX_NOTES
     assert pinned in memory.notes  # pinned survives compaction
@@ -59,9 +59,9 @@ def test_token_threshold_triggers_summarization(monkeypatch):
     # Force a tiny token ceiling: ~100 tokens ≈ 320 chars of notes.
     monkeypatch.setattr(wm_module, "WORKING_MEMORY_COMPACT_TOKENS", 100)
     memory = _make_memory()
-    pinned = memory.add_note(agent="user", content="pinned rule", kind="guidance", pinned=True)
+    pinned = memory.add_note(staff="user", content="pinned rule", kind="guidance", pinned=True)
     for i in range(10):
-        memory.add_note(agent="w", content=f"long finding {i} " + "z" * 150, turn=i + 1)
+        memory.add_note(staff="w", content=f"long finding {i} " + "z" * 150, turn=i + 1)
 
     assert memory.estimated_tokens() <= 100 + 60  # fits again (±1 note of slack)
     assert pinned in memory.notes                  # pinned never summarized
@@ -72,15 +72,15 @@ def test_token_threshold_triggers_summarization(monkeypatch):
 def test_estimated_tokens_grows_with_content():
     memory = _make_memory()
     assert memory.estimated_tokens() == 0
-    memory.add_note(agent="a", content="x" * 320)
+    memory.add_note(staff="a", content="x" * 320)
     assert memory.estimated_tokens() >= 100
 
 
 def test_digest_contains_task_summary_pinned_and_recent():
     memory = _make_memory()
     memory.set_task("Investigate churn")
-    memory.add_note(agent="user", content="never email customers", kind="guidance", pinned=True)
-    memory.add_note(agent="analyst", content="churn is 12% in Q3", kind="finding", turn=3)
+    memory.add_note(staff="user", content="never email customers", kind="guidance", pinned=True)
+    memory.add_note(staff="analyst", content="churn is 12% in Q3", kind="finding", turn=3)
     digest = memory.render_digest()
     assert "WORKING MEMORY" in digest
     assert "Investigate churn" in digest
@@ -91,7 +91,7 @@ def test_digest_contains_task_summary_pinned_and_recent():
 def test_digest_respects_budget_and_prefers_recent_notes():
     memory = _make_memory()
     for i in range(30):
-        memory.add_note(agent="a", content=f"note number {i} " + "y" * 200, turn=i + 1)
+        memory.add_note(staff="a", content=f"note number {i} " + "y" * 200, turn=i + 1)
     digest = memory.render_digest(max_chars=1200)
     assert len(digest) <= 1200
     assert "note number 29" in digest  # most recent always survives
@@ -103,8 +103,8 @@ def test_empty_memory_renders_nothing():
 
 def test_search_matches_terms_and_falls_back_to_recent():
     memory = _make_memory()
-    memory.add_note(agent="a", content="the API key lives in vault path kv/prod")
-    memory.add_note(agent="b", content="frontend uses React 18")
+    memory.add_note(staff="a", content="the API key lives in vault path kv/prod")
+    memory.add_note(staff="b", content="frontend uses React 18")
     hits = memory.search("vault api")
     assert hits and "vault" in hits[0].content
     assert len(memory.search("")) == 2
@@ -113,8 +113,8 @@ def test_search_matches_terms_and_falls_back_to_recent():
 def test_serialization_roundtrip():
     memory = _make_memory()
     memory.set_task("task")
-    memory.add_note(agent="a", content="fact one", turn=1, pinned=True)
-    memory.add_note(agent="b", content="fact two", turn=2)
+    memory.add_note(staff="a", content="fact one", turn=1, pinned=True)
+    memory.add_note(staff="b", content="fact two", turn=2)
     restored = WorkingMemory.from_dict(memory.to_dict())
     assert restored.task == "task"
     assert [n.content for n in restored.notes] == ["fact one", "fact two"]
@@ -131,7 +131,7 @@ def test_store_persists_and_reloads(tmp_path, monkeypatch):
     monkeypatch.setattr(store, "_memories", {})
 
     conv = "conv-persist"
-    assert store.record_note(conv, agent="w1", content="found the bug in auth.py", turn=1)
+    assert store.record_note(conv, staff="w1", content="found the bug in auth.py", turn=1)
     store.set_task(conv, "fix the login bug")
 
     # Simulate process restart: evict in-memory entry, reload from disk.
@@ -182,7 +182,7 @@ def test_mongo_persistence_roundtrip_and_read_through(monkeypatch):
     monkeypatch.setattr(store, "_memories", {})
 
     conv = "conv-mongo"
-    assert store.record_note(conv, agent="w1", content="quarterly revenue is 4.2M", turn=1)
+    assert store.record_note(conv, staff="w1", content="quarterly revenue is 4.2M", turn=1)
     store.set_task(conv, "summarize finance")
 
     doc = db["working_memory"].docs[conv]
@@ -190,7 +190,7 @@ def test_mongo_persistence_roundtrip_and_read_through(monkeypatch):
 
     # Read-through (no cache): a write from "another instance" is visible.
     other = WorkingMemory.from_dict(doc)
-    other.add_note(agent="w2", content="costs grew 9%", turn=2)
+    other.add_note(staff="w2", content="costs grew 9%", turn=2)
     db["working_memory"].docs[conv] = {"_id": conv, **other.to_dict()}
     digest = store.render_digest(conv)
     assert "quarterly revenue is 4.2M" in digest
@@ -229,6 +229,6 @@ def test_store_returns_safe_defaults_when_disabled(monkeypatch):
     # The store imported the flag into its own namespace; patch it there.
     monkeypatch.setattr(store, "WORKING_MEMORY_ENABLED", False)
     assert store.get_memory("conv-x") is None
-    assert store.record_note("conv-x", agent="a", content="y") is False
+    assert store.record_note("conv-x", staff="a", content="y") is False
     assert store.render_digest("conv-x") == ""
     assert store.search_notes("conv-x") == []

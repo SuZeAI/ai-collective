@@ -120,9 +120,9 @@ def test_os_environment_overrides_config_default():
     # An OS env var wins over the code/config default (highest layer).
     os.environ["SUBAGENT_MAX_CONCURRENT"] = "9"
     try:
-        from backend.api.settings import AgentSettings
+        from backend.api.settings import StaffSettings
 
-        assert AgentSettings().subagent_max_concurrent == 9
+        assert StaffSettings().subagent_max_concurrent == 9
     finally:
         del os.environ["SUBAGENT_MAX_CONCURRENT"]
 
@@ -132,7 +132,7 @@ def test_nested_and_flat_access_agree():
 
     assert settings.llm_provider == settings.llm.provider
     assert settings.jwt_secret_key == settings.auth.jwt_secret_key
-    assert settings.subagent_max_concurrent == settings.agent.subagent_max_concurrent
+    assert settings.subagent_max_concurrent == settings.staff.subagent_max_concurrent
     assert settings.google_api_keys() == settings.llm_keys.google_api_keys()
 
 

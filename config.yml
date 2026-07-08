@@ -174,9 +174,9 @@ router:
   port: 20128
   public_url: http://localhost:20128
 
-# ── Agent / tools ─────────────────────────────────────────────────────────────
-agent:
-  max_tool_rounds: 6                  # max LLM<->tool rounds per agent turn
+# ── Staff / tools ─────────────────────────────────────────────────────────────
+staff:
+  max_tool_rounds: 6                  # max LLM<->tool rounds per staff turn
   tool_timeout_seconds: 0             # per-tool timeout, 0 = disabled
   subagent_max_concurrent: 3
   subagent_max_turns: 6
