@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
   BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit,
@@ -146,6 +147,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { user, logout } = useAuth();
+  const queryClient = useQueryClient();
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [activeCompany, setActiveCompany] = useState<Company | null>(null);
@@ -434,7 +436,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      onClick={() => { logout(); navigate("/login"); }}
+                      onClick={() => { logout(); queryClient.clear(); navigate("/login"); }}
                       className="text-destructive focus:text-destructive"
                     >
                       <LogOut className="w-4 h-4 mr-2" />

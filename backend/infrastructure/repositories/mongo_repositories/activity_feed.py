@@ -7,6 +7,9 @@ import pymongo
 from backend.domain.models import ActivityFeedItem
 
 
+_MAX_FEED_ITEMS = 200
+
+
 class MongoActivityFeedRepository:
     def __init__(self, db: pymongo.database.Database) -> None:
         self._col = db["activity_feed"]
@@ -30,7 +33,11 @@ class MongoActivityFeedRepository:
         }
 
     def list(self) -> list[ActivityFeedItem]:
-        return [self._doc_to_item(doc) for doc in self._col.find().sort("_id", -1)]
+        # This backs a "recent activity" feed, not an audit trail — bound the
+        # query instead of pulling the whole (unboundedly growing) collection
+        # into memory on every request.
+        docs = self._col.find().sort("_id", -1).limit(_MAX_FEED_ITEMS)
+        return [self._doc_to_item(doc) for doc in docs]
 
     def add(self, item: ActivityFeedItem) -> ActivityFeedItem:
         self._col.replace_one({"id": item.id}, self._item_to_doc(item), upsert=True)
