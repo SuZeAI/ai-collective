@@ -21,6 +21,18 @@ logger = get_logger()
 
 _IGNORE_DIRS = {".git", "__pycache__", "node_modules", ".venv", "venv", ".tox", "dist", "build"}
 
+# Deliberate secret-scrubbing, not a sandboxing claim: exec_command spawns a
+# real shell on the host with no process isolation (see class docstring), so
+# passing the backend's full environment through would let any LLM-generated
+# command (including one reached via prompt injection) read out API keys,
+# JWT secrets, and DB/queue credentials via `env`/`printenv`. Only pass a
+# minimal allowlist a normal shell session needs to function.
+_SANDBOX_ENV_ALLOWLIST = {"PATH", "HOME", "LANG", "LC_ALL", "TERM", "TZ", "SHELL", "USER", "PWD", "TMPDIR"}
+
+
+def _sandbox_subprocess_env() -> dict[str, str]:
+    return {k: v for k, v in os.environ.items() if k in _SANDBOX_ENV_ALLOWLIST}
+
 
 class LocalSandboxAdapter(Sandbox):
     """Sandbox implementation that runs commands directly on the host.
@@ -56,6 +68,7 @@ class LocalSandboxAdapter(Sandbox):
                 executable="/bin/bash",  # bash required for builtin/function overrides in prelude
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
+                env=_sandbox_subprocess_env(),
             )
             self._procs[id] = proc
             try:

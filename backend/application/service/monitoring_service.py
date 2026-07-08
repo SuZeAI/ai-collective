@@ -210,13 +210,16 @@ class MonitoringService:
             bucket["requests"] += 1
             bucket["cost"] += self._cost_of(r, pricing_by_model) or 0.0
 
-        def _count_owned(items: list[Any], owner_id: str) -> int:
-            return sum(1 for item in items if getattr(item, "owner_id", "") == owner_id)
+        def _counts_by_owner(items: list[Any]) -> dict[str, int]:
+            counts: dict[str, int] = defaultdict(int)
+            for item in items:
+                counts[getattr(item, "owner_id", "")] += 1
+            return counts
 
-        staff = self._agents.list()
-        departments = self._teams.list()
-        tasks = self._tasks.list()
-        companies = self._companies.list()
+        staff_counts = _counts_by_owner(self._agents.list())
+        department_counts = _counts_by_owner(self._teams.list())
+        task_counts = _counts_by_owner(self._tasks.list())
+        company_counts = _counts_by_owner(self._companies.list())
 
         result = []
         for user in sorted(self._users.list(), key=lambda u: u.joined_at, reverse=True):
@@ -231,10 +234,10 @@ class MonitoringService:
                     "role": user.role,
                     "provider": user.provider,
                     "joined_at": user.joined_at,
-                    "staff": _count_owned(staff, user.id),
-                    "departments": _count_owned(departments, user.id),
-                    "tasks": _count_owned(tasks, user.id),
-                    "companies": _count_owned(companies, user.id),
+                    "staff": staff_counts.get(user.id, 0),
+                    "departments": department_counts.get(user.id, 0),
+                    "tasks": task_counts.get(user.id, 0),
+                    "companies": company_counts.get(user.id, 0),
                     **usage,
                 }
             )

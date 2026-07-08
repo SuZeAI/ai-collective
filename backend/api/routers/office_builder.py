@@ -394,18 +394,18 @@ def apply_office_plan(
                 for s in member.skills
                 if s.name.strip()
             ]
-            description = human.description.strip() or f"{human.role} staff"
+            description = member.description.strip() or f"{member.role} staff"
             saved_staff = staff_service.upsert_staff(
                 Staff(
                     id=f"agent_{uuid4().hex}",
-                    name=human.name.strip() or human.role,
-                    role=human.role.strip() or "Specialist",
+                    name=member.name.strip() or member.role,
+                    role=member.role.strip() or "Specialist",
                     description=description,
                     skill_ids=skill_ids,
                     status=StaffStatus.active,
-                    avatar=(human.name.strip()[:1] or "A").upper(),
+                    avatar=(member.name.strip()[:1] or "A").upper(),
                     system_prompt=_build_staff_system_prompt(
-                        name=human.name, role=human.role, description=description
+                        name=member.name, role=member.role, description=description
                     ),
                     owner_id=owner_id,
                 )
