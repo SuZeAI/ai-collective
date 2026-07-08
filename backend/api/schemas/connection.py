@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 from pydantic import BaseModel
 
+from backend.api.schemas.skill import mask_secret_config
+
 
 class ConnectionSchema(BaseModel):
     id: str
@@ -24,7 +26,7 @@ class ConnectionSchema(BaseModel):
             id=c.id,
             platform=c.platform,
             name=c.name,
-            config=dict(c.config or {}),
+            config=mask_secret_config(dict(c.config or {})),
             description=c.description,
             enabled=getattr(c, "enabled", True),
             kind=getattr(c, "kind", "outbound") or "outbound",

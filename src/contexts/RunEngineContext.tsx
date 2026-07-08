@@ -2,6 +2,21 @@ import { createContext, useCallback, useContext, useMemo, useRef, useState } fro
 import type { ReactNode } from "react";
 import { api, type GraphContextSnapshot, type Message, type Task } from "@/lib/api";
 
+// Upper bound on messages retained per task in memory. RunEngineProvider sits
+// above the router so this state outlives navigation for the whole session —
+// without a cap, a long-running/many-turn task would grow its transcript
+// array unbounded for as long as the tab stays open.
+const MAX_MESSAGES_PER_TASK = 200;
+
+function appendCappedMessage(list: Message[] | undefined, message: Message): Message[] {
+  const next = [...(list ?? []), message];
+  return next.length > MAX_MESSAGES_PER_TASK ? next.slice(-MAX_MESSAGES_PER_TASK) : next;
+}
+
+function capMessages(messages: Message[]): Message[] {
+  return messages.length > MAX_MESSAGES_PER_TASK ? messages.slice(-MAX_MESSAGES_PER_TASK) : messages;
+}
+
 // ask_user tool: an staff is blocked waiting for the user's answer.
 export type UserInputRequest = {
   requestId: string;
@@ -476,7 +491,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
             messages.push(message);
             setConversations((prev) => ({
               ...prev,
-              [updated.id]: [...(prev[updated.id] ?? []), message],
+              [updated.id]: appendCappedMessage(prev[updated.id], message),
             }));
             refreshGraph(updated.id);
             try {
@@ -502,7 +517,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
             messages.push(message);
             setConversations((prev) => ({
               ...prev,
-              [updated.id]: [...(prev[updated.id] ?? []), message],
+              [updated.id]: appendCappedMessage(prev[updated.id], message),
             }));
             refreshGraph(updated.id);
             try {
@@ -646,7 +661,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         timestamp: new Date().toISOString(),
         taskId: task.id,
       };
-      setConversations((prev) => ({ ...prev, [task.id]: [...(prev[task.id] ?? []), message] }));
+      setConversations((prev) => ({ ...prev, [task.id]: appendCappedMessage(prev[task.id], message) }));
       try {
         await api.addMeeting({ staffId: "user", content, taskId: task.id });
       } catch (e) {
@@ -697,7 +712,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         timestamp: new Date().toISOString(),
         taskId: task.id,
       };
-      setConversations((prev) => ({ ...prev, [task.id]: [...(prev[task.id] ?? []), message] }));
+      setConversations((prev) => ({ ...prev, [task.id]: appendCappedMessage(prev[task.id], message) }));
       setPendingInterjections((prev) => ({
         ...prev,
         [task.id]: new Set([...(prev[task.id] ?? []), messageId]),
@@ -747,7 +762,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         timestamp: new Date().toISOString(),
         taskId: task.id,
       };
-      setConversations((prev) => ({ ...prev, [task.id]: [...(prev[task.id] ?? []), message] }));
+      setConversations((prev) => ({ ...prev, [task.id]: appendCappedMessage(prev[task.id], message) }));
       try {
         await api.addMeeting({ staffId: "user", content, taskId: task.id });
       } catch (e) {
@@ -838,7 +853,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     setConversations((prev) => {
       if (prev[taskId] && prev[taskId].length > 0) return prev;
       if (messages.length === 0) return prev;
-      return { ...prev, [taskId]: messages };
+      return { ...prev, [taskId]: capMessages(messages) };
     });
   }, []);
 
