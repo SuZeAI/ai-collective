@@ -20,6 +20,7 @@ from backend.infrastructure.llm.middleware import (
     ToolResultCacheMiddleware,
     build_default_middleware,
 )
+from backend.infrastructure.llm.middleware import config as middleware_config
 
 
 class _Request:
@@ -195,6 +196,10 @@ def test_new_middleware_off_by_default(monkeypatch):
 
 
 def test_new_middleware_enabled_when_configured(monkeypatch):
+    # config.yml's `middleware:` section takes precedence over settings.llm.*
+    # when it declares a value; empty it out so the settings.llm fallback below
+    # is what's actually under test.
+    monkeypatch.setattr(middleware_config, "_section", lambda: {})
     monkeypatch.setattr(settings.llm, "rolling_summary_enabled", True)
     monkeypatch.setattr(settings.llm, "ltm_middleware_enabled", True)
     monkeypatch.setattr(settings.llm, "tool_cache_enabled", True)

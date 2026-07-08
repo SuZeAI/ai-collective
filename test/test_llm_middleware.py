@@ -24,6 +24,7 @@ from backend.infrastructure.llm.middleware import (
     ToolTimeoutMiddleware,
     build_default_middleware,
 )
+from backend.infrastructure.llm.middleware import config as middleware_config
 
 
 # --------------------------------------------------------------------------- #
@@ -138,6 +139,10 @@ def test_build_default_includes_loop_detection_by_default():
 
 
 def test_build_default_gates_optional_middleware(monkeypatch):
+    # config.yml's `middleware:` section takes precedence over settings.llm.*
+    # when it declares a value; empty it out so the settings.llm fallback below
+    # is what's actually under test.
+    monkeypatch.setattr(middleware_config, "_section", lambda: {})
     monkeypatch.setattr(settings.llm, "loop_detection_enabled", False)
     monkeypatch.setattr(settings.llm, "tool_call_limit", 0)
     monkeypatch.setattr(settings.llm, "model_retry_max", 0)
@@ -151,6 +156,7 @@ def test_build_default_gates_optional_middleware(monkeypatch):
 
 
 def test_build_default_enables_optional_middleware(monkeypatch):
+    monkeypatch.setattr(middleware_config, "_section", lambda: {})
     monkeypatch.setattr(settings.llm, "tool_call_limit", 20)
     monkeypatch.setattr(settings.llm, "model_retry_max", 2)
     monkeypatch.setattr(settings.llm, "context_editing_enabled", True)

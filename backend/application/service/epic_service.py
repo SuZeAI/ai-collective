@@ -12,8 +12,11 @@ class EpicService:
     def list_epics(self) -> list[Epic]:
         return self._repo.list()
 
+    def try_get_epic(self, epic_id: str) -> Epic | None:
+        return self._repo.get(epic_id)
+
     def get_epic(self, epic_id: str) -> Epic:
-        epic = self._repo.get(epic_id)
+        epic = self.try_get_epic(epic_id)
         if not epic:
             raise NotFoundError(f"Epic '{epic_id}' not found")
         return epic
@@ -22,6 +25,6 @@ class EpicService:
         return self._repo.upsert(epic)
 
     def delete_epic(self, epic_id: str) -> None:
-        if not self._repo.get(epic_id):
+        if not self.try_get_epic(epic_id):
             raise NotFoundError(f"Epic '{epic_id}' not found")
         self._repo.delete(epic_id)

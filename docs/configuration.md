@@ -140,7 +140,7 @@ Cross-cutting behaviours layered on the `create_agent` path. See
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `TASK_QUEUE_BACKEND` | `memory` | `memory` \| `rabbitmq` |
-| `TASK_QUEUE_MAX_CONCURRENT` | `3` | Max concurrent tasks |
+| `TASK_QUEUE_MAX_CONCURRENT` | `10` | Max staff-graph runs executing at once, system-wide across every company/user (excess runs queue). I/O-bound work (LLM calls), not CPU-bound, so it's safe to raise well past core count if you have the provider rate-limit/cost headroom. |
 | `RABBITMQ_URL` | — | Required when backend is `rabbitmq` |
 | `LOCK_BACKEND` | `threading` | `threading` \| `redis` |
 | `REDIS_URL` | — | Required when lock backend is `redis` |

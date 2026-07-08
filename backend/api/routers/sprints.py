@@ -44,7 +44,7 @@ def upsert_sprint(
     owner_id: str = Depends(current_owner_id_dep),
 ) -> SprintSchema:
     sprint_id = req.id or f"sprint_{uuid4().hex}"
-    existing = service._repo.get(sprint_id) if req.id else None
+    existing = service.try_get_sprint(sprint_id) if req.id else None
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):
         raise NotFoundError(f"Sprint '{sprint_id}' not found")
     if existing is not None and not can_modify(owner_id, existing.owner_id):
@@ -78,7 +78,7 @@ def delete_sprint(
     service: SprintService = Depends(get_sprint_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
-    existing = service._repo.get(sprint_id)
+    existing = service.try_get_sprint(sprint_id)
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):
         raise NotFoundError(f"Sprint '{sprint_id}' not found")
     if existing is not None and not can_delete(owner_id, existing.owner_id):

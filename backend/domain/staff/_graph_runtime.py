@@ -44,6 +44,9 @@ MESH_FANOUT_MAX_CONCURRENT = max(
     settings.staff.mesh_fanout_max_concurrent or settings.staff.subagent_max_concurrent,
 )
 
+# How many subagents a single staff_member's `task` tool may run concurrently.
+SUBAGENT_MAX_CONCURRENT = max(1, settings.staff.subagent_max_concurrent)
+
 
 async def safe_chat(llm: Any, *, staff_name: str = "", **chat_kwargs: Any) -> str:
     """Call ``llm.chat`` with a bounded timeout and transient-failure retries.
@@ -385,6 +388,31 @@ def build_agent_tools(agent: GraphStaffDefinition, *, conversation_id: str | Non
 
     attach_conversation_sandbox(bound_tools, conversation_id=conversation_id, staff_name=agent.name)
 
+    return bound_tools
+
+
+def attach_subagent_toolkit(
+    bound_tools: list[Any], agent: GraphStaffDefinition, *, llm: Any
+) -> list[Any]:
+    """If ``agent`` has subagent delegation enabled, append the `task` tool
+    (TaskToolkit) so it can delegate to subagents that inherit ``bound_tools``
+    minus `task`.
+
+    Every topology (ring/orchestrator/tree/mesh) wired this identical block
+    inline; centralising it here is what keeps a future topology from
+    forgetting it or a shared field (e.g. max_concurrent) drifting out of
+    sync between them. Mutates and returns ``bound_tools`` for chaining.
+    """
+    if agent.subagent_enabled:
+        from backend.domain.tools.task import TaskToolkit
+
+        task_toolkit = TaskToolkit(
+            llm=llm,
+            subagent_tools=list(bound_tools),
+            max_concurrent=SUBAGENT_MAX_CONCURRENT,
+            parent_staff_name=agent.name,
+        )
+        bound_tools.extend(task_toolkit.get_tools())
     return bound_tools
 
 

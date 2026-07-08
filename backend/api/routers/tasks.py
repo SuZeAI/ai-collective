@@ -260,7 +260,7 @@ def delete_task(
     conv_service: MeetingService = Depends(get_meeting_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
-    existing = service._repo.get(task_id)
+    existing = service.try_get_task(task_id)
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):
         raise NotFoundError(f"Task '{task_id}' not found")
     if existing is not None and not can_delete(owner_id, existing.owner_id):
@@ -293,7 +293,7 @@ def clear_task_history(
     dialogue), so this is the deliberate "fresh start" action. Owner/admin
     gated like the status-update and delete endpoints.
     """
-    existing = service._repo.get(task_id)
+    existing = service.try_get_task(task_id)
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):
         raise NotFoundError(f"Task '{task_id}' not found")
     if existing is not None and not can_modify(owner_id, existing.owner_id):

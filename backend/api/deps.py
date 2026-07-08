@@ -37,7 +37,7 @@ from backend.domain.staff.langgraph_ring import LangGraphRingOrchestrator
 from backend.domain.staff.langgraph_supervisor import LangGraphSupervisorOrchestrator
 from backend.domain.staff.langgraph_tree import LangGraphTreeOrchestrator
 from backend.domain.staff.langgraph_custom import LangGraphCustomOrchestrator
-from backend.infrastructure.llm.factory import create_llm_provider
+from backend.infrastructure.llm.factory import build_default_llm_provider
 from backend.infrastructure.repositories.json_files import (
     JsonActivityFeedRepository,
     JsonStaffRepository,
@@ -244,17 +244,9 @@ def get_meeting_service() -> MeetingService:
     conversations, graph_knowledge = repos.conversations, repos.graph_knowledge
     graph_llm = None
     if settings.graph_build_mode == "llm":
-        graph_llm = create_llm_provider(
+        graph_llm = build_default_llm_provider(
             provider=settings.graph_llm_provider or settings.llm_provider,
             model=settings.graph_llm_model or settings.llm_model,
-            google_api_key=settings.google_api_keys(),
-            anthropic_api_key=settings.anthropic_api_keys(),
-            openai_api_key=settings.openai_api_keys(),
-            open_weight_api_key=settings.open_weight_api_keys(),
-            kimi_api_key=settings.kimi_api_keys(),
-            deepseek_api_key=settings.deepseek_api_keys(),
-            glm_api_key=settings.glm_api_keys(),
-            base_url=settings.llm_api_base,
         )
     return MeetingService(
         conversations,
@@ -279,17 +271,9 @@ def get_graph_context_service() -> GraphContextService:
     graph_knowledge = _repos().graph_knowledge
     graph_llm = None
     if settings.graph_build_mode == "llm":
-        graph_llm = create_llm_provider(
+        graph_llm = build_default_llm_provider(
             provider=settings.graph_llm_provider or settings.llm_provider,
             model=settings.graph_llm_model or settings.llm_model,
-            google_api_key=settings.google_api_keys(),
-            anthropic_api_key=settings.anthropic_api_keys(),
-            openai_api_key=settings.openai_api_keys(),
-            open_weight_api_key=settings.open_weight_api_keys(),
-            kimi_api_key=settings.kimi_api_keys(),
-            deepseek_api_key=settings.deepseek_api_keys(),
-            glm_api_key=settings.glm_api_keys(),
-            base_url=settings.llm_api_base,
         )
     return GraphContextService(
         graph_knowledge,
@@ -620,20 +604,7 @@ def get_monitoring_service():
 @lru_cache
 def _llm_provider():
     init_usage_tracking()
-    return create_llm_provider(
-        provider=settings.llm_provider,
-        model=settings.llm_model,
-        google_api_key=settings.google_api_keys(),
-        anthropic_api_key=settings.anthropic_api_keys(),
-        openai_api_key=settings.openai_api_keys(),
-        open_weight_api_key=settings.open_weight_api_keys(),
-        kimi_api_key=settings.kimi_api_keys(),
-        deepseek_api_key=settings.deepseek_api_keys(),
-        glm_api_key=settings.glm_api_keys(),
-        base_url=settings.llm_api_base,
-        max_tool_rounds=settings.staff_max_tool_rounds,
-        tool_timeout_seconds=settings.tool_timeout_seconds,
-    )
+    return build_default_llm_provider()
 
 
 def get_simulation_service() -> SimulationService:

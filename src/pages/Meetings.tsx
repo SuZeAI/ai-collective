@@ -93,7 +93,7 @@ export default function Meetings() {
 
   // Filter messages based on selected filters
   const filteredMessages = useMemo(() => {
-    if (!scope.isOverall && !scope.ready) return []; // membership still resolving
+    if (scope.pending) return []; // membership still resolving
     return messages.filter((msg) => {
       // Office scoping. The meeting's task decides which office a message
       // belongs to; only personnel-membership is used as fallback when the

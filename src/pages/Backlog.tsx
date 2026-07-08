@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Plus, Sparkles, Trash2, Loader2, X, Check, Layers, CalendarRange } from "lucide-react";
 import {
@@ -40,7 +40,7 @@ export default function Backlog() {
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const requestedKey = projectKey;
     try {
       const [projects, allEpics, allSprints, allTasks] = await Promise.all([
@@ -57,26 +57,26 @@ export default function Backlog() {
     } finally {
       if (mountedRef.current && projectKeyRef.current === requestedKey) setLoading(false);
     }
-  };
+  }, [projectKey]);
 
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [projectKey]);
+  useEffect(() => { void load(); }, [load]);
 
   const epicById = useMemo(() => new Map(epics.map((e) => [e.id, e])), [epics]);
 
-  const moveIssueToSprint = async (issue: Task, sprintId: string | null) => {
+  const moveIssueToSprint = useCallback(async (issue: Task, sprintId: string | null) => {
     try {
       await api.upsertTask({ ...issue, sprintId });
       await load();
     } catch (e) {
       toast({ title: "Could not move issue", description: String((e as Error).message ?? e), variant: "destructive" });
     }
-  };
+  }, [toast, load]);
 
-  const deleteIssue = async (issue: Task) => {
+  const deleteIssue = useCallback(async (issue: Task) => {
     if (!confirm(`Delete ${issue.issueKey || "issue"}?`)) return;
     await api.deleteTask(issue.id);
     await load();
-  };
+  }, [load]);
 
   const groups = useMemo(() => {
     const bySprint = new Map<string, Task[]>();
@@ -140,7 +140,45 @@ export default function Backlog() {
   );
 }
 
-function SprintSection({
+// Memoized so moving/deleting an issue in one sprint section doesn't
+// re-render every other section's rows too — each row only re-renders when
+// its own issue, the epic it links to, or the sprint list actually changes
+// (onMove/onDelete are stable useCallback refs from the parent).
+const IssueRow = memo(function IssueRow({
+  issue, sprints, epic, onMove, onDelete,
+}: {
+  issue: Task; sprints: Sprint[]; epic?: Epic;
+  onMove: (i: Task, s: string | null) => void; onDelete: (i: Task) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 px-4 py-2 hover:bg-muted/30 group">
+      <span className={cn("px-1 py-0.5 rounded text-[8px] font-bold uppercase shrink-0", TYPE_CLS[issue.issueType ?? "task"])}>
+        {(issue.issueType ?? "task").slice(0, 4)}
+      </span>
+      <span className="text-[10px] font-mono text-muted-foreground shrink-0 w-16">{issue.issueKey}</span>
+      <span className="text-xs text-foreground truncate flex-1">{issue.title}</span>
+      {epic && <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 shrink-0">{epic.title}</span>}
+      {issue.storyPoints != null && (
+        <span className="text-[9px] font-bold text-foreground/70 w-5 text-center shrink-0">{issue.storyPoints}</span>
+      )}
+      <Select
+        value={issue.sprintId ?? NONE}
+        onValueChange={(v) => onMove(issue, v === NONE ? null : v)}
+      >
+        <SelectTrigger className="h-7 w-[120px] text-[10px] shrink-0"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NONE}>Backlog</SelectItem>
+          {sprints.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <button onClick={() => onDelete(issue)} className="p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-rose-500" title="Delete">
+        <Trash2 className="w-3 h-3" />
+      </button>
+    </div>
+  );
+});
+
+const SprintSection = memo(function SprintSection({
   title, subtitle, badge, issues, sprints, epicById, onMove, onDelete,
 }: {
   title: string; subtitle?: string; badge?: string; issues: Task[]; sprints: Sprint[];
@@ -160,40 +198,21 @@ function SprintSection({
         <p className="px-4 py-3 text-[11px] text-muted-foreground italic">No issues</p>
       ) : (
         <div className="divide-y divide-border/30">
-          {issues.map((issue) => {
-            const epic = issue.epicId ? epicById.get(issue.epicId) : undefined;
-            return (
-              <div key={issue.id} className="flex items-center gap-2 px-4 py-2 hover:bg-muted/30 group">
-                <span className={cn("px-1 py-0.5 rounded text-[8px] font-bold uppercase shrink-0", TYPE_CLS[issue.issueType ?? "task"])}>
-                  {(issue.issueType ?? "task").slice(0, 4)}
-                </span>
-                <span className="text-[10px] font-mono text-muted-foreground shrink-0 w-16">{issue.issueKey}</span>
-                <span className="text-xs text-foreground truncate flex-1">{issue.title}</span>
-                {epic && <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 shrink-0">{epic.title}</span>}
-                {issue.storyPoints != null && (
-                  <span className="text-[9px] font-bold text-foreground/70 w-5 text-center shrink-0">{issue.storyPoints}</span>
-                )}
-                <Select
-                  value={issue.sprintId ?? NONE}
-                  onValueChange={(v) => onMove(issue, v === NONE ? null : v)}
-                >
-                  <SelectTrigger className="h-7 w-[120px] text-[10px] shrink-0"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>Backlog</SelectItem>
-                    {sprints.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <button onClick={() => onDelete(issue)} className="p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-rose-500" title="Delete">
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </div>
-            );
-          })}
+          {issues.map((issue) => (
+            <IssueRow
+              key={issue.id}
+              issue={issue}
+              sprints={sprints}
+              epic={issue.epicId ? epicById.get(issue.epicId) : undefined}
+              onMove={onMove}
+              onDelete={onDelete}
+            />
+          ))}
         </div>
       )}
     </div>
   );
-}
+});
 
 function CreateSprintButton({ projectId, onCreated }: { projectId?: string; onCreated: () => void }) {
   const [open, setOpen] = useState(false);

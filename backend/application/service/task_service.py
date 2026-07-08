@@ -12,8 +12,11 @@ class TaskService:
     def list_tasks(self) -> list[Task]:
         return self._repo.list()
 
+    def try_get_task(self, task_id: str) -> Task | None:
+        return self._repo.get(task_id)
+
     def get_task(self, task_id: str) -> Task:
-        task = self._repo.get(task_id)
+        task = self.try_get_task(task_id)
         if not task:
             raise NotFoundError(f"Task '{task_id}' not found")
         return task
@@ -22,6 +25,6 @@ class TaskService:
         return self._repo.upsert(task)
 
     def delete_task(self, task_id: str) -> None:
-        if not self._repo.get(task_id):
+        if not self.try_get_task(task_id):
             raise NotFoundError(f"Task '{task_id}' not found")
         self._repo.delete(task_id)

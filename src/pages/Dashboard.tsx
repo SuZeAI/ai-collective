@@ -161,7 +161,7 @@ export default function Dashboard() {
   // Office membership is still resolving: the scoped filters above read empty
   // id sets in the meantime, which would otherwise flash "0" metrics before
   // the real numbers land — keep showing skeletons until scope catches up.
-  const metricsLoading = isLoading || (!scope.isOverall && !scope.ready);
+  const metricsLoading = isLoading || scope.pending;
 
   // Admins have no company control center: their "All" view is the shared
   // catalog, so send them to Departments instead of the Company Overview.

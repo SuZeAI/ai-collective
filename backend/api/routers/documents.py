@@ -185,7 +185,7 @@ def delete_document(
     service: DocumentLibraryService = Depends(get_document_library_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
-    existing = service._repo.get(doc_id)
+    existing = service.try_get_document(doc_id)
     if existing is None:
         return {"deleted": True}
     if not is_visible_to(owner_id, existing.owner_id):

@@ -15,6 +15,9 @@ class SkillService:
     def list_skills(self) -> list[Skill]:
         return self._repo.list()
 
+    def try_get_skill(self, skill_id: str) -> Skill | None:
+        return self._repo.get(skill_id)
+
     def upsert_skill(self, skill: Skill) -> Skill:
         return self._repo.upsert(skill)
 

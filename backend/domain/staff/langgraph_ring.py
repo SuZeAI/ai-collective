@@ -18,6 +18,7 @@ from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.staff.token_budget import apply_context_token_budget
 from backend.domain.staff._graph_runtime import (
+    attach_subagent_toolkit,
     build_agent_tools,
     drain_human_guidance,
     ensure_working_memory,
@@ -35,7 +36,6 @@ from backend.api.settings import settings
 
 MAX_CONTEXT_TOKENS = max(1024, settings.staff.context_token_limit)
 RESERVED_OUTPUT_TOKENS = max(256, settings.staff.output_token_reserve)
-SUBAGENT_MAX_CONCURRENT = max(1, settings.staff.subagent_max_concurrent)
 
 # Max recent history entries kept in ring state to limit token growth
 _RING_HISTORY_WINDOW = 8
@@ -320,19 +320,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             user_input = budget_result.text
 
             bound_tools = build_agent_tools(staff_member, conversation_id=conversation_id)
-
-            # Staff Mode: expose the `task` tool so this staff_member can delegate to
-            # subagents (which inherit these tools minus `task`).
-            if staff_member.subagent_enabled:
-                from backend.domain.tools.task import TaskToolkit
-
-                task_toolkit = TaskToolkit(
-                    llm=llm,
-                    subagent_tools=list(bound_tools),
-                    max_concurrent=SUBAGENT_MAX_CONCURRENT,
-                    parent_staff_name=staff_member.name,
-                )
-                bound_tools.extend(task_toolkit.get_tools())
+            attach_subagent_toolkit(bound_tools, staff_member, llm=llm)
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
