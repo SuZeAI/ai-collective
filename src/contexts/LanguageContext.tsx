@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { type Language, type Translations, translations } from "@/locales";
 
 type LanguageContextValue = {
@@ -26,24 +26,27 @@ function getSavedLanguage(): Language {
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>(getSavedLanguage);
 
-  const setLanguage = (lang: Language) => {
+  const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
     try {
       localStorage.setItem(STORAGE_KEY, lang);
     } catch {
       // ignore
     }
-  };
+  }, []);
 
   useEffect(() => {
     document.documentElement.lang = language;
   }, [language]);
 
-  return (
-    <LanguageContext.Provider value={{ language, setLanguage, t: translations[language] }}>
-      {children}
-    </LanguageContext.Provider>
+  // Memoized so a re-render for an unrelated reason doesn't hand every
+  // useLanguage() consumer (used in 20+ files) a brand-new object reference.
+  const value = useMemo(
+    () => ({ language, setLanguage, t: translations[language] }),
+    [language, setLanguage],
   );
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
 export function useLanguage() {

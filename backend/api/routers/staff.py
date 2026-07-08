@@ -44,7 +44,7 @@ def upsert_staff(
     owner_id: str = Depends(current_owner_id_dep),
 ) -> StaffSchema:
     staff_id = req.id or f"agent_{uuid4().hex}"
-    existing = service._repo.get(staff_id) if req.id else None
+    existing = service.try_get_staff(staff_id) if req.id else None
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):
         raise NotFoundError(f"Staff '{staff_id}' not found")
     if existing is not None and not can_modify(owner_id, existing.owner_id):
@@ -85,7 +85,7 @@ def delete_staff(
     service: StaffService = Depends(get_staff_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
-    existing = service._repo.get(staff_id)
+    existing = service.try_get_staff(staff_id)
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):
         raise NotFoundError(f"Staff '{staff_id}' not found")
     if existing is not None and not can_delete(owner_id, existing.owner_id):

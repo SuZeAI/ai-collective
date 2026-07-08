@@ -31,7 +31,7 @@ def _has(mod: str) -> bool:
 # --------------------------------------------------------------------------- #
 
 def test_scope_payload_and_match():
-    p = scope_payload(MemoryScope(workspace_id="bu1", owner_id="u1"))
+    p = scope_payload(MemoryScope(company_id="bu1", owner_id="u1"))
     assert p == {"workspace_id": "bu1", "owner_id": "u1", "agent_id": None}
     # narrow query matches broad payload (agent_id null) but not a different owner
     assert payload_matches(MemoryScope("bu1", "u1", "analyst"), p)

@@ -127,3 +127,44 @@ def create_llm_provider(
         max_tool_rounds=max_tool_rounds,
         tool_timeout_seconds=tool_timeout_seconds,
     )
+
+
+def build_default_llm_provider(
+    *,
+    provider: str | None = None,
+    model: str | None = None,
+    max_tool_rounds: int | None = None,
+    tool_timeout_seconds: int | None = None,
+    base_url: str | None = None,
+) -> LLMProvider | None:
+    """create_llm_provider(), resolving every provider API key from settings
+    in one place.
+
+    Every call site used to hand-list all 7 provider keys itself — 4 near-
+    identical copies across deps.py/document_tools.py — so adding a new
+    provider (already happened twice, for deepseek/glm) meant editing all 4
+    in lockstep or silently missing one. provider/model/max_tool_rounds/
+    tool_timeout_seconds/base_url default to the app-wide settings.llm_*
+    values but can be overridden per call (e.g. the knowledge-graph builder's
+    separate GRAPH_LLM_PROVIDER/MODEL).
+    """
+    from backend.api.settings import settings
+
+    return create_llm_provider(
+        provider=provider or settings.llm_provider,
+        model=model or settings.llm_model,
+        google_api_key=settings.google_api_keys(),
+        anthropic_api_key=settings.anthropic_api_keys(),
+        openai_api_key=settings.openai_api_keys(),
+        open_weight_api_key=settings.open_weight_api_keys(),
+        kimi_api_key=settings.kimi_api_keys(),
+        deepseek_api_key=settings.deepseek_api_keys(),
+        glm_api_key=settings.glm_api_keys(),
+        base_url=base_url or settings.llm_api_base,
+        max_tool_rounds=(
+            max_tool_rounds if max_tool_rounds is not None else settings.staff_max_tool_rounds
+        ),
+        tool_timeout_seconds=(
+            tool_timeout_seconds if tool_timeout_seconds is not None else settings.tool_timeout_seconds
+        ),
+    )

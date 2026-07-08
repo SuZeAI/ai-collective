@@ -108,10 +108,10 @@ class TestDocumentLibraryService:
     def test_create_list_read_delete(self, tmp_path, monkeypatch):
         svc = self._svc(tmp_path, monkeypatch)
         doc = svc.create_document(
-            workspace_id="ws_1", filename="spec.csv", content_type="text/csv",
+            company_id="ws_1", filename="spec.csv", content_type="text/csv",
             data=b"a,b\n1,2\n", owner_id="u1", uploaded_by="u1", tags=["plan"],
         )
-        assert doc.workspace_id == "ws_1" and doc.size == 8
+        assert doc.company_id == "ws_1" and doc.size == 8
         assert [d.id for d in svc.list_documents()] == [doc.id]
         assert svc.read_bytes(doc) == b"a,b\n1,2\n"
         svc.delete_document(doc)
@@ -124,7 +124,7 @@ class TestDocumentLibraryService:
                             lambda tid: str(_mkd(tmp_path / "ws" / tid)))
         svc = self._svc(tmp_path, monkeypatch)
         doc = svc.create_document(
-            workspace_id="ws_1", filename="brief.txt", content_type="text/plain",
+            company_id="ws_1", filename="brief.txt", content_type="text/plain",
             data=b"hello team", owner_id="u1", uploaded_by="u1",
         )
         rec = svc.attach_to_project(doc, "task-abc", "u1")

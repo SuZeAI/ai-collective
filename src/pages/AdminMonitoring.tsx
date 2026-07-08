@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -160,6 +160,69 @@ function OkBadge({ ok, okLabel = "OK", badLabel = "Down" }: { ok: boolean; okLab
     </Badge>
   );
 }
+
+// Memoized table rows so switching tabs/dialogs elsewhere on this page
+// doesn't re-render every row in these tables — same pattern as
+// KanbanCard/StaffCard/PlanStats elsewhere in the codebase.
+const PricingRow = memo(function PricingRow({
+  pricing, onEdit, onDelete,
+}: {
+  pricing: ModelPricing; onEdit: (p: ModelPricing) => void; onDelete: (model: string) => void;
+}) {
+  return (
+    <TableRow>
+      <TableCell className="text-xs font-medium">{pricing.model}</TableCell>
+      <TableCell className="text-xs capitalize text-muted-foreground">{pricing.provider || "—"}</TableCell>
+      <TableCell className="text-right text-xs tabular-nums">${pricing.inputPricePerMillion.toFixed(2)}</TableCell>
+      <TableCell className="text-right text-xs tabular-nums">${pricing.outputPricePerMillion.toFixed(2)}</TableCell>
+      <TableCell>
+        <div className="flex justify-end gap-1">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(pricing)}>
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-destructive hover:text-destructive"
+            onClick={() => onDelete(pricing.model)}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+});
+
+const UserActivityRow = memo(function UserActivityRow({ user }: { user: AdminUserActivity }) {
+  return (
+    <TableRow>
+      <TableCell>
+        <span className="text-xs font-medium">{user.name}</span>
+        <p className="text-[10px] text-muted-foreground">{user.email}</p>
+      </TableCell>
+      <TableCell>
+        <Badge
+          variant="outline"
+          className={`text-[10px] capitalize ${
+            user.role === "admin" || user.role === "system"
+              ? "text-primary border-primary/40"
+              : "text-muted-foreground"
+          }`}
+        >
+          {user.role}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-right text-xs tabular-nums">{user.staff}</TableCell>
+      <TableCell className="text-right text-xs tabular-nums">{user.departments}</TableCell>
+      <TableCell className="text-right text-xs tabular-nums">{user.tasks}</TableCell>
+      <TableCell className="text-right text-xs tabular-nums">
+        {formatTokens(user.inputTokens + user.outputTokens)}
+      </TableCell>
+      <TableCell className="text-right text-xs tabular-nums font-semibold">{formatCost(user.cost)}</TableCell>
+    </TableRow>
+  );
+});
 
 // ─── Pricing edit dialog ─────────────────────────────────────────────────────
 
@@ -332,7 +395,7 @@ export default function AdminMonitoring() {
     };
   }, [days, refreshKey]);
 
-  const deletePricing = async (model: string) => {
+  const deletePricing = useCallback(async (model: string) => {
     try {
       await api.deleteModelPricing(model);
       toast({ title: `Pricing for ${model} removed` });
@@ -340,7 +403,12 @@ export default function AdminMonitoring() {
     } catch (e) {
       toast({ title: "Failed to delete pricing", description: String(e), variant: "destructive" });
     }
-  };
+  }, [toast, refresh]);
+
+  const openEditPricing = useCallback((p: ModelPricing) => {
+    setEditingPricing(p);
+    setPricingDialogOpen(true);
+  }, []);
 
   const chartData = (usage?.byDay ?? []).map((d) => ({
     ...d,
@@ -706,35 +774,7 @@ export default function AdminMonitoring() {
                 </TableHeader>
                 <TableBody>
                   {pricing.map((p) => (
-                    <TableRow key={p.model}>
-                      <TableCell className="text-xs font-medium">{p.model}</TableCell>
-                      <TableCell className="text-xs capitalize text-muted-foreground">{p.provider || "—"}</TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">${p.inputPricePerMillion.toFixed(2)}</TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">${p.outputPricePerMillion.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => {
-                              setEditingPricing(p);
-                              setPricingDialogOpen(true);
-                            }}
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => deletePricing(p.model)}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    <PricingRow key={p.model} pricing={p} onEdit={openEditPricing} onDelete={deletePricing} />
                   ))}
                   {pricing.length === 0 && (
                     <TableRow>
@@ -877,31 +917,7 @@ export default function AdminMonitoring() {
                 </TableHeader>
                 <TableBody>
                   {userActivity.map((u) => (
-                    <TableRow key={u.id}>
-                      <TableCell>
-                        <span className="text-xs font-medium">{u.name}</span>
-                        <p className="text-[10px] text-muted-foreground">{u.email}</p>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] capitalize ${
-                            u.role === "admin" || u.role === "system"
-                              ? "text-primary border-primary/40"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {u.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">{u.staff}</TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">{u.departments}</TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">{u.tasks}</TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">
-                        {formatTokens(u.inputTokens + u.outputTokens)}
-                      </TableCell>
-                      <TableCell className="text-right text-xs tabular-nums font-semibold">{formatCost(u.cost)}</TableCell>
-                    </TableRow>
+                    <UserActivityRow key={u.id} user={u} />
                   ))}
                 </TableBody>
               </Table>

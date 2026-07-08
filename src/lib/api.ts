@@ -321,6 +321,17 @@ export type ChatResponse = {
   response: string;
 };
 
+export type SimulationStep = {
+  staff: string;
+  msg: string;
+  delay_ms: number;
+  phase?: number | null;
+};
+
+export type SimulationPlanResponse = {
+  steps: SimulationStep[];
+};
+
 // ─── Office Builder (chat to create office → departments → staff → skills) ──
 
 export type OfficeSkillPlan = {
@@ -1032,6 +1043,12 @@ export const api = {
 
   // Cost monitoring (per-user; scoped to the caller's own runs)
   getConsumption: (days = 30) => apiFetch<Consumption>(`/consumption?days=${days}`),
+
+  simulatePlan: (taskDescription: string) =>
+    apiFetch<SimulationPlanResponse>("/simulations/plan", {
+      method: "POST",
+      body: JSON.stringify({ task_description: taskDescription }),
+    }),
 
   // Admin monitoring (requires admin role)
   getAdminUsage: (days = 30) => apiFetch<UsageSummary>(`/admin/monitoring/usage?days=${days}`),

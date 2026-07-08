@@ -312,7 +312,7 @@ export default function Settings() {
   const closeDialog = () => { setDialogOpen(false); setEditing(undefined); };
 
   const handleSave = (data: Partial<Connection> & Pick<Connection, "platform" | "name">) => {
-    upsert.mutate(data as any);
+    upsert.mutate(data);
   };
 
   const usedPlatforms = [...new Set(connections.map((c) => c.platform))];

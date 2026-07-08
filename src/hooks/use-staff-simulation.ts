@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { getApiBase } from "@/lib/api-base";
+import { api } from "@/lib/api";
 
 export interface SimMessage {
   id: number;
@@ -18,22 +18,9 @@ export function useStaffSimulation() {
     setMessages([]);
     setCurrentStep(1);
 
-    type BackendStep = { staff: string; msg: string; delay_ms: number; phase?: number | null };
-
-    const apiBase = getApiBase();
     try {
-      const res = await fetch(`${apiBase}/simulations/run`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task_description: taskDescription }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`API Error: ${res.status} ${res.statusText}`);
-      }
-
-      const data = await res.json();
-      const steps: BackendStep[] = data?.steps || [];
+      const data = await api.simulatePlan(taskDescription);
+      const steps = data?.steps || [];
 
       if (!Array.isArray(steps) || steps.length === 0) {
         throw new Error("No simulation steps returned from API");

@@ -12,8 +12,11 @@ class SprintService:
     def list_sprints(self) -> list[Sprint]:
         return self._repo.list()
 
+    def try_get_sprint(self, sprint_id: str) -> Sprint | None:
+        return self._repo.get(sprint_id)
+
     def get_sprint(self, sprint_id: str) -> Sprint:
-        sprint = self._repo.get(sprint_id)
+        sprint = self.try_get_sprint(sprint_id)
         if not sprint:
             raise NotFoundError(f"Sprint '{sprint_id}' not found")
         return sprint
@@ -22,6 +25,6 @@ class SprintService:
         return self._repo.upsert(sprint)
 
     def delete_sprint(self, sprint_id: str) -> None:
-        if not self._repo.get(sprint_id):
+        if not self.try_get_sprint(sprint_id):
             raise NotFoundError(f"Sprint '{sprint_id}' not found")
         self._repo.delete(sprint_id)

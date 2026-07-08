@@ -70,7 +70,7 @@ export default function DocumentLibrary() {
     // Office membership is still resolving: companyId is momentarily null
     // even for a company scope (not yet "Overall"). Wait rather than flashing
     // the "no documents" empty state for a company that does have docs.
-    if (!scope.isOverall && !scope.ready) return;
+    if (scope.pending) return;
     if (!companyId) { setDocs([]); return; }
     setLoading(true);
     api.listDocuments(companyId)
@@ -79,11 +79,11 @@ export default function DocumentLibrary() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(refresh, [companyId, scope.isOverall, scope.ready]);
+  useEffect(refresh, [companyId, scope.pending]);
 
   // Combined with the effect's early-return above so the skeleton spinner
   // (rather than the empty state) shows while scope is still resolving.
-  const effectiveLoading = loading || (!scope.isOverall && !scope.ready);
+  const effectiveLoading = loading || scope.pending;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

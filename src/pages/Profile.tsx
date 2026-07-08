@@ -78,8 +78,8 @@ export default function Profile() {
       const updated = await api.uploadAvatar(file);
       setAvatarUrl(updated.avatar ?? "");
       updateUser({ avatar: updated.avatar });
-    } catch (err: any) {
-      setAvatarError(err?.message ?? "Upload failed");
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setAvatarUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -99,8 +99,8 @@ export default function Profile() {
       setProfileStatus("ok");
       setEditMode(false);
       setTimeout(() => setProfileStatus("idle"), 2000);
-    } catch (e: any) {
-      setProfileError(e?.message ?? t.auth.errorDefault);
+    } catch (e) {
+      setProfileError(e instanceof Error ? e.message : t.auth.errorDefault);
       setProfileStatus("error");
     }
   });
@@ -117,8 +117,8 @@ export default function Profile() {
       setPwStatus("ok");
       passwordForm.reset();
       setTimeout(() => setPwStatus("idle"), 2000);
-    } catch (e: any) {
-      setPwError(e?.message ?? t.auth.errorDefault);
+    } catch (e) {
+      setPwError(e instanceof Error ? e.message : t.auth.errorDefault);
       setPwStatus("error");
     }
   });

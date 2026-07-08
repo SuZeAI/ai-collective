@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api, type Company } from "@/lib/api";
 
 // Sentinel stored in localStorage when "Overall" (all offices) is selected.
@@ -43,9 +43,23 @@ export type CompanyScope = {
   skillIds: Set<string>;
   /** false while the office membership is still being resolved. */
   ready: boolean;
+  /**
+   * true while an office is selected but its membership hasn't resolved yet
+   * (`!isOverall && !ready`). Pages were each hand-rolling this exact
+   * expression to gate their loading state so scoped filters don't flash
+   * "0 items" before the real numbers land — use this instead of
+   * reimplementing it.
+   */
+  pending: boolean;
 };
 
-const OVERALL_SCOPE: CompanyScope = {
+// `pending` is derived (always `!isOverall && !ready`), so the internal
+// state never stores it directly — that would let a setScope call forget to
+// recompute it and silently drift out of sync. It's added once, in the
+// return statement below.
+type CompanyScopeState = Omit<CompanyScope, "pending">;
+
+const OVERALL_SCOPE: CompanyScopeState = {
   isOverall: true,
   company: null,
   departmentIds: new Set(),
@@ -63,7 +77,7 @@ const OVERALL_SCOPE: CompanyScope = {
 export function useCompanyScope(): CompanyScope {
   const [companyId, setCompanyId] = useState<string | null>(getActiveCompanyId());
   const [rev, setRev] = useState(0); // bumped on membership changes so scope refetches even for the same office
-  const [scope, setScope] = useState<CompanyScope>(
+  const [scope, setScope] = useState<CompanyScopeState>(
     companyId ? { ...OVERALL_SCOPE, isOverall: false, ready: false } : OVERALL_SCOPE,
   );
 
@@ -114,5 +128,8 @@ export function useCompanyScope(): CompanyScope {
     };
   }, [companyId, rev]);
 
-  return scope;
+  return useMemo(
+    () => ({ ...scope, pending: !scope.isOverall && !scope.ready }),
+    [scope],
+  );
 }

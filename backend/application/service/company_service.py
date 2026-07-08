@@ -12,8 +12,11 @@ class CompanyService:
     def list_companies(self) -> list[Company]:
         return self._repo.list()
 
+    def try_get_company(self, company_id: str) -> Company | None:
+        return self._repo.get(company_id)
+
     def get_company(self, company_id: str) -> Company:
-        ws = self._repo.get(company_id)
+        ws = self.try_get_company(company_id)
         if ws is None:
             raise NotFoundError(f"Company {company_id!r} not found")
         return ws

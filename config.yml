@@ -174,9 +174,9 @@ router:
   port: 20128
   public_url: http://localhost:20128
 
-# ── Agent / tools ─────────────────────────────────────────────────────────────
-agent:
-  max_tool_rounds: 6                  # max LLM<->tool rounds per agent turn
+# ── Staff / tools ─────────────────────────────────────────────────────────────
+staff:
+  max_tool_rounds: 6                  # max LLM<->tool rounds per staff turn
   tool_timeout_seconds: 0             # per-tool timeout, 0 = disabled
   subagent_max_concurrent: 3
   subagent_max_turns: 6
@@ -214,7 +214,12 @@ graph:
 # rabbitmq_url (contains credentials) is a secret → see `secrets:` block.
 task_queue:
   backend: rabbitmq                   # memory (single instance) | rabbitmq
-  max_concurrent: 3
+  # Max staff-graph runs executing at once, system-wide across every
+  # company/user (excess runs queue). The work is I/O-bound (LLM API calls),
+  # not CPU-bound, so raise this well past core count if you have the
+  # provider rate-limit/cost headroom — 3 caps an entire deployment at 3
+  # concurrent runs total, which is very low for anything past a demo.
+  max_concurrent: 10
 
 # ── Repository lock ───────────────────────────────────────────────────────────
 # redis_url (contains credentials) is a secret → see `secrets:` block.

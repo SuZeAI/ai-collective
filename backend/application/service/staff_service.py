@@ -32,8 +32,11 @@ class StaffService:
             for staff in staff
         ]
 
+    def try_get_staff(self, staff_id: str) -> Staff | None:
+        return self._repo.get(staff_id)
+
     def get_staff(self, staff_id: str) -> Staff:
-        staff = self._repo.get(staff_id)
+        staff = self.try_get_staff(staff_id)
         if not staff:
             raise NotFoundError(f"Staff '{staff_id}' not found")
         return staff
@@ -68,6 +71,6 @@ class StaffService:
         return self._repo.upsert(staff)
 
     def delete_staff(self, staff_id: str) -> None:
-        if not self._repo.get(staff_id):
+        if not self.try_get_staff(staff_id):
             raise NotFoundError(f"Staff '{staff_id}' not found")
         self._repo.delete(staff_id)

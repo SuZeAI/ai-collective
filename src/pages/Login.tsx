@@ -92,8 +92,8 @@ export default function Login() {
     try {
       await login(data.email, data.password);
       navigate("/dashboard");
-    } catch (e: any) {
-      setError(e?.message || t.auth.errorDefault);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t.auth.errorDefault);
     }
   });
 
@@ -106,8 +106,8 @@ export default function Login() {
     try {
       await register(data.name, data.email, data.password);
       navigate("/dashboard");
-    } catch (e: any) {
-      setError(e?.message || t.auth.errorDefault);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t.auth.errorDefault);
     }
   });
 

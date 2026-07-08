@@ -48,7 +48,7 @@ def upsert_skill(
     owner_id: str = Depends(current_owner_id_dep),
 ) -> SkillSchema:
     skill_id = req.id or f"skill_{uuid4().hex}"
-    existing = service._repo.get(skill_id) if req.id else None
+    existing = service.try_get_skill(skill_id) if req.id else None
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):
         raise NotFoundError(f"Skill '{skill_id}' not found")
     if existing is not None and not can_modify(owner_id, existing.owner_id):
@@ -79,7 +79,7 @@ def delete_skill(
     service: SkillService = Depends(get_skill_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
-    existing = service._repo.get(skill_id)
+    existing = service.try_get_skill(skill_id)
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):
         raise NotFoundError(f"Skill '{skill_id}' not found")
     if existing is not None and not can_delete(owner_id, existing.owner_id):
