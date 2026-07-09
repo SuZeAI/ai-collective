@@ -354,6 +354,8 @@ async def run_staff_graph_stream(
     service = get_staff_graph_service(mode=req.mode)
     if not service:
         raise HTTPException(status_code=503, detail="LLM not configured")
+    if req.conversation_id:
+        _require_conversation_access(task_service, req.conversation_id, owner_id)
 
     # Fetch staff from database by ID and bind tools
     definitions = []
@@ -530,8 +532,11 @@ async def run_staff_graph_stream(
                     await ltm_store.consolidate(
                         conversation_id=conversation_id, scope=memory_scope
                     )
-        except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        except Exception:
+            logger.exception(
+                "[StaffGraph] run-stream failed | conversation_id=%s", conversation_id
+            )
+            yield f"data: {json.dumps({'error': 'Internal error while running the staff graph'})}\n\n"
         finally:
             # Tear down the underlying graph stream so any in-flight LLM/tool
             # await is cancelled and the backend stops working on this run.

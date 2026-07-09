@@ -392,6 +392,12 @@ def get_me(current_user: User = Depends(current_user_dep)) -> UserSchema:
 
 
 _ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+_IMAGE_EXTENSION_BY_CONTENT_TYPE = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+}
 _AVATAR_DIR = Path("static/avatars")
 _MAX_AVATAR_BYTES = 5 * 1024 * 1024  # 5 MB
 
@@ -430,7 +436,10 @@ async def upload_avatar(
     content = await file.read()
     if len(content) > _MAX_AVATAR_BYTES:
         raise HTTPException(status_code=400, detail="File too large. Max 5 MB.")
-    ext = Path(file.filename or "avatar.jpg").suffix.lower() or ".jpg"
+    # Derive the extension from the already-validated content type rather than
+    # trusting the client-supplied filename, so a crafted filename can't pick
+    # an arbitrary extension for the file written under _AVATAR_DIR.
+    ext = _IMAGE_EXTENSION_BY_CONTENT_TYPE[file.content_type]
     _AVATAR_DIR.mkdir(parents=True, exist_ok=True)
     dest = _AVATAR_DIR / f"{current_user.id}{ext}"
     # Offload blocking disk write so it doesn't stall the event loop.
