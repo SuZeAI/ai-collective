@@ -340,6 +340,11 @@ def google_callback(
 
     if not email or not google_sub:
         return RedirectResponse(svc.frontend_error_url("Google did not return an email"), status_code=302)
+    # Only trust this email for linking to an existing local account if Google
+    # itself has verified it — otherwise a Google account with an unverified
+    # email claim could get silently linked to someone else's password account.
+    if not userinfo.get("email_verified"):
+        return RedirectResponse(svc.frontend_error_url("Google account email is not verified"), status_code=302)
 
     user = user_service.find_or_create_by_oauth(
         provider="google",

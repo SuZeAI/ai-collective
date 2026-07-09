@@ -123,6 +123,8 @@ class ChunkingService:
         chunks: list[Chunk] = []
         position = 0
         step = max(1, self.chunk_size - self.overlap_size)
+        char_search_cursor = 0
+        char_ratio: float | None = None
 
         for token_start in range(0, len(tokens), step):
             token_end = min(token_start + self.chunk_size, len(tokens))
@@ -133,6 +135,19 @@ class ChunkingService:
             chunk_text = self.decode(chunk_tokens).strip()
             if not chunk_text:
                 continue
+
+            # Locate this chunk's actual span in the original text. decode()
+            # can normalize whitespace so it isn't always a verbatim substring
+            # match; fall back to a char/token-ratio estimate anchored to the
+            # token position rather than mislabeling every chunk as (0, len).
+            found_at = text.find(chunk_text, char_search_cursor)
+            if found_at == -1:
+                if char_ratio is None:
+                    char_ratio = self._estimate_char_to_token_ratio(text)
+                found_at = min(len(text), round(token_start * char_ratio))
+            start_char = found_at
+            end_char = start_char + len(chunk_text)
+            char_search_cursor = start_char + 1
 
             chunk_metadata = dict(metadata or {})
             chunk_metadata.update(
@@ -147,8 +162,8 @@ class ChunkingService:
                 text=chunk_text,
                 token_count=len(chunk_tokens),
                 position=position,
-                start_char=0,
-                end_char=len(chunk_text),
+                start_char=start_char,
+                end_char=end_char,
                 metadata=chunk_metadata,
             )
             chunks.append(chunk_obj)
