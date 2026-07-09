@@ -63,7 +63,7 @@ async def upload_document(
     current_user: User = Depends(current_user_dep),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> LibraryDocumentSchema:
-    _validate_workspace_id(workspaceId)
+    _validate_workspace_id(companyId)
     if file.content_type not in _ALLOWED_UPLOAD_TYPES:
         raise HTTPException(status_code=400, detail=f"Unsupported file type '{file.content_type}'.")
     content = await file.read()

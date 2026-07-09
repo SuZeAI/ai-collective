@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   User, Mail, Lock, Shield, Calendar, LogOut,
   Check, Pencil, Camera, Upload,
@@ -41,6 +42,7 @@ function UserAvatar({ name, src, size = "lg" }: { name: string; src?: string; si
 
 export default function Profile() {
   const { user, logout, updateUser } = useAuth();
+  const queryClient = useQueryClient();
   const { t } = useLanguage();
   const navigate = useNavigate();
 
@@ -125,6 +127,7 @@ export default function Profile() {
 
   const handleLogout = () => {
     logout();
+    queryClient.clear();
     navigate("/login");
   };
 

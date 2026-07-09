@@ -4,6 +4,50 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+# Sentinel returned in place of secret-like config values so API responses
+# never leak stored credentials (API keys, webhook secrets, OAuth tokens).
+# Recognized on save by the router's upsert merge logic, which treats an
+# unchanged sentinel as "keep the existing stored value".
+MASKED_SECRET_VALUE = "__MASKED__"
+
+_SECRET_KEY_HINTS = ("key", "secret", "token", "password", "credential")
+
+
+def is_secret_config_key(key: str) -> bool:
+    lowered = key.lower()
+    return any(hint in lowered for hint in _SECRET_KEY_HINTS)
+
+
+def mask_secret_config(config: dict) -> dict:
+    """Replace non-empty secret-like config values with a fixed sentinel."""
+    masked: dict[str, Any] = {}
+    for k, v in config.items():
+        if is_secret_config_key(k) and v:
+            masked[k] = MASKED_SECRET_VALUE
+        else:
+            masked[k] = v
+    return masked
+
+
+def merge_config_preserving_secrets(existing: dict | None, incoming: dict) -> dict:
+    """Merge a client-submitted config into the previously stored one.
+
+    Clients only ever see ``MASKED_SECRET_VALUE`` for secret-like keys (see
+    ``mask_secret_config``); an untouched edit form round-trips that sentinel
+    back on save. Treat that as "keep the existing stored value" instead of
+    overwriting the real secret with the placeholder. Any other incoming
+    value (a genuinely new secret, or an explicit empty string to clear it)
+    is used as-is.
+    """
+    existing = existing or {}
+    merged: dict[str, Any] = {}
+    for k, v in incoming.items():
+        if is_secret_config_key(k) and v == MASKED_SECRET_VALUE and k in existing:
+            merged[k] = existing[k]
+        else:
+            merged[k] = v
+    return merged
+
 
 class SkillSchema(BaseModel):
     id: str
@@ -31,7 +75,7 @@ class SkillSchema(BaseModel):
             third_party=s.third_party,
             tool_name=s.tool_name,
             kind=s.kind,
-            config=dict(s.config or {}),
+            config=mask_secret_config(dict(s.config or {})),
             avatar=fallback_avatar,
             avatar_icon=getattr(s, "avatar_icon", "") or "",
             avatar_color=getattr(s, "avatar_color", "") or "",

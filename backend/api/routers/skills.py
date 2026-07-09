@@ -9,6 +9,7 @@ from backend.api.schemas.skill import (
     SkillSchema,
     SkillToolPresetSchema,
     UpsertSkillRequest,
+    merge_config_preserving_secrets,
 )
 from backend.application.service.skill_service import SkillService
 from backend.domain.errors import NotFoundError
@@ -64,7 +65,9 @@ def upsert_skill(
         avatar_url=(req.avatar_url or "").strip(),
         tool_name=req.tool_name,
         kind=req.kind or "integration",
-        config=dict(req.config or {}),
+        config=merge_config_preserving_secrets(
+            existing.config if existing else None, dict(req.config or {})
+        ),
         code=req.code,
         instruction=(req.instruction or "").strip(),
         owner_id=existing.owner_id if existing else owner_id,
