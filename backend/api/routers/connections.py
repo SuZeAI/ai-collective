@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.api.deps import current_user_dep, get_connection_service
 from backend.api.schemas.connection import ConnectionSchema, UpsertConnectionRequest
+from backend.api.schemas.skill import merge_config_preserving_secrets
 from backend.application.service.connection_service import ConnectionService
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Connection
@@ -53,7 +54,9 @@ def upsert_connection(
         id=conn_id,
         platform=req.platform,
         name=req.name,
-        config=dict(req.config or {}),
+        config=merge_config_preserving_secrets(
+            existing.config if existing else None, dict(req.config or {})
+        ),
         description=req.description or "",
         created_at=created_at,
         enabled=req.enabled,

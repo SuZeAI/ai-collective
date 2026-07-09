@@ -27,7 +27,7 @@ from backend.api.schemas.auth_user import (
     GoogleLoginUrlResponse,
 )
 from backend.application.service.google_login_service import GoogleLoginService
-from backend.api.deps import get_user_service, current_user_dep
+from backend.api.deps import get_user_service, current_user_dep, current_owner_id_dep
 from backend.application.service.user_service import UserService
 from backend.domain.errors import ValidationError, NotFoundError
 from backend.domain.models import User
@@ -204,6 +204,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/oauth/start", response_model=GoogleSheetOAuthStartResponse)
 def start_oauth(
     payload: GoogleSheetOAuthStartRequest,
+    owner_id: str = Depends(current_owner_id_dep),
 ) -> GoogleSheetOAuthStartResponse:
     """Start generic OAuth flow (for Google Sheets and other services)."""
     _cleanup_expired_oauth_states()
@@ -224,6 +225,7 @@ def start_oauth(
 
     _OAUTH_PENDING_STATES[state] = {
         "status": "pending",
+        "owner_id": owner_id,
         "email": login_hint,
         "tool_name": tool_name,
         "token_path": _get_token_path_for_email(login_hint or "default", tool_name),
@@ -241,12 +243,17 @@ def start_oauth(
 
 
 @router.get("/oauth/status", response_model=GoogleSheetOAuthStatusResponse)
-def get_oauth_status(state: str = Query(..., min_length=8)) -> GoogleSheetOAuthStatusResponse:
+def get_oauth_status(
+    state: str = Query(..., min_length=8),
+    owner_id: str = Depends(current_owner_id_dep),
+) -> GoogleSheetOAuthStatusResponse:
     """Check OAuth authorization status."""
     _cleanup_expired_oauth_states()
 
     payload = _OAUTH_PENDING_STATES.get(state)
-    if payload is None:
+    # Same 404 whether the state is unknown/expired or simply belongs to a
+    # different owner — avoids confirming a guessed state exists at all.
+    if payload is None or payload.get("owner_id") != owner_id:
         raise HTTPException(status_code=404, detail="OAuth state not found or expired.")
 
     status = payload.get("status", "pending")
