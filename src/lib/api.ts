@@ -692,22 +692,54 @@ async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
   }
 }
 
+// Longer than apiFetch's default — file transfers legitimately take longer
+// than a typical JSON request, but must still fail instead of hanging forever
+// on a stalled connection.
+const FILE_TRANSFER_TIMEOUT_MS = 300000;
+
 async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
   const base = getApiBase().replace(/\/$/, "");
   const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
-  const res = await fetch(url, { method: "POST", headers: { ...getAuthHeader() }, body: formData });
-  if (!res.ok) {
-    throw new Error(await parseErrorDetail(res));
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), FILE_TRANSFER_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { ...getAuthHeader() },
+      body: formData,
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      throw new Error(await parseErrorDetail(res));
+    }
+    return (await res.json()) as T;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(`Upload timeout after ${Math.round(FILE_TRANSFER_TIMEOUT_MS / 1000)}s`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(id);
   }
-  return (await res.json()) as T;
 }
 
 async function apiDownload(path: string): Promise<Blob> {
   const base = getApiBase().replace(/\/$/, "");
   const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
-  const res = await fetch(url, { headers: { ...getAuthHeader() } });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return await res.blob();
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), FILE_TRANSFER_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { headers: { ...getAuthHeader() }, signal: controller.signal });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return await res.blob();
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(`Download timeout after ${Math.round(FILE_TRANSFER_TIMEOUT_MS / 1000)}s`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(id);
+  }
 }
 
 /** Trigger a browser "save as" for a fetched blob. */
