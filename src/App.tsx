@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -68,6 +68,24 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
   return <>{children}</>;
+}
+
+// apiFetch (src/lib/api.ts) dispatches this on any 401 response so an expired/
+// invalid token logs the user out everywhere, not just wherever the failing
+// call happened to be made. Mounted once, outside <Routes>, so it isn't torn
+// down/rebuilt on every navigation.
+function AuthTokenExpiryHandler() {
+  const { logout } = useAuth();
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const handleExpired = () => {
+      logout();
+      queryClient.clear();
+    };
+    window.addEventListener("auth:token-expired", handleExpired);
+    return () => window.removeEventListener("auth:token-expired", handleExpired);
+  }, [logout, queryClient]);
+  return null;
 }
 
 function WithLayout({ children }: { children: React.ReactNode }) {
@@ -155,6 +173,7 @@ const App = () => (
       <AuthProvider>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
+            <AuthTokenExpiryHandler />
             <Toaster />
             <Sonner />
             {/* Lives above the router so in-flight task runs survive navigation. */}

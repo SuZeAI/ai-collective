@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -216,26 +216,40 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   // "All" scope = company create/control/monitor; inside a company = that
   // company's operations. Groups declare where they belong via `visibleIn`.
   const isOverall = !activeCompany;
-  const navGroups = NAV_GROUPS.filter(
-    (group) =>
-      (!group.adminOnly || isAdmin) &&
-      (group.visibleIn === "both" || group.visibleIn === (isOverall ? "overall" : "company")) &&
-      // Admins in the "All" scope don't create/control companies — their All
-      // view is the shared catalog (catalogGroup) + System Monitoring only.
-      !(isOverall && isAdmin && (group.groupKey === "overviewGroup" || group.groupKey === "companiesGroup")),
+  const navGroups = useMemo(
+    () =>
+      NAV_GROUPS.filter(
+        (group) =>
+          (!group.adminOnly || isAdmin) &&
+          (group.visibleIn === "both" || group.visibleIn === (isOverall ? "overall" : "company")) &&
+          // Admins in the "All" scope don't create/control companies — their All
+          // view is the shared catalog (catalogGroup) + System Monitoring only.
+          !(isOverall && isAdmin && (group.groupKey === "overviewGroup" || group.groupKey === "companiesGroup")),
+      ),
+    [isAdmin, isOverall],
   );
   // Flexible company-type rule: inside a company, mark (never hide) the options
   // best suited to its type with a "suggested" star.
   const companyType = companyTypeOf(activeCompany);
-  const suggestedKeys = isOverall ? new Set<string>() : suggestedNavKeys(companyType);
+  const suggestedKeys = useMemo(
+    () => (isOverall ? new Set<string>() : suggestedNavKeys(companyType)),
+    [isOverall, companyType],
+  );
   const typeDef = COMPANY_TYPE_MAP[companyType];
 
-  const allNavItems = navGroups.flatMap((g) => g.items).map((item) => ({
-    ...item,
-    title: t.nav[item.key] as string,
-  }));
+  const allNavItems = useMemo(
+    () =>
+      navGroups.flatMap((g) => g.items).map((item) => ({
+        ...item,
+        title: t.nav[item.key] as string,
+      })),
+    [navGroups, t],
+  );
 
-  const currentPage = allNavItems.find((n) => n.url === location.pathname);
+  const currentPage = useMemo(
+    () => allNavItems.find((n) => n.url === location.pathname),
+    [allNavItems, location.pathname],
+  );
   const isFullBleed = location.pathname === "/tasks" || location.pathname === "/virtual-office";
 
   return (
