@@ -16,6 +16,7 @@ import os
 import threading
 from contextvars import ContextVar
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 from uuid import uuid4
@@ -217,14 +218,22 @@ def _persist_session_json(record: dict) -> None:
         logger.warning("Failed to persist sandbox session (json): %s", exc)
 
 
+@lru_cache
+def _mongo_db():
+    """Single cached MongoClient/db for this module instead of opening a new
+    client (and connection pool) on every session persist call."""
+    import pymongo
+    from backend.api.settings import settings
+
+    client = pymongo.MongoClient(settings.mongo_uri, serverSelectionTimeoutMS=2000)
+    return client[settings.mongo_db]
+
+
 def _persist_session_mongo(record: dict) -> None:
     # Pure-Mongo: a transient Mongo failure logs and skips; it must NOT write a
     # JSON file in mongo mode (session tracking is best-effort metadata).
     try:
-        import pymongo
-        from backend.api.settings import settings
-        client = pymongo.MongoClient(settings.mongo_uri, serverSelectionTimeoutMS=2000)
-        db = client[settings.mongo_db]
+        db = _mongo_db()
         doc = dict(record)
         doc["_id"] = doc["thread_id"]
         db.sandbox_threads.replace_one({"_id": doc["_id"]}, doc, upsert=True)
