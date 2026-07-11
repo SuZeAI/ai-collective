@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 from uuid import uuid4
@@ -66,6 +67,23 @@ def _is_mongo() -> bool:
         return settings.storage_backend == "mongo"
     except Exception:
         return False
+
+
+@lru_cache
+def _mongo_db():
+    """Single cached MongoClient/db for this module.
+
+    conversation_has_files() runs synchronously on every agent turn across all
+    5 topologies (see its docstring) — opening a brand new MongoClient (and
+    connection pool) on every call, as this used to do, adds a fresh
+    connection/handshake per turn instead of reusing one client for the
+    process lifetime.
+    """
+    import pymongo
+    from backend.api.settings import settings
+
+    client = pymongo.MongoClient(settings.mongo_uri, serverSelectionTimeoutMS=2000)
+    return client[settings.mongo_db]
 
 
 # ── Recording ──────────────────────────────────────────────────────────────────
@@ -131,11 +149,7 @@ def _record_json(record: dict) -> None:
 
 def _record_mongo(record: dict) -> None:
     try:
-        import pymongo
-        from backend.api.settings import settings
-
-        client = pymongo.MongoClient(settings.mongo_uri, serverSelectionTimeoutMS=2000)
-        db = client[settings.mongo_db]
+        db = _mongo_db()
         doc = dict(record)
         doc["_id"] = f"{record['conversation_id']}:{record['rel_path']}"
         db.thread_files.replace_one({"_id": doc["_id"]}, doc, upsert=True)
@@ -172,10 +186,8 @@ def _list_json(conversation_id: str) -> list[dict]:
 
 def _list_mongo(conversation_id: str) -> list[dict]:
     import pymongo
-    from backend.api.settings import settings
 
-    client = pymongo.MongoClient(settings.mongo_uri, serverSelectionTimeoutMS=2000)
-    db = client[settings.mongo_db]
+    db = _mongo_db()
     return list(
         db.thread_files.find({"conversation_id": conversation_id}, {"_id": False})
         .sort("created_at", pymongo.ASCENDING)
@@ -209,13 +221,7 @@ def _conversation_has_files_uncached(conversation_id: str) -> bool:
     try:
         if _is_mongo():
             try:
-                import pymongo
-                from backend.api.settings import settings
-
-                client = pymongo.MongoClient(
-                    settings.mongo_uri, serverSelectionTimeoutMS=2000
-                )
-                db = client[settings.mongo_db]
+                db = _mongo_db()
                 if db.thread_files.count_documents(
                     {"conversation_id": conversation_id}, limit=1
                 ):
@@ -260,11 +266,7 @@ def purge_thread_files(conversation_id: str) -> None:
     """Remove all records for *conversation_id* (best-effort; used on cleanup)."""
     try:
         if _is_mongo():
-            import pymongo
-            from backend.api.settings import settings
-
-            client = pymongo.MongoClient(settings.mongo_uri, serverSelectionTimeoutMS=2000)
-            db = client[settings.mongo_db]
+            db = _mongo_db()
             db.thread_files.delete_many({"conversation_id": conversation_id})
             return
         path = _storage_path()

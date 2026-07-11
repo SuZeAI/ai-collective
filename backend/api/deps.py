@@ -144,12 +144,24 @@ class Repos(NamedTuple):
 
 
 @lru_cache
+def _mongo_db():
+    """Single shared MongoClient/database for the whole process.
+
+    pymongo.MongoClient already pools connections internally and is meant to
+    be created once per application, not once per repository — a separate
+    client per store multiplies the connection-pool count against the same
+    Mongo server for no benefit.
+    """
+    import pymongo
+    client = pymongo.MongoClient(settings.mongo_uri)
+    return client[settings.mongo_db]
+
+
+@lru_cache
 def _repos() -> Repos:
     _init_task_queue()
     if settings.storage_backend == "mongo":
-        import pymongo
-        client = pymongo.MongoClient(settings.mongo_uri)
-        db = client[settings.mongo_db]
+        db = _mongo_db()
         staff = MongoStaffRepository(db)
         skills = MongoSkillRepository(db)
         departments = MongoDepartmentRepository(db)
@@ -293,13 +305,10 @@ def get_connection_service() -> ConnectionService:
 @lru_cache
 def _library_document_store():
     if settings.storage_backend == "mongo":
-        import pymongo
         from backend.infrastructure.repositories.mongo_repositories.library_documents import (
             MongoLibraryDocumentRepository,
         )
-        client = pymongo.MongoClient(settings.mongo_uri)
-        db = client[settings.mongo_db]
-        return MongoLibraryDocumentRepository(db)
+        return MongoLibraryDocumentRepository(_mongo_db())
     from backend.infrastructure.repositories.json_files.library_documents import (
         JsonLibraryDocumentRepository,
     )
@@ -315,10 +324,7 @@ def get_document_library_service() -> "DocumentLibraryService":
 @lru_cache
 def _office_builder_session_store():
     if settings.storage_backend == "mongo":
-        import pymongo
-        client = pymongo.MongoClient(settings.mongo_uri)
-        db = client[settings.mongo_db]
-        return MongoOfficeBuilderSessionRepository(db)
+        return MongoOfficeBuilderSessionRepository(_mongo_db())
     return JsonOfficeBuilderSessionRepository(_store("office_builder_sessions.json"))
 
 
@@ -329,10 +335,7 @@ def get_office_builder_session_service() -> OfficeBuilderSessionService:
 @lru_cache
 def _user_store():
     if settings.storage_backend == "mongo":
-        import pymongo
-        client = pymongo.MongoClient(settings.mongo_uri)
-        db = client[settings.mongo_db]
-        return MongoUserRepository(db)
+        return MongoUserRepository(_mongo_db())
     return JsonUserRepository(_store("users.json"))
 
 
@@ -348,11 +351,8 @@ def get_user_service() -> UserService:
 @lru_cache
 def _project_store():
     if settings.storage_backend == "mongo":
-        import pymongo
         from backend.infrastructure.repositories.mongo_repositories import MongoProjectRepository
-        client = pymongo.MongoClient(settings.mongo_uri)
-        db = client[settings.mongo_db]
-        return MongoProjectRepository(db)
+        return MongoProjectRepository(_mongo_db())
     from backend.infrastructure.repositories.json_files import JsonProjectRepository
     return JsonProjectRepository(_store("projects.json"))
 
@@ -365,11 +365,8 @@ def get_project_service() -> "ProjectService":
 @lru_cache
 def _epic_store():
     if settings.storage_backend == "mongo":
-        import pymongo
         from backend.infrastructure.repositories.mongo_repositories import MongoEpicRepository
-        client = pymongo.MongoClient(settings.mongo_uri)
-        db = client[settings.mongo_db]
-        return MongoEpicRepository(db)
+        return MongoEpicRepository(_mongo_db())
     from backend.infrastructure.repositories.json_files import JsonEpicRepository
     return JsonEpicRepository(_store("epics.json"))
 
@@ -382,11 +379,8 @@ def get_epic_service() -> "EpicService":
 @lru_cache
 def _sprint_store():
     if settings.storage_backend == "mongo":
-        import pymongo
         from backend.infrastructure.repositories.mongo_repositories import MongoSprintRepository
-        client = pymongo.MongoClient(settings.mongo_uri)
-        db = client[settings.mongo_db]
-        return MongoSprintRepository(db)
+        return MongoSprintRepository(_mongo_db())
     from backend.infrastructure.repositories.json_files import JsonSprintRepository
     return JsonSprintRepository(_store("sprints.json"))
 
@@ -468,9 +462,7 @@ def seed_default_data() -> None:
         total_inserted = 0
 
         if settings.storage_backend == "mongo":
-            import pymongo
-
-            db = pymongo.MongoClient(settings.mongo_uri)[settings.mongo_db]
+            db = _mongo_db()
             for collection, filename in _DEFAULT_DATA_FILES:
                 inserted = 0
                 for rec in _load_seed_records(filename):
@@ -530,9 +522,7 @@ def get_skill_tool_manager() -> SkillToolManager:
 def _monitoring_stores():
     """(TokenUsageRepository, ModelPricingRepository) for the configured backend."""
     if settings.storage_backend == "mongo":
-        import pymongo
-        client = pymongo.MongoClient(settings.mongo_uri)
-        db = client[settings.mongo_db]
+        db = _mongo_db()
         return MongoTokenUsageRepository(db), MongoModelPricingRepository(db)
     return (
         JsonTokenUsageRepository(_store("token_usage.json")),

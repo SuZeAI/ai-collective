@@ -170,11 +170,19 @@ class S3BackupService:
         if self._client is None:
             return 0
         count = 0
+        norm_root = os.path.normpath(root)
         for rel in self.list_rel_paths(thread_id):
+            dest = os.path.normpath(os.path.join(root, rel))
+            # rel comes from listing our own bucket, which should only ever
+            # contain what backup_dir() uploaded from inside root — but don't
+            # let a stray/crafted object name (e.g. "../../etc/x") write
+            # outside root if the bucket is ever tampered with directly.
+            if dest != norm_root and not dest.startswith(norm_root + os.sep):
+                logger.warning("restore_dir skipped out-of-root object: %s", rel)
+                continue
             data = self.get_bytes(thread_id, rel)
             if data is None:
                 continue
-            dest = os.path.join(root, rel)
             try:
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
                 with open(dest, "wb") as fh:

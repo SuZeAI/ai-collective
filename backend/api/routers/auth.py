@@ -340,6 +340,11 @@ def google_callback(
 
     if not email or not google_sub:
         return RedirectResponse(svc.frontend_error_url("Google did not return an email"), status_code=302)
+    # Only trust this email for linking to an existing local account if Google
+    # itself has verified it — otherwise a Google account with an unverified
+    # email claim could get silently linked to someone else's password account.
+    if not userinfo.get("email_verified"):
+        return RedirectResponse(svc.frontend_error_url("Google account email is not verified"), status_code=302)
 
     user = user_service.find_or_create_by_oauth(
         provider="google",
@@ -392,6 +397,12 @@ def get_me(current_user: User = Depends(current_user_dep)) -> UserSchema:
 
 
 _ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+_IMAGE_EXTENSION_BY_CONTENT_TYPE = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+}
 _AVATAR_DIR = Path("static/avatars")
 _MAX_AVATAR_BYTES = 5 * 1024 * 1024  # 5 MB
 
@@ -430,7 +441,10 @@ async def upload_avatar(
     content = await file.read()
     if len(content) > _MAX_AVATAR_BYTES:
         raise HTTPException(status_code=400, detail="File too large. Max 5 MB.")
-    ext = Path(file.filename or "avatar.jpg").suffix.lower() or ".jpg"
+    # Derive the extension from the already-validated content type rather than
+    # trusting the client-supplied filename, so a crafted filename can't pick
+    # an arbitrary extension for the file written under _AVATAR_DIR.
+    ext = _IMAGE_EXTENSION_BY_CONTENT_TYPE[file.content_type]
     _AVATAR_DIR.mkdir(parents=True, exist_ok=True)
     dest = _AVATAR_DIR / f"{current_user.id}{ext}"
     # Offload blocking disk write so it doesn't stall the event loop.

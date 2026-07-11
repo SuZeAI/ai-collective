@@ -679,6 +679,14 @@ async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
       signal: controller.signal,
     });
     if (!res.ok) {
+      if (res.status === 401) {
+        try {
+          localStorage.removeItem(AUTH_TOKEN_KEY);
+        } catch {
+          // ignore
+        }
+        window.dispatchEvent(new CustomEvent("auth:token-expired"));
+      }
       throw new Error(await parseErrorDetail(res));
     }
     return (await res.json()) as T;

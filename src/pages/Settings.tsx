@@ -72,7 +72,7 @@ function ConnectionDialog({
     close();
   };
 
-  const canSubmit = platform && name.trim() &&
+  const canSubmit = Boolean(platform) && Boolean(name.trim()) && Boolean(platformDef) &&
     (platformDef?.config_fields || [])
       .filter((f) => f.required)
       .every((f) => (config[f.key] || "").trim() !== "");
