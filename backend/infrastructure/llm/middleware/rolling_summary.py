@@ -63,9 +63,15 @@ class RollingSummaryMiddleware(AgentMiddleware):
         bullets: list[str] = []
         for m in droppable:
             text = message_text(m).strip().replace("\n", " ")
-            if not text:
-                continue
             role = m.__class__.__name__.replace("Message", "").lower()
+            if not text:
+                # Every message in `droppable` gets RemoveMessage'd below, so a
+                # message with no plain-text content (e.g. an AIMessage that's
+                # only a tool_call) still needs a trace here — otherwise it's
+                # silently deleted with no record in the summary.
+                tool_calls = getattr(m, "tool_calls", None) or []
+                names = [tc.get("name", "") for tc in tool_calls if isinstance(tc, dict) and tc.get("name")]
+                text = f"(called {', '.join(names)})" if names else "(no text content)"
             bullets.append(f"- {role}: {text[:200]}")
         if not bullets:
             return None
