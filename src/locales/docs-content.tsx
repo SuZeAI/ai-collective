@@ -371,9 +371,25 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
             <div className="font-bold mb-2 flex items-center gap-2"><Pill color="purple">sequential</Pill> {c.departments.sequential.title}</div>
             <p className="text-[13px] text-muted-foreground leading-relaxed">{c.departments.sequential.desc}</p>
           </div>
+          <div className="p-5 rounded-xl border-2 border-border/60 bg-muted/20">
+            <div className="font-bold mb-2 flex items-center gap-2"><Pill color="green">ring</Pill> {c.departments.ring.title}</div>
+            <p className="text-[13px] text-muted-foreground leading-relaxed">{c.departments.ring.desc}</p>
+          </div>
+          <div className="p-5 rounded-xl border-2 border-border/60 bg-muted/20">
+            <div className="font-bold mb-2 flex items-center gap-2"><Pill color="orange">supervisor</Pill> {c.departments.supervisor.title}</div>
+            <p className="text-[13px] text-muted-foreground leading-relaxed">{c.departments.supervisor.desc}</p>
+          </div>
+          <div className="p-5 rounded-xl border-2 border-border/60 bg-muted/20">
+            <div className="font-bold mb-2 flex items-center gap-2"><Pill color="blue">tree</Pill> {c.departments.tree.title}</div>
+            <p className="text-[13px] text-muted-foreground leading-relaxed">{c.departments.tree.desc}</p>
+          </div>
+          <div className="p-5 rounded-xl border-2 border-border/60 bg-muted/20">
+            <div className="font-bold mb-2 flex items-center gap-2"><Pill color="purple">custom</Pill> {c.departments.custom.title}</div>
+            <p className="text-[13px] text-muted-foreground leading-relaxed">{c.departments.custom.desc}</p>
+          </div>
         </div>
         <H2>{c.departments.schemaH2}</H2>
-        <CodeBlock lang="typescript" code={`type Department = {\n  id: string;\n  name: string;\n  description: string;\n  staff: string[];\n  mode: "mesh" | "sequential";\n  activeTasks: number;\n}`} />
+        <CodeBlock lang="typescript" code={`type Department = {\n  id: string;\n  name: string;\n  description: string;\n  staff: string[];\n  mode: "mesh" | "sequential" | "ring" | "supervisor" | "tree" | "custom";\n  activeTasks: number;\n}`} />
       </div>
     ),
 
