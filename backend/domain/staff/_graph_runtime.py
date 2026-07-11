@@ -70,6 +70,19 @@ async def safe_chat(llm: Any, *, staff_name: str = "", **chat_kwargs: Any) -> st
                     return await llm.chat(**chat_kwargs)
             except asyncio.CancelledError:
                 raise
+            except TimeoutError:
+                # llm.chat() runs a multi-round tool-calling loop internally, and
+                # some of those rounds may already have invoked side-effecting
+                # tools (Slack/Discord sends, sandbox writes, social posts, ...)
+                # before the wall-clock timeout fired. Retrying would risk
+                # replaying those side effects, so a timeout is terminal here —
+                # unlike a pre-tool-loop connection/429/5xx, which is safe to retry.
+                logger.exception(
+                    "llm.chat timed out (staff_member=%s) after %ss; not retrying "
+                    "to avoid re-running tool calls already made this attempt",
+                    staff_name, LLM_TIMEOUT_SECONDS,
+                )
+                return f"[error] The model call timed out after {LLM_TIMEOUT_SECONDS}s."
             except Exception as exc:  # noqa: BLE001 - provider errors are heterogeneous
                 last_exc = exc
                 if attempt < LLM_MAX_RETRIES:
