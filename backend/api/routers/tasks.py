@@ -309,6 +309,11 @@ def clear_task_history(
 @router.get("/{task_id}/graph-context")
 def get_task_graph_context(
     task_id: str,
+    service: TaskService = Depends(get_task_service),
     graph_context_service: GraphContextService = Depends(get_graph_context_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ) -> dict[str, object]:
+    existing = service.try_get_task(task_id)
+    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
+        raise NotFoundError(f"Task '{task_id}' not found")
     return graph_context_service.get_graph_snapshot(conversation_id=task_id)

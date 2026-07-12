@@ -72,9 +72,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
 
   const persistAuth = useCallback((t: string | null, u: AuthUser) => {
-    if (t) localStorage.setItem(AUTH_TOKEN_KEY, t);
-    else localStorage.removeItem(AUTH_TOKEN_KEY);
-    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(u));
+    try {
+      if (t) localStorage.setItem(AUTH_TOKEN_KEY, t);
+      else localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(u));
+    } catch {
+      // Storage unavailable (private mode, quota, disabled) — still honor
+      // the successful auth in memory for this session.
+    }
     setToken(t);
     setUser(u);
   }, []);
@@ -121,8 +126,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [persistAuth]);
 
   const logout = useCallback(() => {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    localStorage.removeItem(AUTH_USER_KEY);
+    try {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(AUTH_USER_KEY);
+    } catch {
+      // Storage unavailable — still clear the in-memory session below.
+    }
     setToken(null);
     setUser(null);
   }, []);
@@ -131,7 +140,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser((prev) => {
       if (!prev) return prev;
       const updated = { ...prev, ...data };
-      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
+      try {
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
+      } catch {
+        // Storage unavailable — the in-memory user state below still updates.
+      }
       return updated;
     });
   }, []);

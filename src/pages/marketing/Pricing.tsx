@@ -22,7 +22,7 @@ const GITHUB_URL = "https://github.com/SuZeAI/ai-collective";
 
 const PLAN_FEATURES = [
   [
-    "All agent topologies (Sequential, Ring, Mesh, Supervisor)",
+    "All staff topologies (Sequential, Ring, Mesh, Supervisor, Tree)",
     "50+ atomic skill toolkits",
     "Local JSON backend",
     "Real-time SSE streaming",
@@ -40,7 +40,7 @@ const PLAN_FEATURES = [
   ],
   [
     "Everything in Pro",
-    "Custom agent topology design",
+    "Custom staff topology design",
     "Custom API & database integrations",
     "Managed high-throughput RabbitMQ/Redis clusters",
     "Air-gapped / on-premise deployment",
@@ -50,8 +50,8 @@ const PLAN_FEATURES = [
 ];
 
 const API_TIERS = [
-  { model: "Gemini 2.0 Flash", input: "$0.075", output: "$0.30", note: "Per 1M tokens" },
-  { model: "Claude 3.5 Sonnet", input: "$3.00", output: "$15.00", note: "Per 1M tokens" },
+  { model: "Gemini 3 Flash", input: "$0.50", output: "$3.00", note: "Per 1M tokens" },
+  { model: "Claude Sonnet 4", input: "$3.00", output: "$15.00", note: "Per 1M tokens" },
   { model: "GPT-4o", input: "$2.50", output: "$10.00", note: "Per 1M tokens" },
   { model: "Qwen (self-hosted)", input: "Free", output: "Free", note: "Bring your own compute" },
 ];

@@ -174,6 +174,15 @@ export default function VirtualOffice() {
     }));
   }, [filteredStaff]);
 
+  // Latest-value refs so the wandering interval below doesn't get torn down
+  // and recreated on every thinkingStaff/staffRealtimeStates update (which
+  // happens on every LLM turn while a task streams) — that used to reset the
+  // 8s countdown before it could ever fire.
+  const thinkingStaffRef = useRef(thinkingStaff);
+  thinkingStaffRef.current = thinkingStaff;
+  const staffRealtimeStatesRef = useRef(staffRealtimeStates);
+  staffRealtimeStatesRef.current = staffRealtimeStates;
+
   // Wandering cycle for idle staff (makes pantry/coffee active)
   useEffect(() => {
     const interval = setInterval(() => {
@@ -181,11 +190,11 @@ export default function VirtualOffice() {
       if (activeIds.length === 0) return;
 
       const randomId = activeIds[Math.floor(Math.random() * activeIds.length)];
-      const current = staffRealtimeStates[randomId];
+      const current = staffRealtimeStatesRef.current[randomId];
       if (!current) return;
 
       // Don't wander if actively running task
-      const isTaskActive = Object.values(thinkingStaff).some((set) => set.has(randomId));
+      const isTaskActive = Object.values(thinkingStaffRef.current).some((set) => set.has(randomId));
       if (isTaskActive || current.status === "thinking" || current.status === "executing") return;
 
       setStaffRealtimeStates((prev) => {
@@ -213,7 +222,7 @@ export default function VirtualOffice() {
     }, 8000);
 
     return () => clearInterval(interval);
-  }, [staffRealtimeStates, thinkingStaff, visibleStaff]);
+  }, [visibleStaff]);
 
   // Calculate coordinates on the full 2D grid canvas
   const staffCanvasPositions = useMemo(() => {

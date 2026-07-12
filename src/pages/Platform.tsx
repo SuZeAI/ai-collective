@@ -654,7 +654,7 @@ export default function Platform() {
           <h2 className="text-xl font-semibold mb-2">No apps connected yet</h2>
           <p className="text-sm text-muted-foreground max-w-sm mb-6">
             Add a Telegram bot or another messaging app so users can reach this company. You decide whether a
-            department or specific staff handle the conversation.
+            department or specific staff handle the meeting.
           </p>
           <Button onClick={openNew} className="gap-2 bg-teal-600 hover:bg-teal-500">
             <Plus className="h-4 w-4" />

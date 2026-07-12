@@ -36,7 +36,7 @@ def _validate_workspace_id(workspace_id: str) -> None:
     must not contain path separators or traversal sequences.
     """
     if not workspace_id or "/" in workspace_id or "\\" in workspace_id or workspace_id in (".", ".."):
-        raise HTTPException(status_code=400, detail="Invalid workspaceId.")
+        raise HTTPException(status_code=400, detail="Invalid companyId.")
 
 
 @router.get("/documents", response_model=list[LibraryDocumentSchema])

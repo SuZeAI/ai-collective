@@ -149,8 +149,8 @@ const ARTICLES_DATA: Record<string, Article[]> = {
       id: "what-is-collective",
       category: "getting-started",
       title: "What is AI Collective?",
-      summary: "An overview of the open-source multi-agent orchestration platform.",
-      content: "AI Collective is an open-source platform designed to orchestrate teams of specialized AI agents. Unlike traditional single-agent systems, AI Collective enables multiple agents to collaborate, share memories, and utilize specialized tools to solve complex, multi-step tasks. Our platform includes an event-driven core powered by LangGraph and RabbitMQ, a secure container sandbox for running untrusted bash/python scripts, and a real-time visual UI.",
+      summary: "An overview of the open-source multi-staff orchestration platform.",
+      content: "AI Collective is an open-source platform designed to orchestrate departments of specialized AI staff. Unlike traditional single-agent systems, AI Collective enables multiple staff to collaborate, share memories, and utilize specialized tools to solve complex, multi-step tasks. Our platform includes an event-driven core powered by LangGraph and RabbitMQ, a secure container sandbox for running untrusted bash/python scripts, and a real-time visual UI.",
       docPage: "what-is",
       isPopular: true
     },
@@ -168,32 +168,32 @@ const ARTICLES_DATA: Record<string, Article[]> = {
       category: "getting-started",
       title: "Local Installation & Requirements",
       summary: "System requirements and setup instructions for Python and Node.js.",
-      content: "AI Collective can be run on Linux, macOS, and Windows. We recommend a machine with at least 8GB of RAM and Python 3.11+. The frontend depends on Node.js 18+ and npm/yarn. For database operations and state persistence, a local PostgreSQL database or SQLite is used. For multi-agent communication, running a local RabbitMQ instance is highly recommended to support real-time streaming events.",
+      content: "AI Collective can be run on Linux, macOS, and Windows. We recommend a machine with at least 8GB of RAM and Python 3.11+. The frontend depends on Node.js 18+ and npm/yarn. For database operations and state persistence, a local PostgreSQL database or SQLite is used. For multi-staff communication, running a local RabbitMQ instance is highly recommended to support real-time streaming events.",
       docPage: "installation"
     },
     {
       id: "build-agent",
       category: "console",
-      title: "Building Your First AI Agent",
-      summary: "A step-by-step guide to configuring prompts, avatars, and skills for custom agents.",
-      content: "In the AI Collective Console, navigate to the 'Agents' tab and click 'New Agent'. Fill in the agent's name, role (such as Developer or Researcher), and system instructions. The system instructions dictate the agent's personality and goals. Choose an avatar icon and background color. Finally, assign specific skills (like Web Search or Google Sheets) that this agent can invoke during task execution. Click save to register the agent.",
-      docPage: "guide-first-agent",
+      title: "Building Your First AI Staff",
+      summary: "A step-by-step guide to configuring prompts, avatars, and skills for custom staff.",
+      content: "In the AI Collective Console, navigate to the 'Staff' page and click 'New Staff'. Fill in the staff member's name, role (such as Developer or Researcher), and system instructions. The system instructions dictate the staff member's personality and goals. Choose an avatar icon and background color. Finally, assign specific skills (like Web Search or Google Sheets) that this staff member can invoke during task execution. Click save to register the staff member.",
+      docPage: "guide-first-staff",
       isPopular: true
     },
     {
       id: "build-team",
       category: "console",
-      title: "Coordinating Multi-Agent Teams",
-      summary: "How to compose agents into teams and choose between Mesh and Sequential execution modes.",
-      content: "Teams are groups of agents configured to collaborate. When creating a team, you must select an execution mode. 'Mesh mode' allows any agent to message any other agent freely, which is ideal for brainstorming and research. 'Sequential mode' enforces a strict pipeline (e.g., Writer -> Editor -> Reviewer), where each agent passes its output to the next. You can customize the team composition and re-order agents at any time.",
-      docPage: "guide-build-team"
+      title: "Coordinating Multi-Staff Departments",
+      summary: "How to compose staff into departments and choose an execution mode (Sequential, Mesh, Ring, Supervisor, Tree, or Custom).",
+      content: "Departments are groups of staff configured to collaborate. When creating a department, you must select an execution mode. 'Mesh mode' allows any staff member to message any other staff member freely, which is ideal for brainstorming and research. 'Sequential mode' enforces a strict pipeline (e.g., Writer -> Editor -> Reviewer), where each staff member passes its output to the next. 'Ring', 'Supervisor', and 'Tree' modes cover round-robin hand-off, dynamic delegation, and hierarchical delegation respectively, and 'Custom' lets you draw your own routing graph. You can customize the department composition and re-order staff at any time.",
+      docPage: "guide-build-department"
     },
     {
       id: "monitor-tasks",
       category: "console",
       title: "Monitoring and Executing Tasks",
       summary: "Understanding task status lifecycles, and how to read the real-time execution graph.",
-      content: "Once a team is created, you can assign them a 'Task'. When a task is started, the execution graphs are rendered as interactive SVGs. You will see nodes (agents) glowing when they are active, and animated arrows (messages) flowing between them. You can pause, resume, or force-stop tasks at any time, or click on individual messages in the 'Conversations' tab to inspect raw prompts, tool calls, and LLM completions.",
+      content: "Once a department is created, you can assign them a 'Task'. When a task is started, the execution graphs are rendered as interactive SVGs. You will see nodes (staff) glowing when they are active, and animated arrows (messages) flowing between them. You can pause, resume, or force-stop tasks at any time, or click on individual messages in the 'Meetings' tab to inspect raw prompts, tool calls, and LLM completions.",
       docPage: "guide-run-task"
     },
     {
@@ -217,7 +217,7 @@ const ARTICLES_DATA: Record<string, Article[]> = {
       category: "api",
       title: "Connecting Custom Skills & APIs",
       summary: "Adding external tools, Google Sheets, Slack, and custom JavaScript scripts.",
-      content: "Skills represent actions your agents can take. You can add pre-built skills like Web Search or create custom HTTP tools. A custom HTTP skill lets an agent call any REST API. You specify the URL, request method, headers, and parameter schema. The agent will read the schema and construct payloads dynamically. You can also write custom JavaScript code snippets that execute in our sandboxed runtime for quick data transformation.",
+      content: "Skills represent actions your staff can take. You can add pre-built skills like Web Search or create custom HTTP tools. A custom HTTP skill lets a staff member call any REST API. You specify the URL, request method, headers, and parameter schema. The staff member will read the schema and construct payloads dynamically. You can also write custom JavaScript code snippets that execute in our sandboxed runtime for quick data transformation.",
       docPage: "guide-skills"
     },
     {
@@ -225,7 +225,7 @@ const ARTICLES_DATA: Record<string, Article[]> = {
       category: "api",
       title: "Requesting Rate Limit Increases",
       summary: "How to increase LLM request limits and tokens per minute.",
-      content: "If your workflow requires high-frequency processing or processes millions of tokens, you might hit the default model provider rate limits. You can request limits increases by navigating to 'Contact Sales' -> select 'Increase rate limits' option, specify the target engine (e.g. GPT-4o, Claude 3.5 Sonnet, Gemini 2.0) and the requested limit (e.g., 50 requests per minute or 200k tokens per minute), along with your business justification.",
+      content: "If your workflow requires high-frequency processing or processes millions of tokens, you might hit the default model provider rate limits. You can request limits increases by navigating to 'Contact Sales' -> select 'Increase rate limits' option, specify the target engine (e.g. GPT-4o, Claude Sonnet, Gemini) and the requested limit (e.g., 50 requests per minute or 200k tokens per minute), along with your business justification.",
       docPage: "configuration",
       isPopular: true
     },
@@ -242,7 +242,7 @@ const ARTICLES_DATA: Record<string, Article[]> = {
       category: "privacy",
       title: "Secure Execution Container Sandbox",
       summary: "How local, Docker, and Kubernetes sandbox environments execute untrusted scripts.",
-      content: "AI Collective features a secure execution engine called Sandbox. When an agent invokes a skill that requires running bash scripts or Python code, the execution is routed into a sandboxed environment. This prevents malicious code from accessing your host machine. Depending on your configuration, this sandbox can run inside local isolates, dedicated Docker containers, or dynamic Kubernetes pods managed by our provisioner service.",
+      content: "AI Collective features a secure execution engine called Sandbox. When a staff member invokes a skill that requires running bash scripts or Python code, the execution is routed into a sandboxed environment. This prevents malicious code from accessing your host machine. Depending on your configuration, this sandbox can run inside local isolates, dedicated Docker containers, or dynamic Kubernetes pods managed by our provisioner service.",
       docPage: "architecture",
       isPopular: true
     }
@@ -252,8 +252,8 @@ const ARTICLES_DATA: Record<string, Article[]> = {
       id: "what-is-collective",
       category: "getting-started",
       title: "AI Collective là gì?",
-      summary: "Tổng quan về nền tảng điều phối đa tác nhân mã nguồn mở.",
-      content: "AI Collective là nền tảng mã nguồn mở được thiết kế để điều phối các đội ngũ tác nhân AI chuyên biệt. Không giống như hệ thống đơn tác nhân truyền thống, AI Collective cho phép các tác nhân cộng tác, chia sẻ bộ nhớ và sử dụng các công cụ chuyên biệt để giải quyết các tác vụ phức tạp, gồm nhiều bước. Nền tảng của chúng tôi bao gồm phần cốt lõi hướng sự kiện dựa trên LangGraph và RabbitMQ, một thùng cát container bảo mật để chạy mã bash/python không tin cậy và một giao diện trực quan thời gian thực.",
+      summary: "Tổng quan về nền tảng điều phối đa nhân sự mã nguồn mở.",
+      content: "AI Collective là nền tảng mã nguồn mở được thiết kế để điều phối các phòng ban nhân sự AI chuyên biệt. Không giống như hệ thống đơn tác nhân truyền thống, AI Collective cho phép nhiều nhân sự cộng tác, chia sẻ bộ nhớ và sử dụng các công cụ chuyên biệt để giải quyết các tác vụ phức tạp, gồm nhiều bước. Nền tảng của chúng tôi bao gồm phần cốt lõi hướng sự kiện dựa trên LangGraph và RabbitMQ, một thùng cát container bảo mật để chạy mã bash/python không tin cậy và một giao diện trực quan thời gian thực.",
       docPage: "what-is",
       isPopular: true
     },
@@ -271,32 +271,32 @@ const ARTICLES_DATA: Record<string, Article[]> = {
       category: "getting-started",
       title: "Cài đặt Cục bộ & Yêu cầu",
       summary: "Yêu cầu hệ thống và hướng dẫn cài đặt Python và Node.js.",
-      content: "AI Collective có thể chạy trên Linux, macOS và Windows. Chúng tôi khuyên bạn nên sử dụng máy có RAM ít nhất 8GB và Python 3.11+. Giao diện frontend phụ thuộc vào Node.js 18+ và npm/yarn. Đối với hoạt động cơ sở dữ liệu và lưu trữ trạng thái, hệ thống sử dụng PostgreSQL hoặc SQLite. Đối với giao tiếp đa tác nhân, việc chạy một thực thể RabbitMQ cục bộ được khuyến khích mạnh mẽ để hỗ trợ các sự kiện phát trực tuyến thời gian thực.",
+      content: "AI Collective có thể chạy trên Linux, macOS và Windows. Chúng tôi khuyên bạn nên sử dụng máy có RAM ít nhất 8GB và Python 3.11+. Giao diện frontend phụ thuộc vào Node.js 18+ và npm/yarn. Đối với hoạt động cơ sở dữ liệu và lưu trữ trạng thái, hệ thống sử dụng PostgreSQL hoặc SQLite. Đối với giao tiếp đa nhân sự, việc chạy một thực thể RabbitMQ cục bộ được khuyến khích mạnh mẽ để hỗ trợ các sự kiện phát trực tuyến thời gian thực.",
       docPage: "installation"
     },
     {
       id: "build-agent",
       category: "console",
-      title: "Tạo Tác nhân AI đầu tiên",
-      summary: "Hướng dẫn từng bước cấu hình gợi ý (prompt), ảnh đại diện và kỹ năng cho tác nhân.",
-      content: "Trong bảng điều khiển AI Collective, hãy điều hướng đến tab 'Tác nhân' và nhấp vào 'Tác nhân mới'. Điền tên tác nhân, vai trò (chẳng hạn như Developer hoặc Researcher) và các hướng dẫn hệ thống. Hướng dẫn hệ thống xác định tính cách và mục tiêu của tác nhân. Chọn một biểu tượng ảnh đại diện và màu nền. Cuối cùng, gán các kỹ năng cụ thể (như Tìm kiếm web hoặc Google Sheets) mà tác nhân này có thể gọi trong khi thực hiện nhiệm vụ. Nhấp vào lưu để đăng ký tác nhân.",
-      docPage: "guide-first-agent",
+      title: "Tạo Nhân sự AI đầu tiên",
+      summary: "Hướng dẫn từng bước cấu hình gợi ý (prompt), ảnh đại diện và kỹ năng cho nhân sự.",
+      content: "Trong bảng điều khiển AI Collective, hãy điều hướng đến trang 'Nhân sự' và nhấp vào 'Nhân sự mới'. Điền tên nhân sự, vai trò (chẳng hạn như Developer hoặc Researcher) và các hướng dẫn hệ thống. Hướng dẫn hệ thống xác định tính cách và mục tiêu của nhân sự. Chọn một biểu tượng ảnh đại diện và màu nền. Cuối cùng, gán các kỹ năng cụ thể (như Tìm kiếm web hoặc Google Sheets) mà nhân sự này có thể gọi trong khi thực hiện nhiệm vụ. Nhấp vào lưu để đăng ký nhân sự.",
+      docPage: "guide-first-staff",
       isPopular: true
     },
     {
       id: "build-team",
       category: "console",
-      title: "Điều phối Nhóm Tác nhân",
-      summary: "Cách kết hợp các tác nhân thành nhóm và chọn giữa chế độ Mesh và Sequential.",
-      content: "Nhóm là tập hợp các tác nhân được cấu hình để cộng tác với nhau. Khi tạo nhóm, bạn phải chọn chế độ thực thi. 'Chế độ Mesh' cho phép bất kỳ tác nhân nào gửi tin nhắn cho tác nhân khác một cách tự do, rất lý tưởng cho việc động não và nghiên cứu. 'Chế độ Sequential' bắt buộc một quy trình nghiêm ngặt (ví dụ: Writer -> Editor -> Reviewer), nơi mỗi tác nhân chuyển kết quả của mình cho người tiếp theo. Bạn có thể tùy chỉnh thành phần nhóm bất cứ lúc nào.",
-      docPage: "guide-build-team"
+      title: "Điều phối Phòng ban Đa nhân sự",
+      summary: "Cách kết hợp nhân sự thành phòng ban và chọn chế độ thực thi (Sequential, Mesh, Ring, Supervisor, Tree hoặc Custom).",
+      content: "Phòng ban là tập hợp nhân sự được cấu hình để cộng tác với nhau. Khi tạo phòng ban, bạn phải chọn chế độ thực thi. 'Chế độ Mesh' cho phép bất kỳ nhân sự nào gửi tin nhắn cho nhân sự khác một cách tự do, rất lý tưởng cho việc động não và nghiên cứu. 'Chế độ Sequential' bắt buộc một quy trình nghiêm ngặt (ví dụ: Writer -> Editor -> Reviewer), nơi mỗi nhân sự chuyển kết quả của mình cho người tiếp theo. Các chế độ 'Ring', 'Supervisor' và 'Tree' lần lượt là chuyển tiếp vòng tròn, ủy quyền linh hoạt và phân cấp; 'Custom' cho phép bạn tự vẽ luồng định tuyến riêng. Bạn có thể tùy chỉnh thành phần phòng ban bất cứ lúc nào.",
+      docPage: "guide-build-department"
     },
     {
       id: "monitor-tasks",
       category: "console",
       title: "Theo dõi và Thực thi Nhiệm vụ",
       summary: "Tìm hiểu vòng đời trạng thái nhiệm vụ và cách xem biểu đồ thực thi thời gian thực.",
-      content: "Sau khi tạo nhóm, bạn có thể giao cho họ một 'Nhiệm vụ'. Khi một nhiệm vụ bắt đầu, biểu đồ thực thi được hiển thị dưới dạng SVG tương tác. Bạn sẽ thấy các nút (tác nhân) sáng lên khi hoạt động, và các mũi tên động (tin nhắn) chuyển động giữa chúng. Bạn có thể tạm dừng, tiếp tục hoặc bắt buộc dừng nhiệm vụ bất kỳ lúc nào, hoặc nhấp vào tin nhắn riêng lẻ trong tab 'Hội thoại' để kiểm tra kỹ lưỡng.",
+      content: "Sau khi tạo phòng ban, bạn có thể giao cho họ một 'Nhiệm vụ'. Khi một nhiệm vụ bắt đầu, biểu đồ thực thi được hiển thị dưới dạng SVG tương tác. Bạn sẽ thấy các nút (nhân sự) sáng lên khi hoạt động, và các mũi tên động (tin nhắn) chuyển động giữa chúng. Bạn có thể tạm dừng, tiếp tục hoặc bắt buộc dừng nhiệm vụ bất kỳ lúc nào, hoặc nhấp vào tin nhắn riêng lẻ trong tab 'Cuộc họp' để kiểm tra kỹ lưỡng.",
       docPage: "guide-run-task"
     },
     {
@@ -320,7 +320,7 @@ const ARTICLES_DATA: Record<string, Article[]> = {
       category: "api",
       title: "Kết nối Kỹ năng & API Tùy chỉnh",
       summary: "Thêm công cụ bên ngoài, Google Sheets, Slack, và các tập lệnh JavaScript tùy chỉnh.",
-      content: "Kỹ năng thể hiện các hành động mà tác nhân của bạn có thể thực hiện. Bạn có thể thêm các kỹ năng tích hợp sẵn như Tìm kiếm Web hoặc tạo các công cụ HTTP tùy chỉnh. Một kỹ năng HTTP tùy chỉnh cho phép tác nhân gọi bất kỳ REST API nào. Bạn xác định URL, phương thức yêu cầu, tiêu đề và schema tham số. Tác nhân sẽ tự động xây dựng payload dựa trên schema đó. Bạn cũng có thể viết JavaScript chạy trong môi trường thùng cát an toàn.",
+      content: "Kỹ năng thể hiện các hành động mà nhân sự của bạn có thể thực hiện. Bạn có thể thêm các kỹ năng tích hợp sẵn như Tìm kiếm Web hoặc tạo các công cụ HTTP tùy chỉnh. Một kỹ năng HTTP tùy chỉnh cho phép nhân sự gọi bất kỳ REST API nào. Bạn xác định URL, phương thức yêu cầu, tiêu đề và schema tham số. Nhân sự sẽ tự động xây dựng payload dựa trên schema đó. Bạn cũng có thể viết JavaScript chạy trong môi trường thùng cát an toàn.",
       docPage: "guide-skills"
     },
     {
@@ -328,7 +328,7 @@ const ARTICLES_DATA: Record<string, Article[]> = {
       category: "api",
       title: "Yêu cầu Tăng giới hạn Tỷ lệ (Rate Limits)",
       summary: "Cách yêu cầu nâng giới hạn yêu cầu LLM và token mỗi phút.",
-      content: "Nếu quy trình làm việc của bạn đòi hỏi tần suất xử lý cao hoặc xử lý hàng triệu token, bạn có thể chạm giới hạn mặc định của nhà cung cấp mô hình. Bạn có thể yêu cầu tăng giới hạn bằng cách truy cập 'Liên hệ Kinh doanh' -> chọn 'Tăng giới hạn tỷ lệ', chỉ định engine mô hình đích (ví dụ: GPT-4o, Claude 3.5 Sonnet, Gemini 2.0) và giới hạn mong muốn (ví dụ: 50 requests/phút hoặc 200k tokens/phút), cùng lý do sử dụng.",
+      content: "Nếu quy trình làm việc của bạn đòi hỏi tần suất xử lý cao hoặc xử lý hàng triệu token, bạn có thể chạm giới hạn mặc định của nhà cung cấp mô hình. Bạn có thể yêu cầu tăng giới hạn bằng cách truy cập 'Liên hệ Kinh doanh' -> chọn 'Tăng giới hạn tỷ lệ', chỉ định engine mô hình đích (ví dụ: GPT-4o, Claude Sonnet, Gemini) và giới hạn mong muốn (ví dụ: 50 requests/phút hoặc 200k tokens/phút), cùng lý do sử dụng.",
       docPage: "configuration",
       isPopular: true
     },
@@ -345,7 +345,7 @@ const ARTICLES_DATA: Record<string, Article[]> = {
       category: "privacy",
       title: "Thùng cát Container chạy mã an toàn",
       summary: "Cách môi trường thùng cát cục bộ, Docker, và Kubernetes chạy các mã lệnh không tin cậy.",
-      content: "AI Collective có một công cụ thực thi an toàn gọi là Sandbox (Thùng cát). Khi một tác nhân gọi kỹ năng yêu cầu chạy các kịch bản lệnh bash hoặc mã Python, việc thực thi được định tuyến vào một môi trường thùng cát biệt lập. Điều này ngăn mã độc truy cập vào máy chủ của bạn. Tùy thuộc vào cấu hình của bạn, thùng cát này có thể chạy bên trong các phân vùng cục bộ, container Docker chuyên dụng, hoặc các pod Kubernetes động.",
+      content: "AI Collective có một công cụ thực thi an toàn gọi là Sandbox (Thùng cát). Khi một nhân sự gọi kỹ năng yêu cầu chạy các kịch bản lệnh bash hoặc mã Python, việc thực thi được định tuyến vào một môi trường thùng cát biệt lập. Điều này ngăn mã độc truy cập vào máy chủ của bạn. Tùy thuộc vào cấu hình của bạn, thùng cát này có thể chạy bên trong các phân vùng cục bộ, container Docker chuyên dụng, hoặc các pod Kubernetes động.",
       docPage: "architecture",
       isPopular: true
     }

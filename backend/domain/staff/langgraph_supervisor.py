@@ -23,6 +23,7 @@ from backend.domain.staff.token_budget import apply_context_token_budget
 from backend.domain.staff._graph_runtime import (
     FANOUT_SYNTHESIS_GUIDANCE,
     MESH_FANOUT_MAX_CONCURRENT,
+    attach_subagent_toolkit,
     build_agent_tools,
     drain_human_guidance,
     ensure_working_memory,
@@ -408,6 +409,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             user_input_text = budget_result.text
 
             bound_tools = build_agent_tools(lead, conversation_id=conversation_id)
+            attach_subagent_toolkit(bound_tools, lead, llm=llm)
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
@@ -604,6 +606,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             user_input_text = budget_result.text
 
             bound_tools = build_agent_tools(worker, conversation_id=conversation_id)
+            attach_subagent_toolkit(bound_tools, worker, llm=llm)
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
@@ -800,6 +803,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         user_input_text = budget_result.text
 
         bound_tools = build_agent_tools(worker, conversation_id=conversation_id)
+        attach_subagent_toolkit(bound_tools, worker, llm=llm)
 
         return {
             "system": worker_system,

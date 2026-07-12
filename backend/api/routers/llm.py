@@ -47,9 +47,9 @@ def _require_conversation_access(task_service: TaskService, conversation_id: str
     try:
         task = task_service.get_task(conversation_id)
     except NotFoundError:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+        raise HTTPException(status_code=404, detail="Meeting not found")
     if not is_visible_to(owner_id, task.owner_id):
-        raise HTTPException(status_code=404, detail="Conversation not found")
+        raise HTTPException(status_code=404, detail="Meeting not found")
 
 
 class ChatRequest(BaseModel):
@@ -168,7 +168,7 @@ async def interject_staff_graph(
     if message_id is None:
         raise HTTPException(
             status_code=409,
-            detail="No active run for this conversation (it may have finished or been stopped)",
+            detail="No active run for this meeting (it may have finished or been stopped)",
         )
     return InterjectResponse(queued=True, message_id=message_id)
 
@@ -200,7 +200,7 @@ async def respond_staff_graph(
     if status == "no_run":
         raise HTTPException(
             status_code=409,
-            detail="No active run for this conversation (it may have finished or been stopped)",
+            detail="No active run for this meeting (it may have finished or been stopped)",
         )
     if status == "unknown_request":
         raise HTTPException(
@@ -228,7 +228,7 @@ async def pause_staff_graph(
     if not task_run_registry.signal_pause(req.conversation_id):
         raise HTTPException(
             status_code=409,
-            detail="No active run for this conversation (it may have finished or been stopped)",
+            detail="No active run for this meeting (it may have finished or been stopped)",
         )
     return {"paused": True}
 
@@ -245,7 +245,7 @@ async def resume_staff_graph(
     if not task_run_registry.signal_resume(req.conversation_id):
         raise HTTPException(
             status_code=409,
-            detail="No active run for this conversation (it may have finished or been stopped)",
+            detail="No active run for this meeting (it may have finished or been stopped)",
         )
     return {"resumed": True}
 

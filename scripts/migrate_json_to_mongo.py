@@ -91,13 +91,13 @@ def _report(col_name: str, filename: str, ins: int, upd: int, total: int) -> Non
 
 # ── Standard list-based collections ──────────────────────────────────────────
 COLLECTIONS = [
-    ("agents",       "agents.json",       "id"),
+    ("agents",       "staff.json",        "id"),
     ("skills",       "skills.json",       "id"),
-    ("teams",        "teams.json",        "id"),
-    ("workspaces",   "workspaces.json",   "id"),
+    ("teams",        "departments.json",  "id"),
+    ("workspaces",   "companies.json",    "id"),
     ("connections",  "connections.json",  "id"),
     ("tasks",        "tasks.json",        "id"),
-    ("conversations","conversations.json","id"),
+    ("conversations","meetings.json",     "id"),
     ("activity_feed","activity_feed.json","id"),
     ("sandbox_threads","sandbox_threads.json","thread_id"),
 ]

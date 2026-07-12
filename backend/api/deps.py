@@ -173,18 +173,18 @@ def _repos() -> Repos:
         companies = MongoCompanyRepository(db)
         connections = MongoConnectionRepository(db)
     else:
-        staff = JsonStaffRepository(_store("agents.json"))
+        staff = JsonStaffRepository(_store("staff.json"))
         skills = JsonSkillRepository(_store("skills.json"))
-        departments = JsonDepartmentRepository(_store("teams.json"))
+        departments = JsonDepartmentRepository(_store("departments.json"))
         tasks = JsonTaskRepository(_store("tasks.json"))
-        conversations = JsonMeetingRepository(_store("conversations.json"))
+        conversations = JsonMeetingRepository(_store("meetings.json"))
         analytics = JsonAnalyticsRepository(_store("analytics.json"))
         activity_feed = JsonActivityFeedRepository(_store("activity_feed.json"))
         graph_knowledge = JsonGraphKnowledgeRepository(
             _store("graph_knowledge.json"),
             _store("graph_knowledge_events.json"),
         )
-        companies = JsonCompanyRepository(_store("workspaces.json"))
+        companies = JsonCompanyRepository(_store("companies.json"))
         connections = JsonConnectionRepository(_store("connections.json"))
 
     # Optional Neo4j knowledge-graph backend (overrides the STORAGE_BACKEND repo
@@ -426,9 +426,9 @@ def seed_admin_user() -> None:
 # Order matters: staff/skills/departments are seeded before tasks so a seeded task's
 # referenced team and staff already exist in the live store.
 _DEFAULT_DATA_FILES = (
-    ("agents", "agents.json"),
+    ("agents", "staff.json"),
     ("skills", "skills.json"),
-    ("teams", "teams.json"),
+    ("teams", "departments.json"),
     ("tasks", "tasks.json"),
 )
 
