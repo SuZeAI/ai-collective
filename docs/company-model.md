@@ -8,14 +8,14 @@ how companies are created and controlled, and how a company's **type** tailors i
 
 ## 1. Two scopes
 
-The left rail switches the active scope. The choice is persisted in `localStorage.activeWorkspaceId`
-(sentinel `__overall__` = "All") and broadcast via the `activeWorkspaceChanged` event. Always switch with
-`setActiveWorkspaceId()` from `src/hooks/use-workspace-scope.ts`.
+The left rail switches the active scope. The choice is persisted in `localStorage.activeCompanyId`
+(sentinel `__overall__` = "All") and broadcast via the `activeCompanyChanged` event. Always switch with
+`setActiveCompanyId()` from `src/hooks/use-company-scope.ts`.
 
 | | **"All" (Overall)** | **Inside a company** |
 |---|---|---|
 | Purpose | Create, control & monitor **all** companies | Operate **one** company |
-| `useWorkspaceScope().isOverall` | `true` | `false` |
+| `useCompanyScope().isOverall` | `true` | `false` |
 | Creating tasks/projects/staff | ✗ (monitoring only) | ✓ |
 
 ### Nav visibility rule (`src/components/AppLayout.tsx`)
@@ -41,14 +41,14 @@ NAV_GROUPS.filter(g =>
 
 Routes are guarded to match (`src/App.tsx`): company-only pages use `WithCompanyLayout` (redirect to
 `/dashboard` when Overall); monitoring + company-management pages use `WithLayout` (reachable in both).
-`/office-builder` and `/workspaces` are intentionally reachable in "All".
+`/office-builder` and `/companies` are intentionally reachable in "All".
 
 ## 2. Creating & controlling companies (the "All" hub)
 
 - **AI Office Designer** — `/office-builder` (`src/pages/OfficeBuilder.tsx`). Describe a company in chat;
   the AI proposes departments/staff/skills; pick a **company type** and click **Create Company**.
-  `api.applyOfficePlan` materializes the workspace + teams + agents + skills and switches into it.
-- **Manage Companies** — `/workspaces` (`src/pages/Workspaces.tsx`). Manual CRUD, company type selector,
+  `api.applyOfficePlan` materializes the company + departments + staff + skills and switches into it.
+- **Manage Companies** — `/companies` (`src/pages/Companies.tsx`). Manual CRUD, company type selector,
   messaging platform hooks, and "import settings from another company" (clone). The left-rail **+** opens this.
 - **Company Overview** — `/dashboard` in "All" shows aggregate metrics + a **Companies grid** (one card per
   company with task/staff counts and type); click a card to switch into that company.
@@ -77,12 +77,12 @@ Definitions (icon, accent, suggested nav keys) live in `src/lib/company-types.ts
 The type flows through, end to end (keep in sync when changing):
 
 ```
-UI  Workspace.type / OfficePlan.company_type   src/lib/api.ts
-API schema field `type`  ⇄  domain `company_type`   backend/api/schemas/workspace.py
+UI  Company.type / OfficePlan.company_type   src/lib/api.ts
+API schema field `type`  ⇄  domain `company_type`   backend/api/schemas/company.py
                                                      backend/domain/models.py
-set in routers:   backend/api/routers/workspaces.py (upsert), office_builder.py (apply)
-stored (JSON key `type`):  infrastructure/repositories/json_files/workspaces.py
-                           infrastructure/repositories/mongo_repositories/workspaces.py
+set in routers:   backend/api/routers/companies.py (upsert), office_builder.py (apply)
+stored (JSON key `type`):  infrastructure/repositories/json_files/companies.py
+                           infrastructure/repositories/mongo_repositories/companies.py
 ```
 
 ## 4. Naming map (option renames)
@@ -109,10 +109,10 @@ monitoring=System Monitoring are unchanged.) All four locales (en/vi/zh/ja) are 
 
 ## 5. Where to look
 
-- Scope hook / switch helper: `src/hooks/use-workspace-scope.ts`
+- Scope hook / switch helper: `src/hooks/use-company-scope.ts`
 - Nav + suggested stars + type badge: `src/components/AppLayout.tsx`
 - Company types: `src/lib/company-types.ts`
-- Create (AI): `src/pages/OfficeBuilder.tsx` · Control: `src/pages/Workspaces.tsx` · Overview: `src/pages/Dashboard.tsx`
+- Create (AI): `src/pages/OfficeBuilder.tsx` · Control: `src/pages/Companies.tsx` · Overview: `src/pages/Dashboard.tsx`
 - Route guards: `src/App.tsx`
-- Backend `company_type`: `backend/domain/models.py`, `backend/api/schemas/workspace.py`,
-  `backend/api/routers/{workspaces,office_builder}.py`, `backend/infrastructure/repositories/*/workspaces.py`
+- Backend `company_type`: `backend/domain/models.py`, `backend/api/schemas/company.py`,
+  `backend/api/routers/{companies,office_builder}.py`, `backend/infrastructure/repositories/*/companies.py`

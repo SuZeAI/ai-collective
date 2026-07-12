@@ -25,7 +25,7 @@ const LATEST_ARTICLES = [
   { date: "Jun 2026", title: "Building a Financial Analyst Ring Topology with AI Collective", desc: "A practical walkthrough of setting up a multi-round debate ring to surface consensus market signals.", tag: "Tutorial" },
   { date: "May 2026", title: "Kubernetes Sandbox Provisioner: Deep Dive", desc: "How to configure the sandbox provisioner for air-gapped enterprise Kubernetes clusters.", tag: "Engineering" },
   { date: "Apr 2026", title: "LLM-Based Knowledge Graph Extraction: When to Use It", desc: "Comparing static spaCy extraction vs. LLM-based extraction for different complexity thresholds.", tag: "Research" },
-  { date: "Apr 2026", title: "Concurrent Agent Communication with max_concurrent", desc: "How the new max_concurrent parameter enables parallel hub-to-agent queries in the Mesh orchestrator.", tag: "Feature" },
+  { date: "Apr 2026", title: "Concurrent Staff Communication with max_concurrent", desc: "How the new max_concurrent parameter enables parallel hub-to-staff queries in the Mesh orchestrator.", tag: "Feature" },
 ];
 
 export default function Resources() {

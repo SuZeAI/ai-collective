@@ -68,17 +68,17 @@ backend/
 - `api/deps.py` is the composition root wiring concrete adapters into services.
 - Domain errors (`NotFoundError`, `ValidationError`) → HTTP 404/422 via handlers in `api/main.py`.
 
-**`backend/api/settings.py` is the single source of truth for config.** Layering: code defaults < `config.yml` < `.env` < OS environment. Settings are nested by section (`settings.llm.provider`, `settings.agent.context_token_limit`, `settings.security.allow_private_http`), with flat `@property` delegates kept for older call-sites. Per-tool credentials are *not* here — they live in each skill's `config` dict (DB-stored, edited via UI).
+**`backend/api/settings.py` is the single source of truth for config.** Layering: code defaults < `config.yml` < `.env` < OS environment. Settings are nested by section (`settings.llm.provider`, `settings.staff.context_token_limit`, `settings.security.allow_private_http`), with flat `@property` delegates kept for older call-sites. Env var names themselves were kept for backward compatibility (e.g. `AGENT_CONTEXT_TOKEN_LIMIT` still backs `settings.staff.context_token_limit`) even where the Python identifiers were renamed. Per-tool credentials are *not* here — they live in each skill's `config` dict (DB-stored, edited via UI).
 
-### Terminology unification (UI labels only — code identifiers are unchanged)
+### Terminology unification (rename reached code identifiers too, not just UI text)
 
-The user-facing vocabulary was renamed: **Agent → Staff, Team → Department, Workspace → Company, Conversation → Meeting, Marketplace → Recruiting**. This rename is **display-text only** (`src/locales/index.ts` nav labels, e.g. `agents: "Staff"`, `teams: "Departments"`, `marketplace: "Recruiting"`) — it was *not* carried through to code identifiers. File/route/module names still use the original terms everywhere: `backend/domain/agent/` (topologies live here, not `domain/staff/` — that directory doesn't exist), `backend/api/routers/agents.py`, `teams.py`, `workspaces.py`, `conversations.py`, `marketplace.py`; frontend `AgentBuilder.tsx`, `TeamBuilder.tsx`, `Workspaces.tsx`, `Conversations.tsx`, `Marketplace.tsx`. Settings are under `settings.agent`, never `settings.staff`. When editing code, use the old (actual) names; only user-visible strings should say Staff/Department/Company/Meeting/Recruiting. `docs/company-model.md` has the label mapping and explains the "All"/company scope split.
+The user-facing vocabulary was renamed: **Agent → Staff, Team → Department, Workspace → Company, Conversation → Meeting, Marketplace → Recruiting**. Unlike an earlier pass of this file claimed, this rename was **not** display-text-only — it was carried through to file names, routes, and most Python/TypeScript identifiers. Current (verified) names: `backend/domain/staff/` (topologies live here; `backend/domain/agent/` does not exist), `backend/api/routers/staff.py`, `departments.py`, `companies.py`, `meetings.py`, `recruiting.py` (not `agents.py`/`teams.py`/`workspaces.py`/`conversations.py`/`marketplace.py`); frontend `StaffBuilder.tsx`, `DepartmentBuilder.tsx`, `Companies.tsx`, `Meetings.tsx`, `Recruiting.tsx` (not `AgentBuilder.tsx`/`TeamBuilder.tsx`/`Workspaces.tsx`/`Conversations.tsx`/`Marketplace.tsx`). Settings are under `settings.staff` (`StaffSettings`), not `settings.agent`. The domain model is `class Company` (`backend/domain/models.py`), not `Workspace`. When editing code, use these current names — only a few things still use the old vocabulary: env var strings (see above), the LangGraph "subagent" concept (`subagents.py`, `SUBAGENT_MAX_*`, distinct from the persistent Staff entity), and SSE event-type wire identifiers (e.g. `agent_start`, `subagent_complete` in `docs/STREAMING_GUIDE.md`). `docs/company-model.md` has the label mapping and explains the "All"/company scope split.
 
-`PlatformHook` (embedded in `Workspace`, used by `backend/api/routers/webhook.py`) and `ThirdPartyConnection` (own repo, used by `backend/api/routers/connections.py`) are still two separate models — they have not been merged into a single `Connection` model.
+`PlatformHook` and `ThirdPartyConnection` have been merged into a single `Connection` model (`backend/domain/models.py`, `kind="inbound_webhook"` for what was `PlatformHook`, `kind="outbound"` for what was `ThirdPartyConnection`), used by both `backend/api/routers/webhook.py` and `connections.py`.
 
-### Agent execution (LangGraph)
+### Staff execution (LangGraph)
 
-Five topologies in `backend/domain/agent/`, selected via `api/deps.get_agent_graph_service(mode=...)`:
+Five topologies in `backend/domain/staff/`, selected via `api/deps.get_staff_graph_service(mode=...)`:
 
 | Mode | File |
 |------|------|
@@ -110,16 +110,16 @@ src/
 ├── pages/       # One file per route (Dashboard, StaffBuilder, DepartmentBuilder, TaskManager, Recruiting, ...)
 ├── components/  # Reusable UI (Radix UI-based), incl. AppLayout.tsx (nav)
 ├── contexts/    # AuthContext, LanguageContext (i18n), RunEngineContext (task streaming/run-state)
-├── hooks/       # use-workspace-scope.ts and other custom hooks
+├── hooks/       # use-company-scope.ts and other custom hooks
 ├── lib/         # api.ts (API client), company-types.ts, staff-role-ui.ts, platforms.ts
 └── locales/     # en/vi/zh/ja
 ```
 
-Two navigation scopes, switched via `setActiveWorkspaceId()` (`src/hooks/use-workspace-scope.ts`), persisted in `localStorage.activeWorkspaceId` (`__overall__` sentinel = "All"):
-- **"All" (Overall)** — create/monitor all companies; `useWorkspaceScope().isOverall === true`.
+Two navigation scopes, switched via `setActiveCompanyId()` (`src/hooks/use-company-scope.ts`), persisted in `localStorage.activeCompanyId` (`__overall__` sentinel = "All", broadcast via the `activeCompanyChanged` event):
+- **"All" (Overall)** — create/monitor all companies; `useCompanyScope().isOverall === true`.
 - **Inside a company** — operate one company; create tasks/projects/staff here.
 
-`AppLayout.tsx`'s `NAV_GROUPS` declares `visibleIn: "overall" | "company" | "both"` per group; `src/App.tsx` guards routes to match (`WithCompanyLayout` vs `WithLayout`). See `docs/company-model.md` for the full nav map, company types (`software`/`marketing`/`research`/`general`), and where `company_type` is threaded end-to-end (UI → `src/lib/api.ts` → `backend/api/schemas/workspace.py` → `backend/domain/models.py` → repositories).
+`AppLayout.tsx`'s `NAV_GROUPS` declares `visibleIn: "overall" | "company" | "both"` per group; `src/App.tsx` guards routes to match (`WithCompanyLayout` vs `WithLayout`). See `docs/company-model.md` for the full nav map, company types (`software`/`marketing`/`research`/`general`), and where `company_type` is threaded end-to-end (UI → `src/lib/api.ts` → `backend/api/schemas/company.py` → `backend/domain/models.py` → repositories).
 
 `RunEngineContext` lives above the router so in-flight task runs (streaming, state) survive navigation — `TaskManager`/`VirtualOffice` are just views over it, not owners of run state.
 

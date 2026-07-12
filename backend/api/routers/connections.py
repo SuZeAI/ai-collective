@@ -31,6 +31,7 @@ def list_connections(
     company_id: str | None = None,
     kind: str | None = None,
     service: ConnectionService = Depends(get_connection_service),
+    _: object = Depends(require_admin),
 ):
     return [
         ConnectionSchema.from_domain(c)

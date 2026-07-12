@@ -19,13 +19,13 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
 }
 
 const USE_CASES = [
-  { icon: Bot, title: "AI Agents", desc: "Build autonomous agent workforces that browse the web, write code, analyze data, and communicate in natural language — all orchestrated by the platform.", tags: ["Multi-Agent Mesh", "Subagent Delegation", "Tool Integration"] },
-  { icon: Code2, title: "Data Pipelines", desc: "Automate complex data extraction, transformation, and loading workflows using specialized agents chained in Sequential or Supervisor topologies.", tags: ["Sequential Topology", "SSE Streaming", "RabbitMQ Backend"] },
-  { icon: FlaskConical, title: "Code Review", desc: "Deploy code review agents that run static analysis, execute sandboxed tests, and collaborate via ring-debate to surface critical vulnerabilities.", tags: ["Sandbox Execution", "Ring Topology", "Docker / K8s"] },
+  { icon: Bot, title: "AI Staff", desc: "Build autonomous staff workforces that browse the web, write code, analyze data, and communicate in natural language — all orchestrated by the platform.", tags: ["Multi-Staff Mesh", "Subagent Delegation", "Tool Integration"] },
+  { icon: Code2, title: "Data Pipelines", desc: "Automate complex data extraction, transformation, and loading workflows using specialized staff chained in Sequential or Supervisor topologies.", tags: ["Sequential Topology", "SSE Streaming", "RabbitMQ Backend"] },
+  { icon: FlaskConical, title: "Code Review", desc: "Deploy code review staff that run static analysis, execute sandboxed tests, and collaborate via ring-debate to surface critical vulnerabilities.", tags: ["Sandbox Execution", "Ring Topology", "Docker / K8s"] },
 ];
 
 const INDUSTRIES = [
-  { icon: Banknote, name: "FinTech", desc: "Multi-agent analyst workforces for real-time market monitoring, anomaly detection, and report generation." },
+  { icon: Banknote, name: "FinTech", desc: "Multi-staff analyst workforces for real-time market monitoring, anomaly detection, and report generation." },
   { icon: Scale, name: "Legal", desc: "Automated document analysis, contract comparison, and regulatory compliance checking at scale." },
   { icon: Stethoscope, name: "Healthcare", desc: "Orchestrate clinical note processing, research synthesis, and patient triage workflows securely." },
 ];
@@ -95,7 +95,7 @@ export default function Solutions() {
         </FadeIn>
         <div className="grid md:grid-cols-2 gap-6">
           {[
-            { icon: Bot, label: "Startups", desc: "Get to market faster with pre-built agent topologies and open-source self-hosting. Zero infrastructure cost to prototype.", link: "/dashboard", cta: m.common.startBuilding },
+            { icon: Bot, label: "Startups", desc: "Get to market faster with pre-built staff topologies and open-source self-hosting. Zero infrastructure cost to prototype.", link: "/dashboard", cta: m.common.startBuilding },
             { icon: Building2, label: "Enterprise", desc: "Scale with dedicated RabbitMQ clusters, custom SLA agreements, custom integrations, and 24/7 engineering support.", link: "/contact-sales", cta: m.common.contactSales },
           ].map((cs, i) => (
             <FadeIn key={cs.label} delay={0.05 * i}>

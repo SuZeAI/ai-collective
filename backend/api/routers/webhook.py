@@ -69,7 +69,7 @@ async def _process_message(
                 or (workspace.department_ids[0] if workspace.department_ids else None)
             )
             if not department_id:
-                await processor.send_response(hook.config, chat_id, "⚠️ No department configured for this workspace.")
+                await processor.send_response(hook.config, chat_id, "⚠️ No department configured for this company.")
                 return
             department = department_service.get_department(department_id)
             staff_ids = department.staff

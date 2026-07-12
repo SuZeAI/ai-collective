@@ -7,8 +7,8 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { API_DOCS_URL } from "@/lib/api";
 
 const MODELS = [
-  { key: "gemini-2.0-flash", color: "hsl(220 80% 55%)", desc: "Default speed engine, optimized for entity extraction and real-time knowledge graphs." },
-  { key: "claude-3-5-sonnet", color: "hsl(25 80% 55%)", desc: "Premier logic engine for multi-agent mesh coordinator and advanced code generation." },
+  { key: "gemini-3-flash-preview", color: "hsl(220 80% 55%)", desc: "Default speed engine, optimized for entity extraction and real-time knowledge graphs." },
+  { key: "claude-sonnet-4", color: "hsl(25 80% 55%)", desc: "Premier logic engine for multi-staff mesh coordinator and advanced code generation." },
   { key: "gpt-4o", color: "hsl(150 60% 45%)", desc: "Highly reliable engine for strict JSON schema enforcement and tool binding." },
   { key: "qwen3.5-397B", color: "hsl(280 60% 55%)", desc: "High-parameter open-weight engine for self-hosted, air-gapped secure clusters." },
 ];
@@ -17,12 +17,12 @@ const MODEL_NAMES = ["Google Gemini", "Anthropic Claude", "OpenAI GPT-4o", "Qwen
 
 const FEATURE_ICONS = [Network, Brain, Shield, Zap, Code2, Bot];
 const FEATURE_DATA = [
-  { name: "Multi-Agent Topologies", desc: "Sequential, Ring, Mesh, and Supervisor orchestration patterns for every use case." },
-  { name: "Knowledge Graph Memory", desc: "Dynamically extract conversation context via NLP (spaCy) or LLMs into a queryable semantic graph." },
+  { name: "Multi-Staff Topologies", desc: "Sequential, Ring, Mesh, Supervisor, and Tree orchestration patterns for every use case." },
+  { name: "Knowledge Graph Memory", desc: "Dynamically extract meeting context via NLP (spaCy) or LLMs into a queryable semantic graph." },
   { name: "Secure Sandbox", desc: "Safely execute Python and Bash inside isolated Local, Docker, or Kubernetes sandbox environments." },
   { name: "Real-time SSE Streaming", desc: "Follow execution step-by-step with transparent agent_start, llm_request, and subagent_complete events." },
   { name: "50+ Skill Toolkits", desc: "Google Company, Playwright, social media, search, and productivity tools ready out of the box." },
-  { name: "Human-in-the-Loop", desc: "Intervene directly in running agent discussions to steer agents or inject manual inputs." },
+  { name: "Human-in-the-Loop", desc: "Intervene directly in running staff discussions to steer staff or inject manual inputs." },
 ];
 
 function FadeIn({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {

@@ -20,10 +20,10 @@ router = APIRouter(prefix="/departments", tags=["departments"])
 
 
 def _activate_department_staff(staff_ids: list[str], staff_service: StaffService) -> None:
+    by_id = {s.id: s for s in staff_service.list_staff()}
     for staff_id in staff_ids:
-        try:
-            staff = staff_service.get_staff(staff_id)
-        except Exception:
+        staff = by_id.get(staff_id)
+        if staff is None:
             continue
         if staff.status != StaffStatus.active:
             staff_service.upsert_staff(replace(staff, status=StaffStatus.active))
@@ -33,12 +33,8 @@ def _seed_department_kickoff_messages(department: Department, staff_service: Sta
     if not department.staff:
         return
 
-    roster = []
-    for staff_id in department.staff:
-        try:
-            roster.append(staff_service.get_staff(staff_id))
-        except Exception:
-            continue
+    by_id = {s.id: s for s in staff_service.list_staff()}
+    roster = [by_id[staff_id] for staff_id in department.staff if staff_id in by_id]
     if not roster:
         return
 
