@@ -281,7 +281,7 @@ def record_turn_in_memory(
         from backend.infrastructure import working_memory_store
 
         working_memory_store.record_note(
-            conversation_id, staff_member=staff_name, content=content, kind=kind, turn=turn,
+            conversation_id, staff=staff_name, content=content, kind=kind, turn=turn,
         )
     except Exception:  # noqa: BLE001
         logger.exception("Failed to record turn in working memory for %s", conversation_id)
@@ -295,7 +295,7 @@ def record_guidance_in_memory(conversation_id: str | None, guidance: str) -> Non
         from backend.infrastructure import working_memory_store
 
         working_memory_store.record_note(
-            conversation_id, staff_member="user", content=guidance, kind="guidance", pinned=True,
+            conversation_id, staff="user", content=guidance, kind="guidance", pinned=True,
         )
     except Exception:  # noqa: BLE001
         logger.exception("Failed to record guidance in working memory for %s", conversation_id)

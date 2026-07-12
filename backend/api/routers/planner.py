@@ -169,7 +169,7 @@ def planner_commit(
             id=f"task_{uuid4().hex}",
             title=draft.title,
             description=draft.description,
-            department_id=req.teamId,
+            department_id=req.departmentId,
             status=TaskStatus.pending,
             progress=0,
             assigned_staff=[],

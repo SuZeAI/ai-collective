@@ -59,7 +59,7 @@ def upsert_project(
         name=req.name,
         description=req.description,
         lead_id=req.leadId,
-        planner_staff_id=req.plannerAgentId,
+        planner_staff_id=req.plannerStaffId,
         planner_system_prompt=req.plannerSystemPrompt,
         # Counter is server-owned; preserve it across edits.
         issue_counter=existing.issue_counter if existing else 0,
