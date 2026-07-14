@@ -62,11 +62,14 @@ openssl rand -hex 32
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LLM_PROVIDER` | `google` | `google` \| `anthropic` \| `openai` \| open-weight |
+| `LLM_PROVIDER` | `google` | `google` \| `anthropic` \| `openai` \| `open_weight` \| `kimi` \| `deepseek` \| `glm` |
 | `LLM_MODEL` | — | Model id (provider default if unset) |
 | `LLM_API_BASE` | — | Custom base URL |
 | `GOOGLE_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | — | Provider keys. May list **several keys** comma-separated to enable rotation (plural `*_API_KEYS` aliases also accepted). |
 | `OPEN_WEIGHT_API_KEY` (alias `OPENROUTER_API_KEY`) | — | Open-weight / [openrouter.ai](https://openrouter.ai) key (≠ the 9Router gateway) |
+| `KIMI_API_KEY` (alias `MOONSHOT_API_KEY`) | — | Moonshot Kimi key (`kimi-k2-*`) |
+| `DEEPSEEK_API_KEY` | — | DeepSeek key (`deepseek-chat` / `deepseek-reasoner`, OpenAI-compatible API) |
+| `GLM_API_KEY` (aliases `ZHIPU_API_KEY`, `ZHIPUAI_API_KEY`) | — | Zhipu GLM key |
 
 ### Key rotation & failover
 
@@ -121,6 +124,9 @@ Cross-cutting behaviours layered on the `create_agent` path. See
 | `LLM_LTM_MIDDLEWARE_ENABLED` | `false` | Recall long-term memory before model, persist after |
 | `LLM_TOOL_CACHE_ENABLED` | `false` | Serve identical idempotent tool calls from cache |
 | `LLM_TOOL_CACHE_DENY_TOOLS` | — | Comma-separated tools to never cache |
+| `LLM_PROMPT_CACHE_ENABLED` | `false` | Anthropic prompt caching — marks system prompt/tools/last message as cacheable (`cache_control: ephemeral`). No-op on non-Anthropic providers. |
+| `LLM_PROMPT_CACHE_TTL` | `5m` | `5m` \| `1h` cache TTL |
+| `LLM_PROMPT_CACHE_MIN_MESSAGES` | `0` | Minimum message count before caching kicks in |
 | `LLM_RUN_TOKEN_BUDGET` | `0` | Soft-stop a run past this many tokens (0 = off) |
 | `LLM_PII_REDACTION_ENABLED` | `false` | Redact emails/cards/secrets from tool results |
 | `LLM_GUARDRAIL_DENY_TOOLS` / `LLM_GUARDRAIL_DENY_PATTERNS` | — | Block tools by name / arg regex |

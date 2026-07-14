@@ -187,6 +187,17 @@ class LLMSettings(BaseSettings):
     guardrail_deny_patterns: str | None = Field(
         default=None, validation_alias=_alias("LLM_GUARDRAIL_DENY_PATTERNS")
     )
+    # Anthropic prompt caching — marks the system prompt/tools/last-message
+    # prefix as cacheable so repeat calls (agent loops, subagent fan-out,
+    # multi-turn meetings) reuse cached input tokens instead of paying full
+    # price. No-op on non-Anthropic providers. Off by default.
+    prompt_cache_enabled: bool = Field(
+        default=False, validation_alias=_alias("LLM_PROMPT_CACHE_ENABLED")
+    )
+    prompt_cache_ttl: str = Field(default="5m", validation_alias=_alias("LLM_PROMPT_CACHE_TTL"))
+    prompt_cache_min_messages: int = Field(
+        default=0, validation_alias=_alias("LLM_PROMPT_CACHE_MIN_MESSAGES")
+    )
 
     def fallback_model_list(self) -> list[str]:
         raw = self.fallback_models or ""
