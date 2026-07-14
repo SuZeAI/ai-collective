@@ -26,5 +26,5 @@ class PlannerCommitRequest(BaseModel):
     projectId: str
     epicId: str | None = None
     sprintId: str | None = None
-    teamId: str = ""
+    departmentId: str = ""
     issues: list[DraftIssue] = Field(default_factory=list)

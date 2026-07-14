@@ -130,7 +130,10 @@ def upsert_task(
             detail="Only the default (admin) account can edit or run shared default items",
         )
 
-    next_status = TaskStatus(req.status)
+    try:
+        next_status = TaskStatus(req.status)
+    except ValueError:
+        raise HTTPException(status_code=422, detail=f"Invalid status '{req.status}'")
     now = datetime.now(timezone.utc).replace(microsecond=0)
     progress = req.progress
     start_time = _parse_iso_datetime(req.startTime)
@@ -215,10 +218,10 @@ def upsert_task(
         id=task_id,
         title=req.title,
         description=req.description,
-        department_id=req.teamId,
+        department_id=req.departmentId,
         status=next_status,
         progress=progress,
-        assigned_staff=list(req.assignedAgents),
+        assigned_staff=list(req.assignedStaff),
         start_time=start_time,
         end_time=end_time,
         owner_id=previous_task.owner_id if previous_task else owner_id,
