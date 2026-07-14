@@ -290,8 +290,8 @@ class BirdXToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.auth_token = (auth_token or settings.tools.auth_token).strip()
-        self.ct0 = (ct0 or settings.tools.ct0).strip()
+        self.auth_token = (auth_token or "").strip()
+        self.ct0 = (ct0 or "").strip()
         configured_path = (bird_search_mjs or settings.tools.bird_search_mjs).strip()
         self.bird_search_mjs = Path(configured_path) if configured_path else _default_bird_search_mjs()
 

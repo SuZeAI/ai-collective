@@ -9,7 +9,6 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
-from backend.api.settings import settings
 
 TELEGRAM_API_BASE = "https://api.telegram.org/bot{token}/{method}"
 
@@ -37,14 +36,12 @@ class TelegramMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.bot_token = bot_token or settings.tools.telegram_bot_token
-        self.default_chat_id = default_chat_id or settings.tools.telegram_chat_id
+        self.bot_token = bot_token
+        self.default_chat_id = default_chat_id
 
     def _token(self) -> str:
         if not self.bot_token:
-            raise ValueError(
-                "Telegram bot token required. Set TELEGRAM_BOT_TOKEN or configure bot_token."
-            )
+            raise ValueError("Telegram bot token required. Configure bot_token.")
         return self.bot_token
 
     @tool(parse_docstring=True)

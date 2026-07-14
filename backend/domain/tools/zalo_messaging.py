@@ -8,7 +8,6 @@ from urllib import error, parse, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-from backend.api.settings import settings
 
 ZALO_API_BASE = "https://openapi.zalo.me/v2.0/oa"
 
@@ -53,13 +52,11 @@ class ZaloMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.access_token = access_token or settings.tools.zalo_oa_access_token
+        self.access_token = access_token
 
     def _token(self) -> str:
         if not self.access_token:
-            raise ValueError(
-                "Zalo OA access token required. Set ZALO_OA_ACCESS_TOKEN or configure access_token."
-            )
+            raise ValueError("Zalo OA access token required. Configure access_token.")
         return self.access_token
 
     @tool(parse_docstring=True)

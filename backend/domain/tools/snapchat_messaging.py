@@ -9,7 +9,6 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
-from backend.api.settings import settings
 
 SNAPCHAT_ADS_API_BASE = "https://adsapi.snapchat.com/v1"
 
@@ -44,14 +43,12 @@ class SnapchatMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.access_token = access_token or settings.tools.snapchat_access_token
-        self.ad_account_id = ad_account_id or settings.tools.snapchat_ad_account_id
+        self.access_token = access_token
+        self.ad_account_id = ad_account_id
 
     def _token(self) -> str:
         if not self.access_token:
-            raise ValueError(
-                "Snapchat access token required. Set SNAPCHAT_ACCESS_TOKEN."
-            )
+            raise ValueError("Snapchat access token required. Configure access_token.")
         return self.access_token
 
     @tool(parse_docstring=True)
@@ -83,9 +80,7 @@ class SnapchatMessagingToolkit(BaseToolkit):
         """
         target = ad_account_id or self.ad_account_id
         if not target:
-            raise ValueError(
-                "ad_account_id is required. Set SNAPCHAT_AD_ACCOUNT_ID."
-            )
+            raise ValueError("ad_account_id is required. Configure ad_account_id.")
         return await asyncio.to_thread(
             _snap_request, "GET", f"/adaccounts/{target}/campaigns", self._token()
         )
@@ -124,7 +119,7 @@ class SnapchatMessagingToolkit(BaseToolkit):
         """
         target = ad_account_id or self.ad_account_id
         if not target:
-            raise ValueError("ad_account_id is required. Set SNAPCHAT_AD_ACCOUNT_ID.")
+            raise ValueError("ad_account_id is required. Configure ad_account_id.")
         return await asyncio.to_thread(
             _snap_request, "GET", f"/adaccounts/{target}/creatives", self._token()
         )

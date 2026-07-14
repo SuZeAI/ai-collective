@@ -8,7 +8,6 @@ from urllib import error, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-from backend.api.settings import settings
 
 DISCORD_API_BASE = "https://discord.com/api/v10"
 
@@ -67,9 +66,9 @@ class DiscordMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.bot_token = bot_token or settings.tools.discord_bot_token
-        self.webhook_url = webhook_url or settings.tools.discord_webhook_url
-        self.default_channel_id = default_channel_id or settings.tools.discord_channel_id
+        self.bot_token = bot_token
+        self.webhook_url = webhook_url
+        self.default_channel_id = default_channel_id
 
     @tool(parse_docstring=True)
     async def discord_send_message(
@@ -87,7 +86,7 @@ class DiscordMessagingToolkit(BaseToolkit):
         if not target:
             raise ValueError("channel_id is required.")
         if not self.bot_token:
-            raise ValueError("Discord bot token required. Set DISCORD_BOT_TOKEN.")
+            raise ValueError("Discord bot token required. Configure bot_token.")
         data = {"content": content}
         return await asyncio.to_thread(
             _discord_request, "POST", f"/channels/{target}/messages", self.bot_token, data
@@ -105,11 +104,11 @@ class DiscordMessagingToolkit(BaseToolkit):
         Args:
             content: Message text to send.
             username: Override display name for this webhook message.
-            webhook_url: Webhook URL override. Uses default DISCORD_WEBHOOK_URL if not provided.
+            webhook_url: Webhook URL override. Uses the configured default if not provided.
         """
         target_url = webhook_url or self.webhook_url
         if not target_url:
-            raise ValueError("Discord webhook URL required. Set DISCORD_WEBHOOK_URL.")
+            raise ValueError("Discord webhook URL required. Configure webhook_url.")
         data: Dict[str, Any] = {"content": content}
         if username:
             data["username"] = username
@@ -131,7 +130,7 @@ class DiscordMessagingToolkit(BaseToolkit):
         if not target:
             raise ValueError("channel_id is required.")
         if not self.bot_token:
-            raise ValueError("Discord bot token required. Set DISCORD_BOT_TOKEN.")
+            raise ValueError("Discord bot token required. Configure bot_token.")
         path = f"/channels/{target}/messages?limit={min(max(1, limit), 100)}"
         return await asyncio.to_thread(_discord_request, "GET", path, self.bot_token)
 
@@ -155,7 +154,7 @@ class DiscordMessagingToolkit(BaseToolkit):
         if not target:
             raise ValueError("channel_id is required.")
         if not self.bot_token:
-            raise ValueError("Discord bot token required. Set DISCORD_BOT_TOKEN.")
+            raise ValueError("Discord bot token required. Configure bot_token.")
         data = {"embeds": [{"title": title, "description": description, "color": color}]}
         return await asyncio.to_thread(
             _discord_request, "POST", f"/channels/{target}/messages", self.bot_token, data
@@ -172,7 +171,7 @@ class DiscordMessagingToolkit(BaseToolkit):
             guild_id: Discord server (guild) ID.
         """
         if not self.bot_token:
-            raise ValueError("Discord bot token required. Set DISCORD_BOT_TOKEN.")
+            raise ValueError("Discord bot token required. Configure bot_token.")
         return await asyncio.to_thread(
             _discord_request, "GET", f"/guilds/{guild_id}/channels", self.bot_token
         )

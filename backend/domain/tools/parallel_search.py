@@ -9,7 +9,6 @@ from urllib.parse import urlparse
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-from backend.api.settings import settings
 
 try:
     import requests as _requests
@@ -181,7 +180,7 @@ class ParallelSearchToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or settings.tools.parallel_api_key
+        self.api_key = api_key
         self.beta_header = beta_header or DEFAULT_BETA_HEADER
 
     @tool(parse_docstring=True)
@@ -204,9 +203,7 @@ class ParallelSearchToolkit(BaseToolkit):
         """
         selected_api_key = (api_key or self.api_key or "").strip()
         if not selected_api_key:
-            raise ValueError(
-                "Missing Parallel API key. Set PARALLEL_API_KEY or pass api_key in tool config."
-            )
+            raise ValueError("Missing Parallel API key. Configure api_key in tool config.")
 
         selected_depth = (depth or "default").strip().lower()
         if selected_depth not in DEPTH_MAX_RESULTS:

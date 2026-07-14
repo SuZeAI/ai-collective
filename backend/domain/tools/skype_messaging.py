@@ -8,7 +8,6 @@ from urllib import error, parse, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-from backend.api.settings import settings
 
 MS_BOT_TOKEN_URL = "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token"
 SKYPE_DEFAULT_SERVICE_URL = "https://smba.trafficmanager.net/apis"
@@ -73,21 +72,18 @@ class SkypeMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.app_id = app_id or settings.tools.skype_bot_app_id
-        self.app_password = app_password or settings.tools.skype_bot_app_password
-        self.service_url = service_url or (settings.tools.skype_service_url or SKYPE_DEFAULT_SERVICE_URL)
-        self.conversation_id = conversation_id or settings.tools.skype_conversation_id
+        self.app_id = app_id
+        self.app_password = app_password
+        self.service_url = service_url or SKYPE_DEFAULT_SERVICE_URL
+        self.conversation_id = conversation_id
 
     def _validate(self) -> None:
         if not self.app_id or not self.app_password:
             raise ValueError(
-                "Skype Bot App ID and password required. "
-                "Set SKYPE_BOT_APP_ID and SKYPE_BOT_APP_PASSWORD."
+                "Skype Bot App ID and password required. Configure app_id and app_password."
             )
         if not self.conversation_id:
-            raise ValueError(
-                "Skype conversation ID required. Set SKYPE_CONVERSATION_ID."
-            )
+            raise ValueError("Skype conversation ID required. Configure conversation_id.")
 
     @tool(parse_docstring=True)
     async def skype_send_message(

@@ -10,7 +10,6 @@ from urllib import error, parse, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-from backend.api.settings import settings
 
 BSKY_SESSION_URL = "https://bsky.social/xrpc/com.atproto.server.createSession"
 BSKY_SEARCH_URL = "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts"
@@ -150,7 +149,7 @@ def _create_session(handle: str, app_password: str) -> Optional[str]:
         elif "http 401" in msg:
             _session_error = (
                 "Invalid Bluesky credentials (401 Unauthorized). "
-                "Check BSKY_HANDLE and BSKY_APP_PASSWORD."
+                "Check the configured handle and app_password."
             )
         else:
             _session_error = f"Session request failed: {exc}"
@@ -310,8 +309,8 @@ class BlueskyToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.handle = handle or settings.tools.bsky_handle
-        self.app_password = app_password or settings.tools.bsky_app_password
+        self.handle = handle
+        self.app_password = app_password
 
     @tool(parse_docstring=True)
     async def bluesky_search(
@@ -337,9 +336,7 @@ class BlueskyToolkit(BaseToolkit):
         selected_app_password = (app_password or self.app_password or "").strip()
 
         if not selected_handle or not selected_app_password:
-            raise ValueError(
-                "Missing Bluesky credentials. Set BSKY_HANDLE and BSKY_APP_PASSWORD or pass handle/app_password in tool config."
-            )
+            raise ValueError("Missing Bluesky credentials. Configure handle/app_password in tool config.")
 
         return await asyncio.to_thread(
             search_and_parse_bluesky,
