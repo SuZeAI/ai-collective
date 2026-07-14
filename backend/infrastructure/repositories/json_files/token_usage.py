@@ -42,6 +42,8 @@ class JsonTokenUsageRepository:
                 timestamp=_parse_timestamp(item.get("timestamp")),
                 staff_name=str(item.get("agent_name", "")),
                 department_id=str(item.get("department_id", "")),
+                cache_read_tokens=int(item.get("cache_read_tokens", 0) or 0),
+                cache_creation_tokens=int(item.get("cache_creation_tokens", 0) or 0),
             )
         except Exception:
             return None
@@ -59,6 +61,8 @@ class JsonTokenUsageRepository:
             "timestamp": r.timestamp.isoformat(),
             "agent_name": r.staff_name,
             "department_id": r.department_id,
+            "cache_read_tokens": r.cache_read_tokens,
+            "cache_creation_tokens": r.cache_creation_tokens,
         }
 
     def add(self, record: TokenUsageRecord) -> TokenUsageRecord:

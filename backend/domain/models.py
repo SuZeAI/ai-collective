@@ -310,6 +310,12 @@ class TokenUsageRecord:
     timestamp: datetime
     staff_name: str = ""     # AI staff member that made the call; "" if unattributed
     department_id: str = ""        # department/team the run belongs to; "" if unattributed
+    # Portion of input_tokens served from / written to the provider's prompt
+    # cache (Anthropic cache_control, or automatic caching on OpenAI-compatible
+    # providers). Both are subsets of input_tokens, not additive. 0 when the
+    # provider/response didn't report cache usage.
+    cache_read_tokens: int = 0
+    cache_creation_tokens: int = 0
 
 
 @dataclass(frozen=True, slots=True)

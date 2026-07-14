@@ -581,6 +581,11 @@ export default function AdminMonitoring() {
                   index={1}
                   label="Input / Output"
                   value={`${formatTokens(usage.totals.inputTokens)} / ${formatTokens(usage.totals.outputTokens)}`}
+                  sub={
+                    usage.totals.cacheReadTokens > 0
+                      ? `${formatTokens(usage.totals.cacheReadTokens)} cached (~90% cheaper)`
+                      : undefined
+                  }
                   icon={BarChart3}
                   color="hsl(214 80% 52%)"
                 />
@@ -666,6 +671,7 @@ export default function AdminMonitoring() {
                           <TableHead>Model</TableHead>
                           <TableHead className="text-right">In</TableHead>
                           <TableHead className="text-right">Out</TableHead>
+                          <TableHead className="text-right">Cached</TableHead>
                           <TableHead className="text-right">Cost</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -685,6 +691,9 @@ export default function AdminMonitoring() {
                             </TableCell>
                             <TableCell className="text-right text-xs tabular-nums">{formatTokens(m.inputTokens)}</TableCell>
                             <TableCell className="text-right text-xs tabular-nums">{formatTokens(m.outputTokens)}</TableCell>
+                            <TableCell className="text-right text-xs tabular-nums text-muted-foreground">
+                              {m.cacheReadTokens > 0 ? formatTokens(m.cacheReadTokens) : "—"}
+                            </TableCell>
                             <TableCell className="text-right text-xs tabular-nums font-semibold">{formatCost(m.cost)}</TableCell>
                           </TableRow>
                         ))}

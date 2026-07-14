@@ -37,6 +37,8 @@ class UsageRecorder(Protocol):
         user_id: str,
         staff_name: str,
         department_id: str,
+        cache_read_tokens: int = 0,
+        cache_creation_tokens: int = 0,
     ) -> None: ...
 
 
@@ -54,14 +56,20 @@ def set_usage_recorder(recorder: UsageRecorder | None) -> None:
     _recorder = recorder
 
 
-def _extract_usage(response: Any, default_model: str) -> tuple[int, int, str]:
-    """Pull (input_tokens, output_tokens, model) out of a LangChain LLMResult.
+def _extract_usage(response: Any, default_model: str) -> tuple[int, int, int, int, str]:
+    """Pull (input_tokens, output_tokens, cache_read, cache_creation, model)
+    out of a LangChain LLMResult.
 
-    Prefers the standardized AIMessage.usage_metadata; falls back to
-    provider-specific llm_output keys.
+    Prefers the standardized AIMessage.usage_metadata (whose
+    ``input_token_details.cache_read``/``cache_creation`` are populated by
+    both langchain_anthropic and langchain_openai when the provider reports
+    cache usage); falls back to provider-specific llm_output keys, which don't
+    carry cache detail.
     """
     input_tokens = 0
     output_tokens = 0
+    cache_read = 0
+    cache_creation = 0
     model = default_model
 
     for generations in getattr(response, "generations", None) or []:
@@ -73,6 +81,9 @@ def _extract_usage(response: Any, default_model: str) -> tuple[int, int, str]:
             if usage:
                 input_tokens += int(usage.get("input_tokens", 0) or 0)
                 output_tokens += int(usage.get("output_tokens", 0) or 0)
+                details = usage.get("input_token_details") or {}
+                cache_read += int(details.get("cache_read", 0) or 0)
+                cache_creation += int(details.get("cache_creation", 0) or 0)
             meta = getattr(message, "response_metadata", None)
             if isinstance(meta, dict):
                 model = str(meta.get("model_name") or meta.get("model") or model)
@@ -86,7 +97,7 @@ def _extract_usage(response: Any, default_model: str) -> tuple[int, int, str]:
         )
         model = str(llm_output.get("model_name") or model)
 
-    return input_tokens, output_tokens, model
+    return input_tokens, output_tokens, cache_read, cache_creation, model
 
 
 class UsageTrackingCallback(BaseCallbackHandler):
@@ -108,7 +119,9 @@ class UsageTrackingCallback(BaseCallbackHandler):
         if recorder is None:
             return
         try:
-            input_tokens, output_tokens, model = _extract_usage(response, self._model)
+            input_tokens, output_tokens, cache_read, cache_creation, model = _extract_usage(
+                response, self._model
+            )
             if input_tokens == 0 and output_tokens == 0:
                 return
             recorder(
@@ -119,6 +132,8 @@ class UsageTrackingCallback(BaseCallbackHandler):
                 user_id=current_usage_user.get(),
                 staff_name=current_usage_staff.get(),
                 department_id=current_usage_department.get(),
+                cache_read_tokens=cache_read,
+                cache_creation_tokens=cache_creation,
             )
         except Exception:
             get_logger().exception("Failed to record LLM token usage")

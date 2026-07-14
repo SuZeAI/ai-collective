@@ -11,6 +11,8 @@ class UsageTotalsSchema(BaseModel):
     inputTokens: int
     outputTokens: int
     totalTokens: int
+    cacheReadTokens: int = 0
+    cacheCreationTokens: int = 0
     requests: int
     cost: float
 
@@ -20,6 +22,8 @@ class ModelUsageSchema(BaseModel):
     provider: str = ""
     inputTokens: int
     outputTokens: int
+    cacheReadTokens: int = 0
+    cacheCreationTokens: int = 0
     requests: int
     cost: float
     priced: bool = False
@@ -57,6 +61,8 @@ class UsageSummarySchema(BaseModel):
                 inputTokens=s["totals"]["input_tokens"],
                 outputTokens=s["totals"]["output_tokens"],
                 totalTokens=s["totals"]["total_tokens"],
+                cacheReadTokens=s["totals"].get("cache_read_tokens", 0),
+                cacheCreationTokens=s["totals"].get("cache_creation_tokens", 0),
                 requests=s["totals"]["requests"],
                 cost=s["totals"]["cost"],
             ),
@@ -66,6 +72,8 @@ class UsageSummarySchema(BaseModel):
                     provider=m.get("provider", ""),
                     inputTokens=m["input_tokens"],
                     outputTokens=m["output_tokens"],
+                    cacheReadTokens=m.get("cache_read_tokens", 0),
+                    cacheCreationTokens=m.get("cache_creation_tokens", 0),
                     requests=m["requests"],
                     cost=m["cost"],
                     priced=bool(m.get("priced", False)),
