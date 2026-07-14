@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from backend.application.ports.llm import LLMProvider
 from backend.infrastructure.llm.anthropic_langchain import AnthropicLangChainProvider
+from backend.infrastructure.llm.config.model_config import ModelConfig
 from backend.infrastructure.llm.google_langchain import GoogleLangChainProvider
 from backend.infrastructure.llm.open_weight_langchain import OpenWeightLangChainProvider
 from backend.infrastructure.llm.openai_langchain import OpenAILangChainProvider
 from backend.infrastructure.llm.kimi_langchain import KimiLangChainProvider
 from backend.infrastructure.llm.deepseek_langchain import DeepSeekLangChainProvider
 from backend.infrastructure.llm.glm_langchain import GLMLangChainProvider
+from backend.infrastructure.llm.rotation import RotationConfig
 
 
 DEFAULT_PROVIDER_MODELS = {
@@ -52,6 +54,7 @@ def create_llm_provider(
     max_tool_rounds: int = 6,
     tool_timeout_seconds: int | None = None,
     base_url: str | None = None,
+    failover: RotationConfig | None = None,
 ) -> LLMProvider | None:
     resolved_provider = _normalize_provider(provider)
     if resolved_provider not in SUPPORTED_PROVIDERS:
@@ -68,6 +71,7 @@ def create_llm_provider(
             api_key=anthropic_api_key,
             max_tool_rounds=max_tool_rounds,
             tool_timeout_seconds=tool_timeout_seconds,
+            failover=failover,
         )
     if resolved_provider == "openai":
         if not openai_api_key:
@@ -78,6 +82,7 @@ def create_llm_provider(
             base_url=base_url,
             max_tool_rounds=max_tool_rounds,
             tool_timeout_seconds=tool_timeout_seconds,
+            failover=failover,
         )
     if resolved_provider == "open_weight":
         if not open_weight_api_key:
@@ -88,6 +93,7 @@ def create_llm_provider(
             base_url=base_url,
             max_tool_rounds=max_tool_rounds,
             tool_timeout_seconds=tool_timeout_seconds,
+            failover=failover,
         )
     if resolved_provider == "kimi":
         if not kimi_api_key:
@@ -98,6 +104,7 @@ def create_llm_provider(
             base_url=base_url,
             max_tool_rounds=max_tool_rounds,
             tool_timeout_seconds=tool_timeout_seconds,
+            failover=failover,
         )
     if resolved_provider == "deepseek":
         if not deepseek_api_key:
@@ -108,6 +115,7 @@ def create_llm_provider(
             base_url=base_url,
             max_tool_rounds=max_tool_rounds,
             tool_timeout_seconds=tool_timeout_seconds,
+            failover=failover,
         )
     if resolved_provider == "glm":
         if not glm_api_key:
@@ -118,6 +126,7 @@ def create_llm_provider(
             base_url=base_url,
             max_tool_rounds=max_tool_rounds,
             tool_timeout_seconds=tool_timeout_seconds,
+            failover=failover,
         )
     if not google_api_key:
         return None
@@ -126,6 +135,7 @@ def create_llm_provider(
         api_key=google_api_key,
         max_tool_rounds=max_tool_rounds,
         tool_timeout_seconds=tool_timeout_seconds,
+        failover=failover,
     )
 
 
@@ -136,6 +146,7 @@ def build_default_llm_provider(
     max_tool_rounds: int | None = None,
     tool_timeout_seconds: int | None = None,
     base_url: str | None = None,
+    model_config: ModelConfig | None = None,
 ) -> LLMProvider | None:
     """create_llm_provider(), resolving every provider API key from settings
     in one place.
@@ -143,16 +154,33 @@ def build_default_llm_provider(
     Every call site used to hand-list all 7 provider keys itself — 4 near-
     identical copies across deps.py/document_tools.py — so adding a new
     provider (already happened twice, for deepseek/glm) meant editing all 4
-    in lockstep or silently missing one. provider/model/max_tool_rounds/
-    tool_timeout_seconds/base_url default to the app-wide settings.llm_*
-    values but can be overridden per call (e.g. the knowledge-graph builder's
-    separate GRAPH_LLM_PROVIDER/MODEL).
+    in lockstep or silently missing one.
+
+    ``model_config`` — when given (the resolved active entry from config.yml's
+    ``models:`` registry, see ``backend.infrastructure.llm.config``) — supplies
+    provider/model/base_url/failover from that entry instead of the app-wide
+    ``settings.llm_*`` defaults, so the Settings-UI "active model" switch and
+    each model's own key-rotation policy actually take effect. Explicit
+    provider/model/base_url args still win over both (e.g. the knowledge-graph
+    builder's separate GRAPH_LLM_PROVIDER/MODEL override).
     """
     from backend.api.settings import settings
 
+    resolved_provider = provider
+    resolved_model = model
+    resolved_base_url = base_url
+    resolved_failover: RotationConfig | None = None
+    if model_config is not None:
+        resolved_provider = resolved_provider or _normalize_provider(
+            model_config.provider_name or model_config.name
+        )
+        resolved_model = resolved_model or model_config.model
+        resolved_base_url = resolved_base_url or model_config.base_url
+        resolved_failover = RotationConfig.from_model_entry(model_config.failover)
+
     return create_llm_provider(
-        provider=provider or settings.llm_provider,
-        model=model or settings.llm_model,
+        provider=resolved_provider or settings.llm_provider,
+        model=resolved_model or settings.llm_model,
         google_api_key=settings.google_api_keys(),
         anthropic_api_key=settings.anthropic_api_keys(),
         openai_api_key=settings.openai_api_keys(),
@@ -160,11 +188,12 @@ def build_default_llm_provider(
         kimi_api_key=settings.kimi_api_keys(),
         deepseek_api_key=settings.deepseek_api_keys(),
         glm_api_key=settings.glm_api_keys(),
-        base_url=base_url or settings.llm_api_base,
+        base_url=resolved_base_url or settings.llm_api_base,
         max_tool_rounds=(
             max_tool_rounds if max_tool_rounds is not None else settings.staff_max_tool_rounds
         ),
         tool_timeout_seconds=(
             tool_timeout_seconds if tool_timeout_seconds is not None else settings.tool_timeout_seconds
         ),
+        failover=resolved_failover,
     )

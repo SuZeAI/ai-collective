@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from backend.infrastructure.llm.base_langchain import LangChainLLMProvider
-from backend.infrastructure.llm.rotation import build_rotating_model, normalize_api_keys
+from backend.infrastructure.llm.rotation import RotationConfig, build_rotating_model, normalize_api_keys
 
 
 class GoogleLangChainProvider(LangChainLLMProvider):
@@ -12,6 +12,7 @@ class GoogleLangChainProvider(LangChainLLMProvider):
         api_key: str | list[str],
         max_tool_rounds: int = 6,
         tool_timeout_seconds: int | None = None,
+        failover: RotationConfig | None = None,
     ):
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
@@ -23,7 +24,7 @@ class GoogleLangChainProvider(LangChainLLMProvider):
         def build_one(key: str):
             return ChatGoogleGenerativeAI(model=model, google_api_key=key)
 
-        llm = build_rotating_model(build_one, normalize_api_keys(api_key), label_prefix="google")
+        llm = build_rotating_model(build_one, normalize_api_keys(api_key), label_prefix="google", config=failover)
         super().__init__(
             llm,
             provider_name="Google",

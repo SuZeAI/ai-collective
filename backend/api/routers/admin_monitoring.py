@@ -5,10 +5,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from backend.api.deps import (
     STORAGE_DIR,
     _llm_provider,
+    _resolve_active_model_config,
     current_user_dep,
     get_monitoring_service,
+    get_system_settings_repository,
+    refresh_llm_provider,
 )
 from backend.api.schemas.admin import (
+    ActiveModelSchema,
     EntityCountsSchema,
     FileStorageStatsSchema,
     LLMHealthSchema,
@@ -21,6 +25,7 @@ from backend.api.schemas.admin import (
 )
 from backend.api.settings import settings
 from backend.application.service.monitoring_service import MonitoringService
+from backend.infrastructure.llm.config import get_enabled_models
 from backend.infrastructure.llm.factory import DEFAULT_PROVIDER_MODELS
 from backend.infrastructure.monitoring import request_metrics
 
@@ -62,6 +67,27 @@ def upsert_pricing(
     service: MonitoringService = Depends(get_monitoring_service),
 ) -> ModelPricingSchema:
     return ModelPricingSchema.from_domain(service.upsert_pricing(payload.to_domain()))
+
+
+@router.put("/active-model", response_model=ActiveModelSchema)
+def set_active_model(
+    payload: ActiveModelSchema,
+    _: object = Depends(require_admin),
+) -> ActiveModelSchema:
+    """Switch the app-wide active LLM model (Settings UI). Must name a
+    `models:` entry with `enabled: true` in config.yml; persists via
+    SystemSettingsRepository and drops the cached LLM provider so the next
+    call rebuilds it against the new model."""
+    name = payload.name.strip()
+    enabled_names = {m.name for m in get_enabled_models()}
+    if name not in enabled_names:
+        raise HTTPException(
+            status_code=422,
+            detail=f"'{name}' is not an enabled model. Enabled: {sorted(enabled_names)}",
+        )
+    get_system_settings_repository().set_active_model(name)
+    refresh_llm_provider()
+    return ActiveModelSchema(name=name)
 
 
 # Model is a query param (not a path segment) because OpenRouter-style model
@@ -171,12 +197,16 @@ def get_system_health(
         llm_configured = _llm_provider() is not None
     except Exception:
         llm_configured = False
-    llm = LLMHealthSchema(
-        provider=settings.llm_provider,
-        model=settings.llm_model
-        or DEFAULT_PROVIDER_MODELS.get(settings.llm_provider.strip().lower(), ""),
-        configured=llm_configured,
-    )
+    active = _resolve_active_model_config()
+    if active is not None:
+        llm = LLMHealthSchema(provider=active.provider_name or "", model=active.model, configured=llm_configured)
+    else:
+        llm = LLMHealthSchema(
+            provider=settings.llm_provider,
+            model=settings.llm_model
+            or DEFAULT_PROVIDER_MODELS.get(settings.llm_provider.strip().lower(), ""),
+            configured=llm_configured,
+        )
 
     metrics = request_metrics.snapshot()
     counts = service.get_entity_counts()

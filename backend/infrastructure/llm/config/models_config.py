@@ -1,16 +1,28 @@
 """Load and cache the ``models:`` list from config.yml (model-driven LLM config).
 
 Reads the same ``config.yml`` the rest of the app uses (path resolved via
-``config_loader.config_file_path``), extracts the top-level ``models:`` list and
-``llm.active_model``, resolves ``$VAR`` env references, and validates each entry
-into a :class:`ModelConfig`.
+``config_loader.config_file_path``), extracts the top-level ``models:`` list,
+resolves ``$VAR`` env references, and validates each entry into a
+:class:`ModelConfig`.
 
 ``$VAR`` resolution is lenient: a missing env var becomes an empty string rather
 than raising, so a model whose API key is unset simply ends up empty (a builder
 can treat it as disabled) instead of breaking startup. Secrets live in ``.env``
 and reach ``os.environ`` before this loads.
 
-This is a standalone loader — it does not modify the existing LLM factory.
+The *active* model — which entry drives the app-wide default provider — is
+resolved with this priority:
+
+1. ``LLM_ACTIVE_MODEL`` env var (ops-level override).
+2. A persisted runtime override, set via the Settings UI (see
+   ``backend.api.deps._llm_provider`` — that layer owns the DB-backed
+   override; this module only knows about config.yml + the env).
+3. The first ``models:`` entry with ``enabled: true`` (deploy-time default).
+4. The first entry overall, if none are marked enabled.
+
+This module is consumed by ``backend.infrastructure.llm.factory`` (via the
+resolved :class:`ModelConfig` passed in by the caller) and by
+``backend.api.deps`` for the Settings/admin model-list and switch endpoints.
 """
 
 from __future__ import annotations
@@ -64,10 +76,10 @@ def _load() -> tuple[list[ModelConfig], str | None]:
         except Exception:  # noqa: BLE001 — skip a malformed entry, keep the rest
             get_logger().warning("Skipping invalid model entry: %s", entry.get("name"), exc_info=True)
 
-    # Active model: env override wins, then config.yml's llm.active_model.
+    # Active model: env override wins, then the first `enabled: true` entry.
     active = os.getenv("LLM_ACTIVE_MODEL") or None
-    if active is None and isinstance(raw.get("llm"), dict):
-        active = raw["llm"].get("active_model") or None
+    if active is None:
+        active = next((m.name for m in models if m.enabled), None)
     return models, active
 
 
@@ -79,8 +91,18 @@ def get_models_config() -> list[ModelConfig]:
     return _models
 
 
+def get_enabled_models() -> list[ModelConfig]:
+    """The subset of ``models:`` entries selectable as the active model."""
+    return [m for m in get_models_config() if m.enabled]
+
+
 def get_active_model_name() -> str | None:
-    """Name of the active model: ``llm.active_model`` or the first entry."""
+    """Name of the config-level active model: env override, the first
+    ``enabled: true`` entry, or the first entry overall as a last resort.
+
+    Does NOT consider the DB-persisted Settings-UI override — that layer
+    lives in ``backend.api.deps``, which checks it first and falls back here.
+    """
     models = get_models_config()
     if _active_model:
         return _active_model
