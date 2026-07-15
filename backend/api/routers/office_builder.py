@@ -439,14 +439,14 @@ def apply_office_plan(
             department_ids=department_ids,
             primary_department_id=department_ids[0] if department_ids else "",
             created_at=datetime.now(timezone.utc),
-            type=(plan.type or "general"),
+            type=(plan.company_type or "general"),
             avatar=(plan.name.strip()[:1] or "W").upper(),
             owner_id=owner_id,
         )
     )
 
     return ApplyOfficePlanResponse(
-        workspace=CompanySchema.from_domain(workspace),
+        company=CompanySchema.from_domain(workspace),
         department_ids=department_ids,
         staff_ids=staff_ids,
         skill_ids=created_skill_ids,
