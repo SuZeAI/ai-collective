@@ -127,6 +127,7 @@ type KanbanCardProps = {
   assignee?: Staff;
   progress: number;
   isSelected: boolean;
+  isRunning: boolean;
   onOpen: (taskId: string) => void;
 };
 
@@ -135,11 +136,12 @@ type KanbanCardBodyProps = {
   department?: Department;
   assignee?: Staff;
   progress: number;
+  isRunning?: boolean;
 };
 
 // Pure visual content, shared between the in-column draggable card and its
 // DragOverlay clone (the overlay must not itself be draggable — see below).
-function KanbanCardBody({ task, department, assignee, progress }: KanbanCardBodyProps) {
+function KanbanCardBody({ task, department, assignee, progress, isRunning }: KanbanCardBodyProps) {
   const priority = PRIORITY_CONFIG[priorityOf(task)];
   const dueDate = parseTaskDate(task.dueDate);
   const overdue = isOverdue(task.dueDate, task.status);
@@ -199,7 +201,18 @@ function KanbanCardBody({ task, department, assignee, progress }: KanbanCardBody
             <span className="text-[9px] text-muted-foreground truncate">Unassigned</span>
           )}
         </div>
-        <span className="text-[9px] font-semibold text-foreground/75 shrink-0">{progress}%</span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {isRunning && (
+            <span className="flex items-center gap-1 text-[9px] font-semibold text-primary">
+              <span className="relative flex w-1.5 h-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-primary animate-ping opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
+              </span>
+              Running
+            </span>
+          )}
+          <span className="text-[9px] font-semibold text-foreground/75">{progress}%</span>
+        </div>
       </div>
 
       {dueDate && (
@@ -212,7 +225,7 @@ function KanbanCardBody({ task, department, assignee, progress }: KanbanCardBody
   );
 }
 
-const KanbanCard = memo(function KanbanCard({ task, department, assignee, progress, isSelected, onOpen }: KanbanCardProps) {
+const KanbanCard = memo(function KanbanCard({ task, department, assignee, progress, isSelected, isRunning, onOpen }: KanbanCardProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id });
 
   return (
@@ -229,10 +242,14 @@ const KanbanCard = memo(function KanbanCard({ task, department, assignee, progre
         // kept it clipped inside its origin column's overflow-y-auto and behind
         // later columns in paint order. This one just fades out while dragging.
         isDragging ? "opacity-0" : "shadow-sm",
-        isSelected ? "ring-1 ring-primary/40 border-accent-foreground/20" : "border-border/40",
+        isSelected
+          ? "ring-1 ring-primary/40 border-accent-foreground/20"
+          : isRunning
+          ? "border-primary/50"
+          : "border-border/40",
       )}
     >
-      <KanbanCardBody task={task} department={department} assignee={assignee} progress={progress} />
+      <KanbanCardBody task={task} department={department} assignee={assignee} progress={progress} isRunning={isRunning} />
     </div>
   );
 });
@@ -1012,6 +1029,7 @@ export default function TaskManager() {
                         assignee={assignee}
                         progress={progress}
                         isSelected={viewTaskId === task.id}
+                        isRunning={isStreaming(task.id)}
                         onOpen={handleSelectTask}
                       />
                     );
@@ -1031,7 +1049,7 @@ export default function TaskManager() {
             const progress = dragTask.status === "completed" ? 100 : Math.min(Math.round((messages.length / (department?.maxSteps ?? 6)) * 100), 99);
             return (
               <div className="rounded-xl border border-border/40 p-3 bg-card shadow-2xl w-[276px] cursor-grabbing">
-                <KanbanCardBody task={dragTask} department={department} assignee={assignee} progress={progress} />
+                <KanbanCardBody task={dragTask} department={department} assignee={assignee} progress={progress} isRunning={isStreaming(dragTask.id)} />
               </div>
             );
           })()}
