@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   useSensor,
   useSensors,
@@ -11,8 +12,8 @@ import {
   useDroppable,
   closestCorners,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
 import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, X, Eye, Send, UserRound, Hand, HelpCircle, Zap, LayoutGrid, Flag, CalendarClock, Tag, Building2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,7 @@ import { Progress } from "@/components/ui/progress";
 import { StaffAvatar } from "@/components/StaffAvatar";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
 import { MeetingFiles } from "@/components/MeetingFiles";
-import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Staff, type GraphContextSnapshot, type Message, type Department, type Task, type TaskPriority, type Project, type Sprint } from "@/lib/api";
+import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Staff, type GraphContextSnapshot, type Message, type Department, type Task, type TaskPriority, type Project, type Sprint, type Epic } from "@/lib/api";
 import { useRunEngine, type GraphHighlight, type UserInputRequest } from "@/contexts/RunEngineContext";
 import { useCompanyScope } from "@/hooks/use-company-scope";
 import { getStaffRoleColor } from "@/lib/staff-role-ui";
@@ -129,28 +130,23 @@ type KanbanCardProps = {
   onOpen: (taskId: string) => void;
 };
 
-const KanbanCard = memo(function KanbanCard({ task, department, assignee, progress, isSelected, onOpen }: KanbanCardProps) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
-  const style = transform ? { transform: CSS.Translate.toString(transform), zIndex: 50 } : undefined;
+type KanbanCardBodyProps = {
+  task: Task;
+  department?: Department;
+  assignee?: Staff;
+  progress: number;
+};
+
+// Pure visual content, shared between the in-column draggable card and its
+// DragOverlay clone (the overlay must not itself be draggable — see below).
+function KanbanCardBody({ task, department, assignee, progress }: KanbanCardBodyProps) {
   const priority = PRIORITY_CONFIG[priorityOf(task)];
   const dueDate = parseTaskDate(task.dueDate);
   const overdue = isOverdue(task.dueDate, task.status);
   const labels = task.labels ?? [];
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      onClick={() => onOpen(task.id)}
-      className={cn(
-        "rounded-xl border p-3 bg-card/70 cursor-grab active:cursor-grabbing transition-all group select-none",
-        "hover:border-border/80 hover:bg-muted/30",
-        isDragging ? "opacity-50 shadow-lg" : "shadow-sm",
-        isSelected ? "ring-1 ring-primary/40 border-accent-foreground/20" : "border-border/40",
-      )}
-    >
+    <>
       {(task.issueKey || task.issueType || task.storyPoints != null) && (
         <div className="flex items-center gap-1.5 mb-1.5">
           {task.issueType && (
@@ -212,6 +208,31 @@ const KanbanCard = memo(function KanbanCard({ task, department, assignee, progre
           {formatDueDate(dueDate)} {overdue ? "· overdue" : ""}
         </div>
       )}
+    </>
+  );
+}
+
+const KanbanCard = memo(function KanbanCard({ task, department, assignee, progress, isSelected, onOpen }: KanbanCardProps) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      onClick={() => onOpen(task.id)}
+      className={cn(
+        "rounded-xl border p-3 bg-card/70 cursor-grab active:cursor-grabbing transition-all group select-none",
+        "hover:border-border/80 hover:bg-muted/30",
+        // The dragged card is rendered by DragOverlay (portalled above everything
+        // else) instead of moving this node in place — moving it via transform
+        // kept it clipped inside its origin column's overflow-y-auto and behind
+        // later columns in paint order. This one just fades out while dragging.
+        isDragging ? "opacity-0" : "shadow-sm",
+        isSelected ? "ring-1 ring-primary/40 border-accent-foreground/20" : "border-border/40",
+      )}
+    >
+      <KanbanCardBody task={task} department={department} assignee={assignee} progress={progress} />
     </div>
   );
 });
@@ -274,14 +295,25 @@ export default function TaskManager() {
   const [departmentList, setDepartmentList] = useState<Department[]>([]);
   const [staffList, setStaffList] = useState<Staff[]>([]);
   // Project scoping: when reached via /projects/:key/board the board is filtered
-  // to that project's issues and a sprint filter is offered.
+  // to that project's issues and a sprint filter is offered. On the generic
+  // /tasks board there's no URL project, so the same scoping is offered via a
+  // Project/Epic/Sprint filter row instead (projectFilter/epicFilter/sprintFilter).
   const { key: projectKeyParam } = useParams<{ key?: string }>();
   const [projectList, setProjectList] = useState<Project[]>([]);
+  const [epicList, setEpicList] = useState<Epic[]>([]);
   const [sprintList, setSprintList] = useState<Sprint[]>([]);
+  const [projectFilter, setProjectFilter] = useState<string>("all");
+  const [epicFilter, setEpicFilter] = useState<string>("all");
   const [sprintFilter, setSprintFilter] = useState<string>("all");
   const activeProject = useMemo(
     () => (projectKeyParam ? projectList.find((p) => p.key === projectKeyParam) : undefined),
     [projectKeyParam, projectList],
+  );
+  // The project actually filtering the board: the URL project when on a
+  // project's own board route, otherwise whatever the dropdown picked.
+  const projectScope = useMemo(
+    () => activeProject ?? (projectFilter !== "all" ? projectList.find((p) => p.id === projectFilter) : undefined),
+    [activeProject, projectFilter, projectList],
   );
   // Task creation belongs to a specific company (office) or a project board. The
   // global "Overall Collective" scope is monitoring-only, so the New Task button
@@ -311,16 +343,21 @@ export default function TaskManager() {
   // A small activation distance lets a plain click open the detail dialog while
   // an actual drag (>6px) starts the board move.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  // The dragged card is rendered via DragOverlay (portalled to the document
+  // body) instead of in place, so it isn't clipped by its origin column's
+  // overflow-y-auto or painted behind later columns.
+  const [activeDragTaskId, setActiveDragTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [tasks, departments, staff, projects, sprints] = await Promise.all([
+        const [tasks, departments, staff, projects, epics, sprints] = await Promise.all([
           api.listTasks(),
           api.listDepartments(),
           api.listStaff(),
           api.listProjects().catch(() => [] as Project[]),
+          api.listEpics().catch(() => [] as Epic[]),
           api.listSprints().catch(() => [] as Sprint[]),
         ]);
         if (cancelled) return;
@@ -330,6 +367,7 @@ export default function TaskManager() {
         setDepartmentList(departments);
         setStaffList(staff);
         setProjectList(projects);
+        setEpicList(epics);
         setSprintList(sprints);
 
         // Load meetings for all tasks
@@ -384,9 +422,12 @@ export default function TaskManager() {
 
   // Office scoping: a task belongs to the active office if its department is in
   // scope OR (for individual assignments without a department) its assignee is a
-  // member of a department in scope.
+  // member of a department in scope. Projects have no office of their own (see
+  // domain Project — no company_id field), so an issue keeps its department/
+  // assignee empty; it's always visible instead of needing manual assignment.
   const isTaskInScope = (task: Task) => {
     if (scope.isOverall) return true;
+    if (task.projectId) return true;
     if (task.departmentId && scope.departmentIds.has(task.departmentId)) return true;
     if (task.assigneeId) {
       return departmentList.some((t) => scope.departmentIds.has(t.id) && (t.staff ?? []).includes(task.assigneeId as string));
@@ -397,10 +438,12 @@ export default function TaskManager() {
   const filteredTasks = useMemo(() => {
     const q = searchQuery.toLowerCase();
     return taskList.filter((task) => {
-      // In a project board, scope to the project (and optional sprint) instead of
+      // Scoped to a project (via URL or the Project filter dropdown): narrow to
+      // that project's issues plus the optional epic/sprint filter, instead of
       // the office membership filter.
-      if (activeProject) {
-        if (task.projectId !== activeProject.id) return false;
+      if (projectScope) {
+        if (task.projectId !== projectScope.id) return false;
+        if (epicFilter !== "all" && (task.epicId ?? "") !== epicFilter) return false;
         if (sprintFilter === "__backlog__" && task.sprintId) return false;
         if (sprintFilter !== "all" && sprintFilter !== "__backlog__" && (task.sprintId ?? "") !== sprintFilter) return false;
       } else if (!isTaskInScope(task)) {
@@ -418,7 +461,7 @@ export default function TaskManager() {
       );
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taskList, departmentList, staffById, searchQuery, scope, activeProject, sprintFilter]);
+  }, [taskList, departmentList, staffById, searchQuery, scope, projectScope, epicFilter, sprintFilter]);
 
   // Group the in-scope tasks into board columns, urgent priority first.
   const tasksByStatus = useMemo(() => {
@@ -597,7 +640,12 @@ export default function TaskManager() {
     }
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDragTaskId(String(event.active.id));
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
+    setActiveDragTaskId(null);
     const { active, over } = event;
     if (!over) return;
     const task = taskList.find((t) => t.id === active.id);
@@ -749,17 +797,45 @@ export default function TaskManager() {
           </div>
         </div>
 
-        {activeProject && (
-          <Select value={sprintFilter} onValueChange={setSprintFilter}>
-            <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All sprints" /></SelectTrigger>
+        {/* On the generic /tasks board (no URL project) let the user scope down
+            to a project directly, instead of only via /projects/:key/board. */}
+        {!activeProject && (
+          <Select
+            value={projectFilter}
+            onValueChange={(v) => { setProjectFilter(v); setEpicFilter("all"); setSprintFilter("all"); }}
+          >
+            <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All projects" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All sprints</SelectItem>
-              <SelectItem value="__backlog__">Backlog (no sprint)</SelectItem>
-              {sprintList.filter((s) => s.projectId === activeProject.id).map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              <SelectItem value="all">All projects</SelectItem>
+              {projectList.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.key} · {p.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
+        )}
+
+        {projectScope && (
+          <>
+            <Select value={epicFilter} onValueChange={setEpicFilter}>
+              <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All epics" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All epics</SelectItem>
+                {epicList.filter((e) => e.projectId === projectScope.id).map((e) => (
+                  <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={sprintFilter} onValueChange={setSprintFilter}>
+              <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All sprints" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All sprints</SelectItem>
+                <SelectItem value="__backlog__">Backlog (no sprint)</SelectItem>
+                {sprintList.filter((s) => s.projectId === projectScope.id).map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
         )}
 
         {/* Search box */}
@@ -916,7 +992,7 @@ export default function TaskManager() {
       </div>
 
       {/* KANBAN BOARD */}
-      <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveDragTaskId(null)}>
         <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden p-4">
           <div className="flex gap-4 h-full min-w-max">
             {BOARD_COLUMNS.map((col) => {
@@ -945,6 +1021,21 @@ export default function TaskManager() {
             })}
           </div>
         </div>
+        <DragOverlay>
+          {(() => {
+            const dragTask = activeDragTaskId ? taskList.find((t) => t.id === activeDragTaskId) : undefined;
+            if (!dragTask) return null;
+            const department = dragTask.departmentId ? departmentList.find((t) => t.id === dragTask.departmentId) : undefined;
+            const assignee = dragTask.assigneeId ? staffById.get(dragTask.assigneeId) : undefined;
+            const messages = taskConversations[dragTask.id] ?? [];
+            const progress = dragTask.status === "completed" ? 100 : Math.min(Math.round((messages.length / (department?.maxSteps ?? 6)) * 100), 99);
+            return (
+              <div className="rounded-xl border border-border/40 p-3 bg-card shadow-2xl w-[276px] cursor-grabbing">
+                <KanbanCardBody task={dragTask} department={department} assignee={assignee} progress={progress} />
+              </div>
+            );
+          })()}
+        </DragOverlay>
       </DndContext>
 
       {/* TASK DETAIL DIALOG: live chat, interject, files, comments, controls */}
@@ -1005,6 +1096,14 @@ export default function TaskManager() {
                 <div className="px-5 py-3 border-b border-border bg-background/50 backdrop-blur-sm flex items-center justify-between flex-shrink-0">
                   <div className="flex items-center gap-3 min-w-0">
                     <Icon className={cn("w-4.5 h-4.5 shrink-0", statusColors[selectedTask.status])} />
+                    {selectedTask.issueType && (
+                      <span className={cn("px-1 py-0.5 rounded border text-[8px] font-bold uppercase tracking-wide shrink-0", (ISSUE_TYPE_GLYPH[selectedTask.issueType] ?? ISSUE_TYPE_GLYPH.task).cls)}>
+                        {(ISSUE_TYPE_GLYPH[selectedTask.issueType] ?? ISSUE_TYPE_GLYPH.task).label}
+                      </span>
+                    )}
+                    {selectedTask.issueKey && (
+                      <span className="text-[10px] font-mono font-semibold text-muted-foreground shrink-0">{selectedTask.issueKey}</span>
+                    )}
                     <h2 className="font-bold text-sm truncate text-foreground leading-none">{selectedTask.title}</h2>
                     <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-semibold border shrink-0", taskPriority.badge)}>
                       {taskPriority.label}
@@ -1052,6 +1151,39 @@ export default function TaskManager() {
                 <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[300px_1fr] divide-x divide-border">
                   {/* Panel 1: Settings / Metadata */}
                   <div className="h-full overflow-y-auto p-4 space-y-5 bg-muted/5 flex-shrink-0 scrollbar-thin">
+                    {selectedTask.projectId && (
+                      <div className="space-y-1.5 text-xs">
+                        {(() => {
+                          const issueProject = projectList.find((p) => p.id === selectedTask.projectId);
+                          const issueEpic = selectedTask.epicId ? epicList.find((e) => e.id === selectedTask.epicId) : undefined;
+                          const issueSprint = selectedTask.sprintId ? sprintList.find((s) => s.id === selectedTask.sprintId) : undefined;
+                          return (
+                            <>
+                              {issueProject && (
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground font-medium">Project</span>
+                                  <Link to={`/projects/${issueProject.key}/board`} className="font-semibold text-primary hover:underline">{issueProject.name}</Link>
+                                </div>
+                              )}
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground font-medium">Epic</span>
+                                <span className="font-semibold text-foreground">{issueEpic?.title ?? "None"}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground font-medium">Sprint</span>
+                                <span className="font-semibold text-foreground">{issueSprint?.name ?? "Backlog"}</span>
+                              </div>
+                              {selectedTask.storyPoints != null && (
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground font-medium">Story points</span>
+                                  <span className="font-semibold text-foreground">{selectedTask.storyPoints}</span>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground font-medium">Progress</span>
