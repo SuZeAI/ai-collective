@@ -340,11 +340,14 @@ async def run_staff_graph(
                 )
             )
             staff_id_to_name[staff_id] = staff.name
+        except NotFoundError as e:
+            raise HTTPException(status_code=404, detail=f"Staff '{staff_id}' not found: {e}")
         except Exception as e:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Staff '{staff_id}' not found: {str(e)}"
-            )
+            # Distinct from the 404 above: the staff itself exists but binding
+            # one of its tools failed (e.g. sandbox/provisioner unreachable).
+            # Reporting this as "not found" hid the real cause from callers.
+            logger.exception("Failed to prepare staff '%s' for run", staff_id)
+            raise HTTPException(status_code=502, detail=f"Failed to prepare staff '{staff_id}': {e}")
 
     graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
     conversation_id = req.conversation_id
@@ -411,11 +414,14 @@ async def run_staff_graph_stream(
                 )
             )
             staff_name_to_id[staff.name] = staff_id  # Store mapping
+        except NotFoundError as e:
+            raise HTTPException(status_code=404, detail=f"Staff '{staff_id}' not found: {e}")
         except Exception as e:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Staff '{staff_id}' not found: {str(e)}"
-            )
+            # Distinct from the 404 above: the staff itself exists but binding
+            # one of its tools failed (e.g. sandbox/provisioner unreachable).
+            # Reporting this as "not found" hid the real cause from callers.
+            logger.exception("Failed to prepare staff '%s' for run", staff_id)
+            raise HTTPException(status_code=502, detail=f"Failed to prepare staff '{staff_id}': {e}")
 
     graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
     conversation_id = req.conversation_id

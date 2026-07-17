@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { api, type GraphContextSnapshot, type Message, type Task } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
 
 // Upper bound on messages retained per task in memory. RunEngineProvider sits
 // above the router so this state outlives navigation for the whole session —
@@ -548,6 +549,17 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
       if (!(e instanceof DOMException && e.name === "AbortError")) {
         console.error("Stream error:", e);
         endReason = "error";
+        // Surface this — without it the task just silently sits at "in-progress"
+        // with an empty transcript and no indication anything went wrong. Full
+        // detail is still in the console/server logs; the toast gets a capped
+        // summary so long backend exception chains don't blow up the popup.
+        const rawMessage = e instanceof Error ? e.message : String(e);
+        const description = rawMessage.length > 200 ? `${rawMessage.slice(0, 200)}…` : rawMessage;
+        toast({
+          title: `"${updated.title}" failed to start`,
+          description,
+          variant: "destructive",
+        });
       } else {
         endReason = "aborted";
       }

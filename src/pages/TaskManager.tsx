@@ -641,7 +641,11 @@ export default function TaskManager() {
   // Drag a card between columns → drive the matching status transition. Moving
   // into "In Progress" auto-runs the staff; the user keeps stop/pause controls.
   const moveTaskToStatus = (task: Task, status: Task["status"]) => {
-    if (task.status === status) return;
+    // Same-status is normally a no-op, except "in-progress" → "in-progress"
+    // while nothing is actually streaming: that's a task orphaned by a lost
+    // SSE connection (see `isOrphaned` in the detail panel), and re-dropping
+    // it into "In Progress" is how the user restarts it.
+    if (task.status === status && !(status === "in-progress" && !engine.isStreaming(task.id))) return;
     if (!canEditItem(task)) return;
     if (updatingTaskIds.has(task.id)) return;
     if (status === "in-progress") {
@@ -674,7 +678,9 @@ export default function TaskManager() {
   // opens the run stream (which lives in the engine, so it survives navigation);
   // the engine aborts on stop/pause and clears run state when restarting.
   const updateTaskStatus = (task: Task, status: Task["status"]) => {
-    if (task.status === status) return;
+    // See moveTaskToStatus: allow re-triggering "in-progress" when the task is
+    // orphaned (DB says in-progress but no stream is live in this session).
+    if (task.status === status && !(status === "in-progress" && !engine.isStreaming(task.id))) return;
     if (updatingTaskIds.has(task.id)) return;
     if (status === "in-progress") {
       openTaskView(task.id);
@@ -1100,12 +1106,19 @@ export default function TaskManager() {
             const completionSummary = !startDate
               ? "(No start time yet)"
               : completionDuration ?? "(Not completed yet)";
-            const canStart = selectedTask.status === "pending" || selectedTask.status === "paused" || selectedTask.status === "stopped" || selectedTask.status === "completed";
+            // A task can be left stuck showing "in-progress" with nothing actually
+            // streaming — e.g. the tab that started it was closed/reloaded, which
+            // drops the SSE connection the run is entirely driven by (see
+            // RunEngineContext's runStream/llm.py event_generator) without ever
+            // flipping the task's DB status back. Detect that so the user has a
+            // way to get the run going again instead of a permanently dead task.
+            const isOrphaned = selectedTask.status === "in-progress" && !isStreaming(selectedTask.id);
+            const canStart = selectedTask.status === "pending" || selectedTask.status === "paused" || selectedTask.status === "stopped" || selectedTask.status === "completed" || isOrphaned;
             const canPause = selectedTask.status === "in-progress";
             const canStop = selectedTask.status === "in-progress" || selectedTask.status === "paused";
             const isUpdating = updatingTaskIds.has(selectedTask.id);
             const isConversationLoading = loadingConversationTaskIds.has(selectedTask.id);
-            const isRestart = selectedTask.status === "completed";
+            const isRestart = selectedTask.status === "completed" || isOrphaned;
             const Icon = statusIcons[selectedTask.status] ?? Circle;
 
             return (
