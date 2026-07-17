@@ -237,7 +237,7 @@ class XAIToolkit(BaseToolkit):
 
     def __init__(self, api_key: Optional[str] = None, model: str = "grok-4-fast", **kwargs: Any):
         super().__init__(**kwargs)
-        self.api_key = api_key or settings.tools.xai_api_key
+        self.api_key = api_key
         self.model = model or settings.tools.xai_model
 
     @tool(parse_docstring=True)
@@ -259,7 +259,7 @@ class XAIToolkit(BaseToolkit):
             model: Optional xAI model override.
         """
         if not self.api_key:
-            raise ValueError("Missing XAI API key. Set XAI_API_KEY or pass api_key in tool config.")
+            raise ValueError("Missing XAI API key. Configure api_key in tool config.")
 
         selected_model = model or self.model or "grok-4-fast"
         raw = await asyncio.to_thread(

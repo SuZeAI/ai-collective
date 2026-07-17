@@ -9,7 +9,6 @@ from urllib import error, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-from backend.api.settings import settings
 
 _DEFAULT_TIMEOUT_SECONDS = 20
 _DEFAULT_RETRIES = 2
@@ -207,7 +206,7 @@ class XiaohongshuToolkit(BaseToolkit):
 
     def __init__(self, base_url: Optional[str] = None, **kwargs: Any):
         super().__init__(**kwargs)
-        self.base_url = base_url or settings.tools.xiaohongshu_api_base_url
+        self.base_url = base_url
 
     @tool(parse_docstring=True)
     async def xiaohongshu_search(
@@ -230,7 +229,7 @@ class XiaohongshuToolkit(BaseToolkit):
         resolved_base_url = (base_url or self.base_url or "").strip()
         if not resolved_base_url:
             raise ValueError(
-                "Missing Xiaohongshu API base URL. Set XIAOHONGSHU_API_BASE_URL or pass base_url."
+                "Missing Xiaohongshu API base URL. Configure base_url in tool config."
             )
 
         return await asyncio.to_thread(

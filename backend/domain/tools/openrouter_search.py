@@ -10,7 +10,6 @@ from urllib.parse import urlparse
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-from backend.api.settings import settings
 
 try:
     import requests as _requests
@@ -249,7 +248,7 @@ class OpenRouterSearchToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or settings.tools.openrouter_api_key
+        self.api_key = api_key
         self.model = model or DEFAULT_MODEL
 
     @tool(parse_docstring=True)
@@ -274,9 +273,7 @@ class OpenRouterSearchToolkit(BaseToolkit):
         """
         selected_api_key = (api_key or self.api_key or "").strip()
         if not selected_api_key:
-            raise ValueError(
-                "Missing OpenRouter API key. Set OPENROUTER_API_KEY or pass api_key in tool config."
-            )
+            raise ValueError("Missing OpenRouter API key. Configure api_key in tool config.")
 
         selected_depth = (depth or "default").strip().lower()
         if selected_depth not in DEPTH_MAX_TOKENS:

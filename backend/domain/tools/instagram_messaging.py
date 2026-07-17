@@ -8,7 +8,6 @@ from urllib import error, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-from backend.api.settings import settings
 
 IG_API_BASE = "https://graph.facebook.com/v19.0"
 
@@ -49,14 +48,12 @@ class InstagramMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.page_access_token = page_access_token or settings.tools.instagram_page_access_token
-        self.ig_user_id = ig_user_id or settings.tools.instagram_user_id
+        self.page_access_token = page_access_token
+        self.ig_user_id = ig_user_id
 
     def _token(self) -> str:
         if not self.page_access_token:
-            raise ValueError(
-                "Instagram page access token required. Set INSTAGRAM_PAGE_ACCESS_TOKEN."
-            )
+            raise ValueError("Instagram page access token required. Configure page_access_token.")
         return self.page_access_token
 
     @tool(parse_docstring=True)
@@ -88,7 +85,7 @@ class InstagramMessagingToolkit(BaseToolkit):
             limit: Number of conversations to retrieve (1-50).
         """
         if not self.ig_user_id:
-            raise ValueError("Instagram user ID required. Set INSTAGRAM_USER_ID.")
+            raise ValueError("Instagram user ID required. Configure ig_user_id.")
         path = f"/{self.ig_user_id}/conversations?platform=instagram&limit={min(max(1, limit), 50)}"
         return await asyncio.to_thread(_ig_request, "GET", path, self._token())
 
@@ -103,7 +100,7 @@ class InstagramMessagingToolkit(BaseToolkit):
             limit: Number of media items to return (1-100).
         """
         if not self.ig_user_id:
-            raise ValueError("Instagram user ID required. Set INSTAGRAM_USER_ID.")
+            raise ValueError("Instagram user ID required. Configure ig_user_id.")
         fields = "id,caption,media_type,media_url,permalink,timestamp,like_count,comments_count"
         path = f"/{self.ig_user_id}/media?fields={fields}&limit={min(max(1, limit), 100)}"
         return await asyncio.to_thread(_ig_request, "GET", path, self._token())

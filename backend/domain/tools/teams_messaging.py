@@ -8,7 +8,6 @@ from urllib import error, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-from backend.api.settings import settings
 
 
 def _webhook_post(webhook_url: str, data: Dict, timeout: int = 30) -> Dict[str, Any]:
@@ -37,13 +36,11 @@ class TeamsMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.webhook_url = webhook_url or settings.tools.teams_webhook_url
+        self.webhook_url = webhook_url
 
     def _webhook(self) -> str:
         if not self.webhook_url:
-            raise ValueError(
-                "Teams webhook URL required. Set TEAMS_WEBHOOK_URL or configure webhook_url."
-            )
+            raise ValueError("Teams webhook URL required. Configure webhook_url.")
         return self.webhook_url
 
     @tool(parse_docstring=True)

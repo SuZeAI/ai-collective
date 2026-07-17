@@ -16,6 +16,9 @@ from backend.infrastructure.repositories.json_files.office_builder_sessions impo
 from backend.infrastructure.repositories.json_files.projects import JsonProjectRepository
 from backend.infrastructure.repositories.json_files.skills import JsonSkillRepository
 from backend.infrastructure.repositories.json_files.sprints import JsonSprintRepository
+from backend.infrastructure.repositories.json_files.system_settings import (
+    JsonSystemSettingsRepository,
+)
 from backend.infrastructure.repositories.json_files.tasks import JsonTaskRepository
 from backend.infrastructure.repositories.json_files.departments import JsonDepartmentRepository
 from backend.infrastructure.repositories.json_files.token_usage import JsonTokenUsageRepository
@@ -34,6 +37,7 @@ __all__ = [
     "JsonProjectRepository",
     "JsonSkillRepository",
     "JsonSprintRepository",
+    "JsonSystemSettingsRepository",
     "JsonTaskRepository",
     "JsonDepartmentRepository",
     "JsonTokenUsageRepository",

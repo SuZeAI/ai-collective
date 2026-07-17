@@ -151,6 +151,20 @@ class LLMHealthSchema(BaseModel):
     configured: bool
 
 
+class LlmModelOptionSchema(BaseModel):
+    """One selectable entry from config.yml's `models:` registry."""
+
+    name: str
+    displayName: str = ""
+    providerName: str = ""
+    supportsVision: bool = False
+    active: bool = False
+
+
+class ActiveModelSchema(BaseModel):
+    name: str
+
+
 class EntityCountsSchema(BaseModel):
     users: int
     staff: int

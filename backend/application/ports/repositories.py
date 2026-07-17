@@ -239,6 +239,17 @@ class ModelPricingRepository(Protocol):
         ...
 
 
+class SystemSettingsRepository(Protocol):
+    """Small persisted key-value store for runtime-switchable system settings
+    (currently just the Settings-UI active LLM model override)."""
+
+    def get_active_model(self) -> str | None:
+        ...
+
+    def set_active_model(self, name: str) -> None:
+        ...
+
+
 class GraphKnowledgeRepository(Protocol):
     def get(self, conversation_id: str) -> ConversationKnowledgeGraph | None:
         ...

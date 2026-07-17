@@ -9,7 +9,6 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
-from backend.api.settings import settings
 
 WHATSAPP_API_BASE = "https://graph.facebook.com/v19.0"
 
@@ -37,16 +36,14 @@ class WhatsAppBusinessToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.access_token = access_token or settings.tools.whatsapp_access_token
-        self.phone_number_id = phone_number_id or settings.tools.whatsapp_phone_number_id
+        self.access_token = access_token
+        self.phone_number_id = phone_number_id
 
     def _validate(self) -> None:
         if not self.access_token:
-            raise ValueError("WhatsApp access token required. Set WHATSAPP_ACCESS_TOKEN.")
+            raise ValueError("WhatsApp access token required. Configure access_token.")
         if not self.phone_number_id:
-            raise ValueError(
-                "WhatsApp phone number ID required. Set WHATSAPP_PHONE_NUMBER_ID."
-            )
+            raise ValueError("WhatsApp phone number ID required. Configure phone_number_id.")
 
     @tool(parse_docstring=True)
     async def whatsapp_send_text(

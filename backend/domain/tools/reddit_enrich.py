@@ -11,7 +11,6 @@ from urllib.parse import urlparse
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-from backend.api.settings import settings
 
 try:
     import requests as _requests
@@ -353,7 +352,7 @@ class RedditEnrichToolkit(BaseToolkit):
 
     def __init__(self, token: Optional[str] = None, **kwargs: Any):
         super().__init__(**kwargs)
-        self.token = token or settings.tools.scrapecreators_api_key
+        self.token = token
 
     @tool(parse_docstring=True)
     async def reddit_enrich(

@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 
 from backend.infrastructure.llm.base_langchain import LangChainLLMProvider
-from backend.infrastructure.llm.rotation import build_rotating_model, normalize_api_keys
+from backend.infrastructure.llm.rotation import RotationConfig, build_rotating_model, normalize_api_keys
 
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
@@ -42,6 +42,7 @@ class OpenWeightLangChainProvider(LangChainLLMProvider):
         default_headers: dict[str, str] | None = None,
         max_tool_rounds: int = 6,
         tool_timeout_seconds: int | None = None,
+        failover: RotationConfig | None = None,
     ):
         try:
             ChatOpenAI = importlib.import_module("langchain_openai").ChatOpenAI
@@ -65,7 +66,7 @@ class OpenWeightLangChainProvider(LangChainLLMProvider):
                 kwargs["default_headers"] = resolved_headers
             return ChatOpenAI(**kwargs)
 
-        llm = build_rotating_model(build_one, normalize_api_keys(api_key), label_prefix="open_weight")
+        llm = build_rotating_model(build_one, normalize_api_keys(api_key), label_prefix="open_weight", config=failover)
         super().__init__(
             llm,
             provider_name="Open-weight",

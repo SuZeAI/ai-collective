@@ -62,7 +62,7 @@ class ImageGenerationToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or settings.tools.image_gen_api_key or (settings.llm_keys.openai_api_key or "")
+        self.api_key = api_key or (settings.llm_keys.openai_api_key or "")
         self.endpoint = (endpoint or DEFAULT_ENDPOINT).strip() or DEFAULT_ENDPOINT
         self.model = (model or DEFAULT_MODEL).strip() or DEFAULT_MODEL
         self.size = (size or DEFAULT_SIZE).strip() or DEFAULT_SIZE
@@ -70,10 +70,7 @@ class ImageGenerationToolkit(BaseToolkit):
     def _key(self) -> str:
         key = (self.api_key or "").strip()
         if not key:
-            raise ValueError(
-                "Image generation API key required. Set IMAGE_GEN_API_KEY / OPENAI_API_KEY "
-                "or configure api_key on the skill."
-            )
+            raise ValueError("Image generation API key required. Configure api_key on the skill.")
         return key
 
     @tool(parse_docstring=True)

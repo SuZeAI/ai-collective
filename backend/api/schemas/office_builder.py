@@ -32,7 +32,7 @@ class OfficePlan(BaseModel):
     description: str = ""
     # software | marketing | research | general — chosen by the user before
     # creating; stored on the workspace as its company type.
-    type: str = "general"
+    company_type: str = "general"
     departments: list[DepartmentPlan] = Field(default_factory=list)
 
 
@@ -118,7 +118,7 @@ class ApplyOfficePlanRequest(BaseModel):
 
 
 class ApplyOfficePlanResponse(BaseModel):
-    workspace: CompanySchema
+    company: CompanySchema
     department_ids: list[str] = Field(default_factory=list)
     staff_ids: list[str] = Field(default_factory=list)
     skill_ids: list[str] = Field(default_factory=list)

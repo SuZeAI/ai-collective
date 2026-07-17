@@ -9,7 +9,6 @@ from urllib import error, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-from backend.api.settings import settings
 
 WECHAT_API_BASE = "https://api.weixin.qq.com/cgi-bin"
 
@@ -81,14 +80,12 @@ class WeChatMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.app_id = app_id or settings.tools.wechat_app_id
-        self.app_secret = app_secret or settings.tools.wechat_app_secret
+        self.app_id = app_id
+        self.app_secret = app_secret
 
     def _get_token(self) -> str:
         if not self.app_id or not self.app_secret:
-            raise ValueError(
-                "WeChat App ID and Secret required. Set WECHAT_APP_ID and WECHAT_APP_SECRET."
-            )
+            raise ValueError("WeChat App ID and Secret required. Configure app_id and app_secret.")
         return _get_access_token(self.app_id, self.app_secret)
 
     @tool(parse_docstring=True)

@@ -7,7 +7,6 @@ from urllib import error, request
 
 from langchain.tools import tool
 
-from backend.api.settings import settings
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
 
@@ -44,14 +43,12 @@ class SlackMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.bot_token = bot_token or settings.tools.slack_bot_token
-        self.default_channel = default_channel or settings.tools.slack_default_channel
+        self.bot_token = bot_token
+        self.default_channel = default_channel
 
     def _token(self) -> str:
         if not self.bot_token:
-            raise ValueError(
-                "Slack bot token required. Set SLACK_BOT_TOKEN or configure bot_token."
-            )
+            raise ValueError("Slack bot token required. Configure bot_token.")
         return self.bot_token
 
     @tool(parse_docstring=True)
