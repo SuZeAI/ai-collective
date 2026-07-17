@@ -28,7 +28,7 @@ class Sandbox(ABC):
 
     Implementations:
         LocalSandboxAdapter — runs commands directly on the host (local/dev mode)
-        AioSandbox          — runs commands inside a container via HTTP (docker/k8s mode)
+        AioSandbox          — runs commands inside a K8s pod via HTTP (k8s mode)
     """
 
     # ── Shell operations (session-based) ──────────────────────────────────────

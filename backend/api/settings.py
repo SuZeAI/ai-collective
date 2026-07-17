@@ -394,28 +394,11 @@ class SandboxSettings(BaseSettings):
         default="enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest",
         validation_alias=_alias("SANDBOX_IMAGE"),
     )
-    base_port: int = Field(default=8080, validation_alias=_alias("SANDBOX_BASE_PORT"))
-    container_prefix: str = Field(
-        default="ai-collective-sandbox", validation_alias=_alias("SANDBOX_CONTAINER_PREFIX")
-    )
     replicas: int = Field(default=3, validation_alias=_alias("SANDBOX_REPLICAS"))
     idle_timeout: int = Field(default=600, validation_alias=_alias("SANDBOX_IDLE_TIMEOUT"))
-    host: str = Field(default="localhost", validation_alias=_alias("SANDBOX_HOST"))
     provisioner_url: str | None = Field(default=None, validation_alias=_alias("SANDBOX_PROVISIONER_URL"))
     timeout: int = Field(default=120, validation_alias=_alias("SANDBOX_TIMEOUT"))
     workspace: str | None = Field(default=None, validation_alias=_alias("SANDBOX_WORKSPACE"))
-
-    # Container hardening (local Docker backend only — k8s hardening is the
-    # provisioner service's responsibility). seccomp defaults to unconfined
-    # because the vendor sandbox image's exact syscall needs aren't documented
-    # here; the rest are safe-by-default resource/privilege limits that guard
-    # against a runaway or malicious LLM-executed process without requiring
-    # image-specific tuning.
-    seccomp_unconfined: bool = Field(default=True, validation_alias=_alias("SANDBOX_SECCOMP_UNCONFINED"))
-    no_new_privileges: bool = Field(default=True, validation_alias=_alias("SANDBOX_NO_NEW_PRIVILEGES"))
-    memory_limit: str = Field(default="2g", validation_alias=_alias("SANDBOX_MEMORY_LIMIT"))
-    cpu_limit: str = Field(default="2", validation_alias=_alias("SANDBOX_CPU_LIMIT"))
-    pids_limit: int = Field(default=512, validation_alias=_alias("SANDBOX_PIDS_LIMIT"))
 
 
 class MinioSettings(BaseSettings):
@@ -783,10 +766,6 @@ class Settings(BaseSettings):
     def sandbox_mode(self) -> str: return self.sandbox.mode
     @property
     def sandbox_image(self) -> str: return self.sandbox.image
-    @property
-    def sandbox_base_port(self) -> int: return self.sandbox.base_port
-    @property
-    def sandbox_container_prefix(self) -> str: return self.sandbox.container_prefix
     @property
     def sandbox_replicas(self) -> int: return self.sandbox.replicas
     @property

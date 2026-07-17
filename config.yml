@@ -222,16 +222,12 @@ lock:
 
 # ── Sandbox ───────────────────────────────────────────────────────────────────
 sandbox:
-  mode: local                         # local | docker | k8s
+  mode: local                         # local | k8s
   timeout: 120
-  host: localhost
-  # docker mode:
+  # k8s mode:
   # image: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
-  # base_port: 8080
-  # container_prefix: ai-collective-sandbox
   # replicas: 3
   # idle_timeout: 600
-  # k8s mode:
   # provisioner_url: http://provisioner:8002
 
 # ── Authentication / JWT ──────────────────────────────────────────────────────

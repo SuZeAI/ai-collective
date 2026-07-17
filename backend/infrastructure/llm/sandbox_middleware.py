@@ -9,7 +9,7 @@ helper that the orchestrator nodes call when assembling an staff's tools — see
 Responsibilities:
   * Ensure the shared, conversation-scoped workspace exists on the host.
   * Report whether the conversation has any files (the lazy trigger).
-  * In docker/k8s mode, restore previously-backed-up files into the live sandbox
+  * In k8s mode, restore previously-backed-up files into the live sandbox
     (Pod filesystems are ephemeral) and push freshly-uploaded files in.
   * Back uploads up to object storage (MinIO) so they survive Pod recreation.
 
@@ -93,11 +93,13 @@ def ensure_conversation_sandbox(conversation_id: Optional[str]) -> Optional[Conv
         has_files = conversation_has_files(conversation_id)
 
         if has_files and _file_backend() == "s3":
-            # Rehydrate the host workspace agents read/write (covers local + the
-            # docker bind-mount) so files survive a restart on an ephemeral FS.
+            # Rehydrate the host workspace agents read/write so files survive a
+            # restart on an ephemeral FS.
             _restore_local_once(conversation_id, thread_id, workspace)
-            # k8s pods have no host mount — also push the bytes into the live pod.
-            if _sandbox_mode() not in ("local", "docker"):
+            # k8s Pods may run on a node that doesn't share a filesystem with
+            # the backend at all (a real cluster, vs. this host's dev k3s) —
+            # always also push the bytes directly into the live pod over HTTP.
+            if _sandbox_mode() != "local":
                 _restore_remote_once(conversation_id, thread_id, workspace)
 
         return ConversationSandbox(
@@ -117,8 +119,8 @@ def _restore_local_once(conversation_id: str, thread_id: str, workspace: str) ->
 
     In ``s3`` mode the host workspace is a cache: after a restart on an ephemeral
     filesystem it is empty even though the durable copy lives in MinIO. We restore
-    the bytes back into ``{SANDBOX_WORKSPACE}/<thread_id>/`` so sandbox tools (and
-    the docker bind-mount) see the files agents were exchanging. Idempotent and
+    the bytes back into ``{SANDBOX_WORKSPACE}/<thread_id>/`` — the backend-side
+    staging dir local mode's sandbox tools read/write directly. Idempotent and
     best-effort. Uses a distinct marker so it can coexist with the remote restore.
     """
     marker = f"local:{conversation_id}"
@@ -206,9 +208,10 @@ def push_upload_to_sandbox(conversation_id: str, rel_path: str, content: bytes) 
 def backup_conversation_workspace(conversation_id: str) -> None:
     """Sync a conversation's host workspace up to MinIO (best-effort).
 
-    Useful in local/docker mode where staff-written files live on the host. In
-    k8s mode staff outputs live only in the Pod; surfacing them is left to the
-    upload path / explicit backup tooling.
+    Useful in local mode, where staff-written files live directly on the host.
+    In k8s mode staff outputs live in the Pod (optionally also hostPath-mounted
+    for local dev, see docker/provisioner/app.py); surfacing them durably is
+    left to the upload path / explicit backup tooling.
     """
     try:
         if _file_backend() != "s3":
@@ -232,8 +235,8 @@ def cleanup_conversation_sandbox(conversation_id: str) -> None:
     """Best-effort teardown of a conversation's sandbox artifacts.
 
     Removes the host workspace, purges the file records and MinIO objects, and
-    (docker/k8s) destroys the per-conversation container/Pod. Safe to call even
-    when the chat never had files. Never raises.
+    (k8s mode) destroys the per-conversation Pod. Safe to call even when the
+    chat never had files. Never raises.
     """
     if not conversation_id:
         return
@@ -270,7 +273,7 @@ def cleanup_conversation_sandbox(conversation_id: str) -> None:
             except Exception:  # noqa: BLE001
                 pass
 
-        # Host workspace (also the docker bind-mount source / staging dir)
+        # Host workspace (backend-side staging dir; local mode reads/writes it directly)
         try:
             base = ""
             from backend.api.settings import settings

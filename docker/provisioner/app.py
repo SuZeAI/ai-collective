@@ -61,7 +61,7 @@ SANDBOX_IMAGE = os.environ.get(
 SKILLS_HOST_PATH = os.environ.get("SKILLS_HOST_PATH", "/skills")
 THREADS_HOST_PATH = os.environ.get("THREADS_HOST_PATH", "/.ai-collective/threads")
 SKILLS_PVC_NAME = os.environ.get("SKILLS_PVC_NAME", "")
-USERDATA_PVC_NAME = os.environ.get("USERDATA_PVC_NAME", "")
+WORKSPACE_PVC_NAME = os.environ.get("WORKSPACE_PVC_NAME", "")
 SAFE_THREAD_ID_PATTERN = r"^[A-Za-z0-9_\-]+$"
 
 # ``sandbox_id`` becomes part of K8s object names (``sandbox-{id}``,
@@ -292,34 +292,41 @@ def _build_volumes(thread_id: str) -> list[k8s_client.V1Volume]:
             ),
         )
 
-    if USERDATA_PVC_NAME:
-        userdata_vol = k8s_client.V1Volume(
-            name="user-data",
+    if WORKSPACE_PVC_NAME:
+        workspace_vol = k8s_client.V1Volume(
+            name="workspace",
             persistent_volume_claim=k8s_client.V1PersistentVolumeClaimVolumeSource(
-                claim_name=USERDATA_PVC_NAME,
+                claim_name=WORKSPACE_PVC_NAME,
             ),
         )
     else:
-        userdata_vol = k8s_client.V1Volume(
-            name="user-data",
+        workspace_vol = k8s_client.V1Volume(
+            name="workspace",
             host_path=k8s_client.V1HostPathVolumeSource(
-                path=join_host_path(THREADS_HOST_PATH, thread_id, "user-data"),
+                path=join_host_path(THREADS_HOST_PATH, thread_id, "workspace"),
                 type="DirectoryOrCreate",
             ),
         )
 
-    return [skills_vol, userdata_vol]
+    return [skills_vol, workspace_vol]
 
 
 def _build_volume_mounts(thread_id: str) -> list[k8s_client.V1VolumeMount]:
-    """Build volume mount list, using subPath for PVC user-data."""
-    userdata_mount = k8s_client.V1VolumeMount(
-        name="user-data",
-        mount_path="/mnt/user-data",
+    """Build volume mount list, using subPath for PVC workspace.
+
+    Mounted at /workspace — the same path the sandbox tools (and the
+    backup/restore push path) already address inside the container/pod
+    (see backend/domain/tools/sandbox_tools.py, sandbox_middleware.py's
+    _remote_base). Previously this mounted an unrelated /mnt/user-data that
+    no application code ever read from or wrote to.
+    """
+    workspace_mount = k8s_client.V1VolumeMount(
+        name="workspace",
+        mount_path="/workspace",
         read_only=False,
     )
-    if USERDATA_PVC_NAME:
-        userdata_mount.sub_path = f"threads/{thread_id}/user-data"
+    if WORKSPACE_PVC_NAME:
+        workspace_mount.sub_path = f"threads/{thread_id}/workspace"
 
     return [
         k8s_client.V1VolumeMount(
@@ -327,7 +334,7 @@ def _build_volume_mounts(thread_id: str) -> list[k8s_client.V1VolumeMount]:
             mount_path="/mnt/skills",
             read_only=True,
         ),
-        userdata_mount,
+        workspace_mount,
     ]
 
 
@@ -346,6 +353,22 @@ def _build_pod(sandbox_id: str, thread_id: str) -> k8s_client.V1Pod:
             },
         ),
         spec=k8s_client.V1PodSpec(
+            # kubelet creates a fresh hostPath dir as root:root 0755, which the
+            # sandbox image's non-root user can't write into. Fix ownership
+            # before the sandbox container starts rather than relying on
+            # fsGroup, whose hostPath support varies by k8s distro/version.
+            init_containers=[
+                k8s_client.V1Container(
+                    name="workspace-init",
+                    image=SANDBOX_IMAGE,
+                    image_pull_policy="IfNotPresent",
+                    command=["sh", "-c", "mkdir -p /workspace && chmod -R 0777 /workspace"],
+                    volume_mounts=[
+                        k8s_client.V1VolumeMount(name="workspace", mount_path="/workspace"),
+                    ],
+                    security_context=k8s_client.V1SecurityContext(run_as_user=0),
+                ),
+            ],
             containers=[
                 k8s_client.V1Container(
                     name="sandbox",

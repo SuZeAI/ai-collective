@@ -2,18 +2,16 @@
 
 The sandbox is where agent-issued shell commands and file operations run.
 `SANDBOX_MODE` (in `config.yml › sandbox`, overridable via `.env`) selects
-*how* and *where* that execution happens. There are **three** modes:
+*how* and *where* that execution happens. There are **two** modes:
 
 | Mode | Implementation | Where commands run | Isolation | Needs |
 |------|----------------|--------------------|-----------|-------|
 | `local` | `LocalSandboxAdapter` | Subprocess **inside the backend process** | None | `SANDBOX_WORKSPACE` (optional) |
-| `docker` | `LocalContainerBackend` | One **Docker container per sandbox**, started by the backend | Container | Docker socket (`/var/run/docker.sock`) |
 | `k8s` | `RemoteSandboxBackend` → provisioner | One **Pod per sandbox on k3s/Kubernetes** | Pod + NodePort | `SANDBOX_PROVISIONER_URL` + a running provisioner |
 
 Selection happens in `backend/infrastructure/sandbox/factory.py`
-(`local` → `LocalSandboxAdapter`; anything else → the provider, whose
-`_create_backend` picks `RemoteSandboxBackend` for `k8s` and
-`LocalContainerBackend` otherwise).
+(`local` → `LocalSandboxAdapter`; anything else → `AioSandboxProvider`, which
+requires `SANDBOX_MODE=k8s` and raises otherwise).
 
 ---
 
@@ -28,24 +26,6 @@ no isolation. Simplest option, intended for development.
 sandbox:
   SANDBOX_MODE: local
 ```
-
-## `docker`
-
-The backend starts its **own** AIO-sandbox Docker container per sandbox
-(`docker run`, container name `<SANDBOX_CONTAINER_PREFIX>-<id>`), maps a free
-host port starting from `SANDBOX_BASE_PORT`, and talks to the container's HTTP
-API. A warm pool keeps released containers around (`SANDBOX_REPLICAS`,
-`SANDBOX_IDLE_TIMEOUT`).
-
-Requires the backend to have access to the Docker daemon. In Docker Compose
-this means the Docker socket must be mounted into the backend container:
-- **prod** (`docker/docker-compose.yaml`) mounts it → `docker` mode works.
-- **dev** (`docker/docker-compose-dev.yaml`) does **not** mount it → only
-  `local` and `k8s` are usable in the dev stack.
-
-> The standalone `sandbox` Compose profile (the `sandbox` service) is **not**
-> this mode. It is a separate, manually-started container for debugging and is
-> not wired to any `SANDBOX_MODE` in the current code.
 
 ## `k8s`
 
@@ -96,9 +76,22 @@ So `make dev-provisioner` starts **only** the provisioner (not the standalone
 
 The Pod spec uses `imagePullPolicy: IfNotPresent`, so an image you pre-pulled
 into k3s with `sudo k3s ctr images pull <image>` (containerd namespace
-`k8s.io`) is reused — no registry pull at Pod start. But `SKILLS_HOST_PATH` and
-`THREADS_HOST_PATH` are **hostPath** mounts on the k3s node and must already
-exist, otherwise Pods get stuck in `FailedMount`/`ContainerCreating`.
+`k8s.io`) is reused — no registry pull at Pod start. `SKILLS_HOST_PATH` and
+`THREADS_HOST_PATH` are **hostPath** mounts on the k3s node; both use
+`DirectoryOrCreate`, so a not-yet-existing path just mounts empty rather than
+failing the Pod.
+
+### Host-visible `/workspace`
+
+Each Pod's `/workspace` — the same path sandbox tools and the backup/restore
+push path already use inside the container — is hostPath-mounted (or PVC, if
+`WORKSPACE_PVC_NAME` is set) at `{THREADS_HOST_PATH}/{thread_id}/workspace`.
+An init container (`workspace-init`, running as root) `chmod -R 0777`s it
+before the sandbox container starts, since kubelet creates hostPath dirs as
+`root:root 0755` and the sandbox image runs as a non-root user. This makes
+files agents write visible on the k3s node's filesystem live, in addition to
+the MinIO push/restore path (which remains the only durable option when the
+node doesn't share a filesystem with the backend, e.g. a real remote cluster).
 
 ---
 
@@ -108,10 +101,10 @@ exist, otherwise Pods get stuck in `FailedMount`/`ContainerCreating`.
 |-----|------|---------|
 | `SANDBOX_TIMEOUT` | all | Per-command timeout (seconds) |
 | `SANDBOX_WORKSPACE` | local | Workspace dir for subprocess execution |
-| `SANDBOX_IMAGE` | docker, k8s | AIO sandbox container image |
-| `SANDBOX_BASE_PORT` | docker | First host port for sandbox containers |
-| `SANDBOX_CONTAINER_PREFIX` | docker | Container name prefix |
-| `SANDBOX_REPLICAS` | docker, k8s | Warm-pool size |
-| `SANDBOX_IDLE_TIMEOUT` | docker, k8s | Seconds before an idle sandbox is destroyed |
-| `SANDBOX_HOST` | docker | Host used to reach sandbox containers |
+| `SANDBOX_IMAGE` | k8s | AIO sandbox container image |
+| `SANDBOX_REPLICAS` | k8s | Warm-pool size |
+| `SANDBOX_IDLE_TIMEOUT` | k8s | Seconds before an idle sandbox is destroyed |
 | `SANDBOX_PROVISIONER_URL` | k8s | URL of the provisioner service |
+| `SKILLS_HOST_PATH` | k8s (provisioner) | hostPath on the k3s node mounted read-only at `/mnt/skills` |
+| `THREADS_HOST_PATH` | k8s (provisioner) | hostPath on the k3s node under which each Pod's `/workspace` is mounted |
+| `WORKSPACE_PVC_NAME` | k8s (provisioner) | Use a PVC instead of hostPath for `/workspace`, when set |

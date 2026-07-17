@@ -5,7 +5,7 @@ All operations are strictly confined to the staff run's thread workspace:
 
 File tools reject any path outside that boundary.
 Bash commands run with HOME/TMPDIR set to the workspace and 'cd' restricted
-to prevent escaping (best-effort in local mode; hard-enforced in docker/k8s).
+to prevent escaping (best-effort in local mode; hard-enforced in k8s).
 
 Available tools:
   sandbox_bash        — execute a shell command
@@ -71,8 +71,8 @@ class SandboxToolkit(BaseToolkit):
 
     def __init__(self, sandbox=None, workspace: str | None = None, session_id: str | None = None, **kwargs):
         super().__init__(**kwargs)
-        # session_id keys the underlying sandbox (e.g. per-conversation container
-        # in docker/k8s mode); ignored for the local host-FS adapter.
+        # session_id keys the underlying sandbox (e.g. per-conversation Pod in
+        # k8s mode); ignored for the local host-FS adapter.
         self.sandbox = _get_sandbox(sandbox, session_id=session_id)
         from backend.infrastructure.sandbox.local_sandbox import LocalSandboxAdapter
         if workspace:
