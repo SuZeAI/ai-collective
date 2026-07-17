@@ -9,11 +9,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useCompanyScope } from "@/hooks/use-company-scope";
 
 const PLANNER_NONE = "__none__";
 
 export default function Projects() {
   const { toast } = useToast();
+  const scope = useCompanyScope();
   const [projects, setProjects] = useState<Project[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [open, setOpen] = useState(false);
@@ -28,6 +30,38 @@ export default function Projects() {
   const [saving, setSaving] = useState(false);
 
   const staffById = useMemo(() => new Map(staff.map((a) => [a.id, a])), [staff]);
+  const existingKeys = useMemo(() => new Set(projects.map((p) => p.key)), [projects]);
+
+  // Project keys are never typed by hand: derived from the current company's
+  // name (initials for multi-word names, first letters for a single word). A
+  // company name with no usable Latin letters (e.g. Japanese) falls back to a
+  // sequential "PROJECT-1", "PROJECT-2", ... default.
+  const deriveKeyFromCompany = (companyName: string) => {
+    const asciiWords = companyName.trim().split(/\s+/).filter((w) => /[a-zA-Z]/.test(w));
+    const base = (
+      asciiWords.length > 1
+        ? asciiWords.map((w) => w.match(/[a-zA-Z]/)?.[0] ?? "").join("")
+        : asciiWords[0]?.replace(/[^a-zA-Z]/g, "").slice(0, 4) ?? ""
+    ).toUpperCase();
+
+    if (base) {
+      let candidate = base;
+      let n = 2;
+      while (existingKeys.has(candidate)) {
+        candidate = `${base}${n}`;
+        n += 1;
+      }
+      return candidate;
+    }
+
+    let n = 1;
+    let candidate = `PROJECT-${n}`;
+    while (existingKeys.has(candidate)) {
+      n += 1;
+      candidate = `PROJECT-${n}`;
+    }
+    return candidate;
+  };
 
   const load = async () => {
     try {
@@ -51,7 +85,11 @@ export default function Projects() {
     setPlannerSystemPrompt("");
   };
 
-  const openCreate = () => { resetForm(); setOpen(true); };
+  const openCreate = () => {
+    resetForm();
+    setKey(deriveKeyFromCompany(scope.company?.name ?? ""));
+    setOpen(true);
+  };
 
   const openEdit = (p: Project) => {
     setEditingId(p.id);
@@ -116,15 +154,9 @@ export default function Projects() {
           <DialogContent>
             <DialogHeader><DialogTitle>{editingId ? "Edit Project" : "Create Project"}</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-2">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Key</label>
-                  <Input placeholder="NUC" value={key} maxLength={10} onChange={(e) => setKey(e.target.value.toUpperCase())} className="h-9 text-xs font-mono" />
-                </div>
-                <div className="space-y-1.5 col-span-2">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Name</label>
-                  <Input placeholder="Project name" value={name} onChange={(e) => setName(e.target.value)} className="h-9 text-xs" />
-                </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Name</label>
+                <Input placeholder="Project name" value={name} onChange={(e) => setName(e.target.value)} className="h-9 text-xs" />
               </div>
               <Textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[80px] resize-none" />
 

@@ -137,11 +137,15 @@ def test_nested_and_flat_access_agree():
 
 
 def test_failover_subsection_maps():
-    # `llm.failover.*` is nested under `llm:` in config.yml but maps to the
-    # FailoverSettings env aliases.
-    applied = apply_config_yaml()
-    assert applied.get("LLM_FAILOVER_STRATEGY") == "rotate"
+    # `llm.failover.*` (a subsection nested under `llm:`) still maps to the
+    # FailoverSettings env aliases via build_section_registry's subsections —
+    # config.yml no longer declares this block (each `models:` entry carries
+    # its own `failover:` now, see backend.infrastructure.llm.config), but the
+    # generic subsection-mapping mechanism it exercises is still live, so this
+    # tests it against a synthetic raw dict instead of the real file.
+    from backend.api.config_loader import map_config
 
-    from backend.api.settings import settings
-
-    assert settings.llm_failover.strategy == "rotate"
+    raw = {"llm": {"failover": {"strategy": "rotate", "key_cooldown_seconds": 30}}}
+    flat = map_config(raw)
+    assert flat.get("LLM_FAILOVER_STRATEGY") == "rotate"
+    assert flat.get("LLM_KEY_COOLDOWN_SECONDS") == "30"

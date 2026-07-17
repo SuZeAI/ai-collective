@@ -422,8 +422,8 @@ export default function VirtualOffice() {
   const handleDirectChat = async () => {
     if (!directChatInput.trim() || !selectedStaffId) return;
 
-    const staff = staff.find((a) => a.id === selectedStaffId);
-    if (!staff) return;
+    const staffMember = staff.find((a) => a.id === selectedStaffId);
+    if (!staffMember) return;
 
     const userMessage = directChatInput;
     setDirectChatInput("");
@@ -629,10 +629,10 @@ export default function VirtualOffice() {
           {/* Render Staff tokens using absolute coordinates calculated dynamically */}
           <AnimatePresence>
             {Object.entries(staffCanvasPositions).map(([staffId, pos]) => {
-              const staff = staff.find((a) => a.id === staffId);
-              if (!staff) return null;
+              const staffMember = staff.find((a) => a.id === staffId);
+              if (!staffMember) return null;
 
-              const isSelected = selectedStaffId === staff.id;
+              const isSelected = selectedStaffId === staffMember.id;
               const isThinking = pos.status === "thinking";
               const isCoffee = pos.status === "coffee";
               const isCollab = pos.status === "collaborating";
@@ -644,7 +644,7 @@ export default function VirtualOffice() {
                   transition={{ type: "spring", stiffness: 70, damping: 14 }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setSelectedStaffId(staff.id);
+                    setSelectedStaffId(staffMember.id);
                   }}
                   className="absolute aspect-square flex flex-col items-center justify-center cursor-pointer z-30 group p-1"
                   style={{
@@ -703,7 +703,7 @@ export default function VirtualOffice() {
                       }`}
                     >
                       <StaffAvatar
-                        staff={staff}
+                        staff={staffMember}
                         className="w-full h-full rounded-full"
                       />
                     </motion.div>
@@ -712,7 +712,7 @@ export default function VirtualOffice() {
 
                   {/* Name banner */}
                   <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 bg-white/90 dark:bg-slate-950/90 px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/5 pointer-events-none mt-1 shadow-sm truncate max-w-[65px] text-center">
-                    {staff.name}
+                    {staffMember.name}
                   </span>
                 </motion.div>
               );
@@ -944,10 +944,10 @@ export default function VirtualOffice() {
               {selectedTaskId && messages[selectedTaskId] ? (
                 // Show General office task meeting logs
                 messages[selectedTaskId].map((msg) => {
-                  const staff = staff.find((a) => a.id === msg.staffId);
+                  const staffMember = staff.find((a) => a.id === msg.staffId);
                   return (
                     <div key={msg.id} className="leading-relaxed mb-3">
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">{staff?.name || msg.staffId}:</span>{" "}
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">{staffMember?.name || msg.staffId}:</span>{" "}
                       <span className="text-[10px] text-slate-400 ml-1">💭</span>
                       <div className="text-[11px] text-slate-700 dark:text-slate-300 pl-4 mt-0.5 leading-normal prose prose-sm dark:prose-invert max-w-none [&>p]:leading-normal [&>p:last-child]:mb-0 [&>*:last-child]:mb-0">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>

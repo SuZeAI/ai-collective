@@ -7,7 +7,6 @@ from urllib import error, parse, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-from backend.api.settings import settings
 
 CALLMEBOT_SIGNAL_URL = "https://signal.callmebot.com/signal/send.php"
 
@@ -47,17 +46,17 @@ class SignalMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.phone_number = phone_number or settings.tools.signal_phone_number
-        self.api_key = api_key or settings.tools.signal_callmebot_api_key
+        self.phone_number = phone_number
+        self.api_key = api_key
 
     def _validate(self) -> None:
         if not self.phone_number:
             raise ValueError(
-                "Signal phone number required. Set SIGNAL_PHONE_NUMBER (international format, e.g. +84901234567)."
+                "Signal phone number required. Configure phone_number (international format, e.g. +84901234567)."
             )
         if not self.api_key:
             raise ValueError(
-                "CallMeBot API key required. Register at signal.callmebot.com and set SIGNAL_CALLMEBOT_API_KEY."
+                "CallMeBot API key required. Register at signal.callmebot.com and configure api_key."
             )
 
     @tool(parse_docstring=True)

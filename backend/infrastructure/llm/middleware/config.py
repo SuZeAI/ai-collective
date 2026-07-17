@@ -89,6 +89,9 @@ class MiddlewareConfig:
     rolling_summary_keep_messages: int = 10
     ltm_middleware_enabled: bool = False
     run_token_budget: int = 0
+    prompt_cache_enabled: bool = False
+    prompt_cache_ttl: str = "5m"
+    prompt_cache_min_messages: int = 0
 
 
 def get_middleware_config() -> MiddlewareConfig:
@@ -119,4 +122,7 @@ def get_middleware_config() -> MiddlewareConfig:
         rolling_summary_keep_messages=int(_get(s, "rolling_summary", "keep_messages", llm.rolling_summary_keep_messages)),
         ltm_middleware_enabled=bool(_get(s, "long_term_memory", "enabled", llm.ltm_middleware_enabled)),
         run_token_budget=int(_get(s, "cost_budget", "run_token_budget", llm.run_token_budget)),
+        prompt_cache_enabled=bool(_get(s, "prompt_cache", "enabled", llm.prompt_cache_enabled)),
+        prompt_cache_ttl=str(_get(s, "prompt_cache", "ttl", llm.prompt_cache_ttl)),
+        prompt_cache_min_messages=int(_get(s, "prompt_cache", "min_messages", llm.prompt_cache_min_messages)),
     )

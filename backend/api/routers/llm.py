@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from backend.api.deps import (
+    _resolve_active_model_config,
     current_owner_id_dep,
     get_staff_graph_service,
     get_staff_service,
@@ -18,7 +19,9 @@ from backend.api.deps import (
     get_skill_tool_manager,
     get_task_service,
 )
+from backend.api.schemas.admin import LlmModelOptionSchema
 from backend.api.schemas.staff_graph import GraphRunRequest, GraphRunResponse, GraphTurnSchema
+from backend.infrastructure.llm.config import get_enabled_models
 from backend.application.ports.staff_graph import CustomGraphSpec, GraphStaffDefinition
 from backend.application.service.staff_service import StaffService
 from backend.application.service.graph_context_service import GraphContextService
@@ -50,6 +53,27 @@ def _require_conversation_access(task_service: TaskService, conversation_id: str
         raise HTTPException(status_code=404, detail="Meeting not found")
     if not is_visible_to(owner_id, task.owner_id):
         raise HTTPException(status_code=404, detail="Meeting not found")
+
+
+@router.get("/models", response_model=list[LlmModelOptionSchema])
+def list_llm_models(
+    _owner_id: str = Depends(current_owner_id_dep),
+) -> list[LlmModelOptionSchema]:
+    """Selectable models (config.yml `models:` entries with `enabled: true`),
+    with the currently-active one flagged. Powers the Settings-UI model picker;
+    switching the active model is admin-gated (PUT /admin/monitoring/active-model)."""
+    active = _resolve_active_model_config()
+    active_name = active.name if active else None
+    return [
+        LlmModelOptionSchema(
+            name=m.name,
+            displayName=m.display_name or m.name,
+            providerName=m.provider_name or "",
+            supportsVision=m.supports_vision,
+            active=(m.name == active_name),
+        )
+        for m in get_enabled_models()
+    ]
 
 
 class ChatRequest(BaseModel):

@@ -34,6 +34,8 @@ class MongoTokenUsageRepository:
             timestamp=_parse_timestamp(item.get("timestamp")),
             staff_name=str(item.get("agent_name", "")),
             department_id=str(item.get("department_id", "")),
+            cache_read_tokens=int(item.get("cache_read_tokens", 0) or 0),
+            cache_creation_tokens=int(item.get("cache_creation_tokens", 0) or 0),
         )
 
     def add(self, record: TokenUsageRecord) -> TokenUsageRecord:
@@ -51,6 +53,8 @@ class MongoTokenUsageRepository:
                 "timestamp": record.timestamp.isoformat(),
                 "agent_name": record.staff_name,
                 "department_id": record.department_id,
+                "cache_read_tokens": record.cache_read_tokens,
+                "cache_creation_tokens": record.cache_creation_tokens,
             }
         )
         return record

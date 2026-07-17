@@ -10,7 +10,6 @@ from urllib import error, parse, request
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-from backend.api.settings import settings
 
 TRUTHSOCIAL_SEARCH_URL = "https://truthsocial.com/api/v2/search"
 
@@ -204,7 +203,7 @@ class TruthSocialToolkit(BaseToolkit):
 
     def __init__(self, token: Optional[str] = None, **kwargs: Any):
         super().__init__(**kwargs)
-        self.token = token or settings.tools.truthsocial_token
+        self.token = token
 
     @tool(parse_docstring=True)
     async def truthsocial_search(
@@ -226,7 +225,7 @@ class TruthSocialToolkit(BaseToolkit):
         """
         selected_token = (token or self.token or "").strip()
         if not selected_token:
-            raise ValueError("Missing Truth Social token. Set TRUTHSOCIAL_TOKEN or pass token in tool config.")
+            raise ValueError("Missing Truth Social token. Configure token in tool config.")
 
         raw = await asyncio.to_thread(
             search_truthsocial,

@@ -3,8 +3,8 @@
 These wrap the Gemini Developer API (``https://generativelanguage.googleapis.com``)
 which has request/response shapes that differ from the OpenAI-compatible tools, so
 each capability gets its own toolkit. Authentication uses the ``x-goog-api-key``
-header; supply your key via the skill ``api_key`` config or the ``GEMINI_API_KEY`` /
-``GOOGLE_API_KEY`` environment variable.
+header; supply your key via the skill ``api_key`` config, or it falls back to the
+platform's configured Google LLM key.
 
   - GeminiImageToolkit -> Imagen ``:predict`` (text -> image)
   - GeminiTTSToolkit   -> Gemini TTS ``:generateContent`` (text -> speech, PCM wrapped to WAV)
@@ -38,11 +38,9 @@ DEFAULT_VIDEO_MODEL = "veo-3.0-generate-preview"
 
 
 def _resolve_key(explicit: Optional[str]) -> str:
-    key = (explicit or settings.tools.gemini_api_key or settings.llm_keys.google_api_key or "").strip()
+    key = (explicit or settings.llm_keys.google_api_key or "").strip()
     if not key:
-        raise ValueError(
-            "Gemini API key required. Set GEMINI_API_KEY / GOOGLE_API_KEY or configure api_key on the skill."
-        )
+        raise ValueError("Gemini API key required. Configure api_key on the skill.")
     return key
 
 
@@ -90,7 +88,7 @@ class GeminiImageToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or settings.tools.gemini_api_key or (settings.llm_keys.google_api_key or "")
+        self.api_key = api_key or (settings.llm_keys.google_api_key or "")
         self.model = (model or DEFAULT_IMAGE_MODEL).strip() or DEFAULT_IMAGE_MODEL
         self.base_url = (base_url or DEFAULT_BASE_URL).strip() or DEFAULT_BASE_URL
         self.aspect_ratio = (aspect_ratio or "1:1").strip() or "1:1"
@@ -161,7 +159,7 @@ class GeminiTTSToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or settings.tools.gemini_api_key or (settings.llm_keys.google_api_key or "")
+        self.api_key = api_key or (settings.llm_keys.google_api_key or "")
         self.model = (model or DEFAULT_TTS_MODEL).strip() or DEFAULT_TTS_MODEL
         self.base_url = (base_url or DEFAULT_BASE_URL).strip() or DEFAULT_BASE_URL
         self.voice = (voice or DEFAULT_TTS_VOICE).strip() or DEFAULT_TTS_VOICE
@@ -252,7 +250,7 @@ class GeminiVideoToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or settings.tools.gemini_api_key or (settings.llm_keys.google_api_key or "")
+        self.api_key = api_key or (settings.llm_keys.google_api_key or "")
         self.model = (model or DEFAULT_VIDEO_MODEL).strip() or DEFAULT_VIDEO_MODEL
         self.base_url = (base_url or DEFAULT_BASE_URL).strip() or DEFAULT_BASE_URL
         self.poll_interval_seconds = max(1, int(poll_interval_seconds or 10))

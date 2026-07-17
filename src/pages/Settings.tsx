@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Plus, Trash2, Plug, Settings2, Globe, CheckCircle2, Eye, EyeOff, Pencil,
+  Plus, Trash2, Plug, Settings2, Globe, CheckCircle2, Eye, EyeOff, Pencil, Cpu,
 } from "lucide-react";
-import { api, type Connection, type PlatformDef } from "@/lib/api";
+import { api, type Connection, type PlatformDef, type LlmModelOption } from "@/lib/api";
 import { PLATFORM_ICONS, PLATFORM_COLORS } from "@/lib/platforms";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,84 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+
+// ─── Active LLM Model Section (admin-only) ────────────────────────────────────
+function ActiveModelSection() {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
+  const { data: models = [], isLoading } = useQuery({
+    queryKey: ["llm-models"],
+    queryFn: api.listLlmModels,
+  });
+
+  const setActive = useMutation({
+    mutationFn: (name: string) => api.setActiveModel(name),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["llm-models"] });
+      toast({ title: "Active model updated" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  if (!isLoading && models.length === 0) return null;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-base font-semibold">Active LLM Model</h2>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Pick which model the whole platform uses by default. Enable more options in config.yml.
+        </p>
+      </div>
+
+      {isLoading ? (
+        <div className="py-6 text-center text-muted-foreground text-sm">Loading models...</div>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {models.map((m: LlmModelOption) => (
+            <button
+              key={m.name}
+              type="button"
+              disabled={setActive.isPending}
+              onClick={() => !m.active && setActive.mutate(m.name)}
+              className={cn(
+                "text-left rounded-2xl border p-4 transition-colors",
+                m.active
+                  ? "border-teal-500/60 bg-teal-500/10"
+                  : "border-border/50 bg-card/60 hover:border-teal-500/30",
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted/50 shrink-0">
+                    <Cpu className="h-4 w-4 text-teal-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm truncate">{m.displayName}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{m.providerName}</p>
+                  </div>
+                </div>
+                {m.active && (
+                  <Badge variant="outline" className="text-[9px] h-5 px-1.5 border-emerald-500/40 text-emerald-400 gap-1 shrink-0">
+                    <CheckCircle2 className="h-2.5 w-2.5" />
+                    Active
+                  </Badge>
+                )}
+              </div>
+              {m.supportsVision && (
+                <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <Eye className="h-3 w-3" />
+                  Vision
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Connection Form Dialog ───────────────────────────────────────────────────
 function ConnectionDialog({
@@ -273,6 +352,8 @@ function ConnectionCard({
 
 // ─── Main Settings Page ───────────────────────────────────────────────────────
 export default function Settings() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin" || user?.role === "system";
   const { toast } = useToast();
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -345,6 +426,8 @@ export default function Settings() {
           Add Connection
         </Button>
       </div>
+
+      {isAdmin && <ActiveModelSection />}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4">

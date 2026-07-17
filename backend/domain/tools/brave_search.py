@@ -9,7 +9,6 @@ from urllib.parse import urlencode, urlparse
 
 from langchain.tools import tool
 
-from backend.api.settings import settings
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools.http import request
 
@@ -253,7 +252,7 @@ class BraveSearchToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or settings.tools.brave_search_api_key
+        self.api_key = api_key
         self.use_llm_context = use_llm_context
 
     @tool(parse_docstring=True)
@@ -278,9 +277,7 @@ class BraveSearchToolkit(BaseToolkit):
         """
         selected_api_key = (api_key or self.api_key or "").strip()
         if not selected_api_key:
-            raise ValueError(
-                "Missing Brave Search API key. Set BRAVE_SEARCH_API_KEY or pass api_key in tool config."
-            )
+            raise ValueError("Missing Brave Search API key. Configure api_key in tool config.")
 
         selected_depth = (depth or "default").strip().lower()
         if selected_depth not in DEPTH_RESULT_COUNT:

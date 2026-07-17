@@ -33,6 +33,9 @@ from backend.infrastructure.repositories.mongo_repositories.office_builder_sessi
 from backend.infrastructure.repositories.mongo_repositories.projects import MongoProjectRepository
 from backend.infrastructure.repositories.mongo_repositories.skills import MongoSkillRepository
 from backend.infrastructure.repositories.mongo_repositories.sprints import MongoSprintRepository
+from backend.infrastructure.repositories.mongo_repositories.system_settings import (
+    MongoSystemSettingsRepository,
+)
 from backend.infrastructure.repositories.mongo_repositories.tasks import MongoTaskRepository
 from backend.infrastructure.repositories.mongo_repositories.departments import MongoDepartmentRepository
 from backend.infrastructure.repositories.mongo_repositories.token_usage import (
@@ -54,6 +57,7 @@ __all__ = [
     "MongoProjectRepository",
     "MongoSkillRepository",
     "MongoSprintRepository",
+    "MongoSystemSettingsRepository",
     "MongoTaskRepository",
     "MongoDepartmentRepository",
     "MongoTokenUsageRepository",

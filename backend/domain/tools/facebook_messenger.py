@@ -9,7 +9,6 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
-from backend.api.settings import settings
 
 MESSENGER_API_BASE = "https://graph.facebook.com/v19.0"
 
@@ -37,13 +36,11 @@ class FacebookMessengerToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.page_access_token = page_access_token or settings.tools.messenger_page_access_token
+        self.page_access_token = page_access_token
 
     def _token(self) -> str:
         if not self.page_access_token:
-            raise ValueError(
-                "Messenger page access token required. Set MESSENGER_PAGE_ACCESS_TOKEN."
-            )
+            raise ValueError("Messenger page access token required. Configure page_access_token.")
         return self.page_access_token
 
     @tool(parse_docstring=True)

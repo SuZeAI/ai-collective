@@ -466,10 +466,21 @@ export type ModelPricing = {
   outputPricePerMillion: number;
 };
 
+// One selectable entry from config.yml's `models:` registry (enabled: true only).
+export type LlmModelOption = {
+  name: string;
+  displayName: string;
+  providerName: string;
+  supportsVision: boolean;
+  active: boolean;
+};
+
 export type UsageTotals = {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
   requests: number;
   cost: number;
 };
@@ -479,6 +490,8 @@ export type ModelUsage = {
   provider: string;
   inputTokens: number;
   outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
   requests: number;
   cost: number;
   priced: boolean;
@@ -1106,6 +1119,12 @@ export const api = {
       `/admin/monitoring/pricing?model=${encodeURIComponent(model)}`,
       { method: "DELETE" },
     ),
+  listLlmModels: () => apiFetch<LlmModelOption[]>("/llm/models"),
+  setActiveModel: (name: string) =>
+    apiFetch<{ name: string }>("/admin/monitoring/active-model", {
+      method: "PUT",
+      body: JSON.stringify({ name }),
+    }),
 
   // Project (meeting) files
   listMeetingFiles: (taskId: string) =>

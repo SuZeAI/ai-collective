@@ -9,7 +9,6 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
-from backend.api.settings import settings
 
 WIRE_API_BASE = "https://prod-nginz-https.wire.com"
 
@@ -42,14 +41,12 @@ class WireMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.bearer_token = bearer_token or settings.tools.wire_bearer_token
-        self.bot_conversation_id = bot_conversation_id or settings.tools.wire_conversation_id
+        self.bearer_token = bearer_token
+        self.bot_conversation_id = bot_conversation_id
 
     def _token(self) -> str:
         if not self.bearer_token:
-            raise ValueError(
-                "Wire bearer token required. Set WIRE_BEARER_TOKEN or configure bearer_token."
-            )
+            raise ValueError("Wire bearer token required. Configure bearer_token.")
         return self.bearer_token
 
     @tool(parse_docstring=True)
@@ -66,9 +63,7 @@ class WireMessagingToolkit(BaseToolkit):
         """
         target = conversation_id or self.bot_conversation_id
         if not target:
-            raise ValueError(
-                "Wire conversation ID required. Set WIRE_CONVERSATION_ID."
-            )
+            raise ValueError("Wire conversation ID required. Configure bot_conversation_id.")
         data = {"type": "conversation.otr-message-add", "data": {"text": text}}
         return await asyncio.to_thread(
             _wire_request,

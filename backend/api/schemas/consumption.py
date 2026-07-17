@@ -12,6 +12,8 @@ class ConsumptionTotalsSchema(BaseModel):
     inputTokens: int
     outputTokens: int
     totalTokens: int
+    cacheReadTokens: int = 0
+    cacheCreationTokens: int = 0
     requests: int
     cost: float
 
@@ -68,6 +70,8 @@ class ConsumptionSchema(BaseModel):
                 inputTokens=s["totals"]["input_tokens"],
                 outputTokens=s["totals"]["output_tokens"],
                 totalTokens=s["totals"]["total_tokens"],
+                cacheReadTokens=s["totals"].get("cache_read_tokens", 0),
+                cacheCreationTokens=s["totals"].get("cache_creation_tokens", 0),
                 requests=s["totals"]["requests"],
                 cost=s["totals"]["cost"],
             ),

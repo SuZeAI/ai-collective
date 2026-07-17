@@ -187,6 +187,17 @@ class LLMSettings(BaseSettings):
     guardrail_deny_patterns: str | None = Field(
         default=None, validation_alias=_alias("LLM_GUARDRAIL_DENY_PATTERNS")
     )
+    # Anthropic prompt caching — marks the system prompt/tools/last-message
+    # prefix as cacheable so repeat calls (agent loops, subagent fan-out,
+    # multi-turn meetings) reuse cached input tokens instead of paying full
+    # price. No-op on non-Anthropic providers. Off by default.
+    prompt_cache_enabled: bool = Field(
+        default=False, validation_alias=_alias("LLM_PROMPT_CACHE_ENABLED")
+    )
+    prompt_cache_ttl: str = Field(default="5m", validation_alias=_alias("LLM_PROMPT_CACHE_TTL"))
+    prompt_cache_min_messages: int = Field(
+        default=0, validation_alias=_alias("LLM_PROMPT_CACHE_MIN_MESSAGES")
+    )
 
     def fallback_model_list(self) -> list[str]:
         raw = self.fallback_models or ""
@@ -599,79 +610,29 @@ class SecuritySettings(BaseSettings):
 
 
 class ToolsSettings(BaseSettings):
-    """Per-tool credentials / endpoints (secrets), env-backed FALLBACKS.
+    """Non-credential per-tool defaults (paths, display names) that stay env-backed.
 
-    A skill's own ``config`` (stored in MongoDB, edited via the UI) is the
-    primary source and is passed to each toolkit constructor. When a skill leaves
-    a field empty, the toolkit falls back to the matching value here, which is
-    read from the environment (.env / OS env) — these are NOT declared in
-    config.yml. Global, non-credential flags live in ``SecuritySettings``.
+    Actual tool/skill credentials (API keys, tokens, handles) are user-configured
+    per skill only (UI, stored in MongoDB, passed to the toolkit constructor) —
+    a normal user can obtain those themselves from the provider, so there is no
+    .env fallback for them. What remains here is either a server-side file-system
+    default (bird_search_mjs, tts_output_dir, google workspace token paths) that
+    only a deployer would set, or a non-secret preference (xai_model,
+    viber_sender_name). Global, non-credential flags live in ``SecuritySettings``.
     """
 
     model_config = _SECTION_CONFIG
 
-    # ── Search / scraping ──────────────────────────────────────────────────────
-    brave_search_api_key: str = Field(default="", validation_alias=_alias("BRAVE_SEARCH_API_KEY"))
-    parallel_api_key: str = Field(default="", validation_alias=_alias("PARALLEL_API_KEY"))
-    openrouter_api_key: str = Field(default="", validation_alias=_alias("OPENROUTER_API_KEY"))
-    scrapecreators_api_key: str = Field(default="", validation_alias=_alias("SCRAPECREATORS_API_KEY"))
-    truthsocial_token: str = Field(default="", validation_alias=_alias("TRUTHSOCIAL_TOKEN"))
-    xiaohongshu_api_base_url: str = Field(default="", validation_alias=_alias("XIAOHONGSHU_API_BASE_URL"))
-    # bird_x (X scraping via local .mjs)
-    auth_token: str = Field(default="", validation_alias=_alias("AUTH_TOKEN"))
-    ct0: str = Field(default="", validation_alias=_alias("CT0"))
+    # bird_x (X scraping via local .mjs) — vendored script path, not a credential.
     bird_search_mjs: str = Field(default="", validation_alias=_alias("BIRD_SEARCH_MJS"))
 
     # ── X / xAI ────────────────────────────────────────────────────────────────
-    xai_api_key: str = Field(default="", validation_alias=_alias("XAI_API_KEY"))
     xai_model: str = Field(default="grok-4-fast", validation_alias=_alias("XAI_MODEL"))
 
-    # ── Bluesky ──────────────────────────────────────────────────────────────
-    bsky_handle: str = Field(default="", validation_alias=_alias("BSKY_HANDLE"))
-    bsky_app_password: str = Field(default="", validation_alias=_alias("BSKY_APP_PASSWORD"))
-
     # ── Messaging ──────────────────────────────────────────────────────────────
-    slack_bot_token: str = Field(default="", validation_alias=_alias("SLACK_BOT_TOKEN"))
-    slack_default_channel: str = Field(default="", validation_alias=_alias("SLACK_DEFAULT_CHANNEL"))
-    discord_bot_token: str = Field(default="", validation_alias=_alias("DISCORD_BOT_TOKEN"))
-    discord_webhook_url: str = Field(default="", validation_alias=_alias("DISCORD_WEBHOOK_URL"))
-    discord_channel_id: str = Field(default="", validation_alias=_alias("DISCORD_CHANNEL_ID"))
-    telegram_bot_token: str = Field(default="", validation_alias=_alias("TELEGRAM_BOT_TOKEN"))
-    telegram_chat_id: str = Field(default="", validation_alias=_alias("TELEGRAM_CHAT_ID"))
-    teams_webhook_url: str = Field(default="", validation_alias=_alias("TEAMS_WEBHOOK_URL"))
-    signal_phone_number: str = Field(default="", validation_alias=_alias("SIGNAL_PHONE_NUMBER"))
-    signal_callmebot_api_key: str = Field(default="", validation_alias=_alias("SIGNAL_CALLMEBOT_API_KEY"))
-    skype_bot_app_id: str = Field(default="", validation_alias=_alias("SKYPE_BOT_APP_ID"))
-    skype_bot_app_password: str = Field(default="", validation_alias=_alias("SKYPE_BOT_APP_PASSWORD"))
-    skype_service_url: str = Field(default="", validation_alias=_alias("SKYPE_SERVICE_URL"))
-    skype_conversation_id: str = Field(default="", validation_alias=_alias("SKYPE_CONVERSATION_ID"))
-    snapchat_access_token: str = Field(default="", validation_alias=_alias("SNAPCHAT_ACCESS_TOKEN"))
-    snapchat_ad_account_id: str = Field(default="", validation_alias=_alias("SNAPCHAT_AD_ACCOUNT_ID"))
-    whatsapp_access_token: str = Field(default="", validation_alias=_alias("WHATSAPP_ACCESS_TOKEN"))
-    whatsapp_phone_number_id: str = Field(default="", validation_alias=_alias("WHATSAPP_PHONE_NUMBER_ID"))
-    wechat_app_id: str = Field(default="", validation_alias=_alias("WECHAT_APP_ID"))
-    wechat_app_secret: str = Field(default="", validation_alias=_alias("WECHAT_APP_SECRET"))
-    viber_auth_token: str = Field(default="", validation_alias=_alias("VIBER_AUTH_TOKEN"))
     viber_sender_name: str = Field(default="AI Assistant", validation_alias=_alias("VIBER_SENDER_NAME"))
-    wire_bearer_token: str = Field(default="", validation_alias=_alias("WIRE_BEARER_TOKEN"))
-    wire_conversation_id: str = Field(default="", validation_alias=_alias("WIRE_CONVERSATION_ID"))
-    zalo_oa_access_token: str = Field(default="", validation_alias=_alias("ZALO_OA_ACCESS_TOKEN"))
-    line_channel_access_token: str = Field(default="", validation_alias=_alias("LINE_CHANNEL_ACCESS_TOKEN"))
-    messenger_page_access_token: str = Field(
-        default="", validation_alias=_alias("MESSENGER_PAGE_ACCESS_TOKEN")
-    )
-    instagram_page_access_token: str = Field(
-        default="", validation_alias=_alias("INSTAGRAM_PAGE_ACCESS_TOKEN")
-    )
-    instagram_user_id: str = Field(default="", validation_alias=_alias("INSTAGRAM_USER_ID"))
 
     # ── Media generation ─────────────────────────────────────────────────────
-    gemini_api_key: str = Field(default="", validation_alias=_alias("GEMINI_API_KEY"))
-    image_gen_api_key: str = Field(default="", validation_alias=_alias("IMAGE_GEN_API_KEY"))
-    video_gen_api_key: str = Field(default="", validation_alias=_alias("VIDEO_GEN_API_KEY"))
-    video_gen_create_endpoint: str = Field(default="", validation_alias=_alias("VIDEO_GEN_CREATE_ENDPOINT"))
-    video_gen_status_endpoint: str = Field(default="", validation_alias=_alias("VIDEO_GEN_STATUS_ENDPOINT"))
-    tts_api_key: str = Field(default="", validation_alias=_alias("TTS_API_KEY"))
     tts_output_dir: str = Field(default="", validation_alias=_alias("TTS_OUTPUT_DIR"))
 
     # ── Google workspace token paths ───────────────────────────────────────────

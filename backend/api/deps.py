@@ -37,6 +37,7 @@ from backend.domain.staff.langgraph_ring import LangGraphRingOrchestrator
 from backend.domain.staff.langgraph_supervisor import LangGraphSupervisorOrchestrator
 from backend.domain.staff.langgraph_tree import LangGraphTreeOrchestrator
 from backend.domain.staff.langgraph_custom import LangGraphCustomOrchestrator
+from backend.infrastructure.llm.config import get_enabled_models, get_model_config
 from backend.infrastructure.llm.factory import build_default_llm_provider
 from backend.infrastructure.repositories.json_files import (
     JsonActivityFeedRepository,
@@ -47,6 +48,7 @@ from backend.infrastructure.repositories.json_files import (
     JsonModelPricingRepository,
     JsonOfficeBuilderSessionRepository,
     JsonSkillRepository,
+    JsonSystemSettingsRepository,
     JsonTaskRepository,
     JsonDepartmentRepository,
     JsonTokenUsageRepository,
@@ -70,6 +72,7 @@ from backend.infrastructure.repositories.mongo_repositories import (
     MongoModelPricingRepository,
     MongoOfficeBuilderSessionRepository,
     MongoSkillRepository,
+    MongoSystemSettingsRepository,
     MongoTaskRepository,
     MongoDepartmentRepository,
     MongoTokenUsageRepository,
@@ -531,6 +534,14 @@ def _monitoring_stores():
 
 
 @lru_cache
+def get_system_settings_repository():
+    """SystemSettingsRepository for the configured backend (active-model override)."""
+    if settings.storage_backend == "mongo":
+        return MongoSystemSettingsRepository(_mongo_db())
+    return JsonSystemSettingsRepository(_store("system_settings.json"))
+
+
+@lru_cache
 def init_usage_tracking() -> bool:
     """Register the global LLM usage recorder against the configured store.
 
@@ -554,6 +565,8 @@ def init_usage_tracking() -> bool:
         user_id: str,
         staff_name: str = "",
         department_id: str = "",
+        cache_read_tokens: int = 0,
+        cache_creation_tokens: int = 0,
     ) -> None:
         usage_repo.add(
             TokenUsageRecord(
@@ -567,6 +580,8 @@ def init_usage_tracking() -> bool:
                 timestamp=datetime.now(timezone.utc),
                 staff_name=staff_name or "",
                 department_id=department_id or "",
+                cache_read_tokens=cache_read_tokens,
+                cache_creation_tokens=cache_creation_tokens,
             )
         )
 
@@ -591,10 +606,33 @@ def get_monitoring_service():
     )
 
 
+def _resolve_active_model_config():
+    """The active ``models:`` entry: DB override (Settings UI) if it names a
+    currently-enabled model, else the config.yml/env resolution, else None
+    (falls back to legacy settings.llm_provider/model in build_default_llm_provider)."""
+    enabled = get_enabled_models()
+    if enabled:
+        try:
+            override = get_system_settings_repository().get_active_model()
+        except Exception:  # noqa: BLE001 — DB unavailable must not block LLM startup
+            override = None
+        if override:
+            match = next((m for m in enabled if m.name == override), None)
+            if match:
+                return match
+    return get_model_config()
+
+
 @lru_cache
 def _llm_provider():
     init_usage_tracking()
-    return build_default_llm_provider()
+    return build_default_llm_provider(model_config=_resolve_active_model_config())
+
+
+def refresh_llm_provider() -> None:
+    """Drop the cached LLM provider so the next call rebuilds it — call this
+    after the Settings-UI active-model override changes."""
+    _llm_provider.cache_clear()
 
 
 def get_simulation_service() -> SimulationService:

@@ -73,7 +73,7 @@ class TextToSpeechToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or settings.tools.tts_api_key or (settings.llm_keys.openai_api_key or "")
+        self.api_key = api_key or (settings.llm_keys.openai_api_key or "")
         self.endpoint = (endpoint or DEFAULT_ENDPOINT).strip() or DEFAULT_ENDPOINT
         self.model = (model or DEFAULT_MODEL).strip() or DEFAULT_MODEL
         self.voice = (voice or DEFAULT_VOICE).strip() or DEFAULT_VOICE
@@ -83,10 +83,7 @@ class TextToSpeechToolkit(BaseToolkit):
     def _key(self) -> str:
         key = (self.api_key or "").strip()
         if not key:
-            raise ValueError(
-                "Text-to-speech API key required. Set TTS_API_KEY / OPENAI_API_KEY "
-                "or configure api_key on the skill."
-            )
+            raise ValueError("Text-to-speech API key required. Configure api_key on the skill.")
         return key
 
     @tool(parse_docstring=True)

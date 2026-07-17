@@ -9,7 +9,6 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
-from backend.api.settings import settings
 
 LINE_API_BASE = "https://api.line.me/v2/bot"
 
@@ -40,13 +39,11 @@ class LINEMessagingToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.channel_access_token = channel_access_token or settings.tools.line_channel_access_token
+        self.channel_access_token = channel_access_token
 
     def _token(self) -> str:
         if not self.channel_access_token:
-            raise ValueError(
-                "LINE channel access token required. Set LINE_CHANNEL_ACCESS_TOKEN."
-            )
+            raise ValueError("LINE channel access token required. Configure channel_access_token.")
         return self.channel_access_token
 
     @tool(parse_docstring=True)

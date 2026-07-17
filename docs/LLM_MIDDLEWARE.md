@@ -27,13 +27,14 @@ inner wrappers for tool calls):
 | 6 | `ToolRetryMiddleware` | tool | `LLM_TOOL_RETRY_MAX > 0` (**on**, =2) |
 | 7 | `ToolTimeoutMiddleware` | tool | always |
 | 8 | `PIIRedactionMiddleware` | tool | `LLM_PII_REDACTION_ENABLED` |
-| 9 | `ModelFallbackMiddleware` | model | `LLM_FALLBACK_MODELS` set |
-| 10 | `ModelRetryMiddleware` | model | `LLM_MODEL_RETRY_MAX > 0` |
-| 11 | `ContextEditingMiddleware` | model | `LLM_CONTEXT_EDITING_ENABLED` |
-| 12 | `SummarizationMiddleware` | model | `LLM_SUMMARIZATION_ENABLED` (LLM-based) |
-| 13 | `RollingSummaryMiddleware` | model | `LLM_ROLLING_SUMMARY_ENABLED` |
-| 14 | `LongTermMemoryMiddleware` | model | `LLM_LTM_MIDDLEWARE_ENABLED` |
-| 15 | `CostBudgetMiddleware` | model | `LLM_RUN_TOKEN_BUDGET > 0` |
+| 9 | `AnthropicPromptCachingMiddleware` | model | `LLM_PROMPT_CACHE_ENABLED` (Anthropic only; no-op elsewhere) |
+| 10 | `ModelFallbackMiddleware` | model | `LLM_FALLBACK_MODELS` set |
+| 11 | `ModelRetryMiddleware` | model | `LLM_MODEL_RETRY_MAX > 0` |
+| 12 | `ContextEditingMiddleware` | model | `LLM_CONTEXT_EDITING_ENABLED` |
+| 13 | `SummarizationMiddleware` | model | `LLM_SUMMARIZATION_ENABLED` (LLM-based) |
+| 14 | `RollingSummaryMiddleware` | model | `LLM_ROLLING_SUMMARY_ENABLED` |
+| 15 | `LongTermMemoryMiddleware` | model | `LLM_LTM_MIDDLEWARE_ENABLED` |
+| 16 | `CostBudgetMiddleware` | model | `LLM_RUN_TOKEN_BUDGET > 0` |
 
 **Ordering rationale:** guardrail/PII protect tool execution, the cache serves
 before retry/timeout do work, loop-detection → retry → timeout wrap the actual
@@ -49,6 +50,18 @@ call, and the model-facing trio (trim → recall → budget) acts around the mod
   large.
 - **SummarizationMiddleware** — compacts long histories with a dedicated
   summarization model (set `LLM_SUMMARIZATION_MODEL`).
+- **AnthropicPromptCachingMiddleware** (from `langchain_anthropic.middleware`) —
+  marks the request's system prompt/tools/last-message prefix as cacheable
+  (`cache_control: {type: "ephemeral", ttl: LLM_PROMPT_CACHE_TTL}`) so repeat
+  model calls that share that prefix — agent-loop rounds, ring/sequential
+  topology hops, subagent fan-out, multi-turn meetings — read from Anthropic's
+  prompt cache (~0.1× input price) instead of paying full price. Silently
+  skipped (not a warning) on every non-Anthropic provider, so it's safe to
+  leave enabled regardless of `LLM_PROVIDER`. Caching is a strict prefix
+  match: any byte change earlier in the request (a per-run timestamp
+  interpolated into the system prompt, a reordered tool list) invalidates the
+  cache for everything after it — see Anthropic's prompt-caching docs for the
+  full placement/invalidation rules.
 
 ## Custom middleware
 
@@ -83,6 +96,10 @@ llm:
   # tool result cache
   tool_cache_enabled: false
   # tool_cache_deny_tools: send_email,run_shell
+  # Anthropic prompt caching (no-op on non-Anthropic providers)
+  prompt_cache_enabled: false
+  prompt_cache_ttl: 5m
+  prompt_cache_min_messages: 0
   # cost guard (0 = off)
   run_token_budget: 0
   # guardrail + PII

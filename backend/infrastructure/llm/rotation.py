@@ -72,6 +72,18 @@ class RotationConfig:
             max_tokens_per_min=max(0, fo.rotate_max_tokens_per_min),
         )
 
+    @classmethod
+    def from_model_entry(cls, failover: Any) -> "RotationConfig":
+        """Build from a ``models:`` entry's own ``failover:`` block
+        (a ``ModelConfig.failover`` / ``FailoverEntry``), instead of the global
+        ``settings.llm_failover`` env-backed defaults."""
+        return cls(
+            strategy=(getattr(failover, "strategy", None) or "rotate").strip().lower(),
+            cooldown_seconds=getattr(failover, "key_cooldown_seconds", 60.0),
+            max_requests_per_min=max(0, getattr(failover, "rotate_max_requests_per_min", 0)),
+            max_tokens_per_min=max(0, getattr(failover, "rotate_max_tokens_per_min", 0)),
+        )
+
     @property
     def rotation_enabled(self) -> bool:
         # Only the explicit rotate-family enables local key rotation. Everything
