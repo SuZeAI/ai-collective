@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, Outlet, useLocation } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -61,14 +61,19 @@ function RouteFallback() {
   );
 }
 
-const queryClient = new QueryClient();
-
-function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  const location = useLocation();
-  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
-  return <>{children}</>;
+// Used inside AuthenticatedLayout, around just the <Outlet/> — sized to the
+// content pane (not the viewport) so a lazy page's first-load chunk fetch
+// only blanks that pane, not the whole screen (which would otherwise flash
+// AppLayout's sidebar out since it shared the outer <Suspense> boundary).
+function ContentFallback() {
+  return (
+    <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+      Loading…
+    </div>
+  );
 }
+
+const queryClient = new QueryClient();
 
 // apiFetch (src/lib/api.ts) dispatches this on any 401 response so an expired/
 // invalid token logs the user out everywhere, not just wherever the failing
@@ -88,11 +93,22 @@ function AuthTokenExpiryHandler() {
   return null;
 }
 
-function WithLayout({ children }: { children: React.ReactNode }) {
+// Single persistent shell for every authenticated route, mounted once as a
+// layout route (see the <Route element={<AuthenticatedLayout />}> group
+// below) instead of per-page — each page used to wrap its own <AppLayout>,
+// so <Routes> fully unmounted/remounted the sidebar (company list, active
+// office highlight, …) on every navigation, flashing "All"/losing selection
+// state for a frame. With Outlet, AppLayout stays mounted across page changes.
+function AuthenticatedLayout() {
+  const { user } = useAuth();
+  const location = useLocation();
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
   return (
-    <RequireAuth>
-      <AppLayout>{children}</AppLayout>
-    </RequireAuth>
+    <AppLayout>
+      <Suspense fallback={<ContentFallback />}>
+        <Outlet />
+      </Suspense>
+    </AppLayout>
   );
 }
 
@@ -113,16 +129,6 @@ function RequireCompany({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function WithCompanyLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <RequireAuth>
-      <RequireCompany>
-        <AppLayout>{children}</AppLayout>
-      </RequireCompany>
-    </RequireAuth>
-  );
-}
-
 // Catalog pages (Departments / Staff / Skills / Document Library) are reachable
 // inside a company (per-company data) AND, for admins only, in the "All" scope —
 // where they curate the shared "default" catalog that feeds Recruiting. Non-admins
@@ -140,31 +146,11 @@ function RequireCompanyOrAdmin({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function WithCatalogLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <RequireAuth>
-      <RequireCompanyOrAdmin>
-        <AppLayout>{children}</AppLayout>
-      </RequireCompanyOrAdmin>
-    </RequireAuth>
-  );
-}
-
 // Admin-only pages: authenticated AND role admin/system, else back to dashboard.
 function RequireAdmin({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const location = useLocation();
-  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
-  if (user.role !== "admin" && user.role !== "system") return <Navigate to="/dashboard" replace />;
+  if (user?.role !== "admin" && user?.role !== "system") return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
-}
-
-function WithAdminLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <RequireAdmin>
-      <AppLayout>{children}</AppLayout>
-    </RequireAdmin>
-  );
 }
 
 const App = () => (
@@ -184,29 +170,34 @@ const App = () => (
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/dashboard" element={<WithLayout><Dashboard /></WithLayout>} />
-                <Route path="/staff" element={<WithCatalogLayout><StaffBuilder /></WithCatalogLayout>} />
-                <Route path="/skills" element={<WithCatalogLayout><Skills /></WithCatalogLayout>} />
-                <Route path="/departments" element={<WithCatalogLayout><DepartmentBuilder /></WithCatalogLayout>} />
-                <Route path="/tasks" element={<WithCompanyLayout><TaskManager /></WithCompanyLayout>} />
-                <Route path="/projects" element={<WithCompanyLayout><Projects /></WithCompanyLayout>} />
-                <Route path="/projects/:key/board" element={<WithCompanyLayout><TaskManager /></WithCompanyLayout>} />
-                <Route path="/projects/:key/backlog" element={<WithCompanyLayout><Backlog /></WithCompanyLayout>} />
-                <Route path="/projects/:key/roadmap" element={<WithCompanyLayout><Roadmap /></WithCompanyLayout>} />
-                <Route path="/projects/:key/reports" element={<WithCompanyLayout><Reports /></WithCompanyLayout>} />
-                <Route path="/meetings" element={<WithCompanyLayout><Meetings /></WithCompanyLayout>} />
-                <Route path="/analytics" element={<WithLayout><AnalyticsPage /></WithLayout>} />
-                <Route path="/consumption" element={<WithLayout><ConsumptionMonitoring /></WithLayout>} />
-                <Route path="/playground" element={<WithCompanyLayout><Playground /></WithCompanyLayout>} />
-                <Route path="/companies" element={<WithLayout><Companies /></WithLayout>} />
-                <Route path="/platform" element={<WithCompanyLayout><Platform /></WithCompanyLayout>} />
-                <Route path="/office-builder" element={<WithLayout><OfficeBuilder /></WithLayout>} />
-                <Route path="/virtual-office" element={<WithCompanyLayout><VirtualOffice /></WithCompanyLayout>} />
-                <Route path="/recruiting" element={<WithCompanyLayout><Recruiting /></WithCompanyLayout>} />
-                <Route path="/documents" element={<WithCatalogLayout><DocumentLibrary /></WithCatalogLayout>} />
-                <Route path="/settings" element={<WithLayout><Settings /></WithLayout>} />
-                <Route path="/admin/monitoring" element={<WithAdminLayout><AdminMonitoring /></WithAdminLayout>} />
-                <Route path="/profile" element={<WithLayout><Profile /></WithLayout>} />
+                {/* Layout route: <AppLayout> mounts once for every page below and
+                    persists across navigation between them (only the <Outlet/>
+                    content swaps), instead of remounting the sidebar per-page. */}
+                <Route element={<AuthenticatedLayout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/staff" element={<RequireCompanyOrAdmin><StaffBuilder /></RequireCompanyOrAdmin>} />
+                  <Route path="/skills" element={<RequireCompanyOrAdmin><Skills /></RequireCompanyOrAdmin>} />
+                  <Route path="/departments" element={<RequireCompanyOrAdmin><DepartmentBuilder /></RequireCompanyOrAdmin>} />
+                  <Route path="/tasks" element={<RequireCompany><TaskManager /></RequireCompany>} />
+                  <Route path="/projects" element={<RequireCompany><Projects /></RequireCompany>} />
+                  <Route path="/projects/:key/board" element={<RequireCompany><TaskManager /></RequireCompany>} />
+                  <Route path="/projects/:key/backlog" element={<RequireCompany><Backlog /></RequireCompany>} />
+                  <Route path="/projects/:key/roadmap" element={<RequireCompany><Roadmap /></RequireCompany>} />
+                  <Route path="/projects/:key/reports" element={<RequireCompany><Reports /></RequireCompany>} />
+                  <Route path="/meetings" element={<RequireCompany><Meetings /></RequireCompany>} />
+                  <Route path="/analytics" element={<AnalyticsPage />} />
+                  <Route path="/consumption" element={<ConsumptionMonitoring />} />
+                  <Route path="/playground" element={<RequireCompany><Playground /></RequireCompany>} />
+                  <Route path="/companies" element={<Companies />} />
+                  <Route path="/platform" element={<RequireCompany><Platform /></RequireCompany>} />
+                  <Route path="/office-builder" element={<OfficeBuilder />} />
+                  <Route path="/virtual-office" element={<RequireCompany><VirtualOffice /></RequireCompany>} />
+                  <Route path="/recruiting" element={<RequireCompany><Recruiting /></RequireCompany>} />
+                  <Route path="/documents" element={<RequireCompanyOrAdmin><DocumentLibrary /></RequireCompanyOrAdmin>} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/admin/monitoring" element={<RequireAdmin><AdminMonitoring /></RequireAdmin>} />
+                  <Route path="/profile" element={<Profile />} />
+                </Route>
                 <Route path="/docs" element={<Docs />} />
                 {/* Marketing pages */}
                 <Route path="/meet" element={<MeetCollective />} />

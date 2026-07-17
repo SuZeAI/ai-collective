@@ -151,6 +151,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [activeCompany, setActiveCompany] = useState<Company | null>(null);
+  // Selected office id, known synchronously from localStorage (unlike
+  // `activeCompany`, which needs the `listCompanies` fetch to resolve). Every
+  // route wraps its own <AppLayout>, so this component remounts on each
+  // navigation — driving the rail highlight off this instead of `activeCompany`
+  // avoids a frame where the "All" button flashes active while that fetch is in flight.
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(() => getActiveCompanyId());
   // Mirror of `companies` for event handlers that must read the latest list
   // without re-subscribing (their effect runs once with [] deps).
   const companiesRef = useRef<Company[]>([]);
@@ -165,7 +171,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         const storedId = localStorage.getItem("activeCompanyId");
         const found = data.find((ws) => ws.id === storedId);
         setActiveCompany(found || null);
-        if (!found) localStorage.setItem("activeCompanyId", OVERALL_COMPANY_ID);
+        if (!found) {
+          localStorage.setItem("activeCompanyId", OVERALL_COMPANY_ID);
+          setSelectedCompanyId(null);
+        }
       })
       .catch((err) => console.error("Error listing companies in sidebar:", err));
     return () => { active = false; };
@@ -181,7 +190,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           const storedId = localStorage.getItem("activeCompanyId");
           const found = data.find((ws) => ws.id === storedId);
           setActiveCompany(found || null);
-          if (!found) localStorage.setItem("activeCompanyId", OVERALL_COMPANY_ID);
+          if (!found) {
+            localStorage.setItem("activeCompanyId", OVERALL_COMPANY_ID);
+            setSelectedCompanyId(null);
+          }
         })
         .catch((err) => console.error("Error refreshing companies:", err));
     };
@@ -193,6 +205,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     // (e.g. an office just created elsewhere).
     const handleActiveChange = () => {
       const storedId = getActiveCompanyId(); // null when "All"/Overall
+      setSelectedCompanyId(storedId);
       if (!storedId) { setActiveCompany(null); return; }
       const known = companiesRef.current.find((ws) => ws.id === storedId);
       if (known) setActiveCompany(known);
@@ -209,13 +222,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const handleSelectCompany = (ws: Company | null) => {
     setActiveCompany(ws);
+    setSelectedCompanyId(ws ? ws.id : null);
     setActiveCompanyId(ws ? ws.id : null);
   };
 
   const isAdmin = user?.role === "admin" || user?.role === "system";
   // "All" scope = company create/control/monitor; inside a company = that
   // company's operations. Groups declare where they belong via `visibleIn`.
-  const isOverall = !activeCompany;
+  const isOverall = !selectedCompanyId;
   const navGroups = useMemo(
     () =>
       NAV_GROUPS.filter(
@@ -274,7 +288,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     onClick={() => handleSelectCompany(null)}
                     className={cn(
                       "w-10 h-10 rounded-xl flex items-center justify-center transition-all relative group shrink-0",
-                      !activeCompany
+                      !selectedCompanyId
                         ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-105"
                         : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
                     )}
@@ -288,7 +302,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     </div>
                   </button>
                   {companies.map((ws) => {
-                    const isActive = activeCompany?.id === ws.id;
+                    const isActive = selectedCompanyId === ws.id;
                     const initials = ws.name
                       .split(" ")
                       .slice(0, 2)
@@ -339,7 +353,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </div>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className="font-bold text-[13px] text-sidebar-foreground truncate">
-                    {activeCompany?.name || "Overall Collective"}
+                    {activeCompany?.name || (selectedCompanyId ? "" : "Overall Collective")}
                   </span>
                   {isOverall ? (
                     <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-teal-500/15 text-teal-500 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 border border-teal-500/25">
@@ -354,7 +368,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   )}
                 </div>
                 <div className="text-[10px] text-sidebar-foreground/45 truncate mt-0.5 leading-normal">
-                  {activeCompany?.description || "All offices & shared resources"}
+                  {activeCompany?.description || (selectedCompanyId ? "" : "All offices & shared resources")}
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto py-4 space-y-4 px-2.5">
