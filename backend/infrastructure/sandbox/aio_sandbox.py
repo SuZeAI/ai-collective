@@ -44,9 +44,17 @@ class AioSandbox(Sandbox):
     """Sandbox that connects to a running AIO sandbox container via HTTP API.
 
     The AIO sandbox container must be reachable at `base_url` and expose:
-        POST /v1/sandbox/shell/exec       — execute a command
-        POST /v1/sandbox/shell/{id}/write — write to running process
-        DELETE /v1/sandbox/shell/{id}     — kill process
+        POST /v1/shell/exec       — execute a command (body: {"session_id", "command"})
+        POST /v1/shell/{id}/write — write to running process
+        DELETE /v1/shell/{id}     — kill process
+
+    Responses are wrapped as {"success", "message", "data": {...}} — the
+    fields callers care about (output, exit_code) live under "data", not at
+    the top level. (Note: earlier versions of this image used a
+    "/v1/sandbox/shell/..." prefix and an "id" field instead of
+    "session_id" — if a future image reverts, symptoms are a 404 with
+    message "Not Found" for the wrong path, or "Session not found" for the
+    wrong field name.)
     """
 
     # Cap on retained per-session outputs. Each one-off command (read/write/ls)
@@ -80,22 +88,24 @@ class AioSandbox(Sandbox):
         async with self._lock:
             try:
                 full_command = f"cd {shlex.quote(exec_dir)} && {command}" if exec_dir else command
-                data = await asyncio.to_thread(
-                    _post, self._base_url, "/v1/sandbox/shell/exec", {"id": id, "command": full_command}
+                resp = await asyncio.to_thread(
+                    _post, self._base_url, "/v1/shell/exec", {"session_id": id, "command": full_command}
                 )
-                output = data.get("output", "")
+                payload = resp.get("data") or {}
+                output = payload.get("output", "")
 
                 if output and _ERROR_OBSERVATION_SIGNATURE in output:
                     logger.warning("ErrorObservation in sandbox output for session %s, retrying", id)
-                    data = await asyncio.to_thread(
+                    resp = await asyncio.to_thread(
                         _post,
                         self._base_url,
-                        "/v1/sandbox/shell/exec",
-                        {"id": str(uuid.uuid4()), "command": full_command},
+                        "/v1/shell/exec",
+                        {"session_id": str(uuid.uuid4()), "command": full_command},
                     )
-                    output = data.get("output", "")
+                    payload = resp.get("data") or {}
+                    output = payload.get("output", "")
 
-                result = SandboxResult(output=output or "(no output)", exit_code=data.get("exit_code"))
+                result = SandboxResult(output=output or "(no output)", exit_code=payload.get("exit_code"))
                 self._store_output(id, result)
                 return result
             except SandboxAPIError as e:
@@ -112,10 +122,10 @@ class AioSandbox(Sandbox):
         async with self._lock:
             try:
                 text = input + ("\n" if press_enter else "")
-                data = await asyncio.to_thread(
-                    _post, self._base_url, f"/v1/sandbox/shell/{id}/write", {"input": text}
+                resp = await asyncio.to_thread(
+                    _post, self._base_url, f"/v1/shell/{id}/write", {"input": text}
                 )
-                output = data.get("output", "")
+                output = (resp.get("data") or {}).get("output", "")
                 if output:
                     self._store_output(id, SandboxResult(output=output))
                 return output or "(wrote to process)"
@@ -127,7 +137,7 @@ class AioSandbox(Sandbox):
         async with self._lock:
             try:
                 resp = await asyncio.to_thread(
-                    requests.delete, f"{self._base_url}/v1/sandbox/shell/{id}", timeout=10
+                    requests.delete, f"{self._base_url}/v1/shell/{id}", timeout=10
                 )
                 self._last_output.pop(id, None)
                 return "Process killed" if resp.ok else f"Kill returned status {resp.status_code}"
