@@ -30,6 +30,7 @@ from backend.domain.enums import IssueType, TaskPriority, TaskStatus
 from backend.domain.models import Message, Task, can_delete, can_modify, is_owned_by, is_visible_to
 from backend.infrastructure import task_run_registry
 from backend.infrastructure import task_queue
+from backend.infrastructure import working_memory_store
 from backend.log import get_logger
 
 logger = get_logger(__name__)
@@ -306,6 +307,9 @@ def clear_task_history(
         )
     conv_service.delete_messages_by_task(task_id)
     graph_context_service.reset_conversation(conversation_id=task_id)
+    # Working memory was previously left untouched here — a wiped task would
+    # still resume biased by stale notes/task text from before the clear.
+    working_memory_store.delete_memory(task_id)
     return {"cleared": True}
 
 
