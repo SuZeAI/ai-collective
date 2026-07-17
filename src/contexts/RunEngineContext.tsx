@@ -332,6 +332,8 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         if (event.error) {
           console.error(event.error);
           endReason = "error";
+          const description = event.error.length > 200 ? `${event.error.slice(0, 200)}…` : event.error;
+          toast({ title: `"${updated.title}" stopped early`, description, variant: "destructive" });
           break;
         }
 

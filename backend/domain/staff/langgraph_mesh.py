@@ -30,6 +30,7 @@ from backend.domain.staff._graph_runtime import (
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
+    raise_if_llm_failed,
     run_fanout_wave,
     run_to_final_state,
     safe_chat,
@@ -699,6 +700,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 tools=bound_tools or None,
                 parallel_tools=staff_member.subagent_enabled,
             )
+            raise_if_llm_failed(response)
             logger.debug(
                 "[%s] mesh_node: LLM response received — response_chars=%d",
                 staff_member.name, len(response),
@@ -1179,6 +1181,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             system=synthesis_system,
             user=synthesis_user,
         )
+        raise_if_llm_failed(synth_raw)
         synth_reasoning, synth_action = self._split_reasoning_and_action(synth_raw)
 
         synthesis_turn_number = base_turn + len(results) + 1

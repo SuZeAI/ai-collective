@@ -102,6 +102,24 @@ async def safe_chat(llm: Any, *, staff_name: str = "", **chat_kwargs: Any) -> st
         current_usage_staff.reset(token)
 
 
+def raise_if_llm_failed(output: str) -> None:
+    """Stop a serial (chained) run when a staff's turn was a safe_chat() failure.
+
+    safe_chat() intentionally returns an "[error] ..." string instead of
+    raising (see its docstring) — but in a serial topology (sequential/ring/
+    tree/supervisor's routing, mesh's serial hops) that string becomes the
+    *next* staff's whole input, so the failure silently cascades as if it
+    were real content instead of stopping the run. Call this right after a
+    serial safe_chat() to turn it into a clean run-ending error instead.
+
+    Do NOT call this from the parallel fan-out path (run_fanout_wave) — there,
+    each branch's error is deliberately non-fatal so sibling branches and the
+    coordinator's synthesis still get a chance to run.
+    """
+    if output.startswith("[error] The model call "):
+        raise RuntimeError(output)
+
+
 # How often a held run re-checks whether the user resumed it.
 PAUSE_POLL_SECONDS = 0.25
 

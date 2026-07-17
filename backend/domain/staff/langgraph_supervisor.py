@@ -30,6 +30,7 @@ from backend.domain.staff._graph_runtime import (
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
+    raise_if_llm_failed,
     run_fanout_wave,
     run_to_final_state,
     safe_chat,
@@ -429,6 +430,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 user=user_input_text,
                 tools=bound_tools or None,
             )
+            raise_if_llm_failed(raw_output)
 
             stream_writer({
                 "type": EventType.LLM_RESPONSE_COMPLETE.value,
@@ -626,6 +628,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 user=user_input_text,
                 tools=bound_tools or None,
             )
+            raise_if_llm_failed(output)
 
             stream_writer({
                 "type": EventType.LLM_RESPONSE_COMPLETE.value,
@@ -936,6 +939,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             system=synthesis_system,
             user=synthesis_user,
         )
+        raise_if_llm_failed(synth_raw)
         synth_reasoning, synth_action = self._split_reasoning_and_action(synth_raw)
         final_answer = self._extract_final_answer(synth_action)
         target_worker, next_task = self._extract_delegation(synth_action)

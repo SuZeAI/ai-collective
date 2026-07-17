@@ -26,6 +26,7 @@ from backend.domain.staff._graph_runtime import (
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
+    raise_if_llm_failed,
     run_to_final_state,
     safe_chat,
     wait_while_paused,
@@ -303,6 +304,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
                 tools=bound_tools or None,
                 parallel_tools=staff_member.subagent_enabled,
             )
+            raise_if_llm_failed(output)
 
             # Stream: LLM response received
             stream_writer({
