@@ -61,7 +61,14 @@ class MonitoringService:
         user_names = {u.id: u.name for u in self._users.list()}
 
         def _bucket() -> dict[str, Any]:
-            return {"input_tokens": 0, "output_tokens": 0, "requests": 0, "cost": 0.0}
+            return {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "cache_read_tokens": 0,
+                "cache_creation_tokens": 0,
+                "requests": 0,
+                "cost": 0.0,
+            }
 
         totals = _bucket()
         by_model: dict[str, dict[str, Any]] = defaultdict(_bucket)
@@ -74,6 +81,8 @@ class MonitoringService:
             for bucket in (totals, by_model[r.model], by_user[r.user_id], by_day[day]):
                 bucket["input_tokens"] += r.input_tokens
                 bucket["output_tokens"] += r.output_tokens
+                bucket["cache_read_tokens"] += r.cache_read_tokens
+                bucket["cache_creation_tokens"] += r.cache_creation_tokens
                 bucket["requests"] += 1
                 bucket["cost"] += cost or 0.0
             by_model[r.model]["provider"] = r.provider
@@ -120,7 +129,14 @@ class MonitoringService:
         user_names = {u.id: u.name for u in self._users.list()}
 
         def _bucket() -> dict[str, Any]:
-            return {"input_tokens": 0, "output_tokens": 0, "requests": 0, "cost": 0.0}
+            return {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "cache_read_tokens": 0,
+                "cache_creation_tokens": 0,
+                "requests": 0,
+                "cost": 0.0,
+            }
 
         totals = _bucket()
         by_department: dict[str, dict[str, Any]] = defaultdict(_bucket)
@@ -136,6 +152,8 @@ class MonitoringService:
             for bucket in (totals, by_department[department_key], by_staff[agent_key], by_user[r.user_id], by_day[day]):
                 bucket["input_tokens"] += r.input_tokens
                 bucket["output_tokens"] += r.output_tokens
+                bucket["cache_read_tokens"] += r.cache_read_tokens
+                bucket["cache_creation_tokens"] += r.cache_creation_tokens
                 bucket["requests"] += 1
                 bucket["cost"] += cost
 

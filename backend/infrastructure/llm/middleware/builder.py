@@ -13,6 +13,7 @@ from langchain.agents.middleware import (
     ToolCallLimitMiddleware,
     ToolRetryMiddleware,
 )
+from langchain_anthropic.middleware import AnthropicPromptCachingMiddleware
 
 from backend.infrastructure.llm.middleware.config import get_middleware_config
 from backend.infrastructure.llm.middleware.cost_budget import CostBudgetMiddleware
@@ -50,6 +51,8 @@ def build_default_middleware(
       * ``GuardrailMiddleware`` — when deny tools/patterns are configured.
       * ``ToolResultCacheMiddleware`` — when ``tool_cache.enabled``.
       * ``PIIRedactionMiddleware`` — when ``pii_redaction.enabled``.
+      * ``AnthropicPromptCachingMiddleware`` — when ``prompt_cache.enabled``
+        (Anthropic provider only; no-op elsewhere).
       * ``ModelFallbackMiddleware`` — when ``model_fallback.models`` set.
       * ``ModelRetryMiddleware`` — when ``model_retry.max`` > 0.
       * ``ContextEditingMiddleware`` — when ``context_editing.enabled``.
@@ -104,6 +107,19 @@ def build_default_middleware(
     # wrappers) so it scrubs the raw output before it re-enters the history.
     if cfg.pii_redaction_enabled:
         middleware.append(PIIRedactionMiddleware())
+
+    # Anthropic prompt caching: marks the system prompt/tools/last-message
+    # prefix as cacheable so repeat model calls (agent loop rounds, subagent
+    # fan-out, multi-turn meetings) reuse cached input tokens. No-op — silently
+    # skipped, not warned — on every non-Anthropic provider.
+    if cfg.prompt_cache_enabled:
+        middleware.append(
+            AnthropicPromptCachingMiddleware(
+                ttl=cfg.prompt_cache_ttl,
+                min_messages_to_cache=cfg.prompt_cache_min_messages,
+                unsupported_model_behavior="ignore",
+            )
+        )
 
     if cfg.fallback_models:
         middleware.append(ModelFallbackMiddleware(*cfg.fallback_models))

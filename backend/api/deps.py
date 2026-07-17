@@ -554,6 +554,8 @@ def init_usage_tracking() -> bool:
         user_id: str,
         staff_name: str = "",
         department_id: str = "",
+        cache_read_tokens: int = 0,
+        cache_creation_tokens: int = 0,
     ) -> None:
         usage_repo.add(
             TokenUsageRecord(
@@ -567,6 +569,8 @@ def init_usage_tracking() -> bool:
                 timestamp=datetime.now(timezone.utc),
                 staff_name=staff_name or "",
                 department_id=department_id or "",
+                cache_read_tokens=cache_read_tokens,
+                cache_creation_tokens=cache_creation_tokens,
             )
         )
 

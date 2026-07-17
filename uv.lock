@@ -91,7 +91,7 @@ requires-dist = [
     { name = "google-auth-oauthlib", specifier = ">=1.2.2" },
     { name = "kubernetes", specifier = ">=28.1.0" },
     { name = "langchain", specifier = ">=1.2" },
-    { name = "langchain-anthropic", specifier = ">=0.2.0" },
+    { name = "langchain-anthropic", specifier = ">=1.1.0" },
     { name = "langchain-community", specifier = ">=0.2.0" },
     { name = "langchain-core", specifier = ">=0.2.0" },
     { name = "langchain-google-genai", specifier = ">=1.0.7" },

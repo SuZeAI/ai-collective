@@ -470,6 +470,8 @@ export type UsageTotals = {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
   requests: number;
   cost: number;
 };
@@ -479,6 +481,8 @@ export type ModelUsage = {
   provider: string;
   inputTokens: number;
   outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
   requests: number;
   cost: number;
   priced: boolean;
