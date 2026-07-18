@@ -13,7 +13,7 @@ import yaml
 from pydantic import BaseModel
 
 from backend.api.config_loader import config_file_path, expand_env, load_config
-from backend.api.settings import LLMKeysSettings, Settings, StaffSettings
+from backend.api.settings import Settings, StaffSettings
 
 # Sections consumed by dedicated, standalone loaders (not the pydantic Settings
 # tree) — `models:` by infrastructure/llm/config, `middleware:` by
@@ -109,11 +109,16 @@ def test_os_environment_no_longer_overrides_settings(monkeypatch):
     assert StaffSettings().subagent_max_concurrent == 3
 
 
-def test_llm_keys_are_still_env_backed(monkeypatch):
-    # LLMKeysSettings has no config.yml section — it's secrets-only and stays
-    # sourced from the OS environment (.env), same as before.
-    monkeypatch.setenv("GOOGLE_API_KEY", "test-key-123")
-    assert LLMKeysSettings().google_api_key == "test-key-123"
+def test_llm_keys_resolve_through_config_yml(tmp_path, monkeypatch):
+    # LLMKeysSettings has no direct env reading — its config.yml section
+    # (llm_keys:) references ${VAR}, resolved by load_config()'s expansion.
+    monkeypatch.setenv("CFG_TEST_GOOGLE_KEY", "test-key-123")
+    cfg = tmp_path / "config.yml"
+    cfg.write_text("llm_keys:\n  google_api_key: ${CFG_TEST_GOOGLE_KEY}\n")
+    monkeypatch.setenv("CONFIG_FILE", str(cfg))
+    monkeypatch.delenv("CONFIG_OVERRIDE_FILE", raising=False)
+    raw = load_config()
+    assert Settings(**raw).llm_keys.google_api_key == "test-key-123"
 
 
 def test_nested_and_flat_access_agree():

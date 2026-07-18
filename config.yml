@@ -14,6 +14,7 @@ config_version: 1
 
 # ── Application ───────────────────────────────────────────────────────────────
 app:
+  # app_name: ai-collective-backend     # FastAPI app title
   environment: development            # development | production
   api_prefix: /api/v1
   cors_origins: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080,http://localhost:2026,http://127.0.0.1:2026"
@@ -31,7 +32,9 @@ logging:
 # ── LLM (legacy provider/model fallback + ops override) ───────────────────────
 # Model selection normally comes from `models:` below; these are only used as a
 # fallback when no `models:` entry resolves, plus `active_model` (an ops-level
-# override of which `models:` entry is active).
+# override of which `models:` entry is active). The middleware knobs
+# (loop_detection, tool_retry, summarization, ...) live under `middleware:`
+# below — LLMSettings has code-default fallbacks for them, not config.yml keys.
 llm:
   provider: google
   # model:                             # provider's default model when unset
@@ -42,6 +45,18 @@ llm:
     rotate_max_requests_per_min: 0
     rotate_max_tokens_per_min: 0
     key_cooldown_seconds: 60
+
+# ── LLM provider API keys (secrets pool for tool fallback: gemini.py,
+# image_generation.py, text_to_speech.py use these when no explicit key is
+# passed; the `models:` registry below has its own per-entry `api_key:`) ──────
+llm_keys:
+  google_api_key: ${GOOGLE_API_KEY}
+  anthropic_api_key: ${ANTHROPIC_API_KEY}
+  openai_api_key: ${OPENAI_API_KEY}
+  open_weight_api_key: ${OPENROUTER_API_KEY}
+  kimi_api_key: ${KIMI_API_KEY}
+  deepseek_api_key: ${DEEPSEEK_API_KEY}
+  glm_api_key: ${GLM_API_KEY}
 
 # ── Models (LLM registry) ──────────────────────────────────────────────────
 models:
@@ -211,7 +226,7 @@ storage:
 # ── MongoDB (used when storage.backend=mongo) ─────────────────────────────────
 mongo:
   db: ai_collective
-  uri: ${MONGO_URI}                   # credentials embedded in the URI
+  uri: ${MONGO_URI:-mongodb://admin:admin@localhost:27017/ai_collective?authSource=admin}
 
 # ── Graph knowledge extraction ────────────────────────────────────────────────
 graph:
@@ -247,17 +262,18 @@ sandbox:
   # provisioner_url: http://provisioner:8002
 
 # ── MinIO (S3-compatible object storage: sandbox file backups in k8s mode, and
-# document uploads when storage.file_backend=s3) — access_key/secret_key are
-# secrets, set via .env (MINIO_ACCESS_KEY / MINIO_SECRET_KEY), not here ───────
-# minio:
-#   enabled: false
-#   endpoint: localhost:9000
-#   bucket: sandbox-backups
-#   secure: false
+# document uploads when storage.file_backend=s3) ──────────────────────────────
+minio:
+  enabled: false
+  endpoint: localhost:9000
+  access_key: ${MINIO_ACCESS_KEY:-minioadmin}
+  secret_key: ${MINIO_SECRET_KEY:-minioadmin}
+  bucket: sandbox-backups
+  secure: false
 
 # ── Authentication / JWT ──────────────────────────────────────────────────────
 auth:
-  jwt_secret_key: ${JWT_SECRET_KEY}
+  jwt_secret_key: ${JWT_SECRET_KEY:-change-me-in-production-use-openssl-rand-hex-32}
   jwt_algorithm: HS256
   jwt_access_token_expire_minutes: 10080   # 7 days
   google_login_client_id: ${GOOGLE_LOGIN_CLIENT_ID}
@@ -340,6 +356,19 @@ browser:
   max_tokens: 1024
   # api_base:
   # extra_headers:
+
+# ── Tool runtime defaults (deploy-time filesystem paths/preferences; NOT
+# per-skill credentials — those are user-configured per skill via the UI) ─────
+tools:
+  bird_search_mjs: ""                 # bird_x vendored script path override
+  xai_model: grok-4-fast
+  viber_sender_name: "AI Assistant"
+  tts_output_dir: ""
+  google_calendar_token_path: ""
+  google_docs_token_path: ""
+  google_drive_token_path: ""
+  google_sheets_token_path: ""
+  google_slides_token_path: ""
 
 # ── Tool runtime flags (global, NOT per-skill) ────────────────────────────────
 security:

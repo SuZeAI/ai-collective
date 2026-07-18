@@ -34,6 +34,7 @@ _ADMIN_PASSWORD = "test-admin-password-123"
 # the whole file.
 _override = {
     "app": {"environment": "development"},
+    "logging": {"log_file": False},  # avoid writing to the repo's shared logs/ dir
     "storage": {"backend": "json", "dir": _TEST_STORAGE_DIR, "file_backend": "local"},
     "task_queue": {"backend": "memory"},
     "lock": {"backend": "threading"},
@@ -54,13 +55,11 @@ with open(_override_path, "w", encoding="utf-8") as _f:
     yaml.safe_dump(_override, _f)
 os.environ["CONFIG_OVERRIDE_FILE"] = _override_path
 
-# MinioSettings has no config.yml section (secrets-only, read straight from
-# the OS environment) — force it off for tests the same way.
-os.environ["MINIO_ENABLED"] = "false"
-
 # Force every LLM provider "unconfigured" so LLM-backed endpoints always take
 # the graceful "not configured" path (503) instead of depending on network
-# access or a real API key. See test_api_llm_unconfigured.py.
+# access or a real API key. config.yml's llm_keys.* are ${VAR} references, so
+# this still reaches settings.llm_keys via load_config()'s env expansion.
+# See test_api_llm_unconfigured.py.
 for _key in (
     "GOOGLE_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "DEEPSEEK_API_KEY",
     "KIMI_API_KEY", "GLM_API_KEY", "OPENROUTER_API_KEY",
