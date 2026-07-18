@@ -40,7 +40,7 @@ class ViberMessagingToolkit(BaseToolkit):
     ):
         super().__init__(**kwargs)
         self.auth_token = auth_token
-        self.sender_name = sender_name or settings.tools.viber_sender_name
+        self.sender_name = sender_name or settings.tools.viber.viber_sender_name
 
     def _token(self) -> str:
         if not self.auth_token:

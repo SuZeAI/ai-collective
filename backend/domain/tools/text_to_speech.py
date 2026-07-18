@@ -79,7 +79,7 @@ class TextToSpeechToolkit(BaseToolkit):
         self.model = (model or DEFAULT_MODEL).strip() or DEFAULT_MODEL
         self.voice = (voice or DEFAULT_VOICE).strip() or DEFAULT_VOICE
         self.audio_format = (audio_format or DEFAULT_FORMAT).strip() or DEFAULT_FORMAT
-        self.output_dir = (output_dir or settings.tools.tts_output_dir or "").strip()
+        self.output_dir = (output_dir or settings.tools.tts.tts_output_dir or "").strip()
 
     def _key(self) -> str:
         key = (self.api_key or "").strip()

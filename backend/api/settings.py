@@ -442,6 +442,32 @@ class SecuritySettings(BaseModel):
     last30days_debug: bool = Field(default=False, description="Verbose HTTP debug logging")
 
 
+class BirdToolSettings(BaseModel):
+    model_config = _SECTION
+
+    bird_search_mjs: str = Field(
+        default="", description="bird_x (X scraping via local .mjs) vendored script path override"
+    )
+
+
+class XaiToolSettings(BaseModel):
+    model_config = _SECTION
+
+    xai_model: str = Field(default="grok-4-fast", description="Default xAI/Grok model name")
+
+
+class ViberToolSettings(BaseModel):
+    model_config = _SECTION
+
+    viber_sender_name: str = Field(default="AI Assistant", description="Default Viber bot sender display name")
+
+
+class TtsToolSettings(BaseModel):
+    model_config = _SECTION
+
+    tts_output_dir: str = Field(default="", description="Directory text-to-speech output files are written to")
+
+
 class ToolsSettings(BaseModel):
     """Non-credential per-tool defaults (paths, display names) — deploy-time
     filesystem defaults or non-secret preferences that only a deployer would
@@ -449,22 +475,22 @@ class ToolsSettings(BaseModel):
     user-configured per skill only (UI, stored in MongoDB, passed to the
     toolkit constructor) — a normal user can obtain those themselves from the
     provider, so there is no config.yml entry for them. Global, non-credential
-    flags live in ``SecuritySettings``.
+    flags live in ``SecuritySettings``. One nested section per tool, named
+    after the tool it configures.
+
+    The Google Workspace tools (calendar/docs/drive/sheets/slides) have no
+    entry here: their OAuth token path is inherently per-user (derived from
+    ``auth_email``/``token_path`` on the skill's own config once a user
+    authenticates — see ``backend.api.routers.auth``), so a deploy-wide
+    default would let unrelated users share one Google identity's token file.
     """
 
     model_config = _SECTION
 
-    bird_search_mjs: str = Field(
-        default="", description="bird_x (X scraping via local .mjs) vendored script path override"
-    )
-    xai_model: str = Field(default="grok-4-fast", description="Default xAI/Grok model name")
-    viber_sender_name: str = Field(default="AI Assistant", description="Default Viber bot sender display name")
-    tts_output_dir: str = Field(default="", description="Directory text-to-speech output files are written to")
-    google_calendar_token_path: str = Field(default="", description="Google Calendar OAuth token file path")
-    google_docs_token_path: str = Field(default="", description="Google Docs OAuth token file path")
-    google_drive_token_path: str = Field(default="", description="Google Drive OAuth token file path")
-    google_sheets_token_path: str = Field(default="", description="Google Sheets OAuth token file path")
-    google_slides_token_path: str = Field(default="", description="Google Slides OAuth token file path")
+    bird: BirdToolSettings = Field(default_factory=BirdToolSettings)
+    xai: XaiToolSettings = Field(default_factory=XaiToolSettings)
+    viber: ViberToolSettings = Field(default_factory=ViberToolSettings)
+    tts: TtsToolSettings = Field(default_factory=TtsToolSettings)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

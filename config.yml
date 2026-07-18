@@ -342,16 +342,18 @@ browser:
   # extra_headers:
 
 # ── Tool runtime defaults (NOT per-skill credentials — those are set via the UI) ──
+# One nested section per tool. The Google Workspace tools (calendar/docs/drive/
+# sheets/slides) have no entry here — their OAuth token path is per-user, set
+# on the skill's own config when that user authenticates (see auth.py).
 tools:
-  bird_search_mjs: ""                 # bird_x vendored script path override
-  xai_model: grok-4-fast
-  viber_sender_name: "AI Assistant"
-  tts_output_dir: ""
-  google_calendar_token_path: ""
-  google_docs_token_path: ""
-  google_drive_token_path: ""
-  google_sheets_token_path: ""
-  google_slides_token_path: ""
+  bird:                                # bird_x (X scraping)
+    bird_search_mjs: ""                # vendored script path override
+  xai:                                 # xai.py (Grok)
+    xai_model: grok-4-fast
+  viber:                               # viber_messaging.py
+    viber_sender_name: "AI Assistant"
+  tts:                                 # text_to_speech.py + gemini.py TTS toolkit
+    tts_output_dir: ""
 
 # ── Tool runtime flags (global, NOT per-skill) ────────────────────────────────
 security:

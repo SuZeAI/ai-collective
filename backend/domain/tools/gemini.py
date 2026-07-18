@@ -173,7 +173,7 @@ class GeminiTTSToolkit(BaseToolkit):
         self.model = (model or DEFAULT_TTS_MODEL).strip() or DEFAULT_TTS_MODEL
         self.base_url = (base_url or DEFAULT_BASE_URL).strip() or DEFAULT_BASE_URL
         self.voice = (voice or DEFAULT_TTS_VOICE).strip() or DEFAULT_TTS_VOICE
-        self.output_dir = (output_dir or settings.tools.tts_output_dir or "").strip()
+        self.output_dir = (output_dir or settings.tools.tts.tts_output_dir or "").strip()
 
     @tool(parse_docstring=True)
     async def gemini_synthesize_speech(

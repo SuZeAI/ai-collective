@@ -426,7 +426,7 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 				"input": "text",
 				"required": False,
 				"default": "",
-				"placeholder": "Optional, fallback to config.yml tools.bird_search_mjs or project default",
+				"placeholder": "Optional, fallback to config.yml tools.bird.bird_search_mjs or project default",
 			},
 			{
 				"key": "depth",
@@ -793,7 +793,7 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 				"input": "text",
 				"required": False,
 				"default": "AI Assistant",
-				"placeholder": "Optional, fallback to config.yml tools.viber_sender_name",
+				"placeholder": "Optional, fallback to config.yml tools.viber.viber_sender_name",
 			},
 		],
 	},

@@ -60,7 +60,7 @@ class DocsToolkit(BaseToolkit):
         elif self.auth_email:
             resolved_token = str(default_storage_dir / f"token_{_sanitize_email(self.auth_email)}.json")
         else:
-            resolved_token = settings.tools.google_docs_token_path or str(default_storage_dir / "token_default.json")
+            resolved_token = str(default_storage_dir / "token_default.json")
 
         return resolved_credentials, resolved_token, resolved_service_account
 
