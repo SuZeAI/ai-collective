@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 from backend.application.ports.llm import LLMProvider
-from backend.infrastructure.llm.anthropic_langchain import AnthropicLangChainProvider
+from backend.infrastructure.llm.providers.anthropic_langchain import AnthropicLangChainProvider
 from backend.infrastructure.llm.config.model_config import ModelConfig
-from backend.infrastructure.llm.google_langchain import GoogleLangChainProvider
-from backend.infrastructure.llm.open_weight_langchain import OpenWeightLangChainProvider
-from backend.infrastructure.llm.openai_langchain import OpenAILangChainProvider
-from backend.infrastructure.llm.kimi_langchain import KimiLangChainProvider
-from backend.infrastructure.llm.deepseek_langchain import DeepSeekLangChainProvider
-from backend.infrastructure.llm.glm_langchain import GLMLangChainProvider
-from backend.infrastructure.llm.rotation import RotationConfig
+from backend.infrastructure.llm.providers.google_langchain import GoogleLangChainProvider
+from backend.infrastructure.llm.providers.open_weight_langchain import OpenWeightLangChainProvider
+from backend.infrastructure.llm.providers.openai_langchain import OpenAILangChainProvider
+from backend.infrastructure.llm.providers.kimi_langchain import KimiLangChainProvider
+from backend.infrastructure.llm.providers.deepseek_langchain import DeepSeekLangChainProvider
+from backend.infrastructure.llm.providers.glm_langchain import GLMLangChainProvider
+from backend.infrastructure.llm.providers.rotation import RotationConfig
 
 
 DEFAULT_PROVIDER_MODELS = {

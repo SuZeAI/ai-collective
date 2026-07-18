@@ -25,13 +25,6 @@ logging:
   log_backup_count: 5
 
 # ── Models (LLM registry) ──────────────────────────────────────────────────
-# Chat-model entries. `use: module:ClassName` picks the LangChain class; other
-# keys pass through. `api_key` may hold several comma-separated keys (rotation).
-# `enabled: true` marks a model selectable as the active one (Settings UI /
-# LLM_ACTIVE_MODEL env override); the first enabled entry is the boot default.
-# `failover:` is this model's own key-rotation policy (strategy: rotate |
-# 9router, aliases: router/off; rotate_max_requests_per_min / _tokens_per_min:
-# per-key budget, 0 = unlimited; key_cooldown_seconds: errored-key cooldown).
 models:
   - name: gemini
     display_name: Gemini 3 Flash
