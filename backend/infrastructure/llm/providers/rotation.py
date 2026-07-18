@@ -15,21 +15,22 @@ pool of equivalent chat models — one per API key — and switch keys both:
 This is an *alternative* to delegating failover to the **9router** gateway
 (decolua/9router, docker ``--profile router``): an OpenAI-compatible proxy that
 itself routes / falls back across 40+ providers. Which one is active is chosen
-by ``LLM_FAILOVER_STRATEGY``:
+by ``config.yml``'s ``llm.failover.strategy`` (per-model entries under
+``models:`` may override it with their own ``failover:`` block):
 
 * ``rotate``  → local multi-key rotation (this module). [default]
 * ``9router`` → local rotation OFF; failover delegated to the 9router gateway.
-                Point the backend at it via ``LLM_PROVIDER=openai`` +
-                ``LLM_API_BASE=http://nine-router:20128/v1`` + the dashboard key.
+                Point the backend at it via ``llm.provider: openai`` +
+                ``llm.api_base: http://nine-router:20128/v1`` + the dashboard key.
                 (aliases: ``router``, ``nine-router``, ``off``, ``none``)
 
 Note: 9router is NOT openrouter.ai — the latter is the separate ``open_weight``
 provider in this codebase.
 
-Tuning env vars (all optional):
-* ``LLM_KEY_COOLDOWN_SECONDS``        — cooldown after an error (default 60)
-* ``LLM_ROTATE_MAX_REQUESTS_PER_MIN`` — per-key RPM budget, 0 = unlimited
-* ``LLM_ROTATE_MAX_TOKENS_PER_MIN``   — per-key TPM budget, 0 = unlimited
+Tuning knobs (config.yml, ``llm.failover.*``, all optional):
+* ``key_cooldown_seconds``        — cooldown after an error (default 60)
+* ``rotate_max_requests_per_min`` — per-key RPM budget, 0 = unlimited
+* ``rotate_max_tokens_per_min``   — per-key TPM budget, 0 = unlimited
 
 The rotation lives at the *chat-model* level (``RotatingChatModel``) rather than
 the provider level, so it covers BOTH call paths in this codebase with a single
@@ -55,7 +56,7 @@ _WINDOW_SECONDS = 60.0
 
 @dataclass(frozen=True)
 class RotationConfig:
-    """Runtime knobs for key rotation, sourced from environment variables."""
+    """Runtime knobs for key rotation, sourced from config.yml (llm.failover)."""
 
     strategy: str = "rotate"
     cooldown_seconds: float = 60.0
@@ -64,7 +65,7 @@ class RotationConfig:
 
     @classmethod
     def from_env(cls) -> "RotationConfig":
-        fo = settings.llm_failover
+        fo = settings.llm.failover
         return cls(
             strategy=(fo.strategy or "rotate").strip().lower(),
             cooldown_seconds=fo.key_cooldown_seconds,

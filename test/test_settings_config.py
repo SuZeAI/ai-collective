@@ -1,130 +1,119 @@
 """Guardrails for the centralized configuration layer.
 
-``config.yml`` is a nested, lowercase-key file; every leaf must be backed by a
-typed field somewhere in the nested ``Settings`` schema, and the ``$VAR`` /
-``${VAR}`` env-reference expansion must keep working. These tests fail loudly if
-config.yml and settings.py drift apart.
+``config.yml`` is a nested, lowercase-key file whose section/leaf names must
+equal a ``Settings`` field name exactly (no env-var aliasing anymore); the
+``$VAR`` / ``${VAR}`` env-reference expansion and the ``CONFIG_OVERRIDE_FILE``
+deep-merge must keep working. These tests fail loudly if config.yml and
+settings.py drift apart.
 """
 
 from __future__ import annotations
 
-import os
-
 import yaml
-from pydantic import AliasChoices
+from pydantic import BaseModel
 
-from backend.api.config_loader import (
-    apply_config_yaml,
-    build_section_registry,
-    config_file_path,
-    expand_env,
-)
-from backend.api.settings import Settings
+from backend.api.config_loader import config_file_path, expand_env, load_config
+from backend.api.settings import LLMKeysSettings, Settings, StaffSettings
 
-
-def _settings_env_aliases() -> set[str]:
-    """Collect every canonical env-var name the nested Settings schema accepts."""
-    names: set[str] = set()
-    for _, finfo in Settings.model_fields.items():
-        sub = finfo.annotation
-        if not hasattr(sub, "model_fields"):
-            continue
-        for field_name, sub_info in sub.model_fields.items():
-            alias = sub_info.validation_alias
-            if isinstance(alias, AliasChoices):
-                names.update(c.upper() for c in alias.choices if isinstance(c, str))
-            elif isinstance(alias, str):
-                names.add(alias.upper())
-            else:
-                names.add(field_name.upper())
-    return names
+# Sections consumed by dedicated, standalone loaders (not the pydantic Settings
+# tree) — `models:` by infrastructure/llm/config, `middleware:` by
+# infrastructure/llm/middleware/config. Their schema is validated by those
+# loaders, so they are intentionally exempt here.
+_LOADER_MANAGED_SECTIONS = {"models", "middleware"}
 
 
 def _raw_config() -> dict:
     return yaml.safe_load(config_file_path().read_text(encoding="utf-8")) or {}
 
 
-def _unresolved_keys() -> list[str]:
-    """Every (section, leaf) in config.yml the loader registry cannot map.
-
-    Walks the raw nested YAML (incl. registered subsections like ``llm.failover``)
-    so a misspelled lowercase key — which the lenient loader would silently drop —
-    is caught here instead.
-    """
-    raw = _raw_config()
-    registry, subsections = build_section_registry()
+def _unresolved_keys(model: type[BaseModel], body: dict, path: str) -> list[str]:
     unresolved: list[str] = []
-    # Sections consumed by dedicated, standalone loaders (not the pydantic
-    # Settings registry) — `models:` by infrastructure/llm/config and
-    # `middleware:` by infrastructure/llm/middleware/config. Their schema is
-    # validated by those loaders, so they are intentionally exempt here.
-    loader_managed = {"models", "middleware"}
-    # Individual leaves consumed by a standalone loader rather than a Settings
-    # field (e.g. `llm.active_model` is read by infrastructure/llm/config).
-    loader_managed_leaves = {"llm.active_model"}
-    for section, body in raw.items():
-        if section == "config_version" or not isinstance(body, dict):
+    fields = model.model_fields
+    for key, value in body.items():
+        if key not in fields:
+            unresolved.append(f"{path}.{key}")
             continue
-        if section in loader_managed:
-            continue
-        if section == "secrets":
-            # secrets keys map straight to their UPPER env name; validity is
-            # asserted by test_applied_keys_are_known_aliases.
-            continue
-        alias_map = registry.get(section, {})
-        sub_map = subsections.get(section, {})
-        for key, value in body.items():
-            if key in sub_map and isinstance(value, dict):
-                for sub_key in value:
-                    if str(sub_key).lower() not in sub_map[key]:
-                        unresolved.append(f"{section}.{key}.{sub_key}")
-            elif str(key).lower() not in alias_map and f"{section}.{key}" not in loader_managed_leaves:
-                unresolved.append(f"{section}.{key}")
+        sub_model = fields[key].annotation
+        if isinstance(value, dict) and isinstance(sub_model, type) and issubclass(sub_model, BaseModel):
+            unresolved.extend(_unresolved_keys(sub_model, value, f"{path}.{key}"))
     return unresolved
 
 
 def test_every_config_key_resolves_to_a_settings_field():
-    unresolved = _unresolved_keys()
+    raw = _raw_config()
+    unresolved: list[str] = []
+    for section, body in raw.items():
+        if section == "config_version" or section in _LOADER_MANAGED_SECTIONS:
+            continue
+        if not isinstance(body, dict):
+            continue
+        if section not in Settings.model_fields:
+            unresolved.append(section)
+            continue
+        sub_model = Settings.model_fields[section].annotation
+        unresolved.extend(_unresolved_keys(sub_model, body, section))
     assert not unresolved, (
-        "config.yml declares keys with no matching pydantic field in settings.py: "
-        f"{unresolved}"
+        f"config.yml declares keys with no matching field in settings.py: {unresolved}"
     )
 
 
-def test_applied_keys_are_known_aliases():
-    applied = set(apply_config_yaml().keys())
-    aliases = _settings_env_aliases()
-    missing = sorted(applied - aliases)
-    assert not missing, f"loader produced env keys with no settings field: {missing}"
+def test_env_reference_expansion(monkeypatch):
+    monkeypatch.setenv("CFG_TEST_VAR", "hello")
+    # braced form
+    assert expand_env("${CFG_TEST_VAR}") == "hello"
+    assert expand_env("prefix-${CFG_TEST_VAR}-suffix") == "prefix-hello-suffix"
+    assert expand_env("${CFG_MISSING_XYZ:-fallback}") == "fallback"
+    assert expand_env("${CFG_MISSING_XYZ}") == ""
+    # bare $VAR form
+    assert expand_env("$CFG_TEST_VAR") == "hello"
+    assert expand_env("a/$CFG_TEST_VAR/b") == "a/hello/b"
+    assert expand_env("$CFG_MISSING_XYZ") == ""
+    # mixed
+    assert expand_env("${CFG_TEST_VAR}-$CFG_TEST_VAR") == "hello-hello"
 
 
-def test_env_reference_expansion():
-    os.environ["CFG_TEST_VAR"] = "hello"
-    try:
-        # braced form
-        assert expand_env("${CFG_TEST_VAR}") == "hello"
-        assert expand_env("prefix-${CFG_TEST_VAR}-suffix") == "prefix-hello-suffix"
-        assert expand_env("${CFG_MISSING_XYZ:-fallback}") == "fallback"
-        assert expand_env("${CFG_MISSING_XYZ}") == ""
-        # bare $VAR form
-        assert expand_env("$CFG_TEST_VAR") == "hello"
-        assert expand_env("a/$CFG_TEST_VAR/b") == "a/hello/b"
-        assert expand_env("$CFG_MISSING_XYZ") == ""
-        # mixed
-        assert expand_env("${CFG_TEST_VAR}-$CFG_TEST_VAR") == "hello-hello"
-    finally:
-        del os.environ["CFG_TEST_VAR"]
+def test_secret_var_expands_into_settings(tmp_path, monkeypatch):
+    monkeypatch.setenv("CFG_TEST_SECRET", "shh")
+    cfg = tmp_path / "config.yml"
+    cfg.write_text("auth:\n  jwt_secret_key: ${CFG_TEST_SECRET}\n")
+    monkeypatch.setenv("CONFIG_FILE", str(cfg))
+    monkeypatch.delenv("CONFIG_OVERRIDE_FILE", raising=False)
+    raw = load_config()
+    assert Settings(**raw).auth.jwt_secret_key == "shh"
 
 
-def test_os_environment_overrides_config_default():
-    # An OS env var wins over the code/config default (highest layer).
-    os.environ["SUBAGENT_MAX_CONCURRENT"] = "9"
-    try:
-        from backend.api.settings import StaffSettings
+def test_config_override_file_deep_merges(tmp_path, monkeypatch):
+    base = tmp_path / "base.yml"
+    override = tmp_path / "override.yml"
+    base.write_text("app:\n  environment: production\n  api_prefix: /api/v1\nstorage:\n  backend: mongo\n")
+    override.write_text("app:\n  environment: development\nstorage:\n  backend: json\n")
+    monkeypatch.setenv("CONFIG_FILE", str(base))
+    monkeypatch.setenv("CONFIG_OVERRIDE_FILE", str(override))
+    raw = load_config()
+    assert raw["app"]["environment"] == "development"  # override wins
+    assert raw["app"]["api_prefix"] == "/api/v1"  # base key untouched by the merge survives
+    assert raw["storage"]["backend"] == "json"
 
-        assert StaffSettings().subagent_max_concurrent == 9
-    finally:
-        del os.environ["SUBAGENT_MAX_CONCURRENT"]
+
+def test_llm_failover_nests_under_llm():
+    raw = {"llm": {"failover": {"strategy": "rotate", "key_cooldown_seconds": 30}}}
+    s = Settings(**raw)
+    assert s.llm.failover.strategy == "rotate"
+    assert s.llm.failover.key_cooldown_seconds == 30
+
+
+def test_os_environment_no_longer_overrides_settings(monkeypatch):
+    # Regular (non-secret) settings are config.yml-only now — an OS env var
+    # with the field's legacy UPPER_CASE name has no effect.
+    monkeypatch.setenv("SUBAGENT_MAX_CONCURRENT", "9")
+    assert StaffSettings().subagent_max_concurrent == 3
+
+
+def test_llm_keys_are_still_env_backed(monkeypatch):
+    # LLMKeysSettings has no config.yml section — it's secrets-only and stays
+    # sourced from the OS environment (.env), same as before.
+    monkeypatch.setenv("GOOGLE_API_KEY", "test-key-123")
+    assert LLMKeysSettings().google_api_key == "test-key-123"
 
 
 def test_nested_and_flat_access_agree():
@@ -134,18 +123,3 @@ def test_nested_and_flat_access_agree():
     assert settings.jwt_secret_key == settings.auth.jwt_secret_key
     assert settings.subagent_max_concurrent == settings.staff.subagent_max_concurrent
     assert settings.google_api_keys() == settings.llm_keys.google_api_keys()
-
-
-def test_failover_subsection_maps():
-    # `llm.failover.*` (a subsection nested under `llm:`) still maps to the
-    # FailoverSettings env aliases via build_section_registry's subsections —
-    # config.yml no longer declares this block (each `models:` entry carries
-    # its own `failover:` now, see backend.infrastructure.llm.config), but the
-    # generic subsection-mapping mechanism it exercises is still live, so this
-    # tests it against a synthetic raw dict instead of the real file.
-    from backend.api.config_loader import map_config
-
-    raw = {"llm": {"failover": {"strategy": "rotate", "key_cooldown_seconds": 30}}}
-    flat = map_config(raw)
-    assert flat.get("LLM_FAILOVER_STRATEGY") == "rotate"
-    assert flat.get("LLM_KEY_COOLDOWN_SECONDS") == "30"

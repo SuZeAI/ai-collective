@@ -1,8 +1,12 @@
-# AI Collective — non-secret configuration
-# Layering: code defaults < config.yml < .env < OS environment
-# Nested lowercase keys; unknown keys ignored. Override file with CONFIG_FILE=...
-# ${VAR} / $VAR references are expanded from the environment.
-# Secrets (values) live in .env; declared here via ${VAR} in the secrets: block.
+# AI Collective — configuration
+# This file is the single source of truth for app config: every setting is
+# declared here, in its owning section, nested with lowercase keys matching
+# backend/api/settings.py field names 1:1. Layering: code defaults < config.yml.
+# Unknown keys are ignored. Override the whole file with CONFIG_FILE=/path; test
+# suites can also deep-merge a small override on top via CONFIG_OVERRIDE_FILE=...
+# Secret values (API keys, passwords, connection URIs) live in .env and are
+# pulled in via ${VAR} / $VAR references, expanded from the OS environment —
+# this is the only way env vars still reach the app; nothing else reads them.
 # Per-tool credentials are NOT here — set per skill in the UI (stored in MongoDB).
 
 # Schema version (informational only)
@@ -23,6 +27,21 @@ logging:
   log_file: true
   log_max_bytes: 10485760
   log_backup_count: 5
+
+# ── LLM (legacy provider/model fallback + ops override) ───────────────────────
+# Model selection normally comes from `models:` below; these are only used as a
+# fallback when no `models:` entry resolves, plus `active_model` (an ops-level
+# override of which `models:` entry is active).
+llm:
+  provider: google
+  # model:                             # provider's default model when unset
+  # api_base:                          # custom OpenAI-compatible base URL
+  # active_model:                      # overrides the enabled `models:` entry
+  failover:
+    strategy: rotate                   # rotate (local key rotation) | 9router
+    rotate_max_requests_per_min: 0
+    rotate_max_tokens_per_min: 0
+    key_cooldown_seconds: 60
 
 # ── Models (LLM registry) ──────────────────────────────────────────────────
 models:
@@ -156,11 +175,17 @@ middleware:
     enabled: false                    # recall/persist via long-term memory
   cost_budget:
     run_token_budget: 0               # soft-stop a run past this token count (0 = off)
+  prompt_cache:
+    enabled: false                    # Anthropic prompt-caching (no-op on non-Anthropic providers)
+    ttl: 5m
+    min_messages: 0
 
 # ── 9Router gateway (docker profile: router) ──────────────────────────────────
 router:
   port: 20128
   public_url: http://localhost:20128
+  jwt_secret: ${ROUTER_JWT_SECRET}
+  initial_password: ${ROUTER_INITIAL_PASSWORD}
 
 # ── Staff / tools ─────────────────────────────────────────────────────────────
 staff:
@@ -173,6 +198,7 @@ staff:
   llm_timeout_seconds: 120            # per LLM call timeout
   llm_max_retries: 2                  # per LLM call retries
   ask_user_timeout_seconds: 600       # ask_user prompt wait limit
+  pause_timeout_seconds: 1800         # max time a run may sit paused before auto-resume
   # mesh_fanout_max_concurrent:        # defaults to subagent_max_concurrent
 
 # ── Storage ───────────────────────────────────────────────────────────────────
@@ -180,10 +206,12 @@ storage:
   backend: mongo                      # json (file) | mongo
   dir: local_database                 # live DB dir (relative to project root)
   seed_dir: storage                   # read-only default catalog seeded FROM
+  # file_backend: local                # local | s3 (auto: s3 when minio.enabled)
 
 # ── MongoDB (used when storage.backend=mongo) ─────────────────────────────────
 mongo:
   db: ai_collective
+  uri: ${MONGO_URI}                   # credentials embedded in the URI
 
 # ── Graph knowledge extraction ────────────────────────────────────────────────
 graph:
@@ -200,27 +228,45 @@ graph:
 task_queue:
   backend: rabbitmq                   # memory (single instance) | rabbitmq
   max_concurrent: 10                  # system-wide concurrent staff-graph runs
+  rabbitmq_url: ${RABBITMQ_URL}
 
 # ── Repository lock ───────────────────────────────────────────────────────────
 lock:
   backend: redis                      # threading (single instance) | redis
+  redis_url: ${REDIS_URL}
 
 # ── Sandbox ───────────────────────────────────────────────────────────────────
 sandbox:
   mode: local                         # local | k8s
   timeout: 120
+  # workspace: /abs/path/to/.sandbox_workspace
   # k8s mode:
   # image: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
   # replicas: 3
   # idle_timeout: 600
   # provisioner_url: http://provisioner:8002
 
+# ── MinIO (S3-compatible object storage: sandbox file backups in k8s mode, and
+# document uploads when storage.file_backend=s3) — access_key/secret_key are
+# secrets, set via .env (MINIO_ACCESS_KEY / MINIO_SECRET_KEY), not here ───────
+# minio:
+#   enabled: false
+#   endpoint: localhost:9000
+#   bucket: sandbox-backups
+#   secure: false
+
 # ── Authentication / JWT ──────────────────────────────────────────────────────
 auth:
+  jwt_secret_key: ${JWT_SECRET_KEY}
   jwt_algorithm: HS256
   jwt_access_token_expire_minutes: 10080   # 7 days
+  google_login_client_id: ${GOOGLE_LOGIN_CLIENT_ID}
+  google_login_client_secret: ${GOOGLE_LOGIN_CLIENT_SECRET}
   google_login_redirect_uri: http://127.0.0.1:2026/api/v1/auth/google/callback
   google_oauth_redirect_uri: http://127.0.0.1:2026/api/v1/auth/oauth/callback
+  google_oauth_client_secret_path: ${GOOGLE_OAUTH_CLIENT_SECRET_PATH}
+  credentials_path: ${CREDENTIALS_PATH}
+  service_account_path: ${SERVICE_ACCOUNT_PATH}
 
 # ── Agent working memory (short-term, per-conversation) ───────────────────────
 working_memory:
@@ -280,6 +326,7 @@ admin:
   email: admin@aicollective.com
   name: Administrator
   auto_seed: true
+  password: ${ADMIN_PASSWORD}
 
 # ── Default catalog seed ──────────────────────────────────────────────────────
 seed:
@@ -292,27 +339,9 @@ browser:
   temperature: 0.0
   max_tokens: 1024
   # api_base:
+  # extra_headers:
 
 # ── Tool runtime flags (global, NOT per-skill) ────────────────────────────────
 security:
   allow_private_http: false           # allow tools to reach private/loopback IPs
   last30days_debug: false             # verbose HTTP debug logging
-
-# ── Secrets (values live in .env, pulled via ${VAR}) ───────────────────────────
-secrets:
-  # Auth / JWT
-  jwt_secret_key: ${JWT_SECRET_KEY}
-  google_login_client_id: ${GOOGLE_LOGIN_CLIENT_ID}
-  google_login_client_secret: ${GOOGLE_LOGIN_CLIENT_SECRET}
-  google_oauth_client_secret_path: ${GOOGLE_OAUTH_CLIENT_SECRET_PATH}
-  credentials_path: ${CREDENTIALS_PATH}
-  service_account_path: ${SERVICE_ACCOUNT_PATH}
-  # 9Router gateway
-  router_jwt_secret: ${ROUTER_JWT_SECRET}
-  router_initial_password: ${ROUTER_INITIAL_PASSWORD}
-  # Datastores (credentials embedded in the URI)
-  mongo_uri: ${MONGO_URI}
-  rabbitmq_url: ${RABBITMQ_URL}
-  redis_url: ${REDIS_URL}
-  # Admin bootstrap
-  admin_password: ${ADMIN_PASSWORD}
