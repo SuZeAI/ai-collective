@@ -11,6 +11,7 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.api.settings import settings
+from backend.infrastructure.storage.google_oauth_store import restore_token_if_missing, save_token
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -84,13 +85,15 @@ class SheetToolkit(BaseToolkit):
         if resolved_service_account and os.path.exists(resolved_service_account):
             creds = service_account.Credentials.from_service_account_file(resolved_service_account, scopes=SCOPES)
 
-        if creds is None and resolved_token and os.path.exists(resolved_token):
-            creds = Credentials.from_authorized_user_file(resolved_token, SCOPES)
+        if creds is None and resolved_token:
+            restore_token_if_missing(resolved_token)
+            if os.path.exists(resolved_token):
+                creds = Credentials.from_authorized_user_file(resolved_token, SCOPES)
 
         if creds is not None and getattr(creds, "expired", False) and getattr(creds, "refresh_token", None):
             creds.refresh(Request())
             if resolved_token:
-                Path(resolved_token).write_text(creds.to_json(), encoding="utf-8")
+                save_token(resolved_token, creds.to_json())
 
         if creds is None or not getattr(creds, "valid", False):
             raise RuntimeError(
