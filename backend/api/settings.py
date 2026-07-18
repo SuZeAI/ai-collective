@@ -21,7 +21,6 @@ section from its matching sub-dict.
 
 Access is **nested**, grouped by config.yml section, e.g.::
 
-    settings.llm.provider
     settings.staff.context_token_limit
     settings.security.allow_private_http
 
@@ -34,6 +33,8 @@ toolkits through their constructor kwargs.
 """
 
 from __future__ import annotations
+
+from typing import Any
 
 import dotenv
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -85,33 +86,8 @@ class LoggingSettings(BaseModel):
     log_backup_count: int = Field(default=5, description="Number of rotated log files to keep")
 
 
-class FailoverSettings(BaseModel):
-    model_config = _SECTION
-
-    strategy: str = Field(default="rotate", description="rotate (local key rotation) | 9router")
-    rotate_max_requests_per_min: int = Field(
-        default=0, description="Per-key requests/min budget before proactively skipping it (0 = unlimited)"
-    )
-    rotate_max_tokens_per_min: int = Field(
-        default=0, description="Per-key tokens/min budget before proactively skipping it (0 = unlimited)"
-    )
-    key_cooldown_seconds: float = Field(
-        default=60.0, description="Cooldown applied to a key after a rate-limit/quota/5xx error"
-    )
-
-
 class LLMSettings(BaseModel):
     model_config = _SECTION
-
-    provider: str = Field(default="google", description="Legacy fallback provider when no `models:` entry resolves")
-    model: str | None = Field(default=None, description="Legacy fallback model name")
-    api_base: str | None = Field(default=None, description="Legacy fallback custom OpenAI-compatible base URL")
-    active_model: str | None = Field(
-        default=None, description="Ops-level override of which `models:` entry is active"
-    )
-    failover: FailoverSettings = Field(
-        default_factory=FailoverSettings, description="Global key-rotation defaults (a `models:` entry may override with its own)"
-    )
 
     # Fallback defaults for the middleware stack when `middleware:` (config.yml,
     # read independently by infrastructure/llm/middleware/config.py) omits a
@@ -493,6 +469,69 @@ class ToolsSettings(BaseModel):
     tts: TtsToolSettings = Field(default_factory=TtsToolSettings)
 
 
+class FailoverEntry(BaseModel):
+    """A ``models:`` entry's own key-rotation policy."""
+
+    model_config = ConfigDict(extra="allow")
+
+    strategy: str = Field(default="rotate", description="rotate | 9router (aliases: router, off)")
+    rotate_max_requests_per_min: int = Field(default=0, description="Per-key RPM budget, 0 = unlimited")
+    rotate_max_tokens_per_min: int = Field(default=0, description="Per-key TPM budget, 0 = unlimited")
+    key_cooldown_seconds: float = Field(default=60.0, description="Errored-key cooldown before retry")
+
+
+class ModelConfig(BaseModel):
+    """One chat-model entry from the ``models:`` list in config.yml.
+
+    ``provider_name`` (falling back to ``name``) selects which of the 7
+    built-in ``backend.infrastructure.llm.providers.*`` wrapper classes to
+    instantiate (see ``factory._normalize_provider`` /
+    ``factory.SUPPORTED_PROVIDERS``) and ``model`` is the provider's model id.
+
+    ``api_key`` (declared via ``extra="allow"``, not a typed field — may hold
+    several comma-separated keys for rotation) is always sourced from this
+    entry / ``.env`` through config.yml — this registry is the only source of
+    provider API keys (see ``backend.infrastructure.llm.config.models_config.find_model_for_provider``).
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    name: str = Field(..., description="Unique name for the model (selectable as the active one)")
+    display_name: str | None = Field(default=None, description="Human-friendly name for UIs")
+    description: str | None = Field(default=None, description="Description for the model")
+    model: str = Field(..., description="Provider model id, e.g. gpt-4o")
+    provider_name: str | None = Field(default=None, description="Label for usage tracking / provider resolution")
+    base_url: str | None = Field(default=None, description="Provider API base URL override")
+
+    # Whether this entry is selectable as the active model (Settings UI
+    # override). The first enabled entry is the boot default.
+    enabled: bool = Field(default=False, description="Selectable as the active model")
+    failover: FailoverEntry = Field(default_factory=FailoverEntry, description="This model's key-rotation policy")
+
+    supports_thinking: bool = Field(default=False, description="Whether the model supports extended thinking")
+    supports_reasoning_effort: bool = Field(default=False, description="Whether the model supports reasoning effort")
+    supports_vision: bool = Field(default=False, description="Whether the model supports image inputs")
+
+    # Whether this entry's api_key may be used as the fallback key for the
+    # matching tool/embedding capability (gemini.py, image_generation.py,
+    # text_to_speech.py, embeddings.py) when the caller supplies none of its own.
+    supports_embedding: bool = Field(default=False, description="Key usable as an embeddings fallback")
+    supports_image_gen: bool = Field(default=False, description="Key usable as an image-generation tool fallback")
+    supports_tts: bool = Field(default=False, description="Key usable as a text-to-speech tool fallback")
+    supports_video_gen: bool = Field(default=False, description="Key usable as a video-generation tool fallback")
+
+    when_thinking_enabled: dict | None = Field(
+        default=None, description="Extra kwargs merged into the model when thinking is enabled"
+    )
+    when_thinking_disabled: dict | None = Field(
+        default=None, description="Extra kwargs merged into the model when thinking is disabled"
+    )
+    thinking: dict | None = Field(
+        default=None,
+        description="Shortcut for when_thinking_enabled; merged with it when both are set",
+    )
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Root settings — composes every section + backward-compatible flat delegates
 # ══════════════════════════════════════════════════════════════════════════════
@@ -523,6 +562,13 @@ class Settings(BaseModel):
     browser: BrowserSettings = Field(default_factory=BrowserSettings)
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     tools: ToolsSettings = Field(default_factory=ToolsSettings)
+    models: list[ModelConfig] = Field(
+        default_factory=list, description="LLM registry (`models:` list) — see infrastructure/llm/config"
+    )
+    middleware: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Declarative middleware component config (`middleware:` section) — see infrastructure/llm/middleware/config.py",
+    )
 
     # ── Root helpers ────────────────────────────────────────────────────────
     def is_production(self) -> bool:
@@ -552,16 +598,6 @@ class Settings(BaseModel):
     def api_prefix(self) -> str: return self.app.api_prefix
     @property
     def frontend_url(self) -> str: return self.app.frontend_url
-    # LLM
-    @property
-    def llm_provider(self) -> str: return self.llm.provider
-    @property
-    def llm_model(self) -> str | None: return self.llm.model
-    @property
-    def llm_api_base(self) -> str | None: return self.llm.api_base
-    @property
-    def llm_active_model(self) -> str | None: return self.llm.active_model
-
     # Storage
     @property
     def storage_backend(self) -> str: return self.storage.backend

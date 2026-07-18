@@ -260,8 +260,8 @@ def get_meeting_service() -> MeetingService:
     graph_llm = None
     if settings.graph_build_mode == "llm":
         graph_llm = build_default_llm_provider(
-            provider=settings.graph_llm_provider or settings.llm_provider,
-            model=settings.graph_llm_model or settings.llm_model,
+            provider=settings.graph_llm_provider,
+            model=settings.graph_llm_model,
         )
     return MeetingService(
         conversations,
@@ -287,8 +287,8 @@ def get_graph_context_service() -> GraphContextService:
     graph_llm = None
     if settings.graph_build_mode == "llm":
         graph_llm = build_default_llm_provider(
-            provider=settings.graph_llm_provider or settings.llm_provider,
-            model=settings.graph_llm_model or settings.llm_model,
+            provider=settings.graph_llm_provider,
+            model=settings.graph_llm_model,
         )
     return GraphContextService(
         graph_knowledge,
@@ -608,8 +608,8 @@ def get_monitoring_service():
 
 def _resolve_active_model_config():
     """The active ``models:`` entry: DB override (Settings UI) if it names a
-    currently-enabled model, else the config.yml/env resolution, else None
-    (falls back to legacy settings.llm_provider/model in build_default_llm_provider)."""
+    currently-enabled model, else the config.yml resolution, else None (no
+    `models:` entry at all — build_default_llm_provider raises in that case)."""
     enabled = get_enabled_models()
     if enabled:
         try:

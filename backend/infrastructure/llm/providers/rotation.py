@@ -15,19 +15,18 @@ pool of equivalent chat models — one per API key — and switch keys both:
 This is an *alternative* to delegating failover to the **9router** gateway
 (decolua/9router, docker ``--profile router``): an OpenAI-compatible proxy that
 itself routes / falls back across 40+ providers. Which one is active is chosen
-by ``config.yml``'s ``llm.failover.strategy`` (per-model entries under
-``models:`` may override it with their own ``failover:`` block):
+per-entry by a ``models:`` entry's own ``failover.strategy`` block:
 
 * ``rotate``  → local multi-key rotation (this module). [default]
 * ``9router`` → local rotation OFF; failover delegated to the 9router gateway.
-                Point the backend at it via ``llm.provider: openai`` +
-                ``llm.api_base: http://nine-router:20128/v1`` + the dashboard key.
+                Point the entry at it via ``provider_name: openai`` +
+                ``base_url: http://nine-router:20128/v1`` + the dashboard key.
                 (aliases: ``router``, ``nine-router``, ``off``, ``none``)
 
 Note: 9router is NOT openrouter.ai — the latter is the separate ``open_weight``
 provider in this codebase.
 
-Tuning knobs (config.yml, ``llm.failover.*``, all optional):
+Tuning knobs (a ``models:`` entry's ``failover:`` block, all optional):
 * ``key_cooldown_seconds``        — cooldown after an error (default 60)
 * ``rotate_max_requests_per_min`` — per-key RPM budget, 0 = unlimited
 * ``rotate_max_tokens_per_min``   — per-key TPM budget, 0 = unlimited
@@ -48,7 +47,6 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from backend.api.settings import settings
 from backend.log import get_logger
 
 _WINDOW_SECONDS = 60.0
@@ -56,7 +54,9 @@ _WINDOW_SECONDS = 60.0
 
 @dataclass(frozen=True)
 class RotationConfig:
-    """Runtime knobs for key rotation, sourced from config.yml (llm.failover)."""
+    """Runtime knobs for key rotation, sourced from a ``models:`` entry's own
+    ``failover:`` block (see :meth:`from_model_entry`); the dataclass defaults
+    below apply when no entry/config is available."""
 
     strategy: str = "rotate"
     cooldown_seconds: float = 60.0
@@ -64,20 +64,9 @@ class RotationConfig:
     max_tokens_per_min: int = 0  # 0 = unlimited
 
     @classmethod
-    def from_env(cls) -> "RotationConfig":
-        fo = settings.llm.failover
-        return cls(
-            strategy=(fo.strategy or "rotate").strip().lower(),
-            cooldown_seconds=fo.key_cooldown_seconds,
-            max_requests_per_min=max(0, fo.rotate_max_requests_per_min),
-            max_tokens_per_min=max(0, fo.rotate_max_tokens_per_min),
-        )
-
-    @classmethod
     def from_model_entry(cls, failover: Any) -> "RotationConfig":
         """Build from a ``models:`` entry's own ``failover:`` block
-        (a ``ModelConfig.failover`` / ``FailoverEntry``), instead of the global
-        ``settings.llm_failover`` env-backed defaults."""
+        (a ``ModelConfig.failover`` / ``FailoverEntry``)."""
         return cls(
             strategy=(getattr(failover, "strategy", None) or "rotate").strip().lower(),
             cooldown_seconds=getattr(failover, "key_cooldown_seconds", 60.0),
@@ -220,7 +209,7 @@ class RotatingChatModel:
         if not models:
             raise ValueError("RotatingChatModel requires at least one underlying model")
         self._models = models
-        self._config = config or RotationConfig.from_env()
+        self._config = config or RotationConfig()
         self._labels = labels or [f"key#{i + 1}" for i in range(len(models))]
         # Cooldown/window state and the current cursor are shared by reference so
         # that bind_tools()/with_*() clones rotate in lock-step with the original.
@@ -409,10 +398,10 @@ def build_rotating_model(
     """Build one chat model per key; wrap in ``RotatingChatModel`` when active.
 
     Returns the bare model (zero overhead, identical to pre-rotation behaviour)
-    when there is a single key, or when ``LLM_FAILOVER_STRATEGY`` is not
-    ``rotate`` (failover is delegated to a router service / disabled).
+    when there is a single key, or when the model entry's ``failover.strategy``
+    is not ``rotate`` (failover is delegated to a router service / disabled).
     """
-    cfg = config or RotationConfig.from_env()
+    cfg = config or RotationConfig()
     keys = [k.strip() for k in api_keys if k and k.strip()]
     seen: set[str] = set()
     keys = [k for k in keys if not (k in seen or seen.add(k))]
@@ -424,7 +413,7 @@ def build_rotating_model(
 
     if not cfg.rotation_enabled:
         get_logger().info(
-            "LLM key rotation disabled (LLM_FAILOVER_STRATEGY=%s); using a single %s key, "
+            "LLM key rotation disabled (failover.strategy=%s); using a single %s key, "
             "failover delegated elsewhere",
             cfg.strategy, label_prefix,
         )

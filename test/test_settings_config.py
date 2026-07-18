@@ -15,12 +15,6 @@ from pydantic import BaseModel
 from backend.api.config_loader import config_file_path, expand_env, load_config
 from backend.api.settings import Settings, StaffSettings
 
-# Sections consumed by dedicated, standalone loaders (not the pydantic Settings
-# tree) — `models:` by infrastructure/llm/config, `middleware:` by
-# infrastructure/llm/middleware/config. Their schema is validated by those
-# loaders, so they are intentionally exempt here.
-_LOADER_MANAGED_SECTIONS = {"models", "middleware"}
-
 
 def _raw_config() -> dict:
     return yaml.safe_load(config_file_path().read_text(encoding="utf-8")) or {}
@@ -43,7 +37,7 @@ def test_every_config_key_resolves_to_a_settings_field():
     raw = _raw_config()
     unresolved: list[str] = []
     for section, body in raw.items():
-        if section == "config_version" or section in _LOADER_MANAGED_SECTIONS:
+        if section == "config_version":
             continue
         if not isinstance(body, dict):
             continue
@@ -51,7 +45,8 @@ def test_every_config_key_resolves_to_a_settings_field():
             unresolved.append(section)
             continue
         sub_model = Settings.model_fields[section].annotation
-        unresolved.extend(_unresolved_keys(sub_model, body, section))
+        if isinstance(sub_model, type) and issubclass(sub_model, BaseModel):
+            unresolved.extend(_unresolved_keys(sub_model, body, section))
     assert not unresolved, (
         f"config.yml declares keys with no matching field in settings.py: {unresolved}"
     )
@@ -95,11 +90,14 @@ def test_config_override_file_deep_merges(tmp_path, monkeypatch):
     assert raw["storage"]["backend"] == "json"
 
 
-def test_llm_failover_nests_under_llm():
-    raw = {"llm": {"failover": {"strategy": "rotate", "key_cooldown_seconds": 30}}}
+def test_models_and_middleware_load_into_settings():
+    raw = {
+        "models": [{"name": "gemini", "model": "gemini-3-flash-preview", "enabled": True}],
+        "middleware": {"loop_detection": {"enabled": True, "max_repeats": 5}},
+    }
     s = Settings(**raw)
-    assert s.llm.failover.strategy == "rotate"
-    assert s.llm.failover.key_cooldown_seconds == 30
+    assert s.models[0].name == "gemini"
+    assert s.middleware["loop_detection"]["max_repeats"] == 5
 
 
 def test_os_environment_no_longer_overrides_settings(monkeypatch):
@@ -112,6 +110,5 @@ def test_os_environment_no_longer_overrides_settings(monkeypatch):
 def test_nested_and_flat_access_agree():
     from backend.api.settings import settings
 
-    assert settings.llm_provider == settings.llm.provider
     assert settings.jwt_secret_key == settings.auth.jwt_secret_key
     assert settings.subagent_max_concurrent == settings.staff.subagent_max_concurrent

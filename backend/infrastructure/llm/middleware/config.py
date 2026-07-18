@@ -1,10 +1,11 @@
 """Declarative middleware configuration.
 
-Reads the optional ``middleware:`` section from ``config.yml`` (same file the
-rest of the app uses) and resolves each component's knobs. Any value omitted from
-that section falls back to the existing ``settings.llm.*`` defaults (which still
-honour environment variables) — so adding the ``middleware:`` section is purely
-additive and the stack behaves identically when it is absent.
+Resolves each component's knobs from ``settings.middleware`` (the
+``middleware:`` section, loaded once by ``backend.api.settings`` — this module
+does not parse config.yml itself). Any value omitted from that section falls
+back to the existing ``settings.llm.*`` defaults — so adding the
+``middleware:`` section is purely additive and the stack behaves identically
+when it is absent.
 
 The section is organised by component (DeerFlow-style), e.g.::
 
@@ -24,11 +25,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-import yaml
-
-from backend.api.config_loader import config_file_path
 from backend.api.settings import settings
-from backend.log import get_logger
 
 
 def _csv(value: Any) -> list[str]:
@@ -41,17 +38,8 @@ def _csv(value: Any) -> list[str]:
 
 
 def _section() -> dict[str, Any]:
-    """Return the raw ``middleware:`` mapping from config.yml ({} when absent)."""
-    path = config_file_path()
-    if not path.exists():
-        return {}
-    try:
-        raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    except Exception:  # noqa: BLE001 — never block startup on a bad config.yml
-        get_logger().warning("Could not parse %s for middleware config", path, exc_info=True)
-        return {}
-    section = raw.get("middleware") if isinstance(raw, dict) else None
-    return section if isinstance(section, dict) else {}
+    """Return the ``middleware:`` mapping ({} when absent)."""
+    return settings.middleware
 
 
 def _get(section: dict[str, Any], group: str, key: str, default: Any) -> Any:

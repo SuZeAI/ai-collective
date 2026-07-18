@@ -11,10 +11,12 @@ secret values a leaf references inline (e.g. ``auth.jwt_secret_key:
 ${JWT_SECRET_KEY}``). The resulting dict is passed straight into
 ``Settings(**raw)`` (see ``backend/api/settings.py``).
 
-``config_file_path()`` / ``expand_env()`` are also used standalone by the
-``models:`` and ``middleware:`` loaders (``backend/infrastructure/llm/config``,
-``backend/infrastructure/llm/middleware/config.py``), which have their own
-schemas and are not part of the ``Settings`` registry.
+``models:`` and ``middleware:`` are ordinary ``Settings`` fields too
+(``Settings.models: list[ModelConfig]``, ``Settings.middleware: dict``) —
+nothing outside this module parses config.yml itself;
+``backend/infrastructure/llm/config`` and
+``backend/infrastructure/llm/middleware/config.py`` only query
+``settings.models`` / ``settings.middleware``.
 """
 
 from __future__ import annotations

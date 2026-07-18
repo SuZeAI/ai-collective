@@ -205,7 +205,7 @@ def _build_langchain_embeddings(provider: str, model: str) -> Any | None:
         if provider in {"openai", "open_weight"}:
             cls = importlib.import_module("langchain_openai").OpenAIEmbeddings
             kwargs: dict[str, Any] = {"model": model, "api_key": key}
-            base_url = settings.llm.api_base
+            base_url = getattr(entry, "base_url", None)
             if provider == "open_weight" and base_url:
                 kwargs["base_url"] = base_url
             return LangChainEmbeddingProvider(

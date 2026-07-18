@@ -1,26 +1,15 @@
-"""Load and cache the ``models:`` list from config.yml (model-driven LLM config).
-
-Reads the same ``config.yml`` the rest of the app uses (path resolved via
-``config_loader.config_file_path``), extracts the top-level ``models:`` list,
-resolves ``${VAR}``/``$VAR`` references via the same ``expand_env`` the rest of
-config.yml is loaded through (``backend.api.config_loader``), and validates
-each entry into a :class:`ModelConfig`.
-
-Resolution is lenient: a missing env var becomes an empty string rather than
-raising, so a model whose API key is unset simply ends up empty (a builder can
-treat it as disabled) instead of breaking startup.
+"""Lookups over the ``models:`` list (``settings.models``, loaded and validated
+once by ``backend.api.settings`` — this module does not parse config.yml
+itself, it only queries the already-loaded registry).
 
 The *active* model — which entry drives the app-wide default provider — is
 resolved with this priority:
 
-1. ``settings.llm_active_model`` (``LLM_ACTIVE_MODEL`` — config.yml `llm:
-   active_model` / ``.env`` / OS env, per the standard settings layering;
-   ops-level override).
-2. A persisted runtime override, set via the Settings UI (see
+1. A persisted runtime override, set via the Settings UI (see
    ``backend.api.deps._llm_provider`` — that layer owns the DB-backed
-   override; this module only knows about the config-level active model).
-3. The first ``models:`` entry with ``enabled: true`` (deploy-time default).
-4. The first entry overall, if none are marked enabled.
+   override; this module only knows about the config-level resolution below).
+2. The first ``models:`` entry with ``enabled: true`` (deploy-time default).
+3. The first entry overall, if none are marked enabled.
 
 This module is consumed by ``backend.infrastructure.llm.factory`` (via the
 resolved :class:`ModelConfig` passed in by the caller) and by
@@ -29,54 +18,17 @@ resolved :class:`ModelConfig` passed in by the caller) and by
 
 from __future__ import annotations
 
-import yaml
+from typing import TYPE_CHECKING
 
-from backend.api.config_loader import config_file_path, expand_env
-from backend.infrastructure.llm.config.model_config import ModelConfig
-from backend.log import get_logger
-
-_models: list[ModelConfig] | None = None
-_active_model: str | None = None
-
-
-def _load() -> tuple[list[ModelConfig], str | None]:
-    path = config_file_path()
-    models: list[ModelConfig] = []
-    active: str | None = None
-    if not path.exists():
-        return models, active
-    try:
-        raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    except Exception:  # noqa: BLE001 — never block startup on a bad config.yml
-        get_logger().warning("Could not parse %s for models config", path, exc_info=True)
-        return models, active
-    if not isinstance(raw, dict):
-        return models, active
-
-    raw_models = expand_env(raw.get("models") or [])
-    for entry in raw_models:
-        if not isinstance(entry, dict):
-            continue
-        try:
-            models.append(ModelConfig.model_validate(entry))
-        except Exception:  # noqa: BLE001 — skip a malformed entry, keep the rest
-            get_logger().warning("Skipping invalid model entry: %s", entry.get("name"), exc_info=True)
-
-    # Active model: settings override wins, then the first `enabled: true` entry.
-    from backend.api.settings import settings
-
-    active = settings.llm_active_model or None
-    if active is None:
-        active = next((m.name for m in models if m.enabled), None)
-    return models, active
+if TYPE_CHECKING:
+    from backend.api.settings import ModelConfig
 
 
 def get_models_config() -> list[ModelConfig]:
-    """Return the cached models list (loading on first access)."""
-    global _models, _active_model
-    if _models is None:
-        _models, _active_model = _load()
-    return _models
+    """The ``models:`` list, as loaded into ``settings.models``."""
+    from backend.api.settings import settings
+
+    return settings.models
 
 
 def get_enabled_models() -> list[ModelConfig]:
@@ -85,15 +37,16 @@ def get_enabled_models() -> list[ModelConfig]:
 
 
 def get_active_model_name() -> str | None:
-    """Name of the config-level active model: env override, the first
-    ``enabled: true`` entry, or the first entry overall as a last resort.
+    """Name of the config-level active model: the first ``enabled: true``
+    entry, or the first entry overall as a last resort.
 
     Does NOT consider the DB-persisted Settings-UI override — that layer
     lives in ``backend.api.deps``, which checks it first and falls back here.
     """
     models = get_models_config()
-    if _active_model:
-        return _active_model
+    active = next((m.name for m in models if m.enabled), None)
+    if active:
+        return active
     return models[0].name if models else None
 
 
@@ -133,17 +86,3 @@ def find_model_for_provider(provider: str, capability: str | None = None) -> Mod
         return None
     enabled = [m for m in candidates if m.enabled]
     return (enabled or candidates)[0]
-
-
-def reload_models_config() -> list[ModelConfig]:
-    """Force a reload from disk."""
-    global _models, _active_model
-    _models, _active_model = _load()
-    return _models
-
-
-def reset_models_config() -> None:
-    """Clear the cache (next access reloads). Useful for tests."""
-    global _models, _active_model
-    _models = None
-    _active_model = None

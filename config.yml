@@ -23,19 +23,8 @@ logging:
   log_max_bytes: 10485760
   log_backup_count: 5
 
-# ── LLM (fallback provider/model + active-model override; primary config is `models:` below) ──
-llm:
-  provider: google
-  # model:                             # provider's default model when unset
-  # api_base:                          # custom OpenAI-compatible base URL
-  # active_model:                      # overrides the enabled `models:` entry
-  failover:
-    strategy: rotate                   # rotate (local key rotation) | 9router
-    rotate_max_requests_per_min: 0
-    rotate_max_tokens_per_min: 0
-    key_cooldown_seconds: 60
-
-# ── Models (LLM registry) ──────────────────────────────────────────────────
+# ── Models (LLM registry; active model = first `enabled: true` entry, or the
+#    Settings UI override) ───────────────────────────────────────────────────
 # supports_* flags mark an entry's api_key as a fallback for that tool/embedding.
 models:
   - name: gemini
