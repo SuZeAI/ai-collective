@@ -109,6 +109,9 @@ class LLMSettings(BaseSettings):
     provider: str = Field(default="google", validation_alias=_alias("LLM_PROVIDER"))
     model: str | None = Field(default=None, validation_alias=_alias("LLM_MODEL"))
     api_base: str | None = Field(default=None, validation_alias=_alias("LLM_API_BASE"))
+    # Ops-level override of the active `models:` registry entry (config.yml).
+    # Unset -> the first entry with enabled: true.
+    active_model: str | None = Field(default=None, validation_alias=_alias("LLM_ACTIVE_MODEL"))
 
     # Optional middleware knobs (previously read raw in infrastructure/llm/middleware.py)
     tool_retry_max: int = Field(default=2, validation_alias=_alias("LLM_TOOL_RETRY_MAX"))
@@ -696,6 +699,8 @@ class Settings(BaseSettings):
     def llm_model(self) -> str | None: return self.llm.model
     @property
     def llm_api_base(self) -> str | None: return self.llm.api_base
+    @property
+    def llm_active_model(self) -> str | None: return self.llm.active_model
     # LLM keys
     @property
     def google_api_key(self) -> str | None: return self.llm_keys.google_api_key
