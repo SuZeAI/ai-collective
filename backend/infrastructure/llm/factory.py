@@ -24,6 +24,17 @@ DEFAULT_PROVIDER_MODELS = {
 
 SUPPORTED_PROVIDERS = {"anthropic", "openai", "google", "open_weight", "kimi", "deepseek", "glm"}
 
+# Maps a normalized provider name to the create_llm_provider() kwarg its key goes in.
+_PROVIDER_API_KEY_KWARGS = {
+    "anthropic": "anthropic_api_key",
+    "openai": "openai_api_key",
+    "open_weight": "open_weight_api_key",
+    "kimi": "kimi_api_key",
+    "deepseek": "deepseek_api_key",
+    "glm": "glm_api_key",
+    "google": "google_api_key",
+}
+
 
 def _normalize_provider(provider: str | None) -> str:
     normalized = (provider or "google").strip().lower().replace("-", "_")
@@ -148,8 +159,7 @@ def build_default_llm_provider(
     base_url: str | None = None,
     model_config: ModelConfig | None = None,
 ) -> LLMProvider | None:
-    """create_llm_provider(), resolving every provider API key from settings
-    in one place.
+    """create_llm_provider(), resolving every provider API key in one place.
 
     Every call site used to hand-list all 7 provider keys itself — 4 near-
     identical copies across deps.py/document_tools.py — so adding a new
@@ -158,13 +168,39 @@ def build_default_llm_provider(
 
     ``model_config`` — when given (the resolved active entry from config.yml's
     ``models:`` registry, see ``backend.infrastructure.llm.config``) — supplies
-    provider/model/base_url/failover from that entry instead of the app-wide
-    ``settings.llm_*`` defaults, so the Settings-UI "active model" switch and
-    each model's own key-rotation policy actually take effect. Explicit
+    provider/model/base_url/failover from that entry, and its own ``api_key:``
+    (sourced from config.yml/.env through the registry) is used instead of the
+    app-wide ``settings.llm_*_api_keys()`` lookups whenever it's set. Explicit
     provider/model/base_url args still win over both (e.g. the knowledge-graph
     builder's separate GRAPH_LLM_PROVIDER/MODEL override).
     """
     from backend.api.settings import settings
+
+    resolved_max_tool_rounds = (
+        max_tool_rounds if max_tool_rounds is not None else settings.staff_max_tool_rounds
+    )
+    resolved_tool_timeout = (
+        tool_timeout_seconds if tool_timeout_seconds is not None else settings.tool_timeout_seconds
+    )
+
+    if (
+        model_config is not None
+        and provider is None
+        and model is None
+        and base_url is None
+        and getattr(model_config, "api_key", None)
+    ):
+        resolved_provider = _normalize_provider(model_config.provider_name or model_config.name)
+        key_kwarg = _PROVIDER_API_KEY_KWARGS.get(resolved_provider)
+        return create_llm_provider(
+            provider=resolved_provider,
+            model=model_config.model,
+            base_url=model_config.base_url,
+            max_tool_rounds=resolved_max_tool_rounds,
+            tool_timeout_seconds=resolved_tool_timeout,
+            failover=RotationConfig.from_model_entry(model_config.failover),
+            **({key_kwarg: model_config.api_key} if key_kwarg else {}),
+        )
 
     resolved_provider = provider
     resolved_model = model
@@ -189,11 +225,7 @@ def build_default_llm_provider(
         deepseek_api_key=settings.deepseek_api_keys(),
         glm_api_key=settings.glm_api_keys(),
         base_url=resolved_base_url or settings.llm_api_base,
-        max_tool_rounds=(
-            max_tool_rounds if max_tool_rounds is not None else settings.staff_max_tool_rounds
-        ),
-        tool_timeout_seconds=(
-            tool_timeout_seconds if tool_timeout_seconds is not None else settings.tool_timeout_seconds
-        ),
+        max_tool_rounds=resolved_max_tool_rounds,
+        tool_timeout_seconds=resolved_tool_timeout,
         failover=resolved_failover,
     )

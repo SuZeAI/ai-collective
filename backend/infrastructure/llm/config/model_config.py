@@ -17,18 +17,15 @@ class FailoverEntry(BaseModel):
 class ModelConfig(BaseModel):
     """One chat-model entry from the ``models:`` list in config.yml.
 
-    Mirrors the DeerFlow concept (see ``context/config.example.yaml``): ``use``
-    names the LangChain chat-model class to instantiate (``"module:ClassName"``)
-    and ``model`` is the provider's model id. Every other key (``api_key``,
-    ``base_url``, ``temperature``, ``max_tokens``, ``default_headers`` …) flows
-    through to the class constructor unchanged thanks to ``extra="allow"``.
+    ``provider_name`` (falling back to ``name``) selects which of the 7
+    built-in ``backend.infrastructure.llm.providers.*`` wrapper classes to
+    instantiate (see ``factory._normalize_provider`` /
+    ``factory.SUPPORTED_PROVIDERS``) and ``model`` is the provider's model id.
 
-    A few extra keys are consumed specially by a builder: ``api_key`` (the secret,
-    may hold several comma-separated keys for rotation), ``api_key_field`` (the
-    constructor kwarg the key is passed as — defaults to ``api_key``; Google needs
-    ``google_api_key``) and ``provider_name`` (label for usage tracking / logs,
-    and the source used to resolve which of the 7 built-in providers this entry
-    maps to — see ``factory._normalize_provider``).
+    ``api_key`` (declared via ``extra="allow"``, not a typed field — may hold
+    several comma-separated keys for rotation) is always sourced from this
+    entry / ``.env`` through config.yml — never from the app-wide
+    ``settings.llm_*_api_keys()`` env lookups.
     """
 
     model_config = ConfigDict(extra="allow")
@@ -36,7 +33,6 @@ class ModelConfig(BaseModel):
     name: str = Field(..., description="Unique name for the model (selectable as the active one)")
     display_name: str | None = Field(default=None, description="Human-friendly name for UIs")
     description: str | None = Field(default=None, description="Description for the model")
-    use: str = Field(..., description="Class path of the chat model, e.g. langchain_openai:ChatOpenAI")
     model: str = Field(..., description="Provider model id, e.g. gpt-4o")
     provider_name: str | None = Field(default=None, description="Label for usage tracking / provider resolution")
     base_url: str | None = Field(default=None, description="Provider API base URL override")

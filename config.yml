@@ -29,22 +29,19 @@ models:
   - name: gemini
     display_name: Gemini 3 Flash
     provider_name: Google
-    use: langchain_google_genai:ChatGoogleGenerativeAI
     model: gemini-3-flash-preview
     api_key: $GOOGLE_API_KEY
-    api_key_field: google_api_key
     supports_vision: true
     enabled: true
     failover:
       strategy: rotate
       rotate_max_requests_per_min: 0
       rotate_max_tokens_per_min: 0
-      key_cooldown_seconds: 60
+      key_cooldown_seconds: 1
 
   - name: claude
     display_name: Claude Sonnet 4
     provider_name: Anthropic
-    use: langchain_anthropic:ChatAnthropic
     model: claude-sonnet-4-20250514
     api_key: $ANTHROPIC_API_KEY
     supports_vision: true
@@ -58,7 +55,6 @@ models:
   - name: gpt-4o
     display_name: GPT-4o
     provider_name: OpenAI
-    use: langchain_openai:ChatOpenAI
     model: gpt-4o
     api_key: $OPENAI_API_KEY
     enabled: false
@@ -71,7 +67,6 @@ models:
   - name: deepseek
     display_name: DeepSeek Chat
     provider_name: DeepSeek
-    use: langchain_openai:ChatOpenAI
     model: deepseek-chat
     api_key: $DEEPSEEK_API_KEY
     base_url: https://api.deepseek.com/v1
@@ -85,7 +80,6 @@ models:
   - name: kimi
     display_name: Kimi K2
     provider_name: Kimi
-    use: langchain_openai:ChatOpenAI
     model: kimi-k2-0711-preview
     api_key: $KIMI_API_KEY
     base_url: https://api.moonshot.ai/v1
@@ -99,7 +93,6 @@ models:
   - name: glm
     display_name: GLM 4.6
     provider_name: GLM
-    use: langchain_openai:ChatOpenAI
     model: glm-4.6
     api_key: $GLM_API_KEY
     base_url: https://api.z.ai/api/paas/v4
@@ -113,7 +106,6 @@ models:
   - name: open_weight
     display_name: OpenRouter (Qwen)
     provider_name: Open-weight
-    use: langchain_openai:ChatOpenAI
     model: qwen/qwen3.5-397b-a17b
     api_key: $OPENROUTER_API_KEY
     base_url: https://openrouter.ai/api/v1
