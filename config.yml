@@ -1,13 +1,7 @@
 # AI Collective — configuration
-# This file is the single source of truth for app config: every setting is
-# declared here, in its owning section, nested with lowercase keys matching
-# backend/api/settings.py field names 1:1. Layering: code defaults < config.yml.
-# Unknown keys are ignored. Override the whole file with CONFIG_FILE=/path; test
-# suites can also deep-merge a small override on top via CONFIG_OVERRIDE_FILE=...
-# Secret values (API keys, passwords, connection URIs) live in .env and are
-# pulled in via ${VAR} / $VAR references, expanded from the OS environment —
-# this is the only way env vars still reach the app; nothing else reads them.
-# Per-tool credentials are NOT here — set per skill in the UI (stored in MongoDB).
+# Single source of truth for app config; keys match backend/api/settings.py 1:1.
+# Override file: CONFIG_FILE=/path. Test override merge: CONFIG_OVERRIDE_FILE=/path.
+# Secrets live in .env, pulled in via ${VAR}/$VAR. Per-tool creds are NOT here (UI/MongoDB).
 
 # Schema version (informational only)
 config_version: 1
@@ -29,12 +23,7 @@ logging:
   log_max_bytes: 10485760
   log_backup_count: 5
 
-# ── LLM (legacy provider/model fallback + ops override) ───────────────────────
-# Model selection normally comes from `models:` below; these are only used as a
-# fallback when no `models:` entry resolves, plus `active_model` (an ops-level
-# override of which `models:` entry is active). The middleware knobs
-# (loop_detection, tool_retry, summarization, ...) live under `middleware:`
-# below — LLMSettings has code-default fallbacks for them, not config.yml keys.
+# ── LLM (fallback provider/model + active-model override; primary config is `models:` below) ──
 llm:
   provider: google
   # model:                             # provider's default model when unset
@@ -47,10 +36,7 @@ llm:
     key_cooldown_seconds: 60
 
 # ── Models (LLM registry) ──────────────────────────────────────────────────
-# `supports_embedding` / `supports_image_gen` / `supports_tts` / `supports_video_gen`
-# mark an entry's api_key as usable as the fallback key for that tool/embedding
-# capability (gemini.py, image_generation.py, text_to_speech.py, embeddings.py)
-# when the caller (skill config / embedding.provider) supplies none of its own.
+# supports_* flags mark an entry's api_key as a fallback for that tool/embedding.
 models:
   - name: gemini
     display_name: Gemini 3 Flash
@@ -150,9 +136,8 @@ models:
       rotate_max_tokens_per_min: 0
       key_cooldown_seconds: 60
 
-# ── Middleware (staff middleware stack) ────────────────────────────────────
-# One block per middleware; omit to use its default. Always-on: ModelCallLimit,
-# LoopDetection, ToolRetry, ToolTimeout. See backend/infrastructure/llm/middleware/.
+# ── Middleware (staff stack, see backend/infrastructure/llm/middleware/) ──────
+# Always-on: ModelCallLimit, LoopDetection, ToolRetry, ToolTimeout.
 middleware:
   loop_detection:
     enabled: true                     # break loops repeating an identical tool call
@@ -261,8 +246,7 @@ sandbox:
   # idle_timeout: 600
   # provisioner_url: http://provisioner:8002
 
-# ── MinIO (S3-compatible object storage: sandbox file backups in k8s mode, and
-# document uploads when storage.file_backend=s3) ──────────────────────────────
+# ── MinIO (S3 storage: sandbox backups in k8s mode, doc uploads if file_backend=s3) ──
 minio:
   enabled: false
   endpoint: localhost:9000
@@ -357,8 +341,7 @@ browser:
   # api_base:
   # extra_headers:
 
-# ── Tool runtime defaults (deploy-time filesystem paths/preferences; NOT
-# per-skill credentials — those are user-configured per skill via the UI) ─────
+# ── Tool runtime defaults (NOT per-skill credentials — those are set via the UI) ──
 tools:
   bird_search_mjs: ""                 # bird_x vendored script path override
   xai_model: grok-4-fast
