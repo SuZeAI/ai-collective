@@ -46,19 +46,11 @@ llm:
     rotate_max_tokens_per_min: 0
     key_cooldown_seconds: 60
 
-# ── LLM provider API keys (secrets pool for tool fallback: gemini.py,
-# image_generation.py, text_to_speech.py use these when no explicit key is
-# passed; the `models:` registry below has its own per-entry `api_key:`) ──────
-llm_keys:
-  google_api_key: ${GOOGLE_API_KEY}
-  anthropic_api_key: ${ANTHROPIC_API_KEY}
-  openai_api_key: ${OPENAI_API_KEY}
-  open_weight_api_key: ${OPENROUTER_API_KEY}
-  kimi_api_key: ${KIMI_API_KEY}
-  deepseek_api_key: ${DEEPSEEK_API_KEY}
-  glm_api_key: ${GLM_API_KEY}
-
 # ── Models (LLM registry) ──────────────────────────────────────────────────
+# `supports_embedding` / `supports_image_gen` / `supports_tts` / `supports_video_gen`
+# mark an entry's api_key as usable as the fallback key for that tool/embedding
+# capability (gemini.py, image_generation.py, text_to_speech.py, embeddings.py)
+# when the caller (skill config / embedding.provider) supplies none of its own.
 models:
   - name: gemini
     display_name: Gemini 3 Flash
@@ -66,6 +58,10 @@ models:
     model: gemini-3-flash-preview
     api_key: $GOOGLE_API_KEY
     supports_vision: true
+    supports_embedding: true
+    supports_image_gen: true
+    supports_tts: true
+    supports_video_gen: true
     enabled: true
     failover:
       strategy: rotate
@@ -91,6 +87,9 @@ models:
     provider_name: OpenAI
     model: gpt-4o
     api_key: $OPENAI_API_KEY
+    supports_embedding: true
+    supports_image_gen: true
+    supports_tts: true
     enabled: false
     failover:
       strategy: rotate
@@ -143,6 +142,7 @@ models:
     model: qwen/qwen3.5-397b-a17b
     api_key: $OPENROUTER_API_KEY
     base_url: https://openrouter.ai/api/v1
+    supports_embedding: true
     enabled: false
     failover:
       strategy: rotate

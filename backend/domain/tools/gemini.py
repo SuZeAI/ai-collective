@@ -3,8 +3,9 @@
 These wrap the Gemini Developer API (``https://generativelanguage.googleapis.com``)
 which has request/response shapes that differ from the OpenAI-compatible tools, so
 each capability gets its own toolkit. Authentication uses the ``x-goog-api-key``
-header; supply your key via the skill ``api_key`` config, or it falls back to the
-platform's configured Google LLM key.
+header; supply your key via the skill ``api_key`` config, or it falls back to a
+``models:`` registry entry for Google with the matching ``supports_*`` capability
+flag set (see config.yml).
 
   - GeminiImageToolkit -> Imagen ``:predict`` (text -> image)
   - GeminiTTSToolkit   -> Gemini TTS ``:generateContent`` (text -> speech, PCM wrapped to WAV)
@@ -29,6 +30,7 @@ from langchain.tools import tool
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
 from backend.api.settings import settings
+from backend.infrastructure.llm.config import find_model_for_provider
 
 DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_IMAGE_MODEL = "imagen-3.0-generate-002"
@@ -37,10 +39,18 @@ DEFAULT_TTS_VOICE = "Kore"
 DEFAULT_VIDEO_MODEL = "veo-3.0-generate-preview"
 
 
-def _resolve_key(explicit: Optional[str]) -> str:
-    key = (explicit or settings.llm_keys.google_api_key or "").strip()
+def _fallback_key(capability: str) -> str:
+    entry = find_model_for_provider("google", capability)
+    return (getattr(entry, "api_key", None) or "").split(",")[0].strip() if entry else ""
+
+
+def _resolve_key(explicit: Optional[str], capability: str) -> str:
+    key = (explicit or "").strip() or _fallback_key(capability)
     if not key:
-        raise ValueError("Gemini API key required. Configure api_key on the skill.")
+        raise ValueError(
+            "Gemini API key required. Configure api_key on the skill, or enable a Google "
+            f"model with `{capability}: true` in the models: registry."
+        )
     return key
 
 
@@ -88,7 +98,7 @@ class GeminiImageToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or (settings.llm_keys.google_api_key or "")
+        self.api_key = api_key or _fallback_key("supports_image_gen")
         self.model = (model or DEFAULT_IMAGE_MODEL).strip() or DEFAULT_IMAGE_MODEL
         self.base_url = (base_url or DEFAULT_BASE_URL).strip() or DEFAULT_BASE_URL
         self.aspect_ratio = (aspect_ratio or "1:1").strip() or "1:1"
@@ -111,7 +121,7 @@ class GeminiImageToolkit(BaseToolkit):
             model: Optional Imagen model override (e.g. imagen-3.0-generate-002).
             api_key: Optional API key override.
         """
-        key = _resolve_key(api_key or self.api_key)
+        key = _resolve_key(api_key or self.api_key, "supports_image_gen")
         selected_model = (model or self.model or DEFAULT_IMAGE_MODEL).strip() or DEFAULT_IMAGE_MODEL
         selected_ratio = (aspect_ratio or self.aspect_ratio or "1:1").strip() or "1:1"
         try:
@@ -159,7 +169,7 @@ class GeminiTTSToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or (settings.llm_keys.google_api_key or "")
+        self.api_key = api_key or _fallback_key("supports_tts")
         self.model = (model or DEFAULT_TTS_MODEL).strip() or DEFAULT_TTS_MODEL
         self.base_url = (base_url or DEFAULT_BASE_URL).strip() or DEFAULT_BASE_URL
         self.voice = (voice or DEFAULT_TTS_VOICE).strip() or DEFAULT_TTS_VOICE
@@ -181,7 +191,7 @@ class GeminiTTSToolkit(BaseToolkit):
             model: Optional model override (e.g. gemini-2.5-flash-preview-tts).
             api_key: Optional API key override.
         """
-        key = _resolve_key(api_key or self.api_key)
+        key = _resolve_key(api_key or self.api_key, "supports_tts")
         selected_model = (model or self.model or DEFAULT_TTS_MODEL).strip() or DEFAULT_TTS_MODEL
         selected_voice = (voice or self.voice or DEFAULT_TTS_VOICE).strip() or DEFAULT_TTS_VOICE
 
@@ -250,7 +260,7 @@ class GeminiVideoToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or (settings.llm_keys.google_api_key or "")
+        self.api_key = api_key or _fallback_key("supports_video_gen")
         self.model = (model or DEFAULT_VIDEO_MODEL).strip() or DEFAULT_VIDEO_MODEL
         self.base_url = (base_url or DEFAULT_BASE_URL).strip() or DEFAULT_BASE_URL
         self.poll_interval_seconds = max(1, int(poll_interval_seconds or 10))
@@ -316,7 +326,7 @@ class GeminiVideoToolkit(BaseToolkit):
             model: Optional Veo model override (e.g. veo-3.0-generate-preview).
             api_key: Optional API key override.
         """
-        key = _resolve_key(api_key or self.api_key)
+        key = _resolve_key(api_key or self.api_key, "supports_video_gen")
         if model:
             self.model = model.strip() or self.model
         params: Dict[str, Any] = {"aspectRatio": aspect_ratio}

@@ -24,6 +24,7 @@ from typing import Any, Protocol
 
 from backend.api.settings import settings
 from backend.domain.memory.vectors import tokenize
+from backend.infrastructure.llm.config import find_model_for_provider
 from backend.infrastructure.llm.usage_tracker import (
     current_usage_staff,
     current_usage_department,
@@ -191,21 +192,17 @@ def _build_langchain_embeddings(provider: str, model: str) -> Any | None:
     """Instantiate the LangChain embeddings class for ``provider`` (or None)."""
     import importlib
 
-    keys = settings.llm_keys
     dim = settings.embedding.dim
     try:
+        entry = find_model_for_provider(provider, "supports_embedding")
+        key = (getattr(entry, "api_key", None) or "").split(",")[0].strip() if entry else ""
+        if not key:
+            return None
         if provider == "google":
-            key = (keys.google_api_key or "").split(",")[0].strip()
-            if not key:
-                return None
             cls = importlib.import_module("langchain_google_genai").GoogleGenerativeAIEmbeddings
             emb = cls(model=model, google_api_key=key)
             return LangChainEmbeddingProvider(emb, provider_name="google", model=model, dim=dim)
         if provider in {"openai", "open_weight"}:
-            raw_key = keys.openai_api_key if provider == "openai" else keys.open_weight_api_key
-            key = (raw_key or "").split(",")[0].strip()
-            if not key:
-                return None
             cls = importlib.import_module("langchain_openai").OpenAIEmbeddings
             kwargs: dict[str, Any] = {"model": model, "api_key": key}
             base_url = settings.llm.api_base

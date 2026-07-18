@@ -24,8 +24,8 @@ class ModelConfig(BaseModel):
 
     ``api_key`` (declared via ``extra="allow"``, not a typed field — may hold
     several comma-separated keys for rotation) is always sourced from this
-    entry / ``.env`` through config.yml — never from the app-wide
-    ``settings.llm_*_api_keys()`` env lookups.
+    entry / ``.env`` through config.yml — this registry is the only source of
+    provider API keys (see ``models_config.find_model_for_provider``).
     """
 
     model_config = ConfigDict(extra="allow")
@@ -45,6 +45,14 @@ class ModelConfig(BaseModel):
     supports_thinking: bool = Field(default=False, description="Whether the model supports extended thinking")
     supports_reasoning_effort: bool = Field(default=False, description="Whether the model supports reasoning effort")
     supports_vision: bool = Field(default=False, description="Whether the model supports image inputs")
+
+    # Whether this entry's api_key may be used as the fallback key for the
+    # matching tool/embedding capability (gemini.py, image_generation.py,
+    # text_to_speech.py, embeddings.py) when the caller supplies none of its own.
+    supports_embedding: bool = Field(default=False, description="Key usable as an embeddings fallback")
+    supports_image_gen: bool = Field(default=False, description="Key usable as an image-generation tool fallback")
+    supports_tts: bool = Field(default=False, description="Key usable as a text-to-speech tool fallback")
+    supports_video_gen: bool = Field(default=False, description="Key usable as a video-generation tool fallback")
 
     when_thinking_enabled: dict | None = Field(
         default=None, description="Extra kwargs merged into the model when thinking is enabled"

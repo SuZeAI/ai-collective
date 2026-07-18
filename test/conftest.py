@@ -57,9 +57,9 @@ os.environ["CONFIG_OVERRIDE_FILE"] = _override_path
 
 # Force every LLM provider "unconfigured" so LLM-backed endpoints always take
 # the graceful "not configured" path (503) instead of depending on network
-# access or a real API key. config.yml's llm_keys.* are ${VAR} references, so
-# this still reaches settings.llm_keys via load_config()'s env expansion.
-# See test_api_llm_unconfigured.py.
+# access or a real API key. config.yml's `models:` entries reference these as
+# ${VAR}, so blanking them here still reaches ModelConfig.api_key via
+# load_config()'s env expansion. See test_api_llm_unconfigured.py.
 for _key in (
     "GOOGLE_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "DEEPSEEK_API_KEY",
     "KIMI_API_KEY", "GLM_API_KEY", "OPENROUTER_API_KEY",

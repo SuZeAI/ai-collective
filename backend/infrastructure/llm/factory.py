@@ -3,6 +3,7 @@ from __future__ import annotations
 from backend.application.ports.llm import LLMProvider
 from backend.infrastructure.llm.providers.anthropic_langchain import AnthropicLangChainProvider
 from backend.infrastructure.llm.config.model_config import ModelConfig
+from backend.infrastructure.llm.config.models_config import find_model_for_provider
 from backend.infrastructure.llm.providers.google_langchain import GoogleLangChainProvider
 from backend.infrastructure.llm.providers.open_weight_langchain import OpenWeightLangChainProvider
 from backend.infrastructure.llm.providers.openai_langchain import OpenAILangChainProvider
@@ -169,10 +170,12 @@ def build_default_llm_provider(
     ``model_config`` — when given (the resolved active entry from config.yml's
     ``models:`` registry, see ``backend.infrastructure.llm.config``) — supplies
     provider/model/base_url/failover from that entry, and its own ``api_key:``
-    (sourced from config.yml/.env through the registry) is used instead of the
-    app-wide ``settings.llm_*_api_keys()`` lookups whenever it's set. Explicit
-    provider/model/base_url args still win over both (e.g. the knowledge-graph
-    builder's separate GRAPH_LLM_PROVIDER/MODEL override).
+    (sourced from config.yml/.env through the registry) is used whenever it's
+    set. Without a usable ``model_config``, the key falls back to the first
+    ``models:`` entry matching the resolved provider (``find_model_for_provider``)
+    — there is no other source of provider API keys. Explicit provider/model/
+    base_url args still win over both (e.g. the knowledge-graph builder's
+    separate GRAPH_LLM_PROVIDER/MODEL override).
     """
     from backend.api.settings import settings
 
@@ -214,18 +217,16 @@ def build_default_llm_provider(
         resolved_base_url = resolved_base_url or model_config.base_url
         resolved_failover = RotationConfig.from_model_entry(model_config.failover)
 
+    final_provider = _normalize_provider(resolved_provider or settings.llm_provider)
+    fallback_entry = find_model_for_provider(final_provider)
+    fallback_key_kwarg = _PROVIDER_API_KEY_KWARGS.get(final_provider)
+
     return create_llm_provider(
-        provider=resolved_provider or settings.llm_provider,
+        provider=final_provider,
         model=resolved_model or settings.llm_model,
-        google_api_key=settings.google_api_keys(),
-        anthropic_api_key=settings.anthropic_api_keys(),
-        openai_api_key=settings.openai_api_keys(),
-        open_weight_api_key=settings.open_weight_api_keys(),
-        kimi_api_key=settings.kimi_api_keys(),
-        deepseek_api_key=settings.deepseek_api_keys(),
-        glm_api_key=settings.glm_api_keys(),
         base_url=resolved_base_url or settings.llm_api_base,
         max_tool_rounds=resolved_max_tool_rounds,
         tool_timeout_seconds=resolved_tool_timeout,
         failover=resolved_failover,
+        **({fallback_key_kwarg: fallback_entry.api_key} if fallback_key_kwarg and fallback_entry else {}),
     )

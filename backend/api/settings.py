@@ -46,21 +46,6 @@ _DEFAULT_JWT_SECRET = "change-me-in-production-use-openssl-rand-hex-32"
 _SECTION = ConfigDict(extra="ignore")
 
 
-def _split_keys(value: str | None) -> list[str]:
-    """Split a comma/whitespace-separated key string into a de-duplicated list."""
-    if not value:
-        return []
-    raw = value.replace("\n", ",").replace(" ", ",")
-    out: list[str] = []
-    seen: set[str] = set()
-    for part in raw.split(","):
-        key = part.strip()
-        if key and key not in seen:
-            seen.add(key)
-            out.append(key)
-    return out
-
-
 # ══════════════════════════════════════════════════════════════════════════════
 # Section sub-models (one per config.yml section)
 # ══════════════════════════════════════════════════════════════════════════════
@@ -177,45 +162,6 @@ class LLMSettings(BaseModel):
 
     def guardrail_deny_pattern_list(self) -> list[str]:
         return self._csv_list(self.guardrail_deny_patterns)
-
-
-class LLMKeysSettings(BaseModel):
-    """LLM provider API keys — a secrets pool for tool fallback (gemini.py,
-    image_generation.py, text_to_speech.py use these when no explicit key is
-    passed). Sourced from config.yml's ``llm_keys:`` section, whose values are
-    themselves ``${VAR}`` references resolved from .env. May hold a single key
-    or several comma/whitespace-separated keys for rotation."""
-
-    model_config = _SECTION
-
-    google_api_key: str | None = Field(default=None, description="Google Gemini API key(s)")
-    anthropic_api_key: str | None = Field(default=None, description="Anthropic API key(s)")
-    openai_api_key: str | None = Field(default=None, description="OpenAI API key(s)")
-    open_weight_api_key: str | None = Field(default=None, description="OpenRouter API key(s)")
-    kimi_api_key: str | None = Field(default=None, description="Moonshot Kimi API key(s)")
-    deepseek_api_key: str | None = Field(default=None, description="DeepSeek API key(s)")
-    glm_api_key: str | None = Field(default=None, description="Zhipu GLM API key(s)")
-
-    def google_api_keys(self) -> list[str]:
-        return _split_keys(self.google_api_key)
-
-    def anthropic_api_keys(self) -> list[str]:
-        return _split_keys(self.anthropic_api_key)
-
-    def openai_api_keys(self) -> list[str]:
-        return _split_keys(self.openai_api_key)
-
-    def open_weight_api_keys(self) -> list[str]:
-        return _split_keys(self.open_weight_api_key)
-
-    def kimi_api_keys(self) -> list[str]:
-        return _split_keys(self.kimi_api_key)
-
-    def deepseek_api_keys(self) -> list[str]:
-        return _split_keys(self.deepseek_api_key)
-
-    def glm_api_keys(self) -> list[str]:
-        return _split_keys(self.glm_api_key)
 
 
 class RouterSettings(BaseModel):
@@ -374,7 +320,9 @@ class EmbeddingSettings(BaseModel):
     Off by default — when disabled the knowledge graph / long-term memory /
     document RAG all fall back to lexical retrieval. ``provider`` selects a
     real model (google/openai/open_weight) or the dependency-free ``hashing``
-    fallback. Keys are reused from ``LLMKeysSettings``.
+    fallback. The API key comes from a ``models:`` registry entry for that
+    provider with ``supports_embedding: true`` (see
+    ``backend.infrastructure.llm.config.find_model_for_provider``).
     """
 
     model_config = _SECTION
@@ -528,7 +476,6 @@ class Settings(BaseModel):
     app: AppSettings = Field(default_factory=AppSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     llm: LLMSettings = Field(default_factory=LLMSettings)
-    llm_keys: LLMKeysSettings = Field(default_factory=LLMKeysSettings)
     router: RouterSettings = Field(default_factory=RouterSettings)
     staff: StaffSettings = Field(default_factory=StaffSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
@@ -588,29 +535,6 @@ class Settings(BaseModel):
     def llm_api_base(self) -> str | None: return self.llm.api_base
     @property
     def llm_active_model(self) -> str | None: return self.llm.active_model
-    # LLM keys
-    @property
-    def google_api_key(self) -> str | None: return self.llm_keys.google_api_key
-    @property
-    def anthropic_api_key(self) -> str | None: return self.llm_keys.anthropic_api_key
-    @property
-    def openai_api_key(self) -> str | None: return self.llm_keys.openai_api_key
-    @property
-    def open_weight_api_key(self) -> str | None: return self.llm_keys.open_weight_api_key
-    @property
-    def kimi_api_key(self) -> str | None: return self.llm_keys.kimi_api_key
-    @property
-    def deepseek_api_key(self) -> str | None: return self.llm_keys.deepseek_api_key
-    @property
-    def glm_api_key(self) -> str | None: return self.llm_keys.glm_api_key
-
-    def google_api_keys(self) -> list[str]: return self.llm_keys.google_api_keys()
-    def anthropic_api_keys(self) -> list[str]: return self.llm_keys.anthropic_api_keys()
-    def openai_api_keys(self) -> list[str]: return self.llm_keys.openai_api_keys()
-    def open_weight_api_keys(self) -> list[str]: return self.llm_keys.open_weight_api_keys()
-    def kimi_api_keys(self) -> list[str]: return self.llm_keys.kimi_api_keys()
-    def deepseek_api_keys(self) -> list[str]: return self.llm_keys.deepseek_api_keys()
-    def glm_api_keys(self) -> list[str]: return self.llm_keys.glm_api_keys()
 
     # Storage
     @property
@@ -706,8 +630,8 @@ class Settings(BaseModel):
 
 
 # dotenv first: config.yml's ${VAR} references (auth.jwt_secret_key, mongo.uri,
-# llm_keys.*, ...) resolve against the OS environment, so .env must be loaded
-# before load_config() expands them.
+# models[].api_key, ...) resolve against the OS environment, so .env must be
+# loaded before load_config() expands them.
 dotenv.load_dotenv()
 
 # The Settings singleton: config.yml is the only input, secrets resolved

@@ -20,6 +20,7 @@ Public API:
 
 from backend.infrastructure.llm.config.model_config import FailoverEntry, ModelConfig
 from backend.infrastructure.llm.config.models_config import (
+    find_model_for_provider,
     get_active_model_name,
     get_enabled_models,
     get_model_config,
@@ -38,6 +39,7 @@ __all__ = [
     "get_model_config",
     "get_enabled_models",
     "get_active_model_name",
+    "find_model_for_provider",
     "reload_models_config",
     "reset_models_config",
 ]
