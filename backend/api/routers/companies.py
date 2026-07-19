@@ -10,13 +10,11 @@ import logging
 from backend.api.deps import (
     current_owner_id_dep,
     get_document_library_service,
-    get_office_builder_session_service,
     get_department_service,
     get_company_service,
 )
 from backend.api.schemas.company import CompanySchema, UpsertWorkspaceRequest
 from backend.application.service.document_library_service import DocumentLibraryService
-from backend.application.service.office_builder_session_service import OfficeBuilderSessionService
 from backend.application.service.department_service import DepartmentService
 from backend.application.service.company_service import CompanyService
 from backend.domain.errors import NotFoundError
@@ -76,7 +74,6 @@ def delete_company(
     company_id: str,
     service: CompanyService = Depends(get_company_service),
     documents: DocumentLibraryService = Depends(get_document_library_service),
-    office_sessions: OfficeBuilderSessionService = Depends(get_office_builder_session_service),
     departments: DepartmentService = Depends(get_department_service),
     owner_id: str = Depends(current_owner_id_dep),
 ):
@@ -122,22 +119,14 @@ def delete_company(
         except Exception as exc:  # noqa: BLE001
             logger.warning("failed to delete document %s for workspace %s: %s", doc.id, company_id, exc)
 
-    removed_sessions = 0
-    for session in office_sessions.list_sessions():
-        if session.company_id != company_id:
-            continue
-        try:
-            office_sessions.delete_session(session.id)
-            removed_sessions += 1
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("failed to delete office-builder session %s for workspace %s: %s", session.id, company_id, exc)
+    # Office-builder sessions (AI Office Designer chats) are kept even after the
+    # company is deleted, so the user can revisit and recreate from them.
 
     service.delete_company(company_id)
     return {
         "deleted": True,
         "removed_teams": removed_teams,
         "removed_documents": removed_documents,
-        "removed_office_builder_sessions": removed_sessions,
     }
 
 

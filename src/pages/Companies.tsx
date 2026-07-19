@@ -382,6 +382,7 @@ export default function Companies() {
       // department list so deleted ones stop showing in the New Company dialog.
       qc.invalidateQueries({ queryKey: ["companies"] });
       qc.invalidateQueries({ queryKey: ["departments"] });
+      window.dispatchEvent(new CustomEvent("companyChanged"));
       toast({ title: "Company deleted" });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
