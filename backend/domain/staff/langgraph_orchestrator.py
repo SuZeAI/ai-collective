@@ -32,6 +32,13 @@ from backend.domain.staff._graph_runtime import (
     wait_while_paused,
     working_memory_block,
 )
+from backend.domain.staff.staff_state import (
+    StaffStates,
+    append_assistant_turn,
+    append_user_turn,
+    init_staff_states,
+    llm_ready_messages,
+)
 
 
 from backend.api.settings import settings
@@ -44,6 +51,7 @@ class MultiAgentState(TypedDict):
     input: str
     original_input: str
     turns: list[GraphTurn]
+    staff_states: StaffStates
     final_response: str
     final_staff: str | None
     rounds: int
@@ -90,6 +98,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
             "input": user_input,
             "original_input": user_input,
             "turns": [],
+            "staff_states": init_staff_states(selected_agents),
             "final_response": "",
             "final_staff": None,
             "rounds": 0,
@@ -158,6 +167,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
             "input": user_input,
             "original_input": user_input,
             "turns": [],
+            "staff_states": init_staff_states(selected_agents),
             "final_response": "",
             "final_staff": None,
             "rounds": 0,
@@ -303,10 +313,11 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
                 "llm_model": budget_result.model,
             })
 
+            own_history = llm_ready_messages(state.get("staff_states", {}), staff_member.name)
             output = await safe_chat(llm,
                 staff_name=staff_member.name,
                 system=staff_member.system_prompt,
-                messages=turn.as_messages(),
+                messages=[*own_history, *turn.as_messages()],
                 tools=bound_tools or None,
                 parallel_tools=staff_member.subagent_enabled,
             )
@@ -356,10 +367,17 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
                 "turn": next_turn,
             })
 
+            new_staff_states = append_assistant_turn(
+                append_user_turn(state.get("staff_states", {}), staff_member.name, turn.input_text),
+                staff_member.name,
+                output,
+            )
+
             return {
                 **state,
                 "input": output,
                 "turns": [*state["turns"], next_turn],
+                "staff_states": new_staff_states,
                 "final_response": output,
                 "final_staff": staff_member.name,
                 "rounds": state["rounds"] + 1,

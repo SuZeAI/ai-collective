@@ -283,7 +283,7 @@ class TurnMessages:
         context_text = "\n\n".join(self.context)
         messages: list[dict[str, str]] = []
         if context_text:
-            messages.append({"role": "system", "content": context_text})
+            messages.append({"role": "user", "content": context_text})
         messages.append({"role": "user", "content": self.input_text})
         return messages
 

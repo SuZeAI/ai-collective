@@ -31,6 +31,13 @@ from backend.domain.staff._graph_runtime import (
     wait_while_paused,
     working_memory_block,
 )
+from backend.domain.staff.staff_state import (
+    StaffStates,
+    append_assistant_turn,
+    append_user_turn,
+    init_staff_states,
+    llm_ready_messages,
+)
 
 
 from backend.api.settings import settings
@@ -48,6 +55,7 @@ class MultiAgentRingState(TypedDict):
     original_input: str
     turns: list[GraphTurn]
     conversation_history: list[str]
+    staff_states: StaffStates
     rounds: int
     final_response: str
     final_staff: str | None
@@ -96,7 +104,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             graph_context_provider=graph_context_provider,
             graph_config=graph_config,
         )
-        initial = self._make_initial_state(user_input)
+        initial = self._make_initial_state(user_input, staff)
         final_state, error = await run_to_final_state(graph, initial, max_rounds)
 
         turns = list(final_state.get("turns", []))
@@ -140,7 +148,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             graph_context_provider=graph_context_provider,
             graph_config=graph_config,
         )
-        initial = self._make_initial_state(user_input)
+        initial = self._make_initial_state(user_input, staff)
 
         async for event in graph.astream(
             initial, config=recursion_config(max_rounds), stream_mode="custom"
@@ -194,12 +202,13 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
         return builder.compile()
 
     @staticmethod
-    def _make_initial_state(user_input: str) -> MultiAgentRingState:
+    def _make_initial_state(user_input: str, staff: list[GraphStaffDefinition]) -> MultiAgentRingState:
         return {
             "input": user_input,
             "original_input": user_input,
             "turns": [],
             "conversation_history": [],
+            "staff_states": init_staff_states(staff),
             "rounds": 0,
             "final_response": "",
             "final_staff": None,
@@ -338,10 +347,11 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
                 "llm_model": budget_result.model,
             })
 
+            own_history = llm_ready_messages(state.get("staff_states", {}), staff_member.name)
             output = await safe_chat(llm,
                 staff_name=staff_member.name,
                 system=staff_member.system_prompt,
-                messages=turn.as_messages(),
+                messages=[*own_history, *turn.as_messages()],
                 tools=bound_tools or None,
                 parallel_tools=staff_member.subagent_enabled,
             )
@@ -389,11 +399,18 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
 
             stream_writer({"type": EventType.TURN_COMPLETE.value, "turn": new_turn})
 
+            new_staff_states = append_assistant_turn(
+                append_user_turn(state.get("staff_states", {}), staff_member.name, input_text),
+                staff_member.name,
+                output,
+            )
+
             return {
                 **state,
                 "input": output,
                 "turns": [*state["turns"], new_turn],
                 "conversation_history": new_history,
+                "staff_states": new_staff_states,
                 "final_response": output,
                 "final_staff": staff_member.name,
                 "rounds": current_round + 1,

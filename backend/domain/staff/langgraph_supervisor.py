@@ -37,6 +37,13 @@ from backend.domain.staff._graph_runtime import (
     wait_while_paused,
     working_memory_block,
 )
+from backend.domain.staff.staff_state import (
+    StaffStates,
+    append_assistant_turn,
+    append_user_turn,
+    init_staff_states,
+    llm_ready_messages,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -97,6 +104,7 @@ class SupervisorState(TypedDict):
     original_input: str      # Original user request (never changes)
     turns: list[GraphTurn]
     delegation_log: list[str]  # Chronological log of delegations + results
+    staff_states: StaffStates
     current_task: str        # Task text currently being executed by a worker
     current_worker: str | None  # Name of currently active worker (None when lead is up)
     final_answer_reached: bool
@@ -278,6 +286,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             "original_input": user_input,
             "turns": [],
             "delegation_log": [],
+            "staff_states": init_staff_states(staff),
             "current_task": "",
             "current_worker": None,
             "final_answer_reached": False,
@@ -427,10 +436,11 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 "llm_model": budget_result.model,
             })
 
+            own_history = llm_ready_messages(state.get("staff_states", {}), lead.name)
             raw_output = await safe_chat(llm,
                 staff_name=lead.name,
                 system=lead.system_prompt,
-                messages=turn.as_messages(),
+                messages=[*own_history, *turn.as_messages()],
                 tools=bound_tools or None,
             )
             raise_if_llm_failed(raw_output)
@@ -442,6 +452,12 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             })
 
             reasoning, action = self._split_reasoning_and_action(raw_output)
+
+            new_staff_states = append_assistant_turn(
+                append_user_turn(state.get("staff_states", {}), lead.name, input_text),
+                lead.name,
+                reasoning or raw_output,
+            )
 
             # Parallel fan-out: lead may dispatch several workers at once.
             fanout_pairs = self._parse_fanout(action, [w.name for w in workers], lead.name)
@@ -455,6 +471,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                     fanout_pairs=fanout_pairs,
                     lead_reasoning=reasoning,
                     lead_system=lead.system_prompt,
+                    staff_states=new_staff_states,
                     state=state,
                     llm=llm,
                     stream_writer=stream_writer,
@@ -531,6 +548,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 "input": final_answer or state["input"],
                 "turns": [*state["turns"], new_turn],
                 "delegation_log": new_log,
+                "staff_states": new_staff_states,
                 "current_task": task_text or "",
                 "current_worker": target_worker,
                 "final_answer_reached": bool(final_answer),
@@ -628,10 +646,11 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 "llm_model": budget_result.model,
             })
 
+            own_history = llm_ready_messages(state.get("staff_states", {}), worker.name)
             output = await safe_chat(llm,
                 staff_name=worker.name,
                 system=worker_system,
-                messages=turn.as_messages(),
+                messages=[*own_history, *turn.as_messages()],
                 tools=bound_tools or None,
             )
             raise_if_llm_failed(output)
@@ -678,11 +697,18 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 "reporting_to_lead": True,
             })
 
+            new_staff_states = append_assistant_turn(
+                append_user_turn(state.get("staff_states", {}), worker.name, task_text),
+                worker.name,
+                output,
+            )
+
             return {
                 **state,
                 "input": f"[{worker.name} result]: {output}",
                 "turns": [*state["turns"], new_turn],
                 "delegation_log": new_log,
+                "staff_states": new_staff_states,
                 "current_task": "",
                 "current_worker": None,
                 "final_response": output,
@@ -823,6 +849,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         fanout_pairs: list[tuple[str, str]],
         lead_reasoning: str,
         lead_system: str,
+        staff_states: StaffStates,
         state: SupervisorState,
         llm: LLMProvider,
         stream_writer,
@@ -982,11 +1009,22 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             "final_answer_reached": bool(final_answer),
         })
 
+        # staff_states already carries the lead's fan-out-decision turn
+        # (appended by lead_node before this call); add each worker's own
+        # exchange and the lead's synthesis exchange.
+        new_staff_states = staff_states
+        for r in results:
+            new_staff_states = append_user_turn(new_staff_states, r.staff_name, r.task)
+            new_staff_states = append_assistant_turn(new_staff_states, r.staff_name, r.content)
+        new_staff_states = append_user_turn(new_staff_states, lead.name, synthesis_user)
+        new_staff_states = append_assistant_turn(new_staff_states, lead.name, synth_reasoning)
+
         return {
             **state,
             "input": final_answer or state["input"],
             "turns": [*turns, lead_turn, *worker_turns, synthesis_turn],
             "delegation_log": new_log,
+            "staff_states": new_staff_states,
             "current_task": next_task or "",
             "current_worker": target_worker,
             "final_answer_reached": bool(final_answer),

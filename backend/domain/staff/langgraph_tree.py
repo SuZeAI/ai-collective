@@ -33,6 +33,13 @@ from backend.domain.staff._graph_runtime import (
     wait_while_paused,
     working_memory_block,
 )
+from backend.domain.staff.staff_state import (
+    StaffStates,
+    append_assistant_turn,
+    append_user_turn,
+    init_staff_states,
+    llm_ready_messages,
+)
 
 
 from backend.api.settings import settings
@@ -164,6 +171,7 @@ class TreeState(TypedDict):
     original_input: str      # Original user request (immutable)
     turns: list[GraphTurn]
     tree_log: list[str]      # Chronological delegation / report log
+    staff_states: StaffStates
     current_task: str        # Task text passed to a child
     current_worker: str | None   # Name of child to route to next (set by delegating node)
     final_answer_reached: bool
@@ -236,7 +244,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
         self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
         tree = _build_tree(staff)
         graph = self._build_graph(tree, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
-        final_state, error = await run_to_final_state(graph, self._initial_state(user_input), max_rounds)
+        final_state, error = await run_to_final_state(graph, self._initial_state(user_input, staff), max_rounds)
 
         turns = list(final_state.get("turns", []))
         return GraphRunResult(
@@ -267,7 +275,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
         graph = self._build_graph(tree, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
 
         async for event in graph.astream(
-            self._initial_state(user_input),
+            self._initial_state(user_input, staff),
             config=recursion_config(max_rounds),
             stream_mode="custom",
         ):
@@ -351,12 +359,13 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
         return builder.compile()
 
     @staticmethod
-    def _initial_state(user_input: str) -> TreeState:
+    def _initial_state(user_input: str, staff: list[GraphStaffDefinition]) -> TreeState:
         return {
             "input": user_input,
             "original_input": user_input,
             "turns": [],
             "tree_log": [],
+            "staff_states": init_staff_states(staff),
             "current_task": "",
             "current_worker": None,
             "final_answer_reached": False,
@@ -536,10 +545,11 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
                 "llm_model": budget_result.model,
             })
 
+            own_history = llm_ready_messages(state.get("staff_states", {}), staff_member.name)
             raw_output = await safe_chat(llm,
                 staff_name=staff_member.name,
                 system=staff_member.system_prompt,
-                messages=turn.as_messages(),
+                messages=[*own_history, *turn.as_messages()],
                 tools=bound_tools or None,
                 parallel_tools=staff_member.subagent_enabled,
             )
@@ -575,6 +585,12 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
                 staff_name=staff_member.name,
                 staff_role=staff_member.role,
                 content=reasoning if reasoning else (tree_end or return_result or raw_output),
+            )
+
+            new_staff_states = append_assistant_turn(
+                append_user_turn(state.get("staff_states", {}), staff_member.name, input_text),
+                staff_member.name,
+                new_turn.content,
             )
 
             # Working memory: keep delegations and branch results alive after
@@ -632,6 +648,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
                 "input": next_input,
                 "turns": [*state["turns"], new_turn],
                 "tree_log": new_log,
+                "staff_states": new_staff_states,
                 "current_task": task_text if target_child else "",
                 "current_worker": target_child,
                 "final_answer_reached": bool(tree_end),

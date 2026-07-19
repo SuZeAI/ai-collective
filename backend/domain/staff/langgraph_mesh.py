@@ -37,6 +37,13 @@ from backend.domain.staff._graph_runtime import (
     wait_while_paused,
     working_memory_block,
 )
+from backend.domain.staff.staff_state import (
+    StaffStates,
+    append_assistant_turn,
+    append_user_turn,
+    init_staff_states,
+    llm_ready_messages,
+)
 from backend.api.settings import settings
 from backend.log import get_logger
 
@@ -52,6 +59,7 @@ class MultiAgentMeshState(TypedDict):
     original_input: str
     turns: list[GraphTurn]
     conversation_history: dict[str, list[str]]
+    staff_states: StaffStates
     current_agent: str
     hub_staff: str
     staff_names: list[str]
@@ -202,6 +210,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             "conversation_history": {
                 staff_member.name: [] for staff_member in staff
             },
+            "staff_states": init_staff_states(staff),
             "current_agent": hub_staff.name,
             "hub_staff": hub_staff.name,
             "staff_names": all_staff_names,
@@ -325,6 +334,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             "conversation_history": {
                 staff_member.name: [] for staff_member in staff
             },
+            "staff_states": init_staff_states(staff),
             "current_agent": hub_staff.name,
             "hub_staff": hub_staff.name,
             "staff_names": all_staff_names,
@@ -386,6 +396,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             "original_input": user_input,
             "turns": [],
             "conversation_history": {staff_member.name: []},
+            "staff_states": init_staff_states([staff_member]),
             "current_agent": staff_member.name,
             "hub_staff": staff_member.name,
             "staff_names": [staff_member.name],
@@ -453,6 +464,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             "original_input": user_input,
             "turns": [],
             "conversation_history": {staff_member.name: []},
+            "staff_states": init_staff_states([staff_member]),
             "current_agent": staff_member.name,
             "hub_staff": staff_member.name,
             "staff_names": [staff_member.name],
@@ -697,10 +709,11 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             })
 
             logger.debug("[%s] mesh_node: invoking LLM...", staff_member.name)
+            own_history = llm_ready_messages(state.get("staff_states", {}), staff_member.name)
             response = await safe_chat(llm,
                 staff_name=staff_member.name,
                 system=fixed_system_prompt,
-                messages=turn.as_messages(),
+                messages=[*own_history, *turn.as_messages()],
                 tools=bound_tools or None,
                 parallel_tools=staff_member.subagent_enabled,
             )
@@ -723,6 +736,12 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 staff_member.name, len(reasoning), len(action_payload),
             )
 
+            new_staff_states = append_assistant_turn(
+                append_user_turn(state.get("staff_states", {}), staff_member.name, input_text),
+                staff_member.name,
+                reasoning,
+            )
+
             # Parallel fan-out: if this staff_member dispatched a wave, run the named
             # targets concurrently and synthesize, all within this node (one
             # state update per channel — no reducer changes needed).
@@ -739,6 +758,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                     fanout_pairs=fanout_pairs,
                     coordinator_reasoning=reasoning,
                     coordinator_system=fixed_system_prompt,
+                    staff_states=new_staff_states,
                     state=state,
                     llm=llm,
                     all_staff=all_staff,
@@ -815,6 +835,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             return {
                 "turns": [*turns, new_turn],
                 "conversation_history": new_history,
+                "staff_states": new_staff_states,
                 "input": next_input,
                 "current_agent": staff_member.name,
                 "final_response": reasoning,
@@ -1071,6 +1092,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         fanout_pairs: list[tuple[str, str]],
         coordinator_reasoning: str,
         coordinator_system: str,
+        staff_states: StaffStates,
         state: MultiAgentMeshState,
         llm: LLMProvider,
         all_staff: list[GraphStaffDefinition],
@@ -1240,9 +1262,20 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             new_history.setdefault(r.staff_name, []).append(r.content)
         new_history.setdefault(coordinator.name, []).append(synth_reasoning)
 
+        # staff_states already carries the coordinator's fan-out-decision turn
+        # (appended by mesh_node before this call); add each branch's own
+        # exchange and the coordinator's synthesis exchange.
+        new_staff_states = staff_states
+        for r in results:
+            new_staff_states = append_user_turn(new_staff_states, r.staff_name, r.task)
+            new_staff_states = append_assistant_turn(new_staff_states, r.staff_name, r.content)
+        new_staff_states = append_user_turn(new_staff_states, coordinator.name, synthesis_user)
+        new_staff_states = append_assistant_turn(new_staff_states, coordinator.name, synth_reasoning)
+
         return {
             "turns": [*turns, coordinator_turn, *branch_turns, synthesis_turn],
             "conversation_history": new_history,
+            "staff_states": new_staff_states,
             "input": next_input,
             "current_agent": coordinator.name,
             "final_response": synth_reasoning,

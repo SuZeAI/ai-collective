@@ -354,3 +354,54 @@ def test_e2e_mesh_sequential_unchanged_when_no_fanout():
     nums = [t.turn for t in res.turns]
     assert nums == list(range(1, len(nums) + 1))   # one turn per round
     assert len(res.turns) >= 2
+
+
+def test_e2e_mesh_second_turn_sees_own_first_turn_reply():
+    """staff_states threads a staff member's own prior turns into later LLM
+    calls: Hub's second turn should see its own first-turn assistant reply in
+    `messages`, not just a summarized text log."""
+
+    class _HistoryAwareLLM:
+        def __init__(self):
+            self.hub_calls = 0
+
+        async def chat(self, *, system, user=None, messages=None, tools=None,
+                       parallel_tools=False, max_tool_rounds=None, **kwargs):
+            messages = messages or []
+            if system.startswith("coordinate"):
+                self.hub_calls += 1
+                if self.hub_calls == 1:
+                    return (
+                        "First hub turn.\n"
+                        "<ASK_NEXT_AGENT>\n1. continue\n</ASK_NEXT_AGENT>\n"
+                        "<NEXT_AGENT>Bob</NEXT_AGENT>"
+                    )
+                saw_own_reply = any(
+                    m["role"] == "assistant" and "First hub turn" in m["content"]
+                    for m in messages
+                )
+                marker = "saw-my-own-history" if saw_own_reply else "no-history"
+                return f"{marker}.\n<DISCUSSION_END>done</DISCUSSION_END>"
+            return (
+                "Bob turn.\n"
+                "<ASK_NEXT_AGENT>\n1. continue\n</ASK_NEXT_AGENT>\n"
+                "<NEXT_AGENT>Hub</NEXT_AGENT>"
+            )
+
+        def get_chat_model(self):
+            return None
+
+        async def generate_json(self, *, system, user):
+            return {}
+
+    agents = [
+        GraphStaffDefinition(name="Hub", role="c", system_prompt="coordinate"),
+        GraphStaffDefinition(name="Bob", role="a", system_prompt="analyze"),
+    ]
+    res = asyncio.run(MultiAgentMeshOrchestrator().run(
+        user_input="hi", staff=agents, llm=_HistoryAwareLLM(), max_rounds=6,
+        conversation_id=None,
+    ))
+    hub_turns = [t.content for t in res.turns if t.staff_name == "Hub"]
+    assert len(hub_turns) == 2
+    assert "saw-my-own-history" in hub_turns[-1]
