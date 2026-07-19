@@ -266,6 +266,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     [allNavItems, location.pathname],
   );
   const isFullBleed = location.pathname === "/tasks" || location.pathname === "/virtual-office";
+  const isFullWidth = isFullBleed || location.pathname === "/dashboard";
 
   // Inside a project (board/backlog/roadmap/reports) the header breadcrumb
   // drops down a level: "AI Collective > Projects > <project name>", with
@@ -505,7 +506,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               key={location.pathname}
               className={cn(
                 "h-full w-full animate-in fade-in-0 duration-150 ease-out",
-                !isFullBleed && "p-6 md:p-8 max-w-7xl mx-auto overflow-y-auto scrollbar-thin",
+                !isFullBleed && "p-6 md:p-8 overflow-y-auto scrollbar-thin",
+                !isFullWidth && "max-w-7xl mx-auto",
               )}
             >
               {children}
