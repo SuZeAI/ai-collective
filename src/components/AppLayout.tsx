@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
   BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit,
   LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, Building2, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban, Star, Plug,
 } from "lucide-react";
 import { api, type Company } from "@/lib/api";
-import { OVERALL_COMPANY_ID, setActiveCompanyId, getActiveCompanyId } from "@/hooks/use-company-scope";
+import { OVERALL_COMPANY_ID, setActiveCompanyId, getActiveCompanyId, useCompanyScope } from "@/hooks/use-company-scope";
 import { COMPANY_TYPE_MAP, companyTypeOf, suggestedNavKeys } from "@/lib/company-types";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -148,6 +148,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { t } = useLanguage();
   const { user, logout } = useAuth();
   const queryClient = useQueryClient();
+  const scope = useCompanyScope();
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [activeCompany, setActiveCompany] = useState<Company | null>(null);
@@ -265,6 +266,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     [allNavItems, location.pathname],
   );
   const isFullBleed = location.pathname === "/tasks" || location.pathname === "/virtual-office";
+
+  // Inside a project (board/backlog/roadmap/reports) the header breadcrumb
+  // drops down a level: "AI Collective > Projects > <project name>", with
+  // "Projects" linking back to the list — instead of the flat 2-level form
+  // `currentPage` gives every other page (it only exact-matches nav URLs, so
+  // it can't see the :key param here).
+  const projectKeyParam = location.pathname.match(/^\/projects\/([^/]+)\/(?:board|backlog|roadmap|reports)$/)?.[1];
+  const { data: breadcrumbProjects = [] } = useQuery({
+    queryKey: ["breadcrumb-projects", scope.isOverall, scope.company?.id ?? null],
+    queryFn: () => api.listProjects(scope.isOverall ? undefined : scope.company?.id),
+    enabled: !!projectKeyParam,
+  });
+  const breadcrumbProject = projectKeyParam ? breadcrumbProjects.find((p) => p.key === projectKeyParam) : undefined;
 
   return (
     <SidebarProvider style={{ "--sidebar-width-icon": "4rem", "--sidebar-width": "17rem" } as React.CSSProperties}>
@@ -431,9 +445,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <header className="h-12 flex items-center border-b border-border px-4 bg-background gap-3 flex-shrink-0">
             <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors h-8 w-8" />
             <div className="h-3.5 w-px bg-border" />
-            <div className="flex items-center gap-1.5 text-sm">
-              <span className="text-muted-foreground text-xs font-medium">AI Collective</span>
-              {currentPage && (
+            <div className="flex items-center gap-1.5 text-sm min-w-0">
+              <span className="text-muted-foreground text-xs font-medium shrink-0">AI Collective</span>
+              {projectKeyParam ? (
+                <>
+                  <ChevronRight className="w-3 h-3 text-muted-foreground/40 shrink-0" />
+                  <Link to="/projects" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                    {t.nav.projects}
+                  </Link>
+                  <ChevronRight className="w-3 h-3 text-muted-foreground/40 shrink-0" />
+                  <span className="text-xs font-semibold text-foreground truncate">
+                    {breadcrumbProject?.name ?? projectKeyParam}
+                  </span>
+                </>
+              ) : currentPage && (
                 <>
                   <ChevronRight className="w-3 h-3 text-muted-foreground/40" />
                   <span className="text-xs font-semibold text-foreground">{currentPage.title}</span>

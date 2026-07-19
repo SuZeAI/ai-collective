@@ -18,11 +18,12 @@ import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2,
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { StaffAvatar } from "@/components/StaffAvatar";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
+import { ProjectSubnav } from "@/components/ProjectSubnav";
 import { MeetingFiles } from "@/components/MeetingFiles";
 import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Staff, type GraphContextSnapshot, type Message, type Department, type Task, type TaskPriority, type Project, type Sprint, type Epic } from "@/lib/api";
 import { useRunEngine, type GraphHighlight, type UserInputRequest } from "@/contexts/RunEngineContext";
@@ -265,11 +266,11 @@ type KanbanColumnProps = {
 function KanbanColumn({ status, label, accent, count, children }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   return (
-    <div className="flex flex-col w-[300px] shrink-0 h-full">
-      <div className="flex items-center gap-2 px-2 py-2 mb-1">
-        <span className={cn("w-2 h-2 rounded-full", accent)} />
-        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
-        <span className="text-[10px] font-semibold text-muted-foreground/70 bg-muted rounded-full px-1.5 py-0.5 ml-auto">{count}</span>
+    <div className="flex flex-col min-w-0 h-full">
+      <div className="flex items-center gap-1.5 px-2 py-2 mb-1 min-w-0">
+        <span className={cn("w-2 h-2 rounded-full shrink-0", accent)} />
+        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground truncate">{label}</span>
+        <span className="text-[10px] font-semibold text-muted-foreground/70 bg-muted rounded-full px-1.5 py-0.5 ml-auto shrink-0">{count}</span>
       </div>
       <div
         ref={setNodeRef}
@@ -851,40 +852,114 @@ export default function TaskManager() {
 
   const selectedTask = viewTaskId ? taskList.find((task) => task.id === viewTaskId) : undefined;
 
+  // Shared toolbar controls (epic/sprint filters, search, append, new task) — used
+  // both inside the project-scoped subnav and the generic /tasks toolbar below.
+  const toolbarControls = (
+    <>
+      {projectScope && (
+        <>
+          <Select value={epicFilter} onValueChange={setEpicFilter}>
+            <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All epics" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All epics</SelectItem>
+              {epicList.filter((e) => e.projectId === projectScope.id).map((e) => (
+                <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={sprintFilter} onValueChange={setSprintFilter}>
+            <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All sprints" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sprints</SelectItem>
+              <SelectItem value="__backlog__">Backlog (no sprint)</SelectItem>
+              {sprintList.filter((s) => s.projectId === projectScope.id).map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
+      )}
+
+      <div className="relative">
+        <Input
+          type="text"
+          placeholder="Search tasks, labels, people..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="h-9 text-xs pl-8 pr-3 w-[220px]"
+        />
+        <svg className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+
+      {scope.company && (
+        <AppendFromOverallDialog
+          size="sm"
+          title={`Append tasks to "${scope.company.name}"`}
+          description="Pick existing tasks from Overall and assign them to one of this office's departments."
+          items={taskList
+            .filter((t) => !isTaskInScope(t))
+            .map((t) => ({ id: t.id, name: t.title, sub: t.description, badge: t.status }))}
+          emptyText="Every task from Overall already belongs to this office."
+          targets={departmentList
+            .filter((t) => scope.departmentIds.has(t.id))
+            .map((t) => ({ id: t.id, name: t.name }))}
+          targetLabel="Assign to department"
+          noTargetText="This office has no departments yet. Add a department first."
+          copyLabel="Create independent copies for this office (when unchecked, your own tasks are moved instead; shared tasks are always copied)."
+          onAppend={async (ids, targetId, makeCopy) => {
+            const department = departmentList.find((t) => t.id === targetId);
+            if (!department) return;
+            for (const id of ids) {
+              const task = taskList.find((t) => t.id === id);
+              if (!task) continue;
+              if (!makeCopy && canEditItem(task)) {
+                await engine.upsertTask({ ...task, departmentId: department.id, assigneeId: null, assignedStaff: department.staff || [] });
+              } else {
+                await engine.upsertTask({
+                  title: task.title,
+                  description: task.description,
+                  departmentId: department.id,
+                  status: "pending",
+                  progress: 0,
+                  assignedStaff: department.staff || [],
+                });
+              }
+            }
+          }}
+        />
+      )}
+
+      {canCreateTask && (
+        <Button size="sm" onClick={openCreateDialog} className="h-9 gap-1 text-xs">
+          <Plus className="w-3.5 h-3.5" /> New Task
+        </Button>
+      )}
+    </>
+  );
+
   return (
     <div className="h-full w-full flex flex-col bg-background overflow-hidden select-none">
       {/* TOP TOOLBAR */}
-      <div className="px-5 py-3 border-b border-border flex items-center gap-3 flex-shrink-0 bg-background/50 backdrop-blur-sm flex-wrap">
-        <div className="flex items-center gap-2.5 mr-auto">
-          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
-            <LayoutGrid className="w-4.5 h-4.5 text-primary" />
+      {activeProject ? (
+        <ProjectSubnav project={activeProject} projectKey={activeProject.key} active="board">
+          <div className="flex items-center gap-2 flex-wrap">{toolbarControls}</div>
+        </ProjectSubnav>
+      ) : (
+        <div className="px-5 py-3 border-b border-border flex items-center gap-3 flex-shrink-0 bg-background/50 backdrop-blur-sm flex-wrap">
+          <div className="flex items-center gap-2.5 mr-auto">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+              <LayoutGrid className="w-4.5 h-4.5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-foreground leading-none">Projects &amp; Tasks</h1>
+              <p className="text-[10px] text-muted-foreground mt-1">Kanban board · drag cards between columns to change status</p>
+            </div>
           </div>
-          <div>
-            {activeProject ? (
-              <>
-                <h1 className="text-base font-bold tracking-tight text-foreground leading-none">
-                  <span className="font-mono text-primary mr-1.5">{activeProject.key}</span>
-                  {activeProject.name}
-                </h1>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <Link to={`/projects/${activeProject.key}/board`} className="text-[10px] font-semibold text-primary border-b-2 border-primary pb-0.5">Board</Link>
-                  <Link to={`/projects/${activeProject.key}/backlog`} className="text-[10px] font-medium text-muted-foreground hover:text-foreground pb-0.5">Backlog</Link>
-                  <Link to={`/projects/${activeProject.key}/roadmap`} className="text-[10px] font-medium text-muted-foreground hover:text-foreground pb-0.5">Roadmap</Link>
-                  <Link to={`/projects/${activeProject.key}/reports`} className="text-[10px] font-medium text-muted-foreground hover:text-foreground pb-0.5">Reports</Link>
-                </div>
-              </>
-            ) : (
-              <>
-                <h1 className="text-base font-bold tracking-tight text-foreground leading-none">Projects &amp; Tasks</h1>
-                <p className="text-[10px] text-muted-foreground mt-1">Kanban board · drag cards between columns to change status</p>
-              </>
-            )}
-          </div>
-        </div>
 
-        {/* On the generic /tasks board (no URL project) let the user scope down
-            to a project directly, instead of only via /projects/:key/board. */}
-        {!activeProject && (
+          {/* On the generic /tasks board (no URL project) let the user scope down
+              to a project directly, instead of only via /projects/:key/board. */}
           <Select
             value={projectFilter}
             onValueChange={(v) => { setProjectFilter(v); setEpicFilter("all"); setSprintFilter("all"); }}
@@ -897,92 +972,13 @@ export default function TaskManager() {
               ))}
             </SelectContent>
           </Select>
-        )}
 
-        {projectScope && (
-          <>
-            <Select value={epicFilter} onValueChange={setEpicFilter}>
-              <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All epics" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All epics</SelectItem>
-                {epicList.filter((e) => e.projectId === projectScope.id).map((e) => (
-                  <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={sprintFilter} onValueChange={setSprintFilter}>
-              <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All sprints" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All sprints</SelectItem>
-                <SelectItem value="__backlog__">Backlog (no sprint)</SelectItem>
-                {sprintList.filter((s) => s.projectId === projectScope.id).map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </>
-        )}
-
-        {/* Search box */}
-        <div className="relative">
-          <Input
-            type="text"
-            placeholder="Search tasks, labels, people..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9 text-xs pl-8 pr-3 w-[240px]"
-          />
-          <svg className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+          {toolbarControls}
         </div>
+      )}
 
-        {scope.company && (
-          <AppendFromOverallDialog
-            size="sm"
-            title={`Append tasks to "${scope.company.name}"`}
-            description="Pick existing tasks from Overall and assign them to one of this office's departments."
-            items={taskList
-              .filter((t) => !isTaskInScope(t))
-              .map((t) => ({ id: t.id, name: t.title, sub: t.description, badge: t.status }))}
-            emptyText="Every task from Overall already belongs to this office."
-            targets={departmentList
-              .filter((t) => scope.departmentIds.has(t.id))
-              .map((t) => ({ id: t.id, name: t.name }))}
-            targetLabel="Assign to department"
-            noTargetText="This office has no departments yet. Add a department first."
-            copyLabel="Create independent copies for this office (when unchecked, your own tasks are moved instead; shared tasks are always copied)."
-            onAppend={async (ids, targetId, makeCopy) => {
-              const department = departmentList.find((t) => t.id === targetId);
-              if (!department) return;
-              for (const id of ids) {
-                const task = taskList.find((t) => t.id === id);
-                if (!task) continue;
-                if (!makeCopy && canEditItem(task)) {
-                  await engine.upsertTask({ ...task, departmentId: department.id, assigneeId: null, assignedStaff: department.staff || [] });
-                } else {
-                  await engine.upsertTask({
-                    title: task.title,
-                    description: task.description,
-                    departmentId: department.id,
-                    status: "pending",
-                    progress: 0,
-                    assignedStaff: department.staff || [],
-                  });
-                }
-              }
-            }}
-          />
-        )}
-
-        <Dialog open={open} onOpenChange={setOpen}>
-          {canCreateTask && (
-            <DialogTrigger asChild>
-              <Button size="sm" onClick={openCreateDialog} className="h-9 gap-1 text-xs">
-                <Plus className="w-3.5 h-3.5" /> New Task
-              </Button>
-            </DialogTrigger>
-          )}
+      {/* New Task dialog — trigger buttons live in the toolbar above (see toolbarControls) */}
+      <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent>
             <DialogHeader><DialogTitle>{editingTaskId ? "Edit Task" : "Create Task"}</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-2">
@@ -1135,12 +1131,11 @@ export default function TaskManager() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
 
       {/* KANBAN BOARD */}
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveDragTaskId(null)}>
-        <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden p-4">
-          <div className="flex gap-4 h-full min-w-max">
+        <div className="flex-1 min-h-0 overflow-hidden p-4">
+          <div className="grid gap-3 h-full" style={{ gridTemplateColumns: `repeat(${BOARD_COLUMNS.length}, minmax(0, 1fr))` }}>
             {BOARD_COLUMNS.map((col) => {
               const columnTasks = tasksByStatus[col.status] ?? [];
               return (
