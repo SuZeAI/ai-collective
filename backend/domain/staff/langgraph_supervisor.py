@@ -464,11 +464,19 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             final_answer = self._extract_final_answer(action)
             target_worker, task_text = self._extract_delegation(action)
 
+            # The lead's reply is sometimes pure <DELEGATE_TO>/<TASK> control tags
+            # with no free-text commentary — _split_reasoning_and_action strips
+            # those out entirely, which would leave the transcript bubble empty.
+            # Fall back to a human-readable delegation summary, or the raw
+            # output as a last resort (mirrors langgraph_tree.py).
+            display_content = reasoning or (
+                f"Delegated to {target_worker}: {task_text}" if target_worker and task_text else raw_output
+            )
             new_turn = GraphTurn(
                 turn=rounds_used + 1,
                 staff_name=lead.name,
                 staff_role=lead.role,
-                content=reasoning,
+                content=display_content,
             )
 
             new_log = list(state.get("delegation_log", []))
@@ -503,7 +511,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                     conversation_id=conversation_id,
                     message_id=f"staff_member-{lead.name}-{uuid4().hex}",
                     speaker=lead.name,
-                    content=reasoning,
+                    content=display_content,
                     config=graph_config,
                 )
                 stream_writer({"type": EventType.MESSAGE_INGESTED.value, "agent_name": lead.name})
