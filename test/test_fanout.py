@@ -245,13 +245,18 @@ class _ScriptedLLM:
         self.synthesis_response = synthesis_response
         self.branch_response = branch_response
 
-    async def chat(self, *, system, user, tools=None, parallel_tools=False,
-                   max_tool_rounds=None, **kwargs):
-        if "PARALLEL WAVE SYNTHESIS" in system:
+    async def chat(self, *, system, user=None, messages=None, tools=None,
+                   parallel_tools=False, max_tool_rounds=None, **kwargs):
+        text = user if user is not None else (messages[-1]["content"] if messages else "")
+        # Routing guidance now travels in the context message (messages[0])
+        # rather than the fixed `system` string, so match against everything
+        # the model would actually see, same as a real LLM would.
+        full_prompt = system + "\n" + "\n".join(m["content"] for m in (messages or []))
+        if "PARALLEL WAVE SYNTHESIS" in full_prompt:
             return self.synthesis_response
-        if self.coordinator_marker in system:
+        if self.coordinator_marker in full_prompt:
             return self.coordinator_response
-        return f"{self.branch_response}: {user[:30]}"
+        return f"{self.branch_response}: {text[:30]}"
 
     def get_chat_model(self):
         return None
@@ -325,8 +330,8 @@ def test_e2e_mesh_sequential_unchanged_when_no_fanout():
         def __init__(self):
             self.n = 0
 
-        async def chat(self, *, system, user, tools=None, parallel_tools=False,
-                       max_tool_rounds=None):
+        async def chat(self, *, system, user=None, messages=None, tools=None,
+                       parallel_tools=False, max_tool_rounds=None):
             self.n += 1
             if self.n >= 3:
                 return "Wrap up.\n<DISCUSSION_END>summary</DISCUSSION_END>"

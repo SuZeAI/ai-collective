@@ -48,7 +48,8 @@ class LangChainLLMProvider(LLMProvider):
         self,
         *,
         system: str,
-        user: str,
+        user: str = "",
+        messages: list[dict[str, Any]] | None = None,
         tools: list[Any] | None = None,
         parallel_tools: bool = False,
         max_tool_rounds: int | None = None,
@@ -59,7 +60,10 @@ class LangChainLLMProvider(LLMProvider):
             f"Resolving tools for {self._provider_name}: {[tool.name for tool in resolved_tools]}"
         )
         get_logger().info(f"Starting chat with system prompt: \n{system}\n")
-        get_logger().info(f"User input: \n{user}")
+        input_messages = messages if messages is not None else [{"role": "user", "content": user}]
+        get_logger().info(
+            f"Input messages:\n{json.dumps(input_messages, indent=3, ensure_ascii=False)}"
+        )
 
         # Delegate the ReAct loop to LangChain's create_staff. The round bound,
         # per-tool timeout and tool-retry/model-fallback behaviour live in the
@@ -74,13 +78,14 @@ class LangChainLLMProvider(LLMProvider):
             tool_timeout=self._tool_timeout,
         )
 
-        result = await staff.ainvoke({"messages": [{"role": "user", "content": user}]})
-        messages = result.get("messages") if isinstance(result, dict) else None
-        if not messages:
+        state = {"messages": input_messages}
+        result = await staff.ainvoke(state)
+        result_messages = result.get("messages") if isinstance(result, dict) else None
+        if not result_messages:
             get_logger().warning("Staff returned no messages; returning empty string.")
             return ""
-        get_logger().info(f"Staff final message: {messages[-1]}")
-        return self._extract_text_content(messages[-1])
+        get_logger().info(f"Staff final message: {result_messages[-1]}")
+        return self._extract_text_content(result_messages[-1])
 
     def _extract_text_content(self, result: Any) -> str:
         content = getattr(result, "content", result)

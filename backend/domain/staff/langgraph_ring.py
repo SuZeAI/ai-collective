@@ -16,10 +16,10 @@ from backend.application.ports.staff_graph import (
 from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
-from backend.domain.staff.token_budget import apply_context_token_budget
 from backend.domain.staff._graph_runtime import (
     attach_subagent_toolkit,
     build_agent_tools,
+    build_turn_messages,
     drain_human_guidance,
     ensure_working_memory,
     record_guidance_in_memory,
@@ -286,8 +286,14 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
                 record_guidance_in_memory(conversation_id, human_guidance)
             memory_block = working_memory_block(conversation_id)
 
+            # Pass the latest message (previous staff_member output) when not the
+            # first turn; this is the actual turn input, never truncated below.
+            if current_round > 0 and state.get("input") and state["input"] != state["original_input"]:
+                input_text = state["input"]
+            else:
+                input_text = state["original_input"]
+
             context_parts: list[str] = []
-            # First so the guidance survives tail-truncation by the token budget.
             if human_guidance:
                 context_parts += [human_guidance, ""]
             if memory_block:
@@ -305,28 +311,25 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             if graph_context_text:
                 context_parts += ["", "context:", graph_context_text]
 
-            # Pass the latest message (previous staff_member output) when not the first turn
-            if current_round > 0 and state.get("input") and state["input"] != state["original_input"]:
-                context_parts += ["", "latest message from previous staff_member:", state["input"]]
+            bound_tools = build_agent_tools(staff_member, conversation_id=conversation_id)
+            attach_subagent_toolkit(bound_tools, staff_member, llm=llm)
 
-            user_input = "\n".join(context_parts)
-
-            budget_result = apply_context_token_budget(
+            # staff_member.system_prompt stays byte-identical every turn so the
+            # compiled-agent cache and upstream provider prompt-caching see a
+            # stable prefix; only context_parts is budget-trimmed.
+            turn, budget_result = build_turn_messages(
                 llm=llm,
                 system_prompt=staff_member.system_prompt,
-                user_input=user_input,
+                context_text="\n".join(context_parts),
+                input_text=input_text,
                 max_context_tokens=MAX_CONTEXT_TOKENS,
                 reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
             )
-            user_input = budget_result.text
-
-            bound_tools = build_agent_tools(staff_member, conversation_id=conversation_id)
-            attach_subagent_toolkit(bound_tools, staff_member, llm=llm)
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
                 "agent_name": staff_member.name,
-                "context_length": len(user_input),
+                "context_length": sum(len(m["content"]) for m in turn.as_messages()),
                 "context_tokens": budget_result.input_tokens,
                 "context_token_limit": budget_result.max_input_tokens,
                 "context_truncated": budget_result.truncated,
@@ -338,7 +341,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             output = await safe_chat(llm,
                 staff_name=staff_member.name,
                 system=staff_member.system_prompt,
-                user=user_input,
+                messages=turn.as_messages(),
                 tools=bound_tools or None,
                 parallel_tools=staff_member.subagent_enabled,
             )

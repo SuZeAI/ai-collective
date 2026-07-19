@@ -18,10 +18,10 @@ from backend.application.ports.staff_graph import (
 from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
-from backend.domain.staff.token_budget import apply_context_token_budget
 from backend.domain.staff._graph_runtime import (
     attach_subagent_toolkit,
     build_agent_tools,
+    build_turn_messages,
     drain_human_guidance,
     ensure_working_memory,
     record_guidance_in_memory,
@@ -469,8 +469,6 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
             else:  # leaf
                 routing_guidance = _LEAF_PROMPT.format(parent_name=parent_name)
 
-            full_system = f"{staff_member.system_prompt}\n\n{routing_guidance}"
-
             # Build user context
             recent_log = state.get("tree_log", [])[-_TREE_LOG_WINDOW:]
             log_text = "\n".join(recent_log) if recent_log else "(none)"
@@ -482,46 +480,54 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
                 record_guidance_in_memory(conversation_id, human_guidance)
             memory_block = working_memory_block(conversation_id)
 
+            # The actual turn input: a delegated task, a child's report reaching
+            # the root, or (root's first turn) the original request itself.
+            current_task = state.get("current_task", "")
+            if current_task and not tree_node.is_root:
+                input_text = current_task
+            elif tree_node.is_root and state.get("input") and state["input"] != state["original_input"]:
+                input_text = state["input"]
+            else:
+                input_text = state["original_input"]
+
             context_parts: list[str] = []
             # First so the guidance survives tail-truncation by the token budget.
             if human_guidance:
                 context_parts += [human_guidance, ""]
+            # routing_guidance carries live round counters, so it varies every
+            # turn — it belongs in the per-turn context, not the fixed system
+            # prompt (which must stay stable for caching to work at all).
+            context_parts += [routing_guidance, ""]
             context_parts += [
                 f"[Original request]: {state['original_input']}",
             ]
             if memory_block:
                 context_parts += ["", memory_block]
 
-            # Show task if this node received a delegation
-            current_task = state.get("current_task", "")
-            if current_task and not tree_node.is_root:
-                context_parts += ["", f"[Your assigned task]:\n{current_task}"]
-            elif tree_node.is_root and state.get("input") and state["input"] != state["original_input"]:
-                context_parts += ["", f"[Latest report from tree]:\n{state['input']}"]
-
             if recent_log:
                 context_parts += ["", f"[Tree activity log]:\n{log_text}"]
             if graph_ctx:
                 context_parts += ["", f"[Context]:\n{graph_ctx}"]
 
-            user_input_text = "\n".join(context_parts)
-
             bound_tools = build_agent_tools(staff_member, conversation_id=conversation_id)
             attach_subagent_toolkit(bound_tools, staff_member, llm=llm)
 
-            budget_result = apply_context_token_budget(
+            # staff_member.system_prompt stays byte-identical every turn so the
+            # compiled-agent cache and upstream provider prompt-caching see a
+            # stable prefix; only context_parts is budget-trimmed.
+            turn, budget_result = build_turn_messages(
                 llm=llm,
-                system_prompt=full_system,
-                user_input=user_input_text,
+                system_prompt=staff_member.system_prompt,
+                context_text="\n".join(context_parts),
+                input_text=input_text,
                 max_context_tokens=MAX_CONTEXT_TOKENS,
                 reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
             )
-            user_input_text = budget_result.text
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
                 "agent_name": staff_member.name,
-                "context_length": len(user_input_text),
+                "context_length": sum(len(m["content"]) for m in turn.as_messages()),
                 "context_tokens": budget_result.input_tokens,
                 "context_token_limit": budget_result.max_input_tokens,
                 "context_truncated": budget_result.truncated,
@@ -532,8 +538,8 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
 
             raw_output = await safe_chat(llm,
                 staff_name=staff_member.name,
-                system=full_system,
-                user=user_input_text,
+                system=staff_member.system_prompt,
+                messages=turn.as_messages(),
                 tools=bound_tools or None,
                 parallel_tools=staff_member.subagent_enabled,
             )
