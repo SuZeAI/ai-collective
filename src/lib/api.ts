@@ -1095,7 +1095,10 @@ export const api = {
   deleteConnection: (id: string) => apiFetch<{ deleted: boolean }>(`/connections/${id}`, { method: "DELETE" }),
 
   // Cost monitoring (per-user; scoped to the caller's own runs)
-  getConsumption: (days = 30) => apiFetch<Consumption>(`/consumption?days=${days}`),
+  getConsumption: (days = 30, companyId?: string) =>
+    apiFetch<Consumption>(
+      `/consumption?days=${days}${companyId ? `&company_id=${encodeURIComponent(companyId)}` : ""}`,
+    ),
 
   simulatePlan: (taskDescription: string) =>
     apiFetch<SimulationPlanResponse>("/simulations/plan", {

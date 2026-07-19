@@ -14,6 +14,7 @@ router = APIRouter(prefix="/consumption", tags=["consumption"])
 @router.get("", response_model=ConsumptionSchema)
 def get_consumption(
     days: int = Query(default=30, ge=1, le=365),
+    company_id: str | None = Query(default=None),
     user: User = Depends(current_user_dep),
     service: MonitoringService = Depends(get_monitoring_service),
 ) -> ConsumptionSchema:
@@ -22,5 +23,8 @@ def get_consumption(
     no admin role required. Token-usage records are always tagged with the real
     authenticated user id, so we must filter by that id rather than owner_id
     (which collapses to the shared "default" scope for admin/system accounts).
+
+    `company_id` narrows the totals/breakdowns to that company's departments;
+    omitted (or the "Overall" scope) returns the union across all companies.
     """
-    return ConsumptionSchema.from_summary(service.get_consumption(user.id, days))
+    return ConsumptionSchema.from_summary(service.get_consumption(user.id, days, company_id=company_id))
