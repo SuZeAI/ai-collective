@@ -196,7 +196,7 @@ export default function Recruiting() {
       return <div className="text-center py-16 text-sm text-muted-foreground">{c.empty}</div>;
     }
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
         {items.map((it, i) => {
           const copied = copiedIds.has(it.id);
           const busy = busyId === it.id;
@@ -246,7 +246,7 @@ export default function Recruiting() {
   const order: Kind[] = ["task", "department", "staff", "skill", "document"];
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div>
       <div className="flex items-center gap-3 mb-1">
         <ShoppingBag className="w-6 h-6" />
         <h1 className="text-2xl font-bold">{t.nav.recruiting}</h1>
