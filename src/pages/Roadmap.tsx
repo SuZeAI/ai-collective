@@ -3,23 +3,31 @@ import { useParams } from "react-router-dom";
 import { Map as MapIcon } from "lucide-react";
 import { api, type Project, type Epic, type Task } from "@/lib/api";
 import { ProjectSubnav } from "@/components/ProjectSubnav";
+import { useCompanyScope } from "@/hooks/use-company-scope";
 import { cn } from "@/lib/utils";
 
 const DAY = 86400000;
 
 export default function Roadmap() {
   const { key: projectKey = "" } = useParams<{ key: string }>();
+  const scope = useCompanyScope();
   const [project, setProject] = useState<Project | undefined>();
   const [epics, setEpics] = useState<Epic[]>([]);
   const [issues, setIssues] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (scope.pending) return;
     let cancelled = false;
     (async () => {
       try {
-        const [projects, allEpics, allTasks] = await Promise.all([api.listProjects(), api.listEpics(), api.listTasks()]);
+        const [projects, allEpics, allTasks] = await Promise.all([
+          api.listProjects(scope.isOverall ? undefined : scope.company?.id),
+          api.listEpics(),
+          api.listTasks(),
+        ]);
         if (cancelled) return;
+        // Project belongs to another office — same guard as an unknown key.
         const proj = projects.find((p) => p.key === projectKey);
         setProject(proj);
         setEpics(allEpics.filter((e) => e.projectId === proj?.id));
@@ -33,7 +41,7 @@ export default function Roadmap() {
     return () => {
       cancelled = true;
     };
-  }, [projectKey]);
+  }, [projectKey, scope.pending, scope.isOverall, scope.company?.id]);
 
   const issuesByEpic = useMemo(() => {
     const m = new Map<string, Task[]>();

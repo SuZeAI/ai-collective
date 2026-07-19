@@ -322,15 +322,21 @@ export default function TaskManager() {
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [epicFilter, setEpicFilter] = useState<string>("all");
   const [sprintFilter, setSprintFilter] = useState<string>("all");
+  // Projects belong to one company (see Project.companyId) — narrow to the
+  // active office so another company's projects/issues never leak in here.
+  const scopedProjectList = useMemo(
+    () => (scope.isOverall ? projectList : projectList.filter((p) => scope.projectIds.has(p.id))),
+    [projectList, scope.isOverall, scope.projectIds],
+  );
   const activeProject = useMemo(
-    () => (projectKeyParam ? projectList.find((p) => p.key === projectKeyParam) : undefined),
-    [projectKeyParam, projectList],
+    () => (projectKeyParam ? scopedProjectList.find((p) => p.key === projectKeyParam) : undefined),
+    [projectKeyParam, scopedProjectList],
   );
   // The project actually filtering the board: the URL project when on a
   // project's own board route, otherwise whatever the dropdown picked.
   const projectScope = useMemo(
-    () => activeProject ?? (projectFilter !== "all" ? projectList.find((p) => p.id === projectFilter) : undefined),
-    [activeProject, projectFilter, projectList],
+    () => activeProject ?? (projectFilter !== "all" ? scopedProjectList.find((p) => p.id === projectFilter) : undefined),
+    [activeProject, projectFilter, scopedProjectList],
   );
   // Task creation belongs to a specific company (office) or a project board. The
   // global "Overall Collective" scope is monitoring-only, so the New Task button
@@ -439,12 +445,11 @@ export default function TaskManager() {
 
   // Office scoping: a task belongs to the active office if its department is in
   // scope OR (for individual assignments without a department) its assignee is a
-  // member of a department in scope. Projects have no office of their own (see
-  // domain Project — no company_id field), so an issue keeps its department/
-  // assignee empty; it's always visible instead of needing manual assignment.
+  // member of a department in scope. A project-linked issue belongs to its
+  // project's office (Project.companyId).
   const isTaskInScope = (task: Task) => {
     if (scope.isOverall) return true;
-    if (task.projectId) return true;
+    if (task.projectId) return scope.projectIds.has(task.projectId);
     if (task.departmentId && scope.departmentIds.has(task.departmentId)) return true;
     if (task.assigneeId) {
       return departmentList.some((t) => scope.departmentIds.has(t.id) && (t.staff ?? []).includes(task.assigneeId as string));
@@ -830,7 +835,7 @@ export default function TaskManager() {
             <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All projects" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All projects</SelectItem>
-              {projectList.map((p) => (
+              {scopedProjectList.map((p) => (
                 <SelectItem key={p.id} value={p.id}>{p.key} · {p.name}</SelectItem>
               ))}
             </SelectContent>

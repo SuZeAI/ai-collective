@@ -65,7 +65,10 @@ export default function Projects() {
 
   const load = async () => {
     try {
-      const [p, a] = await Promise.all([api.listProjects(), api.listStaff()]);
+      const [p, a] = await Promise.all([
+        api.listProjects(scope.isOverall ? undefined : scope.company?.id),
+        api.listStaff(),
+      ]);
       setProjects(p);
       setStaff(a);
     } catch (e) {
@@ -73,7 +76,9 @@ export default function Projects() {
     }
   };
 
-  useEffect(() => { void load(); }, []);
+  // Reload when the active office changes (this page only renders inside a
+  // company via RequireCompany, but scope.company still needs to resolve).
+  useEffect(() => { if (!scope.pending) void load(); }, [scope.isOverall, scope.company?.id, scope.pending]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -114,6 +119,7 @@ export default function Projects() {
         leadId: leadId === PLANNER_NONE ? "" : leadId,
         plannerStaffId: plannerStaffId === PLANNER_NONE ? "" : plannerStaffId,
         plannerSystemPrompt: plannerSystemPrompt.trim(),
+        companyId: scope.company?.id ?? "",
       });
       resetForm();
       setOpen(false);
@@ -126,7 +132,7 @@ export default function Projects() {
   };
 
   const remove = async (p: Project) => {
-    if (!confirm(`Delete project "${p.name}"? Its issues remain but lose their project link.`)) return;
+    if (!confirm(`Delete project "${p.name}"? Its issues, epics and sprints will be deleted too.`)) return;
     try {
       await api.deleteProject(p.id);
       await load();

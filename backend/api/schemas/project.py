@@ -30,6 +30,7 @@ class ProjectSchema(BaseModel):
     avatar_color: str = ""
     avatar_url: str = ""
     owner_id: str = "default"
+    companyId: str = ""
 
     @staticmethod
     def from_domain(p) -> "ProjectSchema":
@@ -48,6 +49,7 @@ class ProjectSchema(BaseModel):
             avatar_color=getattr(p, "avatar_color", "") or "",
             avatar_url=getattr(p, "avatar_url", "") or "",
             owner_id=getattr(p, "owner_id", "default") or "default",
+            companyId=getattr(p, "company_id", "") or "",
         )
 
 
@@ -63,3 +65,4 @@ class UpsertProjectRequest(BaseModel):
     avatar_icon: str = ""
     avatar_color: str = ""
     avatar_url: str = ""
+    companyId: str = ""

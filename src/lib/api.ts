@@ -152,6 +152,7 @@ export type Project = {
   avatar_color?: string;
   avatar_url?: string;
   owner_id?: string;
+  companyId?: string;
 };
 
 export type Epic = {
@@ -811,7 +812,8 @@ export const api = {
     apiFetch<{ cleared: boolean }>(`/tasks/${id}/history`, { method: "DELETE" }),
 
   // Jira-style project management layer.
-  listProjects: () => apiFetch<Project[]>("/projects"),
+  listProjects: (companyId?: string) =>
+    apiFetch<Project[]>(`/projects${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`),
   upsertProject: (payload: Partial<Project> & Pick<Project, "key" | "name">) =>
     apiFetch<Project>("/projects", { method: "POST", body: JSON.stringify(payload) }),
   deleteProject: (id: string) =>
