@@ -595,26 +595,32 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     // after the upsertTask await below), letting the second call's stream
     // silently overwrite/orphan the first's.
     if (controllersRef.current.has(task.id)) return;
+    // Nothing assigned to run this task — bail before touching its status so it
+    // doesn't get stuck showing "in-progress" with no stream behind it.
+    if (task.assignedStaff.length === 0) {
+      toast({
+        title: `"${task.title}" isn't ready to run`,
+        description: "Assign a department or staff member to this task first.",
+        variant: "destructive",
+      });
+      return;
+    }
     const controller = new AbortController();
     controllersRef.current.set(task.id, controller);
     setUpdatingTaskIds((prev) => new Set(prev).add(task.id));
     try {
       const updated = await api.upsertTask({ ...task, status: "in-progress" });
       applyTask(updated);
-      if (updated.assignedStaff.length > 0) {
-        // On restart from completed/stopped, keep the transcript (long-running
-        // meeting) and only reset transient interaction state. Use the
-        // explicit "Clear history" action for a full wipe.
-        if (task.status === "completed" || task.status === "stopped") {
-          clearTransientRunState(updated.id);
-        }
-        const formattedInput =
-          opts.formattedInput ??
-          `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}`;
-        await runStream(updated, formattedInput, opts, controller);
-      } else {
-        controllersRef.current.delete(task.id);
+      // On restart from completed/stopped, keep the transcript (long-running
+      // meeting) and only reset transient interaction state. Use the explicit
+      // "Clear history" action for a full wipe.
+      if (task.status === "completed" || task.status === "stopped") {
+        clearTransientRunState(updated.id);
       }
+      const formattedInput =
+        opts.formattedInput ??
+        `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}`;
+      await runStream(updated, formattedInput, opts, controller);
     } catch (e) {
       controllersRef.current.delete(task.id);
       if (!(e instanceof DOMException && e.name === "AbortError")) console.error(e);

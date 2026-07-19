@@ -324,8 +324,10 @@ export default function TaskManager() {
   const [sprintFilter, setSprintFilter] = useState<string>("all");
   // Projects belong to one company (see Project.companyId) — narrow to the
   // active office so another company's projects/issues never leak in here.
+  // Legacy projects predating that field (companyId "") stay visible in every
+  // office, same as before company-scoping existed.
   const scopedProjectList = useMemo(
-    () => (scope.isOverall ? projectList : projectList.filter((p) => scope.projectIds.has(p.id))),
+    () => (scope.isOverall ? projectList : projectList.filter((p) => !p.companyId || scope.projectIds.has(p.id))),
     [projectList, scope.isOverall, scope.projectIds],
   );
   const activeProject = useMemo(
@@ -356,6 +358,12 @@ export default function TaskManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [viewTaskId, setViewTaskId] = useState<string | null>(null);
+  // Prompt shown instead of silently no-oping when starting a task with no
+  // department/staff assigned yet (see requestStart).
+  const [assignPromptTaskId, setAssignPromptTaskId] = useState<string | null>(null);
+  const [assignPromptMode, setAssignPromptMode] = useState<"department" | "staff">("department");
+  const [assignPromptDepartmentId, setAssignPromptDepartmentId] = useState("");
+  const [assignPromptStaffId, setAssignPromptStaffId] = useState("");
   // Human-in-the-loop composer draft and ask_user free-text drafts (UI-local).
   const [humanInputs, setHumanInputs] = useState<Record<string, string>>({});
   const [userRequestDrafts, setUserRequestDrafts] = useState<Record<string, string>>({});
@@ -446,10 +454,14 @@ export default function TaskManager() {
   // Office scoping: a task belongs to the active office if its department is in
   // scope OR (for individual assignments without a department) its assignee is a
   // member of a department in scope. A project-linked issue belongs to its
-  // project's office (Project.companyId).
+  // project's office (Project.companyId), except legacy projects predating that
+  // field (companyId ""), which stay visible everywhere.
   const isTaskInScope = (task: Task) => {
     if (scope.isOverall) return true;
-    if (task.projectId) return scope.projectIds.has(task.projectId);
+    if (task.projectId) {
+      const project = projectList.find((p) => p.id === task.projectId);
+      return !project?.companyId || scope.projectIds.has(task.projectId);
+    }
     if (task.departmentId && scope.departmentIds.has(task.departmentId)) return true;
     if (task.assigneeId) {
       return departmentList.some((t) => scope.departmentIds.has(t.id) && (t.staff ?? []).includes(task.assigneeId as string));
@@ -643,6 +655,42 @@ export default function TaskManager() {
     }
   };
 
+  // Starting a task needs a department or staff behind it. If it has neither
+  // yet, prompt for one instead of letting engine.startTask silently no-op.
+  const requestStart = (task: Task) => {
+    if (task.assignedStaff.length === 0) {
+      setAssignPromptTaskId(task.id);
+      setAssignPromptMode("department");
+      setAssignPromptDepartmentId("");
+      setAssignPromptStaffId("");
+      return;
+    }
+    openTaskView(task.id);
+    void engine.startTask(task, departmentRunOpts(task));
+  };
+
+  const confirmAssignAndRun = async () => {
+    const task = taskList.find((t) => t.id === assignPromptTaskId);
+    if (!task) return;
+    const patch =
+      assignPromptMode === "staff"
+        ? { ...task, departmentId: "", assigneeId: assignPromptStaffId, assignedStaff: [assignPromptStaffId] }
+        : {
+            ...task,
+            departmentId: assignPromptDepartmentId,
+            assigneeId: null,
+            assignedStaff: departmentList.find((t) => t.id === assignPromptDepartmentId)?.staff || [],
+          };
+    try {
+      const updated = await engine.upsertTask(patch);
+      setAssignPromptTaskId(null);
+      openTaskView(updated.id);
+      void engine.startTask(updated, departmentRunOpts(updated));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   // Drag a card between columns → drive the matching status transition. Moving
   // into "In Progress" auto-runs the staff; the user keeps stop/pause controls.
   const moveTaskToStatus = (task: Task, status: Task["status"]) => {
@@ -654,8 +702,7 @@ export default function TaskManager() {
     if (!canEditItem(task)) return;
     if (updatingTaskIds.has(task.id)) return;
     if (status === "in-progress") {
-      openTaskView(task.id);
-      void engine.startTask(task, departmentRunOpts(task));
+      requestStart(task);
     } else if (status === "stopped") {
       void engine.stopTask(task);
     } else if (status === "paused") {
@@ -688,8 +735,7 @@ export default function TaskManager() {
     if (task.status === status && !(status === "in-progress" && !engine.isStreaming(task.id))) return;
     if (updatingTaskIds.has(task.id)) return;
     if (status === "in-progress") {
-      openTaskView(task.id);
-      void engine.startTask(task, departmentRunOpts(task));
+      requestStart(task);
     } else if (status === "stopped") {
       void engine.stopTask(task);
     } else if (status === "paused") {
@@ -1013,6 +1059,67 @@ export default function TaskManager() {
                 disabled={!title.trim() || (assignMode === "department" ? !departmentId : !assigneeId)}
               >
                 {editingTaskId ? "Save Changes" : "Create Task"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Shown instead of silently no-oping when starting a task with no
+            department/staff behind it yet (see requestStart). */}
+        <Dialog open={!!assignPromptTaskId} onOpenChange={(o) => !o && setAssignPromptTaskId(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Assign before running</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <p className="text-xs text-muted-foreground">
+                "{taskList.find((t) => t.id === assignPromptTaskId)?.title}" has no department or staff assigned yet,
+                so it can't run. Pick one to continue.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAssignPromptMode("department")}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 h-9 rounded-lg border text-xs font-semibold transition-colors",
+                    assignPromptMode === "department" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted/40",
+                  )}
+                >
+                  <Building2 className="w-3.5 h-3.5" /> Department
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAssignPromptMode("staff")}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 h-9 rounded-lg border text-xs font-semibold transition-colors",
+                    assignPromptMode === "staff" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted/40",
+                  )}
+                >
+                  <UserRound className="w-3.5 h-3.5" /> Staff
+                </button>
+              </div>
+              {assignPromptMode === "department" ? (
+                <Select value={assignPromptDepartmentId} onValueChange={setAssignPromptDepartmentId}>
+                  <SelectTrigger><SelectValue placeholder="Select a department" /></SelectTrigger>
+                  <SelectContent>
+                    {(scope.isOverall ? departmentList : departmentList.filter((t) => scope.departmentIds.has(t.id)))
+                      .map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Select value={assignPromptStaffId} onValueChange={setAssignPromptStaffId}>
+                  <SelectTrigger><SelectValue placeholder="Select a staff member" /></SelectTrigger>
+                  <SelectContent>
+                    {scopedStaff.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+              <Button
+                onClick={confirmAssignAndRun}
+                className="w-full"
+                disabled={assignPromptMode === "department" ? !assignPromptDepartmentId : !assignPromptStaffId}
+              >
+                Assign &amp; Run
               </Button>
             </div>
           </DialogContent>
