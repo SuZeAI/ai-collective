@@ -492,7 +492,7 @@ export default function AnalyticsPage() {
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
         {/* Recent Tasks */}
-        <div className="glass-card p-5">
+        <div className="glass-card p-5 min-w-0">
           <div className="flex items-center gap-2 mb-5">
             <CheckCircle2 className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold">Recent Tasks</h3>
