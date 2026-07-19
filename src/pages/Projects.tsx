@@ -5,7 +5,7 @@ import {
   FolderKanban, Plus, Pencil, Trash2, Bot, UserCircle2,
   Columns3, ListTodo, Map as MapIcon, BarChart3, ListChecks,
 } from "lucide-react";
-import { api, canEditItem, canDeleteItem, type Staff, type Project } from "@/lib/api";
+import { api, canEditItem, canDeleteItem, type Staff, type Project, type Task } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +29,7 @@ export default function Projects() {
   const scope = useCompanyScope();
   const [projects, setProjects] = useState<Project[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -44,7 +45,21 @@ export default function Projects() {
   const staffById = useMemo(() => new Map(staff.map((a) => [a.id, a])), [staff]);
   const existingKeys = useMemo(() => new Set(projects.map((p) => p.key)), [projects]);
   const withPlannerCount = useMemo(() => projects.filter((p) => p.plannerStaffId).length, [projects]);
-  const totalIssues = useMemo(() => projects.reduce((sum, p) => sum + (p.issueCounter ?? 0), 0), [projects]);
+  // Real issue count per project, from actual task rows — NOT project.issueCounter,
+  // which is a monotonic key-allocation counter (for KEY-1, KEY-2, ...) that never
+  // decreases, so it drifts above the true count once any issue is deleted.
+  const issuesByProject = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const t of tasks) {
+      if (!t.projectId) continue;
+      m.set(t.projectId, (m.get(t.projectId) ?? 0) + 1);
+    }
+    return m;
+  }, [tasks]);
+  const totalIssues = useMemo(
+    () => projects.reduce((sum, p) => sum + (issuesByProject.get(p.id) ?? 0), 0),
+    [projects, issuesByProject],
+  );
 
   // Project keys are never typed by hand: derived from the current company's
   // name (initials for multi-word names, first letters for a single word). A
@@ -80,12 +95,14 @@ export default function Projects() {
   const load = async () => {
     setLoading(true);
     try {
-      const [p, a] = await Promise.all([
+      const [p, a, tsk] = await Promise.all([
         api.listProjects(scope.isOverall ? undefined : scope.company?.id),
         api.listStaff(),
+        api.listTasks(),
       ]);
       setProjects(p);
       setStaff(a);
+      setTasks(tsk);
     } catch (e) {
       console.error(e);
     } finally {
@@ -336,7 +353,7 @@ export default function Projects() {
                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                       <div className="flex items-center gap-1.5">
                         <ListChecks className="w-3 h-3" />
-                        <span>{p.issueCounter ?? 0} issues</span>
+                        <span>{issuesByProject.get(p.id) ?? 0} issues</span>
                       </div>
                       <div className="flex items-center gap-1.5 min-w-0">
                         <Bot className="w-3 h-3 shrink-0" />
