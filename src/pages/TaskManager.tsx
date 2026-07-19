@@ -14,7 +14,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, X, Eye, Send, UserRound, Hand, HelpCircle, Zap, LayoutGrid, Flag, CalendarClock, Tag, Building2, MessageSquare } from "lucide-react";
+import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, X, Eye, Send, UserRound, Hand, HelpCircle, Zap, LayoutGrid, Flag, CalendarClock, Tag, Building2, MessageSquare, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -302,6 +302,7 @@ export default function TaskManager() {
     userInputRequests,
     loadingConversationTaskIds,
     updatingTaskIds,
+    statusChangePendingIds,
     sendingInterjectTaskIds,
     holdTogglingTaskIds,
     respondingRequestIds,
@@ -700,15 +701,23 @@ export default function TaskManager() {
     // it into "In Progress" is how the user restarts it.
     if (task.status === status && !(status === "in-progress" && !engine.isStreaming(task.id))) return;
     if (!canEditItem(task)) return;
-    if (updatingTaskIds.has(task.id)) return;
+    // updatingTaskIds stays true for a task's *entire* active run (see
+    // startTask), so gating stop/pause/other on it would block them for as
+    // long as the task is running — exactly when you need them. Those use
+    // the short-lived statusChangePendingIds instead, to only prevent
+    // double-submitting the same click.
     if (status === "in-progress") {
+      if (updatingTaskIds.has(task.id)) return;
       requestStart(task);
     } else if (status === "stopped") {
+      if (statusChangePendingIds.has(task.id)) return;
       void engine.stopTask(task);
     } else if (status === "paused") {
+      if (statusChangePendingIds.has(task.id)) return;
       void engine.pauseTask(task);
     } else {
       // pending | completed — generic setter aborts any live stream first.
+      if (statusChangePendingIds.has(task.id)) return;
       void engine.setStatus(task, status);
     }
   };
@@ -733,12 +742,14 @@ export default function TaskManager() {
     // See moveTaskToStatus: allow re-triggering "in-progress" when the task is
     // orphaned (DB says in-progress but no stream is live in this session).
     if (task.status === status && !(status === "in-progress" && !engine.isStreaming(task.id))) return;
-    if (updatingTaskIds.has(task.id)) return;
     if (status === "in-progress") {
+      if (updatingTaskIds.has(task.id)) return;
       requestStart(task);
     } else if (status === "stopped") {
+      if (statusChangePendingIds.has(task.id)) return;
       void engine.stopTask(task);
     } else if (status === "paused") {
+      if (statusChangePendingIds.has(task.id)) return;
       void engine.pauseTask(task);
     }
   };
@@ -1229,6 +1240,7 @@ export default function TaskManager() {
             const canPause = selectedTask.status === "in-progress";
             const canStop = selectedTask.status === "in-progress" || selectedTask.status === "paused";
             const isUpdating = updatingTaskIds.has(selectedTask.id);
+            const isStatusChangePending = statusChangePendingIds.has(selectedTask.id);
             const isConversationLoading = loadingConversationTaskIds.has(selectedTask.id);
             const isRestart = selectedTask.status === "completed" || isOrphaned;
             const Icon = statusIcons[selectedTask.status] ?? Circle;
@@ -1352,18 +1364,18 @@ export default function TaskManager() {
                           className="h-8 px-2.5"
                           variant="outline"
                           onClick={() => updateTaskStatus(selectedTask, "paused")}
-                          disabled={!canPause}
+                          disabled={!canPause || isStatusChangePending}
                         >
-                          <Pause className="w-3.5 h-3.5" />
+                          {isStatusChangePending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Pause className="w-3.5 h-3.5" />}
                         </Button>
                         <Button
                           size="sm"
                           className="h-8 px-2.5 hover:bg-rose-500/10 hover:border-rose-500/20"
                           variant="outline"
                           onClick={() => updateTaskStatus(selectedTask, "stopped")}
-                          disabled={!canStop}
+                          disabled={!canStop || isStatusChangePending}
                         >
-                          <Square className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+                          {isStatusChangePending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Square className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />}
                         </Button>
                       </div>
                     )}

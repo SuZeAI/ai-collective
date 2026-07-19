@@ -579,6 +579,6 @@ async def run_staff_graph_stream(
             ltm_store.current_memory_scope.reset(scope_token)
             current_usage_department.reset(team_token)
             if conversation_id:
-                task_run_registry.unregister(conversation_id)
+                task_run_registry.unregister(conversation_id, cancel_flag)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

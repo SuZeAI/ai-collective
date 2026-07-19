@@ -139,6 +139,7 @@ export type RunEngineValue = {
   userInputRequests: Record<string, UserInputRequest[]>;
   loadingConversationTaskIds: Set<string>;
   updatingTaskIds: Set<string>;
+  statusChangePendingIds: Set<string>;
   sendingInterjectTaskIds: Set<string>;
   holdTogglingTaskIds: Set<string>;
   respondingRequestIds: Set<string>;
@@ -190,6 +191,11 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
   const [userInputRequests, setUserInputRequests] = useState<Record<string, UserInputRequest[]>>({});
   const [loadingConversationTaskIds, setLoadingConversationTaskIds] = useState<Set<string>>(new Set());
   const [updatingTaskIds, setUpdatingTaskIds] = useState<Set<string>>(new Set());
+  // Short-lived: true only while a setStatus() PUT is actually in flight (a few
+  // hundred ms), unlike updatingTaskIds which startTask keeps true for the
+  // *entire* run — using that one to gate the Pause/Stop spinner made them
+  // spin for the whole run instead of just while the click was processing.
+  const [statusChangePendingIds, setStatusChangePendingIds] = useState<Set<string>>(new Set());
   const [sendingInterjectTaskIds, setSendingInterjectTaskIds] = useState<Set<string>>(new Set());
   const [holdTogglingTaskIds, setHoldTogglingTaskIds] = useState<Set<string>>(new Set());
   const [respondingRequestIds, setRespondingRequestIds] = useState<Set<string>>(new Set());
@@ -539,11 +545,21 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         emit(updated.id, event);
       }
 
+      // A Pause/Stop click cancels the reader (see api.runStaffGraphStream),
+      // which makes reader.read() resolve with done:true instead of throwing —
+      // the for-await loop then exits normally without ever re-checking
+      // controller.signal.aborted inside its body, so endReason would
+      // otherwise be silently left at its "completed" default even though
+      // the run was aborted. Correct it here before deciding what to do next.
+      if (controller.signal.aborted && endReason === "completed") {
+        endReason = "aborted";
+      }
+
       // Auto-complete only when the stream finished naturally (not cancelled,
       // stopped, aborted, or errored). Do not gate on messages.length: a run
       // that only calls tools/subagents without a final turn_complete message
       // still finishes naturally and must transition out of "in-progress".
-      if (endReason === "completed" && !controller.signal.aborted) {
+      if (endReason === "completed") {
         const completed = await api.upsertTask({ ...updated, status: "completed", progress: 100 });
         applyTask(completed);
       }
@@ -644,6 +660,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
   const setStatus = useCallback(async (task: Task, status: Task["status"]) => {
     abortStream(task.id);
     setUpdatingTaskIds((prev) => new Set(prev).add(task.id));
+    setStatusChangePendingIds((prev) => new Set(prev).add(task.id));
     try {
       const updated = await api.upsertTask({ ...task, status });
       applyTask(updated);
@@ -651,6 +668,11 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
       if (!(e instanceof DOMException && e.name === "AbortError")) console.error(e);
     } finally {
       setUpdatingTaskIds((prev) => {
+        const next = new Set(prev);
+        next.delete(task.id);
+        return next;
+      });
+      setStatusChangePendingIds((prev) => {
         const next = new Set(prev);
         next.delete(task.id);
         return next;
@@ -896,6 +918,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
       userInputRequests,
       loadingConversationTaskIds,
       updatingTaskIds,
+      statusChangePendingIds,
       sendingInterjectTaskIds,
       holdTogglingTaskIds,
       respondingRequestIds,
@@ -932,6 +955,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
       userInputRequests,
       loadingConversationTaskIds,
       updatingTaskIds,
+      statusChangePendingIds,
       sendingInterjectTaskIds,
       holdTogglingTaskIds,
       respondingRequestIds,
