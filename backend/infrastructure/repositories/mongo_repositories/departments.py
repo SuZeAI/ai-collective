@@ -9,7 +9,7 @@ from backend.domain.models import DEFAULT_OWNER_ID, Department
 
 class MongoDepartmentRepository:
     def __init__(self, db: pymongo.database.Database) -> None:
-        self._col = db["teams"]
+        self._col = db["departments"]
         self._col.create_index("id", unique=True, background=True)
 
     def _doc_to_team(self, item: dict[str, Any]) -> Department:

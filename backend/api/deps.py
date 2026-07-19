@@ -429,9 +429,9 @@ def seed_admin_user() -> None:
 # Order matters: staff/skills/departments are seeded before tasks so a seeded task's
 # referenced team and staff already exist in the live store.
 _DEFAULT_DATA_FILES = (
-    ("agents", "staff.json"),
+    ("staff", "staff.json"),
     ("skills", "skills.json"),
-    ("teams", "departments.json"),
+    ("departments", "departments.json"),
     ("tasks", "tasks.json"),
 )
 
