@@ -120,6 +120,12 @@ const NAV_GROUPS: NavGroup[] = [
   }
 ];
 
+const FULL_WIDTH_PATHS = [
+  "/dashboard", "/analytics", "/consumption", "/departments", "/staff", "/skills",
+  "/projects", "/meetings", "/documents", "/recruiting", "/platform", "/playground",
+  "/office-builder", "/companies", "/profile",
+];
+
 function UserAvatarButton({ name, src }: { name: string; src?: string }) {
   if (src) {
     return (
@@ -265,8 +271,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     () => allNavItems.find((n) => n.url === location.pathname),
     [allNavItems, location.pathname],
   );
-  const isFullBleed = location.pathname === "/tasks" || location.pathname === "/virtual-office";
-  const isFullWidth = isFullBleed || location.pathname === "/dashboard";
+  const isFullBleed =
+    location.pathname === "/tasks" ||
+    location.pathname === "/virtual-office" ||
+    /^\/projects\/[^/]+\/(board|backlog|roadmap|reports)$/.test(location.pathname);
+  const isFullWidth = isFullBleed || FULL_WIDTH_PATHS.includes(location.pathname);
 
   // Inside a project (board/backlog/roadmap/reports) the header breadcrumb
   // drops down a level: "AI Collective > Projects > <project name>", with
