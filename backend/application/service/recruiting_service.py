@@ -8,6 +8,7 @@ from backend.application.service.document_library_service import DocumentLibrary
 from backend.application.service.skill_service import SkillService
 from backend.application.service.task_service import TaskService
 from backend.application.service.department_service import DepartmentService
+from backend.application.service.company_service import CompanyService
 from backend.domain.enums import StaffStatus, TaskStatus
 from backend.domain.errors import NotFoundError, ValidationError
 from backend.domain.models import (
@@ -44,12 +45,14 @@ class RecruitingService:
         department_service: DepartmentService,
         task_service: TaskService,
         document_service: DocumentLibraryService,
+        company_service: CompanyService,
     ) -> None:
         self._agents = staff_service
         self._skills = skill_service
         self._teams = department_service
         self._tasks = task_service
         self._documents = document_service
+        self._companies = company_service
 
     # ----- listing -----------------------------------------------------------
 
@@ -97,9 +100,11 @@ class RecruitingService:
         if kind == "staff":
             return {"type": kind, "id": self._copy_staff(item_id, owner_id).id}
         if kind == "department":
-            return {"type": kind, "id": self._copy_team(item_id, owner_id).id}
+            department = self._copy_team(item_id, owner_id)
+            self._attach_department(department.id, company_id)
+            return {"type": kind, "id": department.id}
         if kind == "task":
-            return {"type": kind, "id": self._copy_task(item_id, owner_id).id}
+            return {"type": kind, "id": self._copy_task(item_id, owner_id, company_id).id}
         if kind == "document":
             if not company_id:
                 raise ValidationError("Copying a document requires a target company_id")
@@ -172,7 +177,20 @@ class RecruitingService:
             raise NotFoundError(f"Recruiting department '{department_id}' not found")
         return self._clone_team(src, owner_id, self._skills_by_id())
 
-    def _copy_task(self, task_id: str, owner_id: str) -> Task:
+    def _attach_department(self, department_id: str, company_id: str | None) -> None:
+        # "Copy to my unit" only means something if the clone actually shows up
+        # in that unit's Projects/Departments views, which are scoped off
+        # Company.department_ids — so a freshly cloned department must join it.
+        if not company_id:
+            return
+        company = self._companies.try_get_company(company_id)
+        if company is None or department_id in company.department_ids:
+            return
+        self._companies.upsert_workspace(
+            replace(company, department_ids=[*company.department_ids, department_id])
+        )
+
+    def _copy_task(self, task_id: str, owner_id: str, company_id: str | None = None) -> Task:
         src = self._tasks._repo.get(task_id)
         if src is None or src.owner_id != DEFAULT_OWNER_ID:
             raise NotFoundError(f"Recruiting task '{task_id}' not found")
@@ -199,6 +217,7 @@ class RecruitingService:
                 owner_id=owner_id,
             )
             new_team_id = self._teams.upsert_department(cloned_team).id
+            self._attach_department(new_team_id, company_id)
 
         clone = replace(
             src,

@@ -82,14 +82,17 @@ const queryClient = new QueryClient();
 function AuthTokenExpiryHandler() {
   const { logout } = useAuth();
   const queryClient = useQueryClient();
+  const { t } = useLanguage();
+  const { toast } = useToast();
   useEffect(() => {
     const handleExpired = () => {
+      toast({ title: t.auth.sessionExpiredTitle, description: t.auth.sessionExpiredDesc, variant: "destructive" });
       logout();
       queryClient.clear();
     };
     window.addEventListener("auth:token-expired", handleExpired);
     return () => window.removeEventListener("auth:token-expired", handleExpired);
-  }, [logout, queryClient]);
+  }, [logout, queryClient, t, toast]);
   return null;
 }
 

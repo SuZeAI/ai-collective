@@ -251,6 +251,7 @@ def get_recruiting_service() -> RecruitingService:
         DepartmentService(repos.departments),
         TaskService(repos.tasks),
         get_document_library_service(),
+        get_company_service(),
     )
 
 

@@ -130,7 +130,7 @@ export default function Recruiting() {
       await api.copyFromRecruiting({
         type: kind,
         id,
-        ...(kind === "document" ? { companyId: scope.company?.id } : {}),
+        ...(scope.company ? { companyId: scope.company.id } : {}),
       });
       setCopiedIds((prev) => new Set(prev).add(id));
       toast({ title: c.toastOk, description: c.toastDesc });
