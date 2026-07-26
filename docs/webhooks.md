@@ -7,8 +7,8 @@ configured agent team, and reply. Webhook processors live in
 ## Endpoints
 
 ```
-GET  /api/v1/webhook/{platform}/{workspace_id}/{hook_id}   # verification handshake
-POST /api/v1/webhook/{platform}/{workspace_id}/{hook_id}   # incoming events
+GET  /api/v1/webhook/{platform}/{company_id}/{hook_id}   # verification handshake
+POST /api/v1/webhook/{platform}/{company_id}/{hook_id}   # incoming events
 ```
 
 `platform` is one of the registry keys (e.g. `slack`, `telegram`, `discord`,
@@ -16,9 +16,16 @@ POST /api/v1/webhook/{platform}/{workspace_id}/{hook_id}   # incoming events
 `wechat_messaging`, `viber_messaging`, `zalo_messaging`, `signal_messaging`,
 `skype_messaging`, `teams`, `wire_messaging`, `snapchat_messaging`).
 
+Inbound webhooks are `Connection` rows (`backend/domain/models.py`) with
+`kind="inbound_webhook"`, resolved and scoped to their owning company by
+`backend/api/routers/webhook.py::_resolve_hook`. They share the `Connection`
+model with outbound third-party connections (`kind="outbound"`), both served
+via `ConnectionService` (`connections.py` for CRUD, `webhook.py` for the
+public receive endpoints).
+
 ## Request flow (POST)
 
-1. Resolve workspace + hook; 404 if missing, `{"status":"hook_disabled"}` if off.
+1. Resolve company + hook; 404 if missing, `{"status":"hook_disabled"}` if off.
 2. **Verify the signature** — `processor.verify_request(headers, raw_body, config)`.
    Returns 403 on failure.
 3. Handle synchronous handshakes: Slack `url_verification` challenge and the
@@ -40,7 +47,9 @@ All comparisons are constant-time.
 | WhatsApp / Messenger / Instagram | `X-Hub-Signature-256` (HMAC-SHA256) | `app_secret` *(optional, new)* |
 | Discord | Ed25519 over `{timestamp}{body}` (via `cryptography`) | `public_key` *(optional, new)* |
 | WeChat | SHA1 of sorted `token,timestamp,nonce` (GET verify) | `verify_token` |
-| Others | none available → accepted | — |
+| Teams / Skype | Bot Framework `Authorization: Bearer <JWT>` (via `bot_framework_auth.py`) | `app_id` *(optional; Teams accepts unsigned Incoming Webhook config when `app_id` is unset)* |
+| Wire | Pre-shared secret compared against `X-Webhook-Secret` | `webhook_secret` *(optional)* |
+| Telegram, Zalo, Viber, Signal (CallMeBot) | none available → accepted | — |
 
 > To **enforce** verification on Meta platforms and Discord, set the new
 > `app_secret` / `public_key` config fields on the hook. Without them,

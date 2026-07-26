@@ -2,33 +2,44 @@
 
 Free and low-tier LLM keys (Google Gemini especially) impose per-key **request**
 (RPM) and **token** (TPM) limits. AI Collective can survive these limits two
-different ways, selected by a single switch — **`LLM_FAILOVER_STRATEGY`**:
+different ways, selected **per model entry** in `config.yml`'s `models:` list
+via that entry's own `failover.strategy` field:
 
 | Strategy | What handles failover | When to use |
 |----------|-----------------------|-------------|
 | `rotate` *(default)* | **Built-in** multi-key rotation (this doc) | You have several keys for the *same* provider (e.g. 4 Gemini keys). |
-| `9router` | The external [9Router](9ROUTER_SETUP.md) gateway | You want cross-provider routing/fallback and token compression. |
+| `9router` | The external [9Router](9ROUTER_SETUP.md) gateway (aliases: `router`, `nine-router`, `off`, `none` — all disable local rotation) | You want cross-provider routing/fallback and token compression. |
 
-The two are **mutually exclusive**: pick one. They are also different from
-`OPENROUTER_API_KEY`, which is just a key for [openrouter.ai](https://openrouter.ai)
-(the `open_weight` provider) — not a failover strategy.
+The two are **mutually exclusive per model entry**. They are also different
+from the `open_weight` model entry (`OPENROUTER_API_KEY`), which is just a key
+for [openrouter.ai](https://openrouter.ai) — not a failover strategy. 9router
+is **not** openrouter.ai.
 
 ```
 rotate :  backend ──► [ key#1, key#2, key#3, key#4 ]  (one provider, many keys)
-9router:  backend ──(OpenAI API)──► 9Router :20128 ──► Claude / OpenAI / Gemini / …
+9router:  backend ──(OpenAI-compatible API)──► 9Router :20128 ──► Claude / OpenAI / Gemini / …
 ```
 
 ---
 
 ## How `rotate` works
 
-List **several keys** in any `*_API_KEY` variable, comma- or whitespace-separated
-(the plural `*_API_KEYS` aliases work too):
+List **several keys** in a model entry's `api_key` field, comma- or
+whitespace-separated:
 
-```dotenv
-GOOGLE_API_KEY=AIzaKeyOne,AIzaKeyTwo,AIzaKeyThree,AIzaKeyFour
-# or, equivalently:
-GOOGLE_API_KEYS=AIzaKeyOne,AIzaKeyTwo,AIzaKeyThree,AIzaKeyFour
+```yaml
+# config.yml
+models:
+  - name: gemini
+    provider_name: Google
+    model: gemini-3-flash-preview
+    api_key: $GOOGLE_API_KEY   # GOOGLE_API_KEY=AIzaKeyOne,AIzaKeyTwo,AIzaKeyThree,AIzaKeyFour in .env
+    enabled: true
+    failover:
+      strategy: rotate
+      rotate_max_requests_per_min: 0
+      rotate_max_tokens_per_min: 0
+      key_cooldown_seconds: 60
 ```
 
 A pool of equivalent chat models — one per key — is built, and the LLM layer
@@ -37,30 +48,31 @@ switches keys in two complementary ways:
 - **Reactive** — when the active key returns a rate-limit / quota (HTTP 429),
   invalid-key (401/403), or transient server (5xx / overloaded) error, the call
   transparently fails over to the next key and the failed key is put on a short
-  **cooldown** (`LLM_KEY_COOLDOWN_SECONDS`, default 60s) so the next request skips it.
+  **cooldown** (`failover.key_cooldown_seconds`, default 60s) so the next request skips it.
 - **Proactive** — each key keeps a rolling **60-second window** of its own request
   count and token usage. Before a key would cross its configured per-minute
   **RPM** or **TPM** budget, it is skipped and the next key is used — so the
   provider's *hard* limit is never reached in the first place. This spreads load
   across keys and is what avoids "context / requests per minute too high" errors.
 
-A single key (or `LLM_FAILOVER_STRATEGY` ≠ `rotate`) adds **zero overhead** — the
+A single key (or `failover.strategy` ≠ `rotate`) adds **zero overhead** — the
 bare model is used exactly as before.
 
-### Environment variables
+### `failover:` block fields (per `models:` entry)
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `LLM_FAILOVER_STRATEGY` | `rotate` | `rotate` \| `9router` (aliases: `router`, `nine-router`, `off`, `none`) |
-| `LLM_ROTATE_MAX_REQUESTS_PER_MIN` | `0` | Proactive **RPM budget per key**. `0` = unlimited (reactive-only). |
-| `LLM_ROTATE_MAX_TOKENS_PER_MIN` | `0` | Proactive **TPM budget per key**. `0` = unlimited (reactive-only). |
-| `LLM_KEY_COOLDOWN_SECONDS` | `60` | How long an errored key is skipped before being retried. |
+| Field | Default | Description |
+|-------|---------|-------------|
+| `strategy` | `rotate` | `rotate` \| `9router` (aliases: `router`, `nine-router`, `off`, `none`) |
+| `rotate_max_requests_per_min` | `0` | Proactive **RPM budget per key**. `0` = unlimited (reactive-only). |
+| `rotate_max_tokens_per_min` | `0` | Proactive **TPM budget per key**. `0` = unlimited (reactive-only). |
+| `key_cooldown_seconds` | `60` | How long an errored key is skipped before being retried. |
 
 > Set the budgets **at or just below** your provider tier's published limits.
 > For the Gemini free tier (~15 RPM, ~1M TPM per key) a safe config is:
-> ```dotenv
-> LLM_ROTATE_MAX_REQUESTS_PER_MIN=14
-> LLM_ROTATE_MAX_TOKENS_PER_MIN=950000
+> ```yaml
+> failover:
+>   rotate_max_requests_per_min: 14
+>   rotate_max_tokens_per_min: 950000
 > ```
 > Leave them at `0` to rotate **only on errors** (reactive), which still avoids
 > hard failures but does not pre-emptively spread load.
@@ -79,15 +91,16 @@ If every key in the pool errors on a single call, the last error is raised.
 
 ## Behaviour & scope
 
-- Rotation lives at the **chat-model** level, so it covers **both** call paths:
-  `provider.chat()` (the multi-agent loop, via `bind_tools().ainvoke()`) **and**
-  `get_chat_model()` (office-builder streaming, token-budget probing).
+- Rotation lives at the **chat-model** level (`RotatingChatModel`), so it covers **both** call paths:
+  `LangChainLLMProvider.chat()` (the multi-agent loop, via `bind_tools().ainvoke()`) **and**
+  `LLMProvider.get_chat_model()` (office-builder streaming, token-budget probing).
 - Token usage is read from each response's `usage_metadata` / `response_metadata`,
   so TPM accounting reflects real consumption. The admin **usage/monitoring** page
   keeps working — the tracking callback is fanned out to every key in the pool.
-- Rotation is **per-provider**: it cycles keys for the *configured* `LLM_PROVIDER`.
-  It does **not** fail over from, say, Google to Anthropic. For cross-provider
-  fallback, use the [9Router](9ROUTER_SETUP.md) strategy instead.
+- Rotation is **per model entry**: it cycles keys for that entry's own configured
+  keys only. It does **not** fail over from, say, the `gemini` entry to the
+  `claude` entry. For cross-provider fallback, use the [9Router](9ROUTER_SETUP.md)
+  strategy instead.
 - Keys are de-duplicated; surrounding whitespace is trimmed.
 
 ---
@@ -96,13 +109,15 @@ If every key in the pool errors on a single call, the last error is raised.
 
 | | `rotate` | `9router` |
 |--|----------|-----------|
-| Setup | Add keys to `.env` | Run a container + dashboard config |
+| Setup | Add keys to a model entry's `api_key` in `config.yml`/`.env` | Run a container + dashboard config |
 | Failover scope | Many keys, **one** provider | **Many providers** + fallback chains |
 | Token compression | No | Yes (~20–40%) |
 | External dependency | None | The 9Router service |
 | Best for | Stretching free/low-tier quotas | Production multi-provider routing |
 
-To switch to the gateway, set `LLM_FAILOVER_STRATEGY=9router` and follow
+To switch a model entry to the gateway, set its `failover.strategy: 9router` in
+`config.yml`, point it at the gateway (`provider_name: openai` +
+`base_url: http://nine-router:20128/v1` + the dashboard key), and follow
 [9ROUTER_SETUP.md](9ROUTER_SETUP.md).
 
 ---
@@ -111,13 +126,13 @@ To switch to the gateway, set `LLM_FAILOVER_STRATEGY=9router` and follow
 
 | Symptom | Likely cause / fix |
 |---------|--------------------|
-| Still hitting 429s | Set `LLM_ROTATE_MAX_REQUESTS_PER_MIN` / `LLM_ROTATE_MAX_TOKENS_PER_MIN` below your tier limits; add more keys. |
-| Only one key ever used | Only one key supplied, or `LLM_FAILOVER_STRATEGY` ≠ `rotate`. Check the startup log line "LLM key rotation enabled across N keys". |
-| A bad key keeps being tried | It is retried after `LLM_KEY_COOLDOWN_SECONDS`; raise the cooldown, or remove the dead key. |
-| Want cross-provider fallback | Use `9router` — `rotate` cycles keys within a single provider only. |
+| Still hitting 429s | Set `rotate_max_requests_per_min` / `rotate_max_tokens_per_min` below your tier limits; add more keys. |
+| Only one key ever used | Only one key supplied, or `failover.strategy` ≠ `rotate`. Check the startup log line "LLM key rotation enabled across N keys". |
+| A bad key keeps being tried | It is retried after `key_cooldown_seconds`; raise the cooldown, or remove the dead key. |
+| Want cross-provider fallback | Use `9router` — `rotate` cycles keys within a single model entry only. |
 
 ## References
 
 - Full env reference: [configuration.md](configuration.md#llm-providers)
 - 9Router gateway: [9ROUTER_SETUP.md](9ROUTER_SETUP.md)
-- Implementation: `backend/infrastructure/llm/rotation.py`
+- Implementation: `backend/infrastructure/llm/providers/rotation.py`

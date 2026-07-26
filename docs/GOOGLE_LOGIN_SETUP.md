@@ -137,7 +137,7 @@ GOOGLE_LOGIN_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx
 GOOGLE_LOGIN_REDIRECT_URI=http://127.0.0.1:8000/api/v1/auth/google/callback
 
 # Frontend URL — where the backend redirects the browser after a successful login
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:8080
 ```
 
 ### Full auth section example
@@ -152,7 +152,7 @@ JWT_ACCESS_TOKEN_EXPIRE_MINUTES=10080
 GOOGLE_LOGIN_CLIENT_ID=123456789-abcdefghijklmnop.apps.googleusercontent.com
 GOOGLE_LOGIN_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx
 GOOGLE_LOGIN_REDIRECT_URI=http://127.0.0.1:8000/api/v1/auth/google/callback
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:8080
 ```
 
 ---
@@ -184,43 +184,15 @@ Expected response:
 
 1. Open the `authorize_url` in a browser
 2. Select a Google account and grant permission
-3. The browser redirects to `http://localhost:5173/auth/callback?token=<JWT>`
+3. The browser redirects to `http://localhost:8080/auth/callback?token=<JWT>`
 
 ### Frontend callback handler
 
-Create a route at `/auth/callback` that reads the JWT from the query string:
-
-```typescript
-// src/pages/AuthCallback.tsx
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-
-export default function AuthCallback() {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
-    const error = params.get("error");
-
-    if (token) {
-      localStorage.setItem("access_token", token);
-      navigate("/dashboard");
-    } else {
-      navigate(`/login?error=${error ?? "unknown"}`);
-    }
-  }, [navigate]);
-
-  return <p>Signing in…</p>;
-}
-```
-
-Register the route in your router:
-
-```tsx
-// src/App.tsx
-<Route path="/auth/callback" element={<AuthCallback />} />
-```
+The `/auth/callback` route is already wired up (`src/pages/AuthCallback.tsx`,
+registered in `src/App.tsx`) — nothing to add here. It reads `token`/`error`
+from the query string, calls `useAuth().loginWithToken(token)`
+(`src/contexts/AuthContext.tsx`) to store the session, and redirects to
+`/dashboard` on success or `/login?error=...` on failure.
 
 ---
 

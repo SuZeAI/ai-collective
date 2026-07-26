@@ -3,8 +3,12 @@
 The provider's `chat()` does not hand-roll a ReAct loop; it delegates to
 LangChain's `create_agent`, and cross-cutting behaviours are expressed as
 **middleware**. The stack is assembled in
-`build_default_middleware()` (`backend/infrastructure/llm/middleware.py`) and
-applied to every agent in every topology.
+`build_default_middleware()` (`backend/infrastructure/llm/middleware/builder.py`)
+and applied to every agent in every topology. Each component's knobs are
+resolved by `get_middleware_config()` (`backend/infrastructure/llm/middleware/config.py`):
+the `middleware:` section of `config.yml` (grouped by component) takes
+precedence, falling back to the matching `settings.llm.*` field (still backed
+by the `LLM_*` env vars below) when a group/key is absent from that section.
 
 Each middleware uses the appropriate hook:
 
@@ -78,34 +82,44 @@ call, and the model-facing trio (trim → recall → budget) acts around the mod
 
 ## Configuration
 
-Knobs live under `config.yml › llm` (or the matching `LLM_*` env vars); see
-[configuration.md](configuration.md) for the full list. All custom additions are
-**OFF by default**, so enabling them is opt-in and the baseline behaviour is
-unchanged.
+Knobs live under `config.yml › middleware` (grouped by component); anything a
+group omits falls back to the matching `settings.llm.*` field, still backed by
+the `LLM_*` env vars of the same name (e.g. `rolling_summary.enabled` ⇠
+`LLM_ROLLING_SUMMARY_ENABLED`). See [configuration.md](configuration.md) for
+the full env-var list. All custom additions are **OFF by default**, so enabling
+them is opt-in and the baseline behaviour is unchanged.
 
 ```yaml
-llm:
+middleware:
   # summarization (LLM-based, built-in)
-  summarization_enabled: false
+  summarization:
+    enabled: false
   # rolling summary (LLM-free)
-  rolling_summary_enabled: false
-  rolling_summary_trigger_tokens: 6000
-  rolling_summary_keep_messages: 10
+  rolling_summary:
+    enabled: false
+    trigger_tokens: 6000
+    keep_messages: 10
   # long-term memory recall/persist
-  ltm_middleware_enabled: false
+  long_term_memory:
+    enabled: false
   # tool result cache
-  tool_cache_enabled: false
-  # tool_cache_deny_tools: send_email,run_shell
+  tool_cache:
+    enabled: false
+    # deny_tools: send_email,run_shell
   # Anthropic prompt caching (no-op on non-Anthropic providers)
-  prompt_cache_enabled: false
-  prompt_cache_ttl: 5m
-  prompt_cache_min_messages: 0
+  prompt_cache:
+    enabled: false
+    ttl: 5m
+    min_messages: 0
   # cost guard (0 = off)
-  run_token_budget: 0
+  cost_budget:
+    run_token_budget: 0
   # guardrail + PII
-  pii_redaction_enabled: false
-  # guardrail_deny_tools: run_shell,delete_file
-  # guardrail_deny_patterns: rm -rf,DROP TABLE
+  pii_redaction:
+    enabled: false
+  guardrail:
+    deny_tools: ""      # run_shell,delete_file
+    deny_patterns: ""   # rm -rf,DROP TABLE
 ```
 
 ## Writing a new middleware
