@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StaffAvatar } from "@/components/StaffAvatar";
-import { api, type Staff, type LibraryDocument, type Skill, type Task, type Department } from "@/lib/api";
+import { api, type Staff, type LibraryDocument, type Skill, type Task, type Department, type Project } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCompanyScope } from "@/hooks/use-company-scope";
 
-type Kind = "task" | "department" | "staff" | "skill" | "document";
+type Kind = "project" | "task" | "department" | "staff" | "skill" | "document";
 
 // Page-local copy keyed by the active language (the global locales only carry
 // the nav label). Keeps the page self-contained without bloating locales/index.
@@ -19,7 +19,7 @@ const COPY = {
   en: {
     subtitle: "Discover ready-made resources and copy them into your own business units.",
     search: "Search…",
-    tabs: { task: "Projects", department: "Departments", staff: "Staff", skill: "Skills & Tools", document: "Documents" },
+    tabs: { project: "Projects", task: "Tasks", department: "Departments", staff: "Staff", skill: "Skills & Tools", document: "Documents" },
     copy: "Copy to my unit",
     copying: "Copying…",
     copied: "Copied",
@@ -32,7 +32,7 @@ const COPY = {
   vi: {
     subtitle: "Khám phá các tài nguyên dựng sẵn và sao chép về đơn vị thành viên của bạn.",
     search: "Tìm kiếm…",
-    tabs: { task: "Dự án", department: "Phòng ban", staff: "Hồ sơ Nhân sự Số", skill: "Nghiệp vụ & Công cụ", document: "Tài liệu" },
+    tabs: { project: "Dự án", task: "Nhiệm vụ", department: "Phòng ban", staff: "Hồ sơ Nhân sự Số", skill: "Nghiệp vụ & Công cụ", document: "Tài liệu" },
     copy: "Sao chép về đơn vị của tôi",
     copying: "Đang sao chép…",
     copied: "Đã sao chép",
@@ -45,7 +45,7 @@ const COPY = {
   zh: {
     subtitle: "发现现成的资源并复制到你自己的成员单位。",
     search: "搜索…",
-    tabs: { task: "项目", department: "部门架构", staff: "数字化员工", skill: "业务与工具", document: "文档" },
+    tabs: { project: "项目", task: "任务", department: "部门架构", staff: "数字化员工", skill: "业务与工具", document: "文档" },
     copy: "复制到我的单位",
     copying: "复制中…",
     copied: "已复制",
@@ -58,7 +58,7 @@ const COPY = {
   ja: {
     subtitle: "既製のリソースを見つけて、自分の拠点にコピーします。",
     search: "検索…",
-    tabs: { task: "プロジェクト", department: "部門構成", staff: "デジタル人材", skill: "業務とツール", document: "ドキュメント" },
+    tabs: { project: "プロジェクト", task: "タスク", department: "部門構成", staff: "デジタル人材", skill: "業務とツール", document: "ドキュメント" },
     copy: "自分の拠点にコピー",
     copying: "コピー中…",
     copied: "コピー済み",
@@ -88,6 +88,7 @@ export default function Recruiting() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [documents, setDocuments] = useState<LibraryDocument[]>([]);
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -97,11 +98,12 @@ export default function Recruiting() {
     let cancelled = false;
     (async () => {
       try {
-        const [sk, ag, tm, tk, dc] = await Promise.all([
+        const [sk, ag, tm, tk, pj, dc] = await Promise.all([
           api.listRecruitingSkills(),
           api.listRecruitingStaff(),
           api.listRecruitingDepartments(),
           api.listRecruitingTasks(),
+          api.listRecruitingProjects(),
           api.listRecruitingDocuments(),
         ]);
         if (cancelled) return;
@@ -109,6 +111,7 @@ export default function Recruiting() {
         setStaff(ag);
         setDepartments(tm);
         setTasks(tk);
+        setProjects(pj);
         setDocuments(dc);
       } catch (e) {
         console.error("Failed to load recruiting:", e);
@@ -151,6 +154,9 @@ export default function Recruiting() {
       avatarLike: CardData["avatarLike"],
     ): CardData => ({ id, name, sub, badge, avatarLike });
     return {
+      project: projects.map((x) =>
+        toCard(x.id, x.name, x.description || "", x.key, { avatar: x.avatar || x.name?.[0]?.toUpperCase(), avatar_icon: x.avatar_icon || "folder-kanban", avatar_color: x.avatar_color, avatar_url: x.avatar_url }),
+      ),
       task: tasks.map((x) =>
         toCard(x.id, x.title, x.description, x.status, { avatar: x.title?.[0]?.toUpperCase(), avatar_icon: "target" }),
       ),
@@ -185,7 +191,7 @@ export default function Recruiting() {
         }),
       ),
     };
-  }, [tasks, departments, staff, skills, documents]);
+  }, [projects, tasks, departments, staff, skills, documents]);
 
   const renderGrid = (kind: Kind) => {
     const q = search.trim().toLowerCase();
@@ -243,7 +249,7 @@ export default function Recruiting() {
     );
   };
 
-  const order: Kind[] = ["task", "department", "staff", "skill", "document"];
+  const order: Kind[] = ["project", "task", "department", "staff", "skill", "document"];
 
   return (
     <div>
@@ -253,7 +259,7 @@ export default function Recruiting() {
       </div>
       <p className="text-muted-foreground mb-6">{c.subtitle}</p>
 
-      <Tabs defaultValue="task" className="w-full">
+      <Tabs defaultValue="project" className="w-full">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
           <TabsList>
             {order.map((k) => (

@@ -9,6 +9,7 @@ from backend.api.schemas.library_document import LibraryDocumentSchema
 from backend.api.schemas.skill import SkillSchema
 from backend.api.schemas.task import TaskSchema
 from backend.api.schemas.department import DepartmentSchema
+from backend.api.schemas.project import ProjectSchema
 from backend.application.service.recruiting_service import RecruitingService
 
 
@@ -16,7 +17,7 @@ router = APIRouter(prefix="/recruiting", tags=["marketplace"])
 
 
 class CopyRequest(BaseModel):
-    type: str  # "skill" | "staff" | "department" | "task" | "document"
+    type: str  # "skill" | "staff" | "department" | "task" | "project" | "document"
     id: str
     # Required only for "document": the office to copy the catalog doc into.
     companyId: str | None = None
@@ -53,6 +54,13 @@ def list_marketplace_tasks(
     service: RecruitingService = Depends(get_recruiting_service),
 ) -> list[TaskSchema]:
     return [TaskSchema.from_domain(t) for t in service.list_default_tasks()]
+
+
+@router.get("/projects", response_model=list[ProjectSchema])
+def list_marketplace_projects(
+    service: RecruitingService = Depends(get_recruiting_service),
+) -> list[ProjectSchema]:
+    return [ProjectSchema.from_domain(p) for p in service.list_default_projects()]
 
 
 @router.get("/documents", response_model=list[LibraryDocumentSchema])

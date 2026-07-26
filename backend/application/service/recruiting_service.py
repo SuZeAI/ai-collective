@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from dataclasses import replace
 from uuid import uuid4
 
@@ -9,6 +10,9 @@ from backend.application.service.skill_service import SkillService
 from backend.application.service.task_service import TaskService
 from backend.application.service.department_service import DepartmentService
 from backend.application.service.company_service import CompanyService
+from backend.application.service.project_service import ProjectService
+from backend.application.service.epic_service import EpicService
+from backend.application.service.sprint_service import SprintService
 from backend.domain.enums import StaffStatus, TaskStatus
 from backend.domain.errors import NotFoundError, ValidationError
 from backend.domain.models import (
@@ -18,6 +22,8 @@ from backend.domain.models import (
     Skill,
     Task,
     Department,
+    Project,
+    is_visible_to,
 )
 
 # Company id under which admins keep the shared "default" document catalog
@@ -26,7 +32,7 @@ from backend.domain.models import (
 CATALOG_WORKSPACE_ID = "__default__"
 
 # The entity kinds users can browse and clone from the marketplace.
-RECRUITING_KINDS = ("skill", "staff", "department", "task", "document")
+RECRUITING_KINDS = ("skill", "staff", "department", "task", "project", "document")
 
 
 class RecruitingService:
@@ -46,6 +52,9 @@ class RecruitingService:
         task_service: TaskService,
         document_service: DocumentLibraryService,
         company_service: CompanyService,
+        project_service: ProjectService,
+        epic_service: EpicService,
+        sprint_service: SprintService,
     ) -> None:
         self._agents = staff_service
         self._skills = skill_service
@@ -53,6 +62,9 @@ class RecruitingService:
         self._tasks = task_service
         self._documents = document_service
         self._companies = company_service
+        self._projects = project_service
+        self._epics = epic_service
+        self._sprints = sprint_service
 
     # ----- listing -----------------------------------------------------------
 
@@ -71,6 +83,9 @@ class RecruitingService:
 
     def list_default_tasks(self) -> list[Task]:
         return [t for t in self._tasks.list_tasks() if t.owner_id == DEFAULT_OWNER_ID]
+
+    def list_default_projects(self) -> list[Project]:
+        return [p for p in self._projects.list_projects() if p.owner_id == DEFAULT_OWNER_ID]
 
     def list_default_documents(self) -> list[LibraryDocument]:
         return [
@@ -105,6 +120,8 @@ class RecruitingService:
             return {"type": kind, "id": department.id}
         if kind == "task":
             return {"type": kind, "id": self._copy_task(item_id, owner_id, company_id).id}
+        if kind == "project":
+            return {"type": kind, "id": self._copy_project(item_id, owner_id, company_id).id}
         if kind == "document":
             if not company_id:
                 raise ValidationError("Copying a document requires a target company_id")
@@ -190,15 +207,14 @@ class RecruitingService:
             replace(company, department_ids=[*company.department_ids, department_id])
         )
 
-    def _copy_task(self, task_id: str, owner_id: str, company_id: str | None = None) -> Task:
-        src = self._tasks._repo.get(task_id)
-        if src is None or src.owner_id != DEFAULT_OWNER_ID:
-            raise NotFoundError(f"Recruiting task '{task_id}' not found")
-
-        skill_lookup = self._skills_by_id()
-        # Deep-copy the backing department (and its staff/skills) so the task is runnable.
-        new_team_id = ""
+    def _clone_task_department(
+        self, src: Task, owner_id: str, skill_lookup: dict[str, Skill], company_id: str | None
+    ) -> tuple[str, dict[str, str]]:
+        """Deep-copy a task's backing department (+ staff + skills), if any, and
+        attach the clone to ``company_id`` so the task is both runnable and
+        visible in that company. Returns (new_department_id, old_staff_id -> new_staff_id)."""
         staff_id_map: dict[str, str] = {}
+        new_team_id = ""
         src_team = self._teams._repo.get(src.department_id) if src.department_id else None
         if src_team is not None and src_team.owner_id == DEFAULT_OWNER_ID:
             new_staff_ids: list[str] = []
@@ -218,7 +234,15 @@ class RecruitingService:
             )
             new_team_id = self._teams.upsert_department(cloned_team).id
             self._attach_department(new_team_id, company_id)
+        return new_team_id, staff_id_map
 
+    def _copy_task(self, task_id: str, owner_id: str, company_id: str | None = None) -> Task:
+        src = self._tasks._repo.get(task_id)
+        if src is None or src.owner_id != DEFAULT_OWNER_ID:
+            raise NotFoundError(f"Recruiting task '{task_id}' not found")
+
+        skill_lookup = self._skills_by_id()
+        new_team_id, staff_id_map = self._clone_task_department(src, owner_id, skill_lookup, company_id)
         clone = replace(
             src,
             id=f"task_{uuid4().hex}",
@@ -231,6 +255,69 @@ class RecruitingService:
             owner_id=owner_id,
         )
         return self._tasks.upsert_task(clone)
+
+    def _unique_project_key(self, base_key: str, owner_id: str) -> str:
+        existing = {p.key for p in self._projects.list_projects() if is_visible_to(owner_id, p.owner_id)}
+        if base_key not in existing:
+            return base_key
+        n = 2
+        while f"{base_key}{n}" in existing:
+            n += 1
+        return f"{base_key}{n}"
+
+    def _copy_project(self, project_id: str, owner_id: str, company_id: str | None = None) -> Project:
+        src = self._projects.try_get_project(project_id)
+        if src is None or src.owner_id != DEFAULT_OWNER_ID:
+            raise NotFoundError(f"Recruiting project '{project_id}' not found")
+
+        new_project_id = f"project_{uuid4().hex}"
+        cloned_project = replace(
+            src,
+            id=new_project_id,
+            key=self._unique_project_key(src.key, owner_id),
+            created_at=datetime.now(timezone.utc).replace(microsecond=0),
+            owner_id=owner_id,
+            company_id=company_id or "",
+        )
+        saved_project = self._projects.upsert_project(cloned_project)
+
+        epic_id_map = {
+            epic.id: self._epics.upsert_epic(
+                replace(epic, id=f"epic_{uuid4().hex}", project_id=new_project_id, owner_id=owner_id)
+            ).id
+            for epic in self._epics.list_epics()
+            if epic.project_id == project_id and epic.owner_id == DEFAULT_OWNER_ID
+        }
+        sprint_id_map = {
+            sprint.id: self._sprints.upsert_sprint(
+                replace(sprint, id=f"sprint_{uuid4().hex}", project_id=new_project_id, owner_id=owner_id)
+            ).id
+            for sprint in self._sprints.list_sprints()
+            if sprint.project_id == project_id and sprint.owner_id == DEFAULT_OWNER_ID
+        }
+
+        skill_lookup = self._skills_by_id()
+        for task in self._tasks.list_tasks():
+            if task.project_id != project_id or task.owner_id != DEFAULT_OWNER_ID:
+                continue
+            new_team_id, staff_id_map = self._clone_task_department(task, owner_id, skill_lookup, company_id)
+            cloned_task = replace(
+                task,
+                id=f"task_{uuid4().hex}",
+                department_id=new_team_id or task.department_id,
+                assigned_staff=[staff_id_map.get(a, a) for a in task.assigned_staff],
+                project_id=new_project_id,
+                epic_id=epic_id_map.get(task.epic_id, task.epic_id) if task.epic_id else task.epic_id,
+                sprint_id=sprint_id_map.get(task.sprint_id, task.sprint_id) if task.sprint_id else task.sprint_id,
+                status=TaskStatus.pending,
+                progress=0,
+                start_time=None,
+                end_time=None,
+                owner_id=owner_id,
+            )
+            self._tasks.upsert_task(cloned_task)
+
+        return saved_project
 
     def _copy_document(
         self, doc_id: str, owner_id: str, target_workspace_id: str

@@ -252,6 +252,9 @@ def get_recruiting_service() -> RecruitingService:
         TaskService(repos.tasks),
         get_document_library_service(),
         get_company_service(),
+        get_project_service(),
+        get_epic_service(),
+        get_sprint_service(),
     )
 
 

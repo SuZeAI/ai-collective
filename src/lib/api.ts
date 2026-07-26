@@ -854,9 +854,10 @@ export const api = {
   listRecruitingStaff: () => apiFetch<Staff[]>("/recruiting/staff"),
   listRecruitingDepartments: () => apiFetch<Department[]>("/recruiting/departments"),
   listRecruitingTasks: () => apiFetch<Task[]>("/recruiting/tasks"),
+  listRecruitingProjects: () => apiFetch<Project[]>("/recruiting/projects"),
   listRecruitingDocuments: () => apiFetch<LibraryDocument[]>("/recruiting/documents"),
   // `companyId` is required only for documents (the office to copy into).
-  copyFromRecruiting: (payload: { type: "skill" | "staff" | "department" | "task" | "document"; id: string; companyId?: string }) =>
+  copyFromRecruiting: (payload: { type: "skill" | "staff" | "department" | "task" | "project" | "document"; id: string; companyId?: string }) =>
     apiFetch<{ type: string; id: string }>("/recruiting/copy", {
       method: "POST",
       body: JSON.stringify(payload),
