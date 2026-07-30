@@ -1968,48 +1968,48 @@ export default function Landing() {
 
                   {/* Staff Mesh Nodes */}
                   
-                  {/* 1. Supervisor Staff */}
+                  {/* 1. Company node */}
                   <g className="cursor-pointer">
                     <circle cx="200" cy="90" r="10" fill="currentColor" />
                     <circle cx="200" cy="90" r="18" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
                     <text x="200" y="62" textAnchor="middle" className="staff-text">
-                      SUPERVISOR
+                      COMPANY
                     </text>
                   </g>
 
-                  {/* 2. Coder Staff */}
+                  {/* 2. Project node */}
                   <g className="cursor-pointer">
                     <circle cx="330" cy="180" r="8" fill="currentColor" />
                     <circle cx="330" cy="180" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
                     <text x="355" y="184" textAnchor="start" className="staff-text">
-                      CODER
+                      STAFF
                     </text>
                   </g>
 
-                  {/* 3. Search Staff */}
+                  {/* 3. Department node */}
                   <g className="cursor-pointer">
                     <circle cx="280" cy="310" r="8" fill="currentColor" />
                     <circle cx="280" cy="310" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
                     <text x="280" y="342" textAnchor="middle" className="staff-text">
-                      SEARCH
+                      DEPARTMENT
                     </text>
                   </g>
 
-                  {/* 4. Writer Staff */}
+                  {/* 4. Staff node */}
                   <g className="cursor-pointer">
                     <circle cx="120" cy="310" r="8" fill="currentColor" />
                     <circle cx="120" cy="310" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
                     <text x="120" y="342" textAnchor="middle" className="staff-text">
-                      WRITER
+                      PROJECT
                     </text>
                   </g>
 
-                  {/* 5. Browser Staff */}
+                  {/* 5. Skill node */}
                   <g className="cursor-pointer">
                     <circle cx="70" cy="180" r="8" fill="currentColor" />
                     <circle cx="70" cy="180" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
                     <text x="45" y="184" textAnchor="end" className="staff-text">
-                      BROWSER
+                      SKILL
                     </text>
                   </g>
 
@@ -2200,7 +2200,7 @@ export default function Landing() {
       </section>
 
       {/* 5. Do more with built-in tools */}
-      <section className="px-6 py-20 bg-muted/10 border-t border-border/40">
+      <section className="px-6 py-20 bg-muted/10">
         <div className="max-w-5xl mx-auto">
           <FadeIn className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
             <div>
@@ -2237,7 +2237,7 @@ export default function Landing() {
       </section>
 
       {/* 6. Dashboard preview section */}
-      <section className="px-6 py-24 max-w-5xl mx-auto border-t border-border/40">
+      <section className="px-6 py-24 max-w-5xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <FadeIn>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/5 border border-primary/10 text-xs text-primary font-semibold mb-6">
@@ -2333,7 +2333,7 @@ export default function Landing() {
       </section>
 
       {/* 7. Use cases for Claude */}
-      <section className="px-6 py-20 bg-muted/15 border-y border-border/40">
+      <section className="px-6 py-20 bg-muted/15">
         <div className="max-w-5xl mx-auto">
           <FadeIn className="mb-12">
             <h2 className="text-3xl font-medium tracking-tight text-foreground font-serif">
