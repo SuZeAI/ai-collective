@@ -38,6 +38,51 @@ function GithubIcon({ className }: { className?: string }) {
   );
 }
 
+const PROVIDER_LOGOS = {
+  gemini: {
+    color: "#8E75B2",
+    path: "M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81",
+  },
+  anthropic: {
+    color: "#191919",
+    mono: true,
+    path: "M17.3041 3.541h-3.6718l6.696 16.918H24Zm-10.6082 0L0 20.459h3.7442l1.3693-3.5527h7.0052l1.3693 3.5528h3.7442L10.5363 3.5409Zm-.3712 10.2232 2.2914-5.9456 2.2914 5.9456Z",
+  },
+  openai: {
+    color: "#000000",
+    mono: true,
+    path: "M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z",
+  },
+  deepseek: {
+    color: "#5786FE",
+    path: "M23.748 4.651c-.254-.124-.364.113-.512.233-.051.04-.094.09-.137.137-.372.397-.806.657-1.373.626-.829-.046-1.537.214-2.163.848-.133-.782-.575-1.248-1.247-1.548-.352-.155-.708-.311-.955-.65-.172-.24-.219-.509-.305-.774-.055-.16-.11-.323-.293-.35-.2-.031-.278.136-.356.276-.313.572-.434 1.202-.422 1.84.027 1.436.633 2.58 1.838 3.393.137.094.172.187.129.323-.082.28-.18.553-.266.833-.055.179-.137.218-.328.14a5.5 5.5 0 0 1-1.737-1.179c-.857-.828-1.631-1.743-2.597-2.46a12 12 0 0 0-.689-.47c-.985-.957.13-1.743.387-1.836.27-.098.094-.433-.778-.428-.872.003-1.67.295-2.687.685a3 3 0 0 1-.465.136 9.6 9.6 0 0 0-2.883-.101c-1.885.21-3.39 1.1-4.497 2.622C.082 8.776-.231 10.854.152 13.02c.403 2.284 1.568 4.175 3.36 5.653 1.857 1.533 3.997 2.284 6.438 2.14 1.482-.085 3.132-.284 4.994-1.86.47.234.962.328 1.78.398.629.058 1.235-.031 1.705-.129.735-.155.684-.836.418-.961-2.155-1.004-1.682-.595-2.112-.926 1.095-1.295 2.768-3.598 3.284-6.733.05-.346.115-.834.108-1.114-.004-.171.035-.238.23-.257a4.2 4.2 0 0 0 1.545-.475c1.397-.763 1.96-2.016 2.093-3.517.02-.23-.004-.467-.247-.588M11.58 18.168c-2.088-1.642-3.101-2.183-3.52-2.16-.39.024-.32.472-.234.763.09.288.207.487.371.74.114.167.192.416-.113.603-.673.416-1.842-.14-1.897-.168-1.361-.801-2.5-1.86-3.301-3.306-.775-1.393-1.225-2.888-1.299-4.482-.02-.385.094-.522.477-.592a4.7 4.7 0 0 1 1.53-.038c2.131.311 3.946 1.264 5.467 2.774.868.86 1.525 1.887 2.202 2.89.72 1.066 1.494 2.082 2.48 2.915.348.291.626.513.892.677-.802.09-2.14.109-3.055-.615zm1.001-6.44a.306.306 0 0 1 .415-.287.3.3 0 0 1 .113.074.3.3 0 0 1 .086.214c0 .17-.136.307-.308.307a.303.303 0 0 1-.306-.307m3.11 1.596c-.2.081-.4.151-.591.16a1.25 1.25 0 0 1-.798-.254c-.274-.23-.47-.358-.551-.758a1.7 1.7 0 0 1 .015-.588c.07-.327-.007-.537-.238-.727-.188-.156-.426-.199-.689-.199a.6.6 0 0 1-.254-.078.253.253 0 0 1-.114-.358 1 1 0 0 1 .192-.21c.356-.202.767-.136 1.146.016.352.144.618.408 1.001.782.392.451.462.576.685.915.176.264.336.536.446.848.066.194-.02.353-.25.45",
+  },
+  kimi: {
+    color: "#000000",
+    mono: true,
+    path: "M21.765.351C22.998.351 24 1.353 24 2.586S22.998 4.82 21.765 4.82h-1.974c-.15 0-.26-.12-.26-.26V2.586A2.237 2.237 0 0 1 21.765.35M9.41 13.388l8.447-8.377c.16-.16.07-.471-.14-.471h-4.55s-.1.02-.14.06l-9.099 9.029c-.14.14-.35.02-.35-.21V4.81c0-.15-.1-.27-.221-.27H.22c-.12 0-.22.12-.22.27v18.57c0 .15.1.27.22.27h3.137c.12 0 .22-.12.22-.27v-3.79c0-.08.03-.16.08-.21l2.826-2.796c.07-.07.16-.08.241-.03l7.546 5.551a8.9 8.9 0 0 0 4.018 1.493c.12.01.23-.11.23-.27V19.76c0-.14-.08-.25-.19-.26a5.8 5.8 0 0 1-2.355-.942l-6.533-4.73c-.14-.09-.15-.32-.03-.441",
+  },
+  openrouter: {
+    color: "#94A3B8",
+    path: "M16.778 1.844v1.919q-.569-.026-1.138-.032-.708-.008-1.415.037c-1.93.126-4.023.728-6.149 2.237-2.911 2.066-2.731 1.95-4.14 2.75-.396.223-1.342.574-2.185.798-.841.225-1.753.333-1.751.333v4.229s.768.108 1.61.333c.842.224 1.789.575 2.185.799 1.41.798 1.228.683 4.14 2.75 2.126 1.509 4.22 2.11 6.148 2.236.88.058 1.716.041 2.555.005v1.918l7.222-4.168-7.222-4.17v2.176c-.86.038-1.611.065-2.278.021-1.364-.09-2.417-.357-3.979-1.465-2.244-1.593-2.866-2.027-3.68-2.508.889-.518 1.449-.906 3.822-2.59 1.56-1.109 2.614-1.377 3.978-1.466.667-.044 1.418-.017 2.278.02v2.176L24 6.014Z",
+  },
+} as const satisfies Record<string, { color: string; path: string; mono?: boolean }>;
+
+type ProviderLogoKey = keyof typeof PROVIDER_LOGOS;
+
+function ProviderIcon({ slug, className }: { slug: ProviderLogoKey; className?: string }) {
+  const logo = PROVIDER_LOGOS[slug];
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill={logo.color}
+      className={`${className ?? ""} ${"mono" in logo && logo.mono ? "dark:invert" : ""}`}
+    >
+      <path d={logo.path} />
+    </svg>
+  );
+}
+
 function FadeIn({ children, className, delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
@@ -93,14 +138,14 @@ const LOCAL_COPY = {
     models: {
       title: "Supported LLM Foundations",
       sub: "Configure, swap, or route foundational model engines at runtime across industry-leading providers.",
-      batch: "Fully LLM-agnostic: Route via Google Gemini, Anthropic, OpenAI, or OpenRouter gateway.",
+      batch: "Fully LLM-agnostic: swap providers at runtime — Google Gemini, Anthropic Claude, OpenAI, DeepSeek, Moonshot Kimi, Zhipu GLM, OpenRouter, or any OpenAI-compatible custom endpoint — no code changes required.",
       activeModelLabel: "Active Model",
       capabilitiesHeader: "Key Capabilities",
       list: [
         {
           name: "Google Gemini",
+          icon: "gemini",
           desc: "Default speed engine, optimized for entity extraction and real-time knowledge graphs.",
-          modelKey: "gemini-2.0-flash",
           capabilities: [
             "Automated spaCy & LLM-based entity extraction",
             "Real-time graph building and state context loading",
@@ -109,8 +154,8 @@ const LOCAL_COPY = {
         },
         {
           name: "Anthropic Claude",
+          icon: "anthropic",
           desc: "Premier logic engine for multi-staff mesh coordinator and code generation.",
-          modelKey: "claude-3-5-sonnet",
           capabilities: [
             "Advanced prompt caching to reduce token overhead",
             "Superior tool selection and staff delegation flow",
@@ -119,8 +164,8 @@ const LOCAL_COPY = {
         },
         {
           name: "OpenAI GPT",
+          icon: "openai",
           desc: "Highly reliable standard engine for structured JSON schemas and tool binding.",
-          modelKey: "gpt-4o",
           capabilities: [
             "Strict JSON schema enforcement for inputs/outputs",
             "Multi-staff ring debate consensus formatting",
@@ -128,9 +173,29 @@ const LOCAL_COPY = {
           ]
         },
         {
-          name: "Open Weight (Qwen)",
+          name: "DeepSeek",
+          icon: "deepseek",
+          desc: "Cost-efficient reasoning engine, strong at long-context analysis and structured chain-of-thought tasks.",
+          capabilities: [
+            "Deep chain-of-thought reasoning for complex staff planning",
+            "Large context window for document-heavy meeting review",
+            "Low-cost inference for high-volume department runs"
+          ]
+        },
+        {
+          name: "Kimi (Moonshot)",
+          icon: "kimi",
+          desc: "Long-context specialist engine tuned for extended multi-turn staff conversations.",
+          capabilities: [
+            "Ultra-long context window for sprawling meeting histories",
+            "Strong Chinese/English bilingual reasoning",
+            "Efficient tool-calling for retrieval-augmented workflows"
+          ]
+        },
+        {
+          name: "Open Weight",
+          icon: "openrouter",
           desc: "High-parameter open weight engine for self-hosted or air-gapped secure staff clusters.",
-          modelKey: "qwen3.5-397B-A17B",
           capabilities: [
             "Self-hosted orchestration with zero data leakage",
             "Fine-tuned for Python code execution inside Docker sandboxes",
@@ -305,14 +370,14 @@ const LOCAL_COPY = {
     models: {
       title: "Các động cơ mô hình được hỗ trợ",
       sub: "Cấu hình, thay đổi hoặc định tuyến các động cơ mô hình nền tảng ở thời điểm chạy mà không cần sửa mã.",
-      batch: "Hoàn toàn độc lập mô hình: Định tuyến qua Google Gemini, Anthropic, OpenAI hoặc OpenRouter.",
+      batch: "Hoàn toàn độc lập mô hình: chuyển đổi nhà cung cấp ngay khi chạy — Google Gemini, Anthropic Claude, OpenAI, DeepSeek, Moonshot Kimi, Zhipu GLM, OpenRouter, hoặc bất kỳ endpoint tương thích OpenAI nào — không cần sửa mã.",
       activeModelLabel: "Model kích hoạt",
       capabilitiesHeader: "Khả năng chính",
       list: [
         {
           name: "Google Gemini",
+          icon: "gemini",
           desc: "Động cơ tốc độ mặc định, tối ưu hóa cho việc trích xuất thực thể và đồ thị tri thức thời gian thực.",
-          modelKey: "gemini-2.0-flash",
           capabilities: [
             "Trích xuất thực thể tự động bằng spaCy & LLM",
             "Xây dựng đồ thị ngữ cảnh và tải trạng thái cực nhanh",
@@ -321,8 +386,8 @@ const LOCAL_COPY = {
         },
         {
           name: "Anthropic Claude",
+          icon: "anthropic",
           desc: "Động cơ logic hàng đầu cho bộ điều phối mesh đa tác nhân và sinh mã nguồn.",
-          modelKey: "claude-3-5-sonnet",
           capabilities: [
             "Hỗ trợ prompt caching giảm chi phí token và độ trễ",
             "Khả năng lựa chọn công cụ và ủy thác tác nhân tối ưu",
@@ -331,8 +396,8 @@ const LOCAL_COPY = {
         },
         {
           name: "OpenAI GPT",
+          icon: "openai",
           desc: "Động cơ tiêu chuẩn độ tin cậy cao cho các schema JSON cấu trúc và liên kết công cụ.",
-          modelKey: "gpt-4o",
           capabilities: [
             "Ràng buộc lược đồ JSON nghiêm ngặt cho input/output",
             "Định dạng đồng thuận tranh luận đa tác nhân vòng tròn",
@@ -340,9 +405,29 @@ const LOCAL_COPY = {
           ]
         },
         {
-          name: "Open Weight (Qwen)",
+          name: "DeepSeek",
+          icon: "deepseek",
+          desc: "Động cơ suy luận tiết kiệm chi phí, mạnh về phân tích ngữ cảnh dài và chuỗi suy luận có cấu trúc.",
+          capabilities: [
+            "Suy luận chuỗi tư duy sâu cho việc lập kế hoạch tác nhân phức tạp",
+            "Cửa sổ ngữ cảnh lớn cho việc xem xét tài liệu cuộc họp",
+            "Suy luận chi phí thấp cho các lượt chạy phòng ban khối lượng lớn"
+          ]
+        },
+        {
+          name: "Kimi (Moonshot)",
+          icon: "kimi",
+          desc: "Động cơ chuyên về ngữ cảnh siêu dài, tối ưu cho các cuộc hội thoại đa lượt kéo dài của tác nhân.",
+          capabilities: [
+            "Cửa sổ ngữ cảnh siêu dài cho lịch sử cuộc họp phức tạp",
+            "Suy luận song ngữ Trung-Anh mạnh mẽ",
+            "Gọi công cụ hiệu quả cho quy trình truy xuất tăng cường"
+          ]
+        },
+        {
+          name: "Open Weight",
+          icon: "openrouter",
           desc: "Động cơ trọng số mở số lượng tham số lớn cho các cụm tác nhân bảo mật tự lưu trữ hoặc offline.",
-          modelKey: "qwen3.5-397B-A17B",
           capabilities: [
             "Điều phối tự lưu trữ hoàn toàn không rò rỉ dữ liệu",
             "Tối ưu hóa cho thực thi mã Python trong sandbox Docker",
@@ -517,14 +602,14 @@ const LOCAL_COPY = {
     models: {
       title: "支持的 LLM 基座",
       sub: "在运行时配置、交换或路由行业领先提供商的基座模型引擎。",
-      batch: "完全 LLM 无关：通过 Google Gemini、Anthropic、OpenAI 或 OpenRouter 网关进行路由。",
+      batch: "完全与 LLM 无关：可在运行时切换提供商 — Google Gemini、Anthropic Claude、OpenAI、DeepSeek、Moonshot Kimi、智谱 GLM、OpenRouter,或任何兼容 OpenAI 的自定义端点 — 无需修改代码。",
       activeModelLabel: "当前活跃模型",
       capabilitiesHeader: "核心能力",
       list: [
         {
           name: "Google Gemini",
+          icon: "gemini",
           desc: "默认速度引擎，针对实体提取和实时知识图谱进行了优化。",
-          modelKey: "gemini-2.0-flash",
           capabilities: [
             "自动 spaCy 和基于 LLM 的实体提取",
             "实时图谱构建和状态上下文加载",
@@ -533,8 +618,8 @@ const LOCAL_COPY = {
         },
         {
           name: "Anthropic Claude",
+          icon: "anthropic",
           desc: "用于多智能体网状协调器和代码生成的首选逻辑引擎。",
-          modelKey: "claude-3-5-sonnet",
           capabilities: [
             "先进的提示词缓存以减少代币开销",
             "卓越的工具选择和智能体委派流",
@@ -543,8 +628,8 @@ const LOCAL_COPY = {
         },
         {
           name: "OpenAI GPT",
+          icon: "openai",
           desc: "用于结构化 JSON 模式和工具绑定的高可靠性标准引擎。",
-          modelKey: "gpt-4o",
           capabilities: [
             "针对输入/输出的严格 JSON 模式强制执行",
             "多智能体环形辩论共识格式化",
@@ -552,9 +637,29 @@ const LOCAL_COPY = {
           ]
         },
         {
-          name: "Open Weight (Qwen)",
+          name: "DeepSeek",
+          icon: "deepseek",
+          desc: "高性价比推理引擎，擅长长上下文分析与结构化思维链任务。",
+          capabilities: [
+            "深度思维链推理，用于复杂的员工规划",
+            "大上下文窗口，便于处理大量会议文档",
+            "低成本推理，适合高吞吐量的部门运行"
+          ]
+        },
+        {
+          name: "Kimi (Moonshot)",
+          icon: "kimi",
+          desc: "超长上下文专用引擎，针对多轮长对话进行了优化。",
+          capabilities: [
+            "超长上下文窗口，适应庞大的会议历史",
+            "强大的中英双语推理能力",
+            "高效的工具调用，适用于检索增强工作流"
+          ]
+        },
+        {
+          name: "Open Weight",
+          icon: "openrouter",
           desc: "用于自托管或物理隔离的安全智能体集群的高参数开源权重引擎。",
-          modelKey: "qwen3.5-397B-A17B",
           capabilities: [
             "零数据泄露的自托管编排",
             "微调用于 Docker 沙箱内的 Python 代码执行",
@@ -729,14 +834,14 @@ const LOCAL_COPY = {
     models: {
       title: "サポートされている LLM 基座",
       sub: "行业をリードするプロバイダー全体で、実行時に基座モデルエンジンを設定、交換、またはルーティングします。",
-      batch: "完全に LLM 非依存：Google Gemini、Anthropic、OpenAI、或者 OpenRouter ゲートウェイ経由でルーティング。",
+      batch: "完全に LLM 非依存:実行時にプロバイダを切り替え可能 — Google Gemini、Anthropic Claude、OpenAI、DeepSeek、Moonshot Kimi、Zhipu GLM、OpenRouter、または OpenAI 互換のカスタムエンドポイント — コード変更は不要です。",
       activeModelLabel: "有効なモデル",
       capabilitiesHeader: "主な機能",
       list: [
         {
           name: "Google Gemini",
+          icon: "gemini",
           desc: "デフォルトの速度エンジン。エンティティ抽出とリアルタイムのナレッジグラフに最適化されています。",
-          modelKey: "gemini-2.0-flash",
           capabilities: [
             "自動化された spaCy および LLM ベースのエンティティ抽出",
             "リアルタイムのグラフ構築と状態コンテキストの読み込み",
@@ -745,8 +850,8 @@ const LOCAL_COPY = {
         },
         {
           name: "Anthropic Claude",
+          icon: "anthropic",
           desc: "マルチエージェントメッシュコーディネーターおよびコード生成用のプレミアロジックエンジン。",
-          modelKey: "claude-3-5-sonnet",
           capabilities: [
             "トークンオーバーヘッドを削減する高度なプロンプトキャッシュ",
             "優れたツール選択とエージェント委任フロー",
@@ -755,8 +860,8 @@ const LOCAL_COPY = {
         },
         {
           name: "OpenAI GPT",
+          icon: "openai",
           desc: "構造化された JSON スキーマとツールバインディング用の信頼性の高い標準エンジン。",
-          modelKey: "gpt-4o",
           capabilities: [
             "入力/出力に対する厳密な JSON スキーマの強制",
             "マルチエージェントリング討論のコンセンサスフォーマット",
@@ -764,9 +869,29 @@ const LOCAL_COPY = {
           ]
         },
         {
-          name: "Open Weight (Qwen)",
+          name: "DeepSeek",
+          icon: "deepseek",
+          desc: "コスト効率に優れた推論エンジン。長文コンテキスト分析と構造化された思考連鎖タスクに強みを持ちます。",
+          capabilities: [
+            "複雑なスタッフ計画のための深い思考連鎖推論",
+            "会議資料を多く扱うための大規模コンテキストウィンドウ",
+            "大量の部門実行に対応する低コスト推論"
+          ]
+        },
+        {
+          name: "Kimi (Moonshot)",
+          icon: "kimi",
+          desc: "超長コンテキストに特化したエンジン。長時間のマルチターン会話に最適化されています。",
+          capabilities: [
+            "膨大な会議履歴に対応する超長コンテキストウィンドウ",
+            "強力な中英バイリンガル推論",
+            "検索拡張ワークフロー向けの効率的なツール呼び出し"
+          ]
+        },
+        {
+          name: "Open Weight",
+          icon: "openrouter",
           desc: "セルフホストまたはエアギャップされた安全なエージェントクラスター用の高パラメータオープンウェイトエンジン。",
-          modelKey: "qwen3.5-397B-A17B",
           capabilities: [
             "データ漏洩ゼロのセルフホストオーケストレーション",
             "Docker サンドボックス内での Python コード実行用に微調整",
@@ -2055,17 +2180,18 @@ export default function Landing() {
           </p>
         </FadeIn>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {t.models.list.map((m, idx) => (
             <FadeIn key={idx} delay={idx * 0.05} className="h-full">
               <div className="bg-card border border-[#e8e6dc]/80 dark:border-[#2e2e2d]/60 rounded-2xl p-6 flex flex-col h-full shadow-sm hover:border-border transition-all">
-                <div className="mb-3">
-                  <h3 className="text-lg font-semibold text-foreground font-serif mb-1.5">{m.name}</h3>
-                  <div className="inline-flex">
-                    <span className="font-mono text-[10px] font-medium text-accent bg-accent/5 border border-accent/15 px-2.5 py-1 rounded leading-none">
-                      {m.modelKey}
-                    </span>
-                  </div>
+                <div className="mb-3 flex items-center gap-2.5">
+                  <span
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
+                    style={{ backgroundColor: `${PROVIDER_LOGOS[m.icon as ProviderLogoKey].color}1A` }}
+                  >
+                    <ProviderIcon slug={m.icon as ProviderLogoKey} className="w-4 h-4" />
+                  </span>
+                  <h3 className="text-lg font-semibold text-foreground font-serif">{m.name}</h3>
                 </div>
                 <div className="h-[72px] flex items-start mb-4 overflow-hidden">
                   <p className="text-xs text-muted-foreground leading-relaxed">{m.desc}</p>
