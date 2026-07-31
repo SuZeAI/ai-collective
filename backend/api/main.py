@@ -3,8 +3,10 @@ import os
 from pathlib import Path
 import dotenv
 
+from backend.api.settings import settings
+
 # Allow OAuth 2 on http://localhost for development (must be set before importing google_auth_oauthlib)
-if os.environ.get("ENVIRONMENT", "development") == "development":
+if settings.environment == "development":
     os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
 
 dotenv.load_dotenv()
@@ -13,7 +15,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend.api.settings import settings
 from backend.domain.errors import NotFoundError, ValidationError
 from backend.log import get_logger
 from backend.api.routers import (

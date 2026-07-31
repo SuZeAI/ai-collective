@@ -26,12 +26,10 @@
 #                Then set in .env: SANDBOX_MODE=k8s  SANDBOX_PROVISIONER_URL=http://provisioner:8002
 #
 # Sandbox modes (SANDBOX_MODE, see docs/SANDBOX.md):
-#   local  (default) — run commands in-process on the backend (no isolation).
-#   docker           — backend starts its own sandbox containers via the mounted
-#                      Docker socket (already configured here). No `sandbox` profile needed.
-#   k8s              — activate profile "provisioner"; sandboxes run as k3s Pods.
-#                      Set SANDBOX_PROVISIONER_URL=http://provisioner:8002 and provide a
-#                      kubeconfig (see docs/K3S.md).
+#   local (default) — run commands in-process on the backend (no isolation).
+#   k8s             — activate profile "provisioner"; sandboxes run as k3s Pods.
+#                     Set SANDBOX_PROVISIONER_URL=http://provisioner:8002 and provide a
+#                     kubeconfig (see docs/K3S.md).
 #
 # Key environment variables (set in .env at project root):
 #   LLM_PROVIDER / LLM_MODEL              — LLM provider & model
@@ -39,7 +37,7 @@
 #   RABBITMQ_USER / RABBITMQ_PASS         — RabbitMQ credentials (default: guest/guest)
 #   MONGO_USER / MONGO_PASS               — MongoDB credentials (default: admin/admin)
 #   STORAGE_BACKEND                       — "json" (default) | "mongo"
-#   SANDBOX_MODE                          — "local" (default) | "docker" | "k8s"
+#   SANDBOX_MODE                          — "local" (default) | "k8s"
 #   SANDBOX_PROVISIONER_URL               — http://provisioner:8002 (if SANDBOX_MODE=k8s)
 #   SANDBOX_TIMEOUT                       — command timeout in seconds (default: 60)
 #   STORAGE_DIR                           — override storage directory path
@@ -184,7 +182,6 @@ services:
       - ../config.yml:/app/config.yml:ro
       - ../mcp.yml:/app/mcp.yml:ro
       - sandbox-workspace:/app/sandbox_workspace
-      - /var/run/docker.sock:/var/run/docker.sock
     env_file:
       - ../.env
     environment:
@@ -195,7 +192,7 @@ services:
       # via .env (STORAGE_BACKEND=...) if needed.
       - MONGO_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-admin}@mongodb:27017/ai_collective?authSource=admin
       - MONGO_DB=${MONGO_DB:-ai_collective}
-      # SANDBOX_MODE: local | docker | k8s (see docs/SANDBOX.md).
+      # SANDBOX_MODE: local | k8s (see docs/SANDBOX.md).
       - SANDBOX_MODE=${SANDBOX_MODE:-local}
       - SANDBOX_PROVISIONER_URL=${SANDBOX_PROVISIONER_URL:-}
       - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-60}
@@ -227,8 +224,8 @@ services:
         condition: service_healthy
 
   # ── Standalone AIO Sandbox Container (optional — profile: sandbox) ────────
-  # Manual / debug container; NOT auto-wired to any SANDBOX_MODE (`docker` mode
-  # spawns its own containers, `k8s` mode uses the provisioner).
+  # Manual / debug container; NOT auto-wired to any SANDBOX_MODE (`k8s` mode
+  # uses the provisioner instead).
   # Activate: docker compose --profile sandbox up -d
   sandbox:
     image: ${SANDBOX_IMAGE:-enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest}
@@ -267,9 +264,12 @@ services:
       # so the client reaches the host's k3s API instead.
       - K8S_API_SERVER=${K8S_API_SERVER:-https://host.docker.internal:6443}
       - KUBECONFIG_PATH=/root/.kube/config
-      # hostPath dirs on the k3s NODE (must already exist, else Pods FailedMount).
-      - SKILLS_HOST_PATH=${SKILLS_HOST_PATH:-/skills}
-      - THREADS_HOST_PATH=${THREADS_HOST_PATH:-/.ai-collective/threads}
+    # SKILLS_HOST_PATH / THREADS_HOST_PATH come from .env via env_file below,
+    # not ${VAR} interpolation — interpolation resolves against compose's
+    # "project directory" (this file's folder), which has no .env of its own,
+    # so it can silently fall back to hardcoded defaults even when root .env
+    # sets them. app.py falls back to /skills and /.ai-collective/threads
+    # itself when these are absent from .env.
     volumes:
       # Mount the kubeconfig FILE (compose does not expand `~`, so use $HOME).
       - ${KUBECONFIG:-${HOME}/.kube/config}:/root/.kube/config:ro

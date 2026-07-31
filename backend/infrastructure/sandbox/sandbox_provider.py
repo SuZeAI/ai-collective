@@ -1,8 +1,8 @@
-"""Sandbox provider — manages AioSandbox lifecycle with pluggable backends.
+"""Sandbox provider — manages AioSandbox lifecycle for the K8s backend.
 
 Architecture:
     SandboxProvider (ABC)
-        └── AioSandboxProvider   — manages Docker or K8s sandbox containers
+        └── AioSandboxProvider   — manages K8s sandbox Pods (settings.sandbox_mode == "k8s")
 
 Features of AioSandboxProvider:
     - In-process sandbox caching (fast reuse within same process)
@@ -24,7 +24,6 @@ from typing import Optional
 
 from .aio_sandbox import AioSandbox
 from .backend import SandboxBackend, wait_for_sandbox_ready
-from .local_backend import LocalContainerBackend
 from .remote_backend import RemoteSandboxBackend
 from .sandbox import Sandbox
 from .sandbox_info import SandboxInfo
@@ -70,11 +69,10 @@ class SandboxProvider(ABC):
 # ── Concrete AioSandboxProvider ───────────────────────────────────────────────
 
 class AioSandboxProvider(SandboxProvider):
-    """Manages AioSandbox instances backed by Docker containers or K8s pods.
+    """Manages AioSandbox instances backed by K8s Pods.
 
-    Backend selection (from settings.sandbox_mode):
-        docker → LocalContainerBackend  (Docker containers on local machine)
-        k8s    → RemoteSandboxBackend   (K8s pods via provisioner service)
+    Only reached when settings.sandbox_mode == "k8s" — "local" is handled by
+    LocalSandboxAdapter directly in factory.py, never via a SandboxBackend.
     """
 
     def __init__(self) -> None:
@@ -108,37 +106,22 @@ class AioSandboxProvider(SandboxProvider):
             )
 
     def _create_backend(self, settings) -> SandboxBackend:
-        if settings.sandbox_mode == "k8s":
-            if not settings.sandbox_provisioner_url:
-                raise ValueError("SANDBOX_PROVISIONER_URL must be set when SANDBOX_MODE=k8s")
-            logger.info("Sandbox backend: K8s provisioner at %s", settings.sandbox_provisioner_url)
-            return RemoteSandboxBackend(provisioner_url=settings.sandbox_provisioner_url)
-
-        logger.info(
-            "Sandbox backend: local Docker (image=%s, prefix=%s)",
-            settings.sandbox_image, settings.sandbox_container_prefix,
-        )
-        return LocalContainerBackend(
-            image=settings.sandbox_image,
-            base_port=settings.sandbox_base_port,
-            container_prefix=settings.sandbox_container_prefix,
-            environment={},
-        )
+        if settings.sandbox_mode != "k8s":
+            raise ValueError(
+                f"Unsupported SANDBOX_MODE {settings.sandbox_mode!r} for AioSandboxProvider "
+                "(only 'k8s' is; 'local' is handled by LocalSandboxAdapter instead)"
+            )
+        if not settings.sandbox_provisioner_url:
+            raise ValueError("SANDBOX_PROVISIONER_URL must be set when SANDBOX_MODE=k8s")
+        logger.info("Sandbox backend: K8s provisioner at %s", settings.sandbox_provisioner_url)
+        return RemoteSandboxBackend(provisioner_url=settings.sandbox_provisioner_url)
 
     # ── Core operations ───────────────────────────────────────────────────────
 
-    def acquire(
-        self,
-        session_id: Optional[str] = None,
-        *,
-        extra_mounts: Optional[list[tuple[str, str, bool]]] = None,
-    ) -> str:
+    def acquire(self, session_id: Optional[str] = None) -> str:
         """Acquire a sandbox for *session_id* and return its sandbox_id.
 
         Priority: in-process cache → warm pool → backend discovery → create.
-        ``extra_mounts`` (host_path, container_path, read_only) are applied only
-        when a fresh container is created — a reused warm/cached one keeps the
-        mounts it was started with (so key by a stable per-conversation id).
         """
         session_id = session_id or "default"
         sandbox_id = self._deterministic_id(session_id)
@@ -160,7 +143,7 @@ class AioSandboxProvider(SandboxProvider):
                 logger.info("Reclaimed warm-pool sandbox %s for session %s", sandbox_id, session_id)
                 return sandbox_id
 
-        return self._discover_or_create(session_id, sandbox_id, extra_mounts=extra_mounts)
+        return self._discover_or_create(session_id, sandbox_id)
 
     def get(self, sandbox_id: str) -> Optional[AioSandbox]:
         with self._lock:
@@ -237,12 +220,7 @@ class AioSandboxProvider(SandboxProvider):
     def _deterministic_id(session_id: str) -> str:
         return hashlib.sha256(session_id.encode()).hexdigest()[:8]
 
-    def _discover_or_create(
-        self,
-        session_id: str,
-        sandbox_id: str,
-        extra_mounts: Optional[list[tuple[str, str, bool]]] = None,
-    ) -> str:
+    def _discover_or_create(self, session_id: str, sandbox_id: str) -> str:
         """Layer 3: backend discovery + create (handles cross-process races)."""
         # Enforce replicas soft cap (evict oldest warm pool entry if at limit)
         with self._lock:
@@ -265,7 +243,7 @@ class AioSandboxProvider(SandboxProvider):
             )
             return discovered.sandbox_id
 
-        info = self._backend.create(session_id, sandbox_id, extra_mounts=extra_mounts)
+        info = self._backend.create(session_id, sandbox_id)
         if not wait_for_sandbox_ready(info.sandbox_url, timeout=60):
             self._backend.destroy(info)
             raise RuntimeError(f"Sandbox {sandbox_id} failed to become ready at {info.sandbox_url}")

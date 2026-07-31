@@ -57,14 +57,24 @@ async def node(state: MultiAgentState):
 ## Stream Event Types
 
 ### Orchestrator Common Events
-- **agent_start**: Agent bắt đầu turn
-- **agent_turn_start**: (Mesh) Agent turn starts with round info
+Canonical values live in the `EventType` enum (`backend/domain/event/schema.py`);
+every topology streams `EventType.<NAME>.value` dicts rather than hand-typed
+strings, so the wire format below is authoritative across all 5 topologies
+(sequential/ring/supervisor/tree/mesh).
+
+- **agent_start**: Agent bắt đầu turn (sequential)
+- **agent_turn_start**: Agent turn starts with round info (ring/tree/supervisor/mesh)
 - **context_building**: Đang build context
 - **context_retrieved**: Context hoàn tất với knowledge graph info
 - **llm_request_start**: LLM request bắt đầu 
 - **llm_response_complete**: LLM response nhận được
 - **message_ingested**: Thông báo ingested vào knowledge graph
 - **turn_complete**: Turn hoàn tất với turn object
+- **subagent_start** / **subagent_complete**: A staff member spawns/finishes a subagent (`domain/tools/task.py`)
+- **fanout_start** / **fanout_complete**: Concurrent branch fan-out begins/ends (supervisor/mesh)
+- **user_message_injected**: A mid-run human interjection was merged into the conversation (`_graph_runtime.py`)
+- **run_paused** / **run_resumed**: The run was paused/resumed (`_graph_runtime.py`)
+- **user_input_request** / **user_input_received**: The `ask_user` tool is waiting for / received human input (`domain/tools/ask_user.py`)
 
 ### Event Structure
 Mỗi event là dict Python với:
@@ -76,7 +86,7 @@ Mỗi event là dict Python với:
 
 ### Python Async Client
 ```python
-from backend.domain.agent.langgraph_mesh import MultiAgentMeshOrchestrator
+from backend.domain.staff.langgraph_mesh import MultiAgentMeshOrchestrator
 
 orchestrator = MultiAgentMeshOrchestrator()
 
@@ -209,7 +219,12 @@ async for event in orchestrator.run_stream(...):
 `get_stream_writer()` cần Python >= 3.11 hoặc Python >= 3.10 với asyncio task creation.
 
 ## Files Đã Thay Đổi
-- `backend/domain/agent/langgraph_orchestrator.py`
-- `backend/domain/agent/langgraph_mesh.py`
+- `backend/domain/staff/langgraph_orchestrator.py` (sequential)
+- `backend/domain/staff/langgraph_ring.py` (ring)
+- `backend/domain/staff/langgraph_supervisor.py` (supervisor)
+- `backend/domain/staff/langgraph_tree.py` (tree)
+- `backend/domain/staff/langgraph_mesh.py` (mesh)
+- `backend/domain/staff/_graph_runtime.py` (shared turn/pause/resume events)
+- `backend/domain/tools/task.py` (subagent events), `backend/domain/tools/ask_user.py` (human-in-the-loop events)
 
-Cả hai file giờ support streaming với `get_stream_writer()`.
+Tất cả 5 topologies giờ support streaming với `get_stream_writer()`.

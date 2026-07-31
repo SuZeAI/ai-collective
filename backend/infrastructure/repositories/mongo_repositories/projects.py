@@ -40,6 +40,7 @@ class MongoProjectRepository:
             avatar_color=str(item.get("avatar_color", "")),
             avatar_url=str(item.get("avatar_url", "")),
             owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
+            company_id=str(item.get("companyId", "")),
         )
 
     def _project_to_doc(self, p: Project) -> dict[str, Any]:
@@ -59,6 +60,7 @@ class MongoProjectRepository:
             "avatar_color": p.avatar_color,
             "avatar_url": p.avatar_url,
             "owner_id": p.owner_id,
+            "companyId": p.company_id,
         }
 
     def list(self) -> list[Project]:

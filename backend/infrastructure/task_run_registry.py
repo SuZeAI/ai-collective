@@ -107,8 +107,24 @@ _lock = threading.Lock()
 def register(task_id: str) -> _RunHandle:
     handle = _RunHandle()
     with _lock:
+        old = _active.get(task_id)
+        if old is not None and not old.cancelled:
+            # A previous run for this task is still marked active — e.g. the
+            # client disconnected and restarted before that run's own cleanup
+            # ran. Cancel it now: once we overwrite the registry entry below,
+            # `signal_cancel`/`signal_pause` can only ever reach the new
+            # handle, so without this the old run would keep executing in
+            # the background, unstoppable, and future Pause/Stop clicks
+            # would silently do nothing.
+            logger.warning(
+                "task_run_registry.register: task_id=%s already had an active "
+                "handle — preempting/cancelling it before installing the new one",
+                task_id,
+            )
+            old.cancel()
         _active[task_id] = handle
         active_count = len(_active)
+    logger.info("task_run_registry.register: task_id=%s registered | active_runs=%d", task_id, active_count)
     if active_count > _LEAK_WARN_THRESHOLD:
         logger.warning(
             "task_run_registry has %d active runs — possible leak (missing unregister)",
@@ -122,11 +138,33 @@ def signal_cancel(task_id: str) -> None:
         handle = _active.get(task_id)
     if handle:
         handle.cancel()
+        logger.info("task_run_registry.signal_cancel: task_id=%s cancelled", task_id)
+    else:
+        logger.warning(
+            "task_run_registry.signal_cancel: task_id=%s has no active handle — "
+            "nothing to cancel (run already ended, or was never registered)",
+            task_id,
+        )
 
 
-def unregister(task_id: str) -> None:
+def unregister(task_id: str, handle: "_RunHandle | None" = None) -> None:
+    """Remove a run's registry entry.
+
+    When ``handle`` is given, only removes it if it's still the same handle
+    registered under ``task_id`` — a stale run finishing *after* the task was
+    restarted (new handle registered for a new run) must not evict the new
+    run's entry, or every later pause/stop for it would silently no-op.
+    """
     with _lock:
+        if handle is not None and _active.get(task_id) is not handle:
+            logger.info(
+                "task_run_registry.unregister: task_id=%s skipped — a newer "
+                "run's handle is now registered, this one is stale",
+                task_id,
+            )
+            return
         _active.pop(task_id, None)
+    logger.info("task_run_registry.unregister: task_id=%s removed", task_id)
 
 
 def has_active_run(task_id: str) -> bool:
@@ -139,8 +177,14 @@ def signal_pause(task_id: str) -> bool:
     with _lock:
         handle = _active.get(task_id)
     if not handle or handle.cancelled:
+        logger.warning(
+            "task_run_registry.signal_pause: task_id=%s has no active, non-cancelled "
+            "handle — nothing to hold",
+            task_id,
+        )
         return False
     handle.pause()
+    logger.info("task_run_registry.signal_pause: task_id=%s held", task_id)
     return True
 
 
@@ -149,8 +193,10 @@ def signal_resume(task_id: str) -> bool:
     with _lock:
         handle = _active.get(task_id)
     if not handle:
+        logger.warning("task_run_registry.signal_resume: task_id=%s has no active handle", task_id)
         return False
     handle.resume()
+    logger.info("task_run_registry.signal_resume: task_id=%s resumed", task_id)
     return True
 
 

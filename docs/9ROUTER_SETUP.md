@@ -7,21 +7,23 @@ tool outputs to save 20–40% tokens, tracks quota, and round-robins between mul
 accounts per provider.
 
 Because it speaks the OpenAI Chat Completions API, AI Collective talks to it through
-its existing **`openai`** provider — no backend code changes. You point
-`LLM_API_BASE` at 9Router and use a 9Router-issued key as `OPENAI_API_KEY`.
+the OpenAI-compatible wrapper — no backend code changes. You add (or repoint) a
+`models:` entry in `config.yml` with `base_url` set to 9Router and a 9Router-issued
+key as its `api_key`.
 
 ```
-AI Collective backend ──(OpenAI API)──► 9Router :20128 ──► Claude / OpenAI / Gemini / …
+AI Collective backend ──(OpenAI-compatible API)──► 9Router :20128 ──► Claude / OpenAI / Gemini / …
 ```
 
 > **9Router vs. built-in key rotation.** 9Router is one of two failover strategies,
-> selected by `LLM_FAILOVER_STRATEGY`. The other — `rotate` — cycles multiple keys
-> of a *single* provider with no extra service. See
-> [LLM_KEY_ROTATION.md](LLM_KEY_ROTATION.md) to compare. To use 9Router, set
-> `LLM_FAILOVER_STRATEGY=9router` (this turns the built-in rotation off).
+> selected **per `models:` entry** by that entry's `failover.strategy` field.
+> The other — `rotate` — cycles multiple keys of a *single* provider with no
+> extra service. See [LLM_KEY_ROTATION.md](LLM_KEY_ROTATION.md) to compare. To
+> use 9Router, set that entry's `failover.strategy: 9router` (this turns the
+> built-in rotation off for that entry).
 >
 > Note: 9Router (`decolua/9router`) is **not** openrouter.ai — the latter is the
-> separate `open_weight` provider configured via `OPENROUTER_API_KEY`.
+> separate `open_weight` model entry configured via `OPENROUTER_API_KEY`.
 
 ---
 
@@ -109,19 +111,28 @@ openssl rand -hex 32          # → ROUTER_JWT_SECRET in .env
 
 ---
 
-## 3. Point AI Collective at 9Router (`.env`)
+## 3. Point AI Collective at 9Router (`config.yml`)
 
-Edit `.env` at the project root (copy from `.env.template` if you haven't):
+Add a `models:` entry (or repoint an existing one) in `config.yml` at the
+project root:
+
+```yaml
+# config.yml
+models:
+  - name: nine-router
+    display_name: 9Router (premium-coding)
+    provider_name: openai            # OpenAI-compatible wrapper
+    model: premium-coding            # a combo name, or a provider/model like cc/claude-opus-4-7
+    base_url: http://nine-router:20128/v1
+    api_key: $NINE_ROUTER_API_KEY    # define NINE_ROUTER_API_KEY in .env = the key you generated in the dashboard
+    enabled: true                    # make this the active model (disable other enabled: true entries)
+    failover:
+      strategy: 9router               # delegate failover to 9Router (turns off built-in multi-key rotation)
+```
 
 ```dotenv
-# Delegate failover to 9Router (turns off the built-in multi-key rotation)
-LLM_FAILOVER_STRATEGY=9router
-
-# Route the backend through 9Router using the OpenAI-compatible provider
-LLM_PROVIDER=openai
-LLM_API_BASE=http://nine-router:20128/v1
-OPENAI_API_KEY=sk-...            # the key you generated in the 9router dashboard
-LLM_MODEL=premium-coding         # a combo name, or a provider/model like cc/claude-opus-4-7
+# .env
+NINE_ROUTER_API_KEY=sk-...
 
 # 9Router container settings (profile: router)
 ROUTER_PORT=20128
@@ -136,7 +147,7 @@ ROUTER_INITIAL_PASSWORD=<strong-password>   # dashboard login (default 123456)
 > - Backend running **on the host** (e.g. `uv run uvicorn …`) →
 >   `http://localhost:20128/v1`.
 
-Restart the backend so it reloads `.env`:
+Restart the backend so it reloads `config.yml`/`.env`:
 
 ```bash
 docker compose -f docker/docker-compose.yaml up -d --force-recreate backend
@@ -170,12 +181,12 @@ its fallback chain.
 
 | Symptom | Likely cause / fix |
 |---------|--------------------|
-| Backend logs `provider returned None` / no LLM | `OPENAI_API_KEY` empty, or `LLM_PROVIDER` not `openai`. |
+| Backend logs `provider returned None` / no LLM | The 9Router `models:` entry's `api_key` is empty, or no entry has `enabled: true`. |
 | `Connection refused` to `nine-router:20128` | Service not started — add `--profile router` to your `up` command. |
 | Works from host but not from backend container | Use `http://nine-router:20128/v1` (service hostname), not `localhost`, inside Docker. |
 | `401` from 9Router | Bearer key doesn't match a key created in the dashboard. |
 | Can't log into the dashboard | Use `ROUTER_INITIAL_PASSWORD` (default `123456`). If changed after data was persisted, the stored password in the `router_data` volume wins — reset by recreating the volume. |
-| Model not found | `LLM_MODEL` must be a dashboard combo name or a valid `provider/model` id. |
+| Model not found | The entry's `model` field must be a dashboard combo name or a valid `provider/model` id. |
 | Dashboard data lost after recreate | Ensure the `router_data` volume is intact; it holds `db/data.sqlite`. |
 
 ## References

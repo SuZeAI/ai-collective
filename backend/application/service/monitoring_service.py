@@ -112,7 +112,7 @@ class MonitoringService:
 
     # ── Consumption (owner-scoped) ───────────────────────────────────────────
 
-    def get_consumption(self, owner_id: str, days: int = 30) -> dict[str, Any]:
+    def get_consumption(self, owner_id: str, days: int = 30, company_id: str | None = None) -> dict[str, Any]:
         """Token/cost consumption for one owner, broken down by department
         (department), staff (staff) and human (user).
 
@@ -120,9 +120,17 @@ class MonitoringService:
         given owner are counted, so each user sees just their own spend. Records
         captured before per-staff/per-department attribution shipped fall under an
         "unattributed" bucket.
+
+        When `company_id` is given, records are further narrowed to the
+        departments that belong to that company (records with no department
+        attribution are excluded, since they can't be placed in any company).
         """
         days = max(1, min(int(days), 365))
         records = [r for r in self._records_since(days) if r.user_id == owner_id]
+        if company_id:
+            company = self._companies.get(company_id)
+            company_department_ids = set(company.department_ids) if company else set()
+            records = [r for r in records if r.department_id in company_department_ids]
         pricing_by_model = {p.model: p for p in self._pricing.list()}
         team_names = {t.id: t.name for t in self._teams.list()}
         agent_roles = {a.name: a.role for a in self._agents.list()}

@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from backend.application.ports.llm import LLMProvider
-from backend.infrastructure.llm.anthropic_langchain import AnthropicLangChainProvider
-from backend.infrastructure.llm.config.model_config import ModelConfig
-from backend.infrastructure.llm.google_langchain import GoogleLangChainProvider
-from backend.infrastructure.llm.open_weight_langchain import OpenWeightLangChainProvider
-from backend.infrastructure.llm.openai_langchain import OpenAILangChainProvider
-from backend.infrastructure.llm.kimi_langchain import KimiLangChainProvider
-from backend.infrastructure.llm.deepseek_langchain import DeepSeekLangChainProvider
-from backend.infrastructure.llm.glm_langchain import GLMLangChainProvider
-from backend.infrastructure.llm.rotation import RotationConfig
+from backend.infrastructure.llm.providers.anthropic_langchain import AnthropicLangChainProvider
+from backend.infrastructure.llm.config.models_config import find_model_for_provider, get_model_config
+
+if TYPE_CHECKING:
+    from backend.api.settings import ModelConfig
+from backend.infrastructure.llm.providers.google_langchain import GoogleLangChainProvider
+from backend.infrastructure.llm.providers.open_weight_langchain import OpenWeightLangChainProvider
+from backend.infrastructure.llm.providers.openai_langchain import OpenAILangChainProvider
+from backend.infrastructure.llm.providers.kimi_langchain import KimiLangChainProvider
+from backend.infrastructure.llm.providers.deepseek_langchain import DeepSeekLangChainProvider
+from backend.infrastructure.llm.providers.glm_langchain import GLMLangChainProvider
+from backend.infrastructure.llm.providers.rotation import RotationConfig
 
 
 DEFAULT_PROVIDER_MODELS = {
@@ -23,6 +28,17 @@ DEFAULT_PROVIDER_MODELS = {
 }
 
 SUPPORTED_PROVIDERS = {"anthropic", "openai", "google", "open_weight", "kimi", "deepseek", "glm"}
+
+# Maps a normalized provider name to the create_llm_provider() kwarg its key goes in.
+_PROVIDER_API_KEY_KWARGS = {
+    "anthropic": "anthropic_api_key",
+    "openai": "openai_api_key",
+    "open_weight": "open_weight_api_key",
+    "kimi": "kimi_api_key",
+    "deepseek": "deepseek_api_key",
+    "glm": "glm_api_key",
+    "google": "google_api_key",
+}
 
 
 def _normalize_provider(provider: str | None) -> str:
@@ -148,23 +164,61 @@ def build_default_llm_provider(
     base_url: str | None = None,
     model_config: ModelConfig | None = None,
 ) -> LLMProvider | None:
-    """create_llm_provider(), resolving every provider API key from settings
-    in one place.
+    """create_llm_provider(), resolving every provider API key in one place.
 
     Every call site used to hand-list all 7 provider keys itself — 4 near-
     identical copies across deps.py/document_tools.py — so adding a new
     provider (already happened twice, for deepseek/glm) meant editing all 4
     in lockstep or silently missing one.
 
-    ``model_config`` — when given (the resolved active entry from config.yml's
-    ``models:`` registry, see ``backend.infrastructure.llm.config``) — supplies
-    provider/model/base_url/failover from that entry instead of the app-wide
-    ``settings.llm_*`` defaults, so the Settings-UI "active model" switch and
-    each model's own key-rotation policy actually take effect. Explicit
-    provider/model/base_url args still win over both (e.g. the knowledge-graph
-    builder's separate GRAPH_LLM_PROVIDER/MODEL override).
+    ``model_config`` — the resolved active entry from config.yml's ``models:``
+    registry (see ``backend.infrastructure.llm.config``) — supplies
+    provider/model/base_url/failover from that entry, and its own ``api_key:``
+    (sourced from config.yml/.env through the registry) is used whenever it's
+    set. When not given explicitly, it defaults to ``get_model_config()`` (the
+    config-level active model); callers that need the DB-persisted Settings-UI
+    override resolve it themselves first (see ``backend.api.deps``). Without a
+    usable ``model_config``, the key falls back to the first ``models:`` entry
+    matching the resolved provider (``find_model_for_provider``) — there is no
+    other source of provider API keys. Explicit provider/model/base_url args
+    still win (e.g. the knowledge-graph builder's separate
+    GRAPH_LLM_PROVIDER/MODEL override). Raises if no provider can be resolved
+    from either source — there is no more legacy `llm.provider` fallback.
     """
     from backend.api.settings import settings
+
+    resolved_max_tool_rounds = (
+        max_tool_rounds if max_tool_rounds is not None else settings.staff_max_tool_rounds
+    )
+    resolved_tool_timeout = (
+        tool_timeout_seconds if tool_timeout_seconds is not None else settings.tool_timeout_seconds
+    )
+
+    model_config = model_config or get_model_config()
+    if model_config is None and provider is None:
+        raise RuntimeError(
+            "No active LLM model: enable at least one entry under `models:` in "
+            "config.yml (or pass an explicit provider/model)."
+        )
+
+    if (
+        model_config is not None
+        and provider is None
+        and model is None
+        and base_url is None
+        and getattr(model_config, "api_key", None)
+    ):
+        resolved_provider = _normalize_provider(model_config.provider_name or model_config.name)
+        key_kwarg = _PROVIDER_API_KEY_KWARGS.get(resolved_provider)
+        return create_llm_provider(
+            provider=resolved_provider,
+            model=model_config.model,
+            base_url=model_config.base_url,
+            max_tool_rounds=resolved_max_tool_rounds,
+            tool_timeout_seconds=resolved_tool_timeout,
+            failover=RotationConfig.from_model_entry(model_config.failover),
+            **({key_kwarg: model_config.api_key} if key_kwarg else {}),
+        )
 
     resolved_provider = provider
     resolved_model = model
@@ -178,22 +232,16 @@ def build_default_llm_provider(
         resolved_base_url = resolved_base_url or model_config.base_url
         resolved_failover = RotationConfig.from_model_entry(model_config.failover)
 
+    final_provider = _normalize_provider(resolved_provider)
+    fallback_entry = find_model_for_provider(final_provider)
+    fallback_key_kwarg = _PROVIDER_API_KEY_KWARGS.get(final_provider)
+
     return create_llm_provider(
-        provider=resolved_provider or settings.llm_provider,
-        model=resolved_model or settings.llm_model,
-        google_api_key=settings.google_api_keys(),
-        anthropic_api_key=settings.anthropic_api_keys(),
-        openai_api_key=settings.openai_api_keys(),
-        open_weight_api_key=settings.open_weight_api_keys(),
-        kimi_api_key=settings.kimi_api_keys(),
-        deepseek_api_key=settings.deepseek_api_keys(),
-        glm_api_key=settings.glm_api_keys(),
-        base_url=resolved_base_url or settings.llm_api_base,
-        max_tool_rounds=(
-            max_tool_rounds if max_tool_rounds is not None else settings.staff_max_tool_rounds
-        ),
-        tool_timeout_seconds=(
-            tool_timeout_seconds if tool_timeout_seconds is not None else settings.tool_timeout_seconds
-        ),
+        provider=final_provider,
+        model=resolved_model,
+        base_url=resolved_base_url,
+        max_tool_rounds=resolved_max_tool_rounds,
+        tool_timeout_seconds=resolved_tool_timeout,
         failover=resolved_failover,
+        **({fallback_key_kwarg: fallback_entry.api_key} if fallback_key_kwarg and fallback_entry else {}),
     )

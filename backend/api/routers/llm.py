@@ -340,11 +340,14 @@ async def run_staff_graph(
                 )
             )
             staff_id_to_name[staff_id] = staff.name
+        except NotFoundError as e:
+            raise HTTPException(status_code=404, detail=f"Staff '{staff_id}' not found: {e}")
         except Exception as e:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Staff '{staff_id}' not found: {str(e)}"
-            )
+            # Distinct from the 404 above: the staff itself exists but binding
+            # one of its tools failed (e.g. sandbox/provisioner unreachable).
+            # Reporting this as "not found" hid the real cause from callers.
+            logger.exception("Failed to prepare staff '%s' for run", staff_id)
+            raise HTTPException(status_code=502, detail=f"Failed to prepare staff '{staff_id}': {e}")
 
     graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
     conversation_id = req.conversation_id
@@ -411,11 +414,14 @@ async def run_staff_graph_stream(
                 )
             )
             staff_name_to_id[staff.name] = staff_id  # Store mapping
+        except NotFoundError as e:
+            raise HTTPException(status_code=404, detail=f"Staff '{staff_id}' not found: {e}")
         except Exception as e:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Staff '{staff_id}' not found: {str(e)}"
-            )
+            # Distinct from the 404 above: the staff itself exists but binding
+            # one of its tools failed (e.g. sandbox/provisioner unreachable).
+            # Reporting this as "not found" hid the real cause from callers.
+            logger.exception("Failed to prepare staff '%s' for run", staff_id)
+            raise HTTPException(status_code=502, detail=f"Failed to prepare staff '{staff_id}': {e}")
 
     graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
     conversation_id = req.conversation_id
@@ -514,7 +520,11 @@ async def run_staff_graph_stream(
                     if "agent_name" in event_data and "agent_id" not in event_data:
                         event_data["agent_id"] = staff_name_to_id.get(event_data["agent_name"], event_data["agent_name"])
                     if isinstance(event_data.get("turn"), dict):
-                        turn_staff_name = event_data["turn"].get("agent_name")
+                        # GraphTurn's field is `staff_name` (application/ports/staff_graph.py),
+                        # not `agent_name` — this previously always missed, so turn_complete
+                        # payloads never got an agent_id and the frontend silently dropped
+                        # every staff message (no field it recognized resolved to a staffId).
+                        turn_staff_name = event_data["turn"].get("staff_name")
                         if turn_staff_name and "agent_id" not in event_data["turn"]:
                             event_data["turn"]["agent_id"] = staff_name_to_id.get(turn_staff_name, turn_staff_name)
                     # Emit custom event as-is
@@ -569,6 +579,6 @@ async def run_staff_graph_stream(
             ltm_store.current_memory_scope.reset(scope_token)
             current_usage_department.reset(team_token)
             if conversation_id:
-                task_run_registry.unregister(conversation_id)
+                task_run_registry.unregister(conversation_id, cancel_flag)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

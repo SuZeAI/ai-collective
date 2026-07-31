@@ -38,7 +38,7 @@ def migrate_mongo() -> int:
     import pymongo
 
     db = pymongo.MongoClient(settings.mongo_uri)[settings.mongo_db]
-    companies = db["workspaces"]
+    companies = db["companies"]
     connections = db["connections"]
     moved = 0
     for comp in companies.find({"platformHooks": {"$exists": True, "$ne": []}}):

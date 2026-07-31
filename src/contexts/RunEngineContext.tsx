@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { api, type GraphContextSnapshot, type Message, type Task } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
 
 // Upper bound on messages retained per task in memory. RunEngineProvider sits
 // above the router so this state outlives navigation for the whole session —
@@ -138,6 +139,7 @@ export type RunEngineValue = {
   userInputRequests: Record<string, UserInputRequest[]>;
   loadingConversationTaskIds: Set<string>;
   updatingTaskIds: Set<string>;
+  statusChangePendingIds: Set<string>;
   sendingInterjectTaskIds: Set<string>;
   holdTogglingTaskIds: Set<string>;
   respondingRequestIds: Set<string>;
@@ -189,6 +191,11 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
   const [userInputRequests, setUserInputRequests] = useState<Record<string, UserInputRequest[]>>({});
   const [loadingConversationTaskIds, setLoadingConversationTaskIds] = useState<Set<string>>(new Set());
   const [updatingTaskIds, setUpdatingTaskIds] = useState<Set<string>>(new Set());
+  // Short-lived: true only while a setStatus() PUT is actually in flight (a few
+  // hundred ms), unlike updatingTaskIds which startTask keeps true for the
+  // *entire* run — using that one to gate the Pause/Stop spinner made them
+  // spin for the whole run instead of just while the click was processing.
+  const [statusChangePendingIds, setStatusChangePendingIds] = useState<Set<string>>(new Set());
   const [sendingInterjectTaskIds, setSendingInterjectTaskIds] = useState<Set<string>>(new Set());
   const [holdTogglingTaskIds, setHoldTogglingTaskIds] = useState<Set<string>>(new Set());
   const [respondingRequestIds, setRespondingRequestIds] = useState<Set<string>>(new Set());
@@ -331,6 +338,8 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         if (event.error) {
           console.error(event.error);
           endReason = "error";
+          const description = event.error.length > 200 ? `${event.error.slice(0, 200)}…` : event.error;
+          toast({ title: `"${updated.title}" stopped early`, description, variant: "destructive" });
           break;
         }
 
@@ -536,11 +545,21 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         emit(updated.id, event);
       }
 
+      // A Pause/Stop click cancels the reader (see api.runStaffGraphStream),
+      // which makes reader.read() resolve with done:true instead of throwing —
+      // the for-await loop then exits normally without ever re-checking
+      // controller.signal.aborted inside its body, so endReason would
+      // otherwise be silently left at its "completed" default even though
+      // the run was aborted. Correct it here before deciding what to do next.
+      if (controller.signal.aborted && endReason === "completed") {
+        endReason = "aborted";
+      }
+
       // Auto-complete only when the stream finished naturally (not cancelled,
       // stopped, aborted, or errored). Do not gate on messages.length: a run
       // that only calls tools/subagents without a final turn_complete message
       // still finishes naturally and must transition out of "in-progress".
-      if (endReason === "completed" && !controller.signal.aborted) {
+      if (endReason === "completed") {
         const completed = await api.upsertTask({ ...updated, status: "completed", progress: 100 });
         applyTask(completed);
       }
@@ -548,6 +567,17 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
       if (!(e instanceof DOMException && e.name === "AbortError")) {
         console.error("Stream error:", e);
         endReason = "error";
+        // Surface this — without it the task just silently sits at "in-progress"
+        // with an empty transcript and no indication anything went wrong. Full
+        // detail is still in the console/server logs; the toast gets a capped
+        // summary so long backend exception chains don't blow up the popup.
+        const rawMessage = e instanceof Error ? e.message : String(e);
+        const description = rawMessage.length > 200 ? `${rawMessage.slice(0, 200)}…` : rawMessage;
+        toast({
+          title: `"${updated.title}" failed to start`,
+          description,
+          variant: "destructive",
+        });
       } else {
         endReason = "aborted";
       }
@@ -581,26 +611,32 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     // after the upsertTask await below), letting the second call's stream
     // silently overwrite/orphan the first's.
     if (controllersRef.current.has(task.id)) return;
+    // Nothing assigned to run this task — bail before touching its status so it
+    // doesn't get stuck showing "in-progress" with no stream behind it.
+    if (task.assignedStaff.length === 0) {
+      toast({
+        title: `"${task.title}" isn't ready to run`,
+        description: "Assign a department or staff member to this task first.",
+        variant: "destructive",
+      });
+      return;
+    }
     const controller = new AbortController();
     controllersRef.current.set(task.id, controller);
     setUpdatingTaskIds((prev) => new Set(prev).add(task.id));
     try {
       const updated = await api.upsertTask({ ...task, status: "in-progress" });
       applyTask(updated);
-      if (updated.assignedStaff.length > 0) {
-        // On restart from completed/stopped, keep the transcript (long-running
-        // meeting) and only reset transient interaction state. Use the
-        // explicit "Clear history" action for a full wipe.
-        if (task.status === "completed" || task.status === "stopped") {
-          clearTransientRunState(updated.id);
-        }
-        const formattedInput =
-          opts.formattedInput ??
-          `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}`;
-        await runStream(updated, formattedInput, opts, controller);
-      } else {
-        controllersRef.current.delete(task.id);
+      // On restart from completed/stopped, keep the transcript (long-running
+      // meeting) and only reset transient interaction state. Use the explicit
+      // "Clear history" action for a full wipe.
+      if (task.status === "completed" || task.status === "stopped") {
+        clearTransientRunState(updated.id);
       }
+      const formattedInput =
+        opts.formattedInput ??
+        `Task title: ${updated.title}; description: ${updated.description || "Execute this task."}`;
+      await runStream(updated, formattedInput, opts, controller);
     } catch (e) {
       controllersRef.current.delete(task.id);
       if (!(e instanceof DOMException && e.name === "AbortError")) console.error(e);
@@ -624,6 +660,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
   const setStatus = useCallback(async (task: Task, status: Task["status"]) => {
     abortStream(task.id);
     setUpdatingTaskIds((prev) => new Set(prev).add(task.id));
+    setStatusChangePendingIds((prev) => new Set(prev).add(task.id));
     try {
       const updated = await api.upsertTask({ ...task, status });
       applyTask(updated);
@@ -631,6 +668,11 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
       if (!(e instanceof DOMException && e.name === "AbortError")) console.error(e);
     } finally {
       setUpdatingTaskIds((prev) => {
+        const next = new Set(prev);
+        next.delete(task.id);
+        return next;
+      });
+      setStatusChangePendingIds((prev) => {
         const next = new Set(prev);
         next.delete(task.id);
         return next;
@@ -876,6 +918,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
       userInputRequests,
       loadingConversationTaskIds,
       updatingTaskIds,
+      statusChangePendingIds,
       sendingInterjectTaskIds,
       holdTogglingTaskIds,
       respondingRequestIds,
@@ -912,6 +955,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
       userInputRequests,
       loadingConversationTaskIds,
       updatingTaskIds,
+      statusChangePendingIds,
       sendingInterjectTaskIds,
       holdTogglingTaskIds,
       respondingRequestIds,

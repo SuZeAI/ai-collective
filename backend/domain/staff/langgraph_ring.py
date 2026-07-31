@@ -16,19 +16,27 @@ from backend.application.ports.staff_graph import (
 from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
-from backend.domain.staff.token_budget import apply_context_token_budget
 from backend.domain.staff._graph_runtime import (
     attach_subagent_toolkit,
     build_agent_tools,
+    build_turn_messages,
     drain_human_guidance,
     ensure_working_memory,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
+    raise_if_llm_failed,
     run_to_final_state,
     safe_chat,
     wait_while_paused,
     working_memory_block,
+)
+from backend.domain.staff.staff_state import (
+    StaffStates,
+    append_assistant_turn,
+    append_user_turn,
+    init_staff_states,
+    llm_ready_messages,
 )
 
 
@@ -47,6 +55,7 @@ class MultiAgentRingState(TypedDict):
     original_input: str
     turns: list[GraphTurn]
     conversation_history: list[str]
+    staff_states: StaffStates
     rounds: int
     final_response: str
     final_staff: str | None
@@ -95,7 +104,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             graph_context_provider=graph_context_provider,
             graph_config=graph_config,
         )
-        initial = self._make_initial_state(user_input)
+        initial = self._make_initial_state(user_input, staff)
         final_state, error = await run_to_final_state(graph, initial, max_rounds)
 
         turns = list(final_state.get("turns", []))
@@ -139,7 +148,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             graph_context_provider=graph_context_provider,
             graph_config=graph_config,
         )
-        initial = self._make_initial_state(user_input)
+        initial = self._make_initial_state(user_input, staff)
 
         async for event in graph.astream(
             initial, config=recursion_config(max_rounds), stream_mode="custom"
@@ -193,12 +202,13 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
         return builder.compile()
 
     @staticmethod
-    def _make_initial_state(user_input: str) -> MultiAgentRingState:
+    def _make_initial_state(user_input: str, staff: list[GraphStaffDefinition]) -> MultiAgentRingState:
         return {
             "input": user_input,
             "original_input": user_input,
             "turns": [],
             "conversation_history": [],
+            "staff_states": init_staff_states(staff),
             "rounds": 0,
             "final_response": "",
             "final_staff": None,
@@ -285,8 +295,14 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
                 record_guidance_in_memory(conversation_id, human_guidance)
             memory_block = working_memory_block(conversation_id)
 
+            # Pass the latest message (previous staff_member output) when not the
+            # first turn; this is the actual turn input, never truncated below.
+            if current_round > 0 and state.get("input") and state["input"] != state["original_input"]:
+                input_text = state["input"]
+            else:
+                input_text = state["original_input"]
+
             context_parts: list[str] = []
-            # First so the guidance survives tail-truncation by the token budget.
             if human_guidance:
                 context_parts += [human_guidance, ""]
             if memory_block:
@@ -304,28 +320,25 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             if graph_context_text:
                 context_parts += ["", "context:", graph_context_text]
 
-            # Pass the latest message (previous staff_member output) when not the first turn
-            if current_round > 0 and state.get("input") and state["input"] != state["original_input"]:
-                context_parts += ["", "latest message from previous staff_member:", state["input"]]
+            bound_tools = build_agent_tools(staff_member, conversation_id=conversation_id)
+            attach_subagent_toolkit(bound_tools, staff_member, llm=llm)
 
-            user_input = "\n".join(context_parts)
-
-            budget_result = apply_context_token_budget(
+            # staff_member.system_prompt stays byte-identical every turn so the
+            # compiled-agent cache and upstream provider prompt-caching see a
+            # stable prefix; only context_parts is budget-trimmed.
+            turn, budget_result = build_turn_messages(
                 llm=llm,
                 system_prompt=staff_member.system_prompt,
-                user_input=user_input,
+                context_text="\n".join(context_parts),
+                input_text=input_text,
                 max_context_tokens=MAX_CONTEXT_TOKENS,
                 reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
             )
-            user_input = budget_result.text
-
-            bound_tools = build_agent_tools(staff_member, conversation_id=conversation_id)
-            attach_subagent_toolkit(bound_tools, staff_member, llm=llm)
 
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
                 "agent_name": staff_member.name,
-                "context_length": len(user_input),
+                "context_length": sum(len(m["content"]) for m in turn.as_messages()),
                 "context_tokens": budget_result.input_tokens,
                 "context_token_limit": budget_result.max_input_tokens,
                 "context_truncated": budget_result.truncated,
@@ -334,13 +347,15 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
                 "llm_model": budget_result.model,
             })
 
+            own_history = llm_ready_messages(state.get("staff_states", {}), staff_member.name)
             output = await safe_chat(llm,
                 staff_name=staff_member.name,
                 system=staff_member.system_prompt,
-                user=user_input,
+                messages=[*own_history, *turn.as_messages()],
                 tools=bound_tools or None,
                 parallel_tools=staff_member.subagent_enabled,
             )
+            raise_if_llm_failed(output)
 
             stream_writer({
                 "type": EventType.LLM_RESPONSE_COMPLETE.value,
@@ -384,11 +399,18 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
 
             stream_writer({"type": EventType.TURN_COMPLETE.value, "turn": new_turn})
 
+            new_staff_states = append_assistant_turn(
+                append_user_turn(state.get("staff_states", {}), staff_member.name, input_text),
+                staff_member.name,
+                output,
+            )
+
             return {
                 **state,
                 "input": output,
                 "turns": [*state["turns"], new_turn],
                 "conversation_history": new_history,
+                "staff_states": new_staff_states,
                 "final_response": output,
                 "final_staff": staff_member.name,
                 "rounds": current_round + 1,

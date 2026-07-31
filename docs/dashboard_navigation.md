@@ -30,7 +30,16 @@ High-level visibility into the operations and financial/resource health of the a
 
 ---
 
-## 4. Organization Group
+## 4. Catalog Group (admin only, "Overall" scope)
+
+Visible only to admins while in the "Overall" scope, in place of the company-creation group above:
+- **Departments / Staff / Skills & Tools / Documents**: the shared "default" catalog admins curate — the
+  same record types as the Organization Group below, but these are the source templates every company's
+  **Recruiting Hub** copies from.
+
+---
+
+## 5. Organization Group
 
 Manages the personnel structures and technical capabilities of the business unit:
 - **Staff (AI Agents)**: Register and configure AI personnel, assigning names, corporate roles, LLM backends (GPT, Claude, Gemini), and standard system prompts.
@@ -39,7 +48,7 @@ Manages the personnel structures and technical capabilities of the business unit
 
 ---
 
-## 5. Operations Group
+## 6. Operations Group
 
 Manages day-to-day projects and communication within the organization:
 - **Projects & Kanban (Tasks)**: The control room for task execution. Define projects, assign them to departments, monitor real-time execution graphs/logs, and retrieve deliverables.
@@ -47,22 +56,32 @@ Manages day-to-day projects and communication within the organization:
 
 ---
 
-## 6. Simulation Group (Virtual Office)
+## 7. Workspace Group (Virtual Office)
 
 Spatial visualization of the virtual company:
-- **Office Designer (Office Builder)**: Visual grid to layout desks, meeting rooms, and office furniture.
 - **Office Map (Virtual Office)**: 2D representation of the active office. Watch staff move between desks, enter meeting rooms, and gather visually to collaborate.
-- **Recruiting Hub (Marketplace)**: A portal to discover and download pre-configured staff roles, department blueprints, and tool integrations built by the community.
+- **Documents**: The company's Document Library.
+- **Recruiting Hub (Marketplace)**: A portal to discover and copy pre-configured staff roles, department blueprints, tasks, and documents from the shared catalog.
+
+> **Office Designer (Office Builder)** lives in the "Overall" scope's Companies group (it creates a new
+> company), not in this per-company Workspace group.
 
 ---
 
-## 7. System & Settings Group
+## 8. Integrations Group
+
+- **Platform**: Manage per-company `Connection`s — inbound messaging webhooks and outbound third-party
+  hooks — and wire them to staff/departments.
+
+---
+
+## 9. System & Settings Group
 
 - **Training Center (Playground)**: An isolated sandbox to test staff prompts, trial new skills, and experiment with model behaviors without affecting active projects.
 - **Settings**: Adjust app-wide integrations, API keys, database settings, and notifications.
 
 ---
 
-## 8. Administration Group
+## 10. Administration Group
 
 - **System Monitoring**: Administrative panel to track server status, sandbox limits, security audits, and system logs.

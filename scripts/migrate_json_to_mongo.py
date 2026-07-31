@@ -6,8 +6,8 @@ Usage:
     python scripts/migrate_json_to_mongo.py
 
 Collections synced:
-  agents, skills, teams, workspaces, connections, tasks,
-  conversations, activity_feed, analytics (singleton),
+  staff, skills, departments, companies, connections, tasks,
+  meetings, activity_feed, analytics (singleton),
   sandbox_threads, graph_knowledge, graph_knowledge_events
 
 The "default" user / owner_id concept:
@@ -91,13 +91,13 @@ def _report(col_name: str, filename: str, ins: int, upd: int, total: int) -> Non
 
 # ── Standard list-based collections ──────────────────────────────────────────
 COLLECTIONS = [
-    ("agents",       "staff.json",        "id"),
+    ("staff",        "staff.json",        "id"),
     ("skills",       "skills.json",       "id"),
-    ("teams",        "departments.json",  "id"),
-    ("workspaces",   "companies.json",    "id"),
+    ("departments",  "departments.json",  "id"),
+    ("companies",    "companies.json",    "id"),
     ("connections",  "connections.json",  "id"),
     ("tasks",        "tasks.json",        "id"),
-    ("conversations","meetings.json",     "id"),
+    ("meetings",     "meetings.json",     "id"),
     ("activity_feed","activity_feed.json","id"),
     ("sandbox_threads","sandbox_threads.json","thread_id"),
 ]

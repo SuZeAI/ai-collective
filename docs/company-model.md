@@ -23,14 +23,20 @@ The left rail switches the active scope. The choice is persisted in `localStorag
 Each `NAV_GROUPS` group declares `visibleIn: "overall" | "company" | "both"`:
 
 ```
-overviewGroup   both     Company Overview · Performance & Cost · Usage & Billing
-companiesGroup  overall  AI Office Designer · Manage Companies        ← only in "All"
-orgGroup        company  Departments · Staff · Skills & Tools
-operationsGroup company  Projects · Task Board · Meetings
-officeGroup     company  Office Map · Documents · Recruiting           (group label: "Workspace")
-systemGroup     company  Training                                     (group label: "Tools")
-adminGroup      both     System Monitoring                            (admin only)
+overviewGroup      both     Company Overview · Performance & Cost · Usage & Billing
+companiesGroup     overall  AI Office Designer · Manage Companies        ← only in "All", hidden for admins
+catalogGroup       overall  Departments · Staff · Skills & Tools · Documents  (admin only, group label: "Catalog")
+orgGroup           company  Departments · Staff · Skills & Tools
+operationsGroup    company  Projects · Task Board · Meetings
+officeGroup        company  Office Map · Documents · Recruiting           (group label: "Workspace")
+integrationsGroup  company  Platform                                     (group label: "Integrations")
+systemGroup        company  Training                                     (group label: "Tools")
+adminGroup         both     System Monitoring                            (admin only)
 ```
+
+`catalogGroup` is the admin-only, All-scope shared "default" catalog (`/departments`, `/staff`, `/skills`, `/documents`) — the same routes as `orgGroup`/`officeGroup`'s Documents, but curated by admins as the source templates that every company's **Recruiting** page copies from. It replaces `companiesGroup` in the nav for admins (they curate the catalog instead of creating companies from that group).
+
+`integrationsGroup` is `/platform` (`src/pages/Platform.tsx`) — manage per-company `Connection`s (inbound webhooks + outbound third-party hooks) and the messaging platforms wired to staff/departments.
 
 Filter:
 ```ts

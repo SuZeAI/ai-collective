@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useCompanyScope } from "@/hooks/use-company-scope";
 import { cn } from "@/lib/utils";
 
 const NONE = "__none__";
@@ -26,6 +27,7 @@ const TYPE_CLS: Record<string, string> = {
 export default function Backlog() {
   const { key: projectKey = "" } = useParams<{ key: string }>();
   const { toast } = useToast();
+  const scope = useCompanyScope();
   const [project, setProject] = useState<Project | undefined>();
   const [epics, setEpics] = useState<Epic[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
@@ -41,10 +43,12 @@ export default function Backlog() {
   useEffect(() => () => { mountedRef.current = false; }, []);
 
   const load = useCallback(async () => {
+    if (scope.pending) return;
     const requestedKey = projectKey;
     try {
       const [projects, allEpics, allSprints, allTasks] = await Promise.all([
-        api.listProjects(), api.listEpics(), api.listSprints(), api.listTasks(),
+        api.listProjects(scope.isOverall ? undefined : scope.company?.id),
+        api.listEpics(), api.listSprints(), api.listTasks(),
       ]);
       if (!mountedRef.current || projectKeyRef.current !== requestedKey) return;
       const proj = projects.find((p) => p.key === projectKey);
@@ -57,7 +61,7 @@ export default function Backlog() {
     } finally {
       if (mountedRef.current && projectKeyRef.current === requestedKey) setLoading(false);
     }
-  }, [projectKey]);
+  }, [projectKey, scope.pending, scope.isOverall, scope.company?.id]);
 
   useEffect(() => { void load(); }, [load]);
 

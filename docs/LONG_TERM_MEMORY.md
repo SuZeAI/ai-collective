@@ -18,19 +18,19 @@ may be empty (`None` = "applies broadly"):
 
 | Dimension | Meaning |
 |-----------|---------|
-| `workspace_id` | The Business Unit the knowledge belongs to (the run's `team_id`) |
+| `company_id` | The Company the knowledge belongs to (the run's `company_id`) |
 | `owner_id` | The user it belongs to |
-| `agent_id` | The agent that learned it (persona / experience) |
+| `staff_id` | The staff member that learned it (persona / experience) |
 
 A recall query supplies a concrete scope and matches every record that is
-**equal-or-broader** on each dimension. So a workspace-wide fact (no owner/agent)
-surfaces for any agent in that workspace, while one agent's private note stays
-hidden from another agent — scope isolation is enforced both client-side
+**equal-or-broader** on each dimension. So a company-wide fact (no owner/staff)
+surfaces for any staff member in that company, while one staff member's private
+note stays hidden from another — scope isolation is enforced both client-side
 (brute-force / FAISS) and server-side (Qdrant payload filter).
 
 ## How a run uses LTM
 
-The run scope (`owner_id` + the task's `team_id` as workspace) is bound once per
+The run scope (`owner_id` + the task's `company_id`) is bound once per
 run in the `run-stream` endpoint via a contextvar (`current_memory_scope`).
 
 1. **Recall (before the model):** the `LongTermMemoryMiddleware` recalls a digest
@@ -205,7 +205,7 @@ graph:
 | Process accessor + run-scope contextvar | `backend/infrastructure/long_term_memory_store.py` |
 | Vector stores | `backend/infrastructure/vector_store/` |
 | Neo4j graph repo | `backend/infrastructure/repositories/neo4j_graph_knowledge.py` |
-| Recall/persist middleware | `LongTermMemoryMiddleware` in `backend/infrastructure/llm/middleware.py` |
+| Recall/persist middleware | `LongTermMemoryMiddleware` in `backend/infrastructure/llm/middleware/long_term_memory.py` |
 
 All LTM operations are **best-effort**: a persistence, embedding or index
 failure is logged and skipped — it can never abort an agent run.
@@ -214,7 +214,7 @@ failure is logged and skipped — it can never abort an agent run.
 
 | | Working memory | Long-term memory | Knowledge graph |
 |--|----------------|------------------|-----------------|
-| Scope | one conversation | workspace + owner + agent, across runs | one conversation |
+| Scope | one conversation | company + owner + staff, across runs | one conversation |
 | Content | results/decisions/todos this run | durable facts/preferences/episodes | entities + relations |
 | Lifetime | reset on restart | permanent (until pruned) | reset on restart (or kept — see persistence) |
 | Retrieval | full digest every turn | top-k semantic recall | top-k graph walk |

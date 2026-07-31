@@ -2,34 +2,32 @@ from __future__ import annotations
 
 import importlib
 
-from backend.infrastructure.llm.base_langchain import LangChainLLMProvider
-from backend.infrastructure.llm.rotation import RotationConfig, build_rotating_model, normalize_api_keys
+from backend.infrastructure.llm.providers.base_langchain import LangChainLLMProvider
+from backend.infrastructure.llm.providers.rotation import RotationConfig, build_rotating_model, normalize_api_keys
 
 
-# Zhipu AI GLM exposes an OpenAI-compatible API.
-# International platform (Z.ai): https://api.z.ai/api/paas/v4
-# China platform (BigModel):    https://open.bigmodel.cn/api/paas/v4
-GLM_BASE_URL = "https://api.z.ai/api/paas/v4"
+# DeepSeek exposes an OpenAI-compatible API. Docs: https://api-docs.deepseek.com/
+DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
 
-GLM_MODEL_ALIASES = {
-    "glm": "glm-4.6",
-    "glm-4": "glm-4.6",
-    "glm-4.5": "glm-4.5",
-    "glm-4.5-air": "glm-4.5-air",
-    "glm-4.6": "glm-4.6",
+DEEPSEEK_MODEL_ALIASES = {
+    "deepseek": "deepseek-chat",
+    "deepseek-v3": "deepseek-chat",
+    "deepseek-chat": "deepseek-chat",
+    "deepseek-r1": "deepseek-reasoner",
+    "deepseek-reasoner": "deepseek-reasoner",
 }
 
 
-def resolve_glm_model(model: str) -> str:
+def resolve_deepseek_model(model: str) -> str:
     normalized = (model or "").strip()
     if not normalized:
         return normalized
     key = normalized.lower().replace(" ", "").replace("_", "")
-    return GLM_MODEL_ALIASES.get(key, normalized)
+    return DEEPSEEK_MODEL_ALIASES.get(key, normalized)
 
 
-class GLMLangChainProvider(LangChainLLMProvider):
-    """Zhipu AI GLM as an staff LLM backend (OpenAI-compatible chat API)."""
+class DeepSeekLangChainProvider(LangChainLLMProvider):
+    """DeepSeek as an staff LLM backend (OpenAI-compatible chat API)."""
 
     def __init__(
         self,
@@ -51,18 +49,18 @@ class GLMLangChainProvider(LangChainLLMProvider):
 
         def build_one(key: str):
             kwargs: dict[str, object] = {
-                "model": resolve_glm_model(model),
+                "model": resolve_deepseek_model(model),
                 "api_key": key,
-                "base_url": (base_url or GLM_BASE_URL).rstrip("/"),
+                "base_url": (base_url or DEEPSEEK_BASE_URL).rstrip("/"),
             }
             if default_headers:
                 kwargs["default_headers"] = default_headers
             return ChatOpenAI(**kwargs)
 
-        llm = build_rotating_model(build_one, normalize_api_keys(api_key), label_prefix="glm", config=failover)
+        llm = build_rotating_model(build_one, normalize_api_keys(api_key), label_prefix="deepseek", config=failover)
         super().__init__(
             llm,
-            provider_name="GLM",
+            provider_name="DeepSeek",
             max_tool_rounds=max_tool_rounds,
             tool_timeout_seconds=tool_timeout_seconds,
         )

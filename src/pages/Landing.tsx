@@ -38,6 +38,51 @@ function GithubIcon({ className }: { className?: string }) {
   );
 }
 
+const PROVIDER_LOGOS = {
+  gemini: {
+    color: "#8E75B2",
+    path: "M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81",
+  },
+  anthropic: {
+    color: "#191919",
+    mono: true,
+    path: "M17.3041 3.541h-3.6718l6.696 16.918H24Zm-10.6082 0L0 20.459h3.7442l1.3693-3.5527h7.0052l1.3693 3.5528h3.7442L10.5363 3.5409Zm-.3712 10.2232 2.2914-5.9456 2.2914 5.9456Z",
+  },
+  openai: {
+    color: "#000000",
+    mono: true,
+    path: "M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z",
+  },
+  deepseek: {
+    color: "#5786FE",
+    path: "M23.748 4.651c-.254-.124-.364.113-.512.233-.051.04-.094.09-.137.137-.372.397-.806.657-1.373.626-.829-.046-1.537.214-2.163.848-.133-.782-.575-1.248-1.247-1.548-.352-.155-.708-.311-.955-.65-.172-.24-.219-.509-.305-.774-.055-.16-.11-.323-.293-.35-.2-.031-.278.136-.356.276-.313.572-.434 1.202-.422 1.84.027 1.436.633 2.58 1.838 3.393.137.094.172.187.129.323-.082.28-.18.553-.266.833-.055.179-.137.218-.328.14a5.5 5.5 0 0 1-1.737-1.179c-.857-.828-1.631-1.743-2.597-2.46a12 12 0 0 0-.689-.47c-.985-.957.13-1.743.387-1.836.27-.098.094-.433-.778-.428-.872.003-1.67.295-2.687.685a3 3 0 0 1-.465.136 9.6 9.6 0 0 0-2.883-.101c-1.885.21-3.39 1.1-4.497 2.622C.082 8.776-.231 10.854.152 13.02c.403 2.284 1.568 4.175 3.36 5.653 1.857 1.533 3.997 2.284 6.438 2.14 1.482-.085 3.132-.284 4.994-1.86.47.234.962.328 1.78.398.629.058 1.235-.031 1.705-.129.735-.155.684-.836.418-.961-2.155-1.004-1.682-.595-2.112-.926 1.095-1.295 2.768-3.598 3.284-6.733.05-.346.115-.834.108-1.114-.004-.171.035-.238.23-.257a4.2 4.2 0 0 0 1.545-.475c1.397-.763 1.96-2.016 2.093-3.517.02-.23-.004-.467-.247-.588M11.58 18.168c-2.088-1.642-3.101-2.183-3.52-2.16-.39.024-.32.472-.234.763.09.288.207.487.371.74.114.167.192.416-.113.603-.673.416-1.842-.14-1.897-.168-1.361-.801-2.5-1.86-3.301-3.306-.775-1.393-1.225-2.888-1.299-4.482-.02-.385.094-.522.477-.592a4.7 4.7 0 0 1 1.53-.038c2.131.311 3.946 1.264 5.467 2.774.868.86 1.525 1.887 2.202 2.89.72 1.066 1.494 2.082 2.48 2.915.348.291.626.513.892.677-.802.09-2.14.109-3.055-.615zm1.001-6.44a.306.306 0 0 1 .415-.287.3.3 0 0 1 .113.074.3.3 0 0 1 .086.214c0 .17-.136.307-.308.307a.303.303 0 0 1-.306-.307m3.11 1.596c-.2.081-.4.151-.591.16a1.25 1.25 0 0 1-.798-.254c-.274-.23-.47-.358-.551-.758a1.7 1.7 0 0 1 .015-.588c.07-.327-.007-.537-.238-.727-.188-.156-.426-.199-.689-.199a.6.6 0 0 1-.254-.078.253.253 0 0 1-.114-.358 1 1 0 0 1 .192-.21c.356-.202.767-.136 1.146.016.352.144.618.408 1.001.782.392.451.462.576.685.915.176.264.336.536.446.848.066.194-.02.353-.25.45",
+  },
+  kimi: {
+    color: "#000000",
+    mono: true,
+    path: "M21.765.351C22.998.351 24 1.353 24 2.586S22.998 4.82 21.765 4.82h-1.974c-.15 0-.26-.12-.26-.26V2.586A2.237 2.237 0 0 1 21.765.35M9.41 13.388l8.447-8.377c.16-.16.07-.471-.14-.471h-4.55s-.1.02-.14.06l-9.099 9.029c-.14.14-.35.02-.35-.21V4.81c0-.15-.1-.27-.221-.27H.22c-.12 0-.22.12-.22.27v18.57c0 .15.1.27.22.27h3.137c.12 0 .22-.12.22-.27v-3.79c0-.08.03-.16.08-.21l2.826-2.796c.07-.07.16-.08.241-.03l7.546 5.551a8.9 8.9 0 0 0 4.018 1.493c.12.01.23-.11.23-.27V19.76c0-.14-.08-.25-.19-.26a5.8 5.8 0 0 1-2.355-.942l-6.533-4.73c-.14-.09-.15-.32-.03-.441",
+  },
+  openrouter: {
+    color: "#94A3B8",
+    path: "M16.778 1.844v1.919q-.569-.026-1.138-.032-.708-.008-1.415.037c-1.93.126-4.023.728-6.149 2.237-2.911 2.066-2.731 1.95-4.14 2.75-.396.223-1.342.574-2.185.798-.841.225-1.753.333-1.751.333v4.229s.768.108 1.61.333c.842.224 1.789.575 2.185.799 1.41.798 1.228.683 4.14 2.75 2.126 1.509 4.22 2.11 6.148 2.236.88.058 1.716.041 2.555.005v1.918l7.222-4.168-7.222-4.17v2.176c-.86.038-1.611.065-2.278.021-1.364-.09-2.417-.357-3.979-1.465-2.244-1.593-2.866-2.027-3.68-2.508.889-.518 1.449-.906 3.822-2.59 1.56-1.109 2.614-1.377 3.978-1.466.667-.044 1.418-.017 2.278.02v2.176L24 6.014Z",
+  },
+} as const satisfies Record<string, { color: string; path: string; mono?: boolean }>;
+
+type ProviderLogoKey = keyof typeof PROVIDER_LOGOS;
+
+function ProviderIcon({ slug, className }: { slug: ProviderLogoKey; className?: string }) {
+  const logo = PROVIDER_LOGOS[slug];
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill={logo.color}
+      className={`${className ?? ""} ${"mono" in logo && logo.mono ? "dark:invert" : ""}`}
+    >
+      <path d={logo.path} />
+    </svg>
+  );
+}
+
 function FadeIn({ children, className, delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
@@ -57,8 +102,8 @@ function FadeIn({ children, className, delay = 0 }: { children: React.ReactNode;
 const LOCAL_COPY = {
   en: {
     hero: {
-      h1: "Build on the AI Collective Platform",
-      sub: "A high-performance multi-staff orchestration platform for programmable AI workforces. Deploy sequential, ring, mesh, or supervisor staff topologies with atomic tool integration.",
+      h1: "Build Your Own AI Company",
+      sub: "AI Collective is where you create your own company, organize it into departments, and staff those departments with AI — coordinating work across Sequential, Ring, Mesh, Supervisor, Tree, or fully Custom topologies.",
       cta1: "Start building",
       cta2: "See developer docs"
     },
@@ -66,41 +111,42 @@ const LOCAL_COPY = {
       title: "Choose how to get started",
       buildOwn: {
         title: "Deploy on your own",
-        sub: "Launch your own custom multi-staff workforce with:",
+        sub: "Self-host your own company, departments, and AI staff with:",
         bullets: [
-          "Sequential, Ring, Mesh, or Supervisor staff topologies",
-          "50+ atomic skill toolkits (Google Company, browser automation, social media)",
+          "Sequential, Ring, Mesh, Supervisor, Tree, or fully Custom staff topologies",
+          "AI Office Designer: describe a company in chat and get departments, staff, and skills in one click",
+          "50+ built-in skill toolkits — Google Workspace, browser automation, and 15+ messaging platforms",
           "Automatic token budget management and context-window optimization",
-          "Flexible backend: local run (JSON) or distributed scaling (Docker/RabbitMQ)",
+          "Flexible backend: local run (JSON storage) or distributed deployment (MongoDB + RabbitMQ via Docker Compose)",
           "Interactive Human-in-the-Loop steering capabilities",
           "Advanced spaCy and LLM-based Knowledge Graph extraction"
         ],
         cta: "Start building"
       },
       support: {
-        title: "Enterprise Deployments",
-        sub: "Need custom tool integrations, Kubernetes sandboxes, or hosted orchestration?",
+        comingSoonBadge: "Full open-source release: coming soon",
+        title: "Commercial Licensing",
+        sub: "AI Collective is source-available and free for non-commercial, research, and educational use. Using it in a paid product, internal business tool, or SaaS requires a separate commercial license.",
         bullets: [
-          "Enterprise onboarding and custom staff topology design",
-          "Custom API and database integrations with SLA guarantees",
-          "Managed high-throughput RabbitMQ and Redis clustering",
-          "Advanced secure code execution sandbox configuration (Docker/K8s)",
-          "Dedicated 24/7 engineering and deployment support"
+          "Free to self-host for study, research, and evaluation",
+          "Commercial, revenue-generating, or SaaS use requires written permission from the maintainer",
+          "Guidance available for custom integrations and Kubernetes sandbox deployments",
+          "Reach out directly to discuss licensing terms"
         ],
-        cta: "Contact sales"
+        cta: "Contact us"
       }
     },
     models: {
       title: "Supported LLM Foundations",
       sub: "Configure, swap, or route foundational model engines at runtime across industry-leading providers.",
-      batch: "Fully LLM-agnostic: Route via Google Gemini, Anthropic, OpenAI, or OpenRouter gateway.",
+      batch: "Fully LLM-agnostic: swap providers at runtime — Google Gemini, Anthropic Claude, OpenAI, DeepSeek, Moonshot Kimi, Zhipu GLM, OpenRouter, or any OpenAI-compatible custom endpoint — no code changes required.",
       activeModelLabel: "Active Model",
       capabilitiesHeader: "Key Capabilities",
       list: [
         {
           name: "Google Gemini",
+          icon: "gemini",
           desc: "Default speed engine, optimized for entity extraction and real-time knowledge graphs.",
-          modelKey: "gemini-2.0-flash",
           capabilities: [
             "Automated spaCy & LLM-based entity extraction",
             "Real-time graph building and state context loading",
@@ -109,8 +155,8 @@ const LOCAL_COPY = {
         },
         {
           name: "Anthropic Claude",
+          icon: "anthropic",
           desc: "Premier logic engine for multi-staff mesh coordinator and code generation.",
-          modelKey: "claude-3-5-sonnet",
           capabilities: [
             "Advanced prompt caching to reduce token overhead",
             "Superior tool selection and staff delegation flow",
@@ -119,8 +165,8 @@ const LOCAL_COPY = {
         },
         {
           name: "OpenAI GPT",
+          icon: "openai",
           desc: "Highly reliable standard engine for structured JSON schemas and tool binding.",
-          modelKey: "gpt-4o",
           capabilities: [
             "Strict JSON schema enforcement for inputs/outputs",
             "Multi-staff ring debate consensus formatting",
@@ -128,9 +174,29 @@ const LOCAL_COPY = {
           ]
         },
         {
-          name: "Open Weight (Qwen)",
+          name: "DeepSeek",
+          icon: "deepseek",
+          desc: "Cost-efficient reasoning engine, strong at long-context analysis and structured chain-of-thought tasks.",
+          capabilities: [
+            "Deep chain-of-thought reasoning for complex staff planning",
+            "Large context window for document-heavy meeting review",
+            "Low-cost inference for high-volume department runs"
+          ]
+        },
+        {
+          name: "Kimi (Moonshot)",
+          icon: "kimi",
+          desc: "Long-context specialist engine tuned for extended multi-turn staff conversations.",
+          capabilities: [
+            "Ultra-long context window for sprawling meeting histories",
+            "Strong Chinese/English bilingual reasoning",
+            "Efficient tool-calling for retrieval-augmented workflows"
+          ]
+        },
+        {
+          name: "Open Weight",
+          icon: "openrouter",
           desc: "High-parameter open weight engine for self-hosted or air-gapped secure staff clusters.",
-          modelKey: "qwen3.5-397B-A17B",
           capabilities: [
             "Self-hosted orchestration with zero data leakage",
             "Fine-tuned for Python code execution inside Docker sandboxes",
@@ -140,15 +206,16 @@ const LOCAL_COPY = {
       ]
     },
     tools: {
-      title: "Capabilities of the Staff Mesh",
-      sub: "Explore the advanced runtime services powering the AI Collective platform.",
+      title: "What Powers Your Company",
+      sub: "The runtime services behind every company, department, and staff member on AI Collective.",
       cta: "See developer docs",
       list: [
-        { name: "Multi-Staff Topologies", desc: "Orchestrate sequential pipelines, ring debate patterns, mesh coordinator networks, or supervisor structures." },
+        { name: "AI Office Designer", desc: "Describe your company in chat — AI proposes departments, staff, and skills, then creates the whole company in one click." },
+        { name: "6 Staff Topologies", desc: "Orchestrate sequential pipelines, ring debate rounds, mesh coordinator networks, supervisor hierarchies, tree structures, or fully custom LangGraph DAGs." },
         { name: "50+ Skill Toolkits", desc: "Equip staff with Google Drive/Calendar, Playwright web scrapers, social feeds, and productivity tools." },
-        { name: "subagent Delegation", desc: "Allow main staff to spawn and run parallel subagents concurrently with strict turn limits." },
-        { name: "Real-time SSE Streaming", desc: "Follow execution progress turn-by-turn with transparent event logs (staff_start, llm_request, subagent_complete)." },
-        { name: "Secure Sandbox Execution", desc: "Safely execute Python/Bash commands inside isolated local, Docker, or Kubernetes sandbox environments." },
+        { name: "Subagent Delegation", desc: "Allow main staff to spawn and run parallel subagents concurrently with strict turn limits." },
+        { name: "Real-time SSE Streaming", desc: "Follow execution progress turn-by-turn with transparent event logs (agent_start, llm_request_start, subagent_complete)." },
+        { name: "Secure Sandbox Execution", desc: "Safely execute Python/Bash commands inside isolated local or Kubernetes sandbox environments." },
         { name: "Knowledge Graph Memory", desc: "Extract meeting context dynamically via NLP (spaCy) or LLMs to build a queryable semantic memory." },
         { name: "Context & Token Budgeting", desc: "Automatically trim and optimize context windows when approaching token limits." },
         { name: "Human-in-the-Loop", desc: "Intervene in ongoing multi-staff discussions to steer staff or provide manual task inputs." },
@@ -156,19 +223,24 @@ const LOCAL_COPY = {
       ]
     },
     console: {
-      title: "Manage Departments inside the AI Collective Console",
-      sub: "Integrate powerful multi-staff departments into your existing application stack via clean FastAPI endpoints and interactive dashboards.",
+      title: "Manage Your Company, Departments, and Staff from One Dashboard",
+      sub: "From the AI Office Designer to task boards and live meetings — run your entire AI company through clean FastAPI endpoints and interactive dashboards.",
       devTitle: "Built for AI Engineers",
-      desc: "Monitor, test, and tune your workforce:",
+      desc: "Monitor, staff, and tune your company:",
       bullets: [
+        "Describe a company in chat and let AI Office Designer generate its departments, staff, and skills",
         "Create, edit, and configure custom staff and tools in real-time",
         "Trace staff execution steps, token cost logs, and message histories",
-        "Interact directly with departments during multi-round runs"
+        "Run Projects, Task Boards, and live Meetings, with Recruiting to staff new roles"
       ]
     },
     usecases: {
-      title: "Real-world Multi-Staff Use Cases",
+      title: "What You Can Build With AI Collective",
       list: [
+        {
+          name: "Instant AI Company",
+          desc: "Describe your business idea in chat — AI Office Designer proposes departments, staff, and skills, then builds the whole company in one click."
+        },
         {
           name: "Financial Debate",
           desc: "Spawn a department of analysts debating market indicators using real-time Brave search tools under a Ring topology."
@@ -176,10 +248,6 @@ const LOCAL_COPY = {
         {
           name: "Editorial Pipeline",
           desc: "Manage content creation from research and drafting to proofreading and formatting under a Supervisor lead."
-        },
-        {
-          name: "Software Auditing",
-          desc: "Run automated vulnerability scanner staff that execute and test code within secure, isolated sandboxes."
         },
         {
           name: "Parallel Web Crawling",
@@ -226,30 +294,20 @@ const LOCAL_COPY = {
       devDocs: "Developer docs",
       changelog: "Changelog",
       overview: "Overview",
-      consoleLogin: "Console login",
+      consoleLogin: "Dashboard login",
       star: "Star"
     },
-    testimonials: [
-      {
-        logo: "CODEMESH",
-        text: "“On StaffBench, the AI Collective multi-staff mesh architecture gave us immediate latency improvements and clean orchestration.”",
-        author: "Marcus Vance, CEO"
-      },
-      {
-        logo: "EVENTPASS",
-        text: "“Deploying multi-staff workflows was simple. The reliability and flexibility of the LangGraph topology options made the transition seamless.”",
-        author: "Taylor Addison, Engineering Chief of Staff"
-      },
-      {
-        logo: "SPARKAGENT",
-        text: "“The ability to run secure code execution sandbox alongside specialized toolkits has elevated our staff performance by a wide margin.”",
-        author: "SparkStaff Core Department"
-      },
-      {
-        logo: "SHOPMESH",
-        text: "“AI Collective handles ticket triage, multi-step workflows, and complex conversational queries with robust human-in-the-loop support.”",
-        author: "ShopMesh Dev Department"
-      }
+    highlights: [
+      "6 Staff Topologies",
+      "AI Office Designer",
+      "50+ Skill Toolkits",
+      "Real-time SSE Streaming",
+      "Knowledge Graph Memory",
+      "LLM-Agnostic",
+      "Secure Sandbox Execution",
+      "JSON or MongoDB Storage",
+      "Token Budget Management",
+      "Source-Available"
     ],
     footerSitemap: {
       rights: "All rights reserved. Integrating staff mesh networks across public and local systems.",
@@ -269,8 +327,8 @@ const LOCAL_COPY = {
   },
   vi: {
     hero: {
-      h1: "Xây dựng trên Nền tảng AI Collective",
-      sub: "Nền tảng điều phối đa tác nhân (multi-staff) hiệu năng cao cho lực lượng lao động AI lập trình được. Triển khai các cấu trúc Sequential, Ring, Mesh hoặc Supervisor với tích hợp công cụ nguyên tử.",
+      h1: "Xây dựng Công ty AI của riêng bạn",
+      sub: "AI Collective là nơi bạn tự tạo ra công ty của mình, tổ chức thành các phòng ban, và biên chế các phòng ban đó bằng AI — phối hợp công việc qua các cấu trúc Sequential, Ring, Mesh, Supervisor, Tree, hoặc hoàn toàn tùy chỉnh (Custom).",
       cta1: "Bắt đầu xây dựng",
       cta2: "Xem tài liệu lập trình"
     },
@@ -278,41 +336,42 @@ const LOCAL_COPY = {
       title: "Chọn cách thức bắt đầu",
       buildOwn: {
         title: "Tự triển khai",
-        sub: "Khởi chạy lực lượng lao động đa tác nhân tùy chỉnh của bạn với:",
+        sub: "Tự lưu trữ công ty, phòng ban và nhân sự AI của riêng bạn với:",
         bullets: [
-          "Các cấu trúc tác nhân: Sequential, Ring, Mesh hoặc Supervisor",
-          "Hơn 50 bộ công cụ nguyên tử (Google Company, tự động hóa trình duyệt, mạng xã hội)",
+          "Các cấu trúc tác nhân: Sequential, Ring, Mesh, Supervisor, Tree, hoặc hoàn toàn tùy chỉnh (Custom)",
+          "AI Office Designer: mô tả công ty qua chat và nhận ngay phòng ban, nhân sự, kỹ năng chỉ với một cú nhấp",
+          "Hơn 50 bộ công cụ tích hợp sẵn — Google Workspace, tự động hóa trình duyệt, và hơn 15 nền tảng nhắn tin",
           "Tự động quản lý ngân sách Token và tối ưu hóa cửa sổ ngữ cảnh",
-          "Backend linh hoạt: chạy local (JSON) hoặc mở rộng phân tán (Docker/RabbitMQ)",
+          "Backend linh hoạt: chạy local (lưu JSON) hoặc triển khai phân tán (MongoDB + RabbitMQ qua Docker Compose)",
           "Tương tác điều hướng trực tiếp bằng cơ chế Human-in-the-loop",
           "Trích xuất Biểu đồ tri thức (Knowledge Graph) nâng cao qua spaCy hoặc LLM"
         ],
         cta: "Bắt đầu xây dựng"
       },
       support: {
-        title: "Triển khai doanh nghiệp",
-        sub: "Cần tích hợp công cụ tùy chỉnh, Kubernetes sandbox hoặc hệ thống điều phối lưu trữ?",
+        comingSoonBadge: "Bản mã nguồn mở đầy đủ: sắp ra mắt",
+        title: "Cấp phép thương mại",
+        sub: "AI Collective là source-available và miễn phí cho mục đích phi thương mại, nghiên cứu và giáo dục. Sử dụng cho sản phẩm trả phí, công cụ nội bộ doanh nghiệp, hoặc SaaS cần một giấy phép thương mại riêng.",
         bullets: [
-          "Hỗ trợ tích hợp và thiết kế cấu trúc tác nhân doanh nghiệp",
-          "Tích hợp API và cơ sở dữ liệu tùy chỉnh kèm cam kết SLA",
-          "Quản lý cụm RabbitMQ và Redis hiệu năng cao được lưu trữ",
-          "Cấu hình môi trường sandbox thực thi mã an toàn (Docker/Kubernetes)",
-          "Hỗ trợ kỹ thuật và vận hành triển khai chuyên dụng 24/7"
+          "Miễn phí tự triển khai để học tập, nghiên cứu và đánh giá",
+          "Sử dụng thương mại, tạo doanh thu, hoặc SaaS cần được sự cho phép bằng văn bản từ tác giả",
+          "Có hỗ trợ tư vấn tích hợp tùy chỉnh và triển khai Kubernetes sandbox",
+          "Liên hệ trực tiếp để trao đổi về điều khoản cấp phép"
         ],
-        cta: "Liên hệ kinh doanh"
+        cta: "Liên hệ với chúng tôi"
       }
     },
     models: {
       title: "Các động cơ mô hình được hỗ trợ",
       sub: "Cấu hình, thay đổi hoặc định tuyến các động cơ mô hình nền tảng ở thời điểm chạy mà không cần sửa mã.",
-      batch: "Hoàn toàn độc lập mô hình: Định tuyến qua Google Gemini, Anthropic, OpenAI hoặc OpenRouter.",
+      batch: "Hoàn toàn độc lập mô hình: chuyển đổi nhà cung cấp ngay khi chạy — Google Gemini, Anthropic Claude, OpenAI, DeepSeek, Moonshot Kimi, Zhipu GLM, OpenRouter, hoặc bất kỳ endpoint tương thích OpenAI nào — không cần sửa mã.",
       activeModelLabel: "Model kích hoạt",
       capabilitiesHeader: "Khả năng chính",
       list: [
         {
           name: "Google Gemini",
+          icon: "gemini",
           desc: "Động cơ tốc độ mặc định, tối ưu hóa cho việc trích xuất thực thể và đồ thị tri thức thời gian thực.",
-          modelKey: "gemini-2.0-flash",
           capabilities: [
             "Trích xuất thực thể tự động bằng spaCy & LLM",
             "Xây dựng đồ thị ngữ cảnh và tải trạng thái cực nhanh",
@@ -321,8 +380,8 @@ const LOCAL_COPY = {
         },
         {
           name: "Anthropic Claude",
+          icon: "anthropic",
           desc: "Động cơ logic hàng đầu cho bộ điều phối mesh đa tác nhân và sinh mã nguồn.",
-          modelKey: "claude-3-5-sonnet",
           capabilities: [
             "Hỗ trợ prompt caching giảm chi phí token và độ trễ",
             "Khả năng lựa chọn công cụ và ủy thác tác nhân tối ưu",
@@ -331,8 +390,8 @@ const LOCAL_COPY = {
         },
         {
           name: "OpenAI GPT",
+          icon: "openai",
           desc: "Động cơ tiêu chuẩn độ tin cậy cao cho các schema JSON cấu trúc và liên kết công cụ.",
-          modelKey: "gpt-4o",
           capabilities: [
             "Ràng buộc lược đồ JSON nghiêm ngặt cho input/output",
             "Định dạng đồng thuận tranh luận đa tác nhân vòng tròn",
@@ -340,9 +399,29 @@ const LOCAL_COPY = {
           ]
         },
         {
-          name: "Open Weight (Qwen)",
+          name: "DeepSeek",
+          icon: "deepseek",
+          desc: "Động cơ suy luận tiết kiệm chi phí, mạnh về phân tích ngữ cảnh dài và chuỗi suy luận có cấu trúc.",
+          capabilities: [
+            "Suy luận chuỗi tư duy sâu cho việc lập kế hoạch tác nhân phức tạp",
+            "Cửa sổ ngữ cảnh lớn cho việc xem xét tài liệu cuộc họp",
+            "Suy luận chi phí thấp cho các lượt chạy phòng ban khối lượng lớn"
+          ]
+        },
+        {
+          name: "Kimi (Moonshot)",
+          icon: "kimi",
+          desc: "Động cơ chuyên về ngữ cảnh siêu dài, tối ưu cho các cuộc hội thoại đa lượt kéo dài của tác nhân.",
+          capabilities: [
+            "Cửa sổ ngữ cảnh siêu dài cho lịch sử cuộc họp phức tạp",
+            "Suy luận song ngữ Trung-Anh mạnh mẽ",
+            "Gọi công cụ hiệu quả cho quy trình truy xuất tăng cường"
+          ]
+        },
+        {
+          name: "Open Weight",
+          icon: "openrouter",
           desc: "Động cơ trọng số mở số lượng tham số lớn cho các cụm tác nhân bảo mật tự lưu trữ hoặc offline.",
-          modelKey: "qwen3.5-397B-A17B",
           capabilities: [
             "Điều phối tự lưu trữ hoàn toàn không rò rỉ dữ liệu",
             "Tối ưu hóa cho thực thi mã Python trong sandbox Docker",
@@ -352,15 +431,16 @@ const LOCAL_COPY = {
       ]
     },
     tools: {
-      title: "Năng lực của Mạng lưới Tác nhân",
-      sub: "Khám phá các dịch vụ runtime tiên tiến cung cấp năng lượng cho nền tảng AI Collective.",
+      title: "Những gì vận hành Công ty của bạn",
+      sub: "Các dịch vụ runtime đứng sau mỗi công ty, phòng ban và nhân sự trên AI Collective.",
       cta: "Xem tài liệu lập trình",
       list: [
-        { name: "Điều phối Đa tác nhân", desc: "Điều phối luồng tuần tự, tranh luận vòng tròn, mạng điều phối mesh hoặc cấu trúc supervisor." },
+        { name: "AI Office Designer", desc: "Mô tả công ty của bạn qua chat — AI đề xuất phòng ban, nhân sự, kỹ năng, rồi tạo cả công ty chỉ với một cú nhấp." },
+        { name: "6 Cấu trúc tác nhân", desc: "Điều phối luồng tuần tự (Sequential), tranh luận vòng tròn (Ring), mạng điều phối mesh, cấu trúc phân cấp Supervisor, cấu trúc cây (Tree), hoặc LangGraph DAG hoàn toàn tùy chỉnh." },
         { name: "Hơn 50 bộ công cụ", desc: "Trang bị cho tác nhân Google Drive, Sheets, công cụ tìm kiếm Brave, mạng xã hội và các tiện ích hệ thống." },
         { name: "Ủy thác Tác nhân con", desc: "Cho phép tác nhân chính tạo và chạy song song các tác nhân con đồng thời với giới hạn lượt nghiêm ngặt." },
-        { name: "Luồng SSE thời gian thực", desc: "Theo dõi tiến trình thực thi từng lượt với các sự kiện chi tiết (staff_start, llm_request, subagent_complete)." },
-        { name: "Môi trường Sandbox an toàn", desc: "Thực thi an toàn các lệnh Python/Bash trong các sandbox biệt lập trên Local, Docker hoặc Kubernetes." },
+        { name: "Luồng SSE thời gian thực", desc: "Theo dõi tiến trình thực thi từng lượt với các sự kiện chi tiết (agent_start, llm_request_start, subagent_complete)." },
+        { name: "Môi trường Sandbox an toàn", desc: "Thực thi an toàn các lệnh Python/Bash trong các sandbox biệt lập trên Local hoặc Kubernetes." },
         { name: "Bộ nhớ biểu đồ tri thức", desc: "Trích xuất ngữ cảnh động qua NLP (spaCy) hoặc LLM để xây dựng bộ nhớ ngữ nghĩa có thể truy vấn." },
         { name: "Quản lý ngân sách Token", desc: "Tự động cắt tỉa và tối ưu hóa cửa sổ ngữ cảnh khi tiệm cận giới hạn token để kiểm soát chi phí." },
         { name: "Human-in-the-Loop", desc: "Can thiệp trực tiếp vào các cuộc thảo luận của tác nhân để hướng dẫn hoặc cung cấp dữ liệu đầu vào thủ công." },
@@ -368,19 +448,24 @@ const LOCAL_COPY = {
       ]
     },
     console: {
-      title: "Quản lý đội ngũ tác nhân trên AI Collective Console",
-      sub: "Tích hợp các đội ngũ tác nhân mạnh mẽ vào ứng dụng hiện tại thông qua các endpoint FastAPI sạch và bảng điều khiển trực quan.",
+      title: "Quản lý Công ty, Phòng ban và Nhân sự từ một Dashboard duy nhất",
+      sub: "Từ AI Office Designer đến bảng công việc và cuộc họp trực tiếp — vận hành toàn bộ công ty AI của bạn qua các endpoint FastAPI sạch và bảng điều khiển trực quan.",
       devTitle: "Xây dựng cho kỹ sư AI",
-      desc: "Theo dõi, thử nghiệm và tinh chỉnh lực lượng lao động của bạn:",
+      desc: "Theo dõi, biên chế và tinh chỉnh công ty của bạn:",
       bullets: [
+        "Mô tả công ty qua chat và để AI Office Designer tạo ra phòng ban, nhân sự, kỹ năng",
         "Tạo, sửa đổi và cấu hình tác nhân và công cụ tùy chỉnh trong thời gian thực",
         "Theo dõi từng bước thực thi của tác nhân, nhật ký chi phí token và lịch sử tin nhắn",
-        "Tương tác trực tiếp với các nhóm tác nhân trong các lượt chạy nhiều vòng"
+        "Vận hành Projects, Task Board và Meetings trực tiếp, cùng Recruiting để tuyển thêm nhân sự"
       ]
     },
     usecases: {
-      title: "Trường hợp sử dụng thực tế",
+      title: "Những gì bạn có thể xây dựng với AI Collective",
       list: [
+        {
+          name: "Công ty AI tức thì",
+          desc: "Mô tả ý tưởng kinh doanh của bạn qua chat — AI Office Designer đề xuất phòng ban, nhân sự, kỹ năng, rồi xây cả công ty chỉ với một cú nhấp."
+        },
         {
           name: "Tranh luận tài chính",
           desc: "Khởi tạo một nhóm tác nhân phân tích để tranh luận về các chỉ số thị trường bằng công cụ tìm kiếm Brave trong cấu trúc Ring."
@@ -388,10 +473,6 @@ const LOCAL_COPY = {
         {
           name: "Quy trình biên tập",
           desc: "Quản lý quy trình sáng tạo nội dung từ nghiên cứu, phác thảo đến phê bình và định dạng dưới sự dẫn dắt của Supervisor."
-        },
-        {
-          name: "Kiểm định phần mềm",
-          desc: "Chạy các tác nhân quét lỗ hổng bảo mật tự động, thực thi và kiểm thử mã nguồn trong các sandbox Docker an sau toàn."
         },
         {
           name: "Thu thập dữ liệu song song",
@@ -438,30 +519,20 @@ const LOCAL_COPY = {
       devDocs: "Tài liệu kỹ thuật",
       changelog: "Nhật ký thay đổi",
       overview: "Tổng quan",
-      consoleLogin: "Đăng nhập Console",
+      consoleLogin: "Đăng nhập Dashboard",
       star: "Đánh sao"
     },
-    testimonials: [
-      {
-        logo: "CODEMESH",
-        text: "“Trên StaffBench, kiến trúc mesh đa tác nhân của AI Collective đã mang lại cải tiến độ trễ tức thì và điều phối gọn gàng cho chúng tôi.”",
-        author: "Marcus Vance, CEO"
-      },
-      {
-        logo: "EVENTPASS",
-        text: "“Triển khai luồng công việc đa tác nhân cực kỳ đơn giản. Độ tin cậy và linh hoạt của các tùy chọn cấu trúc LangGraph đã giúp quá trình chuyển đổi diễn ra liền mạch.”",
-        author: "Taylor Addison, Engineering Chief of Staff"
-      },
-      {
-        logo: "SPARKAGENT",
-        text: "“Khả năng chạy sandbox thực thi mã an toàn bên cạnh các bộ công cụ chuyên dụng đã nâng cao hiệu suất tác nhân của chúng tôi lên một mức vượt trội.”",
-        author: "SparkStaff Core Department"
-      },
-      {
-        logo: "SHOPMESH",
-        text: "“AI Collective xử lý phân loại ticket, quy trình nhiều bước và các câu hỏi hội thoại phức tạp với sự hỗ trợ Human-in-the-loop mạnh mẽ.”",
-        author: "ShopMesh Dev Department"
-      }
+    highlights: [
+      "6 Cấu trúc Tác nhân",
+      "AI Office Designer",
+      "Hơn 50 Bộ Công cụ",
+      "Streaming SSE Thời gian thực",
+      "Bộ nhớ Biểu đồ Tri thức",
+      "Không phụ thuộc LLM",
+      "Sandbox Thực thi An toàn",
+      "Lưu trữ JSON hoặc MongoDB",
+      "Quản lý Ngân sách Token",
+      "Source-Available"
     ],
     footerSitemap: {
       rights: "Bảo lưu mọi quyền. Tích hợp mạng lưới tác nhân AI trên các hệ thống công cộng và cục bộ.",
@@ -481,8 +552,8 @@ const LOCAL_COPY = {
   },
   zh: {
     hero: {
-      h1: "构建于 AI Collective 平台",
-      sub: "用于可编程 AI 员工的高性能多智能体编排平台。部署具有原子工具集成的顺序、环形、网状或主管智能体拓扑。",
+      h1: "打造属于你自己的 AI 公司",
+      sub: "AI Collective 让你创建自己的公司，将其组织为多个部门，并为这些部门配备 AI 员工 — 通过 Sequential、Ring、Mesh、Supervisor、Tree 或完全自定义（Custom）的拓扑协调工作。",
       cta1: "开始构建",
       cta2: "查看开发者文档"
     },
@@ -490,41 +561,42 @@ const LOCAL_COPY = {
       title: "选择如何开始",
       buildOwn: {
         title: "自主部署",
-        sub: "启动您定制的多智能体员工：",
+        sub: "自行托管属于你自己的公司、部门与 AI 员工：",
         bullets: [
-          "顺序、环形、网状或主管智能体拓扑",
-          "50+ 原子级技能工具包（Google Company、浏览器自动化、社交媒体）",
+          "Sequential、Ring、Mesh、Supervisor、Tree 或完全自定义（Custom）的员工拓扑",
+          "AI 办公室设计师：在聊天中描述公司，一键生成部门、员工与技能",
+          "50+ 内置技能工具包 — Google Workspace、浏览器自动化，以及 15+ 消息平台",
           "自动代币预算管理和上下文窗口优化",
-          "灵活的后端：本地运行 (JSON) 或分布式扩展 (Docker/RabbitMQ)",
+          "灵活的后端：本地运行 (JSON 存储) 或分布式部署 (通过 Docker Compose 的 MongoDB + RabbitMQ)",
           "交互式人机协同 (Human-in-the-Loop) 指导能力",
           "高级 spaCy 和基于 LLM 的知识图谱提取"
         ],
         cta: "开始构建"
       },
       support: {
-        title: "企业部署",
-        sub: "需要定制工具集成、Kubernetes 沙箱或托管编排？",
+        comingSoonBadge: "完整开源版本：即将推出",
+        title: "商业授权",
+        sub: "AI Collective 是源代码可见 (source-available) 的项目，免费用于非商业、研究与教育用途。若要用于付费产品、企业内部工具或 SaaS，需要单独的商业许可。",
         bullets: [
-          "企业新手引导 and 定制智能体拓扑设计",
-          "带 SLA 保证的定制 API 和数据库集成",
-          "托管的高吞吐量 RabbitMQ 和 Redis 集群",
-          "高级安全代码执行沙箱配置（Docker/K8s）",
-          "专用的 24/7 工程与部署支持"
+          "可免费自行托管，用于学习、研究与评估",
+          "商业用途、营利用途或 SaaS 用途需获得作者的书面许可",
+          "可提供定制集成与 Kubernetes 沙箱部署方面的指导",
+          "直接联系以商讨授权条款"
         ],
-        cta: "联系销售"
+        cta: "联系我们"
       }
     },
     models: {
       title: "支持的 LLM 基座",
       sub: "在运行时配置、交换或路由行业领先提供商的基座模型引擎。",
-      batch: "完全 LLM 无关：通过 Google Gemini、Anthropic、OpenAI 或 OpenRouter 网关进行路由。",
+      batch: "完全与 LLM 无关：可在运行时切换提供商 — Google Gemini、Anthropic Claude、OpenAI、DeepSeek、Moonshot Kimi、智谱 GLM、OpenRouter,或任何兼容 OpenAI 的自定义端点 — 无需修改代码。",
       activeModelLabel: "当前活跃模型",
       capabilitiesHeader: "核心能力",
       list: [
         {
           name: "Google Gemini",
+          icon: "gemini",
           desc: "默认速度引擎，针对实体提取和实时知识图谱进行了优化。",
-          modelKey: "gemini-2.0-flash",
           capabilities: [
             "自动 spaCy 和基于 LLM 的实体提取",
             "实时图谱构建和状态上下文加载",
@@ -533,8 +605,8 @@ const LOCAL_COPY = {
         },
         {
           name: "Anthropic Claude",
+          icon: "anthropic",
           desc: "用于多智能体网状协调器和代码生成的首选逻辑引擎。",
-          modelKey: "claude-3-5-sonnet",
           capabilities: [
             "先进的提示词缓存以减少代币开销",
             "卓越的工具选择和智能体委派流",
@@ -543,8 +615,8 @@ const LOCAL_COPY = {
         },
         {
           name: "OpenAI GPT",
+          icon: "openai",
           desc: "用于结构化 JSON 模式和工具绑定的高可靠性标准引擎。",
-          modelKey: "gpt-4o",
           capabilities: [
             "针对输入/输出的严格 JSON 模式强制执行",
             "多智能体环形辩论共识格式化",
@@ -552,9 +624,29 @@ const LOCAL_COPY = {
           ]
         },
         {
-          name: "Open Weight (Qwen)",
+          name: "DeepSeek",
+          icon: "deepseek",
+          desc: "高性价比推理引擎，擅长长上下文分析与结构化思维链任务。",
+          capabilities: [
+            "深度思维链推理，用于复杂的员工规划",
+            "大上下文窗口，便于处理大量会议文档",
+            "低成本推理，适合高吞吐量的部门运行"
+          ]
+        },
+        {
+          name: "Kimi (Moonshot)",
+          icon: "kimi",
+          desc: "超长上下文专用引擎，针对多轮长对话进行了优化。",
+          capabilities: [
+            "超长上下文窗口，适应庞大的会议历史",
+            "强大的中英双语推理能力",
+            "高效的工具调用，适用于检索增强工作流"
+          ]
+        },
+        {
+          name: "Open Weight",
+          icon: "openrouter",
           desc: "用于自托管或物理隔离的安全智能体集群的高参数开源权重引擎。",
-          modelKey: "qwen3.5-397B-A17B",
           capabilities: [
             "零数据泄露的自托管编排",
             "微调用于 Docker 沙箱内的 Python 代码执行",
@@ -564,35 +656,41 @@ const LOCAL_COPY = {
       ]
     },
     tools: {
-      title: "智能体网格 (Staff Mesh) 能力",
-      sub: "探索为 AI Collective 平台提供支持的高级运行时服务。",
+      title: "支撑你公司运转的核心能力",
+      sub: "AI Collective 上每一个公司、部门与员工背后的运行时服务。",
       cta: "查看开发者文档",
       list: [
-        { name: "多智能体拓扑", desc: "编排顺序流水线、环形辩论模式、网状协调器网络或主管结构。" },
-        { name: "50+ 技能工具包", desc: "为智能体装备 Google Drive/日历、Playwright 网页抓取、社交动态和生产力工具。" },
-        { name: "子智能体委派", desc: "允许主智能体并发生成并运行具有严格轮次限制的并行子智能体。" },
-        { name: "实时 SSE 流式传输", desc: "通过透明的事件日志（staff_start, llm_request, subagent_complete）逐轮跟踪执行进度。" },
-        { name: "安全沙箱执行", desc: "在隔离的本地、Docker 或 Kubernetes 沙箱环境中安全地执行 Python/Bash 命令。" },
+        { name: "AI 办公室设计师", desc: "在聊天中描述你的公司 — AI 提出部门、员工与技能建议，一键创建整个公司。" },
+        { name: "6 种员工拓扑", desc: "编排顺序流水线 (Sequential)、环形辩论 (Ring)、网状协调器网络 (Mesh)、主管层级 (Supervisor)、树状结构 (Tree)，或完全自定义的 LangGraph DAG。" },
+        { name: "50+ 技能工具包", desc: "为员工装备 Google Drive/日历、Playwright 网页抓取、社交动态和生产力工具。" },
+        { name: "子智能体委派", desc: "允许主员工并发生成并运行具有严格轮次限制的并行子智能体。" },
+        { name: "实时 SSE 流式传输", desc: "通过透明的事件日志（agent_start、llm_request_start、subagent_complete）逐轮跟踪执行进度。" },
+        { name: "安全沙箱执行", desc: "在隔离的本地或 Kubernetes 沙箱环境中安全地执行 Python/Bash 命令。" },
         { name: "知识图谱记忆", desc: "通过 NLP (spaCy) 或 LLM 动态提取对话上下文，构建可查询的语义记忆。" },
         { name: "上下文与代币预算", desc: "在接近代币限制时自动修剪和优化上下文窗口。" },
-        { name: "人机协同 (Human-in-the-Loop)", desc: "干预正在进行的多智能体讨论以指导智能体或提供手动任务输入。" },
-        { name: "多工作区隔离", desc: "使用 JWT 验证、Google OAuth 和数据库隔离来确保多租户数据段的安全。" }
+        { name: "人机协同 (Human-in-the-Loop)", desc: "干预正在进行的多员工讨论以指导员工或提供手动任务输入。" },
+        { name: "多公司隔离", desc: "使用 JWT 验证、Google OAuth 和数据库隔离来确保多租户数据段的安全。" }
       ]
     },
     console: {
-      title: "在 AI Collective 控制台中管理团队",
-      sub: "通过干净的 FastAPI 端点和交互式仪表盘，将强大的多智能体团队集成到您现有的应用栈中。",
+      title: "在一个 Dashboard 中管理你的公司、部门与员工",
+      sub: "从 AI 办公室设计师到任务看板与实时会议 — 通过干净的 FastAPI 端点和交互式仪表盘运行你的整个 AI 公司。",
       devTitle: "专为 AI 工程师打造",
-      desc: "监控、测试和微调您的员工队伍：",
+      desc: "监控、配置并微调你的公司：",
       bullets: [
-        "实时创建、编辑和配置定制智能体与工具",
-        "追踪智能体执行步骤、代币成本日志和消息历史",
-        "在多轮运行中直接与团队互动"
+        "在聊天中描述公司，让 AI 办公室设计师生成部门、员工与技能",
+        "实时创建、编辑和配置定制员工与工具",
+        "追踪员工执行步骤、代币成本日志和消息历史",
+        "运行 Projects、Task Board 与实时 Meetings，并通过 Recruiting 招募新角色"
       ]
     },
     usecases: {
-      title: "真实世界多智能体使用场景",
+      title: "你可以用 AI Collective 构建什么",
       list: [
+        {
+          name: "即时 AI 公司",
+          desc: "在聊天中描述你的商业想法 — AI 办公室设计师提出部门、员工与技能建议，一键构建整个公司。"
+        },
         {
           name: "金融辩论",
           desc: "在环形拓扑下，生成分析师团队使用实时 Brave 搜索工具辩论市场指标。"
@@ -600,10 +698,6 @@ const LOCAL_COPY = {
         {
           name: "编辑流水线",
           desc: "在主管领导下，管理从研究和起草到校对和格式化的内容创作。"
-        },
-        {
-          name: "软件审计",
-          desc: "运行在安全、隔离的沙箱内执行并测试代码的自动化漏洞扫描器智能体。"
         },
         {
           name: "并行网页爬取",
@@ -650,30 +744,20 @@ const LOCAL_COPY = {
       devDocs: "开发者文档",
       changelog: "变更日志",
       overview: "概述",
-      consoleLogin: "控制台登录",
+      consoleLogin: "Dashboard 登录",
       star: "Star"
     },
-    testimonials: [
-      {
-        logo: "CODEMESH",
-        text: "“在 StaffBench 上，AI Collective 的多智能体网格架构为我们带来了即时的延迟改善和干净的编排。”",
-        author: "Marcus Vance, CEO"
-      },
-      {
-        logo: "EVENTPASS",
-        text: "“部署多智能体工作流非常简单。LangGraph 拓扑选项的可靠性和灵活性使过渡变得无缝。”",
-        author: "Taylor Addison, 首席工程参谋"
-      },
-      {
-        logo: "SPARKAGENT",
-        text: "“在专用工具包旁运行安全代码执行沙箱的能力，极大地提升了我们智能体的表现。”",
-        author: "SparkStaff 核心团队"
-      },
-      {
-        logo: "SHOPMESH",
-        text: "“AI Collective 拥有强大的半自动人机协同支持，能处理工单分类、多步骤工作流和复杂的对话式查询。”",
-        author: "ShopMesh 开发团队"
-      }
+    highlights: [
+      "6 种员工拓扑",
+      "AI 办公室设计师",
+      "50+ 技能工具包",
+      "实时 SSE 流式传输",
+      "知识图谱记忆",
+      "LLM 无关",
+      "安全沙箱执行",
+      "JSON 或 MongoDB 存储",
+      "Token 预算管理",
+      "源代码可见 (Source-Available)"
     ],
     footerSitemap: {
       rights: "保留所有权利。跨公共和本地系统整合智能体网格网络。",
@@ -693,8 +777,8 @@ const LOCAL_COPY = {
   },
   ja: {
     hero: {
-      h1: "AI Collective プラットフォームでの構築",
-      sub: "プログラマブルな AI 労働力のための高性能マルチエージェント編成プラットフォーム。アトミックなツール統合により、シーケンシャル、リング、メッシュ、またはスーパーバイザーのエージェントトポロジーを展開します。",
+      h1: "あなただけの AI カンパニーを構築",
+      sub: "AI Collective は、自分自身の会社を作り、部門に組織化し、その部門に AI スタッフを配置できる場所です — Sequential、Ring、Mesh、Supervisor、Tree、または完全なカスタムトポロジーで業務を調整します。",
       cta1: "構築を始める",
       cta2: "開発者ドキュメントを見る"
     },
@@ -702,41 +786,42 @@ const LOCAL_COPY = {
       title: "開始方法を選択する",
       buildOwn: {
         title: "自身で展開する",
-        sub: "以下を使用して、独自のカスタムマルチエージェント労働力を起動します：",
+        sub: "以下を使用して、自分だけの会社・部門・AI スタッフをセルフホストします：",
         bullets: [
-          "シーケンシャル、リング、メッシュ、またはスーパーバイザーのエージェントトポロジー",
-          "50以上の原子スキルツールキット（Google Company、ブラウザ自動化、ソーシャルメディア）",
+          "Sequential、Ring、Mesh、Supervisor、Tree、または完全カスタムのスタッフトポロジー",
+          "AI オフィスデザイナー：チャットで会社を説明するだけで、部門・スタッフ・スキルをワンクリックで生成",
+          "50以上の組み込みスキルツールキット — Google Workspace、ブラウザ自動化、15以上のメッセージングプラットフォーム",
           "自動トークン予算管理とコンテキストウィンドウの最適化",
-          "柔軟なバックエンド：ローカル実行 (JSON) 或いは分散スケーリング (Docker/RabbitMQ)",
+          "柔軟なバックエンド：ローカル実行 (JSON ストレージ) 或いは分散デプロイ (Docker Compose による MongoDB + RabbitMQ)",
           "対話型ヒューマンインザループ（Human-in-the-Loop）ステアリング機能",
           "高度な spaCy および LLM ベースのナレッジグラフ抽出"
         ],
         cta: "構築を始める"
       },
       support: {
-        title: "エンタープライズ展開",
-        sub: "カスタムツール統合、Kubernetes サンドボックス、またはホスト型オーケストレーションが必要ですか？",
+        comingSoonBadge: "完全なオープンソース版：近日公開",
+        title: "商用ライセンス",
+        sub: "AI Collective はソースアベイラブルなプロジェクトで、非商用・研究・教育目的での利用は無料です。有料製品、社内業務ツール、SaaS での利用には別途商用ライセンスが必要です。",
         bullets: [
-          "エンタープライズオンボーディングとカスタムエージェントトポロジー設計",
-          "SLA保証付きのカスタムAPIおよびデータベース統合",
-          "管理された高スループットの RabbitMQ および Redis クラスタリング",
-          "高度で安全なコード実行サンドボックス設定（Docker/K8s）",
-          "24時間365日の専用エンジニアリングおよび展開サポート"
+          "学習・研究・評価目的のセルフホストは無料",
+          "商用利用、収益目的の利用、SaaS 利用にはメンテナーからの書面による許可が必要",
+          "カスタム統合や Kubernetes サンドボックス構築についてのガイダンスも提供可能",
+          "ライセンス条件について直接ご相談ください"
         ],
-        cta: "営業に連絡"
+        cta: "お問い合わせ"
       }
     },
     models: {
       title: "サポートされている LLM 基座",
       sub: "行业をリードするプロバイダー全体で、実行時に基座モデルエンジンを設定、交換、またはルーティングします。",
-      batch: "完全に LLM 非依存：Google Gemini、Anthropic、OpenAI、或者 OpenRouter ゲートウェイ経由でルーティング。",
+      batch: "完全に LLM 非依存:実行時にプロバイダを切り替え可能 — Google Gemini、Anthropic Claude、OpenAI、DeepSeek、Moonshot Kimi、Zhipu GLM、OpenRouter、または OpenAI 互換のカスタムエンドポイント — コード変更は不要です。",
       activeModelLabel: "有効なモデル",
       capabilitiesHeader: "主な機能",
       list: [
         {
           name: "Google Gemini",
+          icon: "gemini",
           desc: "デフォルトの速度エンジン。エンティティ抽出とリアルタイムのナレッジグラフに最適化されています。",
-          modelKey: "gemini-2.0-flash",
           capabilities: [
             "自動化された spaCy および LLM ベースのエンティティ抽出",
             "リアルタイムのグラフ構築と状態コンテキストの読み込み",
@@ -745,8 +830,8 @@ const LOCAL_COPY = {
         },
         {
           name: "Anthropic Claude",
+          icon: "anthropic",
           desc: "マルチエージェントメッシュコーディネーターおよびコード生成用のプレミアロジックエンジン。",
-          modelKey: "claude-3-5-sonnet",
           capabilities: [
             "トークンオーバーヘッドを削減する高度なプロンプトキャッシュ",
             "優れたツール選択とエージェント委任フロー",
@@ -755,8 +840,8 @@ const LOCAL_COPY = {
         },
         {
           name: "OpenAI GPT",
+          icon: "openai",
           desc: "構造化された JSON スキーマとツールバインディング用の信頼性の高い標準エンジン。",
-          modelKey: "gpt-4o",
           capabilities: [
             "入力/出力に対する厳密な JSON スキーマの強制",
             "マルチエージェントリング討論のコンセンサスフォーマット",
@@ -764,9 +849,29 @@ const LOCAL_COPY = {
           ]
         },
         {
-          name: "Open Weight (Qwen)",
+          name: "DeepSeek",
+          icon: "deepseek",
+          desc: "コスト効率に優れた推論エンジン。長文コンテキスト分析と構造化された思考連鎖タスクに強みを持ちます。",
+          capabilities: [
+            "複雑なスタッフ計画のための深い思考連鎖推論",
+            "会議資料を多く扱うための大規模コンテキストウィンドウ",
+            "大量の部門実行に対応する低コスト推論"
+          ]
+        },
+        {
+          name: "Kimi (Moonshot)",
+          icon: "kimi",
+          desc: "超長コンテキストに特化したエンジン。長時間のマルチターン会話に最適化されています。",
+          capabilities: [
+            "膨大な会議履歴に対応する超長コンテキストウィンドウ",
+            "強力な中英バイリンガル推論",
+            "検索拡張ワークフロー向けの効率的なツール呼び出し"
+          ]
+        },
+        {
+          name: "Open Weight",
+          icon: "openrouter",
           desc: "セルフホストまたはエアギャップされた安全なエージェントクラスター用の高パラメータオープンウェイトエンジン。",
-          modelKey: "qwen3.5-397B-A17B",
           capabilities: [
             "データ漏洩ゼロのセルフホストオーケストレーション",
             "Docker サンドボックス内での Python コード実行用に微調整",
@@ -776,35 +881,41 @@ const LOCAL_COPY = {
       ]
     },
     tools: {
-      title: "エージェントメッシュ (Staff Mesh) の機能",
-      sub: "AI Collective プラットフォームを駆動する高度なランタイムサービスを探索してください。",
+      title: "あなたの会社を支える機能",
+      sub: "AI Collective 上のすべての会社・部門・スタッフを支えるランタイムサービス。",
       cta: "開発者ドキュメントを見る",
       list: [
-        { name: "マルチエージェントトポロジー", desc: "シーケンシャルパイプライン、リング討論パターン、メッシュコーディネーターネットワーク、またはスーパーバイザー構造を編成します。" },
-        { name: "50以上のスキルツールキット", desc: "エージェントに Google ドライブ/カレンダー、Playwright ウェブスクレイパー、ソーシャルフィード、生産性ツールを装備します。" },
-        { name: "サブエージェント委任", desc: "メインエージェントが、厳密なターン制限を持つ並列サブエージェントを同時に生成して実行できるようにします。" },
-        { name: "リアルタイム SSE ストリーミング", desc: "透明なイベントログ（staff_start、llm_request、subagent_complete）で実行プロセスをターンごとに追跡します。" },
-        { name: "安全なサンドボックス実行", desc: "分離されたローカル、Docker、または Kubernetes サンドボックス環境内で Python/Bash コマンドを安全に実行します。" },
+        { name: "AI オフィスデザイナー", desc: "チャットで会社を説明するだけ — AI が部門・スタッフ・スキルを提案し、ワンクリックで会社全体を作成します。" },
+        { name: "6 種のスタッフトポロジー", desc: "Sequential パイプライン、Ring 討論、Mesh コーディネーターネットワーク、Supervisor 階層、Tree 構造、または完全カスタムの LangGraph DAG を編成します。" },
+        { name: "50以上のスキルツールキット", desc: "スタッフに Google ドライブ/カレンダー、Playwright ウェブスクレイパー、ソーシャルフィード、生産性ツールを装備します。" },
+        { name: "サブエージェント委任", desc: "メインスタッフが、厳密なターン制限を持つ並列サブエージェントを同時に生成して実行できるようにします。" },
+        { name: "リアルタイム SSE ストリーミング", desc: "透明なイベントログ（agent_start、llm_request_start、subagent_complete）で実行プロセスをターンごとに追跡します。" },
+        { name: "安全なサンドボックス実行", desc: "分離されたローカルまたは Kubernetes サンドボックス環境内で Python/Bash コマンドを安全に実行します。" },
         { name: "ナレッジグラフメモリ", desc: "NLP (spaCy) または LLM を介して会話コンテキストを動的に抽出し、クエリ可能なセマンティックメモリを構築します。" },
         { name: "コンテキストとトークンバジェット", desc: "トークン制限に近づいたときに、コンテキストウィンドウを自動的にトリミングおよび最適化します。" },
-        { name: "ヒューマンインザループ (Human-in-the-Loop)", desc: "進行中のマルチエージェントディスカッションに介入して、エージェントを指導したり手動タスク入力を提供したりします。" },
-        { name: "マルチワークスペース分離", desc: "JWT 検証、Google OAuth、およびデータベース分離を使用して、安全なマルチテナントデータセグメンテーションを実現します。" }
+        { name: "ヒューマンインザループ (Human-in-the-Loop)", desc: "進行中のマルチスタッフディスカッションに介入して、スタッフを指導したり手動タスク入力を提供したりします。" },
+        { name: "マルチカンパニー分離", desc: "JWT 検証、Google OAuth、およびデータベース分離を使用して、安全なマルチテナントデータセグメンテーションを実現します。" }
       ]
     },
     console: {
-      title: "AI Collective コンソール内でチームを管理",
-      sub: "クリーンな FastAPI エンドポイントと対話型ダッシュボードを介して、強力なマルチエージェントチームを既存のアプリケーションスタックに統合します。",
+      title: "会社・部門・スタッフを 1 つの Dashboard で管理",
+      sub: "AI オフィスデザイナーからタスクボード、ライブミーティングまで — クリーンな FastAPI エンドポイントと対話型ダッシュボードを介して、あなたの AI カンパニー全体を運用します。",
       devTitle: "AI エンジニア向けに構築",
-      desc: "労働力の監視、テスト、調整：",
+      desc: "会社の監視、スタッフ配置、調整：",
       bullets: [
-        "カスタムエージェントとツールをリアルタイムで作成、編集、設定",
-        "エージェントの実行ステップ、トークンコストログ、メッセージ履歴を追跡",
-        "マルチラウンド実行中にチームと直接対話"
+        "チャットで会社を説明し、AI オフィスデザイナーに部門・スタッフ・スキルを生成させる",
+        "カスタムスタッフとツールをリアルタイムで作成、編集、設定",
+        "スタッフの実行ステップ、トークンコストログ、メッセージ履歴を追跡",
+        "Projects、Task Board、ライブ Meetings を運用し、Recruiting で新しい役割を採用"
       ]
     },
     usecases: {
-      title: "現実世界のマルチエージェントユースケース",
+      title: "AI Collective で作れるもの",
       list: [
+        {
+          name: "即席 AI カンパニー",
+          desc: "チャットでビジネスアイデアを説明するだけ — AI オフィスデザイナーが部門・スタッフ・スキルを提案し、ワンクリックで会社全体を構築します。"
+        },
         {
           name: "金融討論",
           desc: "リングトポロジーの下で、リアルタイムの Brave 検索ツールを使用して市場指標を議論するアナリストチームを生成します。"
@@ -812,10 +923,6 @@ const LOCAL_COPY = {
         {
           name: "編集パイプライン",
           desc: "スーパーバイザーの指導の下、調査や起草から校正、フォーマットまでのコンテンツ作成を管理します。"
-        },
-        {
-          name: "ソフトウェア監査",
-          desc: "安全で隔離されたサンドボックス内でコードを実行およびテストする自動脆弱性スキャナーエージェントを実行します。"
         },
         {
           name: "並列ウェブクローリング",
@@ -862,30 +969,20 @@ const LOCAL_COPY = {
       devDocs: "開発者ドキュメント",
       changelog: "変更履歴",
       overview: "概要",
-      consoleLogin: "コンソールログイン",
+      consoleLogin: "Dashboard ログイン",
       star: "スター"
     },
-    testimonials: [
-      {
-        logo: "CODEMESH",
-        text: "“StaffBenchにおいて、AI Collectiveのマルチエージェントメッシュアーキテクチャは、即時のレイテンシ改善とクリーンなオーケストレーションを私たちにもたらしました。”",
-        author: "Marcus Vance, CEO"
-      },
-      {
-        logo: "EVENTPASS",
-        text: "“マルチエージェントワークフローのデプロイは簡単でした。LangGraphトポロジーオプション의 信頼性と柔軟性により、移行がシームレスに行われました。”",
-        author: "Taylor Addison, 開発チーフオブスタッフ"
-      },
-      {
-        logo: "SPARKAGENT",
-        text: "“専用ツールキットと並行して安全なコード実行サンドボックスを実行する機能により、エージェントのパフォーマンスが大幅に向上しました。”",
-        author: "SparkStaff コアチーム"
-      },
-      {
-        logo: "SHOPMESH",
-        text: "“AI Collectiveは、強力なヒューマンインザループのサポートにより、チケットのトリアージ、マルチステップのワークフロー、複雑な対話型クエリを処理します。”",
-        author: "ShopMesh 開発チーム"
-      }
+    highlights: [
+      "6 種のスタッフトポロジー",
+      "AI オフィスデザイナー",
+      "50以上のスキルツールキット",
+      "リアルタイム SSE ストリーミング",
+      "ナレッジグラフメモリ",
+      "LLM 非依存",
+      "安全なサンドボックス実行",
+      "JSON または MongoDB ストレージ",
+      "トークン予算管理",
+      "ソースアベイラブル"
     ],
     footerSitemap: {
       rights: "All rights reserved. 公共システムとローカルシステム全体にエージェントメッシュネットワークを統合します。",
@@ -1871,48 +1968,48 @@ export default function Landing() {
 
                   {/* Staff Mesh Nodes */}
                   
-                  {/* 1. Supervisor Staff */}
+                  {/* 1. Company node */}
                   <g className="cursor-pointer">
                     <circle cx="200" cy="90" r="10" fill="currentColor" />
                     <circle cx="200" cy="90" r="18" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
                     <text x="200" y="62" textAnchor="middle" className="staff-text">
-                      SUPERVISOR
+                      COMPANY
                     </text>
                   </g>
 
-                  {/* 2. Coder Staff */}
+                  {/* 2. Project node */}
                   <g className="cursor-pointer">
                     <circle cx="330" cy="180" r="8" fill="currentColor" />
                     <circle cx="330" cy="180" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
                     <text x="355" y="184" textAnchor="start" className="staff-text">
-                      CODER
+                      STAFF
                     </text>
                   </g>
 
-                  {/* 3. Search Staff */}
+                  {/* 3. Department node */}
                   <g className="cursor-pointer">
                     <circle cx="280" cy="310" r="8" fill="currentColor" />
                     <circle cx="280" cy="310" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
                     <text x="280" y="342" textAnchor="middle" className="staff-text">
-                      SEARCH
+                      DEPARTMENT
                     </text>
                   </g>
 
-                  {/* 4. Writer Staff */}
+                  {/* 4. Staff node */}
                   <g className="cursor-pointer">
                     <circle cx="120" cy="310" r="8" fill="currentColor" />
                     <circle cx="120" cy="310" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
                     <text x="120" y="342" textAnchor="middle" className="staff-text">
-                      WRITER
+                      PROJECT
                     </text>
                   </g>
 
-                  {/* 5. Browser Staff */}
+                  {/* 5. Skill node */}
                   <g className="cursor-pointer">
                     <circle cx="70" cy="180" r="8" fill="currentColor" />
                     <circle cx="70" cy="180" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
                     <text x="45" y="184" textAnchor="end" className="staff-text">
-                      BROWSER
+                      SKILL
                     </text>
                   </g>
 
@@ -1962,32 +2059,38 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* 2. Client Testimonials Row Section */}
-      <section className="px-6 pb-24 max-w-7xl mx-auto border-t border-[#e8e6dc]/80 dark:border-[#2e2e2d]/60 pt-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-y-10 divide-y md:divide-y-0 md:divide-x divide-[#e8e6dc]/80 dark:divide-[#2e2e2d]/60">
-          {t.testimonials.map((c, idx) => (
-            <FadeIn 
-              key={idx} 
-              delay={idx * 0.06}
-              className={`flex flex-col h-full space-y-4 ${idx > 0 ? 'lg:pl-8' : ''} ${idx === 1 || idx === 3 ? 'md:pl-8' : ''}`}
-            >
-              {/* Simulated clean brand logo text */}
-              <div className="font-sans font-black text-[#141413] dark:text-[#faf9f5] text-base tracking-widest uppercase">
-                {c.logo}
+      {/* 2. Real Platform Capabilities Marquee */}
+      <style>{`
+        @keyframes landingMarquee {
+          0% { transform: translateX(-50%); }
+          100% { transform: translateX(0%); }
+        }
+        .landing-marquee-track {
+          animation: landingMarquee 18s linear infinite;
+        }
+        .landing-marquee-track:hover {
+          animation-play-state: paused;
+        }
+        .landing-marquee-mask {
+          -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+          mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+      `}</style>
+      <section className="py-14">
+        <div className="max-w-7xl mx-auto px-6 overflow-hidden landing-marquee-mask">
+          <div className="flex w-max gap-10 landing-marquee-track">
+            {[...t.highlights, ...t.highlights].map((item, idx) => (
+              <div key={idx} className="flex items-center gap-2.5 shrink-0 text-sm text-muted-foreground whitespace-nowrap">
+                <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" />
+                <span>{item}</span>
               </div>
-              <p className="text-sm text-[#6b6960] dark:text-[#a3a197] leading-relaxed flex-1 italic">
-                {c.text}
-              </p>
-              <div className="text-xs font-semibold text-foreground">
-                {c.author}
-              </div>
-            </FadeIn>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
       {/* 3. Choose How to Get Started */}
-      <section className="px-6 py-20 bg-muted/15 border-y border-border/40">
+      <section className="px-6 py-20 bg-muted/15">
         <div className="max-w-5xl mx-auto">
           <FadeIn className="mb-12 text-center">
             <h2 className="text-3xl font-medium tracking-tight text-foreground font-serif">
@@ -2022,6 +2125,10 @@ export default function Landing() {
             {/* Support */}
             <FadeIn delay={0.1} className="h-full">
               <div className="bg-card border border-border/70 rounded-2xl p-8 flex flex-col h-full hover:border-accent/40 transition-colors shadow-sm">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/5 border border-accent/15 text-xs text-accent font-semibold mb-4 w-fit">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {t.started.support.comingSoonBadge}
+                </div>
                 <h3 className="text-xl font-medium text-foreground mb-3 font-serif">{t.started.support.title}</h3>
                 <p className="text-sm text-muted-foreground mb-6">{t.started.support.sub}</p>
                 <ul className="space-y-3 mb-8 flex-1">
@@ -2055,17 +2162,18 @@ export default function Landing() {
           </p>
         </FadeIn>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {t.models.list.map((m, idx) => (
             <FadeIn key={idx} delay={idx * 0.05} className="h-full">
               <div className="bg-card border border-[#e8e6dc]/80 dark:border-[#2e2e2d]/60 rounded-2xl p-6 flex flex-col h-full shadow-sm hover:border-border transition-all">
-                <div className="mb-3">
-                  <h3 className="text-lg font-semibold text-foreground font-serif mb-1.5">{m.name}</h3>
-                  <div className="inline-flex">
-                    <span className="font-mono text-[10px] font-medium text-accent bg-accent/5 border border-accent/15 px-2.5 py-1 rounded leading-none">
-                      {m.modelKey}
-                    </span>
-                  </div>
+                <div className="mb-3 flex items-center gap-2.5">
+                  <span
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
+                    style={{ backgroundColor: `${PROVIDER_LOGOS[m.icon as ProviderLogoKey].color}1A` }}
+                  >
+                    <ProviderIcon slug={m.icon as ProviderLogoKey} className="w-4 h-4" />
+                  </span>
+                  <h3 className="text-lg font-semibold text-foreground font-serif">{m.name}</h3>
                 </div>
                 <div className="h-[72px] flex items-start mb-4 overflow-hidden">
                   <p className="text-xs text-muted-foreground leading-relaxed">{m.desc}</p>
@@ -2092,7 +2200,7 @@ export default function Landing() {
       </section>
 
       {/* 5. Do more with built-in tools */}
-      <section className="px-6 py-20 bg-muted/10 border-t border-border/40">
+      <section className="px-6 py-20 bg-muted/10">
         <div className="max-w-5xl mx-auto">
           <FadeIn className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
             <div>
@@ -2128,8 +2236,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* 6. Claude Console section */}
-      <section className="px-6 py-24 max-w-5xl mx-auto border-t border-border/40">
+      {/* 6. Dashboard preview section */}
+      <section className="px-6 py-24 max-w-5xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <FadeIn>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/5 border border-primary/10 text-xs text-primary font-semibold mb-6">
@@ -2163,7 +2271,7 @@ export default function Landing() {
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  <span className="ml-2 text-[10px] text-zinc-500">AI Collective Console · Mesh Workbench</span>
+                  <span className="ml-2 text-[10px] text-zinc-500">AI Collective Dashboard · Mesh Workbench</span>
                 </div>
                 <div className="px-2 py-0.5 rounded bg-white/5 text-[9px] text-zinc-500">v0.2.6</div>
               </div>
@@ -2225,7 +2333,7 @@ export default function Landing() {
       </section>
 
       {/* 7. Use cases for Claude */}
-      <section className="px-6 py-20 bg-muted/15 border-y border-border/40">
+      <section className="px-6 py-20 bg-muted/15">
         <div className="max-w-5xl mx-auto">
           <FadeIn className="mb-12">
             <h2 className="text-3xl font-medium tracking-tight text-foreground font-serif">

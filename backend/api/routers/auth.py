@@ -12,6 +12,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from backend.api.settings import settings
 from backend.api.security import create_access_token
+from backend.infrastructure.storage.google_oauth_store import save_token
 from backend.api.schemas.skill import (
     GoogleSheetOAuthStartRequest,
     GoogleSheetOAuthStartResponse,
@@ -80,11 +81,18 @@ def _normalize_google_tool_name(tool_name: str | None) -> str:
     return normalized
 
 
-def _get_token_path_for_email(email: str, tool_name: str) -> str:
-    """Generate token file path for given email."""
-    storage_dir = Path("secrets") / "google" / tool_name
+def _get_token_path(owner_id: str, email: str, tool_name: str) -> str:
+    """Generate a token file path under secrets/google/<owner_id>/<tool_name>/,
+    one directory per AI Collective account. ``owner_id`` (verified
+    server-side by ``current_owner_id_dep``) must anchor the directory — a
+    client-supplied email hint alone is not a trustworthy storage key (it can
+    be blank, guessed, or reused across unrelated accounts), so keying on it
+    alone would let two different users collide on (or share) one token file.
+    """
+    safe_owner = re.sub(r"[^a-zA-Z0-9._-]", "_", (owner_id or "unknown").strip().lower())
+    storage_dir = Path("secrets") / "google" / safe_owner / tool_name
     storage_dir.mkdir(parents=True, exist_ok=True)
-    safe_email = re.sub(r"[^a-zA-Z0-9._-]", "_", email.strip().lower()) or "default"
+    safe_email = re.sub(r"[^a-zA-Z0-9._-]", "_", (email or "").strip().lower()) or "default"
     return str(storage_dir / f"token_{safe_email}.json")
 
 
@@ -171,11 +179,25 @@ def _google_sheet_oauth_callback_impl(
     try:
         flow.fetch_token(authorization_response=str(request.url))
         credentials = flow.credentials
-        email = payload.get("email", "")
         tool_name = payload.get("tool_name", "sheet")
-        token_path = payload.get("token_path") or _get_token_path_for_email(email or "default", tool_name)
-        Path(token_path).write_text(credentials.to_json(), encoding="utf-8")
+        owner_id = payload.get("owner_id", "")
+
+        # Trust the Google account Google itself just granted access for, not
+        # the client-supplied email_hint (unverified, and blank by default).
+        verified_email = ""
+        try:
+            from googleapiclient.discovery import build as _build_service
+
+            userinfo = _build_service("oauth2", "v2", credentials=credentials).userinfo().get().execute()
+            verified_email = (userinfo.get("email") or "").strip().lower()
+        except Exception:  # noqa: BLE001 — best-effort; hint is the fallback identity
+            verified_email = ""
+
+        email = verified_email or payload.get("email", "")
+        token_path = _get_token_path(owner_id, email, tool_name)
+        save_token(token_path, credentials.to_json())
         payload["status"] = "authorized"
+        payload["email"] = email
         payload["token_path"] = token_path
         payload["error"] = ""
     except Exception as exc:
@@ -228,7 +250,7 @@ def start_oauth(
         "owner_id": owner_id,
         "email": login_hint,
         "tool_name": tool_name,
-        "token_path": _get_token_path_for_email(login_hint or "default", tool_name),
+        "token_path": _get_token_path(owner_id, login_hint, tool_name),
         "redirect_uri": effective_redirect_uri or _resolve_redirect_uri(),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "error": "",

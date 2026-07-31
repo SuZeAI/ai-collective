@@ -84,14 +84,9 @@ In `config.yml`:
 
 ```yaml
 sandbox:
-  SANDBOX_MODE: k8s
-```
-
-In `.env`:
-
-```dotenv
-SANDBOX_PROVISIONER_URL=http://provisioner:8002   # backend runs in Docker (Compose)
-# SANDBOX_PROVISIONER_URL=http://localhost:8002   # backend runs directly on the host
+  mode: k8s
+  provisioner_url: http://provisioner:8002   # backend runs in Docker (Compose)
+  # provisioner_url: http://localhost:8002   # backend runs directly on the host
 ```
 
 ---

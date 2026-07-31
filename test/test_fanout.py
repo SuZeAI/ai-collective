@@ -245,13 +245,18 @@ class _ScriptedLLM:
         self.synthesis_response = synthesis_response
         self.branch_response = branch_response
 
-    async def chat(self, *, system, user, tools=None, parallel_tools=False,
-                   max_tool_rounds=None, **kwargs):
-        if "PARALLEL WAVE SYNTHESIS" in system:
+    async def chat(self, *, system, user=None, messages=None, tools=None,
+                   parallel_tools=False, max_tool_rounds=None, **kwargs):
+        text = user if user is not None else (messages[-1]["content"] if messages else "")
+        # Routing guidance now travels in the context message (messages[0])
+        # rather than the fixed `system` string, so match against everything
+        # the model would actually see, same as a real LLM would.
+        full_prompt = system + "\n" + "\n".join(m["content"] for m in (messages or []))
+        if "PARALLEL WAVE SYNTHESIS" in full_prompt:
             return self.synthesis_response
-        if self.coordinator_marker in system:
+        if self.coordinator_marker in full_prompt:
             return self.coordinator_response
-        return f"{self.branch_response}: {user[:30]}"
+        return f"{self.branch_response}: {text[:30]}"
 
     def get_chat_model(self):
         return None
@@ -325,8 +330,8 @@ def test_e2e_mesh_sequential_unchanged_when_no_fanout():
         def __init__(self):
             self.n = 0
 
-        async def chat(self, *, system, user, tools=None, parallel_tools=False,
-                       max_tool_rounds=None):
+        async def chat(self, *, system, user=None, messages=None, tools=None,
+                       parallel_tools=False, max_tool_rounds=None):
             self.n += 1
             if self.n >= 3:
                 return "Wrap up.\n<DISCUSSION_END>summary</DISCUSSION_END>"
@@ -349,3 +354,54 @@ def test_e2e_mesh_sequential_unchanged_when_no_fanout():
     nums = [t.turn for t in res.turns]
     assert nums == list(range(1, len(nums) + 1))   # one turn per round
     assert len(res.turns) >= 2
+
+
+def test_e2e_mesh_second_turn_sees_own_first_turn_reply():
+    """staff_states threads a staff member's own prior turns into later LLM
+    calls: Hub's second turn should see its own first-turn assistant reply in
+    `messages`, not just a summarized text log."""
+
+    class _HistoryAwareLLM:
+        def __init__(self):
+            self.hub_calls = 0
+
+        async def chat(self, *, system, user=None, messages=None, tools=None,
+                       parallel_tools=False, max_tool_rounds=None, **kwargs):
+            messages = messages or []
+            if system.startswith("coordinate"):
+                self.hub_calls += 1
+                if self.hub_calls == 1:
+                    return (
+                        "First hub turn.\n"
+                        "<ASK_NEXT_AGENT>\n1. continue\n</ASK_NEXT_AGENT>\n"
+                        "<NEXT_AGENT>Bob</NEXT_AGENT>"
+                    )
+                saw_own_reply = any(
+                    m["role"] == "assistant" and "First hub turn" in m["content"]
+                    for m in messages
+                )
+                marker = "saw-my-own-history" if saw_own_reply else "no-history"
+                return f"{marker}.\n<DISCUSSION_END>done</DISCUSSION_END>"
+            return (
+                "Bob turn.\n"
+                "<ASK_NEXT_AGENT>\n1. continue\n</ASK_NEXT_AGENT>\n"
+                "<NEXT_AGENT>Hub</NEXT_AGENT>"
+            )
+
+        def get_chat_model(self):
+            return None
+
+        async def generate_json(self, *, system, user):
+            return {}
+
+    agents = [
+        GraphStaffDefinition(name="Hub", role="c", system_prompt="coordinate"),
+        GraphStaffDefinition(name="Bob", role="a", system_prompt="analyze"),
+    ]
+    res = asyncio.run(MultiAgentMeshOrchestrator().run(
+        user_input="hi", staff=agents, llm=_HistoryAwareLLM(), max_rounds=6,
+        conversation_id=None,
+    ))
+    hub_turns = [t.content for t in res.turns if t.staff_name == "Hub"]
+    assert len(hub_turns) == 2
+    assert "saw-my-own-history" in hub_turns[-1]

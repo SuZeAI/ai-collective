@@ -4,6 +4,7 @@ import { BarChart3 } from "lucide-react";
 import { api, type Project, type Sprint, type Task } from "@/lib/api";
 import { ProjectSubnav } from "@/components/ProjectSubnav";
 import { Card } from "@/components/ui/card";
+import { useCompanyScope } from "@/hooks/use-company-scope";
 import { cn } from "@/lib/utils";
 
 const STATUS_META: { key: string; label: string; cls: string }[] = [
@@ -25,16 +26,22 @@ const TYPE_META: { key: string; label: string; cls: string }[] = [
 
 export default function Reports() {
   const { key: projectKey = "" } = useParams<{ key: string }>();
+  const scope = useCompanyScope();
   const [project, setProject] = useState<Project | undefined>();
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [issues, setIssues] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (scope.pending) return;
     let cancelled = false;
     (async () => {
       try {
-        const [projects, allSprints, allTasks] = await Promise.all([api.listProjects(), api.listSprints(), api.listTasks()]);
+        const [projects, allSprints, allTasks] = await Promise.all([
+          api.listProjects(scope.isOverall ? undefined : scope.company?.id),
+          api.listSprints(),
+          api.listTasks(),
+        ]);
         if (cancelled) return;
         const proj = projects.find((p) => p.key === projectKey);
         setProject(proj);
@@ -49,7 +56,7 @@ export default function Reports() {
     return () => {
       cancelled = true;
     };
-  }, [projectKey]);
+  }, [projectKey, scope.pending, scope.isOverall, scope.company?.id]);
 
   const statusCounts = useMemo(() => {
     const m: Record<string, number> = {};

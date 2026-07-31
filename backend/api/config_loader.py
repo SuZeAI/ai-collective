@@ -1,27 +1,22 @@
-"""Non-secret configuration layer (``config.yml``).
+"""Configuration file loading (``config.yml``).
 
-The app's configuration is split into two committed sources plus the live OS
-environment, layered low → high priority:
+``config.yml`` is the single source of truth for app config: a nested,
+lowercase-key file (DeerFlow-style) where each top-level section maps 1:1 onto
+a ``Settings`` sub-model and each leaf key equals that sub-model's field name.
+``load_config()`` parses it, deep-merges an optional ``CONFIG_OVERRIDE_FILE``
+on top (used by the test suite to swap a handful of ops knobs without
+duplicating the whole file), and expands ``${VAR}`` / ``$VAR`` references from
+the OS environment — the only place env vars still reach the app, and only for
+secret values a leaf references inline (e.g. ``auth.jwt_secret_key:
+${JWT_SECRET_KEY}``). The resulting dict is passed straight into
+``Settings(**raw)`` (see ``backend/api/settings.py``).
 
-    code defaults  <  config.yml  <  .env  <  OS environment
-
-- ``config.yml`` holds **non-secret** operational config (modes, timeouts,
-  ports, URLs, budgets). It is committed to git and safe to read.
-- ``.env`` holds **secrets** (API keys, JWT secret, DB/router credentials).
-- Real OS environment variables override everything.
-
-This module loads ``config.yml`` and writes each leaf into ``os.environ`` with
-``setdefault`` — so it only fills gaps, never clobbering a value already set by
-``.env`` or the shell. Because the values land in ``os.environ`` they reach
-*both* the pydantic ``Settings`` object *and* the handful of modules that read
-``os.getenv`` directly (LLM rotation, MCP timeouts, …).
-
-``config.yml`` is a **nested, lowercase-key** file (DeerFlow-style): each
-top-level section maps to one ``Settings`` sub-model, and each lowercase leaf key
-equals that sub-model's field python-name. The loader maps every leaf to its
-canonical UPPER-CASE env-var name (the field's ``validation_alias``) using the
-schema itself as the single source of truth, then ``setdefault``-s it into
-``os.environ``. ``config_version`` and any unknown keys are ignored.
+``models:`` and ``middleware:`` are ordinary ``Settings`` fields too
+(``Settings.models: list[ModelConfig]``, ``Settings.middleware: dict``) —
+nothing outside this module parses config.yml itself;
+``backend/infrastructure/llm/config`` and
+``backend/infrastructure/llm/middleware/config.py`` only query
+``settings.models`` / ``settings.middleware``.
 """
 
 from __future__ import annotations
@@ -83,107 +78,52 @@ def config_file_path() -> Path:
     return PROJECT_ROOT / "config.yml"
 
 
-def _canonical_alias(field_info: Any, field_name: str) -> str:
-    """The UPPER-CASE env-var name a Settings field reads from."""
-    from pydantic import AliasChoices
+def config_override_file_path() -> Path | None:
+    """Optional second yaml file deep-merged over config.yml (CONFIG_OVERRIDE_FILE).
 
-    alias = field_info.validation_alias
-    if isinstance(alias, AliasChoices):
-        for choice in alias.choices:
-            if isinstance(choice, str):
-                return choice.upper()
-    elif isinstance(alias, str):
-        return alias.upper()
-    return field_name.upper()
-
-
-def build_section_registry() -> tuple[dict[str, dict[str, str]], dict[str, dict[str, dict[str, str]]]]:
-    """Build the YAML-section → env-alias mapping from the Settings schema.
-
-    Returns ``(registry, subsections)`` where ``registry[section][leaf_lower]``
-    is the canonical UPPER env-var name, and ``subsections[section][sub]`` is the
-    alias map for a nested subsection (e.g. ``llm.failover.*``).
-
-    Imported lazily to avoid a circular import: ``settings.py`` imports this
-    module at definition time, while this function only needs the (already
-    defined) ``Settings`` class at call time.
+    Lets the test suite override a handful of ops knobs (storage/task-queue/
+    lock/sandbox/admin/auth) without duplicating the whole file.
     """
-    from backend.api.settings import Settings
-
-    registry: dict[str, dict[str, str]] = {}
-    for section_name, finfo in Settings.model_fields.items():
-        sub = finfo.annotation
-        if not hasattr(sub, "model_fields"):
-            continue
-        registry[section_name] = {
-            fname.lower(): _canonical_alias(sfi, fname)
-            for fname, sfi in sub.model_fields.items()
-        }
-
-    # Subsections nested inside another section in the YAML, e.g. `llm.failover.*`
-    # maps to the FailoverSettings (`llm_failover`) section's aliases.
-    subsections: dict[str, dict[str, dict[str, str]]] = {}
-    if "llm_failover" in registry:
-        subsections.setdefault("llm", {})["failover"] = registry["llm_failover"]
-    return registry, subsections
+    override = os.getenv("CONFIG_OVERRIDE_FILE")
+    if not override:
+        return None
+    p = Path(override)
+    return p if p.is_absolute() else PROJECT_ROOT / p
 
 
-def _emit_leaf(alias_map: dict[str, str], key: str, value: Any, flat: dict[str, str]) -> None:
-    if value is None:
-        return
-    env_name = alias_map.get(str(key).lower())
-    if env_name is None:
-        return  # unknown key -> ignored (the guardrail test catches real drift)
-    if isinstance(value, bool):
-        flat[env_name] = "true" if value else "false"
-    else:
-        flat[env_name] = expand_env(str(value))
+def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
 
 
-def map_config(raw: dict[str, Any]) -> dict[str, str]:
-    """Map a parsed nested config.yml dict to ``{UPPER_ENV_NAME: str}``."""
-    registry, subsections = build_section_registry()
-    flat: dict[str, str] = {}
-    for section, body in raw.items():
-        if section == "config_version" or not isinstance(body, dict):
-            continue
-        if section == "secrets":
-            # Centralized secrets block: lowercase keys map straight to the
-            # UPPER-CASE env var of the same name (no owning sub-model).
-            secret_map = {str(k).lower(): str(k).upper() for k in body}
-            for key, value in body.items():
-                _emit_leaf(secret_map, key, value, flat)
-            continue
-        alias_map = registry.get(section, {})
-        sub_map = subsections.get(section, {})
-        for key, value in body.items():
-            if key in sub_map and isinstance(value, dict):
-                for sub_key, sub_value in value.items():
-                    _emit_leaf(sub_map[key], sub_key, sub_value, flat)
-            else:
-                _emit_leaf(alias_map, key, value, flat)
-    return flat
-
-
-def apply_config_yaml() -> dict[str, str]:
-    """Load config.yml and ``setdefault`` each leaf into ``os.environ``.
-
-    Returns the flat mapping that was applied (useful for diagnostics/tests).
-    Missing file or parse errors are swallowed — config.yml is an optional
-    convenience layer; code defaults still apply when it is absent or broken.
-    """
-    path = config_file_path()
+def _read_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    try:
-        import yaml
+    import yaml
 
-        raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        if not isinstance(raw, dict):
-            return {}
-        flat = map_config(raw)
-        for key, value in flat.items():
-            os.environ.setdefault(key, value)
-        return flat
+    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def load_config() -> dict[str, Any]:
+    """Load config.yml (deep-merged with CONFIG_OVERRIDE_FILE, if set), expand
+    ``${VAR}``/``$VAR`` references, and return the nested dict ready to pass
+    into ``Settings(**raw)``.
+
+    Missing file or parse errors are swallowed — config.yml is required for a
+    real deployment, but code defaults still apply when it is absent or broken
+    (e.g. a bad merge), so a mistake here never blocks startup.
+    """
+    try:
+        raw = _read_yaml(config_file_path())
+        override_path = config_override_file_path()
+        if override_path is not None:
+            raw = _deep_merge(raw, _read_yaml(override_path))
+        return expand_env(raw)
     except Exception:  # noqa: BLE001 - never block startup on a bad config.yml
         return {}

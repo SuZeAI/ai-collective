@@ -105,7 +105,7 @@ lower `WORKING_MEMORY_DIGEST_CHARS` proportionally.
 | Domain model (notes, compaction, digest) | `backend/domain/memory/working_memory.py` |
 | Registry + JSON persistence | `backend/infrastructure/working_memory_store.py` |
 | `memory_save` / `memory_recall` toolkit | `backend/domain/tools/memory_tool.py` |
-| Runtime helpers (injection, auto-capture) | `backend/domain/agent/_graph_runtime.py` |
+| Runtime helpers (injection, auto-capture) | `backend/domain/staff/_graph_runtime.py` |
 | Topology wiring | `langgraph_supervisor.py`, `langgraph_mesh.py`, `langgraph_ring.py`, `langgraph_tree.py`, `langgraph_orchestrator.py` |
 
 All memory operations are **best-effort**: a persistence or rendering failure

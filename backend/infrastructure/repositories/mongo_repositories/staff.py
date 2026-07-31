@@ -56,7 +56,7 @@ def _agent_to_doc(a: Staff) -> dict[str, Any]:
 
 class MongoStaffRepository:
     def __init__(self, db: pymongo.database.Database) -> None:
-        self._col = db["agents"]
+        self._col = db["staff"]
         self._col.create_index("id", unique=True, background=True)
 
     def list(self) -> list[Staff]:

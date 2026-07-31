@@ -30,18 +30,14 @@ def wait_for_sandbox_ready(sandbox_url: str, timeout: int = 60) -> bool:
 class SandboxBackend(ABC):
     """Abstract base for sandbox container provisioning.
 
-    Two implementations:
-        LocalContainerBackend  — manages Docker containers locally
-        RemoteSandboxBackend   — delegates to K8s/k3s provisioner service
+    Sole implementation: RemoteSandboxBackend, which delegates to the K8s/k3s
+    provisioner service. (settings.sandbox_mode == "local" never reaches a
+    SandboxBackend at all — factory.py routes it straight to
+    LocalSandboxAdapter, in-process on the backend itself.)
     """
 
     @abstractmethod
-    def create(
-        self,
-        thread_id: Optional[str],
-        sandbox_id: str,
-        extra_mounts: Optional[list[tuple[str, str, bool]]] = None,
-    ) -> SandboxInfo:
+    def create(self, thread_id: Optional[str], sandbox_id: str) -> SandboxInfo:
         """Create/provision a new sandbox and return its connection info."""
         ...
 

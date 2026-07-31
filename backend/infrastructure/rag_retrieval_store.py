@@ -32,39 +32,22 @@ def _build_vector_store():
     provider = get_embedding_provider()
     if provider is None:
         return None
-    # Reuse the FAISS/Qdrant factory but point it at a RAG-specific namespace so
+    # Reuse the FAISS/Qdrant factory but point it at a RAG-specific namespace
+    # (via explicit overrides, not os.environ — settings.vector_store is read
+    # once at process start, so mutating env afterward would be a no-op) so
     # graph chunks and LTM records stay in separate indexes/collections.
-    import os
-
     from backend.infrastructure.vector_store import create_vector_store
 
-    prev_path = os.environ.get("VECTOR_STORE_PATH")
-    prev_coll = os.environ.get("QDRANT_COLLECTION")
-    try:
-        base = settings.vector_store.faiss_path or f"{settings.storage_dir or 'storage'}/vector_store"
-        os.environ["VECTOR_STORE_PATH"] = f"{base}/rag_chunks"
-        os.environ["QDRANT_COLLECTION"] = f"{settings.vector_store.qdrant_collection}_rag"
-        # Force qdrant/faiss even if VECTOR_STORE_BACKEND=none, because the RAG
-        # mode itself selects the backend (qdrant) — map mode → store backend.
-        backend = "qdrant" if settings.retrieval.mode in {"qdrant", "hybrid"} else settings.vector_store.backend
-        prev_backend = os.environ.get("VECTOR_STORE_BACKEND")
-        os.environ["VECTOR_STORE_BACKEND"] = backend
-        try:
-            return create_vector_store(dim=provider.dim)
-        finally:
-            _restore("VECTOR_STORE_BACKEND", prev_backend)
-    finally:
-        _restore("VECTOR_STORE_PATH", prev_path)
-        _restore("QDRANT_COLLECTION", prev_coll)
-
-
-def _restore(key: str, value: str | None) -> None:
-    import os
-
-    if value is None:
-        os.environ.pop(key, None)
-    else:
-        os.environ[key] = value
+    base = settings.vector_store.faiss_path or f"{settings.storage_dir or 'storage'}/vector_store"
+    # Force qdrant/faiss even if VECTOR_STORE_BACKEND=none, because the RAG
+    # mode itself selects the backend (qdrant) — map mode → store backend.
+    backend = "qdrant" if settings.retrieval.mode in {"qdrant", "hybrid"} else settings.vector_store.backend
+    return create_vector_store(
+        dim=provider.dim,
+        backend_override=backend,
+        path_override=f"{base}/rag_chunks",
+        collection_override=f"{settings.vector_store.qdrant_collection}_rag",
+    )
 
 
 def _get_service() -> RagRetrievalService | None:
