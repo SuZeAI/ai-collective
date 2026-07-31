@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCompanyScope } from "@/hooks/use-company-scope";
 import { api, type Consumption } from "@/lib/api";
 
 // ─── Formatting helpers (shared shape with AdminMonitoring) ───────────────────
@@ -210,6 +211,7 @@ export default function ConsumptionMonitoring() {
   const lang = (["en", "vi", "zh", "ja"].includes(language) ? language : "en") as Lang;
   const tr = useCallback((k: string) => COPY[k]?.[lang] ?? COPY[k]?.en ?? k, [lang]);
 
+  const { isOverall, company, pending: scopePending } = useCompanyScope();
   const [days, setDays] = useState(30);
   const [refreshKey, setRefreshKey] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -219,12 +221,15 @@ export default function ConsumptionMonitoring() {
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   useEffect(() => {
+    // Wait for the office scope to resolve so we don't fetch "Overall" data
+    // first and flash it before the scoped result lands.
+    if (scopePending) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
     (async () => {
       try {
-        const c = await api.getConsumption(days);
+        const c = await api.getConsumption(days, isOverall ? undefined : company?.id);
         if (!cancelled) setData(c);
       } catch (e) {
         if (!cancelled) setError(String(e));
@@ -235,7 +240,7 @@ export default function ConsumptionMonitoring() {
     return () => {
       cancelled = true;
     };
-  }, [days, refreshKey]);
+  }, [days, refreshKey, isOverall, company?.id, scopePending]);
 
   const chartData = (data?.byDay ?? []).map((d) => ({ ...d, label: d.date.slice(5) }));
 

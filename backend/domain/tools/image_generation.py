@@ -19,7 +19,7 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
-from backend.api.settings import settings
+from backend.infrastructure.llm.config import find_model_for_provider
 
 DEFAULT_ENDPOINT = "https://api.openai.com/v1/images/generations"
 DEFAULT_MODEL = "gpt-image-1"
@@ -62,7 +62,7 @@ class ImageGenerationToolkit(BaseToolkit):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.api_key = api_key or (settings.llm_keys.openai_api_key or "")
+        self.api_key = api_key or ""
         self.endpoint = (endpoint or DEFAULT_ENDPOINT).strip() or DEFAULT_ENDPOINT
         self.model = (model or DEFAULT_MODEL).strip() or DEFAULT_MODEL
         self.size = (size or DEFAULT_SIZE).strip() or DEFAULT_SIZE
@@ -70,7 +70,13 @@ class ImageGenerationToolkit(BaseToolkit):
     def _key(self) -> str:
         key = (self.api_key or "").strip()
         if not key:
-            raise ValueError("Image generation API key required. Configure api_key on the skill.")
+            entry = find_model_for_provider("openai", "supports_image_gen")
+            key = (getattr(entry, "api_key", None) or "").split(",")[0].strip() if entry else ""
+        if not key:
+            raise ValueError(
+                "Image generation API key required. Configure api_key on the skill, or enable "
+                "an OpenAI model with `supports_image_gen: true` in the models: registry."
+            )
         return key
 
     @tool(parse_docstring=True)

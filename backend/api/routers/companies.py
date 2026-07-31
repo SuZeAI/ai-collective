@@ -10,14 +10,18 @@ import logging
 from backend.api.deps import (
     current_owner_id_dep,
     get_document_library_service,
-    get_office_builder_session_service,
     get_department_service,
+    get_skill_service,
+    get_staff_service,
+    get_task_service,
     get_company_service,
 )
 from backend.api.schemas.company import CompanySchema, UpsertWorkspaceRequest
 from backend.application.service.document_library_service import DocumentLibraryService
-from backend.application.service.office_builder_session_service import OfficeBuilderSessionService
 from backend.application.service.department_service import DepartmentService
+from backend.application.service.skill_service import SkillService
+from backend.application.service.staff_service import StaffService
+from backend.application.service.task_service import TaskService
 from backend.application.service.company_service import CompanyService
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Company, can_delete, can_modify, is_visible_to
@@ -76,8 +80,10 @@ def delete_company(
     company_id: str,
     service: CompanyService = Depends(get_company_service),
     documents: DocumentLibraryService = Depends(get_document_library_service),
-    office_sessions: OfficeBuilderSessionService = Depends(get_office_builder_session_service),
     departments: DepartmentService = Depends(get_department_service),
+    staff_service: StaffService = Depends(get_staff_service),
+    skill_service: SkillService = Depends(get_skill_service),
+    task_service: TaskService = Depends(get_task_service),
     owner_id: str = Depends(current_owner_id_dep),
 ):
     existing = service.try_get_company(company_id)
@@ -86,31 +92,99 @@ def delete_company(
     if existing is not None and not can_delete(owner_id, existing.owner_id):
         raise HTTPException(status_code=403, detail="Only the default (admin) account can delete shared default items")
 
-    # Cascade: remove everything that belongs to this company so no orphans are
-    # left behind. Each cleanup is best-effort — a failure on related data must
-    # not block deleting the workspace itself.
+    # Cascade: remove everything that belongs to this company (its departments,
+    # staff, tools/skills, tasks, documents) so none of it lingers in the "All"
+    # scope as an orphan. Each cleanup is best-effort — a failure on related data
+    # must not block deleting the workspace itself.
+    #
+    # Historical stats (Cost Monitoring / token-usage records) are never touched
+    # here: those only carry a department_id string, not a live reference, so
+    # "All" keeps aggregating them forever, even for companies deleted since.
 
-    # Departments (departments) that are still referenced by another company must be
-    # kept — they are shared. Only delete the ones unique to this company.
+    all_departments = departments.list_departments()
+
+    # Departments still referenced by another company must be kept — they are
+    # shared. Only the ones unique to this company are candidates for removal.
     other_department_ids: set[str] = set()
     for ws in service.list_companies():
         if ws.id == company_id:
             continue
         other_department_ids.update(ws.department_ids)
 
-    removed_teams = 0
+    departments_to_delete = []
     if existing is not None:
         own_department_ids = set(existing.department_ids)
-        for department in departments.list_departments():
+        for department in all_departments:
             if department.id not in own_department_ids or department.id in other_department_ids:
                 continue
             if not can_delete(owner_id, department.owner_id):
                 continue
-            try:
-                departments.delete_department(department.id)
-                removed_teams += 1
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("failed to delete department %s for workspace %s: %s", department.id, company_id, exc)
+            departments_to_delete.append(department)
+    departments_to_delete_ids = {d.id for d in departments_to_delete}
+
+    # Staff exclusive to those departments (not also a member of a department
+    # being kept, in this or another company) get removed along with the office.
+    own_staff_ids: set[str] = set()
+    for department in departments_to_delete:
+        own_staff_ids.update(department.staff)
+    other_staff_ids: set[str] = set()
+    for department in all_departments:
+        if department.id in departments_to_delete_ids:
+            continue
+        other_staff_ids.update(department.staff)
+    staff_to_delete_ids = own_staff_ids - other_staff_ids
+
+    # Skills (tools) exclusive to the staff being removed go with them too.
+    all_staff = staff_service.list_staff()
+    remaining_skill_ids: set[str] = set()
+    for member in all_staff:
+        if member.id not in staff_to_delete_ids:
+            remaining_skill_ids.update(member.skill_ids)
+    skills_to_delete_ids: set[str] = set()
+    for member in all_staff:
+        if member.id in staff_to_delete_ids:
+            skills_to_delete_ids.update(sid for sid in member.skill_ids if sid not in remaining_skill_ids)
+
+    # Tasks tied to a department or staff member being removed have no home left.
+    removed_tasks = 0
+    for task in task_service.list_tasks():
+        orphaned = task.department_id in departments_to_delete_ids or (
+            task.assignee_id is not None and task.assignee_id in staff_to_delete_ids
+        )
+        if not orphaned:
+            continue
+        try:
+            task_service.delete_task(task.id)
+            removed_tasks += 1
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("failed to delete task %s for workspace %s: %s", task.id, company_id, exc)
+
+    removed_staff = 0
+    for staff_id in staff_to_delete_ids:
+        try:
+            staff_service.delete_staff(staff_id)
+            removed_staff += 1
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("failed to delete staff %s for workspace %s: %s", staff_id, company_id, exc)
+
+    removed_skills = 0
+    for skill_id in skills_to_delete_ids:
+        skill = skill_service.try_get_skill(skill_id)
+        if skill is not None and not can_delete(owner_id, skill.owner_id):
+            continue
+        try:
+            skill_service.delete_skill(skill_id)
+            removed_skills += 1
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("failed to delete skill %s for workspace %s: %s", skill_id, company_id, exc)
+
+    removed_teams = 0
+    for department in departments_to_delete:
+        try:
+            departments.delete_department(department.id)
+            removed_teams += 1
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("failed to delete department %s for workspace %s: %s", department.id, company_id, exc)
 
     removed_documents = 0
     for doc in documents.list_documents():
@@ -122,22 +196,17 @@ def delete_company(
         except Exception as exc:  # noqa: BLE001
             logger.warning("failed to delete document %s for workspace %s: %s", doc.id, company_id, exc)
 
-    removed_sessions = 0
-    for session in office_sessions.list_sessions():
-        if session.company_id != company_id:
-            continue
-        try:
-            office_sessions.delete_session(session.id)
-            removed_sessions += 1
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("failed to delete office-builder session %s for workspace %s: %s", session.id, company_id, exc)
+    # Office-builder sessions (AI Office Designer chats) are kept even after the
+    # company is deleted, so the user can revisit and recreate from them.
 
     service.delete_company(company_id)
     return {
         "deleted": True,
         "removed_teams": removed_teams,
+        "removed_staff": removed_staff,
+        "removed_skills": removed_skills,
+        "removed_tasks": removed_tasks,
         "removed_documents": removed_documents,
-        "removed_office_builder_sessions": removed_sessions,
     }
 
 

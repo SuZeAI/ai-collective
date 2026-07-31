@@ -18,7 +18,10 @@ architecture, configuration, security model, and deployment.
 | [LLM_MIDDLEWARE.md](LLM_MIDDLEWARE.md) | The agent middleware stack (limits, retries, summary, LTM, cache, cost guard, guardrail, PII) |
 | [MCP_GUIDE.md](MCP_GUIDE.md) | Connecting MCP servers to agents as skills |
 | [deployment.md](deployment.md) | Docker image, task-queue/lock/sandbox backends, graceful shutdown |
+| [SANDBOX.md](SANDBOX.md) | Sandbox execution modes (`local`, `k8s`) for agent-issued shell/file commands |
 | [api-reference.md](api-reference.md) | REST surface grouped by router |
+| [company-model.md](company-model.md) | The "All"/company scope split, company types, and nav visibility rules |
+| [dashboard_navigation.md](dashboard_navigation.md) | Frontend dual-sidebar nav layout and what each nav group/item does |
 | [hardening-changelog.md](hardening-changelog.md) | The security/reliability hardening pass (branch `fix/backend-hardening`) |
 
 ## Quick start

@@ -254,14 +254,14 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
         <H2>{c.quickstart.cloneH2}</H2>
         <CodeBlock lang="bash" code={`git clone https://github.com/SuZeAI/ai-collective.git\ncd ai-collective`} />
         <H2>{c.quickstart.backendH2}</H2>
-        <CodeBlock lang="bash" code={`python -m venv .venv\nsource .venv/bin/activate\npip install -e .`} />
+        <CodeBlock lang="bash" code={`uv sync --all-extras`} />
         <H2>{c.quickstart.envH2}</H2>
-        <CodeBlock lang="bash" code={`cp .env.example .env`} />
-        <CodeBlock lang="bash" title=".env" code={`ANTHROPIC_API_KEY=sk-ant-...\nOPENAI_API_KEY=sk-...`} />
+        <CodeBlock lang="bash" code={`cp .env.template .env`} />
+        <CodeBlock lang="bash" title=".env" code={`GOOGLE_API_KEY=...\nANTHROPIC_API_KEY=\nOPENAI_API_KEY=\nOPENROUTER_API_KEY=`} />
         <H2>{c.quickstart.startBackendH2}</H2>
-        <CodeBlock lang="bash" code={`uvicorn backend.main:app --reload --port 8000`} />
+        <CodeBlock lang="bash" code={`uv run uvicorn backend.api.main:app --reload --port 8000`} />
         <H2>{c.quickstart.startFrontendH2}</H2>
-        <CodeBlock lang="bash" code={`npm install\nnpm run dev`} />
+        <CodeBlock lang="bash" code={`npm ci\nnpm run dev`} />
         <Callout type="tip">{c.quickstart.tipCallout}</Callout>
       </div>
     ),
@@ -292,13 +292,13 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
         </div>
         <H2>{c.installation.pythonH2}</H2>
         <P>{c.installation.pythonP}</P>
-        <CodeBlock lang="toml" title="pyproject.toml" code={`dependencies = [\n  "fastapi>=0.115",\n  "uvicorn[standard]",\n  "langchain-anthropic",\n  "langgraph",\n  "pydantic>=2",\n]`} />
+        <CodeBlock lang="toml" title="pyproject.toml" code={`dependencies = [\n  "fastapi>=0.115",\n  "uvicorn[standard]",\n  "langchain-anthropic",\n  "langchain-google-genai",\n  "langgraph>=0.2.34",\n  "pydantic>=2",\n]`} />
         <H2>{c.installation.frontendH2}</H2>
         <P>{c.installation.frontendP}</P>
-        <CodeBlock lang="bash" code={`npm install`} />
+        <CodeBlock lang="bash" code={`npm ci`} />
         <H2>{c.installation.rabbitH2}</H2>
         <P>{c.installation.rabbitP}</P>
-        <CodeBlock lang="bash" code={`docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management`} />
+        <CodeBlock lang="bash" code={`make infra   # or: docker compose -f docker/docker-compose-dev.yaml up -d redis rabbitmq`} />
       </div>
     ),
 
@@ -307,10 +307,10 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
         <H1>{c.configuration.h1}</H1>
         <P>{c.configuration.p1}</P>
         <H2>{c.configuration.apiKeysH2}</H2>
-        <CodeBlock lang="bash" title=".env" code={`ANTHROPIC_API_KEY=sk-ant-api03-...\nOPENAI_API_KEY=sk-proj-...\nDEFAULT_LLM=anthropic\nRABBITMQ_URL=amqp://guest:guest@localhost:5672/`} />
+        <CodeBlock lang="bash" title=".env" code={`GOOGLE_API_KEY=...\nANTHROPIC_API_KEY=\nOPENAI_API_KEY=\nOPENROUTER_API_KEY=\n# RABBITMQ_URL=amqp://guest:guest@localhost:5672/   (optional, TASK_QUEUE_BACKEND=memory by default)`} />
         <H2>{c.configuration.frontendH2}</H2>
         <P>{c.configuration.frontendP}</P>
-        <CodeBlock lang="ts" title="vite.config.ts" code={`server: {\n  port: 8080,\n  proxy: { "/api": "http://localhost:8000" },\n}`} />
+        <CodeBlock lang="bash" title=".env (frontend)" code={`# No Vite proxy is configured — the frontend calls a same-origin /api/v1 by default.\n# For local split dev (backend on :8000, frontend on :8080), point it explicitly:\nVITE_API_BASE_URL=http://localhost:8000/api/v1`} />
       </div>
     ),
 
@@ -333,7 +333,7 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
         <H2>{c.staff.lifecycleH2}</H2>
         <CodeBlock lang="text" code={`idle ──▶ thinking ──▶ active ──▶ idle\n                          │\n                          └──▶ error`} />
         <H2>{c.staff.restH2}</H2>
-        <CodeBlock lang="bash" code={`curl -X POST http://localhost:8000/api/staff \\\n  -H "Content-Type: application/json" \\\n  -d '{"name":"Alice","role":"Research Staff","skill_ids":[],"status":"idle","avatar":"A"}'`} />
+        <CodeBlock lang="bash" code={`curl -X POST http://localhost:8000/api/v1/staff \\\n  -H "Content-Type: application/json" \\\n  -d '{"name":"Alice","role":"Research Staff","skill_ids":[],"status":"idle","avatar":"A"}'`} />
       </div>
     ),
 
@@ -398,9 +398,9 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
         <H1>{c.tasks.h1}</H1>
         <P>{c.tasks.p1}</P>
         <H2>{c.tasks.lifecycleH2}</H2>
-        <CodeBlock lang="text" code={`pending ──▶ in-progress ──▶ completed\n                 │\n                 ├──▶ paused ──▶ in-progress\n                 └──▶ stopped`} />
+        <CodeBlock lang="text" code={`pending ──▶ in-progress ──▶ in-review ──▶ completed\n                 │\n                 ├──▶ paused ──▶ in-progress\n                 └──▶ stopped ──▶ in-progress (history kept, session divider added)`} />
         <H2>{c.tasks.schemaH2}</H2>
-        <CodeBlock lang="typescript" code={`type Task = {\n  id: string;\n  title: string;\n  description: string;\n  status: "pending" | "in-progress" | "paused" | "stopped" | "completed";\n  progress: number;\n  department_id?: string;\n  result?: string;\n}`} />
+        <CodeBlock lang="typescript" code={`type Task = {\n  id: string;\n  title: string;\n  description: string;\n  status: "pending" | "in-progress" | "in-review" | "paused" | "stopped" | "completed";\n  progress: number;\n  departmentId: string;\n  assignedStaff: string[];\n}`} />
         <H2>{c.tasks.graphH2}</H2>
         <P>{c.tasks.graphP}</P>
         <Callout type="info">{c.tasks.graphCallout}</Callout>
@@ -412,7 +412,7 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
         <H1>{c.meetings.h1}</H1>
         <P>{c.meetings.p1}</P>
         <H2>{c.meetings.formatH2}</H2>
-        <CodeBlock lang="typescript" code={`type Message = {\n  id: string;\n  role: "user" | "assistant" | "system" | "tool";\n  content: string;\n  staff_id?: string;\n  task_id?: string;\n  timestamp: string;\n}`} />
+        <CodeBlock lang="typescript" code={`type Message = {\n  id: string;\n  staffId: string;\n  content: string;\n  timestamp: string;\n  taskId?: string;\n}`} />
         <H2>{c.meetings.filterH2}</H2>
         <P>{c.meetings.filterP}</P>
       </div>
@@ -617,14 +617,12 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
         <P>{c["api-staff"].p1}</P>
         <H2>{c["api-staff"].endpointsH2}</H2>
         <div className="rounded-xl border border-border/60 overflow-hidden my-4 divide-y divide-border/40">
-          <ApiRow method="GET" path="/staff" desc="List all staff" />
-          <ApiRow method="POST" path="/staff" desc="Create an staff" />
-          <ApiRow method="GET" path="/staff/:id" desc="Get staff by ID" />
-          <ApiRow method="PUT" path="/staff/:id" desc="Update staff" />
-          <ApiRow method="DELETE" path="/staff/:id" desc="Delete staff" />
+          <ApiRow method="GET" path="/api/v1/staff" desc="List all staff" />
+          <ApiRow method="POST" path="/api/v1/staff" desc="Create or update a staff (id in body = update)" />
+          <ApiRow method="DELETE" path="/api/v1/staff/:id" desc="Delete staff" />
         </div>
         <H2>{c["api-staff"].createH2}</H2>
-        <CodeBlock lang="json" title="POST /api/staff" code={`{\n  "name": "Alice",\n  "role": "Research Staff",\n  "skill_ids": [],\n  "status": "idle",\n  "avatar": "A"\n}`} />
+        <CodeBlock lang="json" title="POST /api/v1/staff" code={`{\n  "name": "Alice",\n  "role": "Research Staff",\n  "skill_ids": [],\n  "status": "idle",\n  "avatar": "A"\n}`} />
       </div>
     ),
 
@@ -632,14 +630,14 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
       <div>
         <H1>{c["api-skills"].h1}</H1>
         <div className="rounded-xl border border-border/60 overflow-hidden my-4 divide-y divide-border/40">
-          <ApiRow method="GET" path="/skills" desc="List all skills" />
-          <ApiRow method="POST" path="/skills" desc="Create a skill" />
-          <ApiRow method="GET" path="/skills/:id" desc="Get skill by ID" />
-          <ApiRow method="PUT" path="/skills/:id" desc="Update skill" />
-          <ApiRow method="DELETE" path="/skills/:id" desc="Delete skill" />
+          <ApiRow method="GET" path="/api/v1/skills" desc="List all skills" />
+          <ApiRow method="GET" path="/api/v1/skills/tools" desc="List built-in tool names" />
+          <ApiRow method="GET" path="/api/v1/skills/tool-presets" desc="List tool presets" />
+          <ApiRow method="POST" path="/api/v1/skills" desc="Create or update a skill (id in body = update)" />
+          <ApiRow method="DELETE" path="/api/v1/skills/:id" desc="Delete skill" />
         </div>
         <H2>{c["api-skills"].presetsH2}</H2>
-        <CodeBlock lang="bash" code={`curl http://localhost:8000/api/skills/tools`} />
+        <CodeBlock lang="bash" code={`curl http://localhost:8000/api/v1/skills/tools`} />
       </div>
     ),
 
@@ -647,11 +645,9 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
       <div>
         <H1>{c["api-departments"].h1}</H1>
         <div className="rounded-xl border border-border/60 overflow-hidden my-4 divide-y divide-border/40">
-          <ApiRow method="GET" path="/departments" desc="List all departments" />
-          <ApiRow method="POST" path="/departments" desc="Create a department" />
-          <ApiRow method="GET" path="/departments/:id" desc="Get department by ID" />
-          <ApiRow method="PUT" path="/departments/:id" desc="Update department" />
-          <ApiRow method="DELETE" path="/departments/:id" desc="Delete department" />
+          <ApiRow method="GET" path="/api/v1/departments" desc="List all departments" />
+          <ApiRow method="POST" path="/api/v1/departments" desc="Create or update a department (id in body = update)" />
+          <ApiRow method="DELETE" path="/api/v1/departments/:id" desc="Delete department" />
         </div>
       </div>
     ),
@@ -660,13 +656,12 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
       <div>
         <H1>{c["api-tasks"].h1}</H1>
         <div className="rounded-xl border border-border/60 overflow-hidden my-4 divide-y divide-border/40">
-          <ApiRow method="GET" path="/tasks" desc="List all tasks" />
-          <ApiRow method="POST" path="/tasks" desc="Create & start a task" />
-          <ApiRow method="GET" path="/tasks/:id" desc="Get task status" />
-          <ApiRow method="PATCH" path="/tasks/:id/pause" desc="Pause running task" />
-          <ApiRow method="PATCH" path="/tasks/:id/resume" desc="Resume paused task" />
-          <ApiRow method="PATCH" path="/tasks/:id/stop" desc="Stop task" />
-          <ApiRow method="DELETE" path="/tasks/:id" desc="Delete task" />
+          <ApiRow method="GET" path="/api/v1/tasks" desc="List all tasks" />
+          <ApiRow method="POST" path="/api/v1/tasks" desc="Create, update, or change status (id + status in body)" />
+          <ApiRow method="GET" path="/api/v1/tasks/queue/status" desc="Task queue status" />
+          <ApiRow method="GET" path="/api/v1/tasks/:id/graph-context" desc="Get task's knowledge graph context" />
+          <ApiRow method="DELETE" path="/api/v1/tasks/:id/history" desc="Wipe task message history (owner/admin only)" />
+          <ApiRow method="DELETE" path="/api/v1/tasks/:id" desc="Delete task" />
         </div>
       </div>
     ),
@@ -676,9 +671,9 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
         <H1>{c["api-chat"].h1}</H1>
         <P>{c["api-chat"].p1}</P>
         <div className="rounded-xl border border-border/60 overflow-hidden my-4 divide-y divide-border/40">
-          <ApiRow method="POST" path="/chat" desc="Send prompt to a specific staff" />
+          <ApiRow method="POST" path="/api/v1/llm/chat" desc="Send prompt to a specific staff" />
         </div>
-        <CodeBlock lang="json" title="POST /api/chat" code={`{\n  "prompt": "What are the top Python web frameworks?",\n  "staffId": "staff_abc123"\n}`} />
+        <CodeBlock lang="json" title="POST /api/v1/llm/chat" code={`{\n  "prompt": "What are the top Python web frameworks?",\n  "staffId": "staff_abc123"\n}`} />
       </div>
     ),
 
@@ -686,8 +681,8 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
       <div>
         <H1>{c["deploy-docker"].h1}</H1>
         <P>{c["deploy-docker"].p1}</P>
-        <CodeBlock lang="yaml" title="docker-compose.yml" code={`version: "3.9"\nservices:\n  backend:\n    build: .\n    ports: ["8000:8000"]\n    environment:\n      - ANTHROPIC_API_KEY=\${ANTHROPIC_API_KEY}\n  frontend:\n    build: { context: ., dockerfile: Dockerfile.frontend }\n    ports: ["80:80"]\n  rabbitmq:\n    image: rabbitmq:3-management\n    ports: ["5672:5672","15672:15672"]`} />
-        <CodeBlock lang="bash" code={`docker compose up -d\ndocker compose logs -f backend`} />
+        <CodeBlock lang="bash" title="Dev stack (hot-reload)" code={`cp .env.template .env\n# Fill in a provider key (e.g. GOOGLE_API_KEY) referenced by config.yml's models: list\nmake dev\n# App:        http://localhost:2026\n# Swagger UI: http://localhost:2026/api/v1/docs`} />
+        <CodeBlock lang="bash" title="Production stack" code={`make up\nmake logs\nmake down`} />
       </div>
     ),
 
@@ -704,7 +699,7 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40 text-[13px]">
-              {[["ANTHROPIC_API_KEY","Yes*","Anthropic Claude API key"],["OPENAI_API_KEY","Yes*","OpenAI API key"],["DEFAULT_LLM","No","anthropic or openai"],["RABBITMQ_URL","No","RabbitMQ connection string"],["PORT","No","Backend port (default: 8000)"]].map(([v,r,d]) => (
+              {[["GOOGLE_API_KEY","Yes*","Google Gemini API key (default active model)"],["ANTHROPIC_API_KEY","Yes*","Anthropic Claude API key"],["OPENAI_API_KEY","Yes*","OpenAI API key"],["OPENROUTER_API_KEY","Yes*","OpenRouter API key"],["MONGO_URI","No","MongoDB connection URI (only if storage.backend=mongo in config.yml)"],["RABBITMQ_URL","No","RabbitMQ connection string (only if task_queue.backend=rabbitmq in config.yml)"],["REDIS_URL","No","Redis connection string (only if lock.backend=redis in config.yml)"]].map(([v,r,d]) => (
                 <tr key={v}>
                   <td className="py-2 pr-4 font-mono text-primary/80">{v}</td>
                   <td className="py-2 pr-4 text-muted-foreground">{r}</td>
@@ -713,6 +708,7 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
               ))}
             </tbody>
           </table>
+          <p className="text-xs text-muted-foreground mt-2">* At least one LLM provider key is required, matching whichever model is <InlineCode>enabled: true</InlineCode> in <InlineCode>config.yml</InlineCode>. This table only covers <InlineCode>.env</InlineCode> secrets — storage/queue/lock/sandbox backend selection itself lives in <InlineCode>config.yml</InlineCode>, not as env vars.</p>
         </div>
       </div>
     ),

@@ -72,9 +72,8 @@ def create_bash_toolkit(session_id: str | None = None, **kwargs) -> BashToolkit:
     """Create a BashToolkit wired to the appropriate sandbox for the current mode.
 
     Mode is read from settings.sandbox_mode:
-        local  → LocalSandboxAdapter (direct host execution)
-        docker → AioSandbox backed by a Docker container
-        k8s    → AioSandbox backed by a K8s pod via provisioner
+        local → LocalSandboxAdapter (direct host execution)
+        k8s   → AioSandbox backed by a K8s pod via provisioner
 
     Args:
         session_id: Session/thread identifier. Same session_id reuses the same sandbox.

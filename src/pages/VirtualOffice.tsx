@@ -635,7 +635,15 @@ export default function VirtualOffice() {
               const isSelected = selectedStaffId === staffMember.id;
               const isThinking = pos.status === "thinking";
               const isCoffee = pos.status === "coffee";
-              const isCollab = pos.status === "collaborating";
+              const isCollab = pos.status === "collaborating" || pos.status === "executing";
+              const statusMeta: Record<string, { label: string; dot: string }> = {
+                thinking: { label: "Thinking", dot: "bg-teal-400 animate-pulse" },
+                executing: { label: "Working", dot: "bg-emerald-500 animate-pulse" },
+                collaborating: { label: "Collaborating", dot: "bg-blue-500 animate-pulse" },
+                coffee: { label: "On break", dot: "bg-amber-500" },
+                idle: { label: "Idle", dot: "bg-slate-400" },
+              };
+              const { label: statusLabel, dot: statusDotClass } = statusMeta[pos.status] ?? statusMeta.idle;
 
               return (
                 <motion.div
@@ -647,6 +655,7 @@ export default function VirtualOffice() {
                     setSelectedStaffId(staffMember.id);
                   }}
                   className="absolute aspect-square flex flex-col items-center justify-center cursor-pointer z-30 group p-1"
+                  title={`${staffMember.name} — ${statusLabel}`}
                   style={{
                     left: `${pos.left}px`,
                     top: `${pos.top}px`,
@@ -707,7 +716,7 @@ export default function VirtualOffice() {
                         className="w-full h-full rounded-full"
                       />
                     </motion.div>
-                    <span className="absolute bottom-1 right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-slate-100 dark:border-slate-950" />
+                    <span className={`absolute bottom-1 right-0.5 w-2.5 h-2.5 rounded-full border border-slate-100 dark:border-slate-950 ${statusDotClass}`} />
                   </div>
 
                   {/* Name banner */}
@@ -927,7 +936,22 @@ export default function VirtualOffice() {
                   <Cpu className="w-3.5 h-3.5" />
                   Inspector
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">Select an staff on the map to inspect and chat.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">Select a staff on the map to inspect and chat.</p>
+                <div className="mt-4 space-y-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Status legend</p>
+                  {[
+                    { dot: "bg-emerald-500", label: "Working" },
+                    { dot: "bg-teal-400", label: "Thinking" },
+                    { dot: "bg-blue-500", label: "Collaborating" },
+                    { dot: "bg-amber-500", label: "On break" },
+                    { dot: "bg-slate-400", label: "Idle" },
+                  ].map((s) => (
+                    <div key={s.label} className="flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-400">
+                      <span className={`w-2.5 h-2.5 rounded-full ${s.dot}`} />
+                      {s.label}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

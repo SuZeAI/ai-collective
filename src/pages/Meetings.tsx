@@ -95,6 +95,8 @@ export default function Meetings() {
   const filteredMessages = useMemo(() => {
     if (scope.pending) return []; // membership still resolving
     return messages.filter((msg) => {
+      // System-generated session dividers have no real sender; not useful to show here.
+      if (msg.staffId === "system") return false;
       // Office scoping. The meeting's task decides which office a message
       // belongs to; only personnel-membership is used as fallback when the
       // message has no resolvable task (e.g. ad-hoc chats).

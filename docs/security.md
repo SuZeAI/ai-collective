@@ -44,7 +44,7 @@ guards every outbound request:
   redirect-based SSRF.
 - The `browser_navigate` / `browser_restart` tools validate before navigating.
 
-Set `ALLOW_PRIVATE_HTTP=1` to disable the guard (local development against
+Set `security.allow_private_http: true` to disable the guard (local development against
 internal hosts only).
 
 ## Webhook verification
@@ -69,11 +69,20 @@ Logs use a `RotatingFileHandler` (`LOG_MAX_BYTES` / `LOG_BACKUP_COUNT`) so the
 log file cannot grow without bound. `LOG_LEVEL` is validated against a known
 level allow-list.
 
+## Ownership scoping
+
+Every entity carries an `owner_id` (`backend/domain/models.py`); routers
+resolve the caller's scope via `current_owner_id_dep` and gate reads/writes
+through the `is_visible_to` / `is_owned_by` / `can_modify` / `can_delete`
+helpers (also in `models.py`). Non-admin users see the shared `"default"`
+scope plus their own records; guest sessions get an isolated `"guest"` scope.
+This is wired into nearly every resource router (staff, departments,
+companies, tasks, projects, epics, sprints, meetings, recruiting, skills,
+documents, office_builder, planner, activity_feed, analytics) — not just
+`auth.py`.
+
 ## Known limitations / follow-ups
 
-- **Endpoint authorization:** most resource endpoints do not yet require
-  authentication or enforce per-user ownership. Add `Depends(current_user_dep)`
-  and ownership checks where multi-tenant isolation is required.
 - **Rate limiting:** auth endpoints (`/login`, `/register`, OAuth) are not rate
   limited. Add a limiter (e.g. SlowAPI) for brute-force resistance.
 - **OAuth state store:** the CSRF `state` is kept in a per-process dict; use a

@@ -152,6 +152,7 @@ export type Project = {
   avatar_color?: string;
   avatar_url?: string;
   owner_id?: string;
+  companyId?: string;
 };
 
 export type Epic = {
@@ -811,7 +812,8 @@ export const api = {
     apiFetch<{ cleared: boolean }>(`/tasks/${id}/history`, { method: "DELETE" }),
 
   // Jira-style project management layer.
-  listProjects: () => apiFetch<Project[]>("/projects"),
+  listProjects: (companyId?: string) =>
+    apiFetch<Project[]>(`/projects${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`),
   upsertProject: (payload: Partial<Project> & Pick<Project, "key" | "name">) =>
     apiFetch<Project>("/projects", { method: "POST", body: JSON.stringify(payload) }),
   deleteProject: (id: string) =>
@@ -852,9 +854,10 @@ export const api = {
   listRecruitingStaff: () => apiFetch<Staff[]>("/recruiting/staff"),
   listRecruitingDepartments: () => apiFetch<Department[]>("/recruiting/departments"),
   listRecruitingTasks: () => apiFetch<Task[]>("/recruiting/tasks"),
+  listRecruitingProjects: () => apiFetch<Project[]>("/recruiting/projects"),
   listRecruitingDocuments: () => apiFetch<LibraryDocument[]>("/recruiting/documents"),
   // `companyId` is required only for documents (the office to copy into).
-  copyFromRecruiting: (payload: { type: "skill" | "staff" | "department" | "task" | "document"; id: string; companyId?: string }) =>
+  copyFromRecruiting: (payload: { type: "skill" | "staff" | "department" | "task" | "project" | "document"; id: string; companyId?: string }) =>
     apiFetch<{ type: string; id: string }>("/recruiting/copy", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -1095,7 +1098,10 @@ export const api = {
   deleteConnection: (id: string) => apiFetch<{ deleted: boolean }>(`/connections/${id}`, { method: "DELETE" }),
 
   // Cost monitoring (per-user; scoped to the caller's own runs)
-  getConsumption: (days = 30) => apiFetch<Consumption>(`/consumption?days=${days}`),
+  getConsumption: (days = 30, companyId?: string) =>
+    apiFetch<Consumption>(
+      `/consumption?days=${days}${companyId ? `&company_id=${encodeURIComponent(companyId)}` : ""}`,
+    ),
 
   simulatePlan: (taskDescription: string) =>
     apiFetch<SimulationPlanResponse>("/simulations/plan", {

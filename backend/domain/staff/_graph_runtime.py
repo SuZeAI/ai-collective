@@ -13,7 +13,7 @@ tree, mesh, sequential orchestrator) needs:
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable
 from uuid import uuid4
 import logging
@@ -27,6 +27,7 @@ except Exception:  # pragma: no cover
 from backend.api.settings import settings
 from backend.application.ports.staff_graph import GraphStaffDefinition, GraphTurn
 from backend.domain.event.schema import EventType
+from backend.domain.staff.token_budget import TokenBudgetResult, apply_context_token_budget
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +101,24 @@ async def safe_chat(llm: Any, *, staff_name: str = "", **chat_kwargs: Any) -> st
         return f"[error] The model call failed after retries: {last_exc}"
     finally:
         current_usage_staff.reset(token)
+
+
+def raise_if_llm_failed(output: str) -> None:
+    """Stop a serial (chained) run when a staff's turn was a safe_chat() failure.
+
+    safe_chat() intentionally returns an "[error] ..." string instead of
+    raising (see its docstring) — but in a serial topology (sequential/ring/
+    tree/supervisor's routing, mesh's serial hops) that string becomes the
+    *next* staff's whole input, so the failure silently cascades as if it
+    were real content instead of stopping the run. Call this right after a
+    serial safe_chat() to turn it into a clean run-ending error instead.
+
+    Do NOT call this from the parallel fan-out path (run_fanout_wave) — there,
+    each branch's error is deliberately non-fatal so sibling branches and the
+    coordinator's synthesis still get a chance to run.
+    """
+    if output.startswith("[error] The model call "):
+        raise RuntimeError(output)
 
 
 # How often a held run re-checks whether the user resumed it.
@@ -221,6 +240,80 @@ def drain_human_guidance(
         "working. Treat these as updated instructions that take priority over "
         "earlier context]:\n" + lines
     )
+
+
+@dataclass(slots=True)
+class TurnMessages:
+    """One agent turn's message chain — the ``messages`` state LangChain's
+    ``create_agent`` consumes (see
+    https://reference.langchain.com/python/langchain/agents/middleware/types/AgentState).
+
+    Keeping ``context`` and ``input_text`` as separate fields (instead of one
+    flattened string) is what lets every topology's fixed ``staff_member.system_prompt``
+    stay byte-identical every call — see ``build_turn_messages`` — instead of
+    getting fused with the per-turn-changing routing/graph/memory text, which
+    is what actually breaks both the compiled-agent memo (agent_builder.py)
+    and upstream provider prompt-prefix caching.
+
+    ``context`` (routing guidance, retrieved graph context, working memory,
+    human-in-the-loop guidance, history windows, ...) is everything that varies
+    turn to turn; it is joined into one "user"-role message that precedes the
+    actual turn input. It is deliberately NOT "system" — ``create_agent``
+    already prepends its own single fixed SystemMessage from
+    ``system_prompt``, and stacking a second "system" message on top of it
+    every turn is exactly the kind of per-turn system drift this class exists
+    to avoid (some providers, e.g. Gemini, only expect one system
+    instruction). It is also NOT "assistant" (that would misattribute this
+    content as something the model itself said in an earlier turn, corrupting
+    its own history) nor "tool" (a ToolMessage must reference a real preceding
+    tool_call_id, which this has none of — providers validate that pairing and
+    would reject a floating one).
+    ``input_text`` is the actual task/report/query for this turn and always
+    lands as the final "user"-role message, never truncated.
+    """
+
+    input_text: str
+    context: list[str] = field(default_factory=list)
+
+    def add_context(self, content: str) -> None:
+        if content:
+            self.context.append(content)
+
+    def as_messages(self) -> list[dict[str, str]]:
+        context_text = "\n\n".join(self.context)
+        messages: list[dict[str, str]] = []
+        if context_text:
+            messages.append({"role": "user", "content": context_text})
+        messages.append({"role": "user", "content": self.input_text})
+        return messages
+
+
+def build_turn_messages(
+    *,
+    llm: Any,
+    system_prompt: str,
+    context_text: str,
+    input_text: str,
+    max_context_tokens: int,
+    reserved_output_tokens: int,
+) -> tuple[TurnMessages, TokenBudgetResult]:
+    """Budget-trim ``context_text`` and wrap it with ``input_text`` into a
+    ``TurnMessages`` chain. ``system_prompt`` is the staff_member's fixed role
+    instructions — callers must pass it through to ``chat(system=...)``
+    unchanged (see ``TurnMessages`` docstring for why); only ``context_text``
+    is trimmed here (tail kept — see token_budget._truncate_by_token_budget),
+    ``input_text`` is never truncated.
+    """
+    budget_result = apply_context_token_budget(
+        llm=llm,
+        system_prompt=system_prompt,
+        user_input=context_text,
+        max_context_tokens=max_context_tokens,
+        reserved_output_tokens=reserved_output_tokens,
+    )
+    turn = TurnMessages(input_text=input_text)
+    turn.add_context(budget_result.text)
+    return turn, budget_result
 
 
 # ------------------------------------------------------------------ #

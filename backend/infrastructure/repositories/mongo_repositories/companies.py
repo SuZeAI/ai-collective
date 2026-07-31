@@ -10,7 +10,7 @@ from backend.domain.models import DEFAULT_OWNER_ID, Company
 
 class MongoCompanyRepository:
     def __init__(self, db: pymongo.database.Database) -> None:
-        self._col = db["workspaces"]
+        self._col = db["companies"]
         self._col.create_index("id", unique=True, background=True)
 
     def _doc_to_workspace(self, item: dict[str, Any]) -> Company:

@@ -165,8 +165,8 @@ async def upload_file(
 
     The file lands in ``{SANDBOX_WORKSPACE}/conv-<hash>/uploads/`` and is recorded
     so the orchestrator provisions the conversation sandbox and injects the
-    sandbox tools for every staff in that chat. In docker/k8s mode the bytes are
-    also pushed into the live sandbox and backed up to MinIO (best-effort).
+    sandbox tools for every staff in that chat. In k8s mode the bytes are also
+    pushed into the live sandbox and backed up to MinIO (best-effort).
     """
     _require_task_access(task_service, task_id, owner_id)
     if file.content_type not in _ALLOWED_UPLOAD_TYPES:
@@ -204,7 +204,7 @@ async def upload_file(
         uploaded_by=current_user.id,
     )
 
-    # Push into the live sandbox + back up to object storage (docker/k8s).
+    # Push into the live sandbox + back up to object storage (k8s mode).
     # Best-effort: never fail the upload if these are unavailable.
     try:
         from backend.infrastructure.llm.sandbox_middleware import (

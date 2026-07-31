@@ -14,15 +14,16 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, X, Eye, Send, UserRound, Hand, HelpCircle, Zap, LayoutGrid, Flag, CalendarClock, Tag, Building2, MessageSquare } from "lucide-react";
+import { Plus, CheckCircle2, Clock, Circle, Pause, Play, Square, Pencil, Trash2, X, Eye, Send, UserRound, Hand, HelpCircle, Zap, LayoutGrid, Flag, CalendarClock, Tag, Building2, MessageSquare, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { StaffAvatar } from "@/components/StaffAvatar";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
+import { ProjectSubnav } from "@/components/ProjectSubnav";
 import { MeetingFiles } from "@/components/MeetingFiles";
 import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Staff, type GraphContextSnapshot, type Message, type Department, type Task, type TaskPriority, type Project, type Sprint, type Epic } from "@/lib/api";
 import { useRunEngine, type GraphHighlight, type UserInputRequest } from "@/contexts/RunEngineContext";
@@ -265,11 +266,11 @@ type KanbanColumnProps = {
 function KanbanColumn({ status, label, accent, count, children }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   return (
-    <div className="flex flex-col w-[300px] shrink-0 h-full">
-      <div className="flex items-center gap-2 px-2 py-2 mb-1">
-        <span className={cn("w-2 h-2 rounded-full", accent)} />
-        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
-        <span className="text-[10px] font-semibold text-muted-foreground/70 bg-muted rounded-full px-1.5 py-0.5 ml-auto">{count}</span>
+    <div className="flex flex-col min-w-0 h-full">
+      <div className="flex items-center gap-1.5 px-2 py-2 mb-1 min-w-0">
+        <span className={cn("w-2 h-2 rounded-full shrink-0", accent)} />
+        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground truncate">{label}</span>
+        <span className="text-[10px] font-semibold text-muted-foreground/70 bg-muted rounded-full px-1.5 py-0.5 ml-auto shrink-0">{count}</span>
       </div>
       <div
         ref={setNodeRef}
@@ -302,6 +303,7 @@ export default function TaskManager() {
     userInputRequests,
     loadingConversationTaskIds,
     updatingTaskIds,
+    statusChangePendingIds,
     sendingInterjectTaskIds,
     holdTogglingTaskIds,
     respondingRequestIds,
@@ -322,15 +324,23 @@ export default function TaskManager() {
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [epicFilter, setEpicFilter] = useState<string>("all");
   const [sprintFilter, setSprintFilter] = useState<string>("all");
+  // Projects belong to one company (see Project.companyId) — narrow to the
+  // active office so another company's projects/issues never leak in here.
+  // Legacy projects predating that field (companyId "") stay visible in every
+  // office, same as before company-scoping existed.
+  const scopedProjectList = useMemo(
+    () => (scope.isOverall ? projectList : projectList.filter((p) => !p.companyId || scope.projectIds.has(p.id))),
+    [projectList, scope.isOverall, scope.projectIds],
+  );
   const activeProject = useMemo(
-    () => (projectKeyParam ? projectList.find((p) => p.key === projectKeyParam) : undefined),
-    [projectKeyParam, projectList],
+    () => (projectKeyParam ? scopedProjectList.find((p) => p.key === projectKeyParam) : undefined),
+    [projectKeyParam, scopedProjectList],
   );
   // The project actually filtering the board: the URL project when on a
   // project's own board route, otherwise whatever the dropdown picked.
   const projectScope = useMemo(
-    () => activeProject ?? (projectFilter !== "all" ? projectList.find((p) => p.id === projectFilter) : undefined),
-    [activeProject, projectFilter, projectList],
+    () => activeProject ?? (projectFilter !== "all" ? scopedProjectList.find((p) => p.id === projectFilter) : undefined),
+    [activeProject, projectFilter, scopedProjectList],
   );
   // Task creation belongs to a specific company (office) or a project board. The
   // global "Overall Collective" scope is monitoring-only, so the New Task button
@@ -350,6 +360,12 @@ export default function TaskManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [viewTaskId, setViewTaskId] = useState<string | null>(null);
+  // Prompt shown instead of silently no-oping when starting a task with no
+  // department/staff assigned yet (see requestStart).
+  const [assignPromptTaskId, setAssignPromptTaskId] = useState<string | null>(null);
+  const [assignPromptMode, setAssignPromptMode] = useState<"department" | "staff">("department");
+  const [assignPromptDepartmentId, setAssignPromptDepartmentId] = useState("");
+  const [assignPromptStaffId, setAssignPromptStaffId] = useState("");
   // Human-in-the-loop composer draft and ask_user free-text drafts (UI-local).
   const [humanInputs, setHumanInputs] = useState<Record<string, string>>({});
   const [userRequestDrafts, setUserRequestDrafts] = useState<Record<string, string>>({});
@@ -439,12 +455,15 @@ export default function TaskManager() {
 
   // Office scoping: a task belongs to the active office if its department is in
   // scope OR (for individual assignments without a department) its assignee is a
-  // member of a department in scope. Projects have no office of their own (see
-  // domain Project — no company_id field), so an issue keeps its department/
-  // assignee empty; it's always visible instead of needing manual assignment.
+  // member of a department in scope. A project-linked issue belongs to its
+  // project's office (Project.companyId), except legacy projects predating that
+  // field (companyId ""), which stay visible everywhere.
   const isTaskInScope = (task: Task) => {
     if (scope.isOverall) return true;
-    if (task.projectId) return true;
+    if (task.projectId) {
+      const project = projectList.find((p) => p.id === task.projectId);
+      return !project?.companyId || scope.projectIds.has(task.projectId);
+    }
     if (task.departmentId && scope.departmentIds.has(task.departmentId)) return true;
     if (task.assigneeId) {
       return departmentList.some((t) => scope.departmentIds.has(t.id) && (t.staff ?? []).includes(task.assigneeId as string));
@@ -638,21 +657,68 @@ export default function TaskManager() {
     }
   };
 
+  // Starting a task needs a department or staff behind it. If it has neither
+  // yet, prompt for one instead of letting engine.startTask silently no-op.
+  const requestStart = (task: Task) => {
+    if (task.assignedStaff.length === 0) {
+      setAssignPromptTaskId(task.id);
+      setAssignPromptMode("department");
+      setAssignPromptDepartmentId("");
+      setAssignPromptStaffId("");
+      return;
+    }
+    openTaskView(task.id);
+    void engine.startTask(task, departmentRunOpts(task));
+  };
+
+  const confirmAssignAndRun = async () => {
+    const task = taskList.find((t) => t.id === assignPromptTaskId);
+    if (!task) return;
+    const patch =
+      assignPromptMode === "staff"
+        ? { ...task, departmentId: "", assigneeId: assignPromptStaffId, assignedStaff: [assignPromptStaffId] }
+        : {
+            ...task,
+            departmentId: assignPromptDepartmentId,
+            assigneeId: null,
+            assignedStaff: departmentList.find((t) => t.id === assignPromptDepartmentId)?.staff || [],
+          };
+    try {
+      const updated = await engine.upsertTask(patch);
+      setAssignPromptTaskId(null);
+      openTaskView(updated.id);
+      void engine.startTask(updated, departmentRunOpts(updated));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   // Drag a card between columns → drive the matching status transition. Moving
   // into "In Progress" auto-runs the staff; the user keeps stop/pause controls.
   const moveTaskToStatus = (task: Task, status: Task["status"]) => {
-    if (task.status === status) return;
+    // Same-status is normally a no-op, except "in-progress" → "in-progress"
+    // while nothing is actually streaming: that's a task orphaned by a lost
+    // SSE connection (see `isOrphaned` in the detail panel), and re-dropping
+    // it into "In Progress" is how the user restarts it.
+    if (task.status === status && !(status === "in-progress" && !engine.isStreaming(task.id))) return;
     if (!canEditItem(task)) return;
-    if (updatingTaskIds.has(task.id)) return;
+    // updatingTaskIds stays true for a task's *entire* active run (see
+    // startTask), so gating stop/pause/other on it would block them for as
+    // long as the task is running — exactly when you need them. Those use
+    // the short-lived statusChangePendingIds instead, to only prevent
+    // double-submitting the same click.
     if (status === "in-progress") {
-      openTaskView(task.id);
-      void engine.startTask(task, departmentRunOpts(task));
+      if (updatingTaskIds.has(task.id)) return;
+      requestStart(task);
     } else if (status === "stopped") {
+      if (statusChangePendingIds.has(task.id)) return;
       void engine.stopTask(task);
     } else if (status === "paused") {
+      if (statusChangePendingIds.has(task.id)) return;
       void engine.pauseTask(task);
     } else {
       // pending | completed — generic setter aborts any live stream first.
+      if (statusChangePendingIds.has(task.id)) return;
       void engine.setStatus(task, status);
     }
   };
@@ -674,14 +740,17 @@ export default function TaskManager() {
   // opens the run stream (which lives in the engine, so it survives navigation);
   // the engine aborts on stop/pause and clears run state when restarting.
   const updateTaskStatus = (task: Task, status: Task["status"]) => {
-    if (task.status === status) return;
-    if (updatingTaskIds.has(task.id)) return;
+    // See moveTaskToStatus: allow re-triggering "in-progress" when the task is
+    // orphaned (DB says in-progress but no stream is live in this session).
+    if (task.status === status && !(status === "in-progress" && !engine.isStreaming(task.id))) return;
     if (status === "in-progress") {
-      openTaskView(task.id);
-      void engine.startTask(task, departmentRunOpts(task));
+      if (updatingTaskIds.has(task.id)) return;
+      requestStart(task);
     } else if (status === "stopped") {
+      if (statusChangePendingIds.has(task.id)) return;
       void engine.stopTask(task);
     } else if (status === "paused") {
+      if (statusChangePendingIds.has(task.id)) return;
       void engine.pauseTask(task);
     }
   };
@@ -783,40 +852,114 @@ export default function TaskManager() {
 
   const selectedTask = viewTaskId ? taskList.find((task) => task.id === viewTaskId) : undefined;
 
+  // Shared toolbar controls (epic/sprint filters, search, append, new task) — used
+  // both inside the project-scoped subnav and the generic /tasks toolbar below.
+  const toolbarControls = (
+    <>
+      {projectScope && (
+        <>
+          <Select value={epicFilter} onValueChange={setEpicFilter}>
+            <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All epics" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All epics</SelectItem>
+              {epicList.filter((e) => e.projectId === projectScope.id).map((e) => (
+                <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={sprintFilter} onValueChange={setSprintFilter}>
+            <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All sprints" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sprints</SelectItem>
+              <SelectItem value="__backlog__">Backlog (no sprint)</SelectItem>
+              {sprintList.filter((s) => s.projectId === projectScope.id).map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
+      )}
+
+      <div className="relative">
+        <Input
+          type="text"
+          placeholder="Search tasks, labels, people..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="h-9 text-xs pl-8 pr-3 w-[220px]"
+        />
+        <svg className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+
+      {scope.company && (
+        <AppendFromOverallDialog
+          size="sm"
+          title={`Append tasks to "${scope.company.name}"`}
+          description="Pick existing tasks from Overall and assign them to one of this office's departments."
+          items={taskList
+            .filter((t) => !isTaskInScope(t))
+            .map((t) => ({ id: t.id, name: t.title, sub: t.description, badge: t.status }))}
+          emptyText="Every task from Overall already belongs to this office."
+          targets={departmentList
+            .filter((t) => scope.departmentIds.has(t.id))
+            .map((t) => ({ id: t.id, name: t.name }))}
+          targetLabel="Assign to department"
+          noTargetText="This office has no departments yet. Add a department first."
+          copyLabel="Create independent copies for this office (when unchecked, your own tasks are moved instead; shared tasks are always copied)."
+          onAppend={async (ids, targetId, makeCopy) => {
+            const department = departmentList.find((t) => t.id === targetId);
+            if (!department) return;
+            for (const id of ids) {
+              const task = taskList.find((t) => t.id === id);
+              if (!task) continue;
+              if (!makeCopy && canEditItem(task)) {
+                await engine.upsertTask({ ...task, departmentId: department.id, assigneeId: null, assignedStaff: department.staff || [] });
+              } else {
+                await engine.upsertTask({
+                  title: task.title,
+                  description: task.description,
+                  departmentId: department.id,
+                  status: "pending",
+                  progress: 0,
+                  assignedStaff: department.staff || [],
+                });
+              }
+            }
+          }}
+        />
+      )}
+
+      {canCreateTask && (
+        <Button size="sm" onClick={openCreateDialog} className="h-9 gap-1 text-xs">
+          <Plus className="w-3.5 h-3.5" /> New Task
+        </Button>
+      )}
+    </>
+  );
+
   return (
     <div className="h-full w-full flex flex-col bg-background overflow-hidden select-none">
       {/* TOP TOOLBAR */}
-      <div className="px-5 py-3 border-b border-border flex items-center gap-3 flex-shrink-0 bg-background/50 backdrop-blur-sm flex-wrap">
-        <div className="flex items-center gap-2.5 mr-auto">
-          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
-            <LayoutGrid className="w-4.5 h-4.5 text-primary" />
+      {activeProject ? (
+        <ProjectSubnav project={activeProject} projectKey={activeProject.key} active="board">
+          <div className="flex items-center gap-2 flex-wrap">{toolbarControls}</div>
+        </ProjectSubnav>
+      ) : (
+        <div className="px-5 py-3 border-b border-border flex items-center gap-3 flex-shrink-0 bg-background/50 backdrop-blur-sm flex-wrap">
+          <div className="flex items-center gap-2.5 mr-auto">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+              <LayoutGrid className="w-4.5 h-4.5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-foreground leading-none">Projects &amp; Tasks</h1>
+              <p className="text-[10px] text-muted-foreground mt-1">Kanban board · drag cards between columns to change status</p>
+            </div>
           </div>
-          <div>
-            {activeProject ? (
-              <>
-                <h1 className="text-base font-bold tracking-tight text-foreground leading-none">
-                  <span className="font-mono text-primary mr-1.5">{activeProject.key}</span>
-                  {activeProject.name}
-                </h1>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <Link to={`/projects/${activeProject.key}/board`} className="text-[10px] font-semibold text-primary border-b-2 border-primary pb-0.5">Board</Link>
-                  <Link to={`/projects/${activeProject.key}/backlog`} className="text-[10px] font-medium text-muted-foreground hover:text-foreground pb-0.5">Backlog</Link>
-                  <Link to={`/projects/${activeProject.key}/roadmap`} className="text-[10px] font-medium text-muted-foreground hover:text-foreground pb-0.5">Roadmap</Link>
-                  <Link to={`/projects/${activeProject.key}/reports`} className="text-[10px] font-medium text-muted-foreground hover:text-foreground pb-0.5">Reports</Link>
-                </div>
-              </>
-            ) : (
-              <>
-                <h1 className="text-base font-bold tracking-tight text-foreground leading-none">Projects &amp; Tasks</h1>
-                <p className="text-[10px] text-muted-foreground mt-1">Kanban board · drag cards between columns to change status</p>
-              </>
-            )}
-          </div>
-        </div>
 
-        {/* On the generic /tasks board (no URL project) let the user scope down
-            to a project directly, instead of only via /projects/:key/board. */}
-        {!activeProject && (
+          {/* On the generic /tasks board (no URL project) let the user scope down
+              to a project directly, instead of only via /projects/:key/board. */}
           <Select
             value={projectFilter}
             onValueChange={(v) => { setProjectFilter(v); setEpicFilter("all"); setSprintFilter("all"); }}
@@ -824,97 +967,18 @@ export default function TaskManager() {
             <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All projects" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All projects</SelectItem>
-              {projectList.map((p) => (
+              {scopedProjectList.map((p) => (
                 <SelectItem key={p.id} value={p.id}>{p.key} · {p.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-        )}
 
-        {projectScope && (
-          <>
-            <Select value={epicFilter} onValueChange={setEpicFilter}>
-              <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All epics" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All epics</SelectItem>
-                {epicList.filter((e) => e.projectId === projectScope.id).map((e) => (
-                  <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={sprintFilter} onValueChange={setSprintFilter}>
-              <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All sprints" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All sprints</SelectItem>
-                <SelectItem value="__backlog__">Backlog (no sprint)</SelectItem>
-                {sprintList.filter((s) => s.projectId === projectScope.id).map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </>
-        )}
-
-        {/* Search box */}
-        <div className="relative">
-          <Input
-            type="text"
-            placeholder="Search tasks, labels, people..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9 text-xs pl-8 pr-3 w-[240px]"
-          />
-          <svg className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+          {toolbarControls}
         </div>
+      )}
 
-        {scope.company && (
-          <AppendFromOverallDialog
-            size="sm"
-            title={`Append tasks to "${scope.company.name}"`}
-            description="Pick existing tasks from Overall and assign them to one of this office's departments."
-            items={taskList
-              .filter((t) => !isTaskInScope(t))
-              .map((t) => ({ id: t.id, name: t.title, sub: t.description, badge: t.status }))}
-            emptyText="Every task from Overall already belongs to this office."
-            targets={departmentList
-              .filter((t) => scope.departmentIds.has(t.id))
-              .map((t) => ({ id: t.id, name: t.name }))}
-            targetLabel="Assign to department"
-            noTargetText="This office has no departments yet. Add a department first."
-            copyLabel="Create independent copies for this office (when unchecked, your own tasks are moved instead; shared tasks are always copied)."
-            onAppend={async (ids, targetId, makeCopy) => {
-              const department = departmentList.find((t) => t.id === targetId);
-              if (!department) return;
-              for (const id of ids) {
-                const task = taskList.find((t) => t.id === id);
-                if (!task) continue;
-                if (!makeCopy && canEditItem(task)) {
-                  await engine.upsertTask({ ...task, departmentId: department.id, assigneeId: null, assignedStaff: department.staff || [] });
-                } else {
-                  await engine.upsertTask({
-                    title: task.title,
-                    description: task.description,
-                    departmentId: department.id,
-                    status: "pending",
-                    progress: 0,
-                    assignedStaff: department.staff || [],
-                  });
-                }
-              }
-            }}
-          />
-        )}
-
-        <Dialog open={open} onOpenChange={setOpen}>
-          {canCreateTask && (
-            <DialogTrigger asChild>
-              <Button size="sm" onClick={openCreateDialog} className="h-9 gap-1 text-xs">
-                <Plus className="w-3.5 h-3.5" /> New Task
-              </Button>
-            </DialogTrigger>
-          )}
+      {/* New Task dialog — trigger buttons live in the toolbar above (see toolbarControls) */}
+      <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent>
             <DialogHeader><DialogTitle>{editingTaskId ? "Edit Task" : "Create Task"}</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-2">
@@ -1006,12 +1070,72 @@ export default function TaskManager() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
+
+        {/* Shown instead of silently no-oping when starting a task with no
+            department/staff behind it yet (see requestStart). */}
+        <Dialog open={!!assignPromptTaskId} onOpenChange={(o) => !o && setAssignPromptTaskId(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Assign before running</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <p className="text-xs text-muted-foreground">
+                "{taskList.find((t) => t.id === assignPromptTaskId)?.title}" has no department or staff assigned yet,
+                so it can't run. Pick one to continue.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAssignPromptMode("department")}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 h-9 rounded-lg border text-xs font-semibold transition-colors",
+                    assignPromptMode === "department" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted/40",
+                  )}
+                >
+                  <Building2 className="w-3.5 h-3.5" /> Department
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAssignPromptMode("staff")}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 h-9 rounded-lg border text-xs font-semibold transition-colors",
+                    assignPromptMode === "staff" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted/40",
+                  )}
+                >
+                  <UserRound className="w-3.5 h-3.5" /> Staff
+                </button>
+              </div>
+              {assignPromptMode === "department" ? (
+                <Select value={assignPromptDepartmentId} onValueChange={setAssignPromptDepartmentId}>
+                  <SelectTrigger><SelectValue placeholder="Select a department" /></SelectTrigger>
+                  <SelectContent>
+                    {(scope.isOverall ? departmentList : departmentList.filter((t) => scope.departmentIds.has(t.id)))
+                      .map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Select value={assignPromptStaffId} onValueChange={setAssignPromptStaffId}>
+                  <SelectTrigger><SelectValue placeholder="Select a staff member" /></SelectTrigger>
+                  <SelectContent>
+                    {scopedStaff.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+              <Button
+                onClick={confirmAssignAndRun}
+                className="w-full"
+                disabled={assignPromptMode === "department" ? !assignPromptDepartmentId : !assignPromptStaffId}
+              >
+                Assign &amp; Run
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
       {/* KANBAN BOARD */}
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveDragTaskId(null)}>
-        <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden p-4">
-          <div className="flex gap-4 h-full min-w-max">
+        <div className="flex-1 min-h-0 overflow-hidden p-4">
+          <div className="grid gap-3 h-full" style={{ gridTemplateColumns: `repeat(${BOARD_COLUMNS.length}, minmax(0, 1fr))` }}>
             {BOARD_COLUMNS.map((col) => {
               const columnTasks = tasksByStatus[col.status] ?? [];
               return (
@@ -1100,12 +1224,20 @@ export default function TaskManager() {
             const completionSummary = !startDate
               ? "(No start time yet)"
               : completionDuration ?? "(Not completed yet)";
-            const canStart = selectedTask.status === "pending" || selectedTask.status === "paused" || selectedTask.status === "stopped" || selectedTask.status === "completed";
+            // A task can be left stuck showing "in-progress" with nothing actually
+            // streaming — e.g. the tab that started it was closed/reloaded, which
+            // drops the SSE connection the run is entirely driven by (see
+            // RunEngineContext's runStream/llm.py event_generator) without ever
+            // flipping the task's DB status back. Detect that so the user has a
+            // way to get the run going again instead of a permanently dead task.
+            const isOrphaned = selectedTask.status === "in-progress" && !isStreaming(selectedTask.id);
+            const canStart = selectedTask.status === "pending" || selectedTask.status === "paused" || selectedTask.status === "stopped" || selectedTask.status === "completed" || isOrphaned;
             const canPause = selectedTask.status === "in-progress";
             const canStop = selectedTask.status === "in-progress" || selectedTask.status === "paused";
             const isUpdating = updatingTaskIds.has(selectedTask.id);
+            const isStatusChangePending = statusChangePendingIds.has(selectedTask.id);
             const isConversationLoading = loadingConversationTaskIds.has(selectedTask.id);
-            const isRestart = selectedTask.status === "completed";
+            const isRestart = selectedTask.status === "completed" || isOrphaned;
             const Icon = statusIcons[selectedTask.status] ?? Circle;
 
             return (
@@ -1227,18 +1359,18 @@ export default function TaskManager() {
                           className="h-8 px-2.5"
                           variant="outline"
                           onClick={() => updateTaskStatus(selectedTask, "paused")}
-                          disabled={!canPause}
+                          disabled={!canPause || isStatusChangePending}
                         >
-                          <Pause className="w-3.5 h-3.5" />
+                          {isStatusChangePending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Pause className="w-3.5 h-3.5" />}
                         </Button>
                         <Button
                           size="sm"
                           className="h-8 px-2.5 hover:bg-rose-500/10 hover:border-rose-500/20"
                           variant="outline"
                           onClick={() => updateTaskStatus(selectedTask, "stopped")}
-                          disabled={!canStop}
+                          disabled={!canStop || isStatusChangePending}
                         >
-                          <Square className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+                          {isStatusChangePending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Square className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />}
                         </Button>
                       </div>
                     )}

@@ -41,12 +41,12 @@ and why.
   _Commit: architecture._
 - **LINE routing** prefers push-by-userId (reply tokens expire during async
   processing). _Commit: webhook security._
-- **Timezone-aware datetimes** in conversations/teams routers.
-- **Consistent 404s** — connection/workspace services raise `NotFoundError`.
+- **Timezone-aware datetimes** in meetings/departments routers (named conversations/teams at the time).
+- **Consistent 404s** — connection/company services raise `NotFoundError` (named workspace at the time).
 
 ## Performance
 
-- **N+1 removed** in `list_agents` (batch skill load); **skill-tool cache** keyed
+- **N+1 removed** in `list_staff` (`list_agents` at the time; batch skill load); **skill-tool cache** keyed
   by skill id + kwargs digest. _Commit: performance._
 
 ## Observability

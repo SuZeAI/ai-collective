@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
   BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit,
   LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, Building2, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban, Star, Plug,
 } from "lucide-react";
 import { api, type Company } from "@/lib/api";
-import { OVERALL_COMPANY_ID, setActiveCompanyId, getActiveCompanyId } from "@/hooks/use-company-scope";
+import { OVERALL_COMPANY_ID, setActiveCompanyId, getActiveCompanyId, useCompanyScope } from "@/hooks/use-company-scope";
 import { COMPANY_TYPE_MAP, companyTypeOf, suggestedNavKeys } from "@/lib/company-types";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -120,6 +120,12 @@ const NAV_GROUPS: NavGroup[] = [
   }
 ];
 
+const FULL_WIDTH_PATHS = [
+  "/dashboard", "/analytics", "/consumption", "/departments", "/staff", "/skills",
+  "/projects", "/meetings", "/documents", "/recruiting", "/platform", "/playground",
+  "/office-builder", "/companies", "/profile",
+];
+
 function UserAvatarButton({ name, src }: { name: string; src?: string }) {
   if (src) {
     return (
@@ -148,9 +154,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { t } = useLanguage();
   const { user, logout } = useAuth();
   const queryClient = useQueryClient();
+  const scope = useCompanyScope();
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [activeCompany, setActiveCompany] = useState<Company | null>(null);
+  // Selected office id, known synchronously from localStorage (unlike
+  // `activeCompany`, which needs the `listCompanies` fetch to resolve). Every
+  // route wraps its own <AppLayout>, so this component remounts on each
+  // navigation — driving the rail highlight off this instead of `activeCompany`
+  // avoids a frame where the "All" button flashes active while that fetch is in flight.
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(() => getActiveCompanyId());
   // Mirror of `companies` for event handlers that must read the latest list
   // without re-subscribing (their effect runs once with [] deps).
   const companiesRef = useRef<Company[]>([]);
@@ -165,7 +178,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         const storedId = localStorage.getItem("activeCompanyId");
         const found = data.find((ws) => ws.id === storedId);
         setActiveCompany(found || null);
-        if (!found) localStorage.setItem("activeCompanyId", OVERALL_COMPANY_ID);
+        if (!found) {
+          localStorage.setItem("activeCompanyId", OVERALL_COMPANY_ID);
+          setSelectedCompanyId(null);
+        }
       })
       .catch((err) => console.error("Error listing companies in sidebar:", err));
     return () => { active = false; };
@@ -181,7 +197,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           const storedId = localStorage.getItem("activeCompanyId");
           const found = data.find((ws) => ws.id === storedId);
           setActiveCompany(found || null);
-          if (!found) localStorage.setItem("activeCompanyId", OVERALL_COMPANY_ID);
+          if (!found) {
+            localStorage.setItem("activeCompanyId", OVERALL_COMPANY_ID);
+            setSelectedCompanyId(null);
+          }
         })
         .catch((err) => console.error("Error refreshing companies:", err));
     };
@@ -193,6 +212,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     // (e.g. an office just created elsewhere).
     const handleActiveChange = () => {
       const storedId = getActiveCompanyId(); // null when "All"/Overall
+      setSelectedCompanyId(storedId);
       if (!storedId) { setActiveCompany(null); return; }
       const known = companiesRef.current.find((ws) => ws.id === storedId);
       if (known) setActiveCompany(known);
@@ -209,13 +229,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const handleSelectCompany = (ws: Company | null) => {
     setActiveCompany(ws);
+    setSelectedCompanyId(ws ? ws.id : null);
     setActiveCompanyId(ws ? ws.id : null);
   };
 
   const isAdmin = user?.role === "admin" || user?.role === "system";
   // "All" scope = company create/control/monitor; inside a company = that
   // company's operations. Groups declare where they belong via `visibleIn`.
-  const isOverall = !activeCompany;
+  const isOverall = !selectedCompanyId;
   const navGroups = useMemo(
     () =>
       NAV_GROUPS.filter(
@@ -250,7 +271,24 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     () => allNavItems.find((n) => n.url === location.pathname),
     [allNavItems, location.pathname],
   );
-  const isFullBleed = location.pathname === "/tasks" || location.pathname === "/virtual-office";
+  const isFullBleed =
+    location.pathname === "/tasks" ||
+    location.pathname === "/virtual-office" ||
+    /^\/projects\/[^/]+\/(board|backlog|roadmap|reports)$/.test(location.pathname);
+  const isFullWidth = isFullBleed || FULL_WIDTH_PATHS.includes(location.pathname);
+
+  // Inside a project (board/backlog/roadmap/reports) the header breadcrumb
+  // drops down a level: "AI Collective > Projects > <project name>", with
+  // "Projects" linking back to the list — instead of the flat 2-level form
+  // `currentPage` gives every other page (it only exact-matches nav URLs, so
+  // it can't see the :key param here).
+  const projectKeyParam = location.pathname.match(/^\/projects\/([^/]+)\/(?:board|backlog|roadmap|reports)$/)?.[1];
+  const { data: breadcrumbProjects = [] } = useQuery({
+    queryKey: ["breadcrumb-projects", scope.isOverall, scope.company?.id ?? null],
+    queryFn: () => api.listProjects(scope.isOverall ? undefined : scope.company?.id),
+    enabled: !!projectKeyParam,
+  });
+  const breadcrumbProject = projectKeyParam ? breadcrumbProjects.find((p) => p.key === projectKeyParam) : undefined;
 
   return (
     <SidebarProvider style={{ "--sidebar-width-icon": "4rem", "--sidebar-width": "17rem" } as React.CSSProperties}>
@@ -274,7 +312,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     onClick={() => handleSelectCompany(null)}
                     className={cn(
                       "w-10 h-10 rounded-xl flex items-center justify-center transition-all relative group shrink-0",
-                      !activeCompany
+                      !selectedCompanyId
                         ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-105"
                         : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
                     )}
@@ -288,7 +326,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     </div>
                   </button>
                   {companies.map((ws) => {
-                    const isActive = activeCompany?.id === ws.id;
+                    const isActive = selectedCompanyId === ws.id;
                     const initials = ws.name
                       .split(" ")
                       .slice(0, 2)
@@ -339,7 +377,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </div>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className="font-bold text-[13px] text-sidebar-foreground truncate">
-                    {activeCompany?.name || "Overall Collective"}
+                    {activeCompany?.name || (selectedCompanyId ? "" : "Overall Collective")}
                   </span>
                   {isOverall ? (
                     <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-teal-500/15 text-teal-500 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 border border-teal-500/25">
@@ -354,7 +392,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   )}
                 </div>
                 <div className="text-[10px] text-sidebar-foreground/45 truncate mt-0.5 leading-normal">
-                  {activeCompany?.description || "All offices & shared resources"}
+                  {activeCompany?.description || (selectedCompanyId ? "" : "All offices & shared resources")}
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto py-4 space-y-4 px-2.5">
@@ -417,9 +455,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <header className="h-12 flex items-center border-b border-border px-4 bg-background gap-3 flex-shrink-0">
             <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors h-8 w-8" />
             <div className="h-3.5 w-px bg-border" />
-            <div className="flex items-center gap-1.5 text-sm">
-              <span className="text-muted-foreground text-xs font-medium">AI Collective</span>
-              {currentPage && (
+            <div className="flex items-center gap-1.5 text-sm min-w-0">
+              <span className="text-muted-foreground text-xs font-medium shrink-0">AI Collective</span>
+              {projectKeyParam ? (
+                <>
+                  <ChevronRight className="w-3 h-3 text-muted-foreground/40 shrink-0" />
+                  <Link to="/projects" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                    {t.nav.projects}
+                  </Link>
+                  <ChevronRight className="w-3 h-3 text-muted-foreground/40 shrink-0" />
+                  <span className="text-xs font-semibold text-foreground truncate">
+                    {breadcrumbProject?.name ?? projectKeyParam}
+                  </span>
+                </>
+              ) : currentPage && (
                 <>
                   <ChevronRight className="w-3 h-3 text-muted-foreground/40" />
                   <span className="text-xs font-semibold text-foreground">{currentPage.title}</span>
@@ -466,7 +515,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               key={location.pathname}
               className={cn(
                 "h-full w-full animate-in fade-in-0 duration-150 ease-out",
-                !isFullBleed && "p-6 md:p-8 max-w-7xl mx-auto overflow-y-auto scrollbar-thin",
+                !isFullBleed && "p-6 md:p-8 overflow-y-auto scrollbar-thin",
+                !isFullWidth && "max-w-7xl mx-auto",
               )}
             >
               {children}

@@ -250,6 +250,22 @@ def drop_memory(conversation_id: str) -> None:
         _memories.pop(conversation_id, None)
 
 
+def delete_memory(conversation_id: str) -> None:
+    """Permanently remove a conversation's working memory (cache + persisted).
+
+    Used by the "clear history" fresh-start action — without this, a wiped
+    conversation would still resume with stale notes/task text from before
+    the wipe, since get_memory() only re-creates an empty WorkingMemory when
+    nothing is persisted.
+    """
+    with _lock:
+        _memories.pop(conversation_id, None)
+        try:
+            _get_persistence().delete(conversation_id)
+        except Exception:  # noqa: BLE001 - persistence is best-effort
+            logger.exception("Failed to delete working memory for %s", conversation_id)
+
+
 def reset_persistence_for_tests() -> None:
     """Re-resolve the persistence backend (test helper)."""
     global _persistence

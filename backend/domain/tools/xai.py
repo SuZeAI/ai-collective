@@ -238,7 +238,7 @@ class XAIToolkit(BaseToolkit):
     def __init__(self, api_key: Optional[str] = None, model: str = "grok-4-fast", **kwargs: Any):
         super().__init__(**kwargs)
         self.api_key = api_key
-        self.model = model or settings.tools.xai_model
+        self.model = model or settings.tools.xai.xai_model
 
     @tool(parse_docstring=True)
     async def xai_x_search(

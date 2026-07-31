@@ -19,22 +19,30 @@ from backend.application.ports.staff_graph import (
 from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
-from backend.domain.staff.token_budget import apply_context_token_budget
 from backend.domain.staff._graph_runtime import (
     FANOUT_SYNTHESIS_GUIDANCE,
     MESH_FANOUT_MAX_CONCURRENT,
     attach_subagent_toolkit,
     build_agent_tools,
+    build_turn_messages,
     drain_human_guidance,
     ensure_working_memory,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
+    raise_if_llm_failed,
     run_fanout_wave,
     run_to_final_state,
     safe_chat,
     wait_while_paused,
     working_memory_block,
+)
+from backend.domain.staff.staff_state import (
+    StaffStates,
+    append_assistant_turn,
+    append_user_turn,
+    init_staff_states,
+    llm_ready_messages,
 )
 
 
@@ -85,15 +93,9 @@ You are the **lead staff_member**. Your job is to complete the user's request by
 ### Round budget: {rounds_used}/{max_rounds} used — {remaining} remaining.
 """
 
-_WORKER_PROMPT = """
+_WORKER_ROLE_HEADER = """
 ## WORKER ROLE
 You are a specialist worker. The lead staff_member has assigned you a specific task. Execute it thoroughly and return your results directly — the lead will handle next steps.
-
-### Task assigned by lead:
-{task}
-
-### Original user request (for context):
-{original_input}
 """
 
 
@@ -102,6 +104,7 @@ class SupervisorState(TypedDict):
     original_input: str      # Original user request (never changes)
     turns: list[GraphTurn]
     delegation_log: list[str]  # Chronological log of delegations + results
+    staff_states: StaffStates
     current_task: str        # Task text currently being executed by a worker
     current_worker: str | None  # Name of currently active worker (None when lead is up)
     final_answer_reached: bool
@@ -283,6 +286,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             "original_input": user_input,
             "turns": [],
             "delegation_log": [],
+            "staff_states": init_staff_states(staff),
             "current_task": "",
             "current_worker": None,
             "final_answer_reached": False,
@@ -379,10 +383,21 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 max_concurrent=MESH_FANOUT_MAX_CONCURRENT,
             )
 
+            # The actual turn input: the latest worker report, or (first turn)
+            # the user's original request.
+            if state.get("input") and state["input"] != state["original_input"]:
+                input_text = state["input"]
+            else:
+                input_text = state["original_input"]
+
             context_parts: list[str] = []
             # First so the guidance survives tail-truncation by the token budget.
             if human_guidance:
                 context_parts += [human_guidance, ""]
+            # routing_guidance carries live round counters, so it varies every
+            # turn — it belongs in the per-turn context, not the fixed system
+            # prompt (which must stay stable for caching to work at all).
+            context_parts += [routing_guidance, ""]
             context_parts += [
                 f"[User request]: {state['original_input']}",
             ]
@@ -393,28 +408,26 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 context_parts += ["", f"[Context]:\n{graph_ctx}"]
             if recent_log:
                 context_parts += ["", f"[Delegation history]:\n{log_text}"]
-            if state.get("input") and state["input"] != state["original_input"]:
-                context_parts += ["", f"[Latest worker report]:\n{state['input']}"]
-
-            user_input_text = "\n".join(context_parts)
-            full_system = f"{lead.system_prompt}\n\n{routing_guidance}"
-
-            budget_result = apply_context_token_budget(
-                llm=llm,
-                system_prompt=full_system,
-                user_input=user_input_text,
-                max_context_tokens=MAX_CONTEXT_TOKENS,
-                reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
-            )
-            user_input_text = budget_result.text
 
             bound_tools = build_agent_tools(lead, conversation_id=conversation_id)
             attach_subagent_toolkit(bound_tools, lead, llm=llm)
 
+            # lead.system_prompt stays byte-identical every turn so the
+            # compiled-agent cache and upstream provider prompt-caching see a
+            # stable prefix; only context_parts is budget-trimmed.
+            turn, budget_result = build_turn_messages(
+                llm=llm,
+                system_prompt=lead.system_prompt,
+                context_text="\n".join(context_parts),
+                input_text=input_text,
+                max_context_tokens=MAX_CONTEXT_TOKENS,
+                reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
+            )
+
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
                 "agent_name": lead.name,
-                "context_length": len(user_input_text),
+                "context_length": sum(len(m["content"]) for m in turn.as_messages()),
                 "context_tokens": budget_result.input_tokens,
                 "context_token_limit": budget_result.max_input_tokens,
                 "context_truncated": budget_result.truncated,
@@ -423,12 +436,14 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 "llm_model": budget_result.model,
             })
 
+            own_history = llm_ready_messages(state.get("staff_states", {}), lead.name)
             raw_output = await safe_chat(llm,
-                agent_name=lead.name,
-                system=full_system,
-                user=user_input_text,
+                staff_name=lead.name,
+                system=lead.system_prompt,
+                messages=[*own_history, *turn.as_messages()],
                 tools=bound_tools or None,
             )
+            raise_if_llm_failed(raw_output)
 
             stream_writer({
                 "type": EventType.LLM_RESPONSE_COMPLETE.value,
@@ -437,6 +452,12 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             })
 
             reasoning, action = self._split_reasoning_and_action(raw_output)
+
+            new_staff_states = append_assistant_turn(
+                append_user_turn(state.get("staff_states", {}), lead.name, input_text),
+                lead.name,
+                reasoning or raw_output,
+            )
 
             # Parallel fan-out: lead may dispatch several workers at once.
             fanout_pairs = self._parse_fanout(action, [w.name for w in workers], lead.name)
@@ -449,7 +470,8 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                     workers=workers,
                     fanout_pairs=fanout_pairs,
                     lead_reasoning=reasoning,
-                    lead_system=full_system,
+                    lead_system=lead.system_prompt,
+                    staff_states=new_staff_states,
                     state=state,
                     llm=llm,
                     stream_writer=stream_writer,
@@ -462,11 +484,19 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             final_answer = self._extract_final_answer(action)
             target_worker, task_text = self._extract_delegation(action)
 
+            # The lead's reply is sometimes pure <DELEGATE_TO>/<TASK> control tags
+            # with no free-text commentary — _split_reasoning_and_action strips
+            # those out entirely, which would leave the transcript bubble empty.
+            # Fall back to a human-readable delegation summary, or the raw
+            # output as a last resort (mirrors langgraph_tree.py).
+            display_content = reasoning or (
+                f"Delegated to {target_worker}: {task_text}" if target_worker and task_text else raw_output
+            )
             new_turn = GraphTurn(
                 turn=rounds_used + 1,
                 staff_name=lead.name,
                 staff_role=lead.role,
-                content=reasoning,
+                content=display_content,
             )
 
             new_log = list(state.get("delegation_log", []))
@@ -501,7 +531,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                     conversation_id=conversation_id,
                     message_id=f"staff_member-{lead.name}-{uuid4().hex}",
                     speaker=lead.name,
-                    content=reasoning,
+                    content=display_content,
                     config=graph_config,
                 )
                 stream_writer({"type": EventType.MESSAGE_INGESTED.value, "agent_name": lead.name})
@@ -518,6 +548,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 "input": final_answer or state["input"],
                 "turns": [*state["turns"], new_turn],
                 "delegation_log": new_log,
+                "staff_states": new_staff_states,
                 "current_task": task_text or "",
                 "current_worker": target_worker,
                 "final_answer_reached": bool(final_answer),
@@ -559,13 +590,9 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             stream_writer({"type": EventType.CONTEXT_BUILDING.value, "agent_name": worker.name})
 
             task_text = state.get("current_task") or state.get("input", "")
-            worker_system = (
-                f"{worker.system_prompt}\n\n"
-                + _WORKER_PROMPT.format(
-                    task=task_text,
-                    original_input=state["original_input"],
-                )
-            )
+            # Fixed (no per-task placeholders) so it stays byte-identical every
+            # call — see TurnMessages docstring for why that matters.
+            worker_system = f"{worker.system_prompt}\n\n{_WORKER_ROLE_HEADER}"
 
             # Shared working memory: workers see what the lead and sibling
             # workers already found, instead of starting blind.
@@ -588,30 +615,29 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                         "chunk_ids": pack.chunk_ids,
                     })
 
-            worker_context_parts = [task_text]
+            worker_context_parts = [f"[Original user request, for context]:\n{state['original_input']}"]
             # Memory before graph context so it survives tail-truncation.
             if memory_block:
                 worker_context_parts.append(memory_block)
             if graph_ctx:
                 worker_context_parts.append(f"[Context]:\n{graph_ctx}")
-            user_input_text = "\n\n".join(worker_context_parts)
-
-            budget_result = apply_context_token_budget(
-                llm=llm,
-                system_prompt=worker_system,
-                user_input=user_input_text,
-                max_context_tokens=MAX_CONTEXT_TOKENS,
-                reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
-            )
-            user_input_text = budget_result.text
 
             bound_tools = build_agent_tools(worker, conversation_id=conversation_id)
             attach_subagent_toolkit(bound_tools, worker, llm=llm)
 
+            turn, budget_result = build_turn_messages(
+                llm=llm,
+                system_prompt=worker_system,
+                context_text="\n\n".join(worker_context_parts),
+                input_text=task_text,
+                max_context_tokens=MAX_CONTEXT_TOKENS,
+                reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
+            )
+
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
                 "agent_name": worker.name,
-                "context_length": len(user_input_text),
+                "context_length": sum(len(m["content"]) for m in turn.as_messages()),
                 "context_tokens": budget_result.input_tokens,
                 "context_token_limit": budget_result.max_input_tokens,
                 "context_truncated": budget_result.truncated,
@@ -620,12 +646,14 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 "llm_model": budget_result.model,
             })
 
+            own_history = llm_ready_messages(state.get("staff_states", {}), worker.name)
             output = await safe_chat(llm,
-                agent_name=worker.name,
+                staff_name=worker.name,
                 system=worker_system,
-                user=user_input_text,
+                messages=[*own_history, *turn.as_messages()],
                 tools=bound_tools or None,
             )
+            raise_if_llm_failed(output)
 
             stream_writer({
                 "type": EventType.LLM_RESPONSE_COMPLETE.value,
@@ -669,11 +697,18 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 "reporting_to_lead": True,
             })
 
+            new_staff_states = append_assistant_turn(
+                append_user_turn(state.get("staff_states", {}), worker.name, task_text),
+                worker.name,
+                output,
+            )
+
             return {
                 **state,
                 "input": f"[{worker.name} result]: {output}",
                 "turns": [*state["turns"], new_turn],
                 "delegation_log": new_log,
+                "staff_states": new_staff_states,
                 "current_task": "",
                 "current_worker": None,
                 "final_response": output,
@@ -768,13 +803,9 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         Built sequentially in the node (before the gather) so graph-context
         reads are not raced across branches.
         """
-        worker_system = (
-            f"{worker.system_prompt}\n\n"
-            + _WORKER_PROMPT.format(
-                task=task_text,
-                original_input=state["original_input"],
-            )
-        )
+        # Fixed (no per-task placeholders) so it stays byte-identical every
+        # call — see TurnMessages docstring for why that matters.
+        worker_system = f"{worker.system_prompt}\n\n{_WORKER_ROLE_HEADER}"
         memory_block = working_memory_block(conversation_id)
 
         graph_ctx = ""
@@ -786,28 +817,27 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             )
             graph_ctx = pack.text
 
-        worker_context_parts = [task_text]
+        worker_context_parts = [f"[Original user request, for context]:\n{state['original_input']}"]
         if memory_block:
             worker_context_parts.append(memory_block)
         if graph_ctx:
             worker_context_parts.append(f"[Context]:\n{graph_ctx}")
-        user_input_text = "\n\n".join(worker_context_parts)
-
-        budget_result = apply_context_token_budget(
-            llm=llm,
-            system_prompt=worker_system,
-            user_input=user_input_text,
-            max_context_tokens=MAX_CONTEXT_TOKENS,
-            reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
-        )
-        user_input_text = budget_result.text
 
         bound_tools = build_agent_tools(worker, conversation_id=conversation_id)
         attach_subagent_toolkit(bound_tools, worker, llm=llm)
 
+        turn, _budget_result = build_turn_messages(
+            llm=llm,
+            system_prompt=worker_system,
+            context_text="\n\n".join(worker_context_parts),
+            input_text=task_text,
+            max_context_tokens=MAX_CONTEXT_TOKENS,
+            reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
+        )
+
         return {
             "system": worker_system,
-            "user": user_input_text,
+            "messages": turn.as_messages(),
             "tools": bound_tools or None,
         }
 
@@ -819,6 +849,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         fanout_pairs: list[tuple[str, str]],
         lead_reasoning: str,
         lead_system: str,
+        staff_states: StaffStates,
         state: SupervisorState,
         llm: LLMProvider,
         stream_writer,
@@ -929,13 +960,18 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 f"### {r.staff_name} (task: {r.task})\n{r.content}" for r in results
             )
         )
+        # lead_system is lead.system_prompt (fixed) and FANOUT_SYNTHESIS_GUIDANCE
+        # is a static constant, so synthesis_system stays stable across every
+        # synthesis call for this lead — a second cacheable variant besides its
+        # normal per-turn system prompt.
         synthesis_system = f"{lead_system}\n\n{FANOUT_SYNTHESIS_GUIDANCE}"
         synth_raw = await safe_chat(
             llm,
             staff_name=lead.name,
             system=synthesis_system,
-            user=synthesis_user,
+            messages=[{"role": "user", "content": synthesis_user}],
         )
+        raise_if_llm_failed(synth_raw)
         synth_reasoning, synth_action = self._split_reasoning_and_action(synth_raw)
         final_answer = self._extract_final_answer(synth_action)
         target_worker, next_task = self._extract_delegation(synth_action)
@@ -973,11 +1009,22 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             "final_answer_reached": bool(final_answer),
         })
 
+        # staff_states already carries the lead's fan-out-decision turn
+        # (appended by lead_node before this call); add each worker's own
+        # exchange and the lead's synthesis exchange.
+        new_staff_states = staff_states
+        for r in results:
+            new_staff_states = append_user_turn(new_staff_states, r.staff_name, r.task)
+            new_staff_states = append_assistant_turn(new_staff_states, r.staff_name, r.content)
+        new_staff_states = append_user_turn(new_staff_states, lead.name, synthesis_user)
+        new_staff_states = append_assistant_turn(new_staff_states, lead.name, synth_reasoning)
+
         return {
             **state,
             "input": final_answer or state["input"],
             "turns": [*turns, lead_turn, *worker_turns, synthesis_turn],
             "delegation_log": new_log,
+            "staff_states": new_staff_states,
             "current_task": next_task or "",
             "current_worker": target_worker,
             "final_answer_reached": bool(final_answer),

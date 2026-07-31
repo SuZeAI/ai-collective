@@ -148,6 +148,7 @@ class Project:
     avatar_color: str = ""
     avatar_url: str = ""
     owner_id: str = DEFAULT_OWNER_ID
+    company_id: str = ""              # office this project belongs to; "" for legacy/unscoped projects
 
 
 @dataclass(frozen=True, slots=True)

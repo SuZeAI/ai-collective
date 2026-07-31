@@ -1,15 +1,14 @@
-# AI Collective — non-secret configuration
-# Layering: code defaults < config.yml < .env < OS environment
-# Nested lowercase keys; unknown keys ignored. Override file with CONFIG_FILE=...
-# ${VAR} / $VAR references are expanded from the environment.
-# Secrets (values) live in .env; declared here via ${VAR} in the secrets: block.
-# Per-tool credentials are NOT here — set per skill in the UI (stored in MongoDB).
+# AI Collective — configuration
+# Single source of truth for app config; keys match backend/api/settings.py 1:1.
+# Override file: CONFIG_FILE=/path. Test override merge: CONFIG_OVERRIDE_FILE=/path.
+# Secrets live in .env, pulled in via ${VAR}/$VAR. Per-tool creds are NOT here (UI/MongoDB).
 
 # Schema version (informational only)
 config_version: 1
 
 # ── Application ───────────────────────────────────────────────────────────────
 app:
+  # app_name: ai-collective-backend     # FastAPI app title
   environment: development            # development | production
   api_prefix: /api/v1
   cors_origins: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080,http://localhost:2026,http://127.0.0.1:2026"
@@ -24,34 +23,30 @@ logging:
   log_max_bytes: 10485760
   log_backup_count: 5
 
-# ── Models (LLM registry) ──────────────────────────────────────────────────
-# Chat-model entries. `use: module:ClassName` picks the LangChain class; other
-# keys pass through. `api_key` may hold several comma-separated keys (rotation).
-# `enabled: true` marks a model selectable as the active one (Settings UI /
-# LLM_ACTIVE_MODEL env override); the first enabled entry is the boot default.
-# `failover:` is this model's own key-rotation policy (strategy: rotate |
-# 9router, aliases: router/off; rotate_max_requests_per_min / _tokens_per_min:
-# per-key budget, 0 = unlimited; key_cooldown_seconds: errored-key cooldown).
+# ── Models (LLM registry; active model = first `enabled: true` entry, or the
+#    Settings UI override) ───────────────────────────────────────────────────
+# supports_* flags mark an entry's api_key as a fallback for that tool/embedding.
 models:
   - name: gemini
     display_name: Gemini 3 Flash
     provider_name: Google
-    use: langchain_google_genai:ChatGoogleGenerativeAI
     model: gemini-3-flash-preview
     api_key: $GOOGLE_API_KEY
-    api_key_field: google_api_key
     supports_vision: true
+    supports_embedding: true
+    supports_image_gen: true
+    supports_tts: true
+    supports_video_gen: true
     enabled: true
     failover:
       strategy: rotate
       rotate_max_requests_per_min: 0
       rotate_max_tokens_per_min: 0
-      key_cooldown_seconds: 60
+      key_cooldown_seconds: 1
 
   - name: claude
     display_name: Claude Sonnet 4
     provider_name: Anthropic
-    use: langchain_anthropic:ChatAnthropic
     model: claude-sonnet-4-20250514
     api_key: $ANTHROPIC_API_KEY
     supports_vision: true
@@ -65,9 +60,11 @@ models:
   - name: gpt-4o
     display_name: GPT-4o
     provider_name: OpenAI
-    use: langchain_openai:ChatOpenAI
     model: gpt-4o
     api_key: $OPENAI_API_KEY
+    supports_embedding: true
+    supports_image_gen: true
+    supports_tts: true
     enabled: false
     failover:
       strategy: rotate
@@ -78,7 +75,6 @@ models:
   - name: deepseek
     display_name: DeepSeek Chat
     provider_name: DeepSeek
-    use: langchain_openai:ChatOpenAI
     model: deepseek-chat
     api_key: $DEEPSEEK_API_KEY
     base_url: https://api.deepseek.com/v1
@@ -92,7 +88,6 @@ models:
   - name: kimi
     display_name: Kimi K2
     provider_name: Kimi
-    use: langchain_openai:ChatOpenAI
     model: kimi-k2-0711-preview
     api_key: $KIMI_API_KEY
     base_url: https://api.moonshot.ai/v1
@@ -106,7 +101,6 @@ models:
   - name: glm
     display_name: GLM 4.6
     provider_name: GLM
-    use: langchain_openai:ChatOpenAI
     model: glm-4.6
     api_key: $GLM_API_KEY
     base_url: https://api.z.ai/api/paas/v4
@@ -120,10 +114,10 @@ models:
   - name: open_weight
     display_name: OpenRouter (Qwen)
     provider_name: Open-weight
-    use: langchain_openai:ChatOpenAI
     model: qwen/qwen3.5-397b-a17b
     api_key: $OPENROUTER_API_KEY
     base_url: https://openrouter.ai/api/v1
+    supports_embedding: true
     enabled: false
     failover:
       strategy: rotate
@@ -131,9 +125,8 @@ models:
       rotate_max_tokens_per_min: 0
       key_cooldown_seconds: 60
 
-# ── Middleware (staff middleware stack) ────────────────────────────────────
-# One block per middleware; omit to use its default. Always-on: ModelCallLimit,
-# LoopDetection, ToolRetry, ToolTimeout. See backend/infrastructure/llm/middleware/.
+# ── Middleware (staff stack, see backend/infrastructure/llm/middleware/) ──────
+# Always-on: ModelCallLimit, LoopDetection, ToolRetry, ToolTimeout.
 middleware:
   loop_detection:
     enabled: true                     # break loops repeating an identical tool call
@@ -171,11 +164,17 @@ middleware:
     enabled: false                    # recall/persist via long-term memory
   cost_budget:
     run_token_budget: 0               # soft-stop a run past this token count (0 = off)
+  prompt_cache:
+    enabled: false                    # Anthropic prompt-caching (no-op on non-Anthropic providers)
+    ttl: 5m
+    min_messages: 0
 
 # ── 9Router gateway (docker profile: router) ──────────────────────────────────
 router:
   port: 20128
   public_url: http://localhost:20128
+  jwt_secret: ${ROUTER_JWT_SECRET}
+  initial_password: ${ROUTER_INITIAL_PASSWORD}
 
 # ── Staff / tools ─────────────────────────────────────────────────────────────
 staff:
@@ -188,6 +187,7 @@ staff:
   llm_timeout_seconds: 120            # per LLM call timeout
   llm_max_retries: 2                  # per LLM call retries
   ask_user_timeout_seconds: 600       # ask_user prompt wait limit
+  pause_timeout_seconds: 1800         # max time a run may sit paused before auto-resume
   # mesh_fanout_max_concurrent:        # defaults to subagent_max_concurrent
 
 # ── Storage ───────────────────────────────────────────────────────────────────
@@ -195,10 +195,12 @@ storage:
   backend: mongo                      # json (file) | mongo
   dir: local_database                 # live DB dir (relative to project root)
   seed_dir: storage                   # read-only default catalog seeded FROM
+  # file_backend: local                # local | s3 (auto: s3 when minio.enabled)
 
 # ── MongoDB (used when storage.backend=mongo) ─────────────────────────────────
 mongo:
   db: ai_collective
+  uri: ${MONGO_URI:-mongodb://admin:admin@localhost:27017/ai_collective?authSource=admin}
 
 # ── Graph knowledge extraction ────────────────────────────────────────────────
 graph:
@@ -215,31 +217,45 @@ graph:
 task_queue:
   backend: rabbitmq                   # memory (single instance) | rabbitmq
   max_concurrent: 10                  # system-wide concurrent staff-graph runs
+  rabbitmq_url: ${RABBITMQ_URL}
 
 # ── Repository lock ───────────────────────────────────────────────────────────
 lock:
   backend: redis                      # threading (single instance) | redis
+  redis_url: ${REDIS_URL}
 
 # ── Sandbox ───────────────────────────────────────────────────────────────────
 sandbox:
-  mode: local                         # local | docker | k8s
+  mode: local                         # local | k8s
   timeout: 120
-  host: localhost
-  # docker mode:
+  # workspace: /abs/path/to/.sandbox_workspace
+  # k8s mode:
   # image: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
-  # base_port: 8080
-  # container_prefix: ai-collective-sandbox
   # replicas: 3
   # idle_timeout: 600
-  # k8s mode:
   # provisioner_url: http://provisioner:8002
+
+# ── MinIO (S3 storage: sandbox backups in k8s mode, doc uploads if file_backend=s3) ──
+minio:
+  enabled: false
+  endpoint: localhost:9000
+  access_key: ${MINIO_ACCESS_KEY:-minioadmin}
+  secret_key: ${MINIO_SECRET_KEY:-minioadmin}
+  bucket: sandbox-backups
+  secure: false
 
 # ── Authentication / JWT ──────────────────────────────────────────────────────
 auth:
+  jwt_secret_key: ${JWT_SECRET_KEY:-change-me-in-production-use-openssl-rand-hex-32}
   jwt_algorithm: HS256
   jwt_access_token_expire_minutes: 10080   # 7 days
+  google_login_client_id: ${GOOGLE_LOGIN_CLIENT_ID}
+  google_login_client_secret: ${GOOGLE_LOGIN_CLIENT_SECRET}
   google_login_redirect_uri: http://127.0.0.1:2026/api/v1/auth/google/callback
   google_oauth_redirect_uri: http://127.0.0.1:2026/api/v1/auth/oauth/callback
+  google_oauth_client_secret_path: ${GOOGLE_OAUTH_CLIENT_SECRET_PATH}
+  credentials_path: ${CREDENTIALS_PATH}
+  service_account_path: ${SERVICE_ACCOUNT_PATH}
 
 # ── Agent working memory (short-term, per-conversation) ───────────────────────
 working_memory:
@@ -299,6 +315,7 @@ admin:
   email: admin@aicollective.com
   name: Administrator
   auto_seed: true
+  password: ${ADMIN_PASSWORD}
 
 # ── Default catalog seed ──────────────────────────────────────────────────────
 seed:
@@ -311,27 +328,23 @@ browser:
   temperature: 0.0
   max_tokens: 1024
   # api_base:
+  # extra_headers:
+
+# ── Tool runtime defaults (NOT per-skill credentials — those are set via the UI) ──
+# One nested section per tool. The Google Workspace tools (calendar/docs/drive/
+# sheets/slides) have no entry here — their OAuth token path is per-user, set
+# on the skill's own config when that user authenticates (see auth.py).
+tools:
+  bird:                                # bird_x (X scraping)
+    bird_search_mjs: ""                # vendored script path override
+  xai:                                 # xai.py (Grok)
+    xai_model: grok-4-fast
+  viber:                               # viber_messaging.py
+    viber_sender_name: "AI Assistant"
+  tts:                                 # text_to_speech.py + gemini.py TTS toolkit
+    tts_output_dir: ""
 
 # ── Tool runtime flags (global, NOT per-skill) ────────────────────────────────
 security:
   allow_private_http: false           # allow tools to reach private/loopback IPs
   last30days_debug: false             # verbose HTTP debug logging
-
-# ── Secrets (values live in .env, pulled via ${VAR}) ───────────────────────────
-secrets:
-  # Auth / JWT
-  jwt_secret_key: ${JWT_SECRET_KEY}
-  google_login_client_id: ${GOOGLE_LOGIN_CLIENT_ID}
-  google_login_client_secret: ${GOOGLE_LOGIN_CLIENT_SECRET}
-  google_oauth_client_secret_path: ${GOOGLE_OAUTH_CLIENT_SECRET_PATH}
-  credentials_path: ${CREDENTIALS_PATH}
-  service_account_path: ${SERVICE_ACCOUNT_PATH}
-  # 9Router gateway
-  router_jwt_secret: ${ROUTER_JWT_SECRET}
-  router_initial_password: ${ROUTER_INITIAL_PASSWORD}
-  # Datastores (credentials embedded in the URI)
-  mongo_uri: ${MONGO_URI}
-  rabbitmq_url: ${RABBITMQ_URL}
-  redis_url: ${REDIS_URL}
-  # Admin bootstrap
-  admin_password: ${ADMIN_PASSWORD}

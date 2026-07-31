@@ -1,13 +1,13 @@
 """Shared pytest fixtures for backend API tests.
 
-IMPORTANT: the env vars below must be set here, at import time, before any
-``backend.api.*`` module is imported anywhere in the test session. Settings
-(``backend/api/settings.py``) and the DI wiring (``backend/api/deps.py``) read
-``os.environ`` exactly once, at module-import time, into process-wide
-singletons (``settings = Settings()``, ``STORAGE_DIR = ...``, ``@lru_cache``
-service getters) -- setting env vars later has no effect. Pytest imports this
-conftest.py before collecting any test_*.py in this directory, so this is the
-one safe place to do it.
+IMPORTANT: the config override below must be written and pointed to via
+CONFIG_OVERRIDE_FILE here, at import time, before any ``backend.api.*`` module
+is imported anywhere in the test session. Settings (``backend/api/settings.py``)
+and the DI wiring (``backend/api/deps.py``) read config exactly once, at
+module-import time, into process-wide singletons (``settings = Settings()``,
+``@lru_cache`` service getters) -- setting it later has no effect. Pytest
+imports this conftest.py before collecting any test_*.py in this directory, so
+this is the one safe place to do it.
 
 Tests run against an isolated, throwaway JSON storage directory (never the
 real ``storage/`` used by local dev) and with every LLM provider key forced
@@ -22,29 +22,44 @@ import shutil
 import tempfile
 import uuid
 
-_TEST_STORAGE_DIR = tempfile.mkdtemp(prefix="ai_collective_test_storage_")
+import yaml
 
-os.environ["STORAGE_BACKEND"] = "json"
-os.environ["STORAGE_DIR"] = _TEST_STORAGE_DIR
-os.environ["TASK_QUEUE_BACKEND"] = "memory"
-os.environ["LOCK_BACKEND"] = "threading"
-os.environ["SANDBOX_MODE"] = "local"
-os.environ["FILE_STORAGE_BACKEND"] = "local"
-os.environ["MINIO_ENABLED"] = "false"
-os.environ["GRAPH_DB_BACKEND"] = "auto"
-os.environ["NEO4J_URI"] = ""
-os.environ["SEED_DEFAULT_DATA"] = "false"
-os.environ["MCP_AUTO_SEED"] = "false"
-os.environ["ADMIN_AUTO_SEED"] = "true"
-os.environ["ADMIN_EMAIL"] = "test-admin@example.com"
-os.environ["ADMIN_PASSWORD"] = "test-admin-password-123"
-os.environ["ADMIN_NAME"] = "Test Admin"
-os.environ["JWT_SECRET_KEY"] = "test-secret-not-for-production"
-os.environ["ENVIRONMENT"] = "development"
+_TEST_STORAGE_DIR = tempfile.mkdtemp(prefix="ai_collective_test_storage_")
+_ADMIN_EMAIL = "test-admin@example.com"
+_ADMIN_PASSWORD = "test-admin-password-123"
+
+# config.yml is the single source of app config; this deep-merges a handful of
+# ops knobs on top of it (via CONFIG_OVERRIDE_FILE, see config_loader.load_config)
+# instead of the real mongo/rabbitmq/redis/admin values, without duplicating
+# the whole file.
+_override = {
+    "app": {"environment": "development"},
+    "logging": {"log_file": False},  # avoid writing to the repo's shared logs/ dir
+    "storage": {"backend": "json", "dir": _TEST_STORAGE_DIR, "file_backend": "local"},
+    "task_queue": {"backend": "memory"},
+    "lock": {"backend": "threading"},
+    "sandbox": {"mode": "local"},
+    "graph": {"backend": "auto", "neo4j_uri": ""},
+    "seed": {"default_data": False},
+    "mcp": {"auto_seed": False},
+    "admin": {
+        "auto_seed": True,
+        "email": _ADMIN_EMAIL,
+        "password": _ADMIN_PASSWORD,
+        "name": "Test Admin",
+    },
+    "auth": {"jwt_secret_key": "test-secret-not-for-production"},
+}
+_override_path = os.path.join(_TEST_STORAGE_DIR, "_test_config_override.yml")
+with open(_override_path, "w", encoding="utf-8") as _f:
+    yaml.safe_dump(_override, _f)
+os.environ["CONFIG_OVERRIDE_FILE"] = _override_path
 
 # Force every LLM provider "unconfigured" so LLM-backed endpoints always take
 # the graceful "not configured" path (503) instead of depending on network
-# access or a real API key. See test_api_llm_unconfigured.py.
+# access or a real API key. config.yml's `models:` entries reference these as
+# ${VAR}, so blanking them here still reaches ModelConfig.api_key via
+# load_config()'s env expansion. See test_api_llm_unconfigured.py.
 for _key in (
     "GOOGLE_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "DEEPSEEK_API_KEY",
     "KIMI_API_KEY", "GLM_API_KEY", "OPENROUTER_API_KEY",
@@ -86,7 +101,7 @@ def admin_headers(client: TestClient) -> dict[str, str]:
     """Bearer token for the bootstrap admin account (shared 'default' scope)."""
     resp = client.post(
         f"{API}/auth/login",
-        json={"email": os.environ["ADMIN_EMAIL"], "password": os.environ["ADMIN_PASSWORD"]},
+        json={"email": _ADMIN_EMAIL, "password": _ADMIN_PASSWORD},
     )
     assert resp.status_code == 200, resp.text
     token = resp.json()["access_token"]

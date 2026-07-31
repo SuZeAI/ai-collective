@@ -18,6 +18,7 @@ from backend.application.ports.llm import LLMProvider
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.staff._graph_runtime import recursion_config, run_to_final_state
 from backend.domain.staff.langgraph_orchestrator import LangGraphStaffOrchestrator
+from backend.domain.staff.staff_state import StaffStates, init_staff_states, merge_staff_states
 
 
 def _last(_old, new):
@@ -30,6 +31,7 @@ class CustomState(TypedDict):
     input: Annotated[str, _last]
     original_input: str
     turns: Annotated[list[GraphTurn], operator.add]
+    staff_states: Annotated[StaffStates, merge_staff_states]
     final_response: Annotated[str, _last]
     final_staff: Annotated[str | None, _last]
     rounds: Annotated[int, operator.add]
@@ -80,7 +82,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
         )
         self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
 
-        final_state, error = await run_to_final_state(graph, self._initial_state(user_input), max_rounds)
+        final_state, error = await run_to_final_state(graph, self._initial_state(user_input, staff), max_rounds)
         turns = list(final_state.get("turns", []))
         return GraphRunResult(
             turns=turns,
@@ -112,7 +114,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
         self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
 
         async for event in graph.astream(
-            self._initial_state(user_input),
+            self._initial_state(user_input, staff),
             config=recursion_config(max_rounds),
             stream_mode="custom",
         ):
@@ -206,6 +208,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
             return {
                 "input": result.get("input", state["input"]),
                 "turns": list(added),
+                "staff_states": result.get("staff_states", state.get("staff_states", {})),
                 "final_response": result.get("final_response", "") or "",
                 "final_staff": result.get("final_staff"),
                 "rounds": 1,
@@ -213,11 +216,12 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
         return node
 
     @staticmethod
-    def _initial_state(user_input: str) -> CustomState:
+    def _initial_state(user_input: str, staff: list[GraphStaffDefinition]) -> CustomState:
         return {
             "input": user_input,
             "original_input": user_input,
             "turns": [],
+            "staff_states": init_staff_states(staff),
             "final_response": "",
             "final_staff": None,
             "rounds": 0,

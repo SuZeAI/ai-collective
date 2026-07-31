@@ -7,9 +7,9 @@ conversation-scoped id, so they can be restored when a Pod is re-provisioned.
 
 Object key layout:  ``sandbox/<conv-thread-id>/<rel_path>``
 
-Everything is best-effort: when MinIO is not configured (``MINIO_ENABLED`` false)
-every method is a no-op, so local/dev keeps working with zero setup. Failures log
-and degrade — they never raise into a request or an staff run.
+Everything is best-effort: when MinIO is not configured (config.yml ``minio.enabled``
+false) every method is a no-op, so local/dev keeps working with zero setup. Failures
+log and degrade — they never raise into a request or an staff run.
 """
 from __future__ import annotations
 

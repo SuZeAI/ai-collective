@@ -16,20 +16,28 @@ from backend.application.ports.staff_graph import (
 from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
-from backend.domain.staff.token_budget import apply_context_token_budget
 from backend.domain.staff._graph_runtime import (
     attach_subagent_toolkit,
     build_agent_tools,
+    build_turn_messages,
     drain_human_guidance,
     ensure_working_memory,
     uploads_hint,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
+    raise_if_llm_failed,
     run_to_final_state,
     safe_chat,
     wait_while_paused,
     working_memory_block,
+)
+from backend.domain.staff.staff_state import (
+    StaffStates,
+    append_assistant_turn,
+    append_user_turn,
+    init_staff_states,
+    llm_ready_messages,
 )
 
 
@@ -43,6 +51,7 @@ class MultiAgentState(TypedDict):
     input: str
     original_input: str
     turns: list[GraphTurn]
+    staff_states: StaffStates
     final_response: str
     final_staff: str | None
     rounds: int
@@ -89,6 +98,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
             "input": user_input,
             "original_input": user_input,
             "turns": [],
+            "staff_states": init_staff_states(selected_agents),
             "final_response": "",
             "final_staff": None,
             "rounds": 0,
@@ -157,6 +167,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
             "input": user_input,
             "original_input": user_input,
             "turns": [],
+            "staff_states": init_staff_states(selected_agents),
             "final_response": "",
             "final_staff": None,
             "rounds": 0,
@@ -227,8 +238,6 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
             bound_tools = build_agent_tools(staff_member, conversation_id=conversation_id)
             attach_subagent_toolkit(bound_tools, staff_member, llm=llm)
 
-            user_input = uploads_hint(conversation_id) + state["input"]
-
             # Stream: Building context
             stream_writer({
                 "type": EventType.CONTEXT_BUILDING.value,
@@ -244,6 +253,14 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
                 graph_config=graph_config,
             )
 
+            context_parts: list[str] = []
+            if human_guidance:
+                context_parts.append(human_guidance)
+
+            uploads = uploads_hint(conversation_id)
+            if uploads:
+                context_parts.append(uploads)
+
             if graph_context_provider and conversation_id:
                 pack = graph_context_provider.build_graph_context(
                     conversation_id=conversation_id,
@@ -251,7 +268,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
                     config=graph_config,
                 )
                 if pack.text:
-                    user_input = f"{pack.text}\n\nIncoming request:\n{state['input']}"
+                    context_parts.append(pack.text)
                     # Stream: Context retrieved
                     stream_writer({
                         "type": EventType.CONTEXT_RETRIEVED.value,
@@ -268,26 +285,26 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
                 record_guidance_in_memory(conversation_id, human_guidance)
             memory_block = working_memory_block(conversation_id)
             if memory_block:
-                user_input = f"{memory_block}\n\n{user_input}"
+                context_parts.append(memory_block)
 
-            # Prepend so the guidance survives tail-truncation by the token budget.
-            if human_guidance:
-                user_input = f"{human_guidance}\n\n{user_input}"
-
-            budget_result = apply_context_token_budget(
+            # staff_member.system_prompt stays byte-identical every turn (never mixed
+            # with the context above) so the compiled-agent cache and upstream
+            # provider prompt-caching see a stable prefix; only context_text is
+            # budget-trimmed, state["input"] (the real turn input) is never truncated.
+            turn, budget_result = build_turn_messages(
                 llm=llm,
                 system_prompt=staff_member.system_prompt,
-                user_input=user_input,
+                context_text="\n\n".join(context_parts),
+                input_text=state["input"],
                 max_context_tokens=MAX_CONTEXT_TOKENS,
                 reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
             )
-            user_input = budget_result.text
 
             # Stream: LLM processing started
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
                 "agent_name": staff_member.name,
-                "context_length": len(user_input),
+                "context_length": sum(len(m["content"]) for m in turn.as_messages()),
                 "context_tokens": budget_result.input_tokens,
                 "context_token_limit": budget_result.max_input_tokens,
                 "context_truncated": budget_result.truncated,
@@ -295,14 +312,16 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
                 "llm_provider": budget_result.provider,
                 "llm_model": budget_result.model,
             })
-            
+
+            own_history = llm_ready_messages(state.get("staff_states", {}), staff_member.name)
             output = await safe_chat(llm,
                 staff_name=staff_member.name,
                 system=staff_member.system_prompt,
-                user=user_input,
+                messages=[*own_history, *turn.as_messages()],
                 tools=bound_tools or None,
                 parallel_tools=staff_member.subagent_enabled,
             )
+            raise_if_llm_failed(output)
 
             # Stream: LLM response received
             stream_writer({
@@ -348,10 +367,17 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
                 "turn": next_turn,
             })
 
+            new_staff_states = append_assistant_turn(
+                append_user_turn(state.get("staff_states", {}), staff_member.name, turn.input_text),
+                staff_member.name,
+                output,
+            )
+
             return {
                 **state,
                 "input": output,
                 "turns": [*state["turns"], next_turn],
+                "staff_states": new_staff_states,
                 "final_response": output,
                 "final_staff": staff_member.name,
                 "rounds": state["rounds"] + 1,

@@ -40,13 +40,14 @@ class RemoteSandboxBackend(SandboxBackend):
 
     # ── SandboxBackend interface ──────────────────────────────────────────────
 
-    def create(
-        self,
-        thread_id: Optional[str],
-        sandbox_id: str,
-        extra_mounts: Optional[list[tuple[str, str, bool]]] = None,
-    ) -> SandboxInfo:
-        """POST /api/sandboxes → create Pod + Service."""
+    def create(self, thread_id: Optional[str], sandbox_id: str) -> SandboxInfo:
+        """POST /api/sandboxes → create Pod + Service.
+
+        Returns as soon as K8s allocates the NodePort, which can be before
+        the Pod's container has finished booting — the caller
+        (AioSandboxProvider._discover_or_create) polls wait_for_sandbox_ready()
+        before treating the sandbox as usable.
+        """
         try:
             resp = requests.post(
                 f"{self._provisioner_url}/api/sandboxes",

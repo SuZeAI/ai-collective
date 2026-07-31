@@ -2,7 +2,7 @@
 
 Multi-agent runs are built on **LangGraph**. Each topology compiles a graph of
 agent nodes and streams turns back to the caller. Code lives in
-`backend/domain/agent/`.
+`backend/domain/staff/`.
 
 ## Topologies
 
@@ -14,7 +14,7 @@ agent nodes and streams turns back to the caller. Code lives in
 | `tree` | `langgraph_tree.py` | Binary-tree delegation down/up |
 | `mesh` | `langgraph_mesh.py` | Agents address each other freely via control tags |
 
-The mode is selected in `api/deps.get_agent_graph_service(mode=...)`.
+The mode is selected in `api/deps.get_staff_graph_service(mode=...)`.
 
 Each orchestrator exposes `run(...)` (returns a `GraphRunResult`) and
 `run_stream(...)` (yields custom SSE events). Both take `user_input`, the agent

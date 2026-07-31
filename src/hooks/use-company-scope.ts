@@ -41,6 +41,7 @@ export type CompanyScope = {
   departmentIds: Set<string>;
   staffIds: Set<string>;
   skillIds: Set<string>;
+  projectIds: Set<string>;
   /** false while the office membership is still being resolved. */
   ready: boolean;
   /**
@@ -65,6 +66,7 @@ const OVERALL_SCOPE: CompanyScopeState = {
   departmentIds: new Set(),
   staffIds: new Set(),
   skillIds: new Set(),
+  projectIds: new Set(),
   ready: true,
 };
 
@@ -103,10 +105,11 @@ export function useCompanyScope(): CompanyScope {
     setScope((prev) => ({ ...prev, isOverall: false, ready: false }));
     (async () => {
       try {
-        const [ws, departments, staff] = await Promise.all([
+        const [ws, departments, staff, projects] = await Promise.all([
           api.getCompany(companyId),
           api.listDepartments(),
           api.listStaff(),
+          api.listProjects(companyId).catch(() => []),
         ]);
         if (!active) return;
         const departmentIds = new Set(ws.departmentIds);
@@ -116,7 +119,8 @@ export function useCompanyScope(): CompanyScope {
         const skillIds = new Set(
           staff.filter((a) => staffIds.has(a.id)).flatMap((a) => a.skill_ids),
         );
-        setScope({ isOverall: false, company: ws, departmentIds, staffIds, skillIds, ready: true });
+        const projectIds = new Set(projects.map((p) => p.id));
+        setScope({ isOverall: false, company: ws, departmentIds, staffIds, skillIds, projectIds, ready: true });
       } catch (err) {
         console.error("Failed to resolve company scope:", err);
         // Office vanished (deleted elsewhere) — fall back to Overall.

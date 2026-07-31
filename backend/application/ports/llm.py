@@ -12,11 +12,15 @@ class LLMProvider(Protocol):
         self,
         *,
         system: str,
-        user: str,
+        user: str = "",
+        messages: list[dict[str, Any]] | None = None,
         tools: list[Any] | None = None,
         parallel_tools: bool = False,
         max_tool_rounds: int | None = None,
     ) -> str:
+        """``messages``, if given, is the full state (role/content dicts) sent to
+        the graph as-is instead of a single ``[{"role": "user", "content": user}]``
+        turn; ``system`` still goes to the agent as its system prompt either way."""
         ...
 
     def get_chat_model(self) -> Any:

@@ -11,7 +11,7 @@ from backend.infrastructure.repositories._helpers import parse_iso_utc
 
 class MongoMeetingRepository:
     def __init__(self, db: pymongo.database.Database) -> None:
-        self._col = db["conversations"]
+        self._col = db["meetings"]
         self._col.create_index("id", unique=True, background=True)
         self._col.create_index("taskId", background=True)
 

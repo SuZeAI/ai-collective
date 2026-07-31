@@ -19,22 +19,30 @@ from backend.application.ports.staff_graph import (
 from backend.application.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
-from backend.domain.staff.token_budget import apply_context_token_budget
 from backend.domain.staff._graph_runtime import (
     FANOUT_SYNTHESIS_GUIDANCE,
     MESH_FANOUT_MAX_CONCURRENT,
     attach_subagent_toolkit,
     build_agent_tools,
+    build_turn_messages,
     drain_human_guidance,
     ensure_working_memory,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
+    raise_if_llm_failed,
     run_fanout_wave,
     run_to_final_state,
     safe_chat,
     wait_while_paused,
     working_memory_block,
+)
+from backend.domain.staff.staff_state import (
+    StaffStates,
+    append_assistant_turn,
+    append_user_turn,
+    init_staff_states,
+    llm_ready_messages,
 )
 from backend.api.settings import settings
 from backend.log import get_logger
@@ -51,6 +59,7 @@ class MultiAgentMeshState(TypedDict):
     original_input: str
     turns: list[GraphTurn]
     conversation_history: dict[str, list[str]]
+    staff_states: StaffStates
     current_agent: str
     hub_staff: str
     staff_names: list[str]
@@ -201,6 +210,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             "conversation_history": {
                 staff_member.name: [] for staff_member in staff
             },
+            "staff_states": init_staff_states(staff),
             "current_agent": hub_staff.name,
             "hub_staff": hub_staff.name,
             "staff_names": all_staff_names,
@@ -324,6 +334,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             "conversation_history": {
                 staff_member.name: [] for staff_member in staff
             },
+            "staff_states": init_staff_states(staff),
             "current_agent": hub_staff.name,
             "hub_staff": hub_staff.name,
             "staff_names": all_staff_names,
@@ -385,6 +396,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             "original_input": user_input,
             "turns": [],
             "conversation_history": {staff_member.name: []},
+            "staff_states": init_staff_states([staff_member]),
             "current_agent": staff_member.name,
             "hub_staff": staff_member.name,
             "staff_names": [staff_member.name],
@@ -452,6 +464,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             "original_input": user_input,
             "turns": [],
             "conversation_history": {staff_member.name: []},
+            "staff_states": init_staff_states([staff_member]),
             "current_agent": staff_member.name,
             "hub_staff": staff_member.name,
             "staff_names": [staff_member.name],
@@ -519,6 +532,15 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 other_agent_profiles,
                 max_concurrent=MESH_FANOUT_MAX_CONCURRENT,
             )
+
+        # routing_guidance depends only on this node's static profile data, so
+        # this system prompt is byte-identical for every turn/round of this
+        # staff_member — the round budget (which DOES change every turn) goes
+        # in the per-turn context instead, so the compiled-agent cache and
+        # upstream provider prompt-caching see a stable prefix.
+        fixed_system_prompt = staff_member.system_prompt
+        if routing_guidance:
+            fixed_system_prompt = f"{fixed_system_prompt}\n\n{routing_guidance}"
 
         async def mesh_node(state: MultiAgentMeshState) -> dict:
             stream_writer = get_stream_writer()
@@ -626,48 +648,26 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                     "chunk_ids": pack.chunk_ids,
                 })
 
+            round_budget_text = self._build_round_budget_context(
+                rounds_used=int(state.get("rounds", 0)),
+                max_rounds=max_rounds,
+            )
+
             if state.get("rounds", 0) == 0:
+                input_text = state["original_input"]
                 context_parts.append(f"user input: {state['original_input']}")
                 context_parts.append("context:")
                 context_parts.append(graph_context_text or "(empty)")
             else:
                 previous_staff_name = state["turns"][-1].staff_name if state.get("turns") else "user"
-                question_payload = state.get("input", "").strip() or "1. Please clarify the next required step."
+                input_text = state.get("input", "").strip() or "1. Please clarify the next required step."
                 context_parts.append(f"user input: {state['original_input']}")
                 context_parts.append(f"staff_member {previous_staff_name} ask staff_member {staff_member.name}:")
-                context_parts.append(question_payload)
                 context_parts.append("history:")
                 context_parts.append(history_text)
                 context_parts.append("context:")
                 context_parts.append(graph_context_text or "(empty)")
-
-            user_input = "\n".join(context_parts)
-            logger.debug(
-                "[%s] mesh_node: context built — graph_context_chars=%d user_input_chars=%d",
-                staff_member.name, len(graph_context_text), len(user_input),
-            )
-
-            system_prompt_with_routing = staff_member.system_prompt
-            if routing_guidance:
-                system_prompt_with_routing = f"{system_prompt_with_routing}\n\n{routing_guidance}"
-            system_prompt_with_routing += self._build_round_budget_context(
-                rounds_used=int(state.get("rounds", 0)),
-                max_rounds=max_rounds,
-            )
-
-            budget_result = apply_context_token_budget(
-                llm=llm,
-                system_prompt=system_prompt_with_routing,
-                user_input=user_input,
-                max_context_tokens=MAX_CONTEXT_TOKENS,
-                reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
-            )
-            user_input = budget_result.text
-            logger.debug(
-                "[%s] mesh_node: token budget — input_tokens=%d max=%d truncated=%s provider=%s model=%s",
-                staff_member.name, budget_result.input_tokens, budget_result.max_input_tokens,
-                budget_result.truncated, budget_result.provider, budget_result.model,
-            )
+            context_parts.append(round_budget_text)
 
             bound_tools = build_agent_tools(staff_member, conversation_id=conversation_id)
             attach_subagent_toolkit(bound_tools, staff_member, llm=llm)
@@ -677,11 +677,28 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 staff_member.name, [t.name for t in bound_tools],
             )
 
+            # fixed_system_prompt stays byte-identical every turn so the
+            # compiled-agent cache and upstream provider prompt-caching see a
+            # stable prefix; only context_parts is budget-trimmed.
+            turn, budget_result = build_turn_messages(
+                llm=llm,
+                system_prompt=fixed_system_prompt,
+                context_text="\n".join(context_parts),
+                input_text=input_text,
+                max_context_tokens=MAX_CONTEXT_TOKENS,
+                reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
+            )
+            logger.debug(
+                "[%s] mesh_node: token budget — input_tokens=%d max=%d truncated=%s provider=%s model=%s",
+                staff_member.name, budget_result.input_tokens, budget_result.max_input_tokens,
+                budget_result.truncated, budget_result.provider, budget_result.model,
+            )
+
             # Stream: LLM request starting
             stream_writer({
                 "type": EventType.LLM_REQUEST_START.value,
                 "agent_name": staff_member.name,
-                "context_length": len(user_input),
+                "context_length": sum(len(m["content"]) for m in turn.as_messages()),
                 "context_tokens": budget_result.input_tokens,
                 "context_token_limit": budget_result.max_input_tokens,
                 "context_truncated": budget_result.truncated,
@@ -692,13 +709,15 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             })
 
             logger.debug("[%s] mesh_node: invoking LLM...", staff_member.name)
+            own_history = llm_ready_messages(state.get("staff_states", {}), staff_member.name)
             response = await safe_chat(llm,
                 staff_name=staff_member.name,
-                system=system_prompt_with_routing,
-                user=user_input,
+                system=fixed_system_prompt,
+                messages=[*own_history, *turn.as_messages()],
                 tools=bound_tools or None,
                 parallel_tools=staff_member.subagent_enabled,
             )
+            raise_if_llm_failed(response)
             logger.debug(
                 "[%s] mesh_node: LLM response received — response_chars=%d",
                 staff_member.name, len(response),
@@ -717,6 +736,12 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 staff_member.name, len(reasoning), len(action_payload),
             )
 
+            new_staff_states = append_assistant_turn(
+                append_user_turn(state.get("staff_states", {}), staff_member.name, input_text),
+                staff_member.name,
+                reasoning,
+            )
+
             # Parallel fan-out: if this staff_member dispatched a wave, run the named
             # targets concurrently and synthesize, all within this node (one
             # state update per channel — no reducer changes needed).
@@ -732,7 +757,8 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                     coordinator=staff_member,
                     fanout_pairs=fanout_pairs,
                     coordinator_reasoning=reasoning,
-                    coordinator_system=system_prompt_with_routing,
+                    coordinator_system=fixed_system_prompt,
+                    staff_states=new_staff_states,
                     state=state,
                     llm=llm,
                     all_staff=all_staff,
@@ -809,6 +835,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             return {
                 "turns": [*turns, new_turn],
                 "conversation_history": new_history,
+                "staff_states": new_staff_states,
                 "input": next_input,
                 "current_agent": staff_member.name,
                 "final_response": reasoning,
@@ -1026,7 +1053,6 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             "You have been delegated this sub-task as part of a parallel wave. "
             "Work on it independently and report your findings:"
         )
-        context_parts.append(task_text or "Continue with the highest-priority analysis.")
 
         graph_context_text = ""
         if graph_context_provider and conversation_id:
@@ -1039,22 +1065,22 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         context_parts.append("context:")
         context_parts.append(graph_context_text or "(empty)")
 
-        user_input = "\n".join(context_parts)
-        budget_result = apply_context_token_budget(
+        input_text = task_text or "Continue with the highest-priority analysis."
+        turn, _budget_result = build_turn_messages(
             llm=llm,
             system_prompt=branch_agent.system_prompt,
-            user_input=user_input,
+            context_text="\n".join(context_parts),
+            input_text=input_text,
             max_context_tokens=MAX_CONTEXT_TOKENS,
             reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
         )
-        user_input = budget_result.text
 
         bound_tools = build_agent_tools(branch_agent, conversation_id=conversation_id)
         attach_subagent_toolkit(bound_tools, branch_agent, llm=llm)
 
         return {
             "system": branch_agent.system_prompt,
-            "user": user_input,
+            "messages": turn.as_messages(),
             "tools": bound_tools or None,
             "parallel_tools": branch_agent.subagent_enabled,
         }
@@ -1066,6 +1092,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         fanout_pairs: list[tuple[str, str]],
         coordinator_reasoning: str,
         coordinator_system: str,
+        staff_states: StaffStates,
         state: MultiAgentMeshState,
         llm: LLMProvider,
         all_staff: list[GraphStaffDefinition],
@@ -1172,13 +1199,17 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 f"### {r.staff_name} (sub-task: {r.task})\n{r.content}" for r in results
             )
         )
+        # coordinator_system is fixed_system_prompt (fixed) and
+        # FANOUT_SYNTHESIS_GUIDANCE is a static constant, so synthesis_system
+        # stays stable across every synthesis call for this coordinator.
         synthesis_system = f"{coordinator_system}\n\n{FANOUT_SYNTHESIS_GUIDANCE}"
         synth_raw = await safe_chat(
             llm,
             staff_name=coordinator.name,
             system=synthesis_system,
-            user=synthesis_user,
+            messages=[{"role": "user", "content": synthesis_user}],
         )
+        raise_if_llm_failed(synth_raw)
         synth_reasoning, synth_action = self._split_reasoning_and_action(synth_raw)
 
         synthesis_turn_number = base_turn + len(results) + 1
@@ -1231,9 +1262,20 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             new_history.setdefault(r.staff_name, []).append(r.content)
         new_history.setdefault(coordinator.name, []).append(synth_reasoning)
 
+        # staff_states already carries the coordinator's fan-out-decision turn
+        # (appended by mesh_node before this call); add each branch's own
+        # exchange and the coordinator's synthesis exchange.
+        new_staff_states = staff_states
+        for r in results:
+            new_staff_states = append_user_turn(new_staff_states, r.staff_name, r.task)
+            new_staff_states = append_assistant_turn(new_staff_states, r.staff_name, r.content)
+        new_staff_states = append_user_turn(new_staff_states, coordinator.name, synthesis_user)
+        new_staff_states = append_assistant_turn(new_staff_states, coordinator.name, synth_reasoning)
+
         return {
             "turns": [*turns, coordinator_turn, *branch_turns, synthesis_turn],
             "conversation_history": new_history,
+            "staff_states": new_staff_states,
             "input": next_input,
             "current_agent": coordinator.name,
             "final_response": synth_reasoning,

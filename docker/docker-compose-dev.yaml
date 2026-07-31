@@ -291,9 +291,15 @@ services:
       # loopback). Override so the client reaches the host's k3s API instead.
       - K8S_API_SERVER=${K8S_API_SERVER:-https://host.docker.internal:6443}
       - KUBECONFIG_PATH=/root/.kube/config
-      # hostPath dirs on the k3s NODE (must already exist, else Pods FailedMount).
-      - SKILLS_HOST_PATH=${SKILLS_HOST_PATH:-/skills}
-      - THREADS_HOST_PATH=${THREADS_HOST_PATH:-/.ai-collective/threads}
+    # SKILLS_HOST_PATH / THREADS_HOST_PATH come from .env via env_file, not
+    # ${VAR} interpolation above — interpolation resolves against compose's
+    # "project directory" (this file's folder), which has no .env of its own,
+    # so it silently fell back to hardcoded defaults even when root .env set
+    # them. env_file always reads the given path relative to this file, so it
+    # isn't subject to that ambiguity. app.py falls back to /skills and
+    # /.ai-collective/threads itself when these are absent from .env.
+    env_file:
+      - ../.env
     volumes:
       # Mount the kubeconfig FILE (compose does not expand `~`, so use $HOME).
       - ${KUBECONFIG:-${HOME}/.kube/config}:/root/.kube/config:ro

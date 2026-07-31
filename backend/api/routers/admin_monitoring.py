@@ -26,7 +26,6 @@ from backend.api.schemas.admin import (
 from backend.api.settings import settings
 from backend.application.service.monitoring_service import MonitoringService
 from backend.infrastructure.llm.config import get_enabled_models
-from backend.infrastructure.llm.factory import DEFAULT_PROVIDER_MODELS
 from backend.infrastructure.monitoring import request_metrics
 
 
@@ -201,12 +200,7 @@ def get_system_health(
     if active is not None:
         llm = LLMHealthSchema(provider=active.provider_name or "", model=active.model, configured=llm_configured)
     else:
-        llm = LLMHealthSchema(
-            provider=settings.llm_provider,
-            model=settings.llm_model
-            or DEFAULT_PROVIDER_MODELS.get(settings.llm_provider.strip().lower(), ""),
-            configured=llm_configured,
-        )
+        llm = LLMHealthSchema(provider="", model="", configured=llm_configured)
 
     metrics = request_metrics.snapshot()
     counts = service.get_entity_counts()
