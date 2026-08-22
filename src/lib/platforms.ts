@@ -4,7 +4,7 @@
 // language for telegram/discord/slack/… stays consistent in one place.
 
 const API_BASE =
-  ((import.meta as any).env?.VITE_API_BASE_URL as string) || "/api/v1";
+  (import.meta.env?.VITE_API_BASE_URL as string) || "/api/v1";
 
 export const PLATFORM_ICONS: Record<string, string> = {
   telegram: "✈️", discord: "🎮", slack: "💬", departments: "🟦",

@@ -619,9 +619,19 @@ export type LoginResponse = {
   user: AuthUser;
 };
 
+type RawAuthUser = {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string | null;
+  role?: string;
+  joinedAt?: string;
+  joined_at?: string;
+};
+
 // Backend returns snake_case `joined_at`; normalize every auth response to the
 // camelCase `joinedAt` the UI/type expects (previously only uploadAvatar did this).
-export function mapAuthUser(raw: any): AuthUser {
+export function mapAuthUser(raw: RawAuthUser): AuthUser {
   return {
     id: raw.id,
     name: raw.name,
@@ -1169,17 +1179,21 @@ export const api = {
 
   // Auth
   login: async (email: string, password: string): Promise<LoginResponse> => {
-    const r = await apiFetch<any>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+    const r = await apiFetch<{ access_token: string; token_type: string; user: RawAuthUser }>(
+      "/auth/login", { method: "POST", body: JSON.stringify({ email, password }) },
+    );
     return { ...r, user: mapAuthUser(r.user) };
   },
   register: async (name: string, email: string, password: string): Promise<LoginResponse> => {
-    const r = await apiFetch<any>("/auth/register", { method: "POST", body: JSON.stringify({ name, email, password }) });
+    const r = await apiFetch<{ access_token: string; token_type: string; user: RawAuthUser }>(
+      "/auth/register", { method: "POST", body: JSON.stringify({ name, email, password }) },
+    );
     return { ...r, user: mapAuthUser(r.user) };
   },
   logout: () => apiFetch<void>("/auth/logout", { method: "POST" }),
-  getCurrentUser: async (): Promise<AuthUser> => mapAuthUser(await apiFetch<any>("/auth/me")),
+  getCurrentUser: async (): Promise<AuthUser> => mapAuthUser(await apiFetch<RawAuthUser>("/auth/me")),
   updateProfile: async (payload: { name?: string; email?: string; avatar?: string | null }): Promise<AuthUser> =>
-    mapAuthUser(await apiFetch<any>("/auth/profile", { method: "PATCH", body: JSON.stringify(payload) })),
+    mapAuthUser(await apiFetch<RawAuthUser>("/auth/profile", { method: "PATCH", body: JSON.stringify(payload) })),
   changePassword: (current_password: string, new_password: string) =>
     apiFetch<void>("/auth/password", { method: "PATCH", body: JSON.stringify({ current_password, new_password }) }),
   uploadAvatar: async (file: File): Promise<AuthUser> => {

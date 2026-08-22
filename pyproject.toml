@@ -62,3 +62,19 @@ app = "backend.api.main:app"
 host = "0.0.0.0"
 port = 8000
 
+[dependency-groups]
+dev = ["ruff>=0.8.0"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Import order here is load-bearing: OAUTHLIB_INSECURE_TRANSPORT and dotenv
+# must be set before the modules below are imported.
+"backend/api/main.py" = ["E402"]
+

@@ -246,7 +246,6 @@ def cleanup_conversation_sandbox(conversation_id: str) -> None:
 
         from backend.infrastructure.sandbox.sandbox_session import (
             conversation_thread_id,
-            ensure_conversation_workspace,
         )
         from backend.infrastructure.sandbox.thread_files import purge_thread_files
 

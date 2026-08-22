@@ -72,7 +72,11 @@ function DocSidebar({
     : null;
 
   const toggle = (id: string) =>
-    setExpanded((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+    setExpanded((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
 
   return (
     <div className={cn("flex flex-col h-full", mobile && "pt-2")}>

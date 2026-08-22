@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Protocol
+from typing import Protocol
 
 from backend.domain.memory.long_term_memory import (
     MemoryRecord,

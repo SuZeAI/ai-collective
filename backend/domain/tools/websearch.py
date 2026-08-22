@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from backend.domain.tools.base import BaseToolkit
 
-from langchain_community.tools import DuckDuckGoSearchResults, DuckDuckGoSearchRun
+from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper 
 
 class WebSearchItem(BaseModel):

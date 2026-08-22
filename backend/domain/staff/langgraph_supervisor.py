@@ -9,6 +9,7 @@ from uuid import uuid4
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 
+from backend.api.settings import settings
 from backend.application.ports.staff_graph import (
     StaffGraphOrchestrator,
     GraphStaffDefinition,
@@ -47,8 +48,6 @@ from backend.domain.staff.staff_state import (
 
 
 logger = logging.getLogger(__name__)
-
-from backend.api.settings import settings
 
 MAX_CONTEXT_TOKENS = max(1024, settings.staff.context_token_limit)
 RESERVED_OUTPUT_TOKENS = max(256, settings.staff.output_token_reserve)
@@ -228,7 +227,6 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         lead = staff[0]
         workers = staff[1:]
         worker_names = [w.name for w in workers]
-        all_node_names = [a.name for a in staff]
 
         builder: StateGraph = StateGraph(SupervisorState)
 

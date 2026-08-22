@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Protocol
+from typing import Protocol
 
 from backend.domain.memory.knowledge_graph import GraphContextConfig, GraphContextPack
 from backend.application.ports.llm import LLMProvider

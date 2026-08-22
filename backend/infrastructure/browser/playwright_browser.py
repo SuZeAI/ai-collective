@@ -524,7 +524,7 @@ class PlaywrightBrowser:
                 try:
                     await element.fill("")
                     await element.type(text)
-                except Exception as e:
+                except Exception:
                     # If fill() fails, use type() method directly
                     await element.click()
                     await self.page.keyboard.type(text)

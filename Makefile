@@ -57,7 +57,7 @@ C_YELLOW := \033[33m
 # ── Phony declarations ────────────────────────────────────────────────────
 .PHONY: help \
         dev dev-down dev-stop dev-start dev-build dev-logs dev-ps dev-log-collect \
-        dev-sandbox dev-provisioner dev-router \
+        dev-sandbox dev-provisioner dev-router dev-full \
         up down stop start build restart ps logs logs-backend logs-frontend \
         prod-sandbox prod-provisioner prod-router prod-all \
         backend frontend \
@@ -197,6 +197,15 @@ dev-router: ## Dev stack + 9Router multi-provider LLM proxy
 	@printf "  9Router dashboard: $(C_GREEN)http://localhost:$${ROUTER_PORT:-20128}/dashboard$(C_RESET)\n"
 	@printf "$(C_YELLOW)  Tip: set LLM_PROVIDER=openai, LLM_API_BASE=http://nine-router:20128/v1,$(C_RESET)\n"
 	@printf "$(C_YELLOW)       OPENAI_API_KEY=<dashboard key> in .env (see docs/9ROUTER_SETUP.md)$(C_RESET)\n"
+
+dev-full: ## Dev stack + ALL profiles at once (sandbox/provisioner/router/minio/qdrant/neo4j)
+	@$(MAKE) --no-print-directory dev PROFILES="sandbox provisioner router minio qdrant neo4j"
+	@printf "  Sandbox      → http://localhost:8081\n"
+	@printf "  Provisioner  → http://localhost:8002/health\n"
+	@printf "  9Router      → http://localhost:$${ROUTER_PORT:-20128}/dashboard\n"
+	@printf "  MinIO console→ http://localhost:$${MINIO_CONSOLE_PORT:-9001}\n"
+	@printf "  Qdrant       → http://localhost:$${QDRANT_HTTP_PORT:-6333}/dashboard\n"
+	@printf "  Neo4j        → http://localhost:$${NEO4J_HTTP_PORT:-7474}\n"
 
 # ============================================================================
 # PRODUCTION

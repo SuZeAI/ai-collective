@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import threading
-from datetime import datetime, timezone
 
 from backend.domain.models import DEFAULT_OWNER_ID, Project
 from backend.infrastructure.repositories._helpers import parse_iso_utc

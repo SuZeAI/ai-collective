@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
+
+if TYPE_CHECKING:
+    from backend.application.service.document_library_service import DocumentLibraryService
+    from backend.application.service.project_service import ProjectService
+    from backend.application.service.epic_service import EpicService
+    from backend.application.service.sprint_service import SprintService
 
 from backend.api.settings import settings
 from backend.application.ports.repositories import (
@@ -79,7 +85,6 @@ from backend.infrastructure.repositories.mongo_repositories import (
     MongoUserRepository,
     MongoCompanyRepository,
 )
-from backend.infrastructure import task_queue as _task_queue_module
 from backend.log import get_logger
 
 

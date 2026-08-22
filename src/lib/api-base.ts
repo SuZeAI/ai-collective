@@ -11,7 +11,7 @@ export function getApiBase(): string {
   // port 8000 is not published to the host in the dev/prod compose setups, so
   // an absolute http://localhost:8000 base would fail with ERR_CONNECTION_REFUSED.
   // Override with VITE_API_BASE_URL when the API lives on a different origin.
-  return ((import.meta as any).env?.VITE_API_BASE_URL as string) || "/api/v1";
+  return (import.meta.env?.VITE_API_BASE_URL as string) || "/api/v1";
 }
 
 /** Extract a human-readable error message from a failed fetch Response. */

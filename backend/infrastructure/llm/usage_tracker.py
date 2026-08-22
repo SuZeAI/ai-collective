@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import contextvars
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 
 from langchain_core.callbacks import BaseCallbackHandler
 

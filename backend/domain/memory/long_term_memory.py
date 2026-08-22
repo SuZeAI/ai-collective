@@ -20,7 +20,7 @@ the repositories; orchestration in ``long_term_memory_service``.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from backend.domain.memory.vectors import cosine_dense, lexical_overlap

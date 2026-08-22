@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import os
 import re
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
@@ -123,7 +121,6 @@ class DriveToolkit(BaseToolkit):
         def _run() -> list[dict[str, Any]]:
             drive = self._build_client()
             q = query if raw_query else f"fullText contains '{query}'"
-            page_size = max(1, min(page_size, 100))
             response = (
                 drive.files()
                 .list(
@@ -133,7 +130,7 @@ class DriveToolkit(BaseToolkit):
                     supportsAllDrives=True,
                     fields="files(id,name,mimeType,modifiedTime,createdTime,size,webViewLink,owners)",
                     orderBy="modifiedTime desc",
-                    pageSize=page_size,
+                    pageSize=max(1, min(page_size, 100)),
                 )
                 .execute()
             )
@@ -403,7 +400,7 @@ class DriveToolkit(BaseToolkit):
 
         def _run() -> dict[str, str]:
             drive = self._build_client()
-            result = drive.files().delete(fileId=item_id).execute()
+            drive.files().delete(fileId=item_id).execute()
             return {
                 "success": "true",
                 "itemId": item_id,

@@ -209,7 +209,6 @@ class RagRetrievalService:
         # Vector seeds (Qdrant) → their entities → graph expansion (Neo4j) → chunks.
         vector_hits = self._retrieve_vector(conversation_id, query, chunks)
         seed_chunk_ids = {h.chunk_id for h in vector_hits}
-        nodes = getattr(graph, "nodes", {})
         seed_entities = [
             n for n in self._entity_nodes(graph)
             if any(cid in seed_chunk_ids for cid in (getattr(n, "chunk_ids", []) or []))

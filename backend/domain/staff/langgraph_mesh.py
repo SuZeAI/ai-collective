@@ -629,7 +629,6 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             )
 
             graph_context_text = ""
-            context_chunks = []
             if graph_context_provider and conversation_id:
                 pack = graph_context_provider.build_graph_context(
                     conversation_id=conversation_id,
@@ -637,7 +636,6 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                     config=graph_config,
                 )
                 graph_context_text = pack.text
-                context_chunks = pack.chunk_ids
 
                 # Stream: Context retrieved
                 stream_writer({
