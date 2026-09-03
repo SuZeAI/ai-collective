@@ -10,7 +10,7 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.api.settings import settings
-from backend.infrastructure.storage.google_oauth_store import restore_token_if_missing, save_token
+from backend.infra.storage.google_oauth_store import restore_token_if_missing, save_token
 
 SCOPES = [
     "https://www.googleapis.com/auth/drive",

@@ -186,8 +186,8 @@ class ToolRegistry:
             return None
 
         if tool_name in (ToolType.BASH.value, ToolType.SANDBOX.value):
-            from backend.infrastructure.sandbox.factory import create_sandbox_adapter
-            from backend.infrastructure.sandbox import Sandbox
+            from backend.infra.sandbox.factory import create_sandbox_adapter
+            from backend.infra.sandbox import Sandbox
 
             for _k in ("sandbox_mode", "sandbox_url", "sandbox_provisioner_url", "sandbox_timeout", "sandbox_workspace"):
                 kwargs.pop(_k, None)
@@ -212,7 +212,7 @@ class ToolRegistry:
                     "Only 'browser_use' is currently supported."
                 )
 
-            from backend.infrastructure.browser.browser_use_browser import BrowserUseBrowser
+            from backend.infra.browser.browser_use_browser import BrowserUseBrowser
 
             kwargs = {**kwargs, "browser": BrowserUseBrowser(cdp_url=cdp_url)}
         try:

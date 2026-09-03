@@ -6,11 +6,11 @@ import os
 
 import pytest
 
-from backend.infrastructure.storage.file_store import FileStore
-from backend.infrastructure.repositories.json_files.library_documents import (
+from backend.infra.storage.file_store import FileStore
+from backend.infra.repositories.json_files.library_documents import (
     JsonLibraryDocumentRepository,
 )
-from backend.infrastructure.repositories.json_store import JsonFileStore
+from backend.infra.repositories.json_store import JsonFileStore
 from backend.app.service.document_library_service import DocumentLibraryService
 
 
@@ -55,8 +55,8 @@ class TestFileStoreLocal:
 class TestDocumentToolkit:
     def _toolkit_in(self, tmp_path, monkeypatch):
         # Point the workspace base at tmp_path and bind a thread id.
-        import backend.infrastructure.storage.file_store as fs
-        import backend.infrastructure.sandbox.sandbox_session as ss
+        import backend.infra.storage.file_store as fs
+        import backend.infra.sandbox.sandbox_session as ss
         monkeypatch.setattr(fs, "workspace_base", lambda: str(tmp_path))
         ss.set_current_thread_id("conv-test")
         os.makedirs(str(tmp_path / "conv-test" / "uploads"), exist_ok=True)
@@ -99,7 +99,7 @@ class TestDocumentToolkit:
 
 class TestDocumentLibraryService:
     def _svc(self, tmp_path, monkeypatch):
-        import backend.infrastructure.storage.file_store as fs
+        import backend.infra.storage.file_store as fs
         monkeypatch.setattr(fs, "workspace_base", lambda: str(tmp_path))
         fs._stores.clear()  # rebuild stores against the patched base
         repo = JsonLibraryDocumentRepository(JsonFileStore(tmp_path / "lib.json"))
@@ -119,7 +119,7 @@ class TestDocumentLibraryService:
         assert svc.read_bytes(doc) is None
 
     def test_attach_to_project_records_thread_file(self, tmp_path, monkeypatch):
-        import backend.infrastructure.sandbox.sandbox_session as ss
+        import backend.infra.sandbox.sandbox_session as ss
         monkeypatch.setattr(ss, "_ensure_thread_workspace",
                             lambda tid: str(_mkd(tmp_path / "ws" / tid)))
         svc = self._svc(tmp_path, monkeypatch)
@@ -130,7 +130,7 @@ class TestDocumentLibraryService:
         rec = svc.attach_to_project(doc, "task-abc", "u1")
         assert rec["rel_path"] == "uploads/brief.txt"
         # The bytes must land in the project's conversation workspace uploads dir.
-        from backend.infrastructure.sandbox.sandbox_session import (
+        from backend.infra.sandbox.sandbox_session import (
             conversation_thread_id,
             ensure_conversation_workspace,
         )

@@ -21,7 +21,7 @@ from backend.api.deps import (
 )
 from backend.api.schemas.admin import LlmModelOptionSchema
 from backend.api.schemas.staff_graph import GraphRunRequest, GraphRunResponse, GraphTurnSchema
-from backend.infrastructure.llm.config import get_enabled_models
+from backend.infra.llm.config import get_enabled_models
 from backend.app.ports.staff_graph import CustomGraphSpec, GraphStaffDefinition
 from backend.app.service.staff_service import StaffService
 from backend.app.service.graph_context_service import GraphContextService
@@ -31,8 +31,8 @@ from backend.domain.errors import NotFoundError
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.models import is_visible_to
 from backend.domain.service.skill_tool_service import SkillToolManager
-from backend.infrastructure import task_run_registry
-from backend.infrastructure.llm.usage_tracker import current_usage_department
+from backend.infra import task_run_registry
+from backend.infra.llm.usage_tracker import current_usage_department
 from backend.log import get_logger
 
 
@@ -431,7 +431,7 @@ async def run_staff_graph_stream(
     # proxy). Recall/inject is done by the LTM middleware; consolidation runs at
     # natural completion. Best-effort — never blocks the run.
     from backend.domain.memory.long_term_memory import MemoryScope
-    from backend.infrastructure import long_term_memory_store as ltm_store
+    from backend.infra import long_term_memory_store as ltm_store
 
     company_id = None
     if conversation_id:

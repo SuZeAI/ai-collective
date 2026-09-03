@@ -554,7 +554,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
 
             # Generate a unique thread_id for this staff_member turn.
             # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
-            from backend.infrastructure.sandbox.sandbox_session import (
+            from backend.infra.sandbox.sandbox_session import (
                 new_thread_id as _new_thread_id,
                 get_thread_workspace as _get_thread_workspace,
             )

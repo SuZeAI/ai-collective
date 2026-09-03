@@ -65,8 +65,8 @@ class DocumentToolkit(BaseToolkit):
 
     def _workspace(self) -> tuple[str, Optional[str]]:
         """Return ``(workspace_dir, thread_id)`` for the current run."""
-        from backend.infrastructure.sandbox.sandbox_session import get_current_thread_id
-        from backend.infrastructure.storage.file_store import workspace_base
+        from backend.infra.sandbox.sandbox_session import get_current_thread_id
+        from backend.infra.storage.file_store import workspace_base
 
         thread_id = get_current_thread_id()
         base = workspace_base()
@@ -90,7 +90,7 @@ class DocumentToolkit(BaseToolkit):
         abspath = self._confine(path, workspace)
         rel = os.path.relpath(abspath, workspace)
         if thread_id:
-            from backend.infrastructure.storage.file_store import get_file_store
+            from backend.infra.storage.file_store import get_file_store
 
             data = get_file_store("sandbox").get(thread_id, rel)
             if data is not None:
@@ -220,7 +220,7 @@ class DocumentToolkit(BaseToolkit):
         body = text.encode("utf-8")
         try:
             if thread_id:
-                from backend.infrastructure.storage.file_store import get_file_store
+                from backend.infra.storage.file_store import get_file_store
 
                 get_file_store("sandbox").put(thread_id, rel, body)
             else:
@@ -296,7 +296,7 @@ class DocumentToolkit(BaseToolkit):
 
     @staticmethod
     def _default_llm():
-        from backend.infrastructure.llm.factory import build_default_llm_provider
+        from backend.infra.llm.factory import build_default_llm_provider
 
         return build_default_llm_provider()
 

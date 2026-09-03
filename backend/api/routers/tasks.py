@@ -26,9 +26,9 @@ from backend.domain.errors import NotFoundError
 from backend.domain.enums import StaffStatus
 from backend.domain.enums import IssueType, TaskPriority, TaskStatus
 from backend.domain.models import Message, Task, can_delete, can_modify, is_owned_by, is_visible_to
-from backend.infrastructure import task_run_registry
-from backend.infrastructure import task_queue
-from backend.infrastructure import working_memory_store
+from backend.infra import task_run_registry
+from backend.infra import task_queue
+from backend.infra import working_memory_store
 from backend.log import get_logger
 
 logger = get_logger(__name__)
@@ -270,7 +270,7 @@ def delete_task(
     service.delete_task(task_id)
     conv_service.delete_messages_by_task(task_id)
     try:
-        from backend.infrastructure.llm.sandbox_middleware import (
+        from backend.infra.llm.sandbox_middleware import (
             cleanup_conversation_sandbox,
         )
 

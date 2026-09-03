@@ -11,7 +11,7 @@ from backend.domain.memory.knowledge_graph import (
     GraphEdge,
     GraphNode,
 )
-from backend.infrastructure.repositories.neo4j_graph_knowledge import _deserialize, _serialize
+from backend.infra.repositories.neo4j_graph_knowledge import _deserialize, _serialize
 
 
 def _graph() -> ConversationKnowledgeGraph:

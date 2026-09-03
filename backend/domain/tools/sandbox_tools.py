@@ -55,7 +55,7 @@ def _truncate_head(output: str, max_chars: int, hint: str = "Use start_line/end_
 def _get_sandbox(sandbox=None, session_id: str | None = None):
     if sandbox is not None:
         return sandbox
-    from backend.infrastructure.sandbox.factory import create_sandbox_adapter
+    from backend.infra.sandbox.factory import create_sandbox_adapter
     return create_sandbox_adapter(session_id=session_id)
 
 
@@ -74,7 +74,7 @@ class SandboxToolkit(BaseToolkit):
         # session_id keys the underlying sandbox (e.g. per-conversation Pod in
         # k8s mode); ignored for the local host-FS adapter.
         self.sandbox = _get_sandbox(sandbox, session_id=session_id)
-        from backend.infrastructure.sandbox.local_sandbox import LocalSandboxAdapter
+        from backend.infra.sandbox.local_sandbox import LocalSandboxAdapter
         if workspace:
             self._base_workspace = workspace
         elif isinstance(self.sandbox, LocalSandboxAdapter):
@@ -165,8 +165,8 @@ class SandboxToolkit(BaseToolkit):
             command: The bash command to execute (supports multi-line with &&).
             session_id: Named sub-session within this staff run (default: "default").
         """
-        from backend.infrastructure.sandbox.local_sandbox import LocalSandboxAdapter
-        from backend.infrastructure.sandbox.sandbox_session import get_current_thread_id
+        from backend.infra.sandbox.local_sandbox import LocalSandboxAdapter
+        from backend.infra.sandbox.sandbox_session import get_current_thread_id
 
         thread_id = get_current_thread_id()
         workspace = self._resolve_workspace(thread_id)
@@ -194,7 +194,7 @@ class SandboxToolkit(BaseToolkit):
             description: Brief explanation of why you are listing this directory.
             path: Path to the directory to list (absolute or relative to workspace).
         """
-        from backend.infrastructure.sandbox.sandbox_session import get_current_thread_id
+        from backend.infra.sandbox.sandbox_session import get_current_thread_id
         thread_id = get_current_thread_id()
         workspace = self._resolve_workspace(thread_id)
         try:
@@ -228,7 +228,7 @@ class SandboxToolkit(BaseToolkit):
             path: Root directory to search under (absolute or relative to workspace).
             max_results: Maximum number of paths to return (default 200, max 1000).
         """
-        from backend.infrastructure.sandbox.sandbox_session import get_current_thread_id
+        from backend.infra.sandbox.sandbox_session import get_current_thread_id
         thread_id = get_current_thread_id()
         workspace = self._resolve_workspace(thread_id)
         try:
@@ -273,7 +273,7 @@ class SandboxToolkit(BaseToolkit):
             case_sensitive: Case-sensitive matching (default False).
             max_results: Maximum matching lines to return (default 100, max 500).
         """
-        from backend.infrastructure.sandbox.sandbox_session import get_current_thread_id
+        from backend.infra.sandbox.sandbox_session import get_current_thread_id
         thread_id = get_current_thread_id()
         workspace = self._resolve_workspace(thread_id)
         try:
@@ -323,7 +323,7 @@ class SandboxToolkit(BaseToolkit):
             start_line: Starting line number, 1-indexed inclusive (optional).
             end_line: Ending line number, 1-indexed inclusive (optional).
         """
-        from backend.infrastructure.sandbox.sandbox_session import get_current_thread_id
+        from backend.infra.sandbox.sandbox_session import get_current_thread_id
         thread_id = get_current_thread_id()
         workspace = self._resolve_workspace(thread_id)
         try:
@@ -358,7 +358,7 @@ class SandboxToolkit(BaseToolkit):
             content: Text content to write.
             append: Append to the file instead of overwriting (default False).
         """
-        from backend.infrastructure.sandbox.sandbox_session import get_current_thread_id
+        from backend.infra.sandbox.sandbox_session import get_current_thread_id
         thread_id = get_current_thread_id()
         workspace = self._resolve_workspace(thread_id)
         try:
@@ -395,7 +395,7 @@ class SandboxToolkit(BaseToolkit):
             new_str: The replacement substring.
             replace_all: Replace every occurrence (default False).
         """
-        from backend.infrastructure.sandbox.sandbox_session import get_current_thread_id
+        from backend.infra.sandbox.sandbox_session import get_current_thread_id
         thread_id = get_current_thread_id()
         workspace = self._resolve_workspace(thread_id)
         try:

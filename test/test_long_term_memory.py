@@ -6,11 +6,11 @@ import asyncio
 
 from backend.app.service.long_term_memory_service import LongTermMemoryService
 from backend.domain.memory.long_term_memory import MemoryRecord, MemoryScope
-from backend.infrastructure.llm.embeddings import HashingEmbeddingProvider
-from backend.infrastructure.repositories.json_long_term_memory import (
+from backend.infra.llm.embeddings import HashingEmbeddingProvider
+from backend.infra.repositories.json_long_term_memory import (
     JsonLongTermMemoryRepository,
 )
-from backend.infrastructure.repositories.json_store import JsonFileStore
+from backend.infra.repositories.json_store import JsonFileStore
 
 
 def _service(tmp_path):
@@ -93,7 +93,7 @@ def test_consolidate_promotes_working_memory(tmp_path, monkeypatch):
             _Note("just a finding", "finding"),
         ]
 
-    import backend.infrastructure.working_memory_store as wm_store
+    import backend.infra.working_memory_store as wm_store
 
     monkeypatch.setattr(wm_store, "get_memory", lambda *_: _WM())
 

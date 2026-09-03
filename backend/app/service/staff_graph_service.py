@@ -16,7 +16,7 @@ def _backup_workspace(conversation_id: str | None) -> None:
     if not conversation_id:
         return
     try:
-        from backend.infrastructure.llm.sandbox_middleware import (
+        from backend.infra.llm.sandbox_middleware import (
             backup_conversation_workspace,
         )
 

@@ -56,7 +56,7 @@ def create_app() -> FastAPI:
         """Seed the admin (from ADMIN_* env) and the default agents/skills/teams
         catalog into the store, so a fresh clone comes up ready to use."""
         from backend.api.deps import seed_admin_user, seed_default_data
-        from backend.infrastructure.extensions.mcp_loader import seed_mcp_extensions
+        from backend.infra.extensions.mcp_loader import seed_mcp_extensions
         seed_admin_user()
         seed_default_data()
         seed_mcp_extensions()
@@ -66,8 +66,8 @@ def create_app() -> FastAPI:
         """Attribute LLM usage to the calling user + collect request metrics."""
         import time as _time
 
-        from backend.infrastructure.llm.usage_tracker import current_usage_user
-        from backend.infrastructure.monitoring import request_metrics
+        from backend.infra.llm.usage_tracker import current_usage_user
+        from backend.infra.monitoring import request_metrics
 
         user_id = "guest"
         authorization = request.headers.get("Authorization", "")
@@ -146,7 +146,7 @@ def create_app() -> FastAPI:
 
     @app.on_event("shutdown")
     async def _shutdown_task_queue() -> None:
-        from backend.infrastructure import task_queue
+        from backend.infra import task_queue
         task_queue.shutdown()
 
     return app

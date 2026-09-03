@@ -61,7 +61,7 @@ class MemoryToolkit(BaseToolkit):
             pin: Set true only for critical facts that must stay verbatim in
                 every staff's context (pinned notes are never compacted away).
         """
-        from backend.infrastructure import working_memory_store
+        from backend.infra import working_memory_store
 
         content = (content or "").strip()
         if not content:
@@ -98,7 +98,7 @@ class MemoryToolkit(BaseToolkit):
                 latest notes.
             limit: Maximum number of notes to return (default 8).
         """
-        from backend.infrastructure import working_memory_store
+        from backend.infra import working_memory_store
 
         notes = working_memory_store.search_notes(
             self._conversation_id, query=query or "", limit=max(1, min(int(limit), 25))

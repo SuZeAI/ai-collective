@@ -12,7 +12,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from backend.api.settings import settings
 from backend.api.security import create_access_token
-from backend.infrastructure.storage.google_oauth_store import save_token
+from backend.infra.storage.google_oauth_store import save_token
 from backend.api.schemas.skill import (
     GoogleSheetOAuthStartRequest,
     GoogleSheetOAuthStartResponse,

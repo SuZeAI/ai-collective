@@ -32,7 +32,7 @@ class DocumentLibraryService:
 
     @property
     def _store(self):
-        from backend.infrastructure.storage.file_store import get_file_store
+        from backend.infra.storage.file_store import get_file_store
 
         return get_file_store(_LIBRARY_NAMESPACE)
 
@@ -108,8 +108,8 @@ class DocumentLibraryService:
         if data is None:
             raise NotFoundError(f"Document bytes for {doc.id!r} not found")
 
-        from backend.infrastructure.sandbox.sandbox_session import ensure_conversation_workspace
-        from backend.infrastructure.sandbox.thread_files import record_thread_file
+        from backend.infra.sandbox.sandbox_session import ensure_conversation_workspace
+        from backend.infra.sandbox.thread_files import record_thread_file
 
         workspace = ensure_conversation_workspace(task_id)
         rel_path = f"uploads/{doc.name}"
@@ -127,7 +127,7 @@ class DocumentLibraryService:
             uploaded_by=uploaded_by or doc.uploaded_by or "user",
         )
         try:
-            from backend.infrastructure.llm.sandbox_middleware import push_upload_to_sandbox
+            from backend.infra.llm.sandbox_middleware import push_upload_to_sandbox
 
             push_upload_to_sandbox(task_id, rel_path, data)
         except Exception as exc:  # noqa: BLE001

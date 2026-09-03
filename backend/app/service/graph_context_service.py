@@ -405,7 +405,7 @@ class GraphContextService:
         Best-effort and additive; never raises into context assembly.
         """
         try:
-            from backend.infrastructure import rag_retrieval_store
+            from backend.infra import rag_retrieval_store
 
             return rag_retrieval_store.retrieve_block(
                 conversation_id, query, graph, exclude_texts=exclude_texts

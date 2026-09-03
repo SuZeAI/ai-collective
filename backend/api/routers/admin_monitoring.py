@@ -25,8 +25,8 @@ from backend.api.schemas.admin import (
 )
 from backend.api.settings import settings
 from backend.app.service.monitoring_service import MonitoringService
-from backend.infrastructure.llm.config import get_enabled_models
-from backend.infrastructure.monitoring import request_metrics
+from backend.infra.llm.config import get_enabled_models
+from backend.infra.monitoring import request_metrics
 
 
 router = APIRouter(prefix="/admin/monitoring", tags=["admin"])
@@ -134,7 +134,7 @@ def get_file_storage(
     _: object = Depends(require_admin),
 ) -> FileStorageStatsSchema:
     """File byte-store status: local⇄s3 backend, MinIO connectivity, and usage."""
-    from backend.infrastructure.storage.file_store import workspace_base
+    from backend.infra.storage.file_store import workspace_base
 
     backend = settings.file_storage_backend
     minio_cfg = settings.minio
@@ -155,7 +155,7 @@ def get_file_storage(
     sb_count = sb_bytes = lib_obj_count = lib_obj_bytes = 0
     if backend == "s3" and minio_cfg.enabled:
         try:
-            from backend.infrastructure.sandbox.backup import create_backup_service
+            from backend.infra.sandbox.backup import create_backup_service
 
             sandbox_store = create_backup_service(key_root="sandbox")
             connected = sandbox_store.ping()

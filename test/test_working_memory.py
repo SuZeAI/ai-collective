@@ -123,7 +123,7 @@ def test_serialization_roundtrip():
 
 
 def test_store_persists_and_reloads(tmp_path, monkeypatch):
-    from backend.infrastructure import working_memory_store as store
+    from backend.infra import working_memory_store as store
 
     # Force file persistence in a temp dir regardless of app settings.
     monkeypatch.setattr(store, "_storage_dir", lambda: tmp_path / "working_memory")
@@ -171,7 +171,7 @@ class _FakeMongoDb(dict):
 
 
 def test_mongo_persistence_roundtrip_and_read_through(monkeypatch):
-    from backend.infrastructure import working_memory_store as store
+    from backend.infra import working_memory_store as store
 
     db = _FakeMongoDb()
     backend = store.MongoWorkingMemoryPersistence(db)
@@ -201,7 +201,7 @@ def test_mongo_persistence_roundtrip_and_read_through(monkeypatch):
 
 
 def test_mongo_init_failure_falls_back_to_files(monkeypatch, tmp_path):
-    from backend.infrastructure import working_memory_store as store
+    from backend.infra import working_memory_store as store
 
     class _BrokenSettings:
         storage_backend = "mongo"
@@ -224,7 +224,7 @@ def test_mongo_init_failure_falls_back_to_files(monkeypatch, tmp_path):
 
 
 def test_store_returns_safe_defaults_when_disabled(monkeypatch):
-    from backend.infrastructure import working_memory_store as store
+    from backend.infra import working_memory_store as store
 
     # The store imported the flag into its own namespace; patch it there.
     monkeypatch.setattr(store, "WORKING_MEMORY_ENABLED", False)

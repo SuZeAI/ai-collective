@@ -19,7 +19,7 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
-from backend.infrastructure.llm.config import find_model_for_provider
+from backend.infra.llm.config import find_model_for_provider
 
 DEFAULT_ENDPOINT = "https://api.openai.com/v1/images/generations"
 DEFAULT_MODEL = "gpt-image-1"

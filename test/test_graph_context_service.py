@@ -5,8 +5,8 @@ from pathlib import Path
 from backend.app.service.graph_context_service import GraphContextService
 from backend.app.service.graph_context_service import _canonical_node_id
 from backend.domain.memory.knowledge_graph import GraphContextConfig
-from backend.infrastructure.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
-from backend.infrastructure.repositories.json_store import JsonFileStore
+from backend.infra.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
+from backend.infra.repositories.json_store import JsonFileStore
 
 
 def _build_service(tmp_path: Path) -> GraphContextService:

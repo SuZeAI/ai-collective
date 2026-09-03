@@ -19,7 +19,7 @@ from backend.domain.staff._graph_runtime import (
     record_guidance_in_memory,
     record_turn_in_memory,
 )
-from backend.infrastructure import working_memory_store
+from backend.infra import working_memory_store
 
 
 def test_record_turn_in_memory_persists_a_note():

@@ -60,7 +60,7 @@ async def safe_chat(llm: Any, *, staff_name: str = "", **chat_kwargs: Any) -> st
     # Attribute every token recorded during this call to the AI staff member
     # making it, so the cost-monitoring page can break spend down per staff_member.
     # contextvars are per-asyncio-task, so concurrent fan-out branches stay isolated.
-    from backend.infrastructure.llm.usage_tracker import current_usage_staff
+    from backend.infra.llm.usage_tracker import current_usage_staff
 
     token = current_usage_staff.set(staff_name or "")
     try:
@@ -141,7 +141,7 @@ async def wait_while_paused(
     """
     if not conversation_id:
         return
-    from backend.infrastructure import task_run_registry
+    from backend.infra import task_run_registry
 
     if not task_run_registry.is_paused(conversation_id):
         return
@@ -208,7 +208,7 @@ def drain_human_guidance(
     # Local import: the registry lives in infrastructure; nodes already cross
     # this boundary for sandbox/session helpers, and importing lazily keeps
     # domain importable without the full app wiring (e.g. in unit tests).
-    from backend.infrastructure import task_run_registry
+    from backend.infra import task_run_registry
 
     pending = task_run_registry.drain_user_messages(conversation_id)
     if not pending:
@@ -329,7 +329,7 @@ def ensure_working_memory(conversation_id: str | None, task: str) -> None:
     if not conversation_id:
         return
     try:
-        from backend.infrastructure import working_memory_store
+        from backend.infra import working_memory_store
 
         working_memory_store.set_task(conversation_id, task)
     except Exception:  # noqa: BLE001
@@ -346,7 +346,7 @@ def working_memory_block(conversation_id: str | None) -> str:
     if not conversation_id:
         return ""
     try:
-        from backend.infrastructure import working_memory_store
+        from backend.infra import working_memory_store
 
         return working_memory_store.render_digest(conversation_id)
     except Exception:  # noqa: BLE001
@@ -371,7 +371,7 @@ def record_turn_in_memory(
     if not conversation_id or not (content or "").strip():
         return
     try:
-        from backend.infrastructure import working_memory_store
+        from backend.infra import working_memory_store
 
         working_memory_store.record_note(
             conversation_id, staff=staff_name, content=content, kind=kind, turn=turn,
@@ -385,7 +385,7 @@ def record_guidance_in_memory(conversation_id: str | None, guidance: str) -> Non
     if not conversation_id or not (guidance or "").strip():
         return
     try:
-        from backend.infrastructure import working_memory_store
+        from backend.infra import working_memory_store
 
         working_memory_store.record_note(
             conversation_id, staff="user", content=guidance, kind="guidance", pinned=True,
@@ -436,7 +436,7 @@ def attach_conversation_sandbox(
     if not conversation_id:
         return False
     try:
-        from backend.infrastructure.llm.sandbox_middleware import (
+        from backend.infra.llm.sandbox_middleware import (
             ensure_conversation_sandbox,
         )
 
@@ -444,7 +444,7 @@ def attach_conversation_sandbox(
         if cs is None or not cs.has_files:
             return False
 
-        from backend.infrastructure.sandbox.sandbox_session import use_conversation_thread
+        from backend.infra.sandbox.sandbox_session import use_conversation_thread
 
         use_conversation_thread(conversation_id)
 
@@ -530,7 +530,7 @@ def uploads_hint(conversation_id: str | None) -> str:
     if not conversation_id:
         return ""
     try:
-        from backend.infrastructure.sandbox.thread_files import list_thread_files
+        from backend.infra.sandbox.thread_files import list_thread_files
 
         names = [f.get("filename", "") for f in list_thread_files(conversation_id)]
         names = [n for n in names if n]

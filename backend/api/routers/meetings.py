@@ -108,7 +108,7 @@ def list_files(
     owner_id: str = Depends(current_owner_id_dep),
 ) -> list[MeetingFileSchema]:
     """List files attached to a conversation (user uploads + staff outputs)."""
-    from backend.infrastructure.sandbox.thread_files import list_thread_files
+    from backend.infra.sandbox.thread_files import list_thread_files
 
     _require_task_access(task_service, task_id, owner_id)
     return [MeetingFileSchema.from_record(r) for r in list_thread_files(task_id)]
@@ -129,9 +129,9 @@ def download_file(
     import io
     from fastapi.responses import StreamingResponse
 
-    from backend.infrastructure.sandbox.sandbox_session import conversation_thread_id
-    from backend.infrastructure.sandbox.thread_files import list_thread_files
-    from backend.infrastructure.storage.file_store import get_file_store
+    from backend.infra.sandbox.sandbox_session import conversation_thread_id
+    from backend.infra.sandbox.thread_files import list_thread_files
+    from backend.infra.storage.file_store import get_file_store
 
     _require_task_access(task_service, task_id, owner_id)
 
@@ -185,10 +185,10 @@ async def upload_file(
     if not raw_name or raw_name in {".", ".."} or "/" in raw_name or "\\" in raw_name:
         raise HTTPException(status_code=400, detail="Invalid filename.")
 
-    from backend.infrastructure.sandbox.sandbox_session import (
+    from backend.infra.sandbox.sandbox_session import (
         ensure_conversation_workspace,
     )
-    from backend.infrastructure.sandbox.thread_files import record_thread_file
+    from backend.infra.sandbox.thread_files import record_thread_file
 
     workspace = ensure_conversation_workspace(task_id)
     rel_path = f"uploads/{raw_name}"
@@ -207,7 +207,7 @@ async def upload_file(
     # Push into the live sandbox + back up to object storage (k8s mode).
     # Best-effort: never fail the upload if these are unavailable.
     try:
-        from backend.infrastructure.llm.sandbox_middleware import (
+        from backend.infra.llm.sandbox_middleware import (
             push_upload_to_sandbox,
         )
 

@@ -2,7 +2,7 @@
 plus the MinIO mirror used to survive a k8s sandbox pod reschedule."""
 from __future__ import annotations
 
-import backend.infrastructure.storage.google_oauth_store as gos
+import backend.infra.storage.google_oauth_store as gos
 
 
 class _FakeBackupService:

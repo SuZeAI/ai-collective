@@ -24,7 +24,7 @@ from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
 from backend.api.settings import settings
-from backend.infrastructure.llm.config import find_model_for_provider
+from backend.infra.llm.config import find_model_for_provider
 
 DEFAULT_ENDPOINT = "https://api.openai.com/v1/audio/speech"
 DEFAULT_MODEL = "gpt-4o-mini-tts"

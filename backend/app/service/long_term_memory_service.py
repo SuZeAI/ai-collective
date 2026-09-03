@@ -221,7 +221,7 @@ class LongTermMemoryService:
         promoted: list[tuple[str, str, float]] = []  # (content, kind, importance)
 
         try:
-            from backend.infrastructure import working_memory_store
+            from backend.infra import working_memory_store
 
             memory = working_memory_store.get_memory(conversation_id)
             if memory is not None:

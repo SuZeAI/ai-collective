@@ -38,14 +38,14 @@ from backend.app.service.recruiting_service import RecruitingService
 from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.domain.staff.langgraph_orchestrator import LangGraphStaffOrchestrator
 from backend.domain.staff.langgraph_mesh import MultiAgentMeshOrchestrator
-from backend.infrastructure.lock_provider import get_shared_lock_provider
+from backend.infra.lock_provider import get_shared_lock_provider
 from backend.domain.staff.langgraph_ring import LangGraphRingOrchestrator
 from backend.domain.staff.langgraph_supervisor import LangGraphSupervisorOrchestrator
 from backend.domain.staff.langgraph_tree import LangGraphTreeOrchestrator
 from backend.domain.staff.langgraph_custom import LangGraphCustomOrchestrator
-from backend.infrastructure.llm.config import get_enabled_models, get_model_config
-from backend.infrastructure.llm.factory import build_default_llm_provider
-from backend.infrastructure.repositories.json_files import (
+from backend.infra.llm.config import get_enabled_models, get_model_config
+from backend.infra.llm.factory import build_default_llm_provider
+from backend.infra.repositories.json_files import (
     JsonActivityFeedRepository,
     JsonStaffRepository,
     JsonAnalyticsRepository,
@@ -64,11 +64,11 @@ from backend.app.service.company_service import CompanyService
 from backend.app.service.connection_service import ConnectionService
 from backend.app.service.office_builder_session_service import OfficeBuilderSessionService
 from backend.app.service.user_service import UserService
-from backend.infrastructure.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
-from backend.infrastructure.repositories.json_files import JsonUserRepository
-from backend.infrastructure.repositories.json_store import JsonFileStore
-from backend.infrastructure.security import BcryptPasswordHasher
-from backend.infrastructure.repositories.mongo_repositories import (
+from backend.infra.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
+from backend.infra.repositories.json_files import JsonUserRepository
+from backend.infra.repositories.json_store import JsonFileStore
+from backend.infra.security import BcryptPasswordHasher
+from backend.infra.repositories.mongo_repositories import (
     MongoActivityFeedRepository,
     MongoStaffRepository,
     MongoAnalyticsRepository,
@@ -126,7 +126,7 @@ def _store(filename: str) -> JsonFileStore:
 @lru_cache
 def _init_task_queue():
     """Initialise and register the configured task queue singleton."""
-    from backend.infrastructure.task_queue import create_task_queue, _set_queue
+    from backend.infra.task_queue import create_task_queue, _set_queue
     q = create_task_queue(
         backend=settings.task_queue_backend,
         max_concurrent=settings.task_queue_max_concurrent,
@@ -200,7 +200,7 @@ def _repos() -> Repos:
     # app always boots.
     if settings.graph.backend.strip().lower() == "neo4j" and settings.graph.neo4j_uri:
         try:
-            from backend.infrastructure.repositories.neo4j_graph_knowledge import (
+            from backend.infra.repositories.neo4j_graph_knowledge import (
                 Neo4jGraphKnowledgeRepository,
             )
 
@@ -317,11 +317,11 @@ def get_connection_service() -> ConnectionService:
 @lru_cache
 def _library_document_store():
     if settings.storage_backend == "mongo":
-        from backend.infrastructure.repositories.mongo_repositories.library_documents import (
+        from backend.infra.repositories.mongo_repositories.library_documents import (
             MongoLibraryDocumentRepository,
         )
         return MongoLibraryDocumentRepository(_mongo_db())
-    from backend.infrastructure.repositories.json_files.library_documents import (
+    from backend.infra.repositories.json_files.library_documents import (
         JsonLibraryDocumentRepository,
     )
     return JsonLibraryDocumentRepository(_store("library_documents.json"))
@@ -363,9 +363,9 @@ def get_user_service() -> UserService:
 @lru_cache
 def _project_store():
     if settings.storage_backend == "mongo":
-        from backend.infrastructure.repositories.mongo_repositories import MongoProjectRepository
+        from backend.infra.repositories.mongo_repositories import MongoProjectRepository
         return MongoProjectRepository(_mongo_db())
-    from backend.infrastructure.repositories.json_files import JsonProjectRepository
+    from backend.infra.repositories.json_files import JsonProjectRepository
     return JsonProjectRepository(_store("projects.json"))
 
 
@@ -377,9 +377,9 @@ def get_project_service() -> "ProjectService":
 @lru_cache
 def _epic_store():
     if settings.storage_backend == "mongo":
-        from backend.infrastructure.repositories.mongo_repositories import MongoEpicRepository
+        from backend.infra.repositories.mongo_repositories import MongoEpicRepository
         return MongoEpicRepository(_mongo_db())
-    from backend.infrastructure.repositories.json_files import JsonEpicRepository
+    from backend.infra.repositories.json_files import JsonEpicRepository
     return JsonEpicRepository(_store("epics.json"))
 
 
@@ -391,9 +391,9 @@ def get_epic_service() -> "EpicService":
 @lru_cache
 def _sprint_store():
     if settings.storage_backend == "mongo":
-        from backend.infrastructure.repositories.mongo_repositories import MongoSprintRepository
+        from backend.infra.repositories.mongo_repositories import MongoSprintRepository
         return MongoSprintRepository(_mongo_db())
-    from backend.infrastructure.repositories.json_files import JsonSprintRepository
+    from backend.infra.repositories.json_files import JsonSprintRepository
     return JsonSprintRepository(_store("sprints.json"))
 
 
@@ -561,7 +561,7 @@ def init_usage_tracking() -> bool:
     from datetime import datetime, timezone
 
     from backend.domain.models import TokenUsageRecord
-    from backend.infrastructure.llm.usage_tracker import set_usage_recorder
+    from backend.infra.llm.usage_tracker import set_usage_recorder
 
     usage_repo, _ = _monitoring_stores()
 

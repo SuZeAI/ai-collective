@@ -30,7 +30,7 @@ from langchain.tools import tool
 from backend.domain.tools.base import BaseToolkit
 from backend.domain.tools._messaging_http import request_json
 from backend.api.settings import settings
-from backend.infrastructure.llm.config import find_model_for_provider
+from backend.infra.llm.config import find_model_for_provider
 
 DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_IMAGE_MODEL = "imagen-3.0-generate-002"

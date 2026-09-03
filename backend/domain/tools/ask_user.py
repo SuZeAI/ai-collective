@@ -93,7 +93,7 @@ class AskUserToolkit(BaseToolkit):
             allow_free_text: Whether the user may type a custom answer instead
                 of (or in addition to) picking an option. Defaults to True.
         """
-        from backend.infrastructure import task_run_registry
+        from backend.infra import task_run_registry
 
         question = (question or "").strip()
         if not question:

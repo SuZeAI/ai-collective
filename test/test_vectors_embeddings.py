@@ -14,7 +14,7 @@ from backend.domain.memory.vectors import (
     text_vector,
     tokenize,
 )
-from backend.infrastructure.llm.embeddings import (
+from backend.infra.llm.embeddings import (
     HashingEmbeddingProvider,
     get_embedding_provider,
 )
@@ -56,7 +56,7 @@ def test_hashing_embedding_is_deterministic_and_normalised():
 
 def test_get_embedding_provider_disabled_by_default(monkeypatch):
     from backend.api.settings import settings
-    from backend.infrastructure.llm import embeddings as emb
+    from backend.infra.llm import embeddings as emb
 
     monkeypatch.setattr(settings.embedding, "enabled", False)
     emb.reset_embedding_provider_for_tests()
@@ -65,7 +65,7 @@ def test_get_embedding_provider_disabled_by_default(monkeypatch):
 
 def test_get_embedding_provider_hashing_when_enabled(monkeypatch):
     from backend.api.settings import settings
-    from backend.infrastructure.llm import embeddings as emb
+    from backend.infra.llm import embeddings as emb
 
     monkeypatch.setattr(settings.embedding, "enabled", True)
     monkeypatch.setattr(settings.embedding, "provider", "hashing")

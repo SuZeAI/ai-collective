@@ -19,12 +19,12 @@ from langchain.agents.middleware import (
 from langchain_core.messages import AIMessage, ToolMessage
 
 from backend.api.settings import settings
-from backend.infrastructure.llm.middleware import (
+from backend.infra.llm.middleware import (
     LoopDetectionMiddleware,
     ToolTimeoutMiddleware,
     build_default_middleware,
 )
-from backend.infrastructure.llm.middleware import config as middleware_config
+from backend.infra.llm.middleware import config as middleware_config
 
 
 # --------------------------------------------------------------------------- #

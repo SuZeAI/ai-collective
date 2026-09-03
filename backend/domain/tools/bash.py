@@ -5,7 +5,7 @@ from typing import Any, Optional
 from langchain.tools import tool
 
 from backend.domain.tools.base import BaseToolkit
-from backend.infrastructure.sandbox import Sandbox
+from backend.infra.sandbox import Sandbox
 
 
 class BashToolkit(BaseToolkit):
@@ -79,6 +79,6 @@ def create_bash_toolkit(session_id: str | None = None, **kwargs) -> BashToolkit:
         session_id: Session/thread identifier. Same session_id reuses the same sandbox.
         **kwargs:   Additional kwargs passed to BashToolkit.
     """
-    from backend.infrastructure.sandbox.factory import create_sandbox_adapter
+    from backend.infra.sandbox.factory import create_sandbox_adapter
     sandbox = create_sandbox_adapter(session_id=session_id)
     return BashToolkit(sandbox=sandbox, **kwargs)
