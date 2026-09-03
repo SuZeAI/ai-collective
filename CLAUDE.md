@@ -36,9 +36,11 @@ Optional compose profiles via `PROFILES=` (e.g. `make dev PROFILES=router`): `sa
 ### Tests
 ```bash
 # Backend — tests live in test/ at repo root, NOT server/ (server/ has no test files despite the Makefile target name)
+# test/api/ — endpoint tests via the shared `client` TestClient fixture; test/unit/ — everything else;
+# test/manual/ — ad-hoc debug scripts, not collected by pytest.
 PYTHONPATH=. uv run pytest test/ -v
-PYTHONPATH=. uv run pytest test/test_foo.py -v            # single file
-PYTHONPATH=. uv run pytest test/test_foo.py -k name -vv   # single test, verbose
+PYTHONPATH=. uv run pytest test/unit/test_foo.py -v            # single file
+PYTHONPATH=. uv run pytest test/api/test_foo.py -k name -vv    # single test, verbose
 
 # Frontend (from ui/, or npm --prefix ui ...)
 cd ui && npm run test          # vitest run (jsdom, tests under src/**/*.{test,spec}.{ts,tsx})
