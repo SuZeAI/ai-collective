@@ -159,9 +159,9 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Local runtime database (per-machine live store; seeded from storage/).
-# The committed default catalog in storage/ is intentionally NOT ignored.
-local_database/
+# Local runtime database (per-machine live store; seeded from storage/seed/).
+# The committed default catalog in storage/seed/ is intentionally NOT ignored.
+storage/runtime/
 
 # Environments
 .env

@@ -104,13 +104,13 @@ def _resolve_dir(value: str | None, default: Path) -> Path:
 
 
 # Live database: where the app reads/writes runtime JSON data. Per-machine and
-# gitignored — defaults to <project_root>/local_database.
-STORAGE_DIR = _resolve_dir(settings.storage_dir, PROJECT_ROOT / "local_database")
+# gitignored — defaults to <project_root>/storage/runtime.
+STORAGE_DIR = _resolve_dir(settings.storage_dir, PROJECT_ROOT / "storage" / "runtime")
 
 # Seed source: the bundled default catalog committed to git. Read-only — it is
 # the source the startup seed copies defaults FROM, never the live store.
-# Configured via SEED_DIR (settings.seed_dir); defaults to <project_root>/storage.
-SEED_DIR = _resolve_dir(settings.seed_dir, PROJECT_ROOT / "storage")
+# Configured via SEED_DIR (settings.seed_dir); defaults to <project_root>/storage/seed.
+SEED_DIR = _resolve_dir(settings.seed_dir, PROJECT_ROOT / "storage" / "seed")
 
 
 def _lock_provider():
@@ -459,8 +459,8 @@ def _load_seed_records(filename: str) -> list[dict]:
 def seed_default_data() -> None:
     """Seed the bundled default staff/skills/departments/tasks into the live DB on startup.
 
-    The committed catalog lives in the seed dir (``storage/``); the live data
-    lives in the local database (Mongo, or JSON files under ``local_database/``).
+    The committed catalog lives in the seed dir (``storage/seed/``); the live data
+    lives in the local database (Mongo, or JSON files under ``storage/runtime/``).
     This copies any default entity that is missing from the live DB so a fresh
     clone comes up with the starter catalog — without ever touching the seed
     files or clobbering entities already present in the live DB.
@@ -492,7 +492,7 @@ def seed_default_data() -> None:
                     get_logger().info(f"Seeded {inserted} default {collection} into Mongo")
                 total_inserted += inserted
         else:
-            # JSON mode: live store is local_database/*.json (≠ the seed dir).
+            # JSON mode: live store is storage/runtime/*.json (≠ the seed dir).
             for collection, filename in _DEFAULT_DATA_FILES:
                 seed_records = _load_seed_records(filename)
                 if not seed_records:

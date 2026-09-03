@@ -193,8 +193,8 @@ staff:
 # ── Storage ───────────────────────────────────────────────────────────────────
 storage:
   backend: mongo                      # json (file) | mongo
-  dir: local_database                 # live DB dir (relative to project root)
-  seed_dir: storage                   # read-only default catalog seeded FROM
+  dir: storage/runtime                 # live DB dir (relative to project root)
+  seed_dir: storage/seed               # read-only default catalog seeded FROM
   # file_backend: local                # local | s3 (auto: s3 when minio.enabled)
 
 # ── MongoDB (used when storage.backend=mongo) ─────────────────────────────────
