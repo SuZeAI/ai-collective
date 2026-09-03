@@ -152,21 +152,21 @@ services:
   frontend:
     build:
       context: ../
-      dockerfile: Dockerfile.frontend
+      dockerfile: ui/Dockerfile
       target: dev
     container_name: ai-collective-frontend-dev
     command: npm run dev -- --host 0.0.0.0 --port 8080
     volumes:
-      - ../src:/app/src
-      - ../public:/app/public
-      - ../index.html:/app/index.html
-      - ../vite.config.ts:/app/vite.config.ts:ro
-      - ../tailwind.config.ts:/app/tailwind.config.ts:ro
-      - ../postcss.config.js:/app/postcss.config.js:ro
-      - ../tsconfig.json:/app/tsconfig.json:ro
-      - ../tsconfig.app.json:/app/tsconfig.app.json:ro
-      - ../tsconfig.node.json:/app/tsconfig.node.json:ro
-      - ../components.json:/app/components.json:ro
+      - ../ui/src:/app/src
+      - ../ui/public:/app/public
+      - ../ui/index.html:/app/index.html
+      - ../ui/vite.config.ts:/app/vite.config.ts:ro
+      - ../ui/tailwind.config.ts:/app/tailwind.config.ts:ro
+      - ../ui/postcss.config.js:/app/postcss.config.js:ro
+      - ../ui/tsconfig.json:/app/tsconfig.json:ro
+      - ../ui/tsconfig.app.json:/app/tsconfig.app.json:ro
+      - ../ui/tsconfig.node.json:/app/tsconfig.node.json:ro
+      - ../ui/components.json:/app/components.json:ro
     env_file:
       - ../.env
     environment:

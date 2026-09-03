@@ -155,7 +155,7 @@ services:
   frontend:
     build:
       context: ../
-      dockerfile: Dockerfile.frontend
+      dockerfile: ui/Dockerfile
       target: prod
     container_name: ai-collective-frontend
     networks:
