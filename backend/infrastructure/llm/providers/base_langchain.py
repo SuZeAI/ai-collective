@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from backend.application.ports.llm import LLMProvider
+from backend.app.ports.llm import LLMProvider
 from backend.infrastructure.llm.agent_builder import build_chat_agent
 from backend.infrastructure.llm.middleware import _default_tool_timeout
 from backend.infrastructure.llm.usage_tracker import UsageTrackingCallback

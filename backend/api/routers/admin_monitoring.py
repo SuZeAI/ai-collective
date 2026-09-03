@@ -24,7 +24,7 @@ from backend.api.schemas.admin import (
     UserActivitySchema,
 )
 from backend.api.settings import settings
-from backend.application.service.monitoring_service import MonitoringService
+from backend.app.service.monitoring_service import MonitoringService
 from backend.infrastructure.llm.config import get_enabled_models
 from backend.infrastructure.monitoring import request_metrics
 

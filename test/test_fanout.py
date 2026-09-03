@@ -12,7 +12,7 @@ from __future__ import annotations
 import asyncio
 import time
 
-from backend.application.ports.staff_graph import GraphStaffDefinition
+from backend.app.ports.staff_graph import GraphStaffDefinition
 from backend.domain.staff._graph_runtime import (
     MESH_FANOUT_MAX_CONCURRENT,
     run_fanout_wave,

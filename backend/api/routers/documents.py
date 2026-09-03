@@ -13,7 +13,7 @@ from backend.api.schemas.library_document import (
     IngestUrlRequest,
     LibraryDocumentSchema,
 )
-from backend.application.service.document_library_service import DocumentLibraryService
+from backend.app.service.document_library_service import DocumentLibraryService
 from backend.domain.errors import NotFoundError
 from backend.domain.models import User, can_delete, is_visible_to
 from backend.log import get_logger

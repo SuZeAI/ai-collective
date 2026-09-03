@@ -5,13 +5,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
 
 if TYPE_CHECKING:
-    from backend.application.service.document_library_service import DocumentLibraryService
-    from backend.application.service.project_service import ProjectService
-    from backend.application.service.epic_service import EpicService
-    from backend.application.service.sprint_service import SprintService
+    from backend.app.service.document_library_service import DocumentLibraryService
+    from backend.app.service.project_service import ProjectService
+    from backend.app.service.epic_service import EpicService
+    from backend.app.service.sprint_service import SprintService
 
 from backend.api.settings import settings
-from backend.application.ports.repositories import (
+from backend.app.ports.repositories import (
     ActivityFeedRepository,
     AnalyticsRepository,
     ConnectionRepository,
@@ -23,18 +23,18 @@ from backend.application.ports.repositories import (
     DepartmentRepository,
     CompanyRepository,
 )
-from backend.application.service.staff_service import StaffService
-from backend.application.service.staff_graph_service import StaffGraphService
-from backend.application.service.activity_feed_service import ActivityFeedService
-from backend.application.service.analytics_service import AnalyticsService
-from backend.application.service.meeting_service import MeetingService
-from backend.application.service.graph_context_service import GraphContextService
-from backend.application.service.llm_service import LLMService
-from backend.application.service.simulation_service import SimulationService
-from backend.application.service.task_service import TaskService
-from backend.application.service.department_service import DepartmentService
-from backend.application.service.skill_service import SkillService
-from backend.application.service.recruiting_service import RecruitingService
+from backend.app.service.staff_service import StaffService
+from backend.app.service.staff_graph_service import StaffGraphService
+from backend.app.service.activity_feed_service import ActivityFeedService
+from backend.app.service.analytics_service import AnalyticsService
+from backend.app.service.meeting_service import MeetingService
+from backend.app.service.graph_context_service import GraphContextService
+from backend.app.service.llm_service import LLMService
+from backend.app.service.simulation_service import SimulationService
+from backend.app.service.task_service import TaskService
+from backend.app.service.department_service import DepartmentService
+from backend.app.service.skill_service import SkillService
+from backend.app.service.recruiting_service import RecruitingService
 from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.domain.staff.langgraph_orchestrator import LangGraphStaffOrchestrator
 from backend.domain.staff.langgraph_mesh import MultiAgentMeshOrchestrator
@@ -60,10 +60,10 @@ from backend.infrastructure.repositories.json_files import (
     JsonTokenUsageRepository,
     JsonCompanyRepository,
 )
-from backend.application.service.company_service import CompanyService
-from backend.application.service.connection_service import ConnectionService
-from backend.application.service.office_builder_session_service import OfficeBuilderSessionService
-from backend.application.service.user_service import UserService
+from backend.app.service.company_service import CompanyService
+from backend.app.service.connection_service import ConnectionService
+from backend.app.service.office_builder_session_service import OfficeBuilderSessionService
+from backend.app.service.user_service import UserService
 from backend.infrastructure.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
 from backend.infrastructure.repositories.json_files import JsonUserRepository
 from backend.infrastructure.repositories.json_store import JsonFileStore
@@ -328,7 +328,7 @@ def _library_document_store():
 
 
 def get_document_library_service() -> "DocumentLibraryService":
-    from backend.application.service.document_library_service import DocumentLibraryService
+    from backend.app.service.document_library_service import DocumentLibraryService
 
     return DocumentLibraryService(_library_document_store())
 
@@ -370,7 +370,7 @@ def _project_store():
 
 
 def get_project_service() -> "ProjectService":
-    from backend.application.service.project_service import ProjectService
+    from backend.app.service.project_service import ProjectService
     return ProjectService(_project_store())
 
 
@@ -384,7 +384,7 @@ def _epic_store():
 
 
 def get_epic_service() -> "EpicService":
-    from backend.application.service.epic_service import EpicService
+    from backend.app.service.epic_service import EpicService
     return EpicService(_epic_store())
 
 
@@ -398,7 +398,7 @@ def _sprint_store():
 
 
 def get_sprint_service() -> "SprintService":
-    from backend.application.service.sprint_service import SprintService
+    from backend.app.service.sprint_service import SprintService
     return SprintService(_sprint_store())
 
 
@@ -599,7 +599,7 @@ def init_usage_tracking() -> bool:
 
 
 def get_monitoring_service():
-    from backend.application.service.monitoring_service import MonitoringService
+    from backend.app.service.monitoring_service import MonitoringService
 
     init_usage_tracking()
     usage_repo, pricing_repo = _monitoring_stores()

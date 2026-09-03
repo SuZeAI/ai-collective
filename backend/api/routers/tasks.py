@@ -16,12 +16,12 @@ from backend.api.deps import (
     get_department_service,
 )
 from backend.api.schemas.task import TaskSchema, UpsertTaskRequest
-from backend.application.service.staff_service import StaffService
-from backend.application.service.meeting_service import MeetingService
-from backend.application.service.graph_context_service import GraphContextService
-from backend.application.service.project_service import ProjectService
-from backend.application.service.task_service import TaskService
-from backend.application.service.department_service import DepartmentService
+from backend.app.service.staff_service import StaffService
+from backend.app.service.meeting_service import MeetingService
+from backend.app.service.graph_context_service import GraphContextService
+from backend.app.service.project_service import ProjectService
+from backend.app.service.task_service import TaskService
+from backend.app.service.department_service import DepartmentService
 from backend.domain.errors import NotFoundError
 from backend.domain.enums import StaffStatus
 from backend.domain.enums import IssueType, TaskPriority, TaskStatus

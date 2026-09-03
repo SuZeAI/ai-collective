@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.application.ports.repositories import ActivityFeedRepository
+from backend.app.ports.repositories import ActivityFeedRepository
 from backend.domain.models import ActivityFeedItem
 
 

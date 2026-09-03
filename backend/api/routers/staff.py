@@ -5,7 +5,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException
 
 from backend.api.schemas.staff import StaffSchema, UpsertStaffRequest
-from backend.application.service.staff_service import StaffService
+from backend.app.service.staff_service import StaffService
 from backend.api.deps import current_owner_id_dep, get_staff_service
 from backend.domain.enums import StaffStatus
 from backend.domain.errors import NotFoundError

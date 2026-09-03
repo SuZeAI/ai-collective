@@ -20,12 +20,12 @@ from backend.api.schemas.planner import (
     PlannerDecomposeResponse,
 )
 from backend.api.schemas.task import TaskSchema
-from backend.application.service.staff_service import StaffService
-from backend.application.service.epic_service import EpicService
-from backend.application.service.llm_service import LLMService
-from backend.application.service.project_service import ProjectService
-from backend.application.service.sprint_service import SprintService
-from backend.application.service.task_service import TaskService
+from backend.app.service.staff_service import StaffService
+from backend.app.service.epic_service import EpicService
+from backend.app.service.llm_service import LLMService
+from backend.app.service.project_service import ProjectService
+from backend.app.service.sprint_service import SprintService
+from backend.app.service.task_service import TaskService
 from backend.domain.enums import IssueType, TaskPriority, TaskStatus
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Task, is_visible_to

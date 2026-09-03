@@ -4,8 +4,8 @@ import dataclasses
 import uuid
 from datetime import datetime, timezone
 
-from backend.application.ports.repositories import UserRepository
-from backend.application.ports.security import PasswordHasher
+from backend.app.ports.repositories import UserRepository
+from backend.app.ports.security import PasswordHasher
 from backend.domain.errors import NotFoundError, ValidationError
 from backend.domain.models import User
 

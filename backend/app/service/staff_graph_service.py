@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.application.ports.staff_graph import (
+from backend.app.ports.staff_graph import (
     StaffGraphOrchestrator,
     CustomGraphSpec,
     GraphStaffDefinition,
@@ -8,7 +8,7 @@ from backend.application.ports.staff_graph import (
     GraphRunResult,
 )
 from backend.domain.memory.knowledge_graph import GraphContextConfig
-from backend.application.ports.llm import LLMProvider
+from backend.app.ports.llm import LLMProvider
 
 
 def _backup_workspace(conversation_id: str | None) -> None:

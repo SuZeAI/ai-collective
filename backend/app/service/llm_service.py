@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from backend.application.ports.llm import LLMProvider
+from backend.app.ports.llm import LLMProvider
 
 
 class LLMService:

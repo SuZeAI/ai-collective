@@ -18,8 +18,8 @@ from backend.api.schemas.common import (
     MessageSchema,
     MeetingFileSchema,
 )
-from backend.application.service.meeting_service import MeetingService
-from backend.application.service.task_service import TaskService
+from backend.app.service.meeting_service import MeetingService
+from backend.app.service.task_service import TaskService
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Message, User, is_owned_by, is_visible_to
 from backend.log import get_logger

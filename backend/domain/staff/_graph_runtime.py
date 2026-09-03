@@ -25,7 +25,7 @@ except Exception:  # pragma: no cover
         """Fallback if langgraph does not expose GraphRecursionError."""
 
 from backend.api.settings import settings
-from backend.application.ports.staff_graph import GraphStaffDefinition, GraphTurn
+from backend.app.ports.staff_graph import GraphStaffDefinition, GraphTurn
 from backend.domain.event.schema import EventType
 from backend.domain.staff.token_budget import TokenBudgetResult, apply_context_token_budget
 

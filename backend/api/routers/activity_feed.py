@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends
 
 from backend.api.deps import current_owner_id_dep, get_activity_feed_service, get_staff_service
 from backend.api.schemas.activity_feed import ActivityFeedItemSchema
-from backend.application.service.activity_feed_service import ActivityFeedService
-from backend.application.service.staff_service import StaffService
+from backend.app.service.activity_feed_service import ActivityFeedService
+from backend.app.service.staff_service import StaffService
 from backend.domain.models import is_visible_to
 
 

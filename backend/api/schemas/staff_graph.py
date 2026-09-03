@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from backend.application.ports.staff_graph import GraphRunResult
+from backend.app.ports.staff_graph import GraphRunResult
 
 
 class CustomGraphEdge(BaseModel):

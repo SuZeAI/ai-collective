@@ -13,10 +13,10 @@ from backend.api.deps import (
     get_task_service,
 )
 from backend.api.schemas.project import ProjectSchema, UpsertProjectRequest
-from backend.application.service.epic_service import EpicService
-from backend.application.service.project_service import ProjectService
-from backend.application.service.sprint_service import SprintService
-from backend.application.service.task_service import TaskService
+from backend.app.service.epic_service import EpicService
+from backend.app.service.project_service import ProjectService
+from backend.app.service.sprint_service import SprintService
+from backend.app.service.task_service import TaskService
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Project, can_delete, can_modify, is_owned_by, is_visible_to
 

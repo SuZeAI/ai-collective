@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.application.ports.repositories import StaffRepository, SkillRepository
+from backend.app.ports.repositories import StaffRepository, SkillRepository
 from backend.domain.service.skill_tool_service import SkillToolManager
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Staff, Skill

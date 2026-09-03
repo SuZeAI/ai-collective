@@ -10,7 +10,7 @@ from backend.api.schemas.skill import SkillSchema
 from backend.api.schemas.task import TaskSchema
 from backend.api.schemas.department import DepartmentSchema
 from backend.api.schemas.project import ProjectSchema
-from backend.application.service.recruiting_service import RecruitingService
+from backend.app.service.recruiting_service import RecruitingService
 
 
 router = APIRouter(prefix="/recruiting", tags=["marketplace"])

@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from langgraph.graph import END, START, StateGraph
 
-from backend.application.ports.staff_graph import (
+from backend.app.ports.staff_graph import (
     StaffGraphOrchestrator,
     CustomGraphSpec,
     GraphStaffDefinition,
@@ -14,7 +14,7 @@ from backend.application.ports.staff_graph import (
     GraphRunResult,
     GraphTurn,
 )
-from backend.application.ports.llm import LLMProvider
+from backend.app.ports.llm import LLMProvider
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.staff._graph_runtime import recursion_config, run_to_final_state
 from backend.domain.staff.langgraph_orchestrator import LangGraphStaffOrchestrator

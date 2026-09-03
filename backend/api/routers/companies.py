@@ -17,12 +17,12 @@ from backend.api.deps import (
     get_company_service,
 )
 from backend.api.schemas.company import CompanySchema, UpsertWorkspaceRequest
-from backend.application.service.document_library_service import DocumentLibraryService
-from backend.application.service.department_service import DepartmentService
-from backend.application.service.skill_service import SkillService
-from backend.application.service.staff_service import StaffService
-from backend.application.service.task_service import TaskService
-from backend.application.service.company_service import CompanyService
+from backend.app.service.document_library_service import DocumentLibraryService
+from backend.app.service.department_service import DepartmentService
+from backend.app.service.skill_service import SkillService
+from backend.app.service.staff_service import StaffService
+from backend.app.service.task_service import TaskService
+from backend.app.service.company_service import CompanyService
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Company, can_delete, can_modify, is_visible_to
 from backend.domain.third_party.registry import list_platforms

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 
 from backend.api.deps import current_user_dep, get_simulation_service
 from backend.api.schemas.common import SimulationPlanRequest, SimulationPlanResponse, SimulationStepSchema
-from backend.application.service.simulation_service import SimulationService
+from backend.app.service.simulation_service import SimulationService
 
 
 router = APIRouter(prefix="/simulations", tags=["simulations"])

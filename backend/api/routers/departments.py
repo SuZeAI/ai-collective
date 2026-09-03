@@ -8,9 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from backend.api.deps import current_owner_id_dep, get_staff_service, get_meeting_service, get_department_service
 from backend.api.schemas.department import DepartmentSchema, UpsertTeamRequest
-from backend.application.service.staff_service import StaffService
-from backend.application.service.meeting_service import MeetingService
-from backend.application.service.department_service import DepartmentService
+from backend.app.service.staff_service import StaffService
+from backend.app.service.meeting_service import MeetingService
+from backend.app.service.department_service import DepartmentService
 from backend.domain.enums import StaffStatus
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Message, Department, can_delete, can_modify, is_owned_by, is_visible_to

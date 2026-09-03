@@ -14,7 +14,7 @@ from __future__ import annotations
 import threading
 
 from backend.api.settings import settings
-from backend.application.service.rag_retrieval import RagRetrievalService
+from backend.app.service.rag_retrieval import RagRetrievalService
 from backend.log import get_logger
 
 logger = get_logger(__name__)

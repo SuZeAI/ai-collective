@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from backend.api.deps import current_owner_id_dep, get_sprint_service
 from backend.api.schemas.sprint import SprintSchema, UpsertSprintRequest
-from backend.application.service.sprint_service import SprintService
+from backend.app.service.sprint_service import SprintService
 from backend.domain.enums import SprintStatus
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Sprint, can_delete, can_modify, is_owned_by, is_visible_to

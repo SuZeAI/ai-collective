@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 
 from backend.api.deps import current_owner_id_dep, get_analytics_service
 from backend.api.schemas.analytics import AnalyticsSchema
-from backend.application.service.analytics_service import AnalyticsService
+from backend.app.service.analytics_service import AnalyticsService
 
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])

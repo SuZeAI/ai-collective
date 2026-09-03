@@ -14,7 +14,7 @@ try:
 except Exception:  # pragma: no cover - fallback if spacy is not installed
     spacy = None
 
-from backend.application.ports.repositories import GraphKnowledgeRepository
+from backend.app.ports.repositories import GraphKnowledgeRepository
 from backend.domain.memory.knowledge_graph import (
     ConversationKnowledgeGraph,
     GraphContextConfig,
@@ -22,11 +22,11 @@ from backend.domain.memory.knowledge_graph import (
     GraphEdge,
     GraphNode,
 )
-from backend.application.service.chunking_service import get_chunking_service
+from backend.app.service.chunking_service import get_chunking_service
 from backend.log import get_logger
 
 if TYPE_CHECKING:
-    from backend.application.ports.llm import LLMProvider
+    from backend.app.ports.llm import LLMProvider
 
 
 logger = get_logger(__name__)

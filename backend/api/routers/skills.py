@@ -11,7 +11,7 @@ from backend.api.schemas.skill import (
     UpsertSkillRequest,
     merge_config_preserving_secrets,
 )
-from backend.application.service.skill_service import SkillService
+from backend.app.service.skill_service import SkillService
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Skill, can_delete, can_modify, is_owned_by, is_visible_to
 

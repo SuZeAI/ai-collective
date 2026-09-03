@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.application.ports.repositories import OfficeBuilderSessionRepository
+from backend.app.ports.repositories import OfficeBuilderSessionRepository
 from backend.domain.models import OfficeBuilderSession
 
 

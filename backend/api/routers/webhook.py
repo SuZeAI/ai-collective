@@ -13,10 +13,10 @@ from backend.api.deps import (
     get_company_service,
     get_connection_service,
 )
-from backend.application.ports.staff_graph import GraphStaffDefinition
-from backend.application.service.staff_service import StaffService
-from backend.application.service.company_service import CompanyService
-from backend.application.service.connection_service import ConnectionService
+from backend.app.ports.staff_graph import GraphStaffDefinition
+from backend.app.service.staff_service import StaffService
+from backend.app.service.company_service import CompanyService
+from backend.app.service.connection_service import ConnectionService
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Connection, Company
 from backend.domain.third_party.registry import get_processor

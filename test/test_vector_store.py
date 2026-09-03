@@ -12,7 +12,7 @@ import importlib.util
 
 import pytest
 
-from backend.application.service.long_term_memory_service import LongTermMemoryService
+from backend.app.service.long_term_memory_service import LongTermMemoryService
 from backend.domain.memory.long_term_memory import MemoryScope
 from backend.infrastructure.llm.embeddings import HashingEmbeddingProvider
 from backend.infrastructure.repositories.json_long_term_memory import (

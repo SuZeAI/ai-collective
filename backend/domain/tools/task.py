@@ -18,7 +18,7 @@ from typing import Any, List
 
 from langchain.tools import tool
 
-from backend.application.ports.llm import LLMProvider
+from backend.app.ports.llm import LLMProvider
 from backend.domain.staff.subagents import (
     filter_tools,
     get_available_subagent_names,

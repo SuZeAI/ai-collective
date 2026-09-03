@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from backend.api.deps import current_owner_id_dep, get_epic_service, get_project_service
 from backend.api.schemas.epic import EpicSchema, UpsertEpicRequest
-from backend.application.service.epic_service import EpicService
-from backend.application.service.project_service import ProjectService
+from backend.app.service.epic_service import EpicService
+from backend.app.service.project_service import ProjectService
 from backend.domain.enums import TaskStatus
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Epic, can_delete, can_modify, is_owned_by, is_visible_to

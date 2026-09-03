@@ -22,11 +22,11 @@ from backend.api.deps import (
 from backend.api.schemas.admin import LlmModelOptionSchema
 from backend.api.schemas.staff_graph import GraphRunRequest, GraphRunResponse, GraphTurnSchema
 from backend.infrastructure.llm.config import get_enabled_models
-from backend.application.ports.staff_graph import CustomGraphSpec, GraphStaffDefinition
-from backend.application.service.staff_service import StaffService
-from backend.application.service.graph_context_service import GraphContextService
-from backend.application.service.llm_service import LLMService
-from backend.application.service.task_service import TaskService
+from backend.app.ports.staff_graph import CustomGraphSpec, GraphStaffDefinition
+from backend.app.service.staff_service import StaffService
+from backend.app.service.graph_context_service import GraphContextService
+from backend.app.service.llm_service import LLMService
+from backend.app.service.task_service import TaskService
 from backend.domain.errors import NotFoundError
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.models import is_visible_to

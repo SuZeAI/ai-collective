@@ -27,9 +27,9 @@ from backend.api.schemas.auth_user import (
     ChangePasswordRequest,
     GoogleLoginUrlResponse,
 )
-from backend.application.service.google_login_service import GoogleLoginService
+from backend.app.service.google_login_service import GoogleLoginService
 from backend.api.deps import get_user_service, current_user_dep, current_owner_id_dep
-from backend.application.service.user_service import UserService
+from backend.app.service.user_service import UserService
 from backend.domain.errors import ValidationError, NotFoundError
 from backend.domain.models import User
 

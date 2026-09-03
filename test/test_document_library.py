@@ -11,7 +11,7 @@ from backend.infrastructure.repositories.json_files.library_documents import (
     JsonLibraryDocumentRepository,
 )
 from backend.infrastructure.repositories.json_store import JsonFileStore
-from backend.application.service.document_library_service import DocumentLibraryService
+from backend.app.service.document_library_service import DocumentLibraryService
 
 
 # ── FileStore (local backend) ───────────────────────────────────────────────

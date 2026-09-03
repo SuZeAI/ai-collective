@@ -1,6 +1,6 @@
 """Test chunking service with Vietnamese text."""
 import pytest
-from backend.application.service.chunking_service import ChunkingService, get_chunking_service
+from backend.app.service.chunking_service import ChunkingService, get_chunking_service
 
 
 class TestChunkingService:

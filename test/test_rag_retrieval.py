@@ -7,7 +7,7 @@ import tempfile
 
 import pytest
 
-from backend.application.service.rag_retrieval import RagRetrievalService
+from backend.app.service.rag_retrieval import RagRetrievalService
 from backend.domain.memory.bm25 import bm25_rank
 from backend.domain.memory.knowledge_graph import (
     ConversationKnowledgeGraph,

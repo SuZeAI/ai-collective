@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 
 from backend.api.deps import current_user_dep, get_monitoring_service
 from backend.api.schemas.consumption import ConsumptionSchema
-from backend.application.service.monitoring_service import MonitoringService
+from backend.app.service.monitoring_service import MonitoringService
 from backend.domain.models import User
 
 

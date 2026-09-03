@@ -4,15 +4,15 @@ from datetime import datetime, timezone
 from dataclasses import replace
 from uuid import uuid4
 
-from backend.application.service.staff_service import StaffService
-from backend.application.service.document_library_service import DocumentLibraryService
-from backend.application.service.skill_service import SkillService
-from backend.application.service.task_service import TaskService
-from backend.application.service.department_service import DepartmentService
-from backend.application.service.company_service import CompanyService
-from backend.application.service.project_service import ProjectService
-from backend.application.service.epic_service import EpicService
-from backend.application.service.sprint_service import SprintService
+from backend.app.service.staff_service import StaffService
+from backend.app.service.document_library_service import DocumentLibraryService
+from backend.app.service.skill_service import SkillService
+from backend.app.service.task_service import TaskService
+from backend.app.service.department_service import DepartmentService
+from backend.app.service.company_service import CompanyService
+from backend.app.service.project_service import ProjectService
+from backend.app.service.epic_service import EpicService
+from backend.app.service.sprint_service import SprintService
 from backend.domain.enums import StaffStatus, TaskStatus
 from backend.domain.errors import NotFoundError, ValidationError
 from backend.domain.models import (

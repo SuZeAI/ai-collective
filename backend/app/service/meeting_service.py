@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from backend.application.ports.repositories import MeetingRepository
-from backend.application.ports.staff_graph import GraphContextProvider
+from backend.app.ports.repositories import MeetingRepository
+from backend.app.ports.staff_graph import GraphContextProvider
 from backend.domain.models import Message
 
 

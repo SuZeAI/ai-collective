@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from backend.application.ports.repositories import (
+from backend.app.ports.repositories import (
     StaffRepository,
     ModelPricingRepository,
     TaskRepository,

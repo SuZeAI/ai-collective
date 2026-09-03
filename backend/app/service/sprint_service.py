@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.application.ports.repositories import SprintRepository
+from backend.app.ports.repositories import SprintRepository
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Sprint
 

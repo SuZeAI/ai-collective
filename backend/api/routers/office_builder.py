@@ -32,13 +32,13 @@ from backend.api.schemas.office_builder import (
     UpsertOfficeBuilderSessionRequest,
 )
 from backend.api.schemas.company import CompanySchema
-from backend.application.service.staff_service import StaffService
-from backend.application.service.meeting_service import MeetingService
-from backend.application.service.llm_service import LLMService
-from backend.application.service.office_builder_session_service import OfficeBuilderSessionService
-from backend.application.service.skill_service import SkillService
-from backend.application.service.department_service import DepartmentService
-from backend.application.service.company_service import CompanyService
+from backend.app.service.staff_service import StaffService
+from backend.app.service.meeting_service import MeetingService
+from backend.app.service.llm_service import LLMService
+from backend.app.service.office_builder_session_service import OfficeBuilderSessionService
+from backend.app.service.skill_service import SkillService
+from backend.app.service.department_service import DepartmentService
+from backend.app.service.company_service import CompanyService
 from backend.domain.enums import StaffStatus
 from backend.domain.models import Staff, OfficeBuilderSession, Skill, Department, Company, can_delete, can_modify, is_visible_to
 from backend.log import get_logger

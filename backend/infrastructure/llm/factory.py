@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from backend.application.ports.llm import LLMProvider
+from backend.app.ports.llm import LLMProvider
 from backend.infrastructure.llm.providers.anthropic_langchain import AnthropicLangChainProvider
 from backend.infrastructure.llm.config.models_config import find_model_for_provider, get_model_config
 

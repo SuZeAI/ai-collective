@@ -2,7 +2,7 @@
 import pytest
 from uuid import uuid4
 from pathlib import Path
-from backend.application.service.graph_context_service import GraphContextService
+from backend.app.service.graph_context_service import GraphContextService
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.infrastructure.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
 from backend.infrastructure.repositories.json_store import JsonFileStore

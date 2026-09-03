@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from backend.application.ports.repositories import AnalyticsRepository, TaskRepository
+from backend.app.ports.repositories import AnalyticsRepository, TaskRepository
 from backend.domain.enums import TaskStatus
 from backend.domain.models import Analytics, is_owned_by
 

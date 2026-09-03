@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from backend.domain.memory.knowledge_graph import GraphContextConfig, GraphContextPack
-from backend.application.ports.llm import LLMProvider
+from backend.app.ports.llm import LLMProvider
 from backend.domain.tools.base import BaseToolkit
 
 

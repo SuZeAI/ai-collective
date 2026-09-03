@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.application.ports.llm import LLMProvider
+from backend.app.ports.llm import LLMProvider
 from backend.domain.models import SimulationStep
 from backend.log import get_logger
 

@@ -8,14 +8,14 @@ from uuid import uuid4
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 
-from backend.application.ports.staff_graph import (
+from backend.app.ports.staff_graph import (
     StaffGraphOrchestrator,
     GraphStaffDefinition,
     GraphContextProvider,
     GraphRunResult,
     GraphTurn,
 )
-from backend.application.ports.llm import LLMProvider
+from backend.app.ports.llm import LLMProvider
 from backend.domain.event.schema import EventType
 from backend.domain.memory.knowledge_graph import GraphContextConfig
 from backend.domain.staff._graph_runtime import (

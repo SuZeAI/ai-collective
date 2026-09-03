@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.application.ports.repositories import CompanyRepository
+from backend.app.ports.repositories import CompanyRepository
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Company
 

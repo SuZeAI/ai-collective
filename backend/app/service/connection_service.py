@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.application.ports.repositories import ConnectionRepository
+from backend.app.ports.repositories import ConnectionRepository
 from backend.domain.errors import NotFoundError
 from backend.domain.models import Connection
 
