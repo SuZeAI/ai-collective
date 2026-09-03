@@ -28,7 +28,7 @@ _MANAGED_ID_PREFIX = "skill_mcpext_"
 def _config_path() -> Path:
     from server.api.config_loader import PROJECT_ROOT
 
-    raw = settings.mcp.config_file or "mcp.yml"
+    raw = settings.mcp.config_file or ".config/mcp.yml"
     p = Path(raw)
     return p if p.is_absolute() else PROJECT_ROOT / p
 

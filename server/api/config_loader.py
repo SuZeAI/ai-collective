@@ -75,7 +75,7 @@ def config_file_path() -> Path:
     if override:
         p = Path(override)
         return p if p.is_absolute() else PROJECT_ROOT / p
-    return PROJECT_ROOT / "config.yml"
+    return PROJECT_ROOT / ".config" / "config.yml"
 
 
 def config_override_file_path() -> Path | None:

@@ -195,9 +195,9 @@ services:
       # storage/seed/ is the committed read-only seed catalog (SEED_DIR);
       # storage/runtime/ is the per-machine live store (STORAGE_DIR, gitignored).
       - ../storage:/app/storage
-      - ../.artifact/logs:/app/logs
-      - ../config.yml:/app/config.yml:ro
-      - ../mcp.yml:/app/mcp.yml:ro
+      - ../.artifact/logs:/app/.artifact/logs
+      - ../.config/config.yml:/app/.config/config.yml:ro
+      - ../.config/mcp.yml:/app/.config/mcp.yml:ro
       - sandbox-workspace:/app/sandbox_workspace
       - backend-venv:/app/.venv
       - backend-uv-cache:/root/.cache/uv

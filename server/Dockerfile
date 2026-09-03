@@ -79,7 +79,7 @@ COPY --from=builder /app/.venv /app/.venv
 COPY pyproject.toml uv.lock ./
 COPY server/ ./server/
 
-RUN mkdir -p /app/storage /app/logs /app/sandbox_workspace /app/static
+RUN mkdir -p /app/storage /app/.artifact/logs /app/sandbox_workspace /app/static
 
 EXPOSE 8000
 

@@ -303,12 +303,12 @@ vector_store:
   overfetch: 5                           # extra candidates before scope filtering
 
 # ── MCP (Model Context Protocol) ──────────────────────────────────────────────
-# Per-server config lives in mcp.yml.
+# Per-server config lives in .config/mcp.yml.
 mcp:
   discovery_timeout_seconds: 30       # list_tools handshake ceiling
   call_timeout_seconds: 60            # default per-tool-call timeout
   auto_seed: true                     # seed enabled servers from mcp.yml on boot
-  config_file: mcp.yml                # path relative to project root
+  config_file: .config/mcp.yml        # path relative to project root
 
 # ── Admin bootstrap ───────────────────────────────────────────────────────────
 admin:
