@@ -1,7 +1,7 @@
 # Configuration
 
-**`config.yml` is the single, complete source for every setting, including
-secrets.** Precedence:
+**`config.yml` (lives at `.config/config.yml`) is the single, complete source
+for every setting, including secrets.** Precedence:
 
 ```
 code defaults  <  config.yml  (${VAR} / $VAR expanded from .env / OS environment)
@@ -24,7 +24,7 @@ code defaults  <  config.yml  (${VAR} / $VAR expanded from .env / OS environment
   layers an optional `CONFIG_OVERRIDE_FILE=/path` on top (deep-merged) to swap
   a handful of ops knobs without duplicating the whole file
   (`server/api/config_loader.py`).
-- MCP servers are declared separately in `mcp.yml`, referenced from
+- MCP servers are declared separately in `.config/mcp.yml`, referenced from
   `mcp.config_file` — see [mcp-guide.md](mcp-guide.md).
 - Per-tool/per-skill credentials are **not** here at all — they live in each
   skill's `config` dict (stored in MongoDB, edited via the UI).

@@ -98,8 +98,8 @@ A user-defined LangGraph DAG (`CustomGraphSpec`), for workflows that don't fit t
 
 ## ⚙️ Configuration
 
-**`config.yml` (committed to git) is the single, complete source for every
-setting, including secrets.** No part of the backend reads a bare OS/`.env`
+**`config.yml` (at `.config/config.yml`, committed to git) is the single,
+complete source for every setting, including secrets.** No part of the backend reads a bare OS/`.env`
 variable to configure itself — the only way an env var reaches a setting is
 an explicit `${VAR}` reference written inline in `config.yml`, resolved from
 a `.env` file (gitignored) at startup:
