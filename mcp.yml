@@ -13,7 +13,7 @@
 # define VAR_NAME in .env or the shell — it is expanded at seed time. A
 # reference to an unset var is left blank (and logged).
 #
-# Fields (mirror docs/MCP_GUIDE.md):
+# Fields (mirror docs/mcp-guide.md):
 #   name           required, unique. Shown in the UI; appended to tool names.
 #   enabled        default false. Only enabled servers are seeded.
 #   transport      stdio | streamable_http | sse        (default stdio)

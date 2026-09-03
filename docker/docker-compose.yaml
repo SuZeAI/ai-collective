@@ -25,11 +25,11 @@
 #                Enable: docker compose --profile provisioner up -d
 #                Then set in .env: SANDBOX_MODE=k8s  SANDBOX_PROVISIONER_URL=http://provisioner:8002
 #
-# Sandbox modes (SANDBOX_MODE, see docs/SANDBOX.md):
+# Sandbox modes (SANDBOX_MODE, see docs/sandbox.md):
 #   local (default) — run commands in-process on the backend (no isolation).
 #   k8s             — activate profile "provisioner"; sandboxes run as k3s Pods.
 #                     Set SANDBOX_PROVISIONER_URL=http://provisioner:8002 and provide a
-#                     kubeconfig (see docs/K3S.md).
+#                     kubeconfig (see docs/k3s.md).
 #
 # Key environment variables (set in .env at project root):
 #   LLM_PROVIDER / LLM_MODEL              — LLM provider & model
@@ -191,7 +191,7 @@ services:
       # via .env (STORAGE_BACKEND=...) if needed.
       - MONGO_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-admin}@mongodb:27017/ai_collective?authSource=admin
       - MONGO_DB=${MONGO_DB:-ai_collective}
-      # SANDBOX_MODE: local | k8s (see docs/SANDBOX.md).
+      # SANDBOX_MODE: local | k8s (see docs/sandbox.md).
       - SANDBOX_MODE=${SANDBOX_MODE:-local}
       - SANDBOX_PROVISIONER_URL=${SANDBOX_PROVISIONER_URL:-}
       - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-60}
@@ -245,7 +245,7 @@ services:
   # ── Sandbox Provisioner — K8s/k3s pod manager (optional — profile: provisioner)
   # Used by SANDBOX_MODE=k8s. Activate: docker compose --profile provisioner up -d
   # Then set in .env: SANDBOX_MODE=k8s  SANDBOX_PROVISIONER_URL=http://provisioner:8002
-  # Requires: a kubeconfig (see docs/K3S.md)
+  # Requires: a kubeconfig (see docs/k3s.md)
   provisioner:
     build:
       context: ./provisioner

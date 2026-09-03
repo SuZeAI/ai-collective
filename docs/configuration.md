@@ -25,7 +25,7 @@ code defaults  <  config.yml  (${VAR} / $VAR expanded from .env / OS environment
   a handful of ops knobs without duplicating the whole file
   (`backend/api/config_loader.py`).
 - MCP servers are declared separately in `mcp.yml`, referenced from
-  `mcp.config_file` — see [MCP_GUIDE.md](MCP_GUIDE.md).
+  `mcp.config_file` — see [mcp-guide.md](mcp-guide.md).
 - Per-tool/per-skill credentials are **not** here at all — they live in each
   skill's `config` dict (stored in MongoDB, edited via the UI).
 
@@ -103,10 +103,10 @@ override), `supports_thinking`, `supports_reasoning_effort`,
 `when_thinking_enabled` / `when_thinking_disabled` / `thinking` (extra kwargs
 merged in based on thinking mode). `provider_name` (falling back to `name`)
 picks the provider wrapper; `api_key` may hold several comma-separated keys —
-see [LLM_KEY_ROTATION.md](LLM_KEY_ROTATION.md) for the full per-key
+see [llm-key-rotation.md](llm-key-rotation.md) for the full per-key
 rotation/failover guide.
 
-To route every request through the bundled [9Router](9ROUTER_SETUP.md)
+To route every request through the bundled [9Router](9router-setup.md)
 multi-provider proxy instead, set an entry's `failover.strategy: 9router`
 (or alias `router`), point `base_url` at
 `http://nine-router:20128/v1`, and use a 9Router-issued key as `api_key`.
@@ -134,7 +134,7 @@ Router container knobs live under `router:` (`router.port`,
 ### LLM middleware (`middleware:`)
 
 Cross-cutting behaviours layered on the `create_agent` path, one nested block
-per middleware, keyed by name. See [LLM_MIDDLEWARE.md](LLM_MIDDLEWARE.md) for
+per middleware, keyed by name. See [llm-middleware.md](llm-middleware.md) for
 the full stack and ordering.
 
 | Key | Default | Description |
@@ -179,7 +179,7 @@ the full stack and ordering.
 | `sandbox.mode` | `local` | `local` \| `k8s` (no `docker` mode) |
 | `sandbox.timeout` | `120` | Command timeout (seconds) |
 | `sandbox.workspace` | — | Local sandbox workspace directory override |
-| `sandbox.image` / `.replicas` / `.idle_timeout` / `.provisioner_url` | k8s defaults | k8s sandbox pool image, replica count, idle eviction, provisioner service URL (`${SANDBOX_PROVISIONER_URL}` if set inline) — see [K3S.md](K3S.md) |
+| `sandbox.image` / `.replicas` / `.idle_timeout` / `.provisioner_url` | k8s defaults | k8s sandbox pool image, replica count, idle eviction, provisioner service URL (`${SANDBOX_PROVISIONER_URL}` if set inline) — see [k3s.md](k3s.md) |
 
 ## Knowledge graph (`graph:`)
 
@@ -194,12 +194,12 @@ the full stack and ordering.
 
 Falls back to the `storage.backend` graph repo if the driver/server is
 unavailable. Install with `pip install '.[neo4j]'`; local dev container via the
-`neo4j` compose profile. See [LONG_TERM_MEMORY.md](LONG_TERM_MEMORY.md).
+`neo4j` compose profile. See [long-term-memory.md](long-term-memory.md).
 
 ## Embeddings & long-term memory (`embedding:` / `long_term_memory:` / `retrieval:` / `vector_store:`)
 
 Real vector RAG + cross-conversation memory. **OFF by default** (lexical
-fallback). Full guide: [LONG_TERM_MEMORY.md](LONG_TERM_MEMORY.md).
+fallback). Full guide: [long-term-memory.md](long-term-memory.md).
 
 | Key | Default | Description |
 |-----|---------|-------------|
@@ -246,7 +246,7 @@ containers via the `qdrant` compose profile.
 ## Working memory (`working_memory:`)
 
 Per-conversation short-term working memory (distinct from long-term memory
-above). See [AGENT_MEMORY.md](AGENT_MEMORY.md).
+above). See [agent-memory.md](agent-memory.md).
 
 | Key | Default | Description |
 |-----|---------|-------------|
@@ -265,7 +265,7 @@ above). See [AGENT_MEMORY.md](AGENT_MEMORY.md).
 | `mcp.call_timeout_seconds` | `60` | Default per-tool-call timeout |
 
 Per-server config (transport, command/args, url/headers, allowed tools) lives
-in `mcp.yml` itself — see [MCP_GUIDE.md](MCP_GUIDE.md).
+in `mcp.yml` itself — see [mcp-guide.md](mcp-guide.md).
 
 ## Admin bootstrap & seed data (`admin:` / `seed:`)
 

@@ -341,7 +341,7 @@ make dev-provisioner    # or: make prod-provisioner
 #   mode: k8s
 #   provisioner_url: http://provisioner:8002
 ```
-See `docs/SANDBOX.md` / `docs/K3S.md` for the full setup.
+See `docs/sandbox.md` / `docs/k3s.md` for the full setup.
 
 **MongoDB Express** (prod only):
 

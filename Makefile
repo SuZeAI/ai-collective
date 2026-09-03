@@ -185,18 +185,18 @@ dev-restart-backend: ## Restart only the backend container
 dev-sandbox: ## Dev stack + standalone AIO sandbox container (manual/debug)
 	@$(MAKE) --no-print-directory dev PROFILES="$(PROFILES) sandbox"
 	@printf "  Sandbox URL (host): http://localhost:8081\n"
-	@printf "$(C_YELLOW)  Note: standalone container for manual use; not auto-wired to a SANDBOX_MODE (see docs/SANDBOX.md)$(C_RESET)\n"
+	@printf "$(C_YELLOW)  Note: standalone container for manual use; not auto-wired to a SANDBOX_MODE (see docs/sandbox.md)$(C_RESET)\n"
 
 dev-provisioner: ## Dev stack + K8s provisioner (sandbox runs as a k3s Pod)
 	@$(MAKE) --no-print-directory dev PROFILES="$(PROFILES) provisioner"
 	@printf "  Provisioner: http://localhost:8002/health\n"
-	@printf "$(C_YELLOW)  Tip: set SANDBOX_MODE=k8s and SANDBOX_PROVISIONER_URL=http://provisioner:8002 in .env (see docs/K3S.md)$(C_RESET)\n"
+	@printf "$(C_YELLOW)  Tip: set SANDBOX_MODE=k8s and SANDBOX_PROVISIONER_URL=http://provisioner:8002 in .env (see docs/k3s.md)$(C_RESET)\n"
 
 dev-router: ## Dev stack + 9Router multi-provider LLM proxy
 	@$(MAKE) --no-print-directory dev PROFILES="$(PROFILES) router"
 	@printf "  9Router dashboard: $(C_GREEN)http://localhost:$${ROUTER_PORT:-20128}/dashboard$(C_RESET)\n"
 	@printf "$(C_YELLOW)  Tip: set LLM_PROVIDER=openai, LLM_API_BASE=http://nine-router:20128/v1,$(C_RESET)\n"
-	@printf "$(C_YELLOW)       OPENAI_API_KEY=<dashboard key> in .env (see docs/9ROUTER_SETUP.md)$(C_RESET)\n"
+	@printf "$(C_YELLOW)       OPENAI_API_KEY=<dashboard key> in .env (see docs/9router-setup.md)$(C_RESET)\n"
 
 dev-full: ## Dev stack + ALL profiles at once (sandbox/provisioner/router/minio/qdrant/neo4j)
 	@$(MAKE) --no-print-directory dev PROFILES="sandbox provisioner router minio qdrant neo4j"
@@ -249,7 +249,7 @@ logs-frontend: ## Tail only frontend production logs
 
 prod-sandbox: ## Production stack + standalone AIO sandbox container (manual/debug)
 	@$(MAKE) --no-print-directory up PROFILES="$(PROFILES) sandbox"
-	@printf "$(C_GREEN)✓ Sandbox running.$(C_RESET)  Standalone container (not auto-wired to a SANDBOX_MODE); see docs/SANDBOX.md\n"
+	@printf "$(C_GREEN)✓ Sandbox running.$(C_RESET)  Standalone container (not auto-wired to a SANDBOX_MODE); see docs/sandbox.md\n"
 
 prod-provisioner: ## Production stack + K8s provisioner (needs kubeconfig)
 	@$(MAKE) --no-print-directory up PROFILES="$(PROFILES) provisioner"
@@ -258,7 +258,7 @@ prod-provisioner: ## Production stack + K8s provisioner (needs kubeconfig)
 prod-router: ## Production stack + 9Router multi-provider LLM proxy
 	@$(MAKE) --no-print-directory up PROFILES="$(PROFILES) router"
 	@printf "$(C_GREEN)✓ 9Router running.$(C_RESET)  Dashboard: http://localhost:$${ROUTER_PORT:-20128}/dashboard\n"
-	@printf "  Set LLM_PROVIDER=openai, LLM_API_BASE=http://nine-router:20128/v1, OPENAI_API_KEY=<key> in .env (docs/9ROUTER_SETUP.md)\n"
+	@printf "  Set LLM_PROVIDER=openai, LLM_API_BASE=http://nine-router:20128/v1, OPENAI_API_KEY=<key> in .env (docs/9router-setup.md)\n"
 
 prod-all: ## Production stack + sandbox + provisioner
 	@$(MAKE) --no-print-directory up PROFILES="$(PROFILES) sandbox provisioner"

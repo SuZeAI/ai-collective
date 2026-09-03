@@ -107,7 +107,7 @@ Cross-company template gallery — read-only listings plus a copy action.
 | GET | `/models` | Available LLM models |
 | POST | `/chat` | Single-model chat |
 | POST | `/staff-graph/run` | Run a multi-agent staff graph |
-| POST | `/staff-graph/run-stream` | Stream a staff graph (SSE) — see [STREAMING_GUIDE.md](STREAMING_GUIDE.md) |
+| POST | `/staff-graph/run-stream` | Stream a staff graph (SSE) — see [streaming-guide.md](streaming-guide.md) |
 | POST | `/staff-graph/pause` · `/resume` | Pause / resume a running graph |
 | POST | `/staff-graph/interject` | Human-in-the-loop interjection into a running graph |
 | POST | `/staff-graph/respond` | Respond to a pending interjection |

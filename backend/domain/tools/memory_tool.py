@@ -7,7 +7,7 @@ runtime already auto-captures a compressed record of every completed turn; this
 toolkit is for the *important* details an staff wants kept verbatim.
 
 See ``backend/domain/memory/working_memory.py`` for the model and
-``docs/AGENT_MEMORY.md`` for the full design.
+``docs/agent-memory.md`` for the full design.
 """
 
 from __future__ import annotations

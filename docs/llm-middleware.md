@@ -74,7 +74,7 @@ call, and the model-facing trio (trim → recall → budget) acts around the mod
 | **ToolTimeoutMiddleware** | Bounds each tool call to `TOOL_TIMEOUT_SECONDS`; returns a timeout `ToolMessage` instead of hanging. |
 | **LoopDetectionMiddleware** | Detects an agent re-issuing the *same* tool call (name + args) `LLM_LOOP_DETECTION_MAX_REPEATS` times and soft-nudges it to change approach or finalize. Stateless (scans `state["messages"]`). |
 | **RollingSummaryMiddleware** | LLM-free history compactor: when history exceeds `LLM_ROLLING_SUMMARY_TRIGGER_TOKENS`, folds the oldest messages into one summary `SystemMessage` and removes them (keeping the last N). Pairing-safe — never orphans a `tool_use`/`tool_result`. |
-| **LongTermMemoryMiddleware** | Recalls long-term memory for the run scope and injects it before the model; persists the final answer after. See [LONG_TERM_MEMORY.md](LONG_TERM_MEMORY.md). |
+| **LongTermMemoryMiddleware** | Recalls long-term memory for the run scope and injects it before the model; persists the final answer after. See [long-term-memory.md](long-term-memory.md). |
 | **ToolResultCacheMiddleware** | Serves an identical idempotent tool call from the run's prior result (keyed by name + canonical args), complementing loop detection. Skips tools on `LLM_TOOL_CACHE_DENY_TOOLS`. |
 | **CostBudgetMiddleware** | Soft-stops a run that exceeds `LLM_RUN_TOKEN_BUDGET` by injecting a "finalize now" instruction (a soft cap atop the hard model-call cap). |
 | **GuardrailMiddleware** | Blocks a tool call (returns an explanatory `ToolMessage` instead of executing) when the tool is on `LLM_GUARDRAIL_DENY_TOOLS` or its args match `LLM_GUARDRAIL_DENY_PATTERNS`. |

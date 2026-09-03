@@ -23,7 +23,7 @@ Design notes:
 - Config values arrive as strings from the skill UI; ``args``/``env``/
   ``headers`` accept both JSON and line-based formats (see parsers below).
 
-See ``docs/MCP_GUIDE.md`` for the full configuration guide.
+See ``docs/mcp-guide.md`` for the full configuration guide.
 """
 
 from __future__ import annotations

@@ -2,7 +2,7 @@
 
 How to run the `k8s` sandbox mode: sandboxes run as Pods on a local k3s
 cluster, created on demand by the **provisioner** service. For how the modes
-fit together, see **[SANDBOX.md](./SANDBOX.md)**.
+fit together, see **[sandbox.md](./sandbox.md)**.
 
 ```
 backend ──HTTP──▸ provisioner :8002 ──k8s API──▸ k3s ──▸ sandbox Pod (+ NodePort)

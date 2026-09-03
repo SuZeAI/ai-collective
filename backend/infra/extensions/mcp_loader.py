@@ -1,7 +1,7 @@
 """Seed MCP servers declared in ``mcp.yml`` into the skill store at boot.
 
 Each enabled ``servers:`` entry becomes a skill with ``tool_name = "mcp"`` so
-agents can attach it like any other skill (see ``docs/MCP_GUIDE.md``). The file
+agents can attach it like any other skill (see ``docs/mcp-guide.md``). The file
 is the source of truth for the servers it declares: their records are upserted
 on every boot under deterministic ids (prefix ``skill_mcpext_``). Skills created
 through the UI are never touched.

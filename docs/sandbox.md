@@ -42,7 +42,7 @@ sandbox:
   # or http://localhost:8002 when the backend runs on the host
 ```
 
-See **[K3S.md](./K3S.md)** for the full k3s setup.
+See **[k3s.md](./k3s.md)** for the full k3s setup.
 
 ---
 

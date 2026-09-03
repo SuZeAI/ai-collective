@@ -67,7 +67,7 @@ Both backends implement `shutdown()`; the FastAPI shutdown event calls
 ### Sandbox (`sandbox.mode`)
 
 - `local` (dev only — runs on the host) or `k8s` (needs
-  `sandbox.provisioner_url`; see [K3S.md](K3S.md)). There is no `docker` mode.
+  `sandbox.provisioner_url`; see [k3s.md](k3s.md)). There is no `docker` mode.
 
 ## Graceful shutdown
 

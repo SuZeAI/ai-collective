@@ -212,7 +212,7 @@ services:
       # via .env (STORAGE_BACKEND=...) if needed.
       - MONGO_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-admin}@mongodb:27017/ai_collective?authSource=admin
       - MONGO_DB=${MONGO_DB:-ai_collective}
-      # Sandbox mode: local | docker | k8s (see docs/SANDBOX.md).
+      # Sandbox mode: local | docker | k8s (see docs/sandbox.md).
       #   local → run commands in-process (default, no isolation)
       #   k8s   → set SANDBOX_MODE=k8s + SANDBOX_PROVISIONER_URL=http://provisioner:8002
       #           (activate the `provisioner` profile, e.g. `make dev-provisioner`)
@@ -271,7 +271,7 @@ services:
   # ── Sandbox Provisioner — K8s/k3s pod manager (profile: provisioner) ───────
   # Used by SANDBOX_MODE=k8s. Set in .env → SANDBOX_MODE=k8s
   #   SANDBOX_PROVISIONER_URL=http://provisioner:8002
-  # Talks to the host's k3s API; see docs/K3S.md and docs/SANDBOX.md.
+  # Talks to the host's k3s API; see docs/k3s.md and docs/sandbox.md.
   provisioner:
     build:
       context: ./provisioner

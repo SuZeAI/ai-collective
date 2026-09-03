@@ -2,7 +2,7 @@
 
 Network-free: these cover the pure helpers and the fail-fast validation in
 ``MCPServerSpec``; actual server connections are exercised manually (see
-docs/MCP_GUIDE.md).
+docs/mcp-guide.md).
 """
 
 from __future__ import annotations

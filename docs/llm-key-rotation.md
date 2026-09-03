@@ -8,7 +8,7 @@ via that entry's own `failover.strategy` field:
 | Strategy | What handles failover | When to use |
 |----------|-----------------------|-------------|
 | `rotate` *(default)* | **Built-in** multi-key rotation (this doc) | You have several keys for the *same* provider (e.g. 4 Gemini keys). |
-| `9router` | The external [9Router](9ROUTER_SETUP.md) gateway (aliases: `router`, `nine-router`, `off`, `none` — all disable local rotation) | You want cross-provider routing/fallback and token compression. |
+| `9router` | The external [9Router](9router-setup.md) gateway (aliases: `router`, `nine-router`, `off`, `none` — all disable local rotation) | You want cross-provider routing/fallback and token compression. |
 
 The two are **mutually exclusive per model entry**. They are also different
 from the `open_weight` model entry (`OPENROUTER_API_KEY`), which is just a key
@@ -99,7 +99,7 @@ If every key in the pool errors on a single call, the last error is raised.
   keeps working — the tracking callback is fanned out to every key in the pool.
 - Rotation is **per model entry**: it cycles keys for that entry's own configured
   keys only. It does **not** fail over from, say, the `gemini` entry to the
-  `claude` entry. For cross-provider fallback, use the [9Router](9ROUTER_SETUP.md)
+  `claude` entry. For cross-provider fallback, use the [9Router](9router-setup.md)
   strategy instead.
 - Keys are de-duplicated; surrounding whitespace is trimmed.
 
@@ -118,7 +118,7 @@ If every key in the pool errors on a single call, the last error is raised.
 To switch a model entry to the gateway, set its `failover.strategy: 9router` in
 `config.yml`, point it at the gateway (`provider_name: openai` +
 `base_url: http://nine-router:20128/v1` + the dashboard key), and follow
-[9ROUTER_SETUP.md](9ROUTER_SETUP.md).
+[9router-setup.md](9router-setup.md).
 
 ---
 
@@ -134,5 +134,5 @@ To switch a model entry to the gateway, set its `failover.strategy: 9router` in
 ## References
 
 - Full env reference: [configuration.md](configuration.md#llm-providers)
-- 9Router gateway: [9ROUTER_SETUP.md](9ROUTER_SETUP.md)
+- 9Router gateway: [9router-setup.md](9router-setup.md)
 - Implementation: `backend/infrastructure/llm/providers/rotation.py`

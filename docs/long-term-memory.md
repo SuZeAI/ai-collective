@@ -1,7 +1,7 @@
 # Long-Term Memory & RAG
 
 Long-term memory (LTM) is **durable knowledge that outlives a single
-conversation**. Where the [working memory](AGENT_MEMORY.md) and the knowledge
+conversation**. Where the [working memory](agent-memory.md) and the knowledge
 graph are scoped to one `conversation_id` and reset when a run ends, LTM carries
 facts, preferences and episodic notes **across tasks** so agents recall what was
 learned in earlier runs.
@@ -221,7 +221,7 @@ failure is logged and skipped — it can never abort an agent run.
 
 They run side by side; each can be enabled independently.
 
-> See also: [AGENT_MEMORY.md](AGENT_MEMORY.md) (working memory),
-> [LLM_MIDDLEWARE.md](LLM_MIDDLEWARE.md) (the middleware that injects/persists LTM),
+> See also: [agent-memory.md](agent-memory.md) (working memory),
+> [llm-middleware.md](llm-middleware.md) (the middleware that injects/persists LTM),
 > and the *Conversation persistence on restart* section in
 > [agent-orchestration.md](agent-orchestration.md).

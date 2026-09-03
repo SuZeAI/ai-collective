@@ -52,5 +52,5 @@ directory into every sandbox Pod **read-only** at `/mnt/skills`, sourced from th
 host path `SKILLS_HOST_PATH`. Point `SKILLS_HOST_PATH` at this `skills/` directory
 (absolute path) so `/mnt/skills/public/...` is visible inside the sandbox.
 
-See [`docs/K3S.md`](../docs/K3S.md) and [`docs/SANDBOX.md`](../docs/SANDBOX.md) for
+See [`docs/k3s.md`](../docs/k3s.md) and [`docs/sandbox.md`](../docs/sandbox.md) for
 the full sandbox setup.

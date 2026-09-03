@@ -18,7 +18,7 @@ AI Collective backend ──(OpenAI-compatible API)──► 9Router :20128 ─�
 > **9Router vs. built-in key rotation.** 9Router is one of two failover strategies,
 > selected **per `models:` entry** by that entry's `failover.strategy` field.
 > The other — `rotate` — cycles multiple keys of a *single* provider with no
-> extra service. See [LLM_KEY_ROTATION.md](LLM_KEY_ROTATION.md) to compare. To
+> extra service. See [llm-key-rotation.md](llm-key-rotation.md) to compare. To
 > use 9Router, set that entry's `failover.strategy: 9router` (this turns the
 > built-in rotation off for that entry).
 >

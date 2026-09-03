@@ -321,7 +321,7 @@ def build_turn_messages(
 #                                                                       #
 # Every helper below is best-effort: working memory must never break a #
 # run. See backend/domain/memory/working_memory.py for the model and   #
-# docs/AGENT_MEMORY.md for the design.                                  #
+# docs/agent-memory.md for the design.                                  #
 # ------------------------------------------------------------------ #
 
 def ensure_working_memory(conversation_id: str | None, task: str) -> None:
