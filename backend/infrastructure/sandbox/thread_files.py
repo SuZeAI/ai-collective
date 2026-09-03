@@ -7,7 +7,7 @@ sandbox tools (see ``attach_conversation_sandbox``).
 
 Mirrors ``sandbox_session``'s dual-mode persistence: MongoDB when
 ``storage_backend == "mongo"``, otherwise ``{STORAGE_DIR}/thread_files.json``
-(the gitignored live store, NOT the committed ``storage/`` seed catalog).
+(the gitignored live store, NOT the committed ``storage/seed/`` catalog).
 
 Every function is best-effort: failures log and degrade gracefully — they must
 never raise, because ``conversation_has_files`` gates every staff run.
@@ -54,9 +54,9 @@ def _storage_path() -> Path:
     try:
         from backend.api.settings import settings
 
-        base = settings.storage_dir or "storage"
+        base = settings.storage_dir or "storage/runtime"
     except Exception:  # noqa: BLE001 - usable without full app wiring (tests)
-        base = os.getenv("STORAGE_DIR", "storage")
+        base = os.getenv("STORAGE_DIR", "storage/runtime")
     return Path(base) / "thread_files.json"
 
 

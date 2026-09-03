@@ -72,7 +72,7 @@ def _build_repo():
     from backend.infrastructure.repositories.json_store import JsonFileStore
     from backend.infrastructure.lock_provider import get_shared_lock_provider
 
-    base = settings.storage_dir or "storage"
+    base = settings.storage_dir or "storage/runtime"
     store = JsonFileStore(Path(base) / "long_term_memory.json", lock_provider=get_shared_lock_provider())
     logger.info("Long-term memory persistence: JSON file")
     return JsonLongTermMemoryRepository(store)

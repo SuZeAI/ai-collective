@@ -38,7 +38,7 @@ def _build_vector_store():
     # graph chunks and LTM records stay in separate indexes/collections.
     from backend.infrastructure.vector_store import create_vector_store
 
-    base = settings.vector_store.faiss_path or f"{settings.storage_dir or 'storage'}/vector_store"
+    base = settings.vector_store.faiss_path or f"{settings.storage_dir or 'storage/runtime'}/vector_store"
     # Force qdrant/faiss even if VECTOR_STORE_BACKEND=none, because the RAG
     # mode itself selects the backend (qdrant) — map mode → store backend.
     backend = "qdrant" if settings.retrieval.mode in {"qdrant", "hybrid"} else settings.vector_store.backend

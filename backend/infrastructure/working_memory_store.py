@@ -63,9 +63,9 @@ def _storage_dir() -> Path:
     try:
         from backend.api.settings import settings
 
-        base = settings.storage_dir or "storage"
+        base = settings.storage_dir or "storage/runtime"
     except Exception:  # noqa: BLE001 - usable without full app wiring (tests)
-        base = os.getenv("STORAGE_DIR", "storage")
+        base = os.getenv("STORAGE_DIR", "storage/runtime")
     return Path(base) / "working_memory"
 
 

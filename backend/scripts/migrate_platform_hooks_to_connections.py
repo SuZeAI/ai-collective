@@ -52,7 +52,7 @@ def migrate_mongo() -> int:
 
 
 def migrate_json() -> int:
-    storage = Path(settings.storage_dir or "local_database")
+    storage = Path(settings.storage_dir or "storage/runtime")
     comp_file = storage / "companies.json"
     conn_file = storage / "connections.json"
     if not comp_file.exists():

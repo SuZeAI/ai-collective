@@ -5,7 +5,7 @@ Each staff node invocation gets a unique thread_id that:
   - Creates an isolated workspace directory: {SANDBOX_WORKSPACE}/{thread_id}/
   - Is persisted to MongoDB (mongo) or, in json mode, to
     {STORAGE_DIR}/sandbox_threads.json (the gitignored live store, NOT the
-    committed storage/ seed dir)
+    committed storage/seed/ dir)
   - Propagates automatically through async tool calls via ContextVar
 """
 from __future__ import annotations
@@ -34,17 +34,17 @@ _storage_lock = threading.Lock()
 def _storage_path() -> Path:
     """Resolve the live sandbox-threads file under the configured STORAGE_DIR.
 
-    Live session data belongs in STORAGE_DIR (the gitignored ``local_database/``
-    store), never the committed ``storage/`` seed catalog. Falls back to the
-    ``STORAGE_DIR`` env var / ``storage`` so it stays usable without full app
-    wiring (mirrors ``working_memory_store._storage_dir``).
+    Live session data belongs in STORAGE_DIR (the gitignored ``storage/runtime/``
+    store), never the committed ``storage/seed/`` catalog. Falls back to the
+    ``STORAGE_DIR`` env var / ``storage/runtime`` so it stays usable without full
+    app wiring (mirrors ``working_memory_store._storage_dir``).
     """
     try:
         from backend.api.settings import settings
 
-        base = settings.storage_dir or "storage"
+        base = settings.storage_dir or "storage/runtime"
     except Exception:  # noqa: BLE001 - usable without full app wiring (tests)
-        base = os.getenv("STORAGE_DIR", "storage")
+        base = os.getenv("STORAGE_DIR", "storage/runtime")
     return Path(base) / "sandbox_threads.json"
 
 

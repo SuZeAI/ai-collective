@@ -37,7 +37,7 @@ def create_vector_store(
             from backend.infrastructure.vector_store.faiss_store import FaissVectorStore
 
             base = path_override or cfg.faiss_path or (
-                str(Path(settings.storage_dir or "storage") / "vector_store")
+                str(Path(settings.storage_dir or "storage/runtime") / "vector_store")
             )
             store = FaissVectorStore(dim=dim, path=base, overfetch=cfg.overfetch)
             logger.info("Vector store: FAISS (path=%s, dim=%d)", base, dim)
