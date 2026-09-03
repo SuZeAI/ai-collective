@@ -1,7 +1,7 @@
-"""Google OAuth user-token persistence: local secrets/ dir + optional MinIO mirror.
+"""Google OAuth user-token persistence: local .secrets/ dir + optional MinIO mirror.
 
 Each Google Workspace toolkit (calendar/docs/drive/sheet/slides) resolves a
-per-user token file under ``secrets/google/<user_id>/<tool_name>/token_<email>.json``
+per-user token file under ``.secrets/google/<user_id>/<tool_name>/token_<email>.json``
 once that user authenticates (see ``server.api.routers.auth``). That directory
 is intentionally OUTSIDE the sandbox workspace tree — sandboxed code execution
 must never be able to read another user's OAuth token — so this does not
@@ -10,7 +10,7 @@ Instead it mirrors bytes to MinIO the same way the sandbox/document-library
 stores do: via ``S3BackupService``, under its own ``google_tokens`` key root,
 so a token survives a pod reschedule in k8s sandbox mode when
 ``minio.enabled`` is set. The MinIO object key mirrors the local path's
-position under ``secrets/google/`` (so the ``<user_id>/<tool_name>/...``
+position under ``.secrets/google/`` (so the ``<user_id>/<tool_name>/...``
 layout carries over 1:1) rather than a caller-supplied scope, so two
 different users' tokens never collide in either store. With MinIO disabled
 this is unchanged local-disk behavior.
@@ -23,7 +23,9 @@ from server.log import get_logger
 
 logger = get_logger(__name__)
 
-_TOKENS_ROOT = Path("secrets") / "google"
+# server/infra/storage/google_oauth_store.py -> project root is three parents up.
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+_TOKENS_ROOT = _PROJECT_ROOT / ".secrets" / "google"
 _backup = None
 
 
@@ -37,7 +39,7 @@ def _backup_service():
 
 
 def _rel_key(local_path: str) -> str:
-    """*local_path* relative to secrets/google/, so the MinIO key follows the
+    """*local_path* relative to .secrets/google/, so the MinIO key follows the
     same <user_id>/<tool_name>/... layout as the local path. Falls back to
     just the file name for a path outside that tree."""
     try:

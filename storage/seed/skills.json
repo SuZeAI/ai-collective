@@ -579,7 +579,7 @@
     "tool_name": "sheet",
     "config": {
       "auth_email": "",
-      "token_path": "secrets/google/sheet/token_default.json",
+      "token_path": ".secrets/google/sheet/token_default.json",
       "credentials_path": "",
       "service_account_path": ""
     },
@@ -599,7 +599,7 @@
     "tool_name": "drive",
     "config": {
       "auth_email": "",
-      "token_path": "secrets/google/drive/token_default.json",
+      "token_path": ".secrets/google/drive/token_default.json",
       "credentials_path": "",
       "service_account_path": ""
     },
@@ -619,7 +619,7 @@
     "tool_name": "docs",
     "config": {
       "auth_email": "",
-      "token_path": "secrets/google/docs/token_default.json",
+      "token_path": ".secrets/google/docs/token_default.json",
       "credentials_path": "",
       "service_account_path": ""
     },
@@ -639,7 +639,7 @@
     "tool_name": "slides",
     "config": {
       "auth_email": "",
-      "token_path": "secrets/google/slides/token_default.json",
+      "token_path": ".secrets/google/slides/token_default.json",
       "credentials_path": "",
       "service_account_path": ""
     },
@@ -659,7 +659,7 @@
     "tool_name": "calendar",
     "config": {
       "auth_email": "",
-      "token_path": "secrets/google/calendar/token_default.json",
+      "token_path": ".secrets/google/calendar/token_default.json",
       "credentials_path": "",
       "service_account_path": ""
     },

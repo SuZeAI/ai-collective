@@ -28,7 +28,7 @@ from server.api.schemas.auth_user import (
     GoogleLoginUrlResponse,
 )
 from server.app.service.google_login_service import GoogleLoginService
-from server.api.deps import get_user_service, current_user_dep, current_owner_id_dep
+from server.api.deps import PROJECT_ROOT, get_user_service, current_user_dep, current_owner_id_dep
 from server.app.service.user_service import UserService
 from server.domain.errors import ValidationError, NotFoundError
 from server.domain.models import User
@@ -82,7 +82,7 @@ def _normalize_google_tool_name(tool_name: str | None) -> str:
 
 
 def _get_token_path(owner_id: str, email: str, tool_name: str) -> str:
-    """Generate a token file path under secrets/google/<owner_id>/<tool_name>/,
+    """Generate a token file path under .secrets/google/<owner_id>/<tool_name>/,
     one directory per AI Collective account. ``owner_id`` (verified
     server-side by ``current_owner_id_dep``) must anchor the directory — a
     client-supplied email hint alone is not a trustworthy storage key (it can
@@ -90,7 +90,7 @@ def _get_token_path(owner_id: str, email: str, tool_name: str) -> str:
     alone would let two different users collide on (or share) one token file.
     """
     safe_owner = re.sub(r"[^a-zA-Z0-9._-]", "_", (owner_id or "unknown").strip().lower())
-    storage_dir = Path("secrets") / "google" / safe_owner / tool_name
+    storage_dir = PROJECT_ROOT / ".secrets" / "google" / safe_owner / tool_name
     storage_dir.mkdir(parents=True, exist_ok=True)
     safe_email = re.sub(r"[^a-zA-Z0-9._-]", "_", (email or "").strip().lower()) or "default"
     return str(storage_dir / f"token_{safe_email}.json")

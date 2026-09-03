@@ -17,13 +17,13 @@ from server.api.routers import auth as auth_module
 # ── _get_token_path ──────────────────────────────────────────────────────────
 
 def test_token_path_is_scoped_by_owner_id(monkeypatch, tmp_path):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(auth_module, "PROJECT_ROOT", tmp_path)
     path = auth_module._get_token_path("owner-1", "user@example.com", "calendar")
-    assert path == str(Path("secrets") / "google" / "owner-1" / "calendar" / "token_user_example.com.json")
+    assert path == str(tmp_path / ".secrets" / "google" / "owner-1" / "calendar" / "token_user_example.com.json")
 
 
 def test_token_path_differs_per_owner_for_same_email(monkeypatch, tmp_path):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(auth_module, "PROJECT_ROOT", tmp_path)
     path_a = auth_module._get_token_path("owner-a", "shared@example.com", "calendar")
     path_b = auth_module._get_token_path("owner-b", "shared@example.com", "calendar")
     assert path_a != path_b
@@ -34,7 +34,7 @@ def test_token_path_differs_per_owner_for_same_email(monkeypatch, tmp_path):
 def test_token_path_blank_email_still_separates_owners(monkeypatch, tmp_path):
     # No email hint at all (the common case) must not collapse different
     # owners onto one shared "default" file.
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(auth_module, "PROJECT_ROOT", tmp_path)
     path_a = auth_module._get_token_path("owner-a", "", "calendar")
     path_b = auth_module._get_token_path("owner-b", "", "calendar")
     assert path_a != path_b
@@ -43,19 +43,19 @@ def test_token_path_blank_email_still_separates_owners(monkeypatch, tmp_path):
 
 
 def test_token_path_differs_per_tool_for_same_owner(monkeypatch, tmp_path):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(auth_module, "PROJECT_ROOT", tmp_path)
     calendar_path = auth_module._get_token_path("owner-1", "user@example.com", "calendar")
     docs_path = auth_module._get_token_path("owner-1", "user@example.com", "docs")
     assert calendar_path != docs_path
 
 
 def test_token_path_sanitizes_unsafe_characters(monkeypatch, tmp_path):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(auth_module, "PROJECT_ROOT", tmp_path)
     path = auth_module._get_token_path("owner/../1", "weird user!@example.com", "calendar")
     # "/" (the only char that could turn "owner/../1" into a real ".." path
     # segment) must be stripped, so the result stays a single directory name
-    # confined under secrets/google/ rather than escaping it.
-    root = (tmp_path / "secrets" / "google").resolve()
+    # confined under .secrets/google/ rather than escaping it.
+    root = (tmp_path / ".secrets" / "google").resolve()
     resolved = Path(path).resolve()
     assert resolved == root or str(resolved).startswith(str(root) + "/")
     assert "!" not in path
@@ -96,7 +96,7 @@ def _fake_request() -> SimpleNamespace:
 
 
 def test_callback_prefers_verified_email_over_hint(monkeypatch, tmp_path):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(auth_module, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(auth_module, "_create_google_oauth_flow", lambda: _FakeFlow())
     monkeypatch.setattr(auth_module, "save_token", lambda *_a, **_k: None)
 
@@ -124,7 +124,7 @@ def test_callback_prefers_verified_email_over_hint(monkeypatch, tmp_path):
 
 
 def test_callback_falls_back_to_hint_when_userinfo_fails(monkeypatch, tmp_path):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(auth_module, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(auth_module, "_create_google_oauth_flow", lambda: _FakeFlow())
     monkeypatch.setattr(auth_module, "save_token", lambda *_a, **_k: None)
 
@@ -145,7 +145,7 @@ def test_callback_falls_back_to_hint_when_userinfo_fails(monkeypatch, tmp_path):
 
 
 def test_callback_persists_token_via_save_token(monkeypatch, tmp_path):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(auth_module, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(auth_module, "_create_google_oauth_flow", lambda: _FakeFlow())
 
     calls: list[tuple[str, str]] = []
@@ -165,7 +165,7 @@ def test_callback_persists_token_via_save_token(monkeypatch, tmp_path):
 
 
 def test_callback_missing_state_errors(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(auth_module, "PROJECT_ROOT", tmp_path)
     import pytest
     from fastapi import HTTPException
 
@@ -175,7 +175,7 @@ def test_callback_missing_state_errors(tmp_path, monkeypatch):
 
 
 def test_callback_unknown_state_errors(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(auth_module, "PROJECT_ROOT", tmp_path)
     import pytest
     from fastapi import HTTPException
 
