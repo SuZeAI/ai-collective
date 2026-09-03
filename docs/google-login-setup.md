@@ -188,10 +188,10 @@ Expected response:
 
 ### Frontend callback handler
 
-The `/auth/callback` route is already wired up (`src/pages/AuthCallback.tsx`,
-registered in `src/App.tsx`) — nothing to add here. It reads `token`/`error`
+The `/auth/callback` route is already wired up (`ui/src/pages/AuthCallback.tsx`,
+registered in `ui/src/App.tsx`) — nothing to add here. It reads `token`/`error`
 from the query string, calls `useAuth().loginWithToken(token)`
-(`src/contexts/AuthContext.tsx`) to store the session, and redirects to
+(`ui/src/contexts/AuthContext.tsx`) to store the session, and redirects to
 `/dashboard` on success or `/login?error=...` on failure.
 
 ---

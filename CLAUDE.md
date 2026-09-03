@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-AI – Collective: a multi-agent orchestration platform ("programmable AI workforce"). React 18 + TypeScript frontend (`/src`) talking to a FastAPI backend (`/server`) that runs LangGraph-based multi-agent topologies. Source-available, non-commercial license (see `LICENSE`/`NOTICE`).
+AI – Collective: a multi-agent orchestration platform ("programmable AI workforce"). React 18 + TypeScript frontend (`/ui`) talking to a FastAPI backend (`/server`) that runs LangGraph-based multi-agent topologies. Source-available, non-commercial license (see `LICENSE`/`NOTICE`).
 
 **Note:** `README.md` describes an earlier state of the project (pre terminology-rename: mentions `server/domain/agent/`, `AgentBuilder.tsx`/`TeamBuilder.tsx`/`Workspaces.tsx`, only 4 topologies). Trust this file and the codebase over `README.md` for current names and structure.
 
@@ -12,7 +12,7 @@ AI – Collective: a multi-agent orchestration platform ("programmable AI workfo
 
 ### Setup
 ```bash
-make install          # uv sync --all-extras + npm ci
+make install          # uv sync --all-extras + npm --prefix ui ci
 cp .env.template .env # then fill in at least one provider key (e.g. GOOGLE_API_KEY) referenced by config.yml's models: list
 ```
 
@@ -40,17 +40,17 @@ PYTHONPATH=. uv run pytest test/ -v
 PYTHONPATH=. uv run pytest test/test_foo.py -v            # single file
 PYTHONPATH=. uv run pytest test/test_foo.py -k name -vv   # single test, verbose
 
-# Frontend
-npm run test          # vitest run (jsdom, tests under src/**/*.{test,spec}.{ts,tsx})
-npm run test:watch
-npx vitest run src/path/to/file.test.ts   # single file
+# Frontend (from ui/, or npm --prefix ui ...)
+cd ui && npm run test          # vitest run (jsdom, tests under src/**/*.{test,spec}.{ts,tsx})
+cd ui && npm run test:watch
+cd ui && npx vitest run src/path/to/file.test.ts   # single file
 ```
-`test/conftest.py` provides a session-scoped `client` (FastAPI `TestClient`) plus `admin_headers`/`user_headers` fixtures and a `unique()` helper for collision-free test names; it wipes the test storage dir once per session. CI (`.github/workflows/ci.yml`) runs `pytest test/ -v` and `npm run test` + `npm run build` on every push to `main`; frontend lint is non-blocking there.
+`test/conftest.py` provides a session-scoped `client` (FastAPI `TestClient`) plus `admin_headers`/`user_headers` fixtures and a `unique()` helper for collision-free test names; it wipes the test storage dir once per session. CI (`.github/workflows/ci.yml`) runs `pytest test/ -v` and (in `ui/`) `npm run test` + `npm run build` on every push to `main`; frontend lint is non-blocking there.
 
 ### Lint / build
 ```bash
 make lint            # ruff (backend) + eslint (frontend)
-npm run build         # vite build
+cd ui && npm run build         # vite build
 ```
 
 ## Architecture
@@ -114,7 +114,7 @@ Full topology/reliability details: `docs/agent-orchestration.md`. Streaming even
 ### Frontend structure
 
 ```
-src/
+ui/src/
 ├── pages/           # One file per route (Dashboard, StaffBuilder, DepartmentBuilder, TaskManager, Recruiting, ...)
 │   └── marketing/   # Public marketing site (Pricing, Solutions, Resources, Changelog, ContactSales, SupportCenter, MeetCollective)
 ├── components/      # Reusable UI (Radix UI-based), incl. AppLayout.tsx (nav)
@@ -124,11 +124,11 @@ src/
 └── locales/         # en/vi/zh/ja
 ```
 
-Two navigation scopes, switched via `setActiveCompanyId()` (`src/hooks/use-company-scope.ts`), persisted in `localStorage.activeCompanyId` (`__overall__` sentinel = "All", broadcast via the `activeCompanyChanged` event):
+Two navigation scopes, switched via `setActiveCompanyId()` (`ui/src/hooks/use-company-scope.ts`), persisted in `localStorage.activeCompanyId` (`__overall__` sentinel = "All", broadcast via the `activeCompanyChanged` event):
 - **"All" (Overall)** — create/monitor all companies; `useCompanyScope().isOverall === true`.
 - **Inside a company** — operate one company; create tasks/projects/staff here.
 
-`AppLayout.tsx`'s `NAV_GROUPS` declares `visibleIn: "overall" | "company" | "both"` per group; `src/App.tsx` guards routes to match (`WithCompanyLayout` vs `WithLayout`, plus `RequireCompany`/`RequireCompanyOrAdmin`/`RequireAdmin` gates). See `docs/company-model.md` for the full nav map, company types (`software`/`marketing`/`research`/`general`), and where `company_type` is threaded end-to-end (UI → `src/lib/api.ts` → `server/api/schemas/company.py` → `server/domain/models.py` → repositories).
+`AppLayout.tsx`'s `NAV_GROUPS` declares `visibleIn: "overall" | "company" | "both"` per group; `ui/src/App.tsx` guards routes to match (`WithCompanyLayout` vs `WithLayout`, plus `RequireCompany`/`RequireCompanyOrAdmin`/`RequireAdmin` gates). See `docs/company-model.md` for the full nav map, company types (`software`/`marketing`/`research`/`general`), and where `company_type` is threaded end-to-end (UI → `ui/src/lib/api.ts` → `server/api/schemas/company.py` → `server/domain/models.py` → repositories).
 
 `RunEngineContext` lives above the router so in-flight task runs (streaming, state) survive navigation — `TaskManager`/`VirtualOffice` are just views over it, not owners of run state.
 

@@ -14,7 +14,7 @@ to set up the project, the conventions we follow, and how to submit changes.
 
 - `server/` — FastAPI service (ports-and-adapters). See
   [docs/architecture.md](docs/architecture.md).
-- `src/` — React + TypeScript frontend.
+- `ui/` — React + TypeScript frontend.
 - `docs/` — backend documentation (architecture, configuration, security,
   webhooks, deployment, API reference).
 
@@ -27,7 +27,7 @@ git clone https://github.com/SuZeAI/ai-collective.git
 cd ai-collective
 
 uv sync --all-extras      # Python deps (includes optional extras)
-npm ci                    # Frontend deps
+npm --prefix ui ci        # Frontend deps
 
 cp .env.template .env      # then set LLM_PROVIDER + an API key
 ```
@@ -44,8 +44,8 @@ See the [README](README.md) for the full local/Docker workflows.
 ## Conventions
 
 - **Backend:** respect the layer boundaries — `domain` imports nothing from
-  `application`/`api`/`infrastructure`; application services depend on
-  `application.ports.*` Protocols, not concrete adapters. Keep functions async
+  `app`/`api`/`infra`; application services depend on
+  `app.ports.*` Protocols, not concrete adapters. Keep functions async
   where they touch I/O; never block the event loop with sync network/file calls.
 - **Frontend:** keep components modular and fully typed (TypeScript).
 - **Style:** match the surrounding code; prefer small, focused functions.
@@ -62,8 +62,8 @@ See the [README](README.md) for the full local/Docker workflows.
 - Ensure the project still builds and, where applicable, that tests pass:
 
 ```bash
-uv run pytest test/      # backend tests
-npm run test             # frontend tests (vitest)
+uv run pytest test/           # backend tests
+npm --prefix ui run test      # frontend tests (vitest)
 ```
 
 ## Reporting bugs & requesting features

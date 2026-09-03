@@ -199,7 +199,7 @@ cd ai-collective
 uv sync --all-extras
 
 # Install Node.js dependencies
-npm ci
+npm --prefix ui ci
 ```
 
 ### Step 2 — Configure environment
@@ -219,7 +219,7 @@ Open two terminals:
 uv run uvicorn server.api.main:app --reload --port 8000
 
 # Terminal 2 — Frontend (http://localhost:8080)
-npm run dev -- --host 0.0.0.0 --port 8080
+npm --prefix ui run dev -- --host 0.0.0.0 --port 8080
 ```
 
 App at **http://localhost:8080** · API docs at **http://localhost:8000/docs**
@@ -264,7 +264,7 @@ All services (frontend, backend, MongoDB, Redis, RabbitMQ, Nginx) run as Docker 
 
 ### Development mode (hot-reload)
 
-Source files in `server/` and `src/` are mounted into containers — changes are reflected immediately without rebuilding.
+Source files in `server/` and `ui/` are mounted into containers — changes are reflected immediately without rebuilding.
 
 ```bash
 # 1. Configure environment
@@ -398,7 +398,7 @@ server/
 ### Frontend
 
 ```
-src/
+ui/src/
 ├── pages/       # Dashboard, StaffBuilder, DepartmentBuilder, TaskManager,
 │                # Meetings, Playground, Analytics, Skills, Settings, Companies
 ├── components/  # Reusable UI (Radix UI + custom, dark/light theme)
