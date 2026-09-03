@@ -329,7 +329,7 @@ env: ## Create .env from .env.example if it does not exist
 	fi
 
 dirs: ## Create required runtime directories
-	@mkdir -p storage logs .sandbox_workspace
+	@mkdir -p storage/runtime logs .sandbox_workspace
 
 setup: install dirs env ## Full first-time project setup
 	@printf "$(C_GREEN)✓ Setup complete.$(C_RESET)  Edit .env then run:  make dev\n"
@@ -367,10 +367,10 @@ lint-frontend: ## Lint frontend (eslint)
 
 ##@ Storage
 
-storage-reset: ## ⚠ Delete all storage JSON files (agents, tasks, conversations…)
-	@printf "$(C_YELLOW)⚠  This will delete all data in storage/$(C_RESET)\n"
+storage-reset: ## ⚠ Delete all runtime storage JSON files (agents, tasks, conversations…)
+	@printf "$(C_YELLOW)⚠  This will delete all data in storage/runtime/$(C_RESET)\n"
 	@read -p "Type 'yes' to continue: " confirm && [ "$$confirm" = "yes" ] || exit 1
-	rm -f storage/*.json
+	rm -f storage/runtime/*.json
 	@printf "$(C_GREEN)✓ Storage cleared.$(C_RESET)\n"
 
 # ============================================================================
