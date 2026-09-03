@@ -81,7 +81,7 @@ class LoggingSettings(BaseModel):
 
     log_level: str = Field(default="info", description="critical | error | warning | info | debug")
     log_console: bool = Field(default=True, description="Log to stdout/stderr")
-    log_file: bool = Field(default=False, description="Log to a rotating file under logs/")
+    log_file: bool = Field(default=False, description="Log to a rotating file under .artifact/logs/")
     log_max_bytes: int = Field(default=10 * 1024 * 1024, description="Rotating log file size cap in bytes")
     log_backup_count: int = Field(default=5, description="Number of rotated log files to keep")
 

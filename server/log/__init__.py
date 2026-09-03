@@ -52,8 +52,8 @@ def get_logger(
     
     if file_output:
         if log_file is None:
-            log_dir = Path(__file__).parent.parent.parent / "logs"
-            log_dir.mkdir(exist_ok=True)
+            log_dir = Path(__file__).parent.parent.parent / ".artifact" / "logs"
+            log_dir.mkdir(parents=True, exist_ok=True)
             log_file = log_dir / "ai_collective.log"
         
         file_handler = RotatingFileHandler(
