@@ -285,13 +285,13 @@ backend-prod: dirs env ## Run backend locally in production mode (multi-worker)
 
 frontend: ## Run frontend dev server locally
 	@printf "$(C_CYAN)Starting frontend on port $(FRONTEND_PORT)…$(C_RESET)\n"
-	npm run dev -- --host 0.0.0.0 --port $(FRONTEND_PORT)
+	npm --prefix ui run dev -- --host 0.0.0.0 --port $(FRONTEND_PORT)
 
 frontend-build: ## Build frontend for production
-	npm run build
+	npm --prefix ui run build
 
 frontend-preview: frontend-build ## Preview the production frontend build
-	npm run preview
+	npm --prefix ui run preview
 
 # ── Infrastructure only (redis + rabbitmq for local backend dev) ──────────
 
@@ -316,7 +316,7 @@ install-backend: ## Install Python dependencies (uv)
 	uv sync --all-extras
 
 install-frontend: ## Install Node.js dependencies (npm)
-	npm ci
+	npm --prefix ui ci
 
 env: ## Create .env from .env.example if it does not exist
 	@if [ ! -f .env ]; then \
@@ -346,10 +346,10 @@ test-backend: ## Run backend tests (pytest)
 	uv run pytest server/ -v
 
 test-frontend: ## Run frontend tests (vitest)
-	npm run test
+	npm --prefix ui run test
 
 test-frontend-watch: ## Run frontend tests in watch mode
-	npm run test:watch
+	npm --prefix ui run test:watch
 
 lint: lint-backend lint-frontend ## Lint all code
 
@@ -359,7 +359,7 @@ lint-backend: ## Lint backend (ruff / flake8 if available)
 	 printf "$(C_YELLOW)No Python linter found (install ruff: uv add ruff)$(C_RESET)\n"
 
 lint-frontend: ## Lint frontend (eslint)
-	npm run lint
+	npm --prefix ui run lint
 
 # ============================================================================
 # STORAGE
