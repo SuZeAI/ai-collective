@@ -21,7 +21,7 @@
 # Sandbox direct:    http://localhost:8081  (if running)
 # Provisioner:       http://localhost:8002/health
 #
-# Logs: run `make dev` — per-service log files are written to ./logs/<service>.log
+# Logs: run `make dev` — per-service log files are written to ./.artifact/logs/<service>.log
 
 # ── Shared logging configuration (log rotation for all services) ───────────
 x-logging: &default-logging
@@ -195,7 +195,7 @@ services:
       # storage/seed/ is the committed read-only seed catalog (SEED_DIR);
       # storage/runtime/ is the per-machine live store (STORAGE_DIR, gitignored).
       - ../storage:/app/storage
-      - ../logs:/app/logs
+      - ../.artifact/logs:/app/logs
       - ../config.yml:/app/config.yml:ro
       - ../mcp.yml:/app/mcp.yml:ro
       - sandbox-workspace:/app/sandbox_workspace
