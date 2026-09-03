@@ -191,7 +191,7 @@ services:
       uv run uvicorn server.api.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
       - ../server:/app/server
-      - ../secrets:/app/secrets
+      - ../.secrets:/app/.secrets
       # storage/seed/ is the committed read-only seed catalog (SEED_DIR);
       # storage/runtime/ is the per-machine live store (STORAGE_DIR, gitignored).
       - ../storage:/app/storage
@@ -204,7 +204,7 @@ services:
     env_file:
       - ../.env
     environment:
-      - GOOGLE_OAUTH_CLIENT_SECRET_PATH=/app/secrets/credentials/client_secret_126452164764-91jgaonrbbj8upq515jmr8cbnn6sqemt.apps.googleusercontent.com.json
+      - GOOGLE_OAUTH_CLIENT_SECRET_PATH=/app/.secrets/credentials/client_secret_126452164764-91jgaonrbbj8upq515jmr8cbnn6sqemt.apps.googleusercontent.com.json
       - REDIS_URL=redis://redis:6379/0
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
       # STORAGE_BACKEND is owned by config.yml (storage.backend → STORAGE_BACKEND). Do NOT

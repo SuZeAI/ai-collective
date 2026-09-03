@@ -16,7 +16,7 @@ venv/
 # Secrets & local config — must never be baked into the image
 .env
 .env.*
-secrets/
+.secrets/
 *.pem
 *.key
 
