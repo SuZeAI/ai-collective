@@ -30,7 +30,7 @@ docker build -f server/Dockerfile \
   -t ai-collective-backend .
 ```
 
-`.dockerignore` keeps secrets (`.env`, `secrets/`), logs, storage, the venv,
+`.dockerignore` keeps secrets (`.env`, `.secrets/`), logs, storage, the venv,
 and the frontend out of the build context.
 
 ### Runtime directories
