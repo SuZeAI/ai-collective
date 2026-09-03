@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from backend.app.service.graph_context_service import GraphContextService
-from backend.app.service.graph_context_service import _canonical_node_id
-from backend.domain.memory.knowledge_graph import GraphContextConfig
-from backend.infra.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
-from backend.infra.repositories.json_store import JsonFileStore
+from server.app.service.graph_context_service import GraphContextService
+from server.app.service.graph_context_service import _canonical_node_id
+from server.domain.memory.knowledge_graph import GraphContextConfig
+from server.infra.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
+from server.infra.repositories.json_store import JsonFileStore
 
 
 def _build_service(tmp_path: Path) -> GraphContextService:

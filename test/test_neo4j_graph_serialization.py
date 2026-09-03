@@ -6,12 +6,12 @@ the (de)serialization that guarantees lossless ``get()`` is pure and always test
 
 from __future__ import annotations
 
-from backend.domain.memory.knowledge_graph import (
+from server.domain.memory.knowledge_graph import (
     ConversationKnowledgeGraph,
     GraphEdge,
     GraphNode,
 )
-from backend.infra.repositories.neo4j_graph_knowledge import _deserialize, _serialize
+from server.infra.repositories.neo4j_graph_knowledge import _deserialize, _serialize
 
 
 def _graph() -> ConversationKnowledgeGraph:

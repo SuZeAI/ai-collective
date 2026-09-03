@@ -90,7 +90,7 @@ def client():
     Tests must use unique() names/emails so they don't collide with each other
     on the shared JSON store, and should delete anything they create.
     """
-    from backend.api.main import app
+    from server.api.main import app
 
     with TestClient(app) as c:
         yield c

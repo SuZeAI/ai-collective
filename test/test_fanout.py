@@ -12,13 +12,13 @@ from __future__ import annotations
 import asyncio
 import time
 
-from backend.app.ports.staff_graph import GraphStaffDefinition
-from backend.domain.staff._graph_runtime import (
+from server.app.ports.staff_graph import GraphStaffDefinition
+from server.domain.staff._graph_runtime import (
     MESH_FANOUT_MAX_CONCURRENT,
     run_fanout_wave,
 )
-from backend.domain.staff.langgraph_mesh import MultiAgentMeshOrchestrator
-from backend.domain.staff.langgraph_supervisor import LangGraphSupervisorOrchestrator
+from server.domain.staff.langgraph_mesh import MultiAgentMeshOrchestrator
+from server.domain.staff.langgraph_supervisor import LangGraphSupervisorOrchestrator
 
 
 # --------------------------------------------------------------------------- #

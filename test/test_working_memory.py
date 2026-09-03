@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from backend.domain.memory import working_memory as wm_module
-from backend.domain.memory.working_memory import (
+from server.domain.memory import working_memory as wm_module
+from server.domain.memory.working_memory import (
     WORKING_MEMORY_MAX_NOTES,
     WorkingMemory,
 )
@@ -123,7 +123,7 @@ def test_serialization_roundtrip():
 
 
 def test_store_persists_and_reloads(tmp_path, monkeypatch):
-    from backend.infra import working_memory_store as store
+    from server.infra import working_memory_store as store
 
     # Force file persistence in a temp dir regardless of app settings.
     monkeypatch.setattr(store, "_storage_dir", lambda: tmp_path / "working_memory")
@@ -171,7 +171,7 @@ class _FakeMongoDb(dict):
 
 
 def test_mongo_persistence_roundtrip_and_read_through(monkeypatch):
-    from backend.infra import working_memory_store as store
+    from server.infra import working_memory_store as store
 
     db = _FakeMongoDb()
     backend = store.MongoWorkingMemoryPersistence(db)
@@ -201,7 +201,7 @@ def test_mongo_persistence_roundtrip_and_read_through(monkeypatch):
 
 
 def test_mongo_init_failure_falls_back_to_files(monkeypatch, tmp_path):
-    from backend.infra import working_memory_store as store
+    from server.infra import working_memory_store as store
 
     class _BrokenSettings:
         storage_backend = "mongo"
@@ -213,7 +213,7 @@ def test_mongo_init_failure_falls_back_to_files(monkeypatch, tmp_path):
     def _boom_mongo(*a, **k):
         raise RuntimeError("no mongo here")
 
-    import backend.api.settings as settings_module
+    import server.api.settings as settings_module
 
     monkeypatch.setattr(settings_module, "settings", _BrokenSettings())
     import pymongo
@@ -224,7 +224,7 @@ def test_mongo_init_failure_falls_back_to_files(monkeypatch, tmp_path):
 
 
 def test_store_returns_safe_defaults_when_disabled(monkeypatch):
-    from backend.infra import working_memory_store as store
+    from server.infra import working_memory_store as store
 
     # The store imported the flag into its own namespace; patch it there.
     monkeypatch.setattr(store, "WORKING_MEMORY_ENABLED", False)

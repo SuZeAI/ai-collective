@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from backend.domain.tools.mcp_toolkit import (
+from server.domain.tools.mcp_toolkit import (
     MCPServerSpec,
     parse_allowed_tools,
     parse_args,

@@ -7,14 +7,14 @@ import tempfile
 
 import pytest
 
-from backend.app.service.rag_retrieval import RagRetrievalService
-from backend.domain.memory.bm25 import bm25_rank
-from backend.domain.memory.knowledge_graph import (
+from server.app.service.rag_retrieval import RagRetrievalService
+from server.domain.memory.bm25 import bm25_rank
+from server.domain.memory.knowledge_graph import (
     ConversationKnowledgeGraph,
     GraphEdge,
     GraphNode,
 )
-from backend.infra.llm.embeddings import HashingEmbeddingProvider
+from server.infra.llm.embeddings import HashingEmbeddingProvider
 
 
 def _has(mod: str) -> bool:
@@ -73,7 +73,7 @@ def test_rag_neo4j_graph_expansion():
 
 def test_rag_hybrid_combines_vector_and_graph():
     emb = HashingEmbeddingProvider(dim=64)
-    from backend.infra.vector_store.faiss_store import FaissVectorStore
+    from server.infra.vector_store.faiss_store import FaissVectorStore
 
     vs = FaissVectorStore(dim=64, path=tempfile.mkdtemp())
     svc = RagRetrievalService(
@@ -102,7 +102,7 @@ def test_rag_unconfigured_vector_falls_back_to_bm25():
 def test_rag_qdrant_mode_with_faiss_store():
     # Exercise the vector path (FAISS stands in for any ANN store).
     emb = HashingEmbeddingProvider(dim=64)
-    from backend.infra.vector_store.faiss_store import FaissVectorStore
+    from server.infra.vector_store.faiss_store import FaissVectorStore
 
     vs = FaissVectorStore(dim=64, path=tempfile.mkdtemp())
     svc = RagRetrievalService(

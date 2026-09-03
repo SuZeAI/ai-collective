@@ -10,8 +10,8 @@ import asyncio
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
-from backend.api.settings import settings
-from backend.infra.llm.middleware import (
+from server.api.settings import settings
+from server.infra.llm.middleware import (
     CostBudgetMiddleware,
     GuardrailMiddleware,
     LongTermMemoryMiddleware,
@@ -20,7 +20,7 @@ from backend.infra.llm.middleware import (
     ToolResultCacheMiddleware,
     build_default_middleware,
 )
-from backend.infra.llm.middleware import config as middleware_config
+from server.infra.llm.middleware import config as middleware_config
 
 
 class _Request:
@@ -223,7 +223,7 @@ def test_new_middleware_enabled_when_configured(monkeypatch):
 # --------------------------------------------------------------------------- #
 
 def test_ltm_middleware_noop_without_scope():
-    from backend.infra import long_term_memory_store as ltm
+    from server.infra import long_term_memory_store as ltm
 
     mw = LongTermMemoryMiddleware()
     # No scope bound → no-op regardless of enablement.

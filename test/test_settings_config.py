@@ -12,8 +12,8 @@ from __future__ import annotations
 import yaml
 from pydantic import BaseModel
 
-from backend.api.config_loader import config_file_path, expand_env, load_config
-from backend.api.settings import Settings, StaffSettings
+from server.api.config_loader import config_file_path, expand_env, load_config
+from server.api.settings import Settings, StaffSettings
 
 
 def _raw_config() -> dict:
@@ -108,7 +108,7 @@ def test_os_environment_no_longer_overrides_settings(monkeypatch):
 
 
 def test_nested_and_flat_access_agree():
-    from backend.api.settings import settings
+    from server.api.settings import settings
 
     assert settings.jwt_secret_key == settings.auth.jwt_secret_key
     assert settings.subagent_max_concurrent == settings.staff.subagent_max_concurrent

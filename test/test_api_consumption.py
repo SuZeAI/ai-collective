@@ -18,8 +18,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from conftest import API, unique
-from backend.api.deps import _monitoring_stores
-from backend.domain.models import TokenUsageRecord
+from server.api.deps import _monitoring_stores
+from server.domain.models import TokenUsageRecord
 
 
 def _seed_usage_record(user_id: str, input_tokens: int, output_tokens: int) -> None:

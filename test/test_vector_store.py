@@ -12,14 +12,14 @@ import importlib.util
 
 import pytest
 
-from backend.app.service.long_term_memory_service import LongTermMemoryService
-from backend.domain.memory.long_term_memory import MemoryScope
-from backend.infra.llm.embeddings import HashingEmbeddingProvider
-from backend.infra.repositories.json_long_term_memory import (
+from server.app.service.long_term_memory_service import LongTermMemoryService
+from server.domain.memory.long_term_memory import MemoryScope
+from server.infra.llm.embeddings import HashingEmbeddingProvider
+from server.infra.repositories.json_long_term_memory import (
     JsonLongTermMemoryRepository,
 )
-from backend.infra.repositories.json_store import JsonFileStore
-from backend.infra.vector_store.base import VectorHit, payload_matches, scope_payload
+from server.infra.repositories.json_store import JsonFileStore
+from server.infra.vector_store.base import VectorHit, payload_matches, scope_payload
 
 
 def _has(mod: str) -> bool:
@@ -39,16 +39,16 @@ def test_scope_payload_and_match():
 
 
 def test_factory_none_returns_none(monkeypatch):
-    from backend.api.settings import settings
-    from backend.infra.vector_store import create_vector_store
+    from server.api.settings import settings
+    from server.infra.vector_store import create_vector_store
 
     monkeypatch.setattr(settings.vector_store, "backend", "none")
     assert create_vector_store(dim=64) is None
 
 
 def test_factory_unknown_backend_degrades(monkeypatch):
-    from backend.api.settings import settings
-    from backend.infra.vector_store import create_vector_store
+    from server.api.settings import settings
+    from server.infra.vector_store import create_vector_store
 
     monkeypatch.setattr(settings.vector_store, "backend", "does-not-exist")
     assert create_vector_store(dim=64) is None
@@ -68,7 +68,7 @@ class _FakeStore:
 
     def search(self, vector, *, top_k, scope):
         self.searched = True
-        from backend.domain.memory.vectors import cosine_dense
+        from server.domain.memory.vectors import cosine_dense
 
         scored = [
             (cosine_dense(vector, v), rid)
@@ -108,7 +108,7 @@ def test_ltm_recall_uses_vector_store(tmp_path):
 
 @pytest.mark.skipif(not _has("faiss"), reason="faiss not installed")
 def test_faiss_roundtrip(tmp_path):
-    from backend.infra.vector_store.faiss_store import FaissVectorStore
+    from server.infra.vector_store.faiss_store import FaissVectorStore
 
     s = FaissVectorStore(dim=8, path=str(tmp_path), overfetch=5)
     s.upsert("a", [1, 0, 0, 0, 0, 0, 0, 0], MemoryScope(owner_id="u1"))

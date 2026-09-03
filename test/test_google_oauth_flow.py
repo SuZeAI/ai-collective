@@ -11,7 +11,7 @@ from types import SimpleNamespace
 
 import googleapiclient.discovery
 
-from backend.api.routers import auth as auth_module
+from server.api.routers import auth as auth_module
 
 
 # ── _get_token_path ──────────────────────────────────────────────────────────

@@ -7,14 +7,14 @@ from __future__ import annotations
 
 import asyncio
 
-from backend.domain.memory.vectors import (
+from server.domain.memory.vectors import (
     cosine,
     cosine_dense,
     lexical_overlap,
     text_vector,
     tokenize,
 )
-from backend.infra.llm.embeddings import (
+from server.infra.llm.embeddings import (
     HashingEmbeddingProvider,
     get_embedding_provider,
 )
@@ -55,8 +55,8 @@ def test_hashing_embedding_is_deterministic_and_normalised():
 
 
 def test_get_embedding_provider_disabled_by_default(monkeypatch):
-    from backend.api.settings import settings
-    from backend.infra.llm import embeddings as emb
+    from server.api.settings import settings
+    from server.infra.llm import embeddings as emb
 
     monkeypatch.setattr(settings.embedding, "enabled", False)
     emb.reset_embedding_provider_for_tests()
@@ -64,8 +64,8 @@ def test_get_embedding_provider_disabled_by_default(monkeypatch):
 
 
 def test_get_embedding_provider_hashing_when_enabled(monkeypatch):
-    from backend.api.settings import settings
-    from backend.infra.llm import embeddings as emb
+    from server.api.settings import settings
+    from server.infra.llm import embeddings as emb
 
     monkeypatch.setattr(settings.embedding, "enabled", True)
     monkeypatch.setattr(settings.embedding, "provider", "hashing")

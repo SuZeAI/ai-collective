@@ -1,4 +1,4 @@
-from backend.domain.staff.staff_state import (
+from server.domain.staff.staff_state import (
     StaffState,
     append_assistant_turn,
     append_user_turn,

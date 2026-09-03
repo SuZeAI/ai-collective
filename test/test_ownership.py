@@ -9,7 +9,7 @@ one-endpoint bug.
 """
 from __future__ import annotations
 
-from backend.domain.models import (
+from server.domain.models import (
     DEFAULT_OWNER_ID,
     GUEST_OWNER_ID,
     can_delete,
