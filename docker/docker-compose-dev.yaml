@@ -192,10 +192,9 @@ services:
     volumes:
       - ../backend:/app/backend
       - ../secrets:/app/secrets
-      # storage/ is the committed read-only seed catalog (SEED_DIR);
-      # local_database/ is the per-machine live store (STORAGE_DIR, gitignored).
+      # storage/seed/ is the committed read-only seed catalog (SEED_DIR);
+      # storage/runtime/ is the per-machine live store (STORAGE_DIR, gitignored).
       - ../storage:/app/storage
-      - ../local_database:/app/local_database
       - ../logs:/app/logs
       - ../config.yml:/app/config.yml:ro
       - ../mcp.yml:/app/mcp.yml:ro
@@ -221,9 +220,9 @@ services:
       - SANDBOX_PROVISIONER_URL=${SANDBOX_PROVISIONER_URL:-}
       - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-60}
       - SANDBOX_WORKSPACE=/app/sandbox_workspace
-      # Live store lives in local_database/ (gitignored), separate from the
-      # committed storage/ seed catalog. Used by json mode + json fallbacks.
-      - STORAGE_DIR=/app/local_database
+      # Live store lives in storage/runtime/ (gitignored), separate from the
+      # committed storage/seed/ catalog. Used by json mode + json fallbacks.
+      - STORAGE_DIR=/app/storage/runtime
       # File byte-store (FILE_STORAGE_BACKEND / MINIO_*) is delivered via env_file
       # (../.env) so it is NOT shadowed by interpolation defaults here. For s3
       # durability: set FILE_STORAGE_BACKEND=s3 + MINIO_ENABLED=true in .env and

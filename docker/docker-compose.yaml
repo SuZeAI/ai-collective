@@ -174,10 +174,9 @@ services:
     container_name: ai-collective-backend
     command: uv run uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --workers ${BACKEND_WORKERS:-4}
     volumes:
-      # storage/ is the committed read-only seed catalog (SEED_DIR);
-      # local_database/ is the per-machine live store (STORAGE_DIR, gitignored).
+      # storage/seed/ is the committed read-only seed catalog (SEED_DIR);
+      # storage/runtime/ is the per-machine live store (STORAGE_DIR, gitignored).
       - ../storage:/app/storage
-      - ../local_database:/app/local_database
       - ../logs:/app/logs
       - ../config.yml:/app/config.yml:ro
       - ../mcp.yml:/app/mcp.yml:ro
@@ -197,9 +196,9 @@ services:
       - SANDBOX_PROVISIONER_URL=${SANDBOX_PROVISIONER_URL:-}
       - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-60}
       - SANDBOX_WORKSPACE=/app/sandbox_workspace
-      # Live store lives in local_database/ (gitignored), separate from the
-      # committed storage/ seed catalog. Used by json mode + json fallbacks.
-      - STORAGE_DIR=/app/local_database
+      # Live store lives in storage/runtime/ (gitignored), separate from the
+      # committed storage/seed/ catalog. Used by json mode + json fallbacks.
+      - STORAGE_DIR=/app/storage/runtime
       # File byte-store: local (host volume) | s3 (MinIO). Empty → auto (s3 when
       # MINIO_ENABLED, else local). s3 restores files on restart. See .env.template.
       - FILE_STORAGE_BACKEND=${FILE_STORAGE_BACKEND:-}
