@@ -1,6 +1,6 @@
 FROM node:20-alpine AS base
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY ui/package.json ui/package-lock.json ./
 RUN npm ci
 
 FROM base AS dev
@@ -8,7 +8,7 @@ EXPOSE 8080
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8080"]
 
 FROM base AS builder
-COPY . .
+COPY ui/ .
 RUN npm run build
 
 FROM node:20-alpine AS prod
