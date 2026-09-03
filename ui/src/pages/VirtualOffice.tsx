@@ -61,7 +61,7 @@ export default function VirtualOffice() {
 
   // Office-map animation layer (presentation only, derived from engine events).
   const [staffRealtimeStates, setStaffRealtimeStates] = useState<Record<string, StaffState>>({});
-  
+
   // Direct chat with individual staff
   const [directChatInput, setDirectChatInput] = useState("");
   const [directChatMessages, setDirectChatMessages] = useState<Record<string, { sender: "user" | "staff"; text: string }[]>>({});
@@ -243,7 +243,7 @@ export default function VirtualOffice() {
       let status = "idle";
       let emote = "💤";
       let message = "";
-      
+
       if (isThinking) {
         status = "thinking";
         emote = "💭";
@@ -485,7 +485,7 @@ export default function VirtualOffice() {
 
   return (
     <div className="w-full h-full relative overflow-hidden transition-colors duration-200 bg-[#f8fafc] text-slate-900 dark:bg-[#161822] dark:text-slate-200 select-none">
-      
+
       {/* 2D Grid Map Canvas Container (Centrally aligned, scrollable if window is small) */}
       <div className="w-full h-full overflow-auto scrollbar-thin relative z-10 flex items-center justify-center p-4">
         <div
@@ -758,7 +758,7 @@ export default function VirtualOffice() {
               <Layers className="w-3.5 h-3.5" />
               Task Board
             </h3>
-            
+
             {/* Task Creator */}
             <div className="space-y-2.5 mb-4 border-b border-slate-200 dark:border-slate-800 pb-3">
               <input
@@ -813,7 +813,7 @@ export default function VirtualOffice() {
                         <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping shrink-0" />
                       )}
                     </div>
-                    
+
                     {/* Active Controls inside selection */}
                     {isActive && (
                       <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-200 dark:border-slate-800/50 pt-2">
@@ -857,7 +857,7 @@ export default function VirtualOffice() {
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                
+
                 {/* Staff statistics info */}
                 <div className="space-y-1.5 text-[10px] font-mono mb-2 border-b border-slate-200 dark:border-slate-800/80 pb-2 shrink-0">
                   <div>
@@ -962,7 +962,7 @@ export default function VirtualOffice() {
               <MessageSquare className="w-3.5 h-3.5" />
               Office Chat
             </h3>
-            
+
             {/* Chat Scrolling logs */}
             <div className="flex-1 overflow-y-auto space-y-2.5 pb-2.5 scrollbar-thin text-xs pr-1">
               {selectedTaskId && messages[selectedTaskId] ? (
@@ -1001,7 +1001,7 @@ export default function VirtualOffice() {
               <Layers className="w-3.5 h-3.5" />
               Layout Editor
             </button>
-            
+
             <div className="bg-white/95 dark:bg-[#0c0f16]/90 border border-slate-200 dark:border-slate-800/80 p-3 rounded-xl shadow-2xl flex items-center gap-3 w-64 backdrop-blur-md text-slate-900 dark:text-slate-200 transition-colors">
               <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center border border-teal-500/20">
                 <Building className="w-4 h-4 text-teal-600 dark:text-teal-400" />

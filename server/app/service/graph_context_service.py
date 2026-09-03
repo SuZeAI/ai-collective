@@ -39,7 +39,7 @@ _NLP_INIT_ATTEMPTED = False
 
 _LLM_ENTITY_SYSTEM = """\
 You are an expert knowledge graph builder.
-Given a conversation message, extract all meaningful **named entities** 
+Given a conversation message, extract all meaningful **named entities**
 (people, organizations, locations, products, concepts, technologies, events, etc.).
 
 Return ONLY a valid JSON array. Each element must have:
@@ -62,7 +62,7 @@ Given a conversation message, identify **relationships** between entities.
 Return ONLY a valid JSON array. Each element must have:
 - "src": source entity text (string)
 - "src_type": entity category of source
-- "dst": destination entity text (string)  
+- "dst": destination entity text (string)
 - "dst_type": entity category of destination
 - "relation": relationship label (e.g. "works_for", "uses", "manages", "created_by", "depends_on", "is_a", "part_of", "related_to")
 - "confidence": 0.0-1.0
@@ -294,11 +294,11 @@ class GraphContextService:
         message_chunk_ids = [chunk.id for chunk in chunks]
         if message_chunk_ids:
             message_node.chunk_ids = _merge_unique(message_node.chunk_ids, message_chunk_ids)
-        
+
         for entity in entities:
             entity_key = f"{entity.get('type', 'entity')}:{entity.get('value', '').lower()}"
             chunk_ids = list(dict.fromkeys(entity_to_chunks.get(entity_key, [])))
-            
+
             node = self._upsert_node(
                 graph,
                 GraphNode(
@@ -336,7 +336,7 @@ class GraphContextService:
                 list(dict.fromkeys(entity_to_chunks.get(src_key, []))),
                 list(dict.fromkeys(entity_to_chunks.get(dst_key, []))),
             )
-            
+
             src_node = self._upsert_node(
                 graph,
                 GraphNode(

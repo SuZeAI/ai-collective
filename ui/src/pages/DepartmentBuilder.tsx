@@ -265,7 +265,7 @@ export default function DepartmentBuilder() {
 
   const runDepartmentTest = async () => {
     if (!testingDepartment || isTesting) return;
-    
+
     if (testingDepartment.staff.length === 0) {
       setTestError("This department has no staff to test.");
       return;
@@ -308,7 +308,7 @@ export default function DepartmentBuilder() {
         // Handle different event types
         const eventType = event.type;
         const staffId = event.agent_id || event.staffId || event.agent_name || event.staffName;
-        
+
         // Handle thinking state (LLM request start)
         if (eventType === "llm_request_start") {
           if (!staffId) continue;
@@ -817,7 +817,7 @@ export default function DepartmentBuilder() {
                         </motion.div>
                       );
                     })}
-                    
+
                     {/* Thinking indicators for test */}
                     {testThinkingStaff.size > 0 && (
                       Array.from(testThinkingStaff).map((staffId) => {

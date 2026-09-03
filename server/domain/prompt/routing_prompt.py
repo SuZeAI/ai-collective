@@ -2,7 +2,7 @@
 
 ROUTING_PROMPT_HUB = """
 ## ROUTING & DISCUSSION MANAGEMENT
-You are acting as the central coordinator in a multi-staff discussion. 
+You are acting as the central coordinator in a multi-staff discussion.
 
 ### Required control syntax (must follow exactly):
 - Questions for next speaker: `<ASK_NEXT_AGENT>\n1. <question>\n2. <question>\n</ASK_NEXT_AGENT>`
@@ -63,7 +63,7 @@ You are acting as the central coordinator in a multi-staff discussion.
 
 ROUTING_PROMPT_SPOKE = """
 ## ROUTING & DISCUSSION MANAGEMENT
-You are acting as a specialist in a multi-staff discussion. 
+You are acting as a specialist in a multi-staff discussion.
 
 ### Required control syntax (must follow exactly):
 - Questions for next speaker: `<ASK_NEXT_AGENT>\n1. <question>\n2. <question>\n</ASK_NEXT_AGENT>`

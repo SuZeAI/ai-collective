@@ -11,18 +11,18 @@ ENDPOINT = "/api/v1/llm/agent-graph/run-stream"
 
 async def test_stream():
     """Test streaming endpoint"""
-    
+
     # Prepare request payload
     payload = {
         "user_input": "Explain quantum computing in simple terms",
         "agents": ["agent_1", "agent_2"],  # Replace with actual agent IDs
         "max_rounds": 6
     }
-    
+
     print(f"Calling {BASE_URL}{ENDPOINT}")
     print(f"Payload: {json.dumps(payload, indent=2)}")
     print("-" * 80)
-    
+
     try:
         async with httpx.AsyncClient(timeout=300.0) as client:
             async with client.stream(
@@ -32,7 +32,7 @@ async def test_stream():
             ) as response:
                 print(f"Status: {response.status_code}")
                 print("-" * 80)
-                
+
                 if response.status_code == 200:
                     # Process Server-Sent Events
                     async for line in response.aiter_lines():
@@ -50,7 +50,7 @@ async def test_stream():
                 else:
                     print(f"Error: {response.status_code}")
                     print(await response.atext())
-                    
+
     except Exception as e:
         print(f"Error: {e}")
 
@@ -58,17 +58,17 @@ async def test_stream():
 def test_stream_sync():
     """Synchronous test using requests library"""
     import requests
-    
+
     payload = {
         "user_input": "Analyze the golden price market and provide insights",
         "agents": ["a1", "a2", "a3"],  # Replace with actual agent IDs
         "max_rounds": 6
     }
-    
+
     print(f"Calling {BASE_URL}{ENDPOINT} (sync)")
     print(f"Payload: {json.dumps(payload, indent=2)}")
     print("-" * 80)
-    
+
     try:
         response = requests.post(
             f"{BASE_URL}{ENDPOINT}",
@@ -76,10 +76,10 @@ def test_stream_sync():
             stream=True,
             timeout=300
         )
-        
+
         print(f"Status: {response.status_code}")
         print("-" * 80)
-        
+
         if response.status_code == 200:
             for line in response.iter_lines():
                 if line:
@@ -96,14 +96,14 @@ def test_stream_sync():
         else:
             print(f"Error: {response.status_code}")
             print(response.text)
-            
+
     except Exception as e:
         print(f"Error: {e}")
 
 
 if __name__ == "__main__":
     import sys
-    
+
     # Check if requests or httpx is available
     try:
         import requests

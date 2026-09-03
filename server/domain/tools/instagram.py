@@ -95,7 +95,7 @@ def _compute_relevance(topic: str, text: str, hashtags: List[str]) -> float:
 
 def _parse_date(item: Dict[str, Any]) -> Optional[str]:
     """Parse date from Instagram item to YYYY-MM-DD format.
-    
+
     Handles taken_at as ISO string or unix timestamp.
     """
     ts = item.get("taken_at")

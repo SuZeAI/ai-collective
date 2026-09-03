@@ -26,31 +26,31 @@ Trong mỗi node function, gọi `get_stream_writer()` để gửi real-time eve
 ```python
 async def node(state: MultiAgentState):
     stream_writer = get_stream_writer()
-    
+
     # Stream: Start event
     stream_writer({
         "type": "agent_start",
         "agent_name": agent.name,
         "turn": turn_number,
     })
-    
+
     # ... Xử lý logic ...
-    
+
     # Stream: Context built
     stream_writer({
         "type": "context_retrieved",
         "node_ids": pack.node_ids,
         "chunk_ids": pack.chunk_ids,
     })
-    
+
     # ... LLM processing ...
-    
+
     # Stream: Complete
     stream_writer({
         "type": "turn_complete",
         "turn": new_turn,
     })
-    
+
     return updated_state
 ```
 
@@ -66,7 +66,7 @@ strings, so the wire format below is authoritative across all 5 topologies
 - **agent_turn_start**: Agent turn starts with round info (ring/tree/supervisor/mesh)
 - **context_building**: Đang build context
 - **context_retrieved**: Context hoàn tất với knowledge graph info
-- **llm_request_start**: LLM request bắt đầu 
+- **llm_request_start**: LLM request bắt đầu
 - **llm_response_complete**: LLM response nhận được
 - **message_ingested**: Thông báo ingested vào knowledge graph
 - **turn_complete**: Turn hoàn tất với turn object
@@ -98,16 +98,16 @@ async for event in orchestrator.run_stream(
     max_rounds=5,
 ):
     print(f"Event type: {event.get('type')}")
-    
+
     if event["type"] == "agent_start":
         print(f"Agent {event['agent_name']} starting turn {event['turn']}")
-    
+
     elif event["type"] == "context_retrieved":
         print(f"Retrieved {len(event.get('node_ids', []))} nodes")
-    
+
     elif event["type"] == "llm_request_start":
         print(f"Calling LLM with {event['context_length']} chars")
-    
+
     elif event["type"] == "turn_complete":
         turn = event.get('turn')
         print(f"Turn complete: {turn.agent_name} -> {turn.content[:100]}")
@@ -124,7 +124,7 @@ async def stream_agent_response(request: dict):
         async for event in orchestrator.run_stream(...):
             # Gửi JSON event
             yield f"data: {json.dumps(event)}\n\n"
-    
+
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 ```
 
@@ -179,7 +179,7 @@ async for event in orchestrator.run_stream(...):
         progress[event["agent_name"]] = "processing"
     elif event["type"] == "turn_complete":
         progress[event["turn"].agent_name] = "done"
-    
+
     print(f"Progress: {progress}")
 ```
 

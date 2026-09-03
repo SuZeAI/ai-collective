@@ -54,9 +54,9 @@ function DocSidebar({
   const nav = NAV_STRUCTURE.map((s) => ({
     ...s,
     title: navT.sections[s.id] ?? s.id,
-    items: s.items.map((id) => ({ 
-      id, 
-      title: navT.items[id] ?? localTitles[id]?.[language] ?? id 
+    items: s.items.map((id) => ({
+      id,
+      title: navT.items[id] ?? localTitles[id]?.[language] ?? id
     })),
   }));
 
@@ -200,9 +200,9 @@ export default function Docs() {
   };
 
   const allItems = NAV_STRUCTURE.flatMap((s) =>
-    s.items.map((id) => ({ 
-      id, 
-      title: navT.items[id] ?? localTitles[id]?.[language] ?? id 
+    s.items.map((id) => ({
+      id,
+      title: navT.items[id] ?? localTitles[id]?.[language] ?? id
     }))
   );
   const currentIdx = allItems.findIndex((i) => i.id === activeId);

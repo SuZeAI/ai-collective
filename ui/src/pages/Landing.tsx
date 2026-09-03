@@ -1052,10 +1052,10 @@ export default function Landing() {
           <Link to="/" className="flex items-center gap-2 shrink-0 group">
             {/* Spider logo - original blue/green color */}
             <div className="relative w-6 h-6 flex items-center justify-center">
-              <img 
-                src="/spider.png" 
-                alt="AI Collective Logo" 
-                className="h-6 w-6 object-contain opacity-95" 
+              <img
+                src="/spider.png"
+                alt="AI Collective Logo"
+                className="h-6 w-6 object-contain opacity-95"
               />
             </div>
             <span className="font-serif text-lg tracking-tight font-medium text-foreground">AI Collective</span>
@@ -1473,7 +1473,7 @@ export default function Landing() {
               </div>
 
               <hr className="border-[#e8e6dc] dark:border-[#2e2e2d]" />
-              
+
               <div className="flex flex-col gap-3 pt-1">
                 <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="text-foreground hover:text-accent transition-colors py-1">
                   {t.header.login}
@@ -1967,7 +1967,7 @@ export default function Landing() {
                   </g>
 
                   {/* Staff Mesh Nodes */}
-                  
+
                   {/* 1. Company node */}
                   <g className="cursor-pointer">
                     <circle cx="200" cy="90" r="10" fill="currentColor" />
@@ -2047,7 +2047,7 @@ export default function Landing() {
 
                       {/* Abdomen */}
                       <ellipse cx="0" cy="4" rx="6" ry="7.5" fill="currentColor" />
-                      
+
                       {/* Accent color dot on the back */}
                       <circle cx="0" cy="3" r="2" fill="hsl(var(--accent))" />
                     </g>

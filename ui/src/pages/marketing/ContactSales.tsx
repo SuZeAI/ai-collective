@@ -649,12 +649,12 @@ export default function ContactSales() {
                                   {language === "vi" ? "Tìm câu trả lời tại Trung tâm Hỗ trợ" : "Find Answers in the Support Center"}
                                 </h3>
                                 <p className="text-sm text-muted-foreground leading-relaxed">
-                                  {language === "vi" 
+                                  {language === "vi"
                                     ? "Đội ngũ kinh doanh của chúng tôi không thể xử lý các vấn đề kỹ thuật, báo cáo lỗi hoặc yêu cầu thanh toán. Vui lòng truy cập Trung tâm Hỗ trợ của chúng tôi để tra cứu nhanh chóng:"
                                     : "Our sales team is unable to assist with technical issues, bug reports, or billing. Please visit our unified Support Center to find quick self-serve answers:"}
                                 </p>
                               </div>
-                              
+
                               <div className="pt-2">
                                 <Link
                                   to="/support"

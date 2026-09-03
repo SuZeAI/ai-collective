@@ -74,7 +74,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
     Orchestrator for multi-staff_member mesh topology where one central staff_member
     connects bidirectionally to all other staff. The conditional function
     determines which staff_member speaks next based on conversation content.
-    
+
     Topology: 1 hub staff_member ↔ N spoke staff
     Flow: Hub → Agent1 → Agent2 or Hub or END
     """
@@ -119,13 +119,13 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
     ) -> GraphRunResult:
         """
         Execute multi-staff_member mesh graph where all staff can connect to each other.
-        
+
         Args:
             user_input: Initial input to start the discussion
             staff: List of staff. First staff_member acts as hub/starter.
             llm: LLM provider for staff_member responses
             max_rounds: Maximum discussion rounds before forced stop
-            
+
         Returns:
             GraphRunResult with conversation turns and final response
         """
@@ -853,19 +853,19 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
     ) -> str:
         """
         Conditional function to determine which staff_member should speak next.
-        
+
         Decision logic:
         1. If max_rounds reached → END
         2. Check if last message contains end-of-discussion signal → END
         3. Extract next staff_member name from last message or use round-robin
         4. Otherwise → route to next staff_member in round-robin fashion
-        
+
         Args:
             state: Current graph state
             current_staff_name: Name of staff_member who just spoke
             max_rounds: Maximum rounds allowed
             all_staff_names: List of all available staff
-            
+
         Returns:
             Name of next staff_member to speak or "end"
         """
@@ -931,12 +931,12 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
     ) -> str | None:
         """
         Try to extract target staff_member name from message content.
-        
+
         Args:
             message: Message content
             staff_names: List of all staff_member names
             current_staff_name: Current staff_member's name
-            
+
         Returns:
             Target staff_member name if found, else None
         """
@@ -1333,26 +1333,25 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
     ) -> str:
         """
         Get next staff_member in round-robin fashion, biased towards hub.
-        
+
         Args:
             current_staff_name: Current staff_member
             staff_names: All available staff
             hub_staff_name: Hub staff_member name
-            
+
         Returns:
             Next staff_member name
         """
         current_idx = staff_names.index(current_staff_name)
-        
+
         if current_staff_name != hub_staff_name:
             return hub_staff_name
-        
+
         next_idx = (current_idx + 1) % len(staff_names)
         next_staff = staff_names[next_idx]
-        
+
         if next_staff == hub_staff_name:
             next_idx = (next_idx + 1) % len(staff_names)
             next_staff = staff_names[next_idx]
-        
-        return next_staff
 
+        return next_staff

@@ -55,7 +55,7 @@ class StaffService:
 
     def get_staff_tools(self, staff_id: str) -> dict[str, BaseToolkit]:
         """Get bound tools for all of staff's skills.
-        
+
         Returns:
             Dict mapping skill_id to tool instance
         """

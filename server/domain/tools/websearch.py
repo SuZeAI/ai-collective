@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from server.domain.tools.base import BaseToolkit
 
 from langchain_community.tools import DuckDuckGoSearchRun
-from langchain_community.utilities import DuckDuckGoSearchAPIWrapper 
+from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 
 class WebSearchItem(BaseModel):
     title: str

@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Search, BookOpen, Terminal, CreditCard, ShieldCheck, 
-  ArrowLeft, X, ThumbsUp, ThumbsDown, ChevronRight, 
-  ExternalLink, Mail, MessageSquare, Landmark, HelpCircle 
+import {
+  Search, BookOpen, Terminal, CreditCard, ShieldCheck,
+  ArrowLeft, X, ThumbsUp, ThumbsDown, ChevronRight,
+  ExternalLink, Mail, MessageSquare, Landmark, HelpCircle
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -367,7 +367,7 @@ const CATEGORY_ICONS: Record<Category, React.ComponentType<{ className?: string 
 
 export default function SupportCenter() {
   const { language } = useLanguage();
-  
+
   // Resolve localized text strings
   const langKey = (language === "en" || language === "vi" || language === "zh" || language === "ja") ? language : "en";
   const localizedText = LOCALES_DATA[langKey];
@@ -376,7 +376,7 @@ export default function SupportCenter() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Category | "all">("all");
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  
+
   // Feedback state for active article
   const [feedbackGiven, setFeedbackGiven] = useState<boolean>(false);
 
@@ -384,8 +384,8 @@ export default function SupportCenter() {
   const filteredArticles = useMemo(() => {
     return articlesList.filter((art) => {
       const matchesCategory = selectedCategory === "all" || art.category === selectedCategory;
-      const matchesSearch = 
-        art.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      const matchesSearch =
+        art.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         art.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
         art.content.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
@@ -404,7 +404,7 @@ export default function SupportCenter() {
 
   return (
     <div className="min-h-screen bg-[#faf9f5] dark:bg-[#141413] text-foreground font-sans transition-colors duration-300">
-      
+
       {/* ─── NAVBAR ──────────────────────────────────────────────────────── */}
       <div className="border-b border-border/60 bg-background/90 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -435,7 +435,7 @@ export default function SupportCenter() {
           <h1 className="text-4xl md:text-5xl font-serif font-medium tracking-tight">
             {localizedText.subtitle}
           </h1>
-          
+
           {/* Search bar with dynamic animation */}
           <div className="max-w-2xl mx-auto relative mt-8">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -447,7 +447,7 @@ export default function SupportCenter() {
               className="w-full h-13 pl-12 pr-4 text-base rounded-xl border border-border/80 bg-card shadow-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-all"
             />
             {searchQuery && (
-              <button 
+              <button
                 onClick={() => setSearchQuery("")}
                 className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground"
               >
@@ -469,8 +469,8 @@ export default function SupportCenter() {
                 key={catKey}
                 onClick={() => setSelectedCategory(isSelected ? "all" : catKey)}
                 className={`flex flex-col items-center justify-center p-5 rounded-xl border transition-all text-center gap-3 group relative cursor-pointer ${
-                  isSelected 
-                    ? "border-accent bg-accent/5 shadow-sm" 
+                  isSelected
+                    ? "border-accent bg-accent/5 shadow-sm"
                     : "border-border/60 bg-card hover:border-accent/40 hover:shadow-sm"
                 }`}
               >
@@ -494,12 +494,12 @@ export default function SupportCenter() {
       {/* ─── CONTENT GRID ──────────────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-6 py-12">
         <div className="grid md:grid-cols-12 gap-8 items-start">
-          
+
           {/* Main Articles List */}
           <div className="md:col-span-8 space-y-6">
             <div className="flex items-center justify-between border-b border-border/60 pb-3">
               <h2 className="text-xl font-serif font-medium">
-                {selectedCategory === "all" ? localizedText.allArticlesTitle : localizedText.categories[selectedCategory as Category]} 
+                {selectedCategory === "all" ? localizedText.allArticlesTitle : localizedText.categories[selectedCategory as Category]}
                 {` (${filteredArticles.length})`}
               </h2>
               {selectedCategory !== "all" && (
@@ -557,7 +557,7 @@ export default function SupportCenter() {
 
           {/* Sidebar: Popular & Links */}
           <div className="md:col-span-4 space-y-6">
-            
+
             {/* Popular Articles */}
             <div className="bg-card border border-border/60 rounded-xl p-5 space-y-4 shadow-sm">
               <h3 className="font-serif font-medium text-lg border-b border-border/40 pb-2 flex items-center gap-2">
@@ -584,8 +584,8 @@ export default function SupportCenter() {
                 {localizedText.docsLink}
               </h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {language === "vi" 
-                  ? "Tru cập kho tài liệu lập trình viên đầy đủ bao gồm API reference và các mô hình điều phối." 
+                {language === "vi"
+                  ? "Tru cập kho tài liệu lập trình viên đầy đủ bao gồm API reference và các mô hình điều phối."
                   : "Access full developer documentation, guides, API parameters, and orchestration models."}
               </p>
               <a
@@ -652,7 +652,7 @@ export default function SupportCenter() {
               transition={{ type: "spring", damping: 26, stiffness: 220 }}
               className="fixed top-0 right-0 bottom-0 z-50 w-full max-w-2xl bg-card border-l border-border/80 shadow-2xl flex flex-col h-full"
             >
-              
+
               {/* Drawer Header */}
               <div className="h-16 border-b border-border/60 flex items-center justify-between px-6 bg-background/60 backdrop-blur-sm sticky top-0">
                 <div className="flex items-center gap-2">
@@ -709,10 +709,10 @@ export default function SupportCenter() {
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   {localizedText.wasHelpful}
                 </span>
-                
+
                 <AnimatePresence mode="wait">
                   {!feedbackGiven ? (
-                    <motion.div 
+                    <motion.div
                       key="feedback-actions"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}

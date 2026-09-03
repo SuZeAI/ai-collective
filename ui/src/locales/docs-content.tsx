@@ -422,7 +422,7 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
       <div>
         <H1>{lang === "vi" ? "Thử nghiệm (Playground)" : lang === "zh" ? "演练场" : lang === "ja" ? "プレイグラウンド" : "Playground"}</H1>
         <P>
-          {lang === "vi" 
+          {lang === "vi"
             ? "Môi trường Thử nghiệm (Playground) cung cấp một giao diện tương tác trực tiếp để thử nghiệm nhanh các tác nhân hoặc nhóm tác nhân AI của bạn mà không cần tạo và quản lý các nhiệm vụ (Tasks) chính thức."
             : "The Playground provides an interactive chat interface to quickly test your AI staff or departments without having to create and monitor formal executing tasks."}
         </P>

@@ -23,4 +23,3 @@ class EventType(str, Enum):
 	RUN_RESUMED = "run_resumed"
 	USER_INPUT_REQUEST = "user_input_request"
 	USER_INPUT_RECEIVED = "user_input_received"
-

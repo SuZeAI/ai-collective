@@ -304,7 +304,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <Building className="w-5 h-5 text-white" />
                 </div>
                 <div className="w-8 h-px bg-sidebar-border/40 my-1 shrink-0" />
-                <div 
+                <div
                   className="flex flex-col gap-2.5 w-full items-center max-h-[calc(100vh-220px)] overflow-y-auto [&::-webkit-scrollbar]:hidden py-1"
                   style={{ scrollbarWidth: "none" }}
                 >

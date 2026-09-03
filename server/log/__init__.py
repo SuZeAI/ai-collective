@@ -32,30 +32,30 @@ def get_logger(
 
     if name is None:
         name = "ai_collective"
-    
+
     logger = logging.getLogger(name)
     logger.setLevel(level)
-    
+
     if logger.handlers:
         return logger
-    
+
     formatter = logging.Formatter(
         fmt='%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
-    
+
     if console_output:
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(level)
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
-    
+
     if file_output:
         if log_file is None:
             log_dir = Path(__file__).parent.parent.parent / ".artifact" / "logs"
             log_dir.mkdir(parents=True, exist_ok=True)
             log_file = log_dir / "ai_collective.log"
-        
+
         file_handler = RotatingFileHandler(
             log_file,
             encoding='utf-8',
@@ -65,5 +65,5 @@ def get_logger(
         file_handler.setLevel(level)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
-    
+
     return logger

@@ -30,7 +30,7 @@ export default function Meetings() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Filters
   const [selectedStaffId, setSelectedStaffId] = useState("");
   const [selectedTaskId, setSelectedTaskId] = useState("");
