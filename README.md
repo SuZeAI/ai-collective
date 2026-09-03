@@ -159,7 +159,7 @@ sandbox:
 logging:
   log_level: info              # debug | info | warning | error
   log_console: true
-  log_file: false               # true → logs/ai_collective.log
+  log_file: false               # true → .artifact/logs/ai_collective.log
 
 auth:
   jwt_secret_key: ${JWT_SECRET_KEY}   # change in production!

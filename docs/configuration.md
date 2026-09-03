@@ -46,7 +46,7 @@ no longer do anything by themselves; they map onto the same fields shown here.
 | `app.vite_api_base_url` | `http://localhost:8000/api/v1` | API base URL baked into the Vite frontend build |
 | `logging.log_level` | `info` | `critical` \| `error` \| `warning` \| `info` \| `debug` |
 | `logging.log_console` | `true` | Log to stdout/stderr |
-| `logging.log_file` | `false` | Log to a rotating file under `logs/` |
+| `logging.log_file` | `false` | Log to a rotating file under `.artifact/logs/` |
 | `logging.log_max_bytes` | `10485760` (10 MB) | Rotating log file size cap |
 | `logging.log_backup_count` | `5` | Rotated log files kept |
 
