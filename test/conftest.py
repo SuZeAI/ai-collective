@@ -1,9 +1,9 @@
 """Shared pytest fixtures for backend API tests.
 
 IMPORTANT: the config override below must be written and pointed to via
-CONFIG_OVERRIDE_FILE here, at import time, before any ``backend.api.*`` module
-is imported anywhere in the test session. Settings (``backend/api/settings.py``)
-and the DI wiring (``backend/api/deps.py``) read config exactly once, at
+CONFIG_OVERRIDE_FILE here, at import time, before any ``server.api.*`` module
+is imported anywhere in the test session. Settings (``server/api/settings.py``)
+and the DI wiring (``server/api/deps.py``) read config exactly once, at
 module-import time, into process-wide singletons (``settings = Settings()``,
 ``@lru_cache`` service getters) -- setting it later has no effect. Pytest
 imports this conftest.py before collecting any test_*.py in this directory, so

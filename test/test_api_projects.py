@@ -4,7 +4,7 @@ Includes a regression test for a bug found during a manual full-system pass
 (2026-07-12): POST /projects read `req.plannerAgentId`, which does not exist
 on UpsertProjectRequest (the real field is `plannerStaffId`), so every single
 project create/update crashed with a 500. Fixed in
-backend/api/routers/projects.py.
+server/api/routers/projects.py.
 """
 
 from __future__ import annotations

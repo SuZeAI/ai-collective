@@ -1,5 +1,5 @@
 """Tests for the per-user Google OAuth token path derivation in
-backend.api.routers.auth: the storage key must be anchored on the
+server.api.routers.auth: the storage key must be anchored on the
 server-verified owner_id (never a client-supplied, possibly-blank email
 hint alone), and the callback must prefer the email Google itself just
 verified over that hint."""

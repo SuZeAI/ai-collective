@@ -2,11 +2,11 @@
 
 Regression coverage for a bug found during a manual full-system pass
 (2026-07-12): PlannerCommitRequest's field was named `teamId`, but the
-frontend (src/lib/api.ts `plannerCommit`) sends `departmentId` -- extra JSON
+frontend (ui/src/lib/api.ts `plannerCommit`) sends `departmentId` -- extra JSON
 fields are silently ignored by Pydantic, so every planner-committed task
 silently got `department_id=""` (unassigned) instead of crashing. Fixed by
-renaming the schema field to `departmentId` in backend/api/schemas/planner.py
-(and the one read site in backend/api/routers/planner.py).
+renaming the schema field to `departmentId` in server/api/schemas/planner.py
+(and the one read site in server/api/routers/planner.py).
 
 /planner/decompose is not covered here since it requires a configured LLM
 provider (this test session forces every provider key empty) -- it is only

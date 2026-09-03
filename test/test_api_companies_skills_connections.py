@@ -2,7 +2,7 @@
 
 Connections hold shared third-party credentials with no per-owner scoping, so
 the router restricts every /connections endpoint to admin/system accounts
-(see `require_admin` in backend/api/routers/connections.py) -- these tests
+(see `require_admin` in server/api/routers/connections.py) -- these tests
 use admin_headers, not user_headers.
 """
 

@@ -1,11 +1,11 @@
-"""Regression tests for backend/domain/staff/_graph_runtime.py's working-memory
+"""Regression tests for server/domain/staff/_graph_runtime.py's working-memory
 auto-capture helpers.
 
 Bug found during a manual full-system pass (2026-07-12): both
 `record_turn_in_memory` and `record_guidance_in_memory` called
 `working_memory_store.record_note(staff_member=...)`, but the real keyword
 argument is `staff` (see `working_memory_store.record_note`'s signature, and
-`backend/domain/tools/memory_tool.py` which already called it correctly).
+`server/domain/tools/memory_tool.py` which already called it correctly).
 Every staff-graph turn silently failed to persist to working memory -- the
 `TypeError` was swallowed by a broad `except Exception` and only ever
 surfaced in a warning log, so this never showed up as a request failure.

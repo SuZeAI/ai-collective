@@ -4,7 +4,7 @@ Includes regression coverage for a bug found during a manual full-system pass
 (2026-07-12): POST /tasks read `req.teamId` / `req.assignedAgents`, which do
 not exist on UpsertTaskRequest (the real fields are `departmentId` /
 `assignedStaff`), so every single task create/update crashed with a 500. Fixed
-in backend/api/routers/tasks.py. These tests fail again if that regresses.
+in server/api/routers/tasks.py. These tests fail again if that regresses.
 """
 
 from __future__ import annotations

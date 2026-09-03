@@ -7,7 +7,7 @@ Regression coverage for a bug found during a manual full-system pass
 authenticated user id -- so /consumption permanently returned all-zero totals
 for the admin account (the account most likely to be used for this exact
 page). Fixed by switching the endpoint to `current_user_dep` / `user.id` in
-backend/api/routers/consumption.py.
+server/api/routers/consumption.py.
 
 The regression is seeded at the repository layer (bypassing the LLM) so this
 test has no dependency on a configured LLM provider or network access.
