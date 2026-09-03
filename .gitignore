@@ -220,3 +220,8 @@ dist
 node_modules
 secrets
 backup
+
+# Local scratch notes — not meant to be shared/committed
+.claude/project_notes/
+.agents
+.claude
