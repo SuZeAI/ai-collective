@@ -63,7 +63,7 @@ host = "0.0.0.0"
 port = 8000
 
 [dependency-groups]
-dev = ["ruff>=0.8.0"]
+dev = ["ruff>=0.8.0", "pre-commit>=4.0.0"]
 
 [tool.ruff]
 line-length = 120
@@ -77,4 +77,3 @@ ignore = ["E501"]
 # Import order here is load-bearing: OAUTHLIB_INSECURE_TRANSPORT and dotenv
 # must be set before the modules below are imported.
 "server/api/main.py" = ["E402"]
-

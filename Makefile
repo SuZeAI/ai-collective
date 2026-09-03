@@ -66,6 +66,7 @@ C_YELLOW := \033[33m
         env setup dirs \
         test test-backend test-frontend \
         lint lint-backend lint-frontend \
+        check check-install \
         clean clean-docker clean-venv \
         storage-reset
 
@@ -360,6 +361,12 @@ lint-backend: ## Lint backend (ruff / flake8 if available)
 
 lint-frontend: ## Lint frontend (eslint)
 	npm --prefix ui run lint
+
+check: ## Run all pre-commit checks against the whole repo (lint + file hygiene)
+	uv run pre-commit run --all-files
+
+check-install: ## Install the pre-commit git hook (runs check on `git commit`)
+	uv run pre-commit install
 
 # ============================================================================
 # STORAGE
