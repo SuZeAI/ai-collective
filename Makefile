@@ -43,9 +43,9 @@ MONGO_PASS    ?= admin
 RABBITMQ_USER ?= guest
 RABBITMQ_PASS ?= guest
 
-# Services whose stdout/stderr are collected into logs/<service>.log by dev-log-collect
+# Services whose stdout/stderr are collected into .artifact/logs/<service>.log by dev-log-collect
 COMPOSE_DEV_SERVICES := mongodb mongo-express redis redis-commander rabbitmq nginx frontend backend
-LOG_DIR              := logs
+LOG_DIR              := .artifact/logs
 
 # Colour helpers (no-op if terminal does not support them)
 C_RESET  := \033[0m
@@ -151,7 +151,7 @@ dev-start: ## Start stopped dev containers (use after dev-stop)
 	$(COMPOSE_DEV) start
 	@$(MAKE) --no-print-directory dev-log-collect
 
-dev-log-collect: ## Start per-service log collectors → logs/<service>.log
+dev-log-collect: ## Start per-service log collectors → .artifact/logs/<service>.log
 	@mkdir -p $(LOG_DIR)
 	@if [ -f $(LOG_DIR)/.collector.pids ]; then \
 	    xargs -r kill < $(LOG_DIR)/.collector.pids 2>/dev/null || true; \
@@ -329,7 +329,7 @@ env: ## Create .env from .env.example if it does not exist
 	fi
 
 dirs: ## Create required runtime directories
-	@mkdir -p storage/runtime logs .sandbox_workspace
+	@mkdir -p storage/runtime .artifact/logs .artifact/sandbox_workspace
 
 setup: install dirs env ## Full first-time project setup
 	@printf "$(C_GREEN)✓ Setup complete.$(C_RESET)  Edit .env then run:  make dev\n"
