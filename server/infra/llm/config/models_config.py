@@ -1,19 +1,19 @@
 """Lookups over the ``models:`` list (``settings.models``, loaded and validated
-once by ``backend.api.settings`` — this module does not parse config.yml
+once by ``server.api.settings`` — this module does not parse config.yml
 itself, it only queries the already-loaded registry).
 
 The *active* model — which entry drives the app-wide default provider — is
 resolved with this priority:
 
 1. A persisted runtime override, set via the Settings UI (see
-   ``backend.api.deps._llm_provider`` — that layer owns the DB-backed
+   ``server.api.deps._llm_provider`` — that layer owns the DB-backed
    override; this module only knows about the config-level resolution below).
 2. The first ``models:`` entry with ``enabled: true`` (deploy-time default).
 3. The first entry overall, if none are marked enabled.
 
-This module is consumed by ``backend.infrastructure.llm.factory`` (via the
+This module is consumed by ``server.infra.llm.factory`` (via the
 resolved :class:`ModelConfig` passed in by the caller) and by
-``backend.api.deps`` for the Settings/admin model-list and switch endpoints.
+``server.api.deps`` for the Settings/admin model-list and switch endpoints.
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ def get_active_model_name() -> str | None:
     entry, or the first entry overall as a last resort.
 
     Does NOT consider the DB-persisted Settings-UI override — that layer
-    lives in ``backend.api.deps``, which checks it first and falls back here.
+    lives in ``server.api.deps``, which checks it first and falls back here.
     """
     models = get_models_config()
     active = next((m.name for m in models if m.enabled), None)

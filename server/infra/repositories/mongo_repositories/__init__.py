@@ -9,7 +9,7 @@ Usage (configured through deps.py when STORAGE_BACKEND=mongo):
     agents = MongoStaffRepository(db)
 
 Public import path is unchanged:
-    from backend.infrastructure.repositories.mongo_repositories import MongoStaffRepository
+    from server.infra.repositories.mongo_repositories import MongoStaffRepository
 """
 from server.infra.repositories.mongo_repositories.activity_feed import (
     MongoActivityFeedRepository,

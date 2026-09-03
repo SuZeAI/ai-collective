@@ -298,7 +298,7 @@ class EmbeddingSettings(BaseModel):
     real model (google/openai/open_weight) or the dependency-free ``hashing``
     fallback. The API key comes from a ``models:`` registry entry for that
     provider with ``supports_embedding: true`` (see
-    ``backend.infra.llm.config.find_model_for_provider``).
+    ``server.infra.llm.config.find_model_for_provider``).
     """
 
     model_config = _SECTION
@@ -457,7 +457,7 @@ class ToolsSettings(BaseModel):
     The Google Workspace tools (calendar/docs/drive/sheets/slides) have no
     entry here: their OAuth token path is inherently per-user (derived from
     ``auth_email``/``token_path`` on the skill's own config once a user
-    authenticates — see ``backend.api.routers.auth``), so a deploy-wide
+    authenticates — see ``server.api.routers.auth``), so a deploy-wide
     default would let unrelated users share one Google identity's token file.
     """
 
@@ -484,14 +484,14 @@ class ModelConfig(BaseModel):
     """One chat-model entry from the ``models:`` list in config.yml.
 
     ``provider_name`` (falling back to ``name``) selects which of the 7
-    built-in ``backend.infra.llm.providers.*`` wrapper classes to
+    built-in ``server.infra.llm.providers.*`` wrapper classes to
     instantiate (see ``factory._normalize_provider`` /
     ``factory.SUPPORTED_PROVIDERS``) and ``model`` is the provider's model id.
 
     ``api_key`` (declared via ``extra="allow"``, not a typed field — may hold
     several comma-separated keys for rotation) is always sourced from this
     entry / ``.env`` through config.yml — this registry is the only source of
-    provider API keys (see ``backend.infra.llm.config.models_config.find_model_for_provider``).
+    provider API keys (see ``server.infra.llm.config.models_config.find_model_for_provider``).
     """
 
     model_config = ConfigDict(extra="allow")

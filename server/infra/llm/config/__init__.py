@@ -2,16 +2,16 @@
 
 Follows the ``context/config.example.yaml`` pattern: chat LLMs are declared as a
 ``models:`` list in ``config.yml``, loaded and validated once into
-``settings.models`` by ``backend.api.settings`` (the single source of truth —
+``settings.models`` by ``server.api.settings`` (the single source of truth —
 this package only queries it, it does not parse config.yml itself). Each
 entry's ``provider_name`` (falling back to ``name``) selects one of the 7
 built-in provider classes (see ``factory._normalize_provider`` /
 ``factory.SUPPORTED_PROVIDERS``) and carries its own
 ``api_key``/``enabled``/``failover``. The active model is the first
 ``enabled: true`` entry, overridable via the Settings UI (persisted DB
-override, resolved in ``backend.api.deps``).
+override, resolved in ``server.api.deps``).
 
-``backend.infra.llm.factory.build_default_llm_provider`` consumes the
+``server.infra.llm.factory.build_default_llm_provider`` consumes the
 resolved active :class:`ModelConfig` to pick provider/model/base_url/failover
 and its ``api_key``.
 

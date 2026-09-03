@@ -6,7 +6,7 @@ any later staff — in this run or after a pause/resume — can recall it. The
 runtime already auto-captures a compressed record of every completed turn; this
 toolkit is for the *important* details an staff wants kept verbatim.
 
-See ``backend/domain/memory/working_memory.py`` for the model and
+See ``server/domain/memory/working_memory.py`` for the model and
 ``docs/agent-memory.md`` for the full design.
 """
 

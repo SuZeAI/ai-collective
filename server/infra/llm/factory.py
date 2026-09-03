@@ -172,12 +172,12 @@ def build_default_llm_provider(
     in lockstep or silently missing one.
 
     ``model_config`` — the resolved active entry from config.yml's ``models:``
-    registry (see ``backend.infrastructure.llm.config``) — supplies
+    registry (see ``server.infra.llm.config``) — supplies
     provider/model/base_url/failover from that entry, and its own ``api_key:``
     (sourced from config.yml/.env through the registry) is used whenever it's
     set. When not given explicitly, it defaults to ``get_model_config()`` (the
     config-level active model); callers that need the DB-persisted Settings-UI
-    override resolve it themselves first (see ``backend.api.deps``). Without a
+    override resolve it themselves first (see ``server.api.deps``). Without a
     usable ``model_config``, the key falls back to the first ``models:`` entry
     matching the resolved provider (``find_model_for_provider``) — there is no
     other source of provider API keys. Explicit provider/model/base_url args

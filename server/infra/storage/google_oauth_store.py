@@ -2,7 +2,7 @@
 
 Each Google Workspace toolkit (calendar/docs/drive/sheet/slides) resolves a
 per-user token file under ``secrets/google/<user_id>/<tool_name>/token_<email>.json``
-once that user authenticates (see ``backend.api.routers.auth``). That directory
+once that user authenticates (see ``server.api.routers.auth``). That directory
 is intentionally OUTSIDE the sandbox workspace tree — sandboxed code execution
 must never be able to read another user's OAuth token — so this does not
 reuse ``FileStore`` (which roots local files under the sandbox workspace).

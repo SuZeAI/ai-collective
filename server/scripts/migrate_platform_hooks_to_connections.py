@@ -7,7 +7,7 @@ embedded hooks into the connections store and strips ``platformHooks`` from the
 company docs. It is idempotent (keyed on the hook id) and supports both the
 Mongo and JSON storage backends.
 
-Run:  python -m backend.scripts.migrate_platform_hooks_to_connections
+Run:  python -m server.scripts.migrate_platform_hooks_to_connections
 """
 from __future__ import annotations
 

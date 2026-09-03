@@ -1,7 +1,7 @@
 """Declarative middleware configuration.
 
 Resolves each component's knobs from ``settings.middleware`` (the
-``middleware:`` section, loaded once by ``backend.api.settings`` — this module
+``middleware:`` section, loaded once by ``server.api.settings`` — this module
 does not parse config.yml itself). Any value omitted from that section falls
 back to the existing ``settings.llm.*`` defaults — so adding the
 ``middleware:`` section is purely additive and the stack behaves identically

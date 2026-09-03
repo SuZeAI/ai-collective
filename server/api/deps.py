@@ -681,7 +681,7 @@ def get_staff_graph_service(mode: str = "sequential") -> StaffGraphService | Non
 
 # Real implementation — defined here so the import is available.
 # Usage in routers:
-#   from backend.api.deps import current_user_dep
+#   from server.api.deps import current_user_dep
 #   @router.get("") def endpoint(user = Depends(current_user_dep)): ...
 def _make_current_user_dep():
     from fastapi import Depends, Header, HTTPException, status

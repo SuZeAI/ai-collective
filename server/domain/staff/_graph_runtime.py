@@ -320,7 +320,7 @@ def build_turn_messages(
 # Shared working memory (anti-context-loss layer)                       #
 #                                                                       #
 # Every helper below is best-effort: working memory must never break a #
-# run. See backend/domain/memory/working_memory.py for the model and   #
+# run. See server/domain/memory/working_memory.py for the model and   #
 # docs/agent-memory.md for the design.                                  #
 # ------------------------------------------------------------------ #
 

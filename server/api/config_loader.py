@@ -9,13 +9,13 @@ duplicating the whole file), and expands ``${VAR}`` / ``$VAR`` references from
 the OS environment — the only place env vars still reach the app, and only for
 secret values a leaf references inline (e.g. ``auth.jwt_secret_key:
 ${JWT_SECRET_KEY}``). The resulting dict is passed straight into
-``Settings(**raw)`` (see ``backend/api/settings.py``).
+``Settings(**raw)`` (see ``server/api/settings.py``).
 
 ``models:`` and ``middleware:`` are ordinary ``Settings`` fields too
 (``Settings.models: list[ModelConfig]``, ``Settings.middleware: dict``) —
 nothing outside this module parses config.yml itself;
-``backend/infra/llm/config`` and
-``backend/infra/llm/middleware/config.py`` only query
+``server/infra/llm/config`` and
+``server/infra/llm/middleware/config.py`` only query
 ``settings.models`` / ``settings.middleware``.
 """
 
@@ -26,7 +26,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-# backend/api/config_loader.py -> project root is two parents up from backend/.
+# server/api/config_loader.py -> project root is two parents up from server/.
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 # ${VAR} and ${VAR:-default} references inside yaml string values.

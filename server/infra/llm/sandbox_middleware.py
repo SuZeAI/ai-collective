@@ -4,7 +4,7 @@ This is the "sandbox middleware" entry point. It does NOT run as a LangChain
 ``AgentMiddleware`` (tools must be bound before the staff is built, and the
 conversation id isn't available that deep). Instead it exposes a provisioning
 helper that the orchestrator nodes call when assembling an staff's tools — see
-``backend.domain.staff._graph_runtime.attach_conversation_sandbox``.
+``server.domain.staff._graph_runtime.attach_conversation_sandbox``.
 
 Responsibilities:
   * Ensure the shared, conversation-scoped workspace exists on the host.
