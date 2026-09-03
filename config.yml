@@ -228,7 +228,7 @@ lock:
 sandbox:
   mode: local                         # local | k8s
   timeout: 120
-  # workspace: /abs/path/to/.sandbox_workspace
+  # workspace: /abs/path/to/.artifact/sandbox_workspace
   # k8s mode:
   # image: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
   # replicas: 3
