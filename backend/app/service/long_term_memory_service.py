@@ -6,7 +6,7 @@ short-term knowledge (working-memory notes, high-salience graph nodes) into
 durable cross-conversation memory.
 
 All methods are best-effort and async (embedding is async). The module-level
-store in ``infrastructure.long_term_memory_store`` wires a concrete repository
+store in ``infra.long_term_memory_store`` wires a concrete repository
 and exposes thin, never-raising wrappers for the runtime.
 """
 

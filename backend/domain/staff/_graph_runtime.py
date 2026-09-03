@@ -205,7 +205,7 @@ def drain_human_guidance(
     """
     if not conversation_id:
         return ""
-    # Local import: the registry lives in infrastructure; nodes already cross
+    # Local import: the registry lives in infra; nodes already cross
     # this boundary for sandbox/session helpers, and importing lazily keeps
     # domain importable without the full app wiring (e.g. in unit tests).
     from backend.infra import task_run_registry

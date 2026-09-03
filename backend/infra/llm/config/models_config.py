@@ -11,7 +11,7 @@ resolved with this priority:
 2. The first ``models:`` entry with ``enabled: true`` (deploy-time default).
 3. The first entry overall, if none are marked enabled.
 
-This module is consumed by ``backend.infrastructure.llm.factory`` (via the
+This module is consumed by ``backend.infra.llm.factory`` (via the
 resolved :class:`ModelConfig` passed in by the caller) and by
 ``backend.api.deps`` for the Settings/admin model-list and switch endpoints.
 """

@@ -18,7 +18,7 @@ run (and across paused/resumed and follow-up runs of the same conversation):
   of every staff prompt, so it survives tail truncation.
 
 This module is pure domain logic (no I/O). Persistence and the per-process
-registry live in ``backend.infrastructure.working_memory_store``.
+registry live in ``backend.infra.working_memory_store``.
 """
 
 from __future__ import annotations

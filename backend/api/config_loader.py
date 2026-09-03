@@ -14,8 +14,8 @@ ${JWT_SECRET_KEY}``). The resulting dict is passed straight into
 ``models:`` and ``middleware:`` are ordinary ``Settings`` fields too
 (``Settings.models: list[ModelConfig]``, ``Settings.middleware: dict``) —
 nothing outside this module parses config.yml itself;
-``backend/infrastructure/llm/config`` and
-``backend/infrastructure/llm/middleware/config.py`` only query
+``backend/infra/llm/config`` and
+``backend/infra/llm/middleware/config.py`` only query
 ``settings.models`` / ``settings.middleware``.
 """
 

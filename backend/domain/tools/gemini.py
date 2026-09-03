@@ -12,7 +12,7 @@ flag set (see config.yml).
   - GeminiVideoToolkit -> Veo ``:predictLongRunning`` (text/image -> video, async + poll)
 
 Note: plain text generation is intentionally NOT a tool here — that is the staff's
-own LLM job. Use Gemini as an staff LLM backend via ``infrastructure/llm`` instead.
+own LLM job. Use Gemini as an staff LLM backend via ``infra/llm`` instead.
 """
 
 from __future__ import annotations

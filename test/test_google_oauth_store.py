@@ -1,4 +1,4 @@
-"""Tests for backend.infrastructure.storage.google_oauth_store: local write/read
+"""Tests for backend.infra.storage.google_oauth_store: local write/read
 plus the MinIO mirror used to survive a k8s sandbox pod reschedule."""
 from __future__ import annotations
 

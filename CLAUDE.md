@@ -60,13 +60,13 @@ npm run build         # vite build
 ```
 backend/
 ├── api/            # FastAPI app, routers, Pydantic schemas, DI (deps.py), auth, settings
-├── application/    # Use-case services; ports/ holds Protocols (repositories, llm, agent_graph)
+├── app/            # Use-case services; ports/ holds Protocols (repositories, llm, agent_graph)
 ├── domain/         # Framework-free business logic + models.py (frozen dataclasses)
-├── infrastructure/ # Adapters implementing application.ports (repos, LLM providers, queues, locks, sandbox)
+├── infra/          # Adapters implementing app.ports (repos, LLM providers, queues, locks, sandbox)
 └── log/            # Logging setup
 ```
-- `domain` imports nothing from `application`/`api`/`infrastructure`.
-- `application` depends only on `application.ports.*` Protocols, never concrete adapters.
+- `domain` imports nothing from `app`/`api`/`infra`.
+- `app` depends only on `app.ports.*` Protocols, never concrete adapters.
 - `api/deps.py` is the composition root: it wires concrete adapters into services (`get_staff_service`, `get_task_service`, `get_project_service`, `get_epic_service`, `get_sprint_service`, `get_recruiting_service`, `get_meeting_service`, `get_company_service`, `get_connection_service`, `get_document_library_service`, `get_office_builder_session_service`, `get_simulation_service`, `get_staff_graph_service(mode=...)`, etc.) and also seeds admin user / default data on boot.
 - Domain errors (`NotFoundError`, `ValidationError`) → HTTP 404/422 via handlers in `api/main.py`.
 - Domain models (`backend/domain/models.py`) include `Skill`, `Staff`, `Department`, `Task`, `Project`, `Epic`, `Sprint`, `Message`, `Analytics`, `ActivityFeedItem`, `Company`, `LibraryDocument`, `OfficeBuilderSession`, `Connection`, `ToolResult`, `SimulationStep`, `TokenUsageRecord`, `ModelPricing`, `User`.

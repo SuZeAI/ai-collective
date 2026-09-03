@@ -172,7 +172,7 @@ def build_default_llm_provider(
     in lockstep or silently missing one.
 
     ``model_config`` — the resolved active entry from config.yml's ``models:``
-    registry (see ``backend.infrastructure.llm.config``) — supplies
+    registry (see ``backend.infra.llm.config``) — supplies
     provider/model/base_url/failover from that entry, and its own ``api_key:``
     (sourced from config.yml/.env through the registry) is used whenever it's
     set. When not given explicitly, it defaults to ``get_model_config()`` (the

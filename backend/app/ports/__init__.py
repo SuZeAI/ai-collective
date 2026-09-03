@@ -1,1 +1,1 @@
-"""Ports (interfaces) to infrastructure."""
+"""Ports (interfaces) to infra."""

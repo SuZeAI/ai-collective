@@ -1,7 +1,7 @@
 """JSON-file repository adapters, one module per entity.
 
 Public import path is unchanged:
-    from backend.infrastructure.repositories.json_files import JsonStaffRepository
+    from backend.infra.repositories.json_files import JsonStaffRepository
 """
 from backend.infra.repositories.json_files.activity_feed import JsonActivityFeedRepository
 from backend.infra.repositories.json_files.staff import JsonStaffRepository

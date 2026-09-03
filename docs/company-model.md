@@ -121,4 +121,4 @@ monitoring=System Monitoring are unchanged.) All four locales (en/vi/zh/ja) are 
 - Create (AI): `src/pages/OfficeBuilder.tsx` · Control: `src/pages/Companies.tsx` · Overview: `src/pages/Dashboard.tsx`
 - Route guards: `src/App.tsx`
 - Backend `company_type`: `backend/domain/models.py`, `backend/api/schemas/company.py`,
-  `backend/api/routers/{companies,office_builder}.py`, `backend/infrastructure/repositories/*/companies.py`
+  `backend/api/routers/{companies,office_builder}.py`, `backend/infra/repositories/*/companies.py`

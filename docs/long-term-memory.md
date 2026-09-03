@@ -46,7 +46,7 @@ embedding is available.
 
 ## Embeddings (real vector RAG)
 
-`backend/infrastructure/llm/embeddings.py` defines an `EmbeddingProvider`
+`backend/infra/llm/embeddings.py` defines an `EmbeddingProvider`
 protocol with pluggable backends, mirroring the LLM provider pattern:
 
 | `EMBEDDING_PROVIDER` | Notes |
@@ -78,7 +78,7 @@ which are loaded from the repo, re-checked against the scope, and scored. If the
 index is unavailable or returns nothing, recall **falls back to brute force** so
 results are never silently lost.
 
-Code: `backend/infrastructure/vector_store/` — `base.py` (protocol +
+Code: `backend/infra/vector_store/` — `base.py` (protocol +
 `scope_payload`/`payload_matches`), `faiss_store.py`, `qdrant_store.py`,
 `factory.py`.
 
@@ -121,7 +121,7 @@ NEO4J_PASSWORD=neo4j_password
 # config.yml › graph.backend: neo4j        Browser: http://localhost:7474
 ```
 
-Code: `backend/infrastructure/repositories/neo4j_graph_knowledge.py`; wired in
+Code: `backend/infra/repositories/neo4j_graph_knowledge.py`; wired in
 `backend/api/deps.py`. Install with `pip install '.[neo4j]'`.
 
 ## RAG retrieval modes (additional information)
@@ -149,9 +149,9 @@ relations. Hybrid is the genuine combination of the vector DB and the graph
 store: the chunk corpus is the conversation graph (sourced from Neo4j when
 `graph.backend=neo4j`), and the seeds come from Qdrant.
 
-Code: `backend/application/service/rag_retrieval.py` (modes),
+Code: `backend/app/service/rag_retrieval.py` (modes),
 `backend/domain/memory/bm25.py` (Okapi BM25),
-`backend/infrastructure/rag_retrieval_store.py` (process accessor; RAG chunk
+`backend/infra/rag_retrieval_store.py` (process accessor; RAG chunk
 vectors use a separate `*_rag` collection / `rag_chunks` FAISS sub-dir so they
 never mix with LTM vectors).
 
@@ -199,13 +199,13 @@ graph:
 |-------|----------|
 | Domain model (`MemoryScope`, `MemoryRecord`, scoring) | `backend/domain/memory/long_term_memory.py` |
 | Shared vector math | `backend/domain/memory/vectors.py` |
-| Embedding backends | `backend/infrastructure/llm/embeddings.py` |
-| Service (recall / remember / consolidate) | `backend/application/service/long_term_memory_service.py` |
-| Repositories (Mongo + JSON) | `backend/infrastructure/repositories/{mongo_repositories/long_term_memory.py, json_long_term_memory.py}` |
-| Process accessor + run-scope contextvar | `backend/infrastructure/long_term_memory_store.py` |
-| Vector stores | `backend/infrastructure/vector_store/` |
-| Neo4j graph repo | `backend/infrastructure/repositories/neo4j_graph_knowledge.py` |
-| Recall/persist middleware | `LongTermMemoryMiddleware` in `backend/infrastructure/llm/middleware/long_term_memory.py` |
+| Embedding backends | `backend/infra/llm/embeddings.py` |
+| Service (recall / remember / consolidate) | `backend/app/service/long_term_memory_service.py` |
+| Repositories (Mongo + JSON) | `backend/infra/repositories/{mongo_repositories/long_term_memory.py, json_long_term_memory.py}` |
+| Process accessor + run-scope contextvar | `backend/infra/long_term_memory_store.py` |
+| Vector stores | `backend/infra/vector_store/` |
+| Neo4j graph repo | `backend/infra/repositories/neo4j_graph_knowledge.py` |
+| Recall/persist middleware | `LongTermMemoryMiddleware` in `backend/infra/llm/middleware/long_term_memory.py` |
 
 All LTM operations are **best-effort**: a persistence, embedding or index
 failure is logged and skipped — it can never abort an agent run.

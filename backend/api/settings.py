@@ -90,7 +90,7 @@ class LLMSettings(BaseModel):
     model_config = _SECTION
 
     # Fallback defaults for the middleware stack when `middleware:` (config.yml,
-    # read independently by infrastructure/llm/middleware/config.py) omits a
+    # read independently by infra/llm/middleware/config.py) omits a
     # knob. Not config.yml-backed themselves — just code defaults.
     tool_retry_max: int = Field(default=2, description="Fallback transient tool-failure retry count")
     fallback_models: str | None = Field(default=None, description="Fallback comma-separated fallback model names")
@@ -298,7 +298,7 @@ class EmbeddingSettings(BaseModel):
     real model (google/openai/open_weight) or the dependency-free ``hashing``
     fallback. The API key comes from a ``models:`` registry entry for that
     provider with ``supports_embedding: true`` (see
-    ``backend.infrastructure.llm.config.find_model_for_provider``).
+    ``backend.infra.llm.config.find_model_for_provider``).
     """
 
     model_config = _SECTION
@@ -484,14 +484,14 @@ class ModelConfig(BaseModel):
     """One chat-model entry from the ``models:`` list in config.yml.
 
     ``provider_name`` (falling back to ``name``) selects which of the 7
-    built-in ``backend.infrastructure.llm.providers.*`` wrapper classes to
+    built-in ``backend.infra.llm.providers.*`` wrapper classes to
     instantiate (see ``factory._normalize_provider`` /
     ``factory.SUPPORTED_PROVIDERS``) and ``model`` is the provider's model id.
 
     ``api_key`` (declared via ``extra="allow"``, not a typed field — may hold
     several comma-separated keys for rotation) is always sourced from this
     entry / ``.env`` through config.yml — this registry is the only source of
-    provider API keys (see ``backend.infrastructure.llm.config.models_config.find_model_for_provider``).
+    provider API keys (see ``backend.infra.llm.config.models_config.find_model_for_provider``).
     """
 
     model_config = ConfigDict(extra="allow")
@@ -563,11 +563,11 @@ class Settings(BaseModel):
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     tools: ToolsSettings = Field(default_factory=ToolsSettings)
     models: list[ModelConfig] = Field(
-        default_factory=list, description="LLM registry (`models:` list) — see infrastructure/llm/config"
+        default_factory=list, description="LLM registry (`models:` list) — see infra/llm/config"
     )
     middleware: dict[str, Any] = Field(
         default_factory=dict,
-        description="Declarative middleware component config (`middleware:` section) — see infrastructure/llm/middleware/config.py",
+        description="Declarative middleware component config (`middleware:` section) — see infra/llm/middleware/config.py",
     )
 
     # ── Root helpers ────────────────────────────────────────────────────────

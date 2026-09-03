@@ -520,7 +520,7 @@ async def run_staff_graph_stream(
                     if "agent_name" in event_data and "agent_id" not in event_data:
                         event_data["agent_id"] = staff_name_to_id.get(event_data["agent_name"], event_data["agent_name"])
                     if isinstance(event_data.get("turn"), dict):
-                        # GraphTurn's field is `staff_name` (application/ports/staff_graph.py),
+                        # GraphTurn's field is `staff_name` (app/ports/staff_graph.py),
                         # not `agent_name` — this previously always missed, so turn_complete
                         # payloads never got an agent_id and the frontend silently dropped
                         # every staff message (no field it recognized resolved to a staffId).

@@ -2,7 +2,7 @@
 
 Layers:
 - domain: pure business entities & rules
-- application: use-cases and ports
-- infrastructure: adapters (repos/llm)
+- app: use-cases and ports
+- infra: adapters (repos/llm)
 - api: FastAPI delivery layer
 """

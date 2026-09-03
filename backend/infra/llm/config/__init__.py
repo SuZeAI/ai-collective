@@ -11,7 +11,7 @@ built-in provider classes (see ``factory._normalize_provider`` /
 ``enabled: true`` entry, overridable via the Settings UI (persisted DB
 override, resolved in ``backend.api.deps``).
 
-``backend.infrastructure.llm.factory.build_default_llm_provider`` consumes the
+``backend.infra.llm.factory.build_default_llm_provider`` consumes the
 resolved active :class:`ModelConfig` to pick provider/model/base_url/failover
 and its ``api_key``.
 
