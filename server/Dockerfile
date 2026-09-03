@@ -67,7 +67,7 @@ ENV UV_COMPILE_BYTECODE=1
 ENV UV_PYTHON=/usr/local/bin/python
 ENV UV_PROJECT_ENVIRONMENT=/app/.venv
 ENV UV_INDEX_URL=${UV_INDEX_URL}
-# venv on PATH for direct execution; PYTHONPATH so `backend` imports anywhere.
+# venv on PATH for direct execution; PYTHONPATH so `server` imports anywhere.
 ENV PATH="/app/.venv/bin:${PATH}"
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
@@ -77,7 +77,7 @@ ENV PYTHONUNBUFFERED=1
 COPY --from=builder /app/.venv /app/.venv
 # uv needs the project manifest at runtime for `uv run` / `uv sync`.
 COPY pyproject.toml uv.lock ./
-COPY backend/ ./backend/
+COPY server/ ./server/
 
 RUN mkdir -p /app/storage /app/logs /app/sandbox_workspace /app/static
 
@@ -87,4 +87,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD curl -fsS http://localhost:8000/api/v1/health || exit 1
 
 # Default command (compose overrides this for dev --reload / prod --workers).
-CMD ["uv", "run", "uvicorn", "backend.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "server.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

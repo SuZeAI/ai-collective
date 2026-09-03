@@ -1,5 +1,5 @@
 # AI Collective — configuration
-# Single source of truth for app config; keys match backend/api/settings.py 1:1.
+# Single source of truth for app config; keys match server/api/settings.py 1:1.
 # Override file: CONFIG_FILE=/path. Test override merge: CONFIG_OVERRIDE_FILE=/path.
 # Secrets live in .env, pulled in via ${VAR}/$VAR. Per-tool creds are NOT here (UI/MongoDB).
 
@@ -125,7 +125,7 @@ models:
       rotate_max_tokens_per_min: 0
       key_cooldown_seconds: 60
 
-# ── Middleware (staff stack, see backend/infra/llm/middleware/) ──────
+# ── Middleware (staff stack, see server/infra/llm/middleware/) ──────
 # Always-on: ModelCallLimit, LoopDetection, ToolRetry, ToolTimeout.
 middleware:
   loop_detection:

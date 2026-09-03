@@ -84,9 +84,9 @@ The type flows through, end to end (keep in sync when changing):
 
 ```
 UI  Company.type / OfficePlan.company_type   src/lib/api.ts
-API schema field `type`  ⇄  domain `company_type`   backend/api/schemas/company.py
-                                                     backend/domain/models.py
-set in routers:   backend/api/routers/companies.py (upsert), office_builder.py (apply)
+API schema field `type`  ⇄  domain `company_type`   server/api/schemas/company.py
+                                                     server/domain/models.py
+set in routers:   server/api/routers/companies.py (upsert), office_builder.py (apply)
 stored (JSON key `type`):  infrastructure/repositories/json_files/companies.py
                            infrastructure/repositories/mongo_repositories/companies.py
 ```
@@ -120,5 +120,5 @@ monitoring=System Monitoring are unchanged.) All four locales (en/vi/zh/ja) are 
 - Company types: `src/lib/company-types.ts`
 - Create (AI): `src/pages/OfficeBuilder.tsx` · Control: `src/pages/Companies.tsx` · Overview: `src/pages/Dashboard.tsx`
 - Route guards: `src/App.tsx`
-- Backend `company_type`: `backend/domain/models.py`, `backend/api/schemas/company.py`,
-  `backend/api/routers/{companies,office_builder}.py`, `backend/infra/repositories/*/companies.py`
+- Backend `company_type`: `server/domain/models.py`, `server/api/schemas/company.py`,
+  `server/api/routers/{companies,office_builder}.py`, `server/infra/repositories/*/companies.py`

@@ -12,7 +12,7 @@ to set up the project, the conventions we follow, and how to submit changes.
 
 ## Project layout
 
-- `backend/` — FastAPI service (ports-and-adapters). See
+- `server/` — FastAPI service (ports-and-adapters). See
   [docs/architecture.md](docs/architecture.md).
 - `src/` — React + TypeScript frontend.
 - `docs/` — backend documentation (architecture, configuration, security,

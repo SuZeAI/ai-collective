@@ -2,14 +2,14 @@
 
 ## Docker image
 
-`backend/Dockerfile` is a multi-stage build:
+`server/Dockerfile` is a multi-stage build:
 
 - **Builder stage** resolves dependencies with `uv` into `/app/.venv` (the
   build cache and intermediate layers stay here and are not shipped).
 - **Runtime stage** copies the prebuilt venv + application code and keeps `uv`
   on `PATH`. `uv` is required at runtime because both compose files invoke the
   backend via `uv run uvicorn ...`, and the dev stack runs `uv sync` at startup
-  into a mounted venv volume. `PYTHONPATH=/app` makes `backend` importable.
+  into a mounted venv volume. `PYTHONPATH=/app` makes `server` importable.
 - A `HEALTHCHECK` hits `/api/v1/health`.
 
 > The default `CMD` is overridden by compose (dev: `--reload`, prod:
@@ -22,10 +22,10 @@
 
 ```bash
 # Default: installs every optional extra (queue/lock backends, neo4j, faiss, qdrant, ...)
-docker build -f backend/Dockerfile -t ai-collective-backend .
+docker build -f server/Dockerfile -t ai-collective-backend .
 
 # Restrict to specific extras only (smaller image)
-docker build -f backend/Dockerfile \
+docker build -f server/Dockerfile \
   --build-arg UV_EXTRAS=rabbitmq,redis \
   -t ai-collective-backend .
 ```

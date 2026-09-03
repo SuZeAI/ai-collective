@@ -1,7 +1,7 @@
 # AI Collective — Backend Documentation
 
 AI Collective is a multi-agent platform with a React frontend (`/src`) and a
-FastAPI backend (`/backend`). This directory documents the **backend**: its
+FastAPI backend (`/server`). This directory documents the **backend**: its
 architecture, configuration, security model, and deployment.
 
 ## Contents
@@ -31,7 +31,7 @@ architecture, configuration, security model, and deployment.
 uv sync
 
 # Run the API (development)
-uv run uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --reload
+uv run uvicorn server.api.main:app --host 0.0.0.0 --port 8000 --reload
 
 # Health check
 curl http://localhost:8000/api/v1/health

@@ -3,9 +3,9 @@
 The provider's `chat()` does not hand-roll a ReAct loop; it delegates to
 LangChain's `create_agent`, and cross-cutting behaviours are expressed as
 **middleware**. The stack is assembled in
-`build_default_middleware()` (`backend/infra/llm/middleware/builder.py`)
+`build_default_middleware()` (`server/infra/llm/middleware/builder.py`)
 and applied to every agent in every topology. Each component's knobs are
-resolved by `get_middleware_config()` (`backend/infra/llm/middleware/config.py`):
+resolved by `get_middleware_config()` (`server/infra/llm/middleware/config.py`):
 the `middleware:` section of `config.yml` (grouped by component) takes
 precedence, falling back to the matching `settings.llm.*` field (still backed
 by the `LLM_*` env vars below) when a group/key is absent from that section.

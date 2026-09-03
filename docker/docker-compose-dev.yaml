@@ -180,7 +180,7 @@ services:
   backend:
     build:
       context: ../
-      dockerfile: backend/Dockerfile
+      dockerfile: server/Dockerfile
       args:
         APT_MIRROR: ${APT_MIRROR:-}
         UV_IMAGE: ${UV_IMAGE:-ghcr.io/astral-sh/uv:0.9.5}
@@ -188,9 +188,9 @@ services:
     container_name: ai-collective-backend-dev
     command: >
       sh -c "uv sync --all-extras &&
-      uv run uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --reload"
+      uv run uvicorn server.api.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
-      - ../backend:/app/backend
+      - ../server:/app/server
       - ../secrets:/app/secrets
       # storage/seed/ is the committed read-only seed catalog (SEED_DIR);
       # storage/runtime/ is the per-machine live store (STORAGE_DIR, gitignored).

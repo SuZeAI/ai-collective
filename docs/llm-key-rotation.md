@@ -135,4 +135,4 @@ To switch a model entry to the gateway, set its `failover.strategy: 9router` in
 
 - Full env reference: [configuration.md](configuration.md#llm-providers)
 - 9Router gateway: [9router-setup.md](9router-setup.md)
-- Implementation: `backend/infra/llm/providers/rotation.py`
+- Implementation: `server/infra/llm/providers/rotation.py`

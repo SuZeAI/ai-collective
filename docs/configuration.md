@@ -10,7 +10,7 @@ code defaults  <  config.yml  (${VAR} / $VAR expanded from .env / OS environment
 - To change behavior (provider list, timeouts, ports, feature toggles), **edit
   `config.yml` directly** — it is a nested, lowercase-key YAML file where each
   top-level section maps 1:1 onto a `Settings` sub-model
-  (`backend/api/settings.py`) and each leaf key equals that sub-model's field
+  (`server/api/settings.py`) and each leaf key equals that sub-model's field
   name.
 - No part of the backend reads a bare OS/`.env` variable to configure itself.
   The **only** way an env var reaches a setting is an explicit `${VAR}` (or
@@ -23,7 +23,7 @@ code defaults  <  config.yml  (${VAR} / $VAR expanded from .env / OS environment
 - Relocate the file with `CONFIG_FILE=/path/to/config.yml`. The test suite
   layers an optional `CONFIG_OVERRIDE_FILE=/path` on top (deep-merged) to swap
   a handful of ops knobs without duplicating the whole file
-  (`backend/api/config_loader.py`).
+  (`server/api/config_loader.py`).
 - MCP servers are declared separately in `mcp.yml`, referenced from
   `mcp.config_file` — see [mcp-guide.md](mcp-guide.md).
 - Per-tool/per-skill credentials are **not** here at all — they live in each

@@ -316,7 +316,7 @@ def _build_volume_mounts(thread_id: str) -> list[k8s_client.V1VolumeMount]:
 
     Mounted at /workspace — the same path the sandbox tools (and the
     backup/restore push path) already address inside the container/pod
-    (see backend/domain/tools/sandbox_tools.py, sandbox_middleware.py's
+    (see server/domain/tools/sandbox_tools.py, sandbox_middleware.py's
     _remote_base). Previously this mounted an unrelated /mnt/user-data that
     no application code ever read from or wrote to.
     """

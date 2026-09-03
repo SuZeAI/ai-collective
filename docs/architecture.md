@@ -5,7 +5,7 @@ point inward: the domain knows nothing about the web framework or storage, and
 the application layer talks to infrastructure only through Protocols.
 
 ```
-backend/
+server/
 ├── api/                 # Presentation: FastAPI app, routers, schemas, DI, auth
 │   ├── main.py          # App factory, CORS, exception handlers, lifecycle
 │   ├── deps.py          # Dependency-injection wiring + current_user_dep / current_owner_id_dep

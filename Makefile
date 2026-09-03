@@ -271,14 +271,14 @@ prod-all: ## Production stack + sandbox + provisioner
 
 backend: dirs env ## Run backend locally with hot-reload (needs: make infra)
 	@printf "$(C_CYAN)Starting backend on port $(BACKEND_PORT)…$(C_RESET)\n"
-	uv run uvicorn backend.api.main:app \
+	uv run uvicorn server.api.main:app \
 	    --host 0.0.0.0 \
 	    --port $(BACKEND_PORT) \
 	    --reload \
 	    --log-level $${LOG_LEVEL:-info}
 
 backend-prod: dirs env ## Run backend locally in production mode (multi-worker)
-	uv run uvicorn backend.api.main:app \
+	uv run uvicorn server.api.main:app \
 	    --host 0.0.0.0 \
 	    --port $(BACKEND_PORT) \
 	    --workers $(BACKEND_WORKERS)
@@ -343,7 +343,7 @@ setup: install dirs env ## Full first-time project setup
 test: test-backend test-frontend ## Run all tests
 
 test-backend: ## Run backend tests (pytest)
-	uv run pytest backend/ -v
+	uv run pytest server/ -v
 
 test-frontend: ## Run frontend tests (vitest)
 	npm run test
@@ -354,8 +354,8 @@ test-frontend-watch: ## Run frontend tests in watch mode
 lint: lint-backend lint-frontend ## Lint all code
 
 lint-backend: ## Lint backend (ruff / flake8 if available)
-	@uv run ruff check backend/ 2>/dev/null || \
-	 uv run flake8 backend/ 2>/dev/null || \
+	@uv run ruff check server/ 2>/dev/null || \
+	 uv run flake8 server/ 2>/dev/null || \
 	 printf "$(C_YELLOW)No Python linter found (install ruff: uv add ruff)$(C_RESET)\n"
 
 lint-frontend: ## Lint frontend (eslint)

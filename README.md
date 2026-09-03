@@ -216,7 +216,7 @@ Open two terminals:
 
 ```bash
 # Terminal 1 — Backend (http://localhost:8000)
-uv run uvicorn backend.api.main:app --reload --port 8000
+uv run uvicorn server.api.main:app --reload --port 8000
 
 # Terminal 2 — Frontend (http://localhost:8080)
 npm run dev -- --host 0.0.0.0 --port 8080
@@ -264,7 +264,7 @@ All services (frontend, backend, MongoDB, Redis, RabbitMQ, Nginx) run as Docker 
 
 ### Development mode (hot-reload)
 
-Source files in `backend/` and `src/` are mounted into containers — changes are reflected immediately without rebuilding.
+Source files in `server/` and `src/` are mounted into containers — changes are reflected immediately without rebuilding.
 
 ```bash
 # 1. Configure environment
@@ -383,15 +383,15 @@ docker compose -f docker/docker-compose.yaml --profile tools up -d
 ### Backend (Clean Architecture)
 
 ```
-backend/
+server/
 ├── api/          # HTTP routers, request/response schemas, dependency injection
-├── application/  # Use-case services, abstract ports (interfaces)
+├── app/          # Use-case services, abstract ports (interfaces)
 ├── domain/       # Business logic
 │   ├── staff/    # Orchestrators: sequential, ring, mesh, supervisor, tree, custom + subagent + token budget
 │   ├── tools/    # 50+ skill toolkits (Google Workspace, web, social, messaging, sandbox)
 │   ├── memory/   # Knowledge graph extraction (spaCy / LLM-based)
 │   └── event/    # SSE event schema definitions
-├── infrastructure/ # Repositories, LLM factories, task queues, lock providers
+├── infra/        # Repositories, LLM factories, task queues, lock providers
 └── log/          # Structured logging (console + optional file output)
 ```
 
@@ -409,7 +409,7 @@ src/
 
 ### Real-time Event Streaming
 
-`POST /api/v1/llm/staff-graph/run-stream` returns **Server-Sent Events**. Canonical event types live in the `EventType` enum (`backend/domain/event/schema.py`):
+`POST /api/v1/llm/staff-graph/run-stream` returns **Server-Sent Events**. Canonical event types live in the `EventType` enum (`server/domain/event/schema.py`):
 
 | Event | Description |
 | :--- | :--- |

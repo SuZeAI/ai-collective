@@ -58,7 +58,7 @@ qdrant = ["qdrant-client>=1.9.0"]
 neo4j = ["neo4j>=5.20.0"]
 
 [tool.uvicorn]
-app = "backend.api.main:app"
+app = "server.api.main:app"
 host = "0.0.0.0"
 port = 8000
 
@@ -76,5 +76,5 @@ ignore = ["E501"]
 [tool.ruff.lint.per-file-ignores]
 # Import order here is load-bearing: OAUTHLIB_INSECURE_TRANSPORT and dotenv
 # must be set before the modules below are imported.
-"backend/api/main.py" = ["E402"]
+"server/api/main.py" = ["E402"]
 

@@ -57,7 +57,7 @@ async def node(state: MultiAgentState):
 ## Stream Event Types
 
 ### Orchestrator Common Events
-Canonical values live in the `EventType` enum (`backend/domain/event/schema.py`);
+Canonical values live in the `EventType` enum (`server/domain/event/schema.py`);
 every topology streams `EventType.<NAME>.value` dicts rather than hand-typed
 strings, so the wire format below is authoritative across all 5 topologies
 (sequential/ring/supervisor/tree/mesh).
@@ -86,7 +86,7 @@ Mỗi event là dict Python với:
 
 ### Python Async Client
 ```python
-from backend.domain.staff.langgraph_mesh import MultiAgentMeshOrchestrator
+from server.domain.staff.langgraph_mesh import MultiAgentMeshOrchestrator
 
 orchestrator = MultiAgentMeshOrchestrator()
 
@@ -219,12 +219,12 @@ async for event in orchestrator.run_stream(...):
 `get_stream_writer()` cần Python >= 3.11 hoặc Python >= 3.10 với asyncio task creation.
 
 ## Files Đã Thay Đổi
-- `backend/domain/staff/langgraph_orchestrator.py` (sequential)
-- `backend/domain/staff/langgraph_ring.py` (ring)
-- `backend/domain/staff/langgraph_supervisor.py` (supervisor)
-- `backend/domain/staff/langgraph_tree.py` (tree)
-- `backend/domain/staff/langgraph_mesh.py` (mesh)
-- `backend/domain/staff/_graph_runtime.py` (shared turn/pause/resume events)
-- `backend/domain/tools/task.py` (subagent events), `backend/domain/tools/ask_user.py` (human-in-the-loop events)
+- `server/domain/staff/langgraph_orchestrator.py` (sequential)
+- `server/domain/staff/langgraph_ring.py` (ring)
+- `server/domain/staff/langgraph_supervisor.py` (supervisor)
+- `server/domain/staff/langgraph_tree.py` (tree)
+- `server/domain/staff/langgraph_mesh.py` (mesh)
+- `server/domain/staff/_graph_runtime.py` (shared turn/pause/resume events)
+- `server/domain/tools/task.py` (subagent events), `server/domain/tools/ask_user.py` (human-in-the-loop events)
 
 Tất cả 5 topologies giờ support streaming với `get_stream_writer()`.

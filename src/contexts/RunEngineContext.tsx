@@ -38,7 +38,7 @@ export type GraphHighlight = {
 };
 
 // One staff turn, as embedded in a "turn_complete" event's `turn` field
-// (backend/api/schemas/staff_graph.py GraphTurnSchema) — field names come from
+// (server/api/schemas/staff_graph.py GraphTurnSchema) — field names come from
 // the backend's JSON, not the frontend's camelCase convention.
 export type StaffTurnPayload = {
   turn: number;
@@ -50,7 +50,7 @@ export type StaffTurnPayload = {
 };
 
 // Known event `type` values emitted by /llm/staff-graph/run-stream, mirroring
-// backend/domain/event/schema.py's EventType plus a couple of stream-only
+// server/domain/event/schema.py's EventType plus a couple of stream-only
 // synthetic types ("cancelled" — see llm.py's event_generator).
 export type KnownStreamEventType =
   | "agent_start"

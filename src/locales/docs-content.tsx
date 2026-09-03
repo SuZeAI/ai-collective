@@ -259,7 +259,7 @@ export function getDocContent(t: Translations): Record<string, React.ReactNode> 
         <CodeBlock lang="bash" code={`cp .env.template .env`} />
         <CodeBlock lang="bash" title=".env" code={`GOOGLE_API_KEY=...\nANTHROPIC_API_KEY=\nOPENAI_API_KEY=\nOPENROUTER_API_KEY=`} />
         <H2>{c.quickstart.startBackendH2}</H2>
-        <CodeBlock lang="bash" code={`uv run uvicorn backend.api.main:app --reload --port 8000`} />
+        <CodeBlock lang="bash" code={`uv run uvicorn server.api.main:app --reload --port 8000`} />
         <H2>{c.quickstart.startFrontendH2}</H2>
         <CodeBlock lang="bash" code={`npm ci\nnpm run dev`} />
         <Callout type="tip">{c.quickstart.tipCallout}</Callout>

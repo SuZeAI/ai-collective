@@ -11,7 +11,7 @@ one yourself). There are **two** modes:
 | `local` | `LocalSandboxAdapter` | Subprocess **inside the backend process** | None | `sandbox.workspace` (optional) |
 | `k8s` | `RemoteSandboxBackend` → provisioner | One **Pod per sandbox on k3s/Kubernetes** | Pod + NodePort | `sandbox.provisioner_url` + a running provisioner |
 
-Selection happens in `backend/infra/sandbox/factory.py`
+Selection happens in `server/infra/sandbox/factory.py`
 (`local` → `LocalSandboxAdapter`; anything else → `AioSandboxProvider`, which
 requires `sandbox.mode=k8s` and raises otherwise).
 

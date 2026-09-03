@@ -162,7 +162,7 @@ FRONTEND_URL=http://localhost:8080
 ### Start the backend
 
 ```bash
-uv run uvicorn backend.api.main:app --reload --port 8000
+uv run uvicorn server.api.main:app --reload --port 8000
 ```
 
 ### Test the login URL endpoint

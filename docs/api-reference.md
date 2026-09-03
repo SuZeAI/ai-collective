@@ -1,7 +1,7 @@
 # API Reference
 
 All routes are served under `API_PREFIX` (default `/api/v1`). Paths below omit
-the prefix. Request/response bodies are defined in `backend/api/schemas/`.
+the prefix. Request/response bodies are defined in `server/api/schemas/`.
 
 > Authentication: `/auth/me`, `/auth/profile`, `/auth/avatar`, `/auth/password`
 > require a Bearer token (`current_user_dep`). Most other resource endpoints are
