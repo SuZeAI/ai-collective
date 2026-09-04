@@ -11,7 +11,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { getDocContent } from "@/locales/docs-content";
+import { DOCS_PAGES } from "@/pages/documents";
 
 const GITHUB_URL = "https://github.com/SuZeAI/ai-collective";
 
@@ -20,7 +20,7 @@ const GITHUB_URL = "https://github.com/SuZeAI/ai-collective";
 const NAV_STRUCTURE = [
   { id: "intro",         icon: BookOpen,   items: ["what-is","architecture","key-concepts","pricing"] },
   { id: "getting-started", icon: Rocket,   items: ["quickstart","installation","configuration"] },
-  { id: "concepts",      icon: Layers,     items: ["staff","skills","departments","tasks","meetings","playground","analytics","companies","settings"] },
+  { id: "concepts",      icon: Layers,     items: ["staff","skills","departments","tasks","projects","recruiting","connections","meetings","playground","analytics","companies","settings"] },
   { id: "guides",        icon: Lightbulb,  items: ["guide-first-staff","guide-build-department","guide-run-task","guide-skills"] },
   { id: "api-reference", icon: Terminal,   items: ["api-staff","api-skills","api-departments","api-tasks","api-chat"] },
   { id: "deployment",    icon: Package,    items: ["deploy-docker","deploy-env"] },
@@ -46,9 +46,12 @@ function DocSidebar({
   const localTitles: Record<string, Record<string, string>> = {
     pricing: { en: "Pricing & Plans", vi: "Bảng giá & Gói dịch vụ", zh: "定价与计划", ja: "料金とプラン" },
     playground: { en: "Playground", vi: "Thử nghiệm (Playground)", zh: "演练场", ja: "プレイグラウンド" },
-    analytics: { en: "Analytics", vi: "Phân tích & Thống kê", zh: "分析", ja: "分析" },
-    companies: { en: "Companies", vi: "Không gian làm việc", zh: "工作空间", ja: "ワークスペース" },
+    analytics: { en: "Analytics & Consumption", vi: "Phân tích & Chi phí", zh: "分析与消耗", ja: "分析と消費" },
+    companies: { en: "Companies", vi: "Công ty", zh: "公司", ja: "会社" },
     settings: { en: "Settings", vi: "Cài đặt", zh: "设置", ja: "設定" },
+    projects: { en: "Projects", vi: "Dự án", zh: "项目", ja: "プロジェクト" },
+    recruiting: { en: "Recruiting", vi: "Tuyển dụng", zh: "招募", ja: "リクルーティング" },
+    connections: { en: "Connections & Webhooks", vi: "Kết nối & Webhook", zh: "连接与 Webhook", ja: "接続と Webhook" },
   };
 
   const nav = NAV_STRUCTURE.map((s) => ({
@@ -194,9 +197,12 @@ export default function Docs() {
   const localTitles: Record<string, Record<string, string>> = {
     pricing: { en: "Pricing & Plans", vi: "Bảng giá & Gói dịch vụ", zh: "定价与计划", ja: "料金とプラン" },
     playground: { en: "Playground", vi: "Thử nghiệm (Playground)", zh: "演练场", ja: "プレイグラウンド" },
-    analytics: { en: "Analytics", vi: "Phân tích & Thống kê", zh: "分析", ja: "分析" },
-    companies: { en: "Companies", vi: "Không gian làm việc", zh: "工作空间", ja: "ワークスペース" },
+    analytics: { en: "Analytics & Consumption", vi: "Phân tích & Chi phí", zh: "分析与消耗", ja: "分析と消費" },
+    companies: { en: "Companies", vi: "Công ty", zh: "公司", ja: "会社" },
     settings: { en: "Settings", vi: "Cài đặt", zh: "设置", ja: "設定" },
+    projects: { en: "Projects", vi: "Dự án", zh: "项目", ja: "プロジェクト" },
+    recruiting: { en: "Recruiting", vi: "Tuyển dụng", zh: "招募", ja: "リクルーティング" },
+    connections: { en: "Connections & Webhooks", vi: "Kết nối & Webhook", zh: "连接与 Webhook", ja: "接続と Webhook" },
   };
 
   const allItems = NAV_STRUCTURE.flatMap((s) =>
@@ -209,7 +215,8 @@ export default function Docs() {
   const prev = currentIdx > 0 ? allItems[currentIdx - 1] : null;
   const next = currentIdx < allItems.length - 1 ? allItems[currentIdx + 1] : null;
 
-  const content = getDocContent(t)[activeId] ?? (
+  const PageComponent = DOCS_PAGES[activeId];
+  const content = PageComponent ? <PageComponent lang={language} onNavigate={setPage} /> : (
     <div className="py-20 text-center text-muted-foreground">
       <p className="text-lg font-semibold mb-2">{ui.pageNotFound}</p>
       <p className="text-sm">{ui.comingSoon}</p>
@@ -346,7 +353,7 @@ export default function Docs() {
             <div className="mt-10 pt-6 border-t border-border/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-muted-foreground/60">
               <span>AI Collective Docs · MIT License</span>
               <a
-                href={`${GITHUB_URL}/edit/main/docs/${activeId}.md`}
+                href={`${GITHUB_URL}/edit/main/ui/src/pages/documents/${activeId}.tsx`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 hover:text-foreground transition-colors"
