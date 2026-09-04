@@ -67,6 +67,11 @@ const StaffCard = memo(function StaffCard({ human }: { human: OfficeStaffPlan })
           <p className="text-xs font-semibold truncate">{human.name}</p>
           <p className="text-[10px] text-muted-foreground truncate">{human.role}</p>
         </div>
+        {human.existing_id && (
+          <Badge variant="outline" className="text-[8px] px-1 py-0 shrink-0 text-emerald-500 border-emerald-500/40">
+            reused
+          </Badge>
+        )}
       </div>
       {human.description && (
         <p className="mt-1.5 text-[10px] text-muted-foreground/80 line-clamp-2">{human.description}</p>
@@ -99,6 +104,11 @@ const DepartmentCard = memo(function DepartmentCard({ dept }: { dept: OfficeDepa
             <p className="text-[10px] text-muted-foreground truncate">{dept.description}</p>
           )}
         </div>
+        {dept.existing_id && (
+          <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 text-emerald-500 border-emerald-500/40">
+            reused
+          </Badge>
+        )}
         <Badge variant="secondary" className="text-[9px] gap-1 shrink-0">
           <Workflow className="h-2.5 w-2.5" /> {dept.mode}
         </Badge>
@@ -508,9 +518,11 @@ export default function OfficeBuilder() {
     setCreating(true);
     try {
       const res = await api.applyOfficePlan({ plan: { ...plan, company_type: companyType } });
+      const reusedTotal = res.reused_department_ids.length + res.reused_staff_ids.length + res.reused_skill_ids.length;
       toast({
         title: "Office created",
-        description: `"${res.company.name}" — ${res.department_ids.length} departments, ${res.staff_ids.length} staff, ${res.skill_ids.length} new skills.`,
+        description: `"${res.company.name}" — ${res.department_ids.length} departments, ${res.staff_ids.length} staff, ${res.skill_ids.length} new skills`
+          + (reusedTotal > 0 ? ` (${reusedTotal} reused).` : "."),
       });
       setAppliedCompanyId(res.company.id);
       // Keep the session in history, marked as applied.

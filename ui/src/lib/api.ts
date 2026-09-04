@@ -339,6 +339,7 @@ export type OfficeSkillPlan = {
   name: string;
   description: string;
   tool_name?: string | null;
+  existing_id?: string | null;
 };
 
 export type OfficeStaffPlan = {
@@ -346,6 +347,7 @@ export type OfficeStaffPlan = {
   role: string;
   description: string;
   skills: OfficeSkillPlan[];
+  existing_id?: string | null;
 };
 
 export type OfficeDepartmentPlan = {
@@ -353,6 +355,7 @@ export type OfficeDepartmentPlan = {
   description: string;
   mode: DepartmentMode | string;
   staff: OfficeStaffPlan[];
+  existing_id?: string | null;
 };
 
 // Build the run-stream custom_graph payload from a department's saved flow. Returns
@@ -396,6 +399,8 @@ export type ApplyOfficePlanResponse = {
   staff_ids: string[];
   skill_ids: string[];
   reused_skill_ids: string[];
+  reused_staff_ids: string[];
+  reused_department_ids: string[];
 };
 
 export type OfficeBuilderSession = {

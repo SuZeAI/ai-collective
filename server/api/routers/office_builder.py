@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import replace
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -57,16 +58,18 @@ _PLAN_SCHEMA_TEXT = (
     '  "description": "<office description>",\n'
     '  "departments": [\n'
     "    {\n"
+    '      "existing_id": "<id of an existing department to reuse, or null to create a new one>",\n'
     '      "name": "<department name>",\n'
     '      "description": "<department description>",\n'
     '      "mode": "sequential|mesh|ring|supervisor|tree",\n'
     '      "staff": [\n'
     "        {\n"
+    '          "existing_id": "<id of an existing staff member to reuse, or null to create a new one>",\n'
     '          "name": "<realistic person name>",\n'
     '          "role": "<job title>",\n'
     '          "description": "<mission / responsibilities>",\n'
     '          "skills": [\n'
-    '            {"name": "<skill name>", "description": "<what it does>", "tool_name": "<tool_name or null>"}\n'
+    '            {"existing_id": "<id of an existing skill to reuse, or null>", "name": "<skill name>", "description": "<what it does>", "tool_name": "<tool_name or null>"}\n'
     "          ]\n"
     "        }\n"
     "      ]\n"
@@ -82,17 +85,28 @@ _DESIGNER_RULES_TEXT = (
     "- tool_name MUST be one of the available tools above, or null.\n"
     "- Prefer free tools (websearch, http, hackernews, youtube) over ones requiring API keys, "
     "unless the user asks for a specific integration.\n"
+    "- Reuse an existing department/staff/skill (listed above, if any) by setting its "
+    "\"existing_id\" to the id shown, instead of creating a near-duplicate — but only when it "
+    "genuinely fits the need. Set \"existing_id\" to null to create a new one.\n"
     "- When the user requests changes, return the FULL updated plan (never a partial diff).\n"
     "- If a current draft plan is provided, treat it as the starting point and modify it.\n"
     "- Keep the conversational reply concise; the plan itself is rendered separately in the UI."
 )
 
+# Cap how many existing entities of each kind are listed in the prompt, to bound token usage.
+_MAX_EXISTING_LISTED = 60
 
-def _designer_prompt_intro(tool_presets: list[dict]) -> str:
+
+def _designer_prompt_intro(
+    tool_presets: list[dict],
+    existing_departments: list[Department],
+    existing_staff: list[Staff],
+    existing_skills: list[Skill],
+) -> str:
     tool_lines = "\n".join(
         f"- \"{p['tool_name']}\": {p['label']}" for p in tool_presets
     )
-    return (
+    intro = (
         "You are an expert AI organization designer for the AI Collective platform. "
         "The user wants to build a full OFFICE through conversation. An office contains "
         "multiple DEPARTMENTS (departments); each department contains STAFF (AI staff); each "
@@ -103,11 +117,40 @@ def _designer_prompt_intro(tool_presets: list[dict]) -> str:
         "collaboration), \"ring\" (round-robin), \"supervisor\" (one lead delegates), "
         "\"tree\" (hierarchical).\n\n"
     )
+    if existing_departments or existing_staff or existing_skills:
+        intro += (
+            "The user already has some departments, staff and skills set up. Reuse them "
+            "(see the \"existing_id\" rule below) instead of creating near-duplicates:\n\n"
+        )
+        if existing_departments:
+            lines = "\n".join(
+                f"- \"{d.id}\": {d.name} ({d.mode}, {len(d.staff)} staff)"
+                for d in existing_departments[:_MAX_EXISTING_LISTED]
+            )
+            intro += f"Existing departments:\n{lines}\n\n"
+        if existing_staff:
+            lines = "\n".join(
+                f"- \"{s.id}\": {s.name} — {s.role}"
+                for s in existing_staff[:_MAX_EXISTING_LISTED]
+            )
+            intro += f"Existing staff:\n{lines}\n\n"
+        if existing_skills:
+            lines = "\n".join(
+                f"- \"{s.id}\": {s.name} (tool: {s.tool_name or 'none'})"
+                for s in existing_skills[:_MAX_EXISTING_LISTED]
+            )
+            intro += f"Existing skills:\n{lines}\n\n"
+    return intro
 
 
-def _build_designer_system_prompt(tool_presets: list[dict]) -> str:
+def _build_designer_system_prompt(
+    tool_presets: list[dict],
+    existing_departments: list[Department],
+    existing_staff: list[Staff],
+    existing_skills: list[Skill],
+) -> str:
     return (
-        _designer_prompt_intro(tool_presets)
+        _designer_prompt_intro(tool_presets, existing_departments, existing_staff, existing_skills)
         + "ALWAYS respond with a single JSON object and nothing else:\n"
         "{\n"
         '  "reply": "<short conversational reply in the user\'s language, summarizing what you designed or asking targeted questions>",\n'
@@ -119,9 +162,14 @@ def _build_designer_system_prompt(tool_presets: list[dict]) -> str:
     )
 
 
-def _build_streaming_designer_system_prompt(tool_presets: list[dict]) -> str:
+def _build_streaming_designer_system_prompt(
+    tool_presets: list[dict],
+    existing_departments: list[Department],
+    existing_staff: list[Staff],
+    existing_skills: list[Skill],
+) -> str:
     return (
-        _designer_prompt_intro(tool_presets)
+        _designer_prompt_intro(tool_presets, existing_departments, existing_staff, existing_skills)
         + "Respond in this EXACT format:\n"
         "1. First, write a short conversational reply as plain text in the user's language "
         "(summarize what you designed, or ask targeted questions). Do NOT use code fences in this part.\n"
@@ -133,6 +181,18 @@ def _build_streaming_designer_system_prompt(tool_presets: list[dict]) -> str:
         f"{_PLAN_SCHEMA_TEXT}\n\n"
         f"{_DESIGNER_RULES_TEXT}"
     )
+
+
+def _load_existing_context(
+    skill_service: SkillService,
+    staff_service: StaffService,
+    department_service: DepartmentService,
+    owner_id: str,
+) -> tuple[list[Department], list[Staff], list[Skill]]:
+    departments = [d for d in department_service.list_departments() if is_visible_to(owner_id, d.owner_id)]
+    staff = [s for s in staff_service.list_staff() if is_visible_to(owner_id, s.owner_id)]
+    skills = [s for s in skill_service.list_skills() if is_visible_to(owner_id, s.owner_id)]
+    return departments, staff, skills
 
 
 def _serialize_conversation(req: OfficeBuilderChatRequest, *, streaming: bool = False) -> str:
@@ -154,13 +214,25 @@ def _serialize_conversation(req: OfficeBuilderChatRequest, *, streaming: bool = 
     return "\n\n".join(parts)
 
 
-def _sanitize_plan(raw: dict, available_tools: set[str]) -> OfficePlan:
+def _sanitize_plan(
+    raw: dict,
+    available_tools: set[str],
+    existing_department_ids: set[str],
+    existing_staff_ids: set[str],
+    existing_skill_ids: set[str],
+) -> OfficePlan:
     plan = OfficePlan.model_validate(raw)
     for dept in plan.departments:
+        if dept.existing_id and dept.existing_id not in existing_department_ids:
+            dept.existing_id = None
         if dept.mode not in TEAM_MODES:
             dept.mode = "sequential"
         for member in dept.staff:
+            if member.existing_id and member.existing_id not in existing_staff_ids:
+                member.existing_id = None
             for skill in member.skills:
+                if skill.existing_id and skill.existing_id not in existing_skill_ids:
+                    skill.existing_id = None
                 if skill.tool_name and skill.tool_name not in available_tools:
                     get_logger().warning(
                         "Office builder: dropping unknown tool '%s' from skill '%s'",
@@ -176,6 +248,9 @@ async def chat_office_plan(
     req: OfficeBuilderChatRequest,
     llm_service: LLMService | None = Depends(get_llm_service),
     skill_service: SkillService = Depends(get_skill_service),
+    staff_service: StaffService = Depends(get_staff_service),
+    department_service: DepartmentService = Depends(get_department_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ) -> OfficeBuilderChatResponse:
     if llm_service is None:
         raise HTTPException(status_code=503, detail="LLM provider is not configured")
@@ -183,7 +258,10 @@ async def chat_office_plan(
         raise HTTPException(status_code=422, detail="messages must not be empty")
 
     presets = skill_service.list_tool_presets()
-    system = _build_designer_system_prompt(presets)
+    existing_departments, existing_staff, existing_skills = _load_existing_context(
+        skill_service, staff_service, department_service, owner_id
+    )
+    system = _build_designer_system_prompt(presets, existing_departments, existing_staff, existing_skills)
     user = _serialize_conversation(req)
 
     try:
@@ -198,7 +276,13 @@ async def chat_office_plan(
     if isinstance(raw_plan, dict):
         try:
             available = set(skill_service.list_available_tool_names())
-            plan = _sanitize_plan(raw_plan, available)
+            plan = _sanitize_plan(
+                raw_plan,
+                available,
+                {d.id for d in existing_departments},
+                {s.id for s in existing_staff},
+                {s.id for s in existing_skills},
+            )
         except Exception:
             get_logger().exception("Office builder: generated plan failed validation")
             plan = req.plan  # keep the previous draft instead of losing it
@@ -228,7 +312,11 @@ _FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)(?:```|\Z)", re.DOTALL)
 
 
 def _split_reply_and_plan(
-    full: str, available_tools: set[str]
+    full: str,
+    available_tools: set[str],
+    existing_department_ids: set[str],
+    existing_staff_ids: set[str],
+    existing_skill_ids: set[str],
 ) -> tuple[str, OfficePlan | None]:
     """Split streamed output into the visible reply and a sanitized plan (if any)."""
     fence = full.find("```")
@@ -238,7 +326,13 @@ def _split_reply_and_plan(
     if match:
         raw = match.group(1).strip()
         try:
-            plan = _sanitize_plan(json.loads(raw), available_tools)
+            plan = _sanitize_plan(
+                json.loads(raw),
+                available_tools,
+                existing_department_ids,
+                existing_staff_ids,
+                existing_skill_ids,
+            )
         except Exception:
             get_logger().exception("Office builder: streamed plan failed to parse/validate")
     if not reply:
@@ -251,6 +345,9 @@ async def chat_office_plan_stream(
     req: OfficeBuilderChatRequest,
     llm_service: LLMService | None = Depends(get_llm_service),
     skill_service: SkillService = Depends(get_skill_service),
+    staff_service: StaffService = Depends(get_staff_service),
+    department_service: DepartmentService = Depends(get_department_service),
+    owner_id: str = Depends(current_owner_id_dep),
 ) -> StreamingResponse:
     """Streaming variant of /plan.
 
@@ -267,7 +364,13 @@ async def chat_office_plan_stream(
 
     presets = skill_service.list_tool_presets()
     available = set(skill_service.list_available_tool_names())
-    system = _build_streaming_designer_system_prompt(presets)
+    existing_departments, existing_staff, existing_skills = _load_existing_context(
+        skill_service, staff_service, department_service, owner_id
+    )
+    existing_department_ids = {d.id for d in existing_departments}
+    existing_staff_ids = {s.id for s in existing_staff}
+    existing_skill_ids = {s.id for s in existing_skills}
+    system = _build_streaming_designer_system_prompt(presets, existing_departments, existing_staff, existing_skills)
     user = _serialize_conversation(req, streaming=True)
     model = llm_service.get_chat_model()
 
@@ -299,7 +402,9 @@ async def chat_office_plan_stream(
             if visible_end > sent:
                 yield _event({"type": "delta", "text": full[sent:visible_end]})
 
-            reply, plan = _split_reply_and_plan(full, available)
+            reply, plan = _split_reply_and_plan(
+                full, available, existing_department_ids, existing_staff_ids, existing_skill_ids
+            )
             if plan is not None:
                 yield _event({"type": "plan", "plan": plan.model_dump()})
             yield _event({"type": "done", "reply": reply})
@@ -343,19 +448,32 @@ def apply_office_plan(
     available_tools = set(skill_service.list_available_tool_names())
     presets_by_tool = {p["tool_name"]: p for p in skill_service.list_tool_presets()}
 
-    # Reuse existing skills when name + tool match (case-insensitive), so repeated
-    # office generations don't pile up duplicate skills. Only skills visible to
-    # the requesting user (shared defaults + their own) are candidates.
+    # Only entities visible to the requesting user (shared defaults + their own)
+    # are candidates for reuse.
+    existing_skills_by_id = {
+        s.id: s for s in skill_service.list_skills() if is_visible_to(owner_id, s.owner_id)
+    }
+    existing_staff_by_id = {
+        s.id: s for s in staff_service.list_staff() if is_visible_to(owner_id, s.owner_id)
+    }
+    existing_departments_by_id = {
+        d.id: d for d in department_service.list_departments() if is_visible_to(owner_id, d.owner_id)
+    }
+
+    # Also reuse existing skills when name + tool match (case-insensitive), so repeated
+    # office generations don't pile up duplicate skills even without an explicit existing_id.
     existing_by_key = {
-        (s.name.strip().lower(), s.tool_name or ""): s
-        for s in skill_service.list_skills()
-        if is_visible_to(owner_id, s.owner_id)
+        (s.name.strip().lower(), s.tool_name or ""): s for s in existing_skills_by_id.values()
     }
     created_skill_ids: list[str] = []
     reused_skill_ids: list[str] = []
     plan_skill_ids: dict[tuple[str, str], str] = {}
 
-    def _resolve_skill(name: str, description: str, tool_name: str | None) -> str:
+    def _resolve_skill(name: str, description: str, tool_name: str | None, existing_id: str | None) -> str:
+        if existing_id and existing_id in existing_skills_by_id:
+            if existing_id not in reused_skill_ids:
+                reused_skill_ids.append(existing_id)
+            return existing_id
         tool = tool_name if tool_name in available_tools else None
         key = (name.strip().lower(), tool or "")
         if key in plan_skill_ids:
@@ -385,12 +503,19 @@ def apply_office_plan(
 
     staff_ids: list[str] = []
     department_ids: list[str] = []
+    reused_staff_ids: list[str] = []
+    reused_department_ids: list[str] = []
 
     for dept in plan.departments:
         dept_staff_ids: list[str] = []
         for member in dept.staff:
+            if member.existing_id and member.existing_id in existing_staff_by_id:
+                dept_staff_ids.append(member.existing_id)
+                staff_ids.append(member.existing_id)
+                reused_staff_ids.append(member.existing_id)
+                continue
             skill_ids = [
-                _resolve_skill(s.name, s.description, s.tool_name)
+                _resolve_skill(s.name, s.description, s.tool_name, s.existing_id)
                 for s in member.skills
                 if s.name.strip()
             ]
@@ -414,22 +539,34 @@ def apply_office_plan(
             staff_ids.append(saved_staff.id)
 
         mode = dept.mode if dept.mode in TEAM_MODES else "sequential"
-        saved_team = department_service.upsert_department(
-            Department(
-                id=f"team_{uuid4().hex}",
-                name=dept.name.strip() or "Department",
-                description=dept.description.strip() or f"{dept.name} department",
-                staff=dept_staff_ids,
-                active_tasks=1 if dept_staff_ids else 0,
-                avatar=(dept.name.strip()[:1] or "T").upper(),
-                mode=mode,
-                owner_id=owner_id,
+        if dept.existing_id and dept.existing_id in existing_departments_by_id:
+            existing_dept = existing_departments_by_id[dept.existing_id]
+            merged_staff = list(existing_dept.staff) + [
+                sid for sid in dept_staff_ids if sid not in existing_dept.staff
+            ]
+            saved_team = department_service.upsert_department(replace(existing_dept, staff=merged_staff))
+            department_ids.append(saved_team.id)
+            reused_department_ids.append(saved_team.id)
+            # Activate any newly-attached staff, but don't re-seed kickoff messages
+            # for a department that was already running.
+            _activate_department_staff(saved_team.staff, staff_service)
+        else:
+            saved_team = department_service.upsert_department(
+                Department(
+                    id=f"team_{uuid4().hex}",
+                    name=dept.name.strip() or "Department",
+                    description=dept.description.strip() or f"{dept.name} department",
+                    staff=dept_staff_ids,
+                    active_tasks=1 if dept_staff_ids else 0,
+                    avatar=(dept.name.strip()[:1] or "T").upper(),
+                    mode=mode,
+                    owner_id=owner_id,
+                )
             )
-        )
-        department_ids.append(saved_team.id)
-        # Mirror the manual department-creation flow (activation + kickoff messages).
-        _activate_department_staff(saved_team.staff, staff_service)
-        _seed_department_kickoff_messages(saved_team, staff_service, conv_service)
+            department_ids.append(saved_team.id)
+            # Mirror the manual department-creation flow (activation + kickoff messages).
+            _activate_department_staff(saved_team.staff, staff_service)
+            _seed_department_kickoff_messages(saved_team, staff_service, conv_service)
 
     workspace = company_service.upsert_workspace(
         Company(
@@ -451,6 +588,8 @@ def apply_office_plan(
         staff_ids=staff_ids,
         skill_ids=created_skill_ids,
         reused_skill_ids=reused_skill_ids,
+        reused_staff_ids=reused_staff_ids,
+        reused_department_ids=reused_department_ids,
     )
 
 

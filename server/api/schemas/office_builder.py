@@ -11,6 +11,7 @@ class SkillPlan(BaseModel):
     name: str
     description: str = ""
     tool_name: str | None = None  # must reference an available tool, or None
+    existing_id: str | None = None  # reuse this existing skill instead of creating one
 
 
 class StaffPlan(BaseModel):
@@ -18,6 +19,7 @@ class StaffPlan(BaseModel):
     role: str
     description: str = ""
     skills: list[SkillPlan] = Field(default_factory=list)
+    existing_id: str | None = None  # reuse this existing staff member instead of creating one
 
 
 class DepartmentPlan(BaseModel):
@@ -25,6 +27,7 @@ class DepartmentPlan(BaseModel):
     description: str = ""
     mode: str = "sequential"  # sequential | mesh | ring | supervisor | tree
     staff: list[StaffPlan] = Field(default_factory=list)
+    existing_id: str | None = None  # reuse this existing department instead of creating one
 
 
 class OfficePlan(BaseModel):
@@ -123,3 +126,5 @@ class ApplyOfficePlanResponse(BaseModel):
     staff_ids: list[str] = Field(default_factory=list)
     skill_ids: list[str] = Field(default_factory=list)
     reused_skill_ids: list[str] = Field(default_factory=list)
+    reused_staff_ids: list[str] = Field(default_factory=list)
+    reused_department_ids: list[str] = Field(default_factory=list)
