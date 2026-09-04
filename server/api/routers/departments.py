@@ -1,62 +1,20 @@
 from __future__ import annotations
 
 from uuid import uuid4
-from dataclasses import replace
-from datetime import datetime, timezone
-import time
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from server.api.deps import current_owner_id_dep, get_staff_service, get_meeting_service, get_department_service
 from server.api.schemas.department import DepartmentSchema, UpsertTeamRequest
+from server.app.service.department_activation import activate_department_staff, seed_department_kickoff_messages
 from server.app.service.staff_service import StaffService
 from server.app.service.meeting_service import MeetingService
 from server.app.service.department_service import DepartmentService
-from server.domain.enums import StaffStatus
 from server.domain.errors import NotFoundError
-from server.domain.models import Message, Department, can_delete, can_modify, is_owned_by, is_visible_to
+from server.domain.models import Department, can_delete, can_modify, is_owned_by, is_visible_to
 
 
 router = APIRouter(prefix="/departments", tags=["departments"])
-
-
-def _activate_department_staff(staff_ids: list[str], staff_service: StaffService) -> None:
-    by_id = {s.id: s for s in staff_service.list_staff()}
-    for staff_id in staff_ids:
-        staff = by_id.get(staff_id)
-        if staff is None:
-            continue
-        if staff.status != StaffStatus.active:
-            staff_service.upsert_staff(replace(staff, status=StaffStatus.active))
-
-
-def _seed_department_kickoff_messages(department: Department, staff_service: StaffService, conv_service: MeetingService) -> None:
-    if not department.staff:
-        return
-
-    by_id = {s.id: s for s in staff_service.list_staff()}
-    roster = [by_id[staff_id] for staff_id in department.staff if staff_id in by_id]
-    if not roster:
-        return
-
-    lines = [
-        f"Department {department.name} is now active. Let's align on goals and deliverables.",
-        "I will break down responsibilities and coordinate the first execution cycle.",
-        "Acknowledged. I am ready and starting my assigned part now.",
-    ]
-    base_ts = int(time.time() * 1000)
-    task_ref = f"department:{department.id}"
-
-    for idx, text in enumerate(lines):
-        speaker = roster[idx % len(roster)]
-        conv_service.add_message(
-            Message(
-                id=f"m{base_ts + idx}",
-                staff_id=speaker.id,
-                content=text,
-                timestamp=datetime.now(timezone.utc).replace(microsecond=0),
-                task_id=task_ref,
-            )
-        )
 
 
 @router.get("", response_model=list[DepartmentSchema])
@@ -109,8 +67,8 @@ def upsert_department(
     saved = service.upsert_department(department)
 
     if is_new_team:
-        _activate_department_staff(saved.staff, staff_service)
-        _seed_department_kickoff_messages(saved, staff_service, conv_service)
+        activate_department_staff(saved.staff, staff_service)
+        seed_department_kickoff_messages(saved, staff_service, conv_service)
 
     return DepartmentSchema.from_domain(saved)
 

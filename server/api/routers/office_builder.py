@@ -1,27 +1,18 @@
 from __future__ import annotations
 
 import json
-import re
-from dataclasses import replace
 from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from langchain_core.messages import HumanMessage, SystemMessage
 
 from server.api.deps import (
     current_owner_id_dep,
-    get_staff_service,
-    get_meeting_service,
-    get_llm_service,
+    get_office_builder_service,
     get_office_builder_session_service,
-    get_skill_service,
-    get_department_service,
-    get_company_service,
 )
-from server.api.routers.staff import _build_staff_system_prompt
-from server.api.routers.departments import _activate_department_staff, _seed_department_kickoff_messages
+from server.api.schemas.company import CompanySchema
 from server.api.schemas.office_builder import (
     ApplyOfficePlanRequest,
     ApplyOfficePlanResponse,
@@ -32,564 +23,88 @@ from server.api.schemas.office_builder import (
     OfficePlan,
     UpsertOfficeBuilderSessionRequest,
 )
-from server.api.schemas.company import CompanySchema
-from server.app.service.staff_service import StaffService
-from server.app.service.meeting_service import MeetingService
-from server.app.service.llm_service import LLMService
+from server.app.service.office_builder_service import OfficeBuilderService
 from server.app.service.office_builder_session_service import OfficeBuilderSessionService
-from server.app.service.skill_service import SkillService
-from server.app.service.department_service import DepartmentService
-from server.app.service.company_service import CompanyService
-from server.domain.enums import StaffStatus
-from server.domain.models import Staff, OfficeBuilderSession, Skill, Department, Company, can_delete, can_modify, is_visible_to
+from server.domain.models import OfficeBuilderSession, can_delete, can_modify, is_visible_to
 from server.share.log import get_logger
 
 
 router = APIRouter(prefix="/office-builder", tags=["office-builder"])
 
-TEAM_MODES = ("sequential", "mesh", "ring", "supervisor", "tree")
-
 
 # ─── Plan generation (chat) ─────────────────────────────────────────────────
-
-_PLAN_SCHEMA_TEXT = (
-    "{\n"
-    '  "name": "<office name>",\n'
-    '  "description": "<office description>",\n'
-    '  "departments": [\n'
-    "    {\n"
-    '      "existing_id": "<id of an existing department to reuse, or null to create a new one>",\n'
-    '      "name": "<department name>",\n'
-    '      "description": "<department description>",\n'
-    '      "mode": "sequential|mesh|ring|supervisor|tree",\n'
-    '      "staff": [\n'
-    "        {\n"
-    '          "existing_id": "<id of an existing staff member to reuse, or null to create a new one>",\n'
-    '          "name": "<realistic person name>",\n'
-    '          "role": "<job title>",\n'
-    '          "description": "<mission / responsibilities>",\n'
-    '          "skills": [\n'
-    '            {"existing_id": "<id of an existing skill to reuse, or null>", "name": "<skill name>", "description": "<what it does>", "tool_name": "<tool_name or null>"}\n'
-    "          ]\n"
-    "        }\n"
-    "      ]\n"
-    "    }\n"
-    "  ]\n"
-    "}"
-)
-
-_DESIGNER_RULES_TEXT = (
-    "Rules:\n"
-    "- Design a sensible org: typically 2-5 departments with 2-4 staff each and 1-3 skills "
-    "per staff member, unless the user specifies otherwise.\n"
-    "- tool_name MUST be one of the available tools above, or null.\n"
-    "- Prefer free tools (websearch, http, hackernews, youtube) over ones requiring API keys, "
-    "unless the user asks for a specific integration.\n"
-    "- Reuse an existing department/staff/skill (listed above, if any) by setting its "
-    "\"existing_id\" to the id shown, instead of creating a near-duplicate — but only when it "
-    "genuinely fits the need. Set \"existing_id\" to null to create a new one.\n"
-    "- When the user requests changes, return the FULL updated plan (never a partial diff).\n"
-    "- If a current draft plan is provided, treat it as the starting point and modify it.\n"
-    "- Keep the conversational reply concise; the plan itself is rendered separately in the UI."
-)
-
-# Cap how many existing entities of each kind are listed in the prompt, to bound token usage.
-_MAX_EXISTING_LISTED = 60
-
-
-def _designer_prompt_intro(
-    tool_presets: list[dict],
-    existing_departments: list[Department],
-    existing_staff: list[Staff],
-    existing_skills: list[Skill],
-) -> str:
-    tool_lines = "\n".join(
-        f"- \"{p['tool_name']}\": {p['label']}" for p in tool_presets
-    )
-    intro = (
-        "You are an expert AI organization designer for the AI Collective platform. "
-        "The user wants to build a full OFFICE through conversation. An office contains "
-        "multiple DEPARTMENTS (departments); each department contains STAFF (AI staff); each "
-        "human has SKILLS, and each skill may be linked to one TOOL.\n\n"
-        "Available tools (use the exact tool_name, or null for a knowledge-only skill):\n"
-        f"{tool_lines}\n\n"
-        "Department execution modes: \"sequential\" (pipeline, default), \"mesh\" (open "
-        "collaboration), \"ring\" (round-robin), \"supervisor\" (one lead delegates), "
-        "\"tree\" (hierarchical).\n\n"
-    )
-    if existing_departments or existing_staff or existing_skills:
-        intro += (
-            "The user already has some departments, staff and skills set up. Reuse them "
-            "(see the \"existing_id\" rule below) instead of creating near-duplicates:\n\n"
-        )
-        if existing_departments:
-            lines = "\n".join(
-                f"- \"{d.id}\": {d.name} ({d.mode}, {len(d.staff)} staff)"
-                for d in existing_departments[:_MAX_EXISTING_LISTED]
-            )
-            intro += f"Existing departments:\n{lines}\n\n"
-        if existing_staff:
-            lines = "\n".join(
-                f"- \"{s.id}\": {s.name} — {s.role}"
-                for s in existing_staff[:_MAX_EXISTING_LISTED]
-            )
-            intro += f"Existing staff:\n{lines}\n\n"
-        if existing_skills:
-            lines = "\n".join(
-                f"- \"{s.id}\": {s.name} (tool: {s.tool_name or 'none'})"
-                for s in existing_skills[:_MAX_EXISTING_LISTED]
-            )
-            intro += f"Existing skills:\n{lines}\n\n"
-    return intro
-
-
-def _build_designer_system_prompt(
-    tool_presets: list[dict],
-    existing_departments: list[Department],
-    existing_staff: list[Staff],
-    existing_skills: list[Skill],
-) -> str:
-    return (
-        _designer_prompt_intro(tool_presets, existing_departments, existing_staff, existing_skills)
-        + "ALWAYS respond with a single JSON object and nothing else:\n"
-        "{\n"
-        '  "reply": "<short conversational reply in the user\'s language, summarizing what you designed or asking targeted questions>",\n'
-        '  "plan": <full office plan object, or null if you still need more information>\n'
-        "}\n\n"
-        "Plan JSON schema:\n"
-        f"{_PLAN_SCHEMA_TEXT}\n\n"
-        f"{_DESIGNER_RULES_TEXT}"
-    )
-
-
-def _build_streaming_designer_system_prompt(
-    tool_presets: list[dict],
-    existing_departments: list[Department],
-    existing_staff: list[Staff],
-    existing_skills: list[Skill],
-) -> str:
-    return (
-        _designer_prompt_intro(tool_presets, existing_departments, existing_staff, existing_skills)
-        + "Respond in this EXACT format:\n"
-        "1. First, write a short conversational reply as plain text in the user's language "
-        "(summarize what you designed, or ask targeted questions). Do NOT use code fences in this part.\n"
-        "2. Then, if (and only if) you have a complete office plan, append it as a fenced block:\n"
-        "```json\n"
-        "<full office plan object>\n"
-        "```\n\n"
-        "Plan JSON schema:\n"
-        f"{_PLAN_SCHEMA_TEXT}\n\n"
-        f"{_DESIGNER_RULES_TEXT}"
-    )
-
-
-def _load_existing_context(
-    skill_service: SkillService,
-    staff_service: StaffService,
-    department_service: DepartmentService,
-    owner_id: str,
-) -> tuple[list[Department], list[Staff], list[Skill]]:
-    departments = [d for d in department_service.list_departments() if is_visible_to(owner_id, d.owner_id)]
-    staff = [s for s in staff_service.list_staff() if is_visible_to(owner_id, s.owner_id)]
-    skills = [s for s in skill_service.list_skills() if is_visible_to(owner_id, s.owner_id)]
-    return departments, staff, skills
-
-
-def _serialize_conversation(req: OfficeBuilderChatRequest, *, streaming: bool = False) -> str:
-    parts: list[str] = []
-    if req.plan is not None:
-        parts.append(
-            "Current draft plan:\n" + json.dumps(req.plan.model_dump(), ensure_ascii=False)
-        )
-    parts.append("Conversation so far:")
-    for msg in req.messages:
-        speaker = "User" if msg.role == "user" else "Assistant"
-        parts.append(f"{speaker}: {msg.content}")
-    if streaming:
-        parts.append("Respond now in the specified format (reply text, then optional ```json plan block).")
-    else:
-        parts.append(
-            "Respond now with the JSON object ({\"reply\": ..., \"plan\": ...}) only."
-        )
-    return "\n\n".join(parts)
-
-
-def _sanitize_plan(
-    raw: dict,
-    available_tools: set[str],
-    existing_department_ids: set[str],
-    existing_staff_ids: set[str],
-    existing_skill_ids: set[str],
-) -> OfficePlan:
-    plan = OfficePlan.model_validate(raw)
-    for dept in plan.departments:
-        if dept.existing_id and dept.existing_id not in existing_department_ids:
-            dept.existing_id = None
-        if dept.mode not in TEAM_MODES:
-            dept.mode = "sequential"
-        for member in dept.staff:
-            if member.existing_id and member.existing_id not in existing_staff_ids:
-                member.existing_id = None
-            for skill in member.skills:
-                if skill.existing_id and skill.existing_id not in existing_skill_ids:
-                    skill.existing_id = None
-                if skill.tool_name and skill.tool_name not in available_tools:
-                    get_logger().warning(
-                        "Office builder: dropping unknown tool '%s' from skill '%s'",
-                        skill.tool_name,
-                        skill.name,
-                    )
-                    skill.tool_name = None
-    return plan
-
 
 @router.post("/plan", response_model=OfficeBuilderChatResponse)
 async def chat_office_plan(
     req: OfficeBuilderChatRequest,
-    llm_service: LLMService | None = Depends(get_llm_service),
-    skill_service: SkillService = Depends(get_skill_service),
-    staff_service: StaffService = Depends(get_staff_service),
-    department_service: DepartmentService = Depends(get_department_service),
+    service: OfficeBuilderService = Depends(get_office_builder_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> OfficeBuilderChatResponse:
-    if llm_service is None:
+    if not service.is_llm_configured():
         raise HTTPException(status_code=503, detail="LLM provider is not configured")
     if not req.messages:
         raise HTTPException(status_code=422, detail="messages must not be empty")
 
-    presets = skill_service.list_tool_presets()
-    existing_departments, existing_staff, existing_skills = _load_existing_context(
-        skill_service, staff_service, department_service, owner_id
-    )
-    system = _build_designer_system_prompt(presets, existing_departments, existing_staff, existing_skills)
-    user = _serialize_conversation(req)
-
     try:
-        data = await llm_service.get_provider().generate_json(system=system, user=user)
+        reply, plan = await service.generate_plan(
+            messages=[(m.role, m.content) for m in req.messages],
+            current_plan=req.plan.to_domain() if req.plan else None,
+            owner_id=owner_id,
+        )
     except Exception as exc:  # malformed JSON or provider failure
         get_logger().exception("Office builder plan generation failed")
         raise HTTPException(status_code=502, detail=f"Plan generation failed: {exc}")
 
-    reply = str(data.get("reply") or "").strip() or "Here is the updated office plan."
-    raw_plan = data.get("plan")
-    plan: OfficePlan | None = None
-    if isinstance(raw_plan, dict):
-        try:
-            available = set(skill_service.list_available_tool_names())
-            plan = _sanitize_plan(
-                raw_plan,
-                available,
-                {d.id for d in existing_departments},
-                {s.id for s in existing_staff},
-                {s.id for s in existing_skills},
-            )
-        except Exception:
-            get_logger().exception("Office builder: generated plan failed validation")
-            plan = req.plan  # keep the previous draft instead of losing it
-
-    return OfficeBuilderChatResponse(reply=reply, plan=plan or req.plan)
-
-
-def _chunk_text(chunk) -> str:
-    """Extract plain text from a LangChain streamed message chunk."""
-    content = getattr(chunk, "content", "")
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        parts: list[str] = []
-        for block in content:
-            if isinstance(block, str):
-                parts.append(block)
-            elif isinstance(block, dict):
-                text = block.get("text")
-                if isinstance(text, str):
-                    parts.append(text)
-        return "".join(parts)
-    return ""
-
-
-_FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)(?:```|\Z)", re.DOTALL)
-
-
-def _split_reply_and_plan(
-    full: str,
-    available_tools: set[str],
-    existing_department_ids: set[str],
-    existing_staff_ids: set[str],
-    existing_skill_ids: set[str],
-) -> tuple[str, OfficePlan | None]:
-    """Split streamed output into the visible reply and a sanitized plan (if any)."""
-    fence = full.find("```")
-    reply = (full[:fence] if fence != -1 else full).strip()
-    plan: OfficePlan | None = None
-    match = _FENCE_RE.search(full)
-    if match:
-        raw = match.group(1).strip()
-        try:
-            plan = _sanitize_plan(
-                json.loads(raw),
-                available_tools,
-                existing_department_ids,
-                existing_staff_ids,
-                existing_skill_ids,
-            )
-        except Exception:
-            get_logger().exception("Office builder: streamed plan failed to parse/validate")
-    if not reply:
-        reply = "Here is the updated office plan." if plan else "Could you tell me more about the office you want?"
-    return reply, plan
+    return OfficeBuilderChatResponse(reply=reply, plan=OfficePlan.from_domain(plan) if plan else req.plan)
 
 
 @router.post("/plan-stream")
 async def chat_office_plan_stream(
     req: OfficeBuilderChatRequest,
-    llm_service: LLMService | None = Depends(get_llm_service),
-    skill_service: SkillService = Depends(get_skill_service),
-    staff_service: StaffService = Depends(get_staff_service),
-    department_service: DepartmentService = Depends(get_department_service),
+    service: OfficeBuilderService = Depends(get_office_builder_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> StreamingResponse:
-    """Streaming variant of /plan.
-
-    SSE events:
-      {"type": "delta", "text": ...}   incremental reply text (plan block withheld)
-      {"type": "plan", "plan": {...}}  sanitized plan, once fully parsed
-      {"type": "done", "reply": ...}   final canonical reply text
-      {"type": "error", "detail": ...}
-    """
-    if llm_service is None:
+    """Streaming variant of /plan; see OfficeBuilderService.stream_plan for the
+    generated event types (delta/plan/done/error), re-emitted here as SSE."""
+    if not service.is_llm_configured():
         raise HTTPException(status_code=503, detail="LLM provider is not configured")
     if not req.messages:
         raise HTTPException(status_code=422, detail="messages must not be empty")
-
-    presets = skill_service.list_tool_presets()
-    available = set(skill_service.list_available_tool_names())
-    existing_departments, existing_staff, existing_skills = _load_existing_context(
-        skill_service, staff_service, department_service, owner_id
-    )
-    existing_department_ids = {d.id for d in existing_departments}
-    existing_staff_ids = {s.id for s in existing_staff}
-    existing_skill_ids = {s.id for s in existing_skills}
-    system = _build_streaming_designer_system_prompt(presets, existing_departments, existing_staff, existing_skills)
-    user = _serialize_conversation(req, streaming=True)
-    model = llm_service.get_chat_model()
 
     def _event(payload: dict) -> str:
         return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
     async def event_generator():
-        full = ""
-        sent = 0
-        try:
-            async for chunk in model.astream(
-                [SystemMessage(content=system), HumanMessage(content=user)]
-            ):
-                text = _chunk_text(chunk)
-                if not text:
-                    continue
-                full += text
-                fence = full.find("```")
-                # Hold back the last few chars so a "```" fence split across
-                # chunks never leaks into the visible reply.
-                visible_end = fence if fence != -1 else len(full) - 3
-                visible_end = max(sent, visible_end)
-                if visible_end > sent:
-                    yield _event({"type": "delta", "text": full[sent:visible_end]})
-                    sent = visible_end
-
-            fence = full.find("```")
-            visible_end = max(sent, fence if fence != -1 else len(full))
-            if visible_end > sent:
-                yield _event({"type": "delta", "text": full[sent:visible_end]})
-
-            reply, plan = _split_reply_and_plan(
-                full, available, existing_department_ids, existing_staff_ids, existing_skill_ids
-            )
-            if plan is not None:
-                yield _event({"type": "plan", "plan": plan.model_dump()})
-            yield _event({"type": "done", "reply": reply})
-        except Exception as exc:
-            get_logger().exception("Office builder streaming plan generation failed")
-            yield _event({"type": "error", "detail": str(exc)})
+        async for event in service.stream_plan(
+            messages=[(m.role, m.content) for m in req.messages],
+            current_plan=req.plan.to_domain() if req.plan else None,
+            owner_id=owner_id,
+        ):
+            if event["type"] == "plan":
+                yield _event({"type": "plan", "plan": OfficePlan.from_domain(event["plan"]).model_dump()})
+            else:
+                yield _event(event)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 # ─── Plan application (create skills → staff → departments → office) ───────
 
-def _preset_default_config(tool_name: str | None, presets_by_tool: dict[str, dict]) -> dict:
-    if not tool_name:
-        return {}
-    preset = presets_by_tool.get(tool_name) or {}
-    config: dict = {}
-    for field in preset.get("config_fields") or []:
-        key = field.get("key")
-        if key is not None and field.get("default") is not None:
-            config[key] = field["default"]
-    return config
-
-
 @router.post("/apply", response_model=ApplyOfficePlanResponse)
 def apply_office_plan(
     req: ApplyOfficePlanRequest,
-    skill_service: SkillService = Depends(get_skill_service),
-    staff_service: StaffService = Depends(get_staff_service),
-    department_service: DepartmentService = Depends(get_department_service),
-    company_service: CompanyService = Depends(get_company_service),
-    conv_service: MeetingService = Depends(get_meeting_service),
+    service: OfficeBuilderService = Depends(get_office_builder_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> ApplyOfficePlanResponse:
-    plan = req.plan
-    if not plan.name.strip():
-        raise HTTPException(status_code=422, detail="Office name must not be empty")
-    if not plan.departments:
-        raise HTTPException(status_code=422, detail="Office must contain at least one department")
-
-    available_tools = set(skill_service.list_available_tool_names())
-    presets_by_tool = {p["tool_name"]: p for p in skill_service.list_tool_presets()}
-
-    # Only entities visible to the requesting user (shared defaults + their own)
-    # are candidates for reuse.
-    existing_skills_by_id = {
-        s.id: s for s in skill_service.list_skills() if is_visible_to(owner_id, s.owner_id)
-    }
-    existing_staff_by_id = {
-        s.id: s for s in staff_service.list_staff() if is_visible_to(owner_id, s.owner_id)
-    }
-    existing_departments_by_id = {
-        d.id: d for d in department_service.list_departments() if is_visible_to(owner_id, d.owner_id)
-    }
-
-    # Also reuse existing skills when name + tool match (case-insensitive), so repeated
-    # office generations don't pile up duplicate skills even without an explicit existing_id.
-    existing_by_key = {
-        (s.name.strip().lower(), s.tool_name or ""): s for s in existing_skills_by_id.values()
-    }
-    created_skill_ids: list[str] = []
-    reused_skill_ids: list[str] = []
-    plan_skill_ids: dict[tuple[str, str], str] = {}
-
-    def _resolve_skill(name: str, description: str, tool_name: str | None, existing_id: str | None) -> str:
-        if existing_id and existing_id in existing_skills_by_id:
-            if existing_id not in reused_skill_ids:
-                reused_skill_ids.append(existing_id)
-            return existing_id
-        tool = tool_name if tool_name in available_tools else None
-        key = (name.strip().lower(), tool or "")
-        if key in plan_skill_ids:
-            return plan_skill_ids[key]
-        existing = existing_by_key.get(key)
-        if existing is not None:
-            plan_skill_ids[key] = existing.id
-            reused_skill_ids.append(existing.id)
-            return existing.id
-        preset = presets_by_tool.get(tool or "") or {}
-        saved = skill_service.upsert_skill(
-            Skill(
-                id=f"skill_{uuid4().hex}",
-                name=name.strip(),
-                description=description.strip(),
-                third_party=preset.get("third_party") or "",
-                kind="integration",
-                config=_preset_default_config(tool, presets_by_tool),
-                avatar=(name.strip()[:1] or "S").upper(),
-                tool_name=tool,
-                owner_id=owner_id,
-            )
-        )
-        plan_skill_ids[key] = saved.id
-        created_skill_ids.append(saved.id)
-        return saved.id
-
-    staff_ids: list[str] = []
-    department_ids: list[str] = []
-    reused_staff_ids: list[str] = []
-    reused_department_ids: list[str] = []
-
-    for dept in plan.departments:
-        dept_staff_ids: list[str] = []
-        for member in dept.staff:
-            if member.existing_id and member.existing_id in existing_staff_by_id:
-                dept_staff_ids.append(member.existing_id)
-                staff_ids.append(member.existing_id)
-                reused_staff_ids.append(member.existing_id)
-                continue
-            skill_ids = [
-                _resolve_skill(s.name, s.description, s.tool_name, s.existing_id)
-                for s in member.skills
-                if s.name.strip()
-            ]
-            description = member.description.strip() or f"{member.role} staff"
-            saved_staff = staff_service.upsert_staff(
-                Staff(
-                    id=f"agent_{uuid4().hex}",
-                    name=member.name.strip() or member.role,
-                    role=member.role.strip() or "Specialist",
-                    description=description,
-                    skill_ids=skill_ids,
-                    status=StaffStatus.active,
-                    avatar=(member.name.strip()[:1] or "A").upper(),
-                    system_prompt=_build_staff_system_prompt(
-                        name=member.name, role=member.role, description=description
-                    ),
-                    owner_id=owner_id,
-                )
-            )
-            dept_staff_ids.append(saved_staff.id)
-            staff_ids.append(saved_staff.id)
-
-        mode = dept.mode if dept.mode in TEAM_MODES else "sequential"
-        if dept.existing_id and dept.existing_id in existing_departments_by_id:
-            existing_dept = existing_departments_by_id[dept.existing_id]
-            merged_staff = list(existing_dept.staff) + [
-                sid for sid in dept_staff_ids if sid not in existing_dept.staff
-            ]
-            saved_team = department_service.upsert_department(replace(existing_dept, staff=merged_staff))
-            department_ids.append(saved_team.id)
-            reused_department_ids.append(saved_team.id)
-            # Activate any newly-attached staff, but don't re-seed kickoff messages
-            # for a department that was already running.
-            _activate_department_staff(saved_team.staff, staff_service)
-        else:
-            saved_team = department_service.upsert_department(
-                Department(
-                    id=f"team_{uuid4().hex}",
-                    name=dept.name.strip() or "Department",
-                    description=dept.description.strip() or f"{dept.name} department",
-                    staff=dept_staff_ids,
-                    active_tasks=1 if dept_staff_ids else 0,
-                    avatar=(dept.name.strip()[:1] or "T").upper(),
-                    mode=mode,
-                    owner_id=owner_id,
-                )
-            )
-            department_ids.append(saved_team.id)
-            # Mirror the manual department-creation flow (activation + kickoff messages).
-            _activate_department_staff(saved_team.staff, staff_service)
-            _seed_department_kickoff_messages(saved_team, staff_service, conv_service)
-
-    workspace = company_service.upsert_workspace(
-        Company(
-            id=f"ws_{uuid4().hex}",
-            name=plan.name.strip(),
-            description=plan.description.strip(),
-            department_ids=department_ids,
-            primary_department_id=department_ids[0] if department_ids else "",
-            created_at=datetime.now(timezone.utc),
-            type=(plan.company_type or "general"),
-            avatar=(plan.name.strip()[:1] or "W").upper(),
-            owner_id=owner_id,
-        )
-    )
-
+    result = service.apply(req.plan.to_domain(), owner_id)
     return ApplyOfficePlanResponse(
-        company=CompanySchema.from_domain(workspace),
-        department_ids=department_ids,
-        staff_ids=staff_ids,
-        skill_ids=created_skill_ids,
-        reused_skill_ids=reused_skill_ids,
-        reused_staff_ids=reused_staff_ids,
-        reused_department_ids=reused_department_ids,
+        company=CompanySchema.from_domain(result.company),
+        department_ids=result.department_ids,
+        staff_ids=result.staff_ids,
+        skill_ids=result.skill_ids,
+        reused_skill_ids=result.reused_skill_ids,
+        reused_staff_ids=result.reused_staff_ids,
+        reused_department_ids=result.reused_department_ids,
     )
 
 

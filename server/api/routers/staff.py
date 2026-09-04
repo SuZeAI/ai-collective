@@ -10,18 +10,10 @@ from server.api.deps import current_owner_id_dep, get_staff_service
 from server.domain.enums import StaffStatus
 from server.domain.errors import NotFoundError
 from server.domain.models import Staff, can_delete, can_modify, is_owned_by, is_visible_to
+from server.domain.prompt.staff_system_prompt import build_staff_system_prompt
 
 
 router = APIRouter(prefix="/staff", tags=["staff"])
-
-
-def _build_staff_system_prompt(*, name: str, role: str, description: str) -> str:
-    return (
-        f"You are {name}, working as a {role}. "
-        f"Your mission: {description.strip() or f'perform the responsibilities of a {role}'}. "
-        "Provide concise, practical, and high-quality outputs. "
-        "When information is missing, ask targeted follow-up questions before acting."
-    )
 
 
 @router.get("", response_model=list[StaffSchema])
@@ -65,7 +57,7 @@ def upsert_staff(
         system_prompt=(
             req.system_prompt.strip()
             if isinstance(req.system_prompt, str) and req.system_prompt.strip()
-            else _build_staff_system_prompt(
+            else build_staff_system_prompt(
                 name=req.name,
                 role=req.role,
                 description=req.description or f"{req.role} staff",

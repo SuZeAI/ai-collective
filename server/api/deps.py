@@ -62,6 +62,7 @@ from server.infra.repositories.json_files import (
 )
 from server.app.service.company_service import CompanyService
 from server.app.service.connection_service import ConnectionService
+from server.app.service.office_builder_service import OfficeBuilderService
 from server.app.service.office_builder_session_service import OfficeBuilderSessionService
 from server.app.service.user_service import UserService
 from server.infra.repositories.json_graph_knowledge import JsonGraphKnowledgeRepository
@@ -342,6 +343,18 @@ def _office_builder_session_store():
 
 def get_office_builder_session_service() -> OfficeBuilderSessionService:
     return OfficeBuilderSessionService(_office_builder_session_store())
+
+
+def get_office_builder_service() -> OfficeBuilderService:
+    repos = _repos()
+    return OfficeBuilderService(
+        _llm_provider(),
+        SkillService(repos.skills),
+        StaffService(repos.staff, repos.skills),
+        DepartmentService(repos.departments),
+        get_company_service(),
+        get_meeting_service(),
+    )
 
 
 @lru_cache
