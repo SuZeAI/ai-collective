@@ -507,14 +507,14 @@ export const translations: Record<Language, Translations> = {
     marketing: {
       common: { login: "Login", startBuilding: "Start building", contactSales: "Contact sales", devDocs: "Developer docs", viewPricing: "View pricing" },
       meet: {
-        badge: "Meet AI Collective", h1: "A new era of programmable AI",
-        sub: "AI Collective is a high-performance multi-staff orchestration platform that lets you deploy, coordinate, and scale AI workforces — with full control over topology, tools, and execution environment.",
+        badge: "Meet AI Collective", h1: "Build and run AI-powered companies",
+        sub: "AI Collective lets you create and manage AI-powered companies — of any type, from software startups to marketing agencies to research labs — each staffed, organized into departments, and run with full control over topology, tools, and execution environment.",
         productsLabel: "Products", productsTitle: "Two ways to deploy",
         product1Name: "AI Collective", product1Desc: "The full platform — build, configure, and monitor multi-staff departments via dashboard and REST API.", product1Cta: "Open console",
         product2Name: "Staff Mesh", product2Desc: "A standalone mesh orchestrator layer for integrating multi-staff routing into your existing stack.", product2Cta: "Read the docs",
         featuresLabel: "Features", featuresTitle: "Everything you need to orchestrate AI",
         modelsLabel: "Models", modelsTitle: "Fully LLM-agnostic", modelsSub: "Configure, swap, or route model engines at runtime — no code changes required.",
-        ctaTitle: "Ready to build?", ctaSub: "Deploy your first multi-staff workforce in minutes.", ctaFree: "Start building free",
+        ctaTitle: "Ready to build?", ctaSub: "Launch your first AI-powered company in minutes.", ctaFree: "Start building free",
       },
       pricing: {
         badge: "Pricing", h1: "Simple, transparent pricing", sub: "Start free with open source. Scale with managed hosting. Grow with enterprise.",
@@ -525,8 +525,8 @@ export const translations: Record<Language, Translations> = {
         ctaTitle: "Have questions?", ctaSub: "Our department is ready to help you find the right plan.", ctaGithub: "Explore on GitHub",
       },
       solutions: {
-        badge: "Solutions", h1: "AI Collective for every department", sub: "From startup prototyping to enterprise-grade orchestration — deploy the right multi-staff solution for your use case.",
-        useCasesLabel: "Use Cases", useCasesTitle: "What departments build with AI Collective",
+        badge: "Solutions", h1: "AI Collective for every kind of company", sub: "From startup prototyping to enterprise-grade orchestration — build and run the right kind of AI-powered company for your use case.",
+        useCasesLabel: "Use Cases", useCasesTitle: "What companies build with AI Collective",
         sizeLabel: "Company Size", sizeTitle: "Right for your scale",
         industriesLabel: "Industries", industriesTitle: "Built for regulated, high-stakes domains",
         ctaTitle: "Find your solution", ctaSub: "Talk to our team to design the right staff architecture.",
@@ -593,7 +593,7 @@ export const translations: Record<Language, Translations> = {
       content: {
         "what-is": {
           h1: "What is AI Collective?",
-          p1: "AI Collective is a source-available multi-staff orchestration platform that lets you build departments of specialized AI staff which collaborate autonomously to complete complex tasks — just like a real project department.",
+          p1: "AI Collective is a source-available platform for creating and managing AI-powered companies — build departments of specialized AI staff that collaborate autonomously to complete complex tasks, just like a real company.",
           p2: "Instead of using a single monolithic AI, AI Collective distributes work across purpose-built staff: a Project Manager staff that plans, a Research staff that gathers information, a Developer staff that writes code, and a Reviewer staff that validates every output before delivery.",
           callout: "AI Collective is self-hosted and source-available, free for non-commercial/academic use (see LICENSE). You can run it locally in minutes or deploy it on any cloud provider.",
           keyFeaturesH2: "Key Features",
@@ -870,14 +870,14 @@ export const translations: Record<Language, Translations> = {
     marketing: {
       common: { login: "Đăng nhập", startBuilding: "Bắt đầu xây dựng", contactSales: "Liên hệ kinh doanh", devDocs: "Tài liệu kỹ thuật", viewPricing: "Xem giá" },
       meet: {
-        badge: "Giới thiệu AI Collective", h1: "Kỷ nguyên mới của AI lập trình được",
-        sub: "AI Collective là nền tảng điều phối đa nhân sự hiệu suất cao cho phép bạn triển khai, điều phối và mở rộng lực lượng lao động AI — với toàn quyền kiểm soát topo, công cụ và môi trường thực thi.",
+        badge: "Giới thiệu AI Collective", h1: "Xây dựng và vận hành công ty do AI điều hành",
+        sub: "AI Collective cho phép bạn tạo và quản lý các công ty do AI điều hành — thuộc bất kỳ loại hình nào, từ startup công nghệ, agency marketing đến phòng nghiên cứu — mỗi công ty có nhân sự và phòng ban riêng, với toàn quyền kiểm soát topo, công cụ và môi trường thực thi.",
         productsLabel: "Sản phẩm", productsTitle: "Hai cách triển khai",
         product1Name: "AI Collective", product1Desc: "Nền tảng đầy đủ — xây dựng, cấu hình và giám sát các phòng ban đa nhân sự qua dashboard và REST API.", product1Cta: "Mở bảng điều khiển",
         product2Name: "Staff Mesh", product2Desc: "Lớp điều phối mesh độc lập để tích hợp định tuyến đa nhân sự vào stack hiện có của bạn.", product2Cta: "Xem tài liệu",
         featuresLabel: "Tính năng", featuresTitle: "Tất cả những gì bạn cần để điều phối AI",
         modelsLabel: "Mô hình", modelsTitle: "Hoàn toàn linh hoạt về LLM", modelsSub: "Cấu hình, hoán đổi hoặc định tuyến engine mô hình khi chạy — không cần thay đổi code.",
-        ctaTitle: "Sẵn sàng xây dựng?", ctaSub: "Triển khai lực lượng lao động đa nhân sự đầu tiên của bạn trong vài phút.", ctaFree: "Bắt đầu miễn phí",
+        ctaTitle: "Sẵn sàng xây dựng?", ctaSub: "Khởi tạo công ty AI đầu tiên của bạn chỉ trong vài phút.", ctaFree: "Bắt đầu miễn phí",
       },
       pricing: {
         badge: "Giá cả", h1: "Giá đơn giản, minh bạch", sub: "Bắt đầu miễn phí với mã nguồn mở. Mở rộng với hosting được quản lý. Phát triển với doanh nghiệp.",
@@ -888,8 +888,8 @@ export const translations: Record<Language, Translations> = {
         ctaTitle: "Có câu hỏi?", ctaSub: "Đội ngũ của chúng tôi sẵn sàng giúp bạn tìm gói phù hợp.", ctaGithub: "Khám phá trên GitHub",
       },
       solutions: {
-        badge: "Giải pháp", h1: "AI Collective cho mọi phòng ban", sub: "Từ nguyên mẫu startup đến điều phối cấp doanh nghiệp — triển khai giải pháp đa nhân sự phù hợp với trường hợp sử dụng của bạn.",
-        useCasesLabel: "Trường hợp sử dụng", useCasesTitle: "Các phòng ban xây dựng gì với AI Collective",
+        badge: "Giải pháp", h1: "AI Collective cho mọi loại hình công ty", sub: "Từ nguyên mẫu startup đến điều phối cấp doanh nghiệp — xây dựng và vận hành đúng loại công ty AI cho trường hợp sử dụng của bạn.",
+        useCasesLabel: "Trường hợp sử dụng", useCasesTitle: "Các công ty xây dựng gì với AI Collective",
         sizeLabel: "Quy mô công ty", sizeTitle: "Phù hợp với quy mô của bạn",
         industriesLabel: "Ngành nghề", industriesTitle: "Được xây dựng cho các lĩnh vực có độ rủi ro cao",
         ctaTitle: "Tìm giải pháp của bạn", ctaSub: "Nói chuyện với đội ngũ của chúng tôi để thiết kế kiến trúc nhân sự phù hợp.",
@@ -956,7 +956,7 @@ export const translations: Record<Language, Translations> = {
       content: {
         "what-is": {
           h1: "AI Collective là gì?",
-          p1: "AI Collective là nền tảng điều phối đa nhân sự mã nguồn mở một phần (source-available), cho phép xây dựng các đội ngũ nhân sự AI chuyên biệt cộng tác tự động để hoàn thành các nhiệm vụ phức tạp — giống như một đội dự án thực sự.",
+          p1: "AI Collective là nền tảng mã nguồn mở một phần (source-available) để tạo và quản lý các công ty do AI điều hành — xây dựng các phòng ban gồm nhân sự AI chuyên biệt, cộng tác tự động để hoàn thành các nhiệm vụ phức tạp, giống như một công ty thực thụ.",
           p2: "Thay vì dùng một AI đơn lẻ, AI Collective phân phối công việc cho các nhân sự chuyên biệt: nhân sự Quản lý Dự án lên kế hoạch, nhân sự Nghiên cứu thu thập thông tin, nhân sự Phát triển viết mã, và nhân sự Kiểm duyệt xác thực từng kết quả trước khi bàn giao.",
           callout: "AI Collective tự lưu trữ (self-hosted) và mã nguồn mở một phần, miễn phí cho mục đích phi thương mại/học thuật (xem LICENSE). Bạn có thể chạy cục bộ trong vài phút hoặc triển khai trên bất kỳ nhà cung cấp đám mây nào.",
           keyFeaturesH2: "Tính năng chính",
@@ -1233,14 +1233,14 @@ export const translations: Record<Language, Translations> = {
     marketing: {
       common: { login: "登录", startBuilding: "开始构建", contactSales: "联系销售", devDocs: "开发者文档", viewPricing: "查看定价" },
       meet: {
-        badge: "认识 AI Collective", h1: "可编程 AI 的新时代",
-        sub: "AI Collective 是一个高性能多员工编排平台，让您可以部署、协调和扩展 AI 劳动力——完全控制拓扑、工具和执行环境。",
+        badge: "认识 AI Collective", h1: "创建并运营由 AI 驱动的公司",
+        sub: "AI Collective 让您创建并管理由 AI 驱动的公司——涵盖软件初创公司、营销代理、研究实验室等任意类型——每家公司都拥有自己的部门与员工，并可完全控制拓扑、工具和执行环境。",
         productsLabel: "产品", productsTitle: "两种部署方式",
         product1Name: "AI Collective", product1Desc: "完整平台——通过仪表盘和 REST API 构建、配置和监控多员工部门。", product1Cta: "打开控制台",
         product2Name: "Staff Mesh", product2Desc: "独立的 Mesh 编排层，用于将多员工路由集成到现有技术栈中。", product2Cta: "阅读文档",
         featuresLabel: "功能", featuresTitle: "编排 AI 所需的一切",
         modelsLabel: "模型", modelsTitle: "完全 LLM 无关", modelsSub: "在运行时配置、交换或路由模型引擎——无需更改代码。",
-        ctaTitle: "准备好构建了吗？", ctaSub: "在几分钟内部署您的第一个多员工劳动力。", ctaFree: "免费开始构建",
+        ctaTitle: "准备好构建了吗？", ctaSub: "几分钟内创建您的第一家 AI 公司。", ctaFree: "免费开始构建",
       },
       pricing: {
         badge: "定价", h1: "简单透明的定价", sub: "从开源免费开始。通过托管服务扩展。随企业成长。",
@@ -1251,8 +1251,8 @@ export const translations: Record<Language, Translations> = {
         ctaTitle: "有疑问？", ctaSub: "我们的团队随时准备帮您找到合适的方案。", ctaGithub: "在 GitHub 上探索",
       },
       solutions: {
-        badge: "解决方案", h1: "适合每个部门的 AI Collective", sub: "从初创原型到企业级编排——为您的用例部署正确的多员工解决方案。",
-        useCasesLabel: "使用场景", useCasesTitle: "部门用 AI Collective 构建什么",
+        badge: "解决方案", h1: "适合各类公司的 AI Collective", sub: "从初创原型到企业级编排——为您的用例构建并运营合适类型的 AI 公司。",
+        useCasesLabel: "使用场景", useCasesTitle: "公司用 AI Collective 构建什么",
         sizeLabel: "公司规模", sizeTitle: "适合您的规模",
         industriesLabel: "行业", industriesTitle: "专为高风险领域打造",
         ctaTitle: "找到您的解决方案", ctaSub: "与我们的团队交流，为您的组织设计合适的员工架构。",
@@ -1319,7 +1319,7 @@ export const translations: Record<Language, Translations> = {
       content: {
         "what-is": {
           h1: "什么是 AI Collective？",
-          p1: "AI Collective 是一个源码开放（source-available）的多员工编排平台，让您可以构建专业化 AI 员工部门，这些部门自主协作完成复杂任务 — 就像真实的项目团队一样。",
+          p1: "AI Collective 是一个源码开放（source-available）的平台，用于创建和管理由 AI 驱动的公司——构建由专业化 AI 员工组成的部门，自主协作完成复杂任务，就像一家真实的公司一样。",
           p2: "AI Collective 不使用单一的整体 AI，而是将工作分配给专业构建的员工：负责规划的项目经理员工、负责收集信息的研究员工、负责编写代码的开发员工，以及在交付前验证每个输出的审查员工。",
           callout: "AI Collective 可自托管，源码开放，免费用于非商业/学术用途（详见 LICENSE）。您可以在几分钟内本地运行，或部署到任何云服务商。",
           keyFeaturesH2: "主要功能",
@@ -1607,7 +1607,7 @@ export const translations: Record<Language, Translations> = {
       content: {
         "what-is": {
           h1: "AI Collective とは？",
-          p1: "AI Collective は、専門化された AI スタッフの部門を構築し、複雑なタスクを自律的に協力して完了させることができるソースアベイラブル（source-available）のマルチスタッフオーケストレーションプラットフォームです — まるで本物のプロジェクトチームのように。",
+          p1: "AI Collective は、AI が運営する会社を作成・管理するためのソースアベイラブル（source-available）プラットフォームです — 専門化された AI スタッフからなる部門を構築し、複雑なタスクを自律的に協力して完了させます。まるで本物の会社のように。",
           p2: "単一の AI を使う代わりに、AI Collective は目的別に構築されたスタッフに作業を分散します：計画を立てるプロジェクトマネージャースタッフ、情報を収集するリサーチスタッフ、コードを書く開発者スタッフ、そして納品前にすべての出力を検証するレビュアースタッフ。",
           callout: "AI Collective はセルフホスト型で、ソースアベイラブルです。非商用・学術目的では無料で利用できます（詳細は LICENSE を参照）。数分でローカルに起動するか、任意のクラウドプロバイダーにデプロイできます。",
           keyFeaturesH2: "主な機能",
@@ -1732,14 +1732,14 @@ export const translations: Record<Language, Translations> = {
     marketing: {
       common: { login: "ログイン", startBuilding: "構築を始める", contactSales: "営業に連絡", devDocs: "開発者ドキュメント", viewPricing: "料金を見る" },
       meet: {
-        badge: "AI Collective を紹介", h1: "プログラマブル AI の新時代",
-        sub: "AI Collective は高性能なマルチスタッフ編成プラットフォームで、AI 労働力を展開・調整・拡張できます — トポロジー、ツール、実行環境を完全にコントロール。",
+        badge: "AI Collective を紹介", h1: "AI が運営する会社を構築・運用",
+        sub: "AI Collective は、ソフトウェアスタートアップからマーケティングエージェンシー、研究ラボまで、あらゆる種類の AI 運営会社を作成・管理できるプラットフォームです — 各社に部門とスタッフを配置し、トポロジー、ツール、実行環境を完全にコントロールできます。",
         productsLabel: "製品", productsTitle: "2 つの展開方法",
         product1Name: "AI Collective", product1Desc: "完全なプラットフォーム — ダッシュボードと REST API でマルチスタッフ部門を構築・設定・監視。", product1Cta: "コンソールを開く",
         product2Name: "Staff Mesh", product2Desc: "既存のスタックにマルチスタッフルーティングを統合するためのスタンドアロン Mesh 編成レイヤー。", product2Cta: "ドキュメントを読む",
         featuresLabel: "機能", featuresTitle: "AI を編成するために必要なすべて",
         modelsLabel: "モデル", modelsTitle: "完全 LLM 非依存", modelsSub: "実行時にモデルエンジンを設定・交換・ルーティング — コード変更不要。",
-        ctaTitle: "構築する準備はできましたか？", ctaSub: "数分で最初のマルチスタッフ労働力を展開しましょう。", ctaFree: "無料で構築を始める",
+        ctaTitle: "構築する準備はできましたか？", ctaSub: "数分で最初の AI 会社を立ち上げましょう。", ctaFree: "無料で構築を始める",
       },
       pricing: {
         badge: "料金", h1: "シンプルで透明な料金", sub: "オープンソースで無料から始める。マネージドホスティングでスケール。エンタープライズで成長。",
@@ -1750,8 +1750,8 @@ export const translations: Record<Language, Translations> = {
         ctaTitle: "質問がありますか？", ctaSub: "チームが最適なプランを見つけるお手伝いをします。", ctaGithub: "GitHub で探索",
       },
       solutions: {
-        badge: "ソリューション", h1: "すべての部門のための AI Collective", sub: "スタートアッププロトタイピングからエンタープライズ級編成まで — ユースケースに適したマルチスタッフソリューションを展開。",
-        useCasesLabel: "ユースケース", useCasesTitle: "部門が AI Collective で構築するもの",
+        badge: "ソリューション", h1: "あらゆる種類の会社のための AI Collective", sub: "スタートアッププロトタイピングからエンタープライズ級編成まで — ユースケースに適した AI 運営会社を構築・運用。",
+        useCasesLabel: "ユースケース", useCasesTitle: "AI Collective で会社が構築するもの",
         sizeLabel: "会社規模", sizeTitle: "あなたの規模に最適",
         industriesLabel: "業界", industriesTitle: "高リスク領域向けに構築",
         ctaTitle: "ソリューションを見つける", ctaSub: "チームと話し合い、組織に適したスタッフアーキテクチャを設計しましょう。",
