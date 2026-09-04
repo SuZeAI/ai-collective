@@ -45,6 +45,10 @@ intervention, and persist a knowledge graph of what has been discussed so far.
 
 See [`docs/`](docs/README.md) for the full architecture, configuration, and API reference.
 
+<p align="center">
+  <img alt="AI – Collective landing page" src="./assets/landing-page.png" width="960">
+</p>
+
 -----
 
 ## Overview
