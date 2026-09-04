@@ -7,7 +7,7 @@ from server.app.ports.llm import LLMProvider
 from server.infra.llm.agent_builder import build_chat_agent
 from server.infra.llm.middleware import _default_tool_timeout
 from server.infra.llm.usage_tracker import UsageTrackingCallback
-from server.log import get_logger
+from server.share.log import get_logger
 
 
 class LangChainLLMProvider(LLMProvider):

@@ -4,7 +4,7 @@ import asyncio
 from typing import Any, Dict, Optional
 
 from server.domain.third_party.base_hook import BaseHookProcessor, IncomingMessage, _header, _http_post, split_text
-from server.log import get_logger
+from server.share.log import get_logger
 
 DISCORD_API = "https://discord.com/api/v10"
 logger = get_logger(__name__)

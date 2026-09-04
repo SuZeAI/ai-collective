@@ -5,7 +5,7 @@ from typing import Any, Protocol
 
 from langchain_core.callbacks import BaseCallbackHandler
 
-from server.log import get_logger
+from server.share.log import get_logger
 
 # Who triggered the current LLM call. Set per-request by the API middleware in
 # main.py; background work (task queue) that has no request context records as

@@ -23,7 +23,7 @@ from server.domain.memory.knowledge_graph import (
     GraphNode,
 )
 from server.app.service.chunking_service import get_chunking_service
-from server.log import get_logger
+from server.share.log import get_logger
 
 if TYPE_CHECKING:
     from server.app.ports.llm import LLMProvider

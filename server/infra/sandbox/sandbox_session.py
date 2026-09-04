@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

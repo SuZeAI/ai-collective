@@ -11,7 +11,7 @@ from langchain_core.messages import ToolMessage
 from langgraph.types import Command
 
 from server.api.settings import settings
-from server.log import get_logger
+from server.share.log import get_logger
 
 
 class GuardrailMiddleware(AgentMiddleware):

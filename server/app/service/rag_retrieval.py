@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from server.domain.memory.bm25 import bm25_rank
 from server.domain.memory.long_term_memory import MemoryScope
 from server.domain.memory.vectors import lexical_overlap
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

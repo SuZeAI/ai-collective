@@ -16,7 +16,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from server.domain.errors import NotFoundError, ValidationError
-from server.log import get_logger
+from server.share.log import get_logger
 from server.api.routers import (
     activity_feed,
     admin_monitoring,

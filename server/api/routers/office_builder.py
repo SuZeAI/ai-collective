@@ -41,7 +41,7 @@ from server.app.service.department_service import DepartmentService
 from server.app.service.company_service import CompanyService
 from server.domain.enums import StaffStatus
 from server.domain.models import Staff, OfficeBuilderSession, Skill, Department, Company, can_delete, can_modify, is_visible_to
-from server.log import get_logger
+from server.share.log import get_logger
 
 
 router = APIRouter(prefix="/office-builder", tags=["office-builder"])

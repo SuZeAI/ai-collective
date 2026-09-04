@@ -47,7 +47,7 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from server.log import get_logger
+from server.share.log import get_logger
 
 _WINDOW_SECONDS = 60.0
 

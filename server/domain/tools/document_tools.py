@@ -29,7 +29,7 @@ from typing import Any, Optional
 from langchain.tools import tool
 
 from server.domain.tools.base import BaseToolkit
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

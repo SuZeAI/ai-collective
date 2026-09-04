@@ -31,7 +31,7 @@ from server.infra.llm.usage_tracker import (
     current_usage_user,
     _recorder,
 )
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

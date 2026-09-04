@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from server.domain.errors import NotFoundError
 from server.domain.models import DEFAULT_OWNER_ID, LibraryDocument
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

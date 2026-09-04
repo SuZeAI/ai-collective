@@ -26,7 +26,7 @@ from server.domain.staff.subagents import (
 )
 from server.domain.event.schema import EventType
 from server.domain.tools.base import BaseToolkit, Tool
-from server.log import get_logger
+from server.share.log import get_logger
 
 DEFAULT_MAX_CONCURRENT_SUBAGENTS = 3
 

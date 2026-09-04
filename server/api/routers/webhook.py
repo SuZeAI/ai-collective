@@ -21,7 +21,7 @@ from server.domain.errors import NotFoundError
 from server.domain.models import Connection, Company
 from server.domain.third_party.registry import get_processor
 from server.domain.service.skill_tool_service import SkillToolManager
-from server.log import get_logger
+from server.share.log import get_logger
 
 router = APIRouter(prefix="/webhook", tags=["webhook"])
 logger = get_logger(__name__)

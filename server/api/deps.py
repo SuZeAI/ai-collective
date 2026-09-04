@@ -85,7 +85,7 @@ from server.infra.repositories.mongo_repositories import (
     MongoUserRepository,
     MongoCompanyRepository,
 )
-from server.log import get_logger
+from server.share.log import get_logger
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]

@@ -9,7 +9,7 @@ from langchain.agents.middleware import AgentMiddleware, ToolCallRequest
 from langchain_core.messages import ToolMessage
 from langgraph.types import Command
 
-from server.log import get_logger
+from server.share.log import get_logger
 
 # Conservative PII patterns: emails, long digit runs (cards/phones), and common
 # secret tokens. Intentionally simple — high-precision, low false-positive.

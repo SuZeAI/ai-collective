@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from server.app.ports.llm import LLMProvider
 from server.domain.models import SimulationStep
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

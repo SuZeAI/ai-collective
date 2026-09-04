@@ -25,7 +25,7 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

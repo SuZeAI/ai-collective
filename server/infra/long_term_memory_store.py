@@ -20,7 +20,7 @@ from pathlib import Path
 from server.api.settings import settings
 from server.app.service.long_term_memory_service import LongTermMemoryService
 from server.domain.memory.long_term_memory import MemoryRecord, MemoryScope
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

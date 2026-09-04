@@ -22,7 +22,7 @@ from server.app.service.meeting_service import MeetingService
 from server.app.service.task_service import TaskService
 from server.domain.errors import NotFoundError
 from server.domain.models import Message, User, is_owned_by, is_visible_to
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

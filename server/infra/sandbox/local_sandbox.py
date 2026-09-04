@@ -13,7 +13,7 @@ import shlex
 from pathlib import Path
 from typing import Any, Optional
 
-from server.log import get_logger
+from server.share.log import get_logger
 
 from .sandbox import GrepMatch, Sandbox, SandboxResult
 

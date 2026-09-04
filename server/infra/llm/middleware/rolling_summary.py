@@ -13,7 +13,7 @@ from server.infra.llm.middleware.helpers import (
     message_text,
     state_messages,
 )
-from server.log import get_logger
+from server.share.log import get_logger
 
 
 class RollingSummaryMiddleware(AgentMiddleware):

@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

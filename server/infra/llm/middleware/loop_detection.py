@@ -10,7 +10,7 @@ from langgraph.types import Command
 
 from server.api.settings import settings
 from server.infra.llm.middleware.helpers import loop_signature
-from server.log import get_logger
+from server.share.log import get_logger
 
 
 def _default_loop_max_repeats() -> int:

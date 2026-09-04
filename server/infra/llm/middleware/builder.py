@@ -24,7 +24,7 @@ from server.infra.llm.middleware.pii_redaction import PIIRedactionMiddleware
 from server.infra.llm.middleware.rolling_summary import RollingSummaryMiddleware
 from server.infra.llm.middleware.tool_result_cache import ToolResultCacheMiddleware
 from server.infra.llm.middleware.tool_timeout import ToolTimeoutMiddleware
-from server.log import get_logger
+from server.share.log import get_logger
 
 
 def build_default_middleware(

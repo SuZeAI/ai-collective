@@ -17,7 +17,7 @@ from pathlib import Path
 
 from server.domain.memory.long_term_memory import MemoryScope
 from server.infra.vector_store.base import VectorHit, payload_matches, scope_payload
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

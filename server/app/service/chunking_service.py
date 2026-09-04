@@ -10,7 +10,7 @@ try:
 except ImportError:
     tiktoken = None
 
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

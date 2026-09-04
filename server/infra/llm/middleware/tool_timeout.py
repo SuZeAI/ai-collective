@@ -10,7 +10,7 @@ from langchain_core.messages import ToolMessage
 from langgraph.types import Command
 
 from server.infra.llm.middleware.helpers import default_tool_timeout
-from server.log import get_logger
+from server.share.log import get_logger
 
 
 class ToolTimeoutMiddleware(AgentMiddleware):

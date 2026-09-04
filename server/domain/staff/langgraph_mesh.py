@@ -45,7 +45,7 @@ from server.domain.staff.staff_state import (
     llm_ready_messages,
 )
 from server.api.settings import settings
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

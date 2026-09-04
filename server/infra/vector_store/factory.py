@@ -4,7 +4,7 @@ from pathlib import Path
 
 from server.api.settings import settings
 from server.infra.vector_store.base import VectorStore
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

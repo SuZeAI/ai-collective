@@ -52,7 +52,7 @@ from server.domain.tools.mcp_toolkit import (
     _run_coro_blocking,
     parse_key_values,
 )
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

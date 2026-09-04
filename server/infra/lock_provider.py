@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from functools import lru_cache
 from typing import Generator
 
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

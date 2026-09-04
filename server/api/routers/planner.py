@@ -29,7 +29,7 @@ from server.app.service.task_service import TaskService
 from server.domain.enums import IssueType, TaskPriority, TaskStatus
 from server.domain.errors import NotFoundError
 from server.domain.models import Task, is_visible_to
-from server.log import get_logger
+from server.share.log import get_logger
 
 router = APIRouter(prefix="/planner", tags=["planner"])
 

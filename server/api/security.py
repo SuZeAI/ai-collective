@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 import jwt
 
 from server.api.settings import settings
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

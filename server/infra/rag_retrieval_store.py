@@ -15,7 +15,7 @@ import threading
 
 from server.api.settings import settings
 from server.app.service.rag_retrieval import RagRetrievalService
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

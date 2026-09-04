@@ -40,7 +40,7 @@ from langchain.tools import BaseTool
 
 from server.api.settings import settings
 from server.domain.tools.base import BaseToolkit
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

@@ -23,7 +23,7 @@ from server.domain.memory.long_term_memory import (
     score_record,
 )
 from server.domain.memory.vectors import cosine_dense, lexical_overlap
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

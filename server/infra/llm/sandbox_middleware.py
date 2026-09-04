@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Optional
 
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

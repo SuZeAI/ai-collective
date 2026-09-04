@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Protocol
 
 from server.domain.memory.working_memory import WORKING_MEMORY_ENABLED, WorkingMemory
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

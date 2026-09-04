@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import bcrypt
 
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

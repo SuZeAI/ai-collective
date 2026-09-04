@@ -29,7 +29,7 @@ from server.domain.models import Message, Task, can_delete, can_modify, is_owned
 from server.infra import task_run_registry
 from server.infra import task_queue
 from server.infra import working_memory_store
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

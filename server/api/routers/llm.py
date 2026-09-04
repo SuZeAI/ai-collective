@@ -33,7 +33,7 @@ from server.domain.models import is_visible_to
 from server.domain.service.skill_tool_service import SkillToolManager
 from server.infra import task_run_registry
 from server.infra.llm.usage_tracker import current_usage_department
-from server.log import get_logger
+from server.share.log import get_logger
 
 
 router = APIRouter(prefix="/llm", tags=["llm"])

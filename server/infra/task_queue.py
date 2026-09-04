@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from collections import deque
 from typing import Callable, Optional
 
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 

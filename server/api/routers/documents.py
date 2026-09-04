@@ -16,7 +16,7 @@ from server.api.schemas.library_document import (
 from server.app.service.document_library_service import DocumentLibraryService
 from server.domain.errors import NotFoundError
 from server.domain.models import User, can_delete, is_visible_to
-from server.log import get_logger
+from server.share.log import get_logger
 
 logger = get_logger(__name__)
 
