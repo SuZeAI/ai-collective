@@ -18,9 +18,9 @@ SHELL     := /bin/bash
 # Optional Docker Compose profiles to enable, space-separated.
 # Works with any target (dev/up/down/ps/logs…). Examples:
 #   make dev PROFILES=router
-#   make dev PROFILES="sandbox router"
+#   make dev PROFILES="provisioner router"
 #   make up  PROFILES="router provisioner"
-# Available profiles: sandbox · provisioner · router · mongo-express · tools · minio
+# Available profiles: provisioner · router · mongo-express · tools · minio · qdrant · neo4j
 PROFILES ?=
 COMPOSE_PROFILES := $(foreach p,$(PROFILES),--profile $(p))
 
@@ -28,7 +28,7 @@ COMPOSE_DEV  := docker compose -f docker/docker-compose-dev.yaml $(COMPOSE_PROFI
 COMPOSE_PROD := docker compose -f docker/docker-compose.yaml $(COMPOSE_PROFILES)
 
 # All-profiles variants — used by teardown targets so `make down`/`make dev-down`
-# stop EVERY service (including profile-gated ones: sandbox, provisioner, router),
+# stop EVERY service (including profile-gated ones: provisioner, router),
 # regardless of which PROFILES were used to start them.
 COMPOSE_DEV_ALL  := docker compose -f docker/docker-compose-dev.yaml --profile "*"
 COMPOSE_PROD_ALL := docker compose -f docker/docker-compose.yaml --profile "*"
@@ -57,9 +57,9 @@ C_YELLOW := \033[33m
 # ── Phony declarations ────────────────────────────────────────────────────
 .PHONY: help \
         dev dev-down dev-stop dev-start dev-build dev-logs dev-ps dev-log-collect \
-        dev-sandbox dev-provisioner dev-router dev-full \
+        dev-provisioner dev-router dev-full \
         up down stop start build restart ps logs logs-backend logs-frontend \
-        prod-sandbox prod-provisioner prod-router prod-all \
+        prod-provisioner prod-router prod-all \
         backend frontend \
         infra infra-down \
         install install-backend install-frontend \
@@ -87,10 +87,10 @@ help: ## Show this help message
 	@printf "\n\033[1m\033[33m  Examples\033[0m\n"
 	@printf "  make dev                          # Start full dev stack (Docker, hot-reload)\n"
 	@printf "  make dev PROFILES=router          # Dev stack + 9Router LLM proxy\n"
-	@printf "  make dev PROFILES=\"sandbox router\" # Dev stack + sandbox + 9Router\n"
+	@printf "  make dev PROFILES=\"provisioner router\" # Dev stack + k3s sandbox provisioner + 9Router\n"
 	@printf "  make up  PROFILES=router          # Prod stack + 9Router\n"
 	@printf "  make backend                      # Run backend locally (needs infra running)\n"
-	@printf "\n\033[1m\033[33m  Profiles$(C_RESET) (PROFILES=…)  sandbox · provisioner · router · mongo-express · tools\n"
+	@printf "\n\033[1m\033[33m  Profiles$(C_RESET) (PROFILES=…)  provisioner · router · mongo-express · tools · minio · qdrant · neo4j\n"
 	@printf "\n"
 
 # ============================================================================
@@ -134,7 +134,7 @@ dev: dirs env ## Start full development stack (hot-reload, all services)
 dev-build: ## Rebuild all dev images without cache
 	$(COMPOSE_DEV) build --no-cache
 
-dev-down: ## Stop and remove ALL dev containers incl. profiles (sandbox/provisioner/router) + networks
+dev-down: ## Stop and remove ALL dev containers incl. profiles (provisioner/router) + networks
 	@if [ -f $(LOG_DIR)/.collector.pids ]; then \
 	    xargs -r kill < $(LOG_DIR)/.collector.pids 2>/dev/null || true; \
 	    rm -f $(LOG_DIR)/.collector.pids; \
@@ -183,11 +183,6 @@ dev-restart-backend: ## Restart only the backend container
 
 # ── Dev with optional profiles (shortcuts for `make dev PROFILES=…`) ──────
 
-dev-sandbox: ## Dev stack + standalone AIO sandbox container (manual/debug)
-	@$(MAKE) --no-print-directory dev PROFILES="$(PROFILES) sandbox"
-	@printf "  Sandbox URL (host): http://localhost:8081\n"
-	@printf "$(C_YELLOW)  Note: standalone container for manual use; not auto-wired to a SANDBOX_MODE (see docs/sandbox.md)$(C_RESET)\n"
-
 dev-provisioner: ## Dev stack + K8s provisioner (sandbox runs as a k3s Pod)
 	@$(MAKE) --no-print-directory dev PROFILES="$(PROFILES) provisioner"
 	@printf "  Provisioner: http://localhost:8002/health\n"
@@ -199,9 +194,8 @@ dev-router: ## Dev stack + 9Router multi-provider LLM proxy
 	@printf "$(C_YELLOW)  Tip: set LLM_PROVIDER=openai, LLM_API_BASE=http://nine-router:20128/v1,$(C_RESET)\n"
 	@printf "$(C_YELLOW)       OPENAI_API_KEY=<dashboard key> in .env (see docs/9router-setup.md)$(C_RESET)\n"
 
-dev-full: ## Dev stack + ALL profiles at once (sandbox/provisioner/router/minio/qdrant/neo4j)
-	@$(MAKE) --no-print-directory dev PROFILES="sandbox provisioner router minio qdrant neo4j"
-	@printf "  Sandbox      → http://localhost:8081\n"
+dev-full: ## Dev stack + ALL profiles at once (provisioner/router/minio/qdrant/neo4j) — sandboxes run as k3s Pods via provisioner
+	@$(MAKE) --no-print-directory dev PROFILES="provisioner router minio qdrant neo4j"
 	@printf "  Provisioner  → http://localhost:8002/health\n"
 	@printf "  9Router      → http://localhost:$${ROUTER_PORT:-20128}/dashboard\n"
 	@printf "  MinIO console→ http://localhost:$${MINIO_CONSOLE_PORT:-9001}\n"
@@ -219,7 +213,7 @@ up: dirs env ## Start production stack (detached)
 	$(COMPOSE_PROD) up -d
 	@printf "$(C_GREEN)✓ Production stack up:$(C_RESET) http://localhost:2026\n"
 
-down: ## Stop and remove ALL production containers incl. profiles (sandbox/provisioner/router) + networks
+down: ## Stop and remove ALL production containers incl. profiles (provisioner/router) + networks
 	$(COMPOSE_PROD_ALL) down --remove-orphans
 
 stop: ## Stop ALL production containers incl. profiles without removing them (preserves state)
@@ -248,21 +242,17 @@ logs-frontend: ## Tail only frontend production logs
 
 # ── Production with optional profiles (shortcuts for `make up PROFILES=…`) ─
 
-prod-sandbox: ## Production stack + standalone AIO sandbox container (manual/debug)
-	@$(MAKE) --no-print-directory up PROFILES="$(PROFILES) sandbox"
-	@printf "$(C_GREEN)✓ Sandbox running.$(C_RESET)  Standalone container (not auto-wired to a SANDBOX_MODE); see docs/sandbox.md\n"
-
 prod-provisioner: ## Production stack + K8s provisioner (needs kubeconfig)
 	@$(MAKE) --no-print-directory up PROFILES="$(PROFILES) provisioner"
-	@printf "$(C_GREEN)✓ Provisioner running.$(C_RESET)  Set SANDBOX_MODE=k8s SANDBOX_PROVISIONER_URL=http://provisioner:8002 in .env\n"
+	@printf "$(C_GREEN)✓ Provisioner running.$(C_RESET)  Set sandbox.mode: k8s and sandbox.provisioner_url: http://provisioner:8002 in .config/config.yml\n"
 
 prod-router: ## Production stack + 9Router multi-provider LLM proxy
 	@$(MAKE) --no-print-directory up PROFILES="$(PROFILES) router"
 	@printf "$(C_GREEN)✓ 9Router running.$(C_RESET)  Dashboard: http://localhost:$${ROUTER_PORT:-20128}/dashboard\n"
 	@printf "  Set LLM_PROVIDER=openai, LLM_API_BASE=http://nine-router:20128/v1, OPENAI_API_KEY=<key> in .env (docs/9router-setup.md)\n"
 
-prod-all: ## Production stack + sandbox + provisioner
-	@$(MAKE) --no-print-directory up PROFILES="$(PROFILES) sandbox provisioner"
+prod-all: ## Production stack + provisioner (sandboxes run as k3s Pods)
+	@$(MAKE) --no-print-directory up PROFILES="$(PROFILES) provisioner"
 
 # ============================================================================
 # LOCAL DEVELOPMENT (without Docker — runs directly on host)
