@@ -56,10 +56,8 @@ def create_app() -> FastAPI:
         """Seed the admin (from ADMIN_* env) and the default agents/skills/teams
         catalog into the store, so a fresh clone comes up ready to use."""
         from server.api.deps import seed_admin_user, seed_default_data
-        from server.infra.extensions.mcp_loader import seed_mcp_extensions
         seed_admin_user()
         seed_default_data()
-        seed_mcp_extensions()
 
     @app.middleware("http")
     async def _monitoring_middleware(request, call_next):

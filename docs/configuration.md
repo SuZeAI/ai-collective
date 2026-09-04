@@ -24,8 +24,8 @@ code defaults  <  config.yml  (${VAR} / $VAR expanded from .env / OS environment
   layers an optional `CONFIG_OVERRIDE_FILE=/path` on top (deep-merged) to swap
   a handful of ops knobs without duplicating the whole file
   (`server/api/config_loader.py`).
-- MCP servers are declared separately in `.config/mcp.yml`, referenced from
-  `mcp.config_file` — see [mcp-guide.md](mcp-guide.md).
+- MCP servers are created as skills (`tool_name = "mcp"`) via the UI/API —
+  see [mcp-guide.md](mcp-guide.md).
 - Per-tool/per-skill credentials are **not** here at all — they live in each
   skill's `config` dict (stored in MongoDB, edited via the UI).
 
@@ -259,13 +259,11 @@ above). See [agent-memory.md](agent-memory.md).
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `mcp.config_file` | `mcp.yml` | Path (relative to project root) to the MCP server declaration file |
-| `mcp.auto_seed` | `true` | Seed enabled servers from `mcp.yml` into the skill store on boot |
 | `mcp.discovery_timeout_seconds` | `30` | `list_tools` handshake ceiling |
 | `mcp.call_timeout_seconds` | `60` | Default per-tool-call timeout |
 
 Per-server config (transport, command/args, url/headers, allowed tools) lives
-in `mcp.yml` itself — see [mcp-guide.md](mcp-guide.md).
+on each skill's `config` dict — see [mcp-guide.md](mcp-guide.md).
 
 ## Admin bootstrap & seed data (`admin:` / `seed:`)
 

@@ -375,8 +375,6 @@ class McpSettings(BaseModel):
 
     discovery_timeout_seconds: int = Field(default=30, description="list_tools handshake ceiling in seconds")
     call_timeout_seconds: int = Field(default=60, description="Default per-tool-call timeout in seconds")
-    auto_seed: bool = Field(default=True, description="Seed enabled servers from mcp.yml on boot")
-    config_file: str = Field(default=".config/mcp.yml", description="Path to the MCP server config file, relative to project root")
 
 
 class AdminSettings(BaseModel):

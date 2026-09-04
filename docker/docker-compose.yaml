@@ -168,7 +168,6 @@ services:
       - ../storage:/app/storage
       - ../.artifact/logs:/app/.artifact/logs
       - ../.config/config.yml:/app/.config/config.yml:ro
-      - ../.config/mcp.yml:/app/.config/mcp.yml:ro
       - sandbox-workspace:/app/sandbox_workspace
     env_file:
       - ../.env
