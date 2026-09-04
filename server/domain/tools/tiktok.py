@@ -10,6 +10,7 @@ from urllib import error, parse, request
 from langchain.tools import tool
 
 from server.domain.tools.base import BaseToolkit
+from server.share.text import truncate_words
 
 try:
     import requests as _requests
@@ -23,8 +24,6 @@ DEPTH_CONFIG = {
     "default": {"results_per_page": 20, "max_captions": 5},
     "deep": {"results_per_page": 40, "max_captions": 8},
 }
-
-CAPTION_MAX_WORDS = 500
 
 
 class TikTokAPIError(RuntimeError):
@@ -163,13 +162,6 @@ def _request_json(
         raise TikTokAPIError(str(exc)) from exc
 
 
-def _truncate_words(text: str, max_words: int = CAPTION_MAX_WORDS) -> str:
-    words = (text or "").split()
-    if len(words) <= max_words:
-        return text
-    return " ".join(words[:max_words]) + "..."
-
-
 def search_tiktok(
     topic: str,
     from_date: str,
@@ -271,7 +263,7 @@ def fetch_captions(
 
     for item in top_items:
         vid = str(item.get("video_id") or "")
-        text = _truncate_words(str(item.get("text") or ""))
+        text = truncate_words(str(item.get("text") or ""))
         if vid and text:
             captions[vid] = text
 
@@ -297,7 +289,7 @@ def fetch_captions(
 
         if isinstance(transcript, list):
             transcript = " ".join(str(part) for part in transcript)
-        transcript_text = _truncate_words(_clean_webvtt(str(transcript)))
+        transcript_text = truncate_words(_clean_webvtt(str(transcript)))
         if transcript_text:
             captions[vid] = transcript_text
 

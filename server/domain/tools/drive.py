@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import os
-import re
 from pathlib import Path
 from typing import Any, Optional
 
@@ -11,6 +10,7 @@ from langchain.tools import tool
 from server.domain.tools.base import BaseToolkit
 from server.api.settings import settings
 from server.infra.storage.google_oauth_store import restore_token_if_missing, save_token
+from server.share.text import sanitize_email
 
 # server/domain/tools/drive.py -> project root is three parents up.
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -21,11 +21,6 @@ SCOPES = [
 
 FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
 SHORTCUT_MIME_TYPE = "application/vnd.google-apps.shortcut"
-
-
-def _sanitize_email(email: str) -> str:
-    value = re.sub(r"[^a-zA-Z0-9._-]", "_", email.strip().lower())
-    return value or "default"
 
 
 class DriveToolkit(BaseToolkit):
@@ -63,7 +58,7 @@ class DriveToolkit(BaseToolkit):
         if self.token_path:
             resolved_token = self.token_path
         elif self.auth_email:
-            resolved_token = str(default_storage_dir / f"token_{_sanitize_email(self.auth_email)}.json")
+            resolved_token = str(default_storage_dir / f"token_{sanitize_email(self.auth_email)}.json")
         else:
             resolved_token = str(default_storage_dir / "token_default.json")
 
