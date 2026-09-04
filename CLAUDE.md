@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-AI – Collective: a multi-agent orchestration platform ("programmable AI workforce"). React 18 + TypeScript frontend (`/ui`) talking to a FastAPI backend (`/server`) that runs LangGraph-based multi-agent topologies. Source-available, non-commercial license (see `LICENSE`/`NOTICE`).
+AI – Collective: a platform for creating and managing AI-powered companies — virtual organizations of any type (software, marketing, research, or general) built from Departments staffed by AI, each run as a LangGraph-based multi-agent topology. React 18 + TypeScript frontend (`/ui`) talking to a FastAPI backend (`/server`). Source-available, non-commercial license (see `LICENSE`/`NOTICE`).
 
 **Note:** `README.md` describes an earlier state of the project (pre terminology-rename: mentions `server/domain/agent/`, `AgentBuilder.tsx`/`TeamBuilder.tsx`/`Workspaces.tsx`, only 4 topologies). Trust this file and the codebase over `README.md` for current names and structure.
 

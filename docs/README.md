@@ -1,8 +1,10 @@
 # AI Collective — Backend Documentation
 
-AI Collective is a multi-agent platform with a React frontend (`/ui`) and a
-FastAPI backend (`/server`). This directory documents the **backend**: its
-architecture, configuration, security model, and deployment.
+AI Collective is a platform for creating and managing AI-powered companies — virtual
+organizations of any type (software, marketing, research, or general), built from
+Departments and Staff and run as multi-agent LangGraph topologies. It has a React
+frontend (`/ui`) and a FastAPI backend (`/server`). This directory documents the
+**backend**: its architecture, configuration, security model, and deployment.
 
 ## Contents
 

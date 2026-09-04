@@ -34,11 +34,14 @@ limitations under the License.
   <a href="#use-cases">Use Cases</a>
 </p>
 
-<h3 align="center">A multi-agent orchestration platform for programmable AI workforces</h3>
+<h3 align="center">Create and manage AI-powered companies, of any kind</h3>
 
-AI – Collective is a backend and web application for modeling, running, and observing multi-agent
-workflows. Instead of a single chatbot, you compose an organization of "staff" — each with its own
-skills, model, and instructions — and arrange them into a topology (sequential, ring, mesh,
+AI – Collective is a backend and web application for building and running **companies** — virtual
+organizations staffed entirely by AI. Describe a company in chat and the platform proposes its
+departments, staff, and skills; from there you can run a software startup, a marketing agency, a
+research lab, a trading desk, a content studio, or anything else you can describe, and operate any
+number of them side by side from a single control center. Inside each company, "staff" — each with
+its own skills, model, and instructions — are arranged into a topology (sequential, ring, mesh,
 supervisor, tree, or a fully custom graph) that defines how they hand off work and collaborate
 toward a shared objective. Runs stream turn-by-turn over Server-Sent Events, support mid-run human
 intervention, and persist a knowledge graph of what has been discussed so far.
@@ -53,13 +56,17 @@ See [`docs/`](docs/README.md) for the full architecture, configuration, and API 
 
 ## Overview
 
-Unlike a single-prompt chatbot, AI – Collective models work the way a team does: a **Company**
-contains **Departments**, each staffed by **Staff** members with bound **Skills** (tools). Work is
-tracked through a lightweight project hierarchy (Project → Epic/Sprint → Task), and every staff
-run is a graph execution — chosen from six topology modes — rather than a single LLM call. The
-platform is LLM-agnostic, supports both JSON and MongoDB persistence, and can scale from a laptop
-(in-memory queue, threading lock) to a distributed deployment (RabbitMQ, Redis, Kubernetes sandbox
-pods).
+Unlike a single-prompt chatbot, AI – Collective models work the way a real organization does: a
+**Company** contains **Departments**, each staffed by **Staff** members with bound **Skills**
+(tools). A company's `type` (software, marketing, research, or general) seeds its suggested
+structure but never restricts it — the AI Office Designer will build whatever kind of company you
+describe. You can create and run any number of companies at once, each isolated with its own
+departments, staff, projects, and data, and switch between them (or monitor all of them together)
+from the "All" control center. Work inside a company is tracked through a lightweight project
+hierarchy (Project → Epic/Sprint → Task), and every staff run is a graph execution — chosen from
+six topology modes — rather than a single LLM call. The platform is LLM-agnostic, supports both
+JSON and MongoDB persistence, and can scale from a laptop (in-memory queue, threading lock) to a
+distributed deployment (RabbitMQ, Redis, Kubernetes sandbox pods).
 
 ## Key Features
 
@@ -508,11 +515,15 @@ mutual exclusion of staff-graph transitions via distributed locking backed by Re
 
 ## Use Cases
 
-- **Financial analysis** — a department of analysts debating market trends based on real-time news.
-- **Content pipeline** — strategy, drafting, critiquing, and final polish via the supervisor topology.
-- **Iterative research** — the ring topology for multi-round refinement across specialist staff.
-- **Software research** — automated vulnerability detection and documentation generation.
-- **Parallel task execution** — subagents processing independent subtasks concurrently.
+Any company you can describe, the AI Office Designer can build:
+
+- **Software company** — engineering, QA, and DevOps departments shipping and reviewing code.
+- **Marketing agency** — strategy, copy, and design staff running a content pipeline via the
+  supervisor topology.
+- **Research lab** — analysts debating findings via the ring topology for multi-round refinement.
+- **Trading desk** — a department of analysts debating market trends based on real-time news.
+- **Any general company** — parallel task execution via subagents processing independent
+  subtasks concurrently, regardless of industry.
 
 ## Documentation
 
