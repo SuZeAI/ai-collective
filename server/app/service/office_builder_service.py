@@ -58,13 +58,19 @@ class OfficeBuilderService:
     def is_llm_configured(self) -> bool:
         return self._llm is not None
 
-    def _load_existing_context(self, owner_id: str) -> tuple[list[Department], list[Staff], list[Skill]]:
+    def _load_existing_context(
+        self, owner_id: str
+    ) -> tuple[list[Department], list[Staff], list[Skill], list[Company]]:
         """Departments/staff/skills already visible to the owner, offered to the
-        designer LLM as reuse candidates instead of always designing from scratch."""
+        designer LLM as reuse candidates instead of always designing from scratch.
+        Companies are included too, purely so the prompt can tag each candidate
+        with which company it already belongs to (departments/staff/skills are
+        not company-scoped themselves — they're linked in via Company.department_ids)."""
         departments = [d for d in self._departments.list_departments() if is_visible_to(owner_id, d.owner_id)]
         staff = [s for s in self._staff.list_staff() if is_visible_to(owner_id, s.owner_id)]
         skills = [s for s in self._skills.list_skills() if is_visible_to(owner_id, s.owner_id)]
-        return departments, staff, skills
+        companies = [c for c in self._companies.list_companies() if is_visible_to(owner_id, c.owner_id)]
+        return departments, staff, skills, companies
 
     # ─── Plan generation (chat) ─────────────────────────────────────────────
 
@@ -75,8 +81,12 @@ class OfficeBuilderService:
         owner_id: str,
     ) -> tuple[str, OfficePlan | None]:
         presets = self._skills.list_tool_presets()
-        existing_departments, existing_staff, existing_skills = self._load_existing_context(owner_id)
-        system = build_designer_system_prompt(presets, existing_departments, existing_staff, existing_skills)
+        existing_departments, existing_staff, existing_skills, existing_companies = self._load_existing_context(
+            owner_id
+        )
+        system = build_designer_system_prompt(
+            presets, existing_departments, existing_staff, existing_skills, existing_companies
+        )
         user = serialize_conversation(messages, current_plan)
 
         data = await self._llm.generate_json(system=system, user=user)
@@ -115,11 +125,15 @@ class OfficeBuilderService:
 
         presets = self._skills.list_tool_presets()
         available = set(self._skills.list_available_tool_names())
-        existing_departments, existing_staff, existing_skills = self._load_existing_context(owner_id)
+        existing_departments, existing_staff, existing_skills, existing_companies = self._load_existing_context(
+            owner_id
+        )
         existing_department_ids = {d.id for d in existing_departments}
         existing_staff_ids = {s.id for s in existing_staff}
         existing_skill_ids = {s.id for s in existing_skills}
-        system = build_streaming_designer_system_prompt(presets, existing_departments, existing_staff, existing_skills)
+        system = build_streaming_designer_system_prompt(
+            presets, existing_departments, existing_staff, existing_skills, existing_companies
+        )
         user = serialize_conversation(messages, current_plan, streaming=True)
         model = self._llm.get_chat_model()
 

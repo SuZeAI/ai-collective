@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict
 
-from server.domain.models import Department, Skill, Staff
+from server.domain.models import Company, Department, Skill, Staff
 from server.domain.office_builder import MAX_EXISTING_LISTED, OfficePlan
 
 PLAN_SCHEMA_TEXT = (
@@ -50,31 +50,87 @@ DESIGNER_RULES_TEXT = (
 )
 
 
+def _department_company_names(
+    existing_departments: list[Department], existing_companies: list[Company]
+) -> dict[str, list[str]]:
+    result: dict[str, list[str]] = {d.id: [] for d in existing_departments}
+    for company in existing_companies:
+        for dept_id in company.department_ids:
+            if dept_id in result:
+                result[dept_id].append(company.name)
+    return result
+
+
+def _staff_company_names(
+    existing_staff: list[Staff],
+    existing_departments: list[Department],
+    dept_companies: dict[str, list[str]],
+) -> dict[str, list[str]]:
+    result: dict[str, list[str]] = {s.id: [] for s in existing_staff}
+    for dept in existing_departments:
+        for company_name in dept_companies.get(dept.id, []):
+            for staff_id in dept.staff:
+                if staff_id in result and company_name not in result[staff_id]:
+                    result[staff_id].append(company_name)
+    return result
+
+
+def _skill_company_names(
+    existing_skills: list[Skill],
+    existing_staff: list[Staff],
+    staff_companies: dict[str, list[str]],
+) -> dict[str, list[str]]:
+    result: dict[str, list[str]] = {s.id: [] for s in existing_skills}
+    for staff in existing_staff:
+        for company_name in staff_companies.get(staff.id, []):
+            for skill_id in staff.skill_ids:
+                if skill_id in result and company_name not in result[skill_id]:
+                    result[skill_id].append(company_name)
+    return result
+
+
+def _company_suffix(company_names: list[str]) -> str:
+    if not company_names:
+        return ""
+    return f" [company: {', '.join(company_names)}]"
+
+
 def _existing_context_text(
     existing_departments: list[Department],
     existing_staff: list[Staff],
     existing_skills: list[Skill],
+    existing_companies: list[Company],
 ) -> str:
     if not (existing_departments or existing_staff or existing_skills):
         return ""
+    dept_companies = _department_company_names(existing_departments, existing_companies)
+    staff_companies = _staff_company_names(existing_staff, existing_departments, dept_companies)
+    skill_companies = _skill_company_names(existing_skills, existing_staff, staff_companies)
+
     text = (
         "The user already has some departments, staff and skills set up. Reuse them "
-        "(see the \"existing_id\" rule below) instead of creating near-duplicates:\n\n"
+        "(see the \"existing_id\" rule below) instead of creating near-duplicates. Each entry "
+        "shows which company it currently belongs to, if any — an entry with no company tag is "
+        "not attached to any company yet:\n\n"
     )
     if existing_departments:
         lines = "\n".join(
             f"- \"{d.id}\": {d.name} ({d.mode}, {len(d.staff)} staff)"
+            f"{_company_suffix(dept_companies.get(d.id, []))}"
             for d in existing_departments[:MAX_EXISTING_LISTED]
         )
         text += f"Existing departments:\n{lines}\n\n"
     if existing_staff:
         lines = "\n".join(
-            f"- \"{s.id}\": {s.name} — {s.role}" for s in existing_staff[:MAX_EXISTING_LISTED]
+            f"- \"{s.id}\": {s.name} — {s.role}{_company_suffix(staff_companies.get(s.id, []))}"
+            for s in existing_staff[:MAX_EXISTING_LISTED]
         )
         text += f"Existing staff:\n{lines}\n\n"
     if existing_skills:
         lines = "\n".join(
-            f"- \"{s.id}\": {s.name} (tool: {s.tool_name or 'none'})" for s in existing_skills[:MAX_EXISTING_LISTED]
+            f"- \"{s.id}\": {s.name} (tool: {s.tool_name or 'none'})"
+            f"{_company_suffix(skill_companies.get(s.id, []))}"
+            for s in existing_skills[:MAX_EXISTING_LISTED]
         )
         text += f"Existing skills:\n{lines}\n\n"
     return text
@@ -85,6 +141,7 @@ def _designer_prompt_intro(
     existing_departments: list[Department],
     existing_staff: list[Staff],
     existing_skills: list[Skill],
+    existing_companies: list[Company],
 ) -> str:
     tool_lines = "\n".join(f"- \"{p['tool_name']}\": {p['label']}" for p in tool_presets)
     intro = (
@@ -98,7 +155,7 @@ def _designer_prompt_intro(
         "collaboration), \"ring\" (round-robin), \"supervisor\" (one lead delegates), "
         "\"tree\" (hierarchical).\n\n"
     )
-    intro += _existing_context_text(existing_departments, existing_staff, existing_skills)
+    intro += _existing_context_text(existing_departments, existing_staff, existing_skills, existing_companies)
     return intro
 
 
@@ -107,9 +164,12 @@ def build_designer_system_prompt(
     existing_departments: list[Department],
     existing_staff: list[Staff],
     existing_skills: list[Skill],
+    existing_companies: list[Company],
 ) -> str:
     return (
-        _designer_prompt_intro(tool_presets, existing_departments, existing_staff, existing_skills)
+        _designer_prompt_intro(
+            tool_presets, existing_departments, existing_staff, existing_skills, existing_companies
+        )
         + "ALWAYS respond with a single JSON object and nothing else:\n"
         "{\n"
         '  "reply": "<short conversational reply in the user\'s language, summarizing what you designed or asking targeted questions>",\n'
@@ -126,9 +186,12 @@ def build_streaming_designer_system_prompt(
     existing_departments: list[Department],
     existing_staff: list[Staff],
     existing_skills: list[Skill],
+    existing_companies: list[Company],
 ) -> str:
     return (
-        _designer_prompt_intro(tool_presets, existing_departments, existing_staff, existing_skills)
+        _designer_prompt_intro(
+            tool_presets, existing_departments, existing_staff, existing_skills, existing_companies
+        )
         + "Respond in this EXACT format:\n"
         "1. First, write a short conversational reply as plain text in the user's language "
         "(summarize what you designed, or ask targeted questions). Do NOT use code fences in this part.\n"
