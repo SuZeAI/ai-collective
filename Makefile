@@ -310,11 +310,11 @@ install-backend: ## Install Python dependencies (uv)
 install-frontend: ## Install Node.js dependencies (npm)
 	npm --prefix ui ci
 
-env: ## Create .env from .env.example if it does not exist
+env: ## Create .env from .env.template if it does not exist
 	@if [ ! -f .env ]; then \
-	    if [ -f .env.example ]; then \
-	        cp .env.example .env; \
-	        printf "$(C_YELLOW)⚠  Created .env from .env.example — edit it before starting.$(C_RESET)\n"; \
+	    if [ -f .env.template ]; then \
+	        cp .env.template .env; \
+	        printf "$(C_YELLOW)⚠  Created .env from .env.template — edit it before starting.$(C_RESET)\n"; \
 	    else \
 	        printf "$(C_YELLOW)⚠  No .env file found. Create one at the project root.$(C_RESET)\n"; \
 	    fi \
