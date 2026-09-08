@@ -214,15 +214,7 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python,jupyternotebooks
 
-!src/lib
-context
-dist
-node_modules
-secrets
-backup
-
 # Local scratch notes — not meant to be shared/committed
-.claude/project_notes/
 .agents
 .claude
 .secrets

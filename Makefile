@@ -20,7 +20,8 @@ SHELL     := /bin/bash
 #   make dev PROFILES=router
 #   make dev PROFILES="provisioner router"
 #   make up  PROFILES="router provisioner"
-# Available profiles: provisioner · router · mongo-express · tools · minio · qdrant · neo4j
+# Available profiles: provisioner · router · mongo-express · tools · minio
+# (dev-only: qdrant · neo4j — see docker-compose-dev.yaml)
 PROFILES ?=
 COMPOSE_PROFILES := $(foreach p,$(PROFILES),--profile $(p))
 
@@ -90,7 +91,7 @@ help: ## Show this help message
 	@printf "  make dev PROFILES=\"provisioner router\" # Dev stack + k3s sandbox provisioner + 9Router\n"
 	@printf "  make up  PROFILES=router          # Prod stack + 9Router\n"
 	@printf "  make backend                      # Run backend locally (needs infra running)\n"
-	@printf "\n\033[1m\033[33m  Profiles$(C_RESET) (PROFILES=…)  provisioner · router · mongo-express · tools · minio · qdrant · neo4j\n"
+	@printf "\n\033[1m\033[33m  Profiles$(C_RESET) (PROFILES=…)  provisioner · router · mongo-express · tools · minio  (dev-only: qdrant · neo4j)\n"
 	@printf "\n"
 
 # ============================================================================
@@ -334,7 +335,7 @@ setup: install dirs env ## Full first-time project setup
 test: test-backend test-frontend ## Run all tests
 
 test-backend: ## Run backend tests (pytest)
-	uv run pytest server/ -v
+	PYTHONPATH=. uv run pytest test/ -v
 
 test-frontend: ## Run frontend tests (vitest)
 	npm --prefix ui run test

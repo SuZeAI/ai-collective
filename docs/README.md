@@ -25,6 +25,7 @@ frontend (`/ui`) and a FastAPI backend (`/server`). This directory documents the
 | [company-model.md](company-model.md) | The "All"/company scope split, company types, and nav visibility rules |
 | [dashboard-navigation.md](dashboard-navigation.md) | Frontend dual-sidebar nav layout and what each nav group/item does |
 | [hardening-changelog.md](hardening-changelog.md) | The security/reliability hardening pass (branch `fix/backend-hardening`) |
+| [tool.md](tool.md) | Checklist of completed skill/tool integrations |
 
 ## Quick start
 

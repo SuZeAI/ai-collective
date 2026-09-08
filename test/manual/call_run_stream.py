@@ -1,5 +1,5 @@
 """
-Test script to call the streaming agent-graph endpoint
+Test script to call the streaming staff-graph endpoint
 """
 import asyncio
 import httpx
@@ -7,7 +7,7 @@ import json
 
 # Configuration
 BASE_URL = "http://localhost:8000"
-ENDPOINT = "/api/v1/llm/agent-graph/run-stream"
+ENDPOINT = "/api/v1/llm/staff-graph/run-stream"
 
 async def test_stream():
     """Test streaming endpoint"""
@@ -15,7 +15,7 @@ async def test_stream():
     # Prepare request payload
     payload = {
         "user_input": "Explain quantum computing in simple terms",
-        "agents": ["agent_1", "agent_2"],  # Replace with actual agent IDs
+        "staff": ["staff_1", "staff_2"],  # Replace with actual staff IDs
         "max_rounds": 6
     }
 
@@ -42,7 +42,7 @@ async def test_stream():
                             try:
                                 event_data = json.loads(json_str)
                                 print(f"\n[Turn {event_data.get('turn')}]")
-                                print(f"Agent: {event_data.get('agent_name')} ({event_data.get('agent_role')})")
+                                print(f"Staff: {event_data.get('agent_name')}")
                                 print(f"Response: {event_data.get('content')}")
                                 print("-" * 40)
                             except json.JSONDecodeError:
@@ -61,7 +61,7 @@ def test_stream_sync():
 
     payload = {
         "user_input": "Analyze the golden price market and provide insights",
-        "agents": ["a1", "a2", "a3"],  # Replace with actual agent IDs
+        "staff": ["s1", "s2", "s3"],  # Replace with actual staff IDs
         "max_rounds": 6
     }
 
@@ -88,7 +88,7 @@ def test_stream_sync():
                         try:
                             event_data = json.loads(json_str)
                             print(f"\n[Turn {event_data.get('turn')}]")
-                            print(f"Agent: {event_data.get('agent_name')} ({event_data.get('agent_role')})")
+                            print(f"Staff: {event_data.get('agent_name')}")
                             print(f"Response: {event_data.get('content')}")
                             print("-" * 40)
                         except json.JSONDecodeError:
