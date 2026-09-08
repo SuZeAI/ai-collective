@@ -360,9 +360,6 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
               [updated.id]: new Set([...(prev[updated.id] ?? []), staffId]),
             }));
           }
-          console.debug("subagent_start", event.subagent_type, event.description);
-        } else if (eventType === "subagent_complete") {
-          console.debug("subagent_complete", event.subagent_type, event.error);
         } else if (eventType === "fanout_start") {
           const targets = Array.isArray(event.targets) ? event.targets.map(String) : [];
           setActiveFanouts((prev) => ({

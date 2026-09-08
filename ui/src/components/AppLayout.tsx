@@ -7,7 +7,7 @@ import {
   LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, Building2, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban, Star, Plug,
 } from "lucide-react";
 import { api, type Company } from "@/lib/api";
-import { OVERALL_COMPANY_ID, setActiveCompanyId, getActiveCompanyId, useCompanyScope } from "@/hooks/use-company-scope";
+import { setActiveCompanyId, getActiveCompanyId, useCompanyScope } from "@/hooks/use-company-scope";
 import { COMPANY_TYPE_MAP, companyTypeOf, suggestedNavKeys } from "@/lib/company-types";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -175,11 +175,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       .then((data) => {
         if (!active) return;
         setCompanies(data);
-        const storedId = localStorage.getItem("activeCompanyId");
+        const storedId = getActiveCompanyId();
         const found = data.find((ws) => ws.id === storedId);
         setActiveCompany(found || null);
         if (!found) {
-          localStorage.setItem("activeCompanyId", OVERALL_COMPANY_ID);
+          setActiveCompanyId(null);
           setSelectedCompanyId(null);
         }
       })
@@ -194,11 +194,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       api.listCompanies()
         .then((data) => {
           setCompanies(data);
-          const storedId = localStorage.getItem("activeCompanyId");
+          const storedId = getActiveCompanyId();
           const found = data.find((ws) => ws.id === storedId);
           setActiveCompany(found || null);
           if (!found) {
-            localStorage.setItem("activeCompanyId", OVERALL_COMPANY_ID);
+            setActiveCompanyId(null);
             setSelectedCompanyId(null);
           }
         })
