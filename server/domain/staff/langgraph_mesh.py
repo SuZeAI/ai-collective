@@ -27,6 +27,8 @@ from server.domain.staff._graph_runtime import (
     build_turn_messages,
     drain_human_guidance,
     ensure_working_memory,
+    get_fanout_semaphore,
+    parse_fanout_pairs,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
@@ -980,12 +982,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
     # ------------------------------------------------------------------ #
 
     def _get_fanout_semaphore(self) -> asyncio.Semaphore:
-        """Lazily create the wave-concurrency semaphore on the active loop."""
-        sem = getattr(self, "_fanout_semaphore", None)
-        if sem is None:
-            sem = asyncio.Semaphore(MESH_FANOUT_MAX_CONCURRENT)
-            self._fanout_semaphore = sem
-        return sem
+        return get_fanout_semaphore(self)
 
     def _parse_fanout(
         self,
@@ -993,36 +990,13 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         staff_names: list[str],
         self_name: str,
     ) -> list[tuple[str, str]]:
-        """Parse a `<FANOUT>` block into ordered (staff_name, task) pairs.
-
-        Returns [] (→ caller falls back to single-routing) unless at least two
-        distinct, valid, non-self target staff are found.
-        """
-        match = self._FANOUT_RE.search(action_payload)
-        if not match:
-            return []
-
-        normalized = {name.lower(): name for name in staff_names}
-        pairs: list[tuple[str, str]] = []
-        seen: set[str] = set()
-        for raw_name, raw_task in self._FANOUT_PAIR_RE.findall(match.group(1)):
-            candidate = raw_name.strip().strip("`\"'")
-            if candidate.startswith("<") and candidate.endswith(">"):
-                candidate = candidate[1:-1].strip()
-            target = normalized.get(candidate.lower())
-            if not target or target.lower() == self_name.lower() or target in seen:
-                continue
-            seen.add(target)
-            pairs.append((target, raw_task.strip()))
-
-        if len(pairs) < 2:
-            logger.debug(
-                "_parse_fanout: %d valid target(s) (< 2) — fall back to single routing",
-                len(pairs),
-            )
-            return []
-        # Respect the advertised cap so the model cannot over-fan.
-        return pairs[:MESH_FANOUT_MAX_CONCURRENT]
+        return parse_fanout_pairs(
+            action_payload,
+            staff_names,
+            self_name,
+            fanout_re=self._FANOUT_RE,
+            pair_re=self._FANOUT_PAIR_RE,
+        )
 
     def _build_branch_chat_kwargs(
         self,

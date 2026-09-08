@@ -13,6 +13,7 @@ tree, mesh, sequential orchestrator) needs:
 from __future__ import annotations
 
 import asyncio
+import re
 from dataclasses import dataclass, field
 from typing import Any, Callable
 from uuid import uuid4
@@ -591,6 +592,53 @@ class FanoutBranchResult:
     content: str
     error: bool = False
     turn: int = 0
+
+
+def parse_fanout_pairs(
+    action_payload: str,
+    names: list[str],
+    exclude_name: str,
+    *,
+    fanout_re: "re.Pattern[str]",
+    pair_re: "re.Pattern[str]",
+    max_concurrent: int = MESH_FANOUT_MAX_CONCURRENT,
+) -> list[tuple[str, str]]:
+    """Parse a `<FANOUT>` block into ordered (name, task) pairs.
+
+    Shared by every topology that supports parallel dispatch (mesh hub,
+    supervisor lead). Returns [] (caller falls back to single-routing/
+    delegation) unless at least two distinct, valid, non-excluded targets
+    are found.
+    """
+    match = fanout_re.search(action_payload)
+    if not match:
+        return []
+
+    normalized = {name.lower(): name for name in names}
+    pairs: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for raw_name, raw_task in pair_re.findall(match.group(1)):
+        candidate = raw_name.strip().strip("`\"'<>")
+        target = normalized.get(candidate.lower())
+        if not target or target.lower() == exclude_name.lower() or target in seen:
+            continue
+        seen.add(target)
+        pairs.append((target, raw_task.strip()))
+
+    if len(pairs) < 2:
+        return []
+    # Respect the advertised cap so the model cannot over-fan.
+    return pairs[:max_concurrent]
+
+
+def get_fanout_semaphore(owner: object) -> asyncio.Semaphore:
+    """Lazily create a wave-concurrency semaphore cached on ``owner`` (an
+    orchestrator instance), bound to the active event loop."""
+    sem = getattr(owner, "_fanout_semaphore", None)
+    if sem is None:
+        sem = asyncio.Semaphore(MESH_FANOUT_MAX_CONCURRENT)
+        owner._fanout_semaphore = sem
+    return sem
 
 
 async def run_fanout_wave(

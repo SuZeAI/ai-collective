@@ -28,6 +28,8 @@ from server.domain.staff._graph_runtime import (
     build_turn_messages,
     drain_human_guidance,
     ensure_working_memory,
+    get_fanout_semaphore,
+    parse_fanout_pairs,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
@@ -747,12 +749,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
     # ------------------------------------------------------------------ #
 
     def _get_fanout_semaphore(self) -> asyncio.Semaphore:
-        """Lazily create the wave-concurrency semaphore on the active loop."""
-        sem = getattr(self, "_fanout_semaphore", None)
-        if sem is None:
-            sem = asyncio.Semaphore(MESH_FANOUT_MAX_CONCURRENT)
-            self._fanout_semaphore = sem
-        return sem
+        return get_fanout_semaphore(self)
 
     def _parse_fanout(
         self,
@@ -762,28 +759,16 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
     ) -> list[tuple[str, str]]:
         """Parse a `<FANOUT>` block into ordered (worker_name, task) pairs.
 
-        Returns [] (→ caller falls back to single delegation) unless at least
-        two distinct valid workers are found. Checked BEFORE single delegation
-        so the inner DELEGATE_TO tags are not misread as one delegation.
+        Checked BEFORE single delegation so the inner DELEGATE_TO tags are
+        not misread as one delegation.
         """
-        match = self._FANOUT_RE.search(action_payload)
-        if not match:
-            return []
-
-        normalized = {name.lower(): name for name in worker_names}
-        pairs: list[tuple[str, str]] = []
-        seen: set[str] = set()
-        for raw_name, raw_task in self._FANOUT_PAIR_RE.findall(match.group(1)):
-            candidate = raw_name.strip().strip("`\"'<>")
-            target = normalized.get(candidate.lower())
-            if not target or target.lower() == lead_name.lower() or target in seen:
-                continue
-            seen.add(target)
-            pairs.append((target, raw_task.strip()))
-
-        if len(pairs) < 2:
-            return []
-        return pairs[:MESH_FANOUT_MAX_CONCURRENT]
+        return parse_fanout_pairs(
+            action_payload,
+            worker_names,
+            lead_name,
+            fanout_re=self._FANOUT_RE,
+            pair_re=self._FANOUT_PAIR_RE,
+        )
 
     def _build_worker_chat_kwargs(
         self,
