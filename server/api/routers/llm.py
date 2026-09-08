@@ -22,7 +22,7 @@ from server.api.deps import (
 from server.api.schemas.admin import LlmModelOptionSchema
 from server.api.schemas.staff_graph import GraphRunRequest, GraphRunResponse, GraphTurnSchema
 from server.infra.llm.config import get_enabled_models
-from server.app.ports.staff_graph import CustomGraphSpec, GraphStaffDefinition
+from server.app.ports.staff_graph import CustomGraphSpec
 from server.app.service.staff_service import StaffService
 from server.app.service.graph_context_service import GraphContextService
 from server.app.service.llm_service import LLMService
@@ -310,44 +310,14 @@ async def run_staff_graph(
     if req.conversation_id:
         _require_conversation_access(task_service, req.conversation_id, owner_id)
 
-    # Fetch staff from database by ID and bind tools
-    definitions = []
-    staff_id_to_name: dict[str, str] = {}  # for translating custom_graph ids -> names
-    for staff_id in req.staff:
-        try:
-            staff = staff_service.get_staff(staff_id)
-
-            # Get tools for this staff's skills
-            staff_tools = {}
-            skills = staff_service.get_staff_skills(staff_id)
-            for skill in skills:
-                tool = tool_manager.get_tool_for_skill(skill)
-                if tool:
-                    staff_tools[skill.id] = tool
-                    logger.info(f"Bound tool '{skill.tool_name}' for skill '{skill.id}' (staff: {staff.name})")
-                else:
-                    logger.debug(f"No tool available for skill '{skill.id}' (staff: {staff.name})")
-
-            definitions.append(
-                GraphStaffDefinition(
-                    name=staff.name,
-                    role=staff.role,
-                    system_prompt=staff.system_prompt,
-                    description=staff.description,
-                    skill_ids=list(staff.skill_ids),
-                    tools=staff_tools or None,
-                    subagent_enabled=bool(getattr(staff, "subagent_enabled", False)),
-                )
-            )
-            staff_id_to_name[staff_id] = staff.name
-        except NotFoundError as e:
-            raise HTTPException(status_code=404, detail=f"Staff '{staff_id}' not found: {e}")
-        except Exception as e:
-            # Distinct from the 404 above: the staff itself exists but binding
-            # one of its tools failed (e.g. sandbox/provisioner unreachable).
-            # Reporting this as "not found" hid the real cause from callers.
-            logger.exception("Failed to prepare staff '%s' for run", staff_id)
-            raise HTTPException(status_code=502, detail=f"Failed to prepare staff '{staff_id}': {e}")
+    try:
+        definitions, staff_id_to_name = staff_service.prepare_graph_definitions(req.staff, tool_manager)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except RuntimeError as e:
+        # Staff exists but tool binding failed (e.g. sandbox/provisioner
+        # unreachable) — distinct from the 404 above.
+        raise HTTPException(status_code=502, detail=str(e))
 
     graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
     conversation_id = req.conversation_id
@@ -384,48 +354,18 @@ async def run_staff_graph_stream(
     if req.conversation_id:
         _require_conversation_access(task_service, req.conversation_id, owner_id)
 
-    # Fetch staff from database by ID and bind tools
-    definitions = []
-    staff_name_to_id: dict[str, str] = {}  # Mapping staff name to ID for stream response
-    for staff_id in req.staff:
-        try:
-            staff = staff_service.get_staff(staff_id)
-
-            # Get tools for this staff's skills
-            staff_tools = {}
-            skills = staff_service.get_staff_skills(staff_id)
-            for skill in skills:
-                tool = tool_manager.get_tool_for_skill(skill)
-                if tool:
-                    staff_tools[skill.id] = tool
-                    logger.info(f"Bound tool '{skill.tool_name}' for skill '{skill.id}' (staff: {staff.name})")
-                else:
-                    logger.debug(f"No tool available for skill '{skill.id}' (staff: {staff.name})")
-
-            definitions.append(
-                GraphStaffDefinition(
-                    name=staff.name,
-                    role=staff.role,
-                    system_prompt=staff.system_prompt,
-                    description=staff.description,
-                    skill_ids=list(staff.skill_ids),
-                    tools=staff_tools or None,
-                    subagent_enabled=bool(getattr(staff, "subagent_enabled", False)),
-                )
-            )
-            staff_name_to_id[staff.name] = staff_id  # Store mapping
-        except NotFoundError as e:
-            raise HTTPException(status_code=404, detail=f"Staff '{staff_id}' not found: {e}")
-        except Exception as e:
-            # Distinct from the 404 above: the staff itself exists but binding
-            # one of its tools failed (e.g. sandbox/provisioner unreachable).
-            # Reporting this as "not found" hid the real cause from callers.
-            logger.exception("Failed to prepare staff '%s' for run", staff_id)
-            raise HTTPException(status_code=502, detail=f"Failed to prepare staff '{staff_id}': {e}")
+    try:
+        definitions, staff_id_to_name = staff_service.prepare_graph_definitions(req.staff, tool_manager)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except RuntimeError as e:
+        # Staff exists but tool binding failed (e.g. sandbox/provisioner
+        # unreachable) — distinct from the 404 above.
+        raise HTTPException(status_code=502, detail=str(e))
 
     graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
     conversation_id = req.conversation_id
-    staff_id_to_name = {staff_id: name for name, staff_id in staff_name_to_id.items()}
+    staff_name_to_id = {name: staff_id for staff_id, name in staff_id_to_name.items()}
 
     # Long-term memory scope for this run: owner + the task's team (Business Unit
     # proxy). Recall/inject is done by the LTM middleware; consolidation runs at

@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from server.app.ports.repositories import StaffRepository, SkillRepository
+from server.app.ports.staff_graph import GraphStaffDefinition
 from server.domain.service.skill_tool_service import SkillToolManager
 from server.domain.errors import NotFoundError
 from server.domain.models import Staff, Skill
 from server.domain.tools.base import BaseToolkit
+from server.share.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class StaffService:
@@ -66,6 +70,52 @@ class StaffService:
             if tool:
                 tools[skill.id] = tool
         return tools
+
+    def prepare_graph_definitions(
+        self, staff_ids: list[str], tool_manager: SkillToolManager | None = None
+    ) -> tuple[list[GraphStaffDefinition], dict[str, str]]:
+        """Resolve staff ids to GraphStaffDefinitions with bound tools.
+
+        Returns definitions in staff_ids order plus a staff_id -> name map for
+        translating staff-id-based custom graph edges to name-based ones.
+        Raises NotFoundError if a staff id doesn't exist; wraps a tool-binding
+        failure in RuntimeError naming the offending staff id, so a caller can
+        tell "staff missing" (404) apart from "staff exists but tool binding
+        failed" (e.g. sandbox/provisioner unreachable).
+        """
+        manager = tool_manager or self._tool_manager
+        definitions: list[GraphStaffDefinition] = []
+        staff_id_to_name: dict[str, str] = {}
+        for staff_id in staff_ids:
+            staff = self.get_staff(staff_id)
+            try:
+                staff_tools = {}
+                for skill in self.get_staff_skills(staff_id):
+                    tool = manager.get_tool_for_skill(skill)
+                    if tool:
+                        staff_tools[skill.id] = tool
+                        logger.info(
+                            "Bound tool '%s' for skill '%s' (staff: %s)",
+                            skill.tool_name, skill.id, staff.name,
+                        )
+                    else:
+                        logger.debug("No tool available for skill '%s' (staff: %s)", skill.id, staff.name)
+            except Exception as e:
+                logger.exception("Failed to prepare staff '%s' for run", staff_id)
+                raise RuntimeError(f"Failed to prepare staff '{staff_id}': {e}") from e
+            definitions.append(
+                GraphStaffDefinition(
+                    name=staff.name,
+                    role=staff.role,
+                    system_prompt=staff.system_prompt,
+                    description=staff.description,
+                    skill_ids=list(staff.skill_ids),
+                    tools=staff_tools or None,
+                    subagent_enabled=bool(getattr(staff, "subagent_enabled", False)),
+                )
+            )
+            staff_id_to_name[staff_id] = staff.name
+        return definitions, staff_id_to_name
 
     def upsert_staff(self, staff: Staff) -> Staff:
         return self._repo.upsert(staff)
