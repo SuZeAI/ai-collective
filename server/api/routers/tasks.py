@@ -15,6 +15,7 @@ from server.api.deps import (
     get_task_service,
     get_department_service,
 )
+from server.api.ownership import require_deletable, require_modifiable
 from server.api.schemas.task import TaskSchema, UpsertTaskRequest
 from server.app.service.staff_service import StaffService
 from server.app.service.meeting_service import MeetingService
@@ -25,7 +26,7 @@ from server.app.service.department_service import DepartmentService
 from server.domain.errors import NotFoundError
 from server.domain.enums import StaffStatus
 from server.domain.enums import IssueType, TaskPriority, TaskStatus
-from server.domain.models import Message, Task, can_delete, can_modify, is_owned_by, is_visible_to
+from server.domain.models import Message, Task, is_owned_by, is_visible_to
 from server.infra import task_run_registry
 from server.infra import task_queue
 from server.infra import working_memory_store
@@ -119,15 +120,12 @@ def upsert_task(
         except NotFoundError:
             previous_task = None
             previous_status = None
-    if previous_task is not None and not is_visible_to(owner_id, previous_task.owner_id):
-        raise NotFoundError(f"Task '{task_id}' not found")
-    if previous_task is not None and not can_modify(owner_id, previous_task.owner_id):
-        # Shared default tasks are view-only for regular users: any change —
-        # including status transitions like start/pause/stop — is admin-only.
-        raise HTTPException(
-            status_code=403,
-            detail="Only the default (admin) account can edit or run shared default items",
-        )
+    # Shared default tasks are view-only for regular users: any change —
+    # including status transitions like start/pause/stop — is admin-only.
+    require_modifiable(
+        previous_task, owner_id, f"Task '{task_id}'",
+        detail="Only the default (admin) account can edit or run shared default items",
+    )
 
     try:
         next_status = TaskStatus(req.status)
@@ -263,10 +261,7 @@ def delete_task(
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
     existing = service.try_get_task(task_id)
-    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
-        raise NotFoundError(f"Task '{task_id}' not found")
-    if existing is not None and not can_delete(owner_id, existing.owner_id):
-        raise HTTPException(status_code=403, detail="Only the default (admin) account can delete shared default items")
+    require_deletable(existing, owner_id, f"Task '{task_id}'")
     service.delete_task(task_id)
     conv_service.delete_messages_by_task(task_id)
     try:
@@ -296,13 +291,10 @@ def clear_task_history(
     gated like the status-update and delete endpoints.
     """
     existing = service.try_get_task(task_id)
-    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
-        raise NotFoundError(f"Task '{task_id}' not found")
-    if existing is not None and not can_modify(owner_id, existing.owner_id):
-        raise HTTPException(
-            status_code=403,
-            detail="Only the default (admin) account can edit or run shared default items",
-        )
+    require_modifiable(
+        existing, owner_id, f"Task '{task_id}'",
+        detail="Only the default (admin) account can edit or run shared default items",
+    )
     conv_service.delete_messages_by_task(task_id)
     graph_context_service.reset_conversation(conversation_id=task_id)
     # Working memory was previously left untouched here — a wiped task would

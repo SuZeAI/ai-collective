@@ -35,7 +35,7 @@ class CompanySchema(BaseModel):
         )
 
 
-class UpsertWorkspaceRequest(BaseModel):
+class UpsertCompanyRequest(BaseModel):
     id: str | None = None
     name: str
     description: str = ""

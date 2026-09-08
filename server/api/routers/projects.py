@@ -12,13 +12,13 @@ from server.api.deps import (
     get_sprint_service,
     get_task_service,
 )
+from server.api.ownership import require_deletable, require_modifiable
 from server.api.schemas.project import ProjectSchema, UpsertProjectRequest
 from server.app.service.epic_service import EpicService
 from server.app.service.project_service import ProjectService
 from server.app.service.sprint_service import SprintService
 from server.app.service.task_service import TaskService
-from server.domain.errors import NotFoundError
-from server.domain.models import Project, can_delete, can_modify, is_owned_by, is_visible_to
+from server.domain.models import Project, is_owned_by, is_visible_to
 
 import logging
 
@@ -48,13 +48,7 @@ def upsert_project(
 ) -> ProjectSchema:
     project_id = req.id or f"project_{uuid4().hex}"
     existing = service.try_get_project(project_id) if req.id else None
-    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
-        raise NotFoundError(f"Project '{project_id}' not found")
-    if existing is not None and not can_modify(owner_id, existing.owner_id):
-        raise HTTPException(
-            status_code=403,
-            detail="Only the default (admin) account can edit shared default items",
-        )
+    require_modifiable(existing, owner_id, f"Project '{project_id}'")
 
     key = (req.key or "").strip().upper()
     if not key:
@@ -99,13 +93,7 @@ def delete_project(
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
     existing = service.try_get_project(project_id)
-    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
-        raise NotFoundError(f"Project '{project_id}' not found")
-    if existing is not None and not can_delete(owner_id, existing.owner_id):
-        raise HTTPException(
-            status_code=403,
-            detail="Only the default (admin) account can delete shared default items",
-        )
+    require_deletable(existing, owner_id, f"Project '{project_id}'")
 
     # Cascade: issues/epics/sprints only make sense inside their project, so
     # they're removed with it rather than left behind as orphans.

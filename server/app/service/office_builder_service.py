@@ -300,7 +300,7 @@ class OfficeBuilderService:
                 activate_department_staff(saved_team.staff, self._staff)
                 seed_department_kickoff_messages(saved_team, self._staff, self._conversations)
 
-        workspace = self._companies.upsert_workspace(
+        workspace = self._companies.upsert_company(
             Company(
                 id=f"ws_{uuid4().hex}",
                 name=plan.name.strip(),

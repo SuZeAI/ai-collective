@@ -26,7 +26,7 @@ from server.share.log import get_logger
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/meetings", tags=["conversations"])
+router = APIRouter(prefix="/meetings", tags=["meetings"])
 
 # Documents staff commonly need to work with. Executables are intentionally
 # excluded — uploads land in a sandbox but should not be arbitrary binaries.

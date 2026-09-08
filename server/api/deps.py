@@ -308,7 +308,14 @@ def get_graph_context_service() -> GraphContextService:
 
 
 def get_company_service() -> CompanyService:
-    return CompanyService(_repos().companies)
+    return CompanyService(
+        _repos().companies,
+        get_department_service(),
+        get_staff_service(),
+        get_skill_service(),
+        get_task_service(),
+        get_document_library_service(),
+    )
 
 
 def get_connection_service() -> ConnectionService:

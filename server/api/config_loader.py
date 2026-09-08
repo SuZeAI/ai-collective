@@ -21,6 +21,7 @@ nothing outside this module parses config.yml itself;
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 from pathlib import Path
@@ -126,4 +127,7 @@ def load_config() -> dict[str, Any]:
             raw = _deep_merge(raw, _read_yaml(override_path))
         return expand_env(raw)
     except Exception:  # noqa: BLE001 - never block startup on a bad config.yml
+        logging.getLogger(__name__).exception(
+            "Failed to load config.yml — falling back to code defaults for all settings"
+        )
         return {}

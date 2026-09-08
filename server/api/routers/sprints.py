@@ -3,14 +3,14 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from server.api.deps import current_owner_id_dep, get_sprint_service
+from server.api.ownership import require_deletable, require_modifiable
 from server.api.schemas.sprint import SprintSchema, UpsertSprintRequest
 from server.app.service.sprint_service import SprintService
 from server.domain.enums import SprintStatus
-from server.domain.errors import NotFoundError
-from server.domain.models import Sprint, can_delete, can_modify, is_owned_by, is_visible_to
+from server.domain.models import Sprint, is_owned_by
 
 router = APIRouter(prefix="/sprints", tags=["sprints"])
 
@@ -45,13 +45,7 @@ def upsert_sprint(
 ) -> SprintSchema:
     sprint_id = req.id or f"sprint_{uuid4().hex}"
     existing = service.try_get_sprint(sprint_id) if req.id else None
-    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
-        raise NotFoundError(f"Sprint '{sprint_id}' not found")
-    if existing is not None and not can_modify(owner_id, existing.owner_id):
-        raise HTTPException(
-            status_code=403,
-            detail="Only the default (admin) account can edit shared default items",
-        )
+    require_modifiable(existing, owner_id, f"Sprint '{sprint_id}'")
 
     try:
         status = SprintStatus(req.status)
@@ -79,12 +73,6 @@ def delete_sprint(
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
     existing = service.try_get_sprint(sprint_id)
-    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
-        raise NotFoundError(f"Sprint '{sprint_id}' not found")
-    if existing is not None and not can_delete(owner_id, existing.owner_id):
-        raise HTTPException(
-            status_code=403,
-            detail="Only the default (admin) account can delete shared default items",
-        )
+    require_deletable(existing, owner_id, f"Sprint '{sprint_id}'")
     service.delete_sprint(sprint_id)
     return {"deleted": True}

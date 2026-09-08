@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from server.api.deps import current_owner_id_dep, get_staff_service, get_meeting_service, get_department_service
+from server.api.ownership import require_deletable, require_modifiable
 from server.api.schemas.department import DepartmentSchema, UpsertTeamRequest
 from server.app.service.department_activation import activate_department_staff, seed_department_kickoff_messages
 from server.app.service.staff_service import StaffService
 from server.app.service.meeting_service import MeetingService
 from server.app.service.department_service import DepartmentService
-from server.domain.errors import NotFoundError
-from server.domain.models import Department, can_delete, can_modify, is_owned_by, is_visible_to
+from server.domain.models import Department, is_owned_by
 
 
 router = APIRouter(prefix="/departments", tags=["departments"])
@@ -40,10 +40,7 @@ def upsert_department(
     department_id = req.id or f"team_{uuid4().hex}"
     is_new_team = req.id is None
     existing = service.try_get_department(department_id) if req.id else None
-    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
-        raise NotFoundError(f"Department '{department_id}' not found")
-    if existing is not None and not can_modify(owner_id, existing.owner_id):
-        raise HTTPException(status_code=403, detail="Only the default (admin) account can edit shared default items")
+    require_modifiable(existing, owner_id, f"Department '{department_id}'")
     active_tasks = req.activeTasks
     if is_new_team and req.staff:
         # A newly created department starts in active mode.
@@ -80,9 +77,6 @@ def delete_department(
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
     existing = service.try_get_department(department_id)
-    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
-        raise NotFoundError(f"Department '{department_id}' not found")
-    if existing is not None and not can_delete(owner_id, existing.owner_id):
-        raise HTTPException(status_code=403, detail="Only the default (admin) account can delete shared default items")
+    require_deletable(existing, owner_id, f"Department '{department_id}'")
     service.delete_department(department_id)
     return {"deleted": True}

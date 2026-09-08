@@ -465,7 +465,7 @@ def attach_conversation_sandbox(
         return False
 
 
-def build_agent_tools(agent: GraphStaffDefinition, *, conversation_id: str | None) -> list[Any]:
+def build_agent_tools(staff: GraphStaffDefinition, *, conversation_id: str | None) -> list[Any]:
     """Build the tool list every topology binds before calling the LLM for a
     turn: this staff member's skill tools + the default human-in-the-loop
     ask-user tool + shared working-memory tools + the conversation sandbox
@@ -480,27 +480,27 @@ def build_agent_tools(agent: GraphStaffDefinition, *, conversation_id: str | Non
     so it deliberately stays out of this helper).
     """
     bound_tools: list[Any] = []
-    if agent.tools:
-        for toolkit in agent.tools.values():
+    if staff.tools:
+        for toolkit in staff.tools.values():
             bound_tools.extend(toolkit.get_tools())
 
     if conversation_id:
         from server.domain.tools.ask_user import AskUserToolkit
 
         bound_tools.extend(
-            AskUserToolkit(conversation_id=conversation_id, staff_name=agent.name).get_tools()
+            AskUserToolkit(conversation_id=conversation_id, staff_name=staff.name).get_tools()
         )
-    bound_tools.extend(memory_toolkit_tools(conversation_id, agent.name))
+    bound_tools.extend(memory_toolkit_tools(conversation_id, staff.name))
 
-    attach_conversation_sandbox(bound_tools, conversation_id=conversation_id, staff_name=agent.name)
+    attach_conversation_sandbox(bound_tools, conversation_id=conversation_id, staff_name=staff.name)
 
     return bound_tools
 
 
 def attach_subagent_toolkit(
-    bound_tools: list[Any], agent: GraphStaffDefinition, *, llm: Any
+    bound_tools: list[Any], staff: GraphStaffDefinition, *, llm: Any
 ) -> list[Any]:
-    """If ``agent`` has subagent delegation enabled, append the `task` tool
+    """If ``staff`` has subagent delegation enabled, append the `task` tool
     (TaskToolkit) so it can delegate to subagents that inherit ``bound_tools``
     minus `task`.
 
@@ -509,14 +509,14 @@ def attach_subagent_toolkit(
     forgetting it or a shared field (e.g. max_concurrent) drifting out of
     sync between them. Mutates and returns ``bound_tools`` for chaining.
     """
-    if agent.subagent_enabled:
+    if staff.subagent_enabled:
         from server.domain.tools.task import TaskToolkit
 
         task_toolkit = TaskToolkit(
             llm=llm,
             subagent_tools=list(bound_tools),
             max_concurrent=SUBAGENT_MAX_CONCURRENT,
-            parent_staff_name=agent.name,
+            parent_staff_name=staff.name,
         )
         bound_tools.extend(task_toolkit.get_tools())
     return bound_tools

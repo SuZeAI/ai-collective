@@ -203,7 +203,7 @@ class RecruitingService:
         company = self._companies.try_get_company(company_id)
         if company is None or department_id in company.department_ids:
             return
-        self._companies.upsert_workspace(
+        self._companies.upsert_company(
             replace(company, department_ids=[*company.department_ids, department_id])
         )
 

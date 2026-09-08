@@ -3,15 +3,16 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from server.api.deps import current_owner_id_dep, get_epic_service, get_project_service
+from server.api.ownership import require_deletable, require_modifiable
 from server.api.schemas.epic import EpicSchema, UpsertEpicRequest
 from server.app.service.epic_service import EpicService
 from server.app.service.project_service import ProjectService
 from server.domain.enums import TaskStatus
 from server.domain.errors import NotFoundError
-from server.domain.models import Epic, can_delete, can_modify, is_owned_by, is_visible_to
+from server.domain.models import Epic, is_owned_by, is_visible_to
 
 router = APIRouter(prefix="/epics", tags=["epics"])
 
@@ -47,13 +48,7 @@ def upsert_epic(
 ) -> EpicSchema:
     epic_id = req.id or f"epic_{uuid4().hex}"
     existing = service.try_get_epic(epic_id) if req.id else None
-    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
-        raise NotFoundError(f"Epic '{epic_id}' not found")
-    if existing is not None and not can_modify(owner_id, existing.owner_id):
-        raise HTTPException(
-            status_code=403,
-            detail="Only the default (admin) account can edit shared default items",
-        )
+    require_modifiable(existing, owner_id, f"Epic '{epic_id}'")
 
     try:
         status = TaskStatus(req.status)
@@ -91,12 +86,6 @@ def delete_epic(
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
     existing = service.try_get_epic(epic_id)
-    if existing is not None and not is_visible_to(owner_id, existing.owner_id):
-        raise NotFoundError(f"Epic '{epic_id}' not found")
-    if existing is not None and not can_delete(owner_id, existing.owner_id):
-        raise HTTPException(
-            status_code=403,
-            detail="Only the default (admin) account can delete shared default items",
-        )
+    require_deletable(existing, owner_id, f"Epic '{epic_id}'")
     service.delete_epic(epic_id)
     return {"deleted": True}
