@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Plus, Sparkles, Trash2, Loader2, X, Check, Layers, CalendarRange } from "lucide-react";
 import {
@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useCompanyScope } from "@/hooks/use-company-scope";
+import { useScopedProject } from "@/hooks/use-scoped-project";
 import { cn } from "@/lib/utils";
 
 const NONE = "__none__";
@@ -27,43 +27,12 @@ const TYPE_CLS: Record<string, string> = {
 export default function Backlog() {
   const { key: projectKey = "" } = useParams<{ key: string }>();
   const { toast } = useToast();
-  const scope = useCompanyScope();
-  const [project, setProject] = useState<Project | undefined>();
-  const [epics, setEpics] = useState<Epic[]>([]);
-  const [sprints, setSprints] = useState<Sprint[]>([]);
-  const [issues, setIssues] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Guards against a stale in-flight load (e.g. the user navigated to a
-  // different project, or the component unmounted) overwriting state with
-  // results for the wrong project.
-  const projectKeyRef = useRef(projectKey);
-  projectKeyRef.current = projectKey;
-  const mountedRef = useRef(true);
-  useEffect(() => () => { mountedRef.current = false; }, []);
-
-  const load = useCallback(async () => {
-    if (scope.pending) return;
-    const requestedKey = projectKey;
-    try {
-      const [projects, allEpics, allSprints, allTasks] = await Promise.all([
-        api.listProjects(scope.isOverall ? undefined : scope.company?.id),
-        api.listEpics(), api.listSprints(), api.listTasks(),
-      ]);
-      if (!mountedRef.current || projectKeyRef.current !== requestedKey) return;
-      const proj = projects.find((p) => p.key === projectKey);
-      setProject(proj);
-      setEpics(allEpics.filter((e) => e.projectId === proj?.id));
-      setSprints(allSprints.filter((s) => s.projectId === proj?.id));
-      setIssues(allTasks.filter((t) => t.projectId === proj?.id));
-    } catch (e) {
-      if (mountedRef.current && projectKeyRef.current === requestedKey) console.error(e);
-    } finally {
-      if (mountedRef.current && projectKeyRef.current === requestedKey) setLoading(false);
-    }
-  }, [projectKey, scope.pending, scope.isOverall, scope.company?.id]);
-
-  useEffect(() => { void load(); }, [load]);
+  const fetchRelated = useCallback(async () => {
+    const [epics, sprints, issues] = await Promise.all([api.listEpics(), api.listSprints(), api.listTasks()]);
+    return { epics, sprints, issues };
+  }, []);
+  const { project, data, loading, reload: load } = useScopedProject(projectKey, fetchRelated);
+  const { epics = [], sprints = [], issues = [] } = data;
 
   const epicById = useMemo(() => new Map(epics.map((e) => [e.id, e])), [epics]);
 

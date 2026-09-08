@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { BarChart3 } from "lucide-react";
-import { api, type Project, type Sprint, type Task } from "@/lib/api";
+import { api, type Sprint, type Task } from "@/lib/api";
 import { ProjectSubnav } from "@/components/ProjectSubnav";
 import { Card } from "@/components/ui/card";
-import { useCompanyScope } from "@/hooks/use-company-scope";
+import { useScopedProject } from "@/hooks/use-scoped-project";
 import { cn } from "@/lib/utils";
 
 const STATUS_META: { key: string; label: string; cls: string }[] = [
@@ -26,37 +26,12 @@ const TYPE_META: { key: string; label: string; cls: string }[] = [
 
 export default function Reports() {
   const { key: projectKey = "" } = useParams<{ key: string }>();
-  const scope = useCompanyScope();
-  const [project, setProject] = useState<Project | undefined>();
-  const [sprints, setSprints] = useState<Sprint[]>([]);
-  const [issues, setIssues] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (scope.pending) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [projects, allSprints, allTasks] = await Promise.all([
-          api.listProjects(scope.isOverall ? undefined : scope.company?.id),
-          api.listSprints(),
-          api.listTasks(),
-        ]);
-        if (cancelled) return;
-        const proj = projects.find((p) => p.key === projectKey);
-        setProject(proj);
-        setSprints(allSprints.filter((s) => s.projectId === proj?.id));
-        setIssues(allTasks.filter((t) => t.projectId === proj?.id));
-      } catch (e) {
-        if (!cancelled) console.error(e);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [projectKey, scope.pending, scope.isOverall, scope.company?.id]);
+  const fetchRelated = useCallback(async () => {
+    const [sprints, issues] = await Promise.all([api.listSprints(), api.listTasks()]);
+    return { sprints, issues };
+  }, []);
+  const { project, data, loading } = useScopedProject(projectKey, fetchRelated);
+  const { sprints = [], issues = [] } = data;
 
   const statusCounts = useMemo(() => {
     const m: Record<string, number> = {};
