@@ -1,6 +1,6 @@
 ---
 name: sandbox-shell-workflow
-description: 'Run shell commands inside the sandbox and persist results to the per-thread /mnt/user-data directory. Use when a task needs to execute commands and keep their output (logs, generated files, reports) across steps in the same thread.'
+description: 'Run shell commands inside the sandbox and persist results to the per-thread /workspace directory. Use when a task needs to execute commands and keep their output (logs, generated files, reports) across steps in the same thread.'
 argument-hint: 'Optional: the command or task to run, e.g. "list installed python packages".'
 user-invocable: true
 disable-model-invocation: false
@@ -11,7 +11,7 @@ license: MIT
 
 ## What This Skill Produces
 - The output of one or more shell commands run inside the sandbox.
-- A saved artifact under `/mnt/user-data/` so results survive across steps in the
+- A saved artifact under `/workspace/` so results survive across steps in the
   same thread (this directory is writable and per-thread; `/mnt/skills` is read-only).
 
 ## When to Use
@@ -21,7 +21,7 @@ license: MIT
 
 ## When *Not* to Use
 - Pure reasoning tasks that do not need to run anything.
-- Writing durable data outside the thread — `/mnt/user-data` is scoped to this
+- Writing durable data outside the thread — `/workspace` is scoped to this
   thread only.
 
 ## Inputs
@@ -31,8 +31,8 @@ license: MIT
 1. Confirm the writable workspace exists and use it for all outputs:
 
    ```bash
-   mkdir -p /mnt/user-data/outputs
-   cd /mnt/user-data/outputs
+   mkdir -p /workspace/outputs
+   cd /workspace/outputs
    ```
 
 2. Run the requested command. Example — capture the environment:
@@ -45,7 +45,7 @@ license: MIT
 
    ```bash
    echo "exit=$?"
-   ls -la /mnt/user-data/outputs
+   ls -la /workspace/outputs
    ```
 
 4. To reuse a read-only skill asset, read it from the mounted skills tree:
@@ -56,5 +56,5 @@ license: MIT
 
 ## Completion Criteria
 - The requested command ran and its exit status was checked.
-- Output was written under `/mnt/user-data/` (report the file path).
+- Output was written under `/workspace/` (report the file path).
 - A short summary of what was produced is returned to the user.
