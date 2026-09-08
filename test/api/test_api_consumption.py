@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from conftest import API, unique
+from conftest import API
 from server.api.deps import _monitoring_stores
 from server.domain.models import TokenUsageRecord
 
@@ -52,25 +52,15 @@ def test_consumption_reports_admins_own_usage(client, admin_headers):
     assert totals["requests"] >= 1
 
 
-def test_consumption_does_not_leak_between_users(client):
-    email_a = f"{unique('consumption-a')}@example.com"
-    email_b = f"{unique('consumption-b')}@example.com"
-    for email in (email_a, email_b):
-        client.post(f"{API}/auth/register", json={"name": "U", "email": email, "password": "password123"})
+def test_consumption_does_not_leak_between_users(client, user_headers, second_user_headers):
+    user_a = client.get(f"{API}/auth/me", headers=user_headers).json()
 
-    login_a = client.post(f"{API}/auth/login", json={"email": email_a, "password": "password123"}).json()
-    login_b = client.post(f"{API}/auth/login", json={"email": email_b, "password": "password123"}).json()
+    _seed_usage_record(user_a["id"], input_tokens=50, output_tokens=60)
 
-    _seed_usage_record(login_a["user"]["id"], input_tokens=50, output_tokens=60)
-
-    resp_b = client.get(
-        f"{API}/consumption", headers={"Authorization": f"Bearer {login_b['access_token']}"}
-    )
+    resp_b = client.get(f"{API}/consumption", headers=second_user_headers)
     assert resp_b.status_code == 200
     assert resp_b.json()["totals"]["requests"] == 0
 
-    resp_a = client.get(
-        f"{API}/consumption", headers={"Authorization": f"Bearer {login_a['access_token']}"}
-    )
+    resp_a = client.get(f"{API}/consumption", headers=user_headers)
     assert resp_a.status_code == 200
     assert resp_a.json()["totals"]["inputTokens"] >= 50

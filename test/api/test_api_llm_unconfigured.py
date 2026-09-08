@@ -10,7 +10,7 @@ key is configured.
 
 from __future__ import annotations
 
-from conftest import API, unique
+from conftest import API, make_staff, unique
 
 
 def test_chat_returns_503_when_no_provider_configured(client, user_headers):
@@ -19,11 +19,7 @@ def test_chat_returns_503_when_no_provider_configured(client, user_headers):
 
 
 def test_staff_graph_run_returns_503_when_no_provider_configured(client, user_headers):
-    staff = client.post(
-        f"{API}/staff",
-        json={"name": unique("staff"), "role": "Tester", "description": "", "skill_ids": []},
-        headers=user_headers,
-    ).json()
+    staff = make_staff(client, user_headers)
 
     resp = client.post(
         f"{API}/llm/staff-graph/run",

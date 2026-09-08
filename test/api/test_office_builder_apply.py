@@ -3,7 +3,7 @@ departments/staff/skills via existing_id instead of always creating new ones."""
 
 from __future__ import annotations
 
-from conftest import API, unique
+from conftest import API, make_department, make_staff, unique
 
 
 def _create_skill(client, headers, name: str) -> dict:
@@ -16,30 +16,10 @@ def _create_skill(client, headers, name: str) -> dict:
     return resp.json()
 
 
-def _create_staff(client, headers, name: str, skill_ids: list[str]) -> dict:
-    resp = client.post(
-        f"{API}/staff",
-        json={"name": name, "role": "Specialist", "description": "", "skill_ids": skill_ids},
-        headers=headers,
-    )
-    assert resp.status_code == 200, resp.text
-    return resp.json()
-
-
-def _create_department(client, headers, name: str, staff_ids: list[str]) -> dict:
-    resp = client.post(
-        f"{API}/departments",
-        json={"name": name, "description": "", "staff": staff_ids, "mode": "sequential"},
-        headers=headers,
-    )
-    assert resp.status_code == 200, resp.text
-    return resp.json()
-
-
 def test_apply_reuses_existing_department_and_staff_by_existing_id(client, user_headers):
     skill = _create_skill(client, user_headers, unique("skill"))
-    staff = _create_staff(client, user_headers, unique("staff"), [skill["id"]])
-    department = _create_department(client, user_headers, unique("dept"), [staff["id"]])
+    staff = make_staff(client, user_headers, role="Specialist", skill_ids=[skill["id"]])
+    department = make_department(client, user_headers, staff=[staff["id"]])
 
     plan = {
         "name": unique("office"),
@@ -122,8 +102,8 @@ def test_apply_reuses_existing_skill_by_existing_id_for_new_staff(client, user_h
 
 
 def test_apply_adds_new_staff_into_reused_department(client, user_headers):
-    existing_staff = _create_staff(client, user_headers, unique("staff"), [])
-    department = _create_department(client, user_headers, unique("dept"), [existing_staff["id"]])
+    existing_staff = make_staff(client, user_headers, role="Specialist")
+    department = make_department(client, user_headers, staff=[existing_staff["id"]])
 
     plan = {
         "name": unique("office"),

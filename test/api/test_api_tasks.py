@@ -9,32 +9,12 @@ in server/api/routers/tasks.py. These tests fail again if that regresses.
 
 from __future__ import annotations
 
-from conftest import API, unique
-
-
-def _make_department(client, headers) -> str:
-    resp = client.post(
-        f"{API}/departments",
-        json={"name": unique("dept"), "description": "", "staff": [], "mode": "sequential", "maxSteps": 6},
-        headers=headers,
-    )
-    assert resp.status_code == 200, resp.text
-    return resp.json()["id"]
-
-
-def _make_staff(client, headers) -> str:
-    resp = client.post(
-        f"{API}/staff",
-        json={"name": unique("staff"), "role": "Tester", "description": "", "skill_ids": []},
-        headers=headers,
-    )
-    assert resp.status_code == 200, resp.text
-    return resp.json()["id"]
+from conftest import API, make_department, make_staff
 
 
 def test_create_task_round_trips_department_and_assigned_staff(client, user_headers):
-    department_id = _make_department(client, user_headers)
-    staff_id = _make_staff(client, user_headers)
+    department_id = make_department(client, user_headers)["id"]
+    staff_id = make_staff(client, user_headers)["id"]
 
     resp = client.post(
         f"{API}/tasks",
@@ -62,7 +42,7 @@ def test_create_task_round_trips_department_and_assigned_staff(client, user_head
 
 
 def test_create_task_with_invalid_status_returns_422_not_500(client, user_headers):
-    department_id = _make_department(client, user_headers)
+    department_id = make_department(client, user_headers)["id"]
 
     resp = client.post(
         f"{API}/tasks",
@@ -74,7 +54,7 @@ def test_create_task_with_invalid_status_returns_422_not_500(client, user_header
 
 
 def test_create_task_with_invalid_priority_falls_back_to_medium(client, user_headers):
-    department_id = _make_department(client, user_headers)
+    department_id = make_department(client, user_headers)["id"]
 
     resp = client.post(
         f"{API}/tasks",
@@ -86,7 +66,7 @@ def test_create_task_with_invalid_priority_falls_back_to_medium(client, user_hea
 
 
 def test_task_status_transition_to_completed_sets_end_time(client, user_headers):
-    department_id = _make_department(client, user_headers)
+    department_id = make_department(client, user_headers)["id"]
 
     created = client.post(
         f"{API}/tasks",
@@ -105,19 +85,11 @@ def test_task_status_transition_to_completed_sets_end_time(client, user_headers)
     assert completed.json()["endTime"] is not None
 
 
-def test_tasks_are_scoped_per_owner(client):
-    email_a = f"{unique('owner-a')}@example.com"
-    email_b = f"{unique('owner-b')}@example.com"
-    token_a = client.post(
-        f"{API}/auth/register", json={"name": "A", "email": email_a, "password": "password123"}
-    ).json()["access_token"]
-    token_b = client.post(
-        f"{API}/auth/register", json={"name": "B", "email": email_b, "password": "password123"}
-    ).json()["access_token"]
-    headers_a = {"Authorization": f"Bearer {token_a}"}
-    headers_b = {"Authorization": f"Bearer {token_b}"}
+def test_tasks_are_scoped_per_owner(client, user_headers, second_user_headers):
+    headers_a = user_headers
+    headers_b = second_user_headers
 
-    department_id = _make_department(client, headers_a)
+    department_id = make_department(client, headers_a)["id"]
     task = client.post(
         f"{API}/tasks",
         json={"title": "Only A should see this", "departmentId": department_id},

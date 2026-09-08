@@ -9,21 +9,11 @@ server/api/routers/projects.py.
 
 from __future__ import annotations
 
-from conftest import API, unique
-
-
-def _make_staff(client, headers) -> str:
-    resp = client.post(
-        f"{API}/staff",
-        json={"name": unique("staff"), "role": "Planner", "description": "", "skill_ids": []},
-        headers=headers,
-    )
-    assert resp.status_code == 200, resp.text
-    return resp.json()["id"]
+from conftest import API, make_staff, unique
 
 
 def test_create_project_round_trips_planner_staff_id(client, user_headers):
-    staff_id = _make_staff(client, user_headers)
+    staff_id = make_staff(client, user_headers, role="Planner")["id"]
     key = unique("PRJ").upper()[:10]
 
     resp = client.post(

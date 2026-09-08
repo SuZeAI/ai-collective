@@ -119,3 +119,83 @@ def user_headers(client: TestClient) -> dict[str, str]:
     assert resp.status_code == 201, resp.text
     token = resp.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def second_user_headers(client: TestClient) -> dict[str, str]:
+    """Bearer token for a second, distinct regular user, unique per test.
+
+    Pairs with ``user_headers`` for tests that need two accounts (ownership
+    scoping, cross-user access checks) without hand-rolling a registration.
+    """
+    email = f"{unique('user2')}@example.com"
+    resp = client.post(
+        f"{API}/auth/register",
+        json={"name": "Test User 2", "email": email, "password": "test-password-123"},
+    )
+    assert resp.status_code == 201, resp.text
+    token = resp.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+def make_staff(
+    client: TestClient,
+    headers: dict[str, str],
+    *,
+    name: str | None = None,
+    role: str = "Tester",
+    description: str = "",
+    skill_ids: list[str] | None = None,
+    **overrides,
+) -> dict:
+    """Create a staff via the API and return the response body."""
+    payload = {
+        "name": name or unique("staff"),
+        "role": role,
+        "description": description,
+        "skill_ids": skill_ids or [],
+    }
+    payload.update(overrides)
+    resp = client.post(f"{API}/staff", json=payload, headers=headers)
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+def make_department(
+    client: TestClient,
+    headers: dict[str, str],
+    *,
+    name: str | None = None,
+    staff: list[str] | None = None,
+    mode: str = "sequential",
+    max_steps: int = 6,
+    **overrides,
+) -> dict:
+    """Create a department via the API and return the response body."""
+    payload = {
+        "name": name or unique("dept"),
+        "description": "",
+        "staff": staff or [],
+        "mode": mode,
+        "maxSteps": max_steps,
+    }
+    payload.update(overrides)
+    resp = client.post(f"{API}/departments", json=payload, headers=headers)
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+def make_task(
+    client: TestClient,
+    headers: dict[str, str],
+    *,
+    department_id: str,
+    title: str | None = None,
+    **overrides,
+) -> dict:
+    """Create a task via the API and return the response body."""
+    payload = {"title": title or unique("task"), "departmentId": department_id}
+    payload.update(overrides)
+    resp = client.post(f"{API}/tasks", json=payload, headers=headers)
+    assert resp.status_code == 200, resp.text
+    return resp.json()
