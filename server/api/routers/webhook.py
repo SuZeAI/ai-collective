@@ -30,7 +30,7 @@ logger = get_logger(__name__)
 async def _process_message(
     platform: str,
     hook: Connection,
-    workspace: Company,
+    company: Company,
     chat_id: str,
     text: str,
     staff_service: StaffService,
@@ -65,8 +65,8 @@ async def _process_message(
         else:
             department_id = (
                 routing_department_id
-                or workspace.primary_department_id
-                or (workspace.department_ids[0] if workspace.department_ids else None)
+                or company.primary_department_id
+                or (company.department_ids[0] if company.department_ids else None)
             )
             if not department_id:
                 await processor.send_response(hook.config, chat_id, "⚠️ No department configured for this company.")
@@ -186,7 +186,7 @@ async def webhook_receive(
         return {"ok": True, "status": "hook_disabled"}
 
     try:
-        workspace = service.get_company(company_id)
+        company = service.get_company(company_id)
     except (NotFoundError, KeyError):
         raise HTTPException(status_code=404, detail="Company not found")
 
@@ -241,7 +241,7 @@ async def webhook_receive(
         _process_message,
         platform=platform,
         hook=hook,
-        workspace=workspace,
+        company=company,
         chat_id=incoming.chat_id,
         text=incoming.text,
         staff_service=staff_service,

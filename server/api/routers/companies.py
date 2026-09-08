@@ -87,7 +87,7 @@ def get_company(
     service: CompanyService = Depends(get_company_service),
     owner_id: str = Depends(current_owner_id_dep),
 ):
-    workspace = service.get_company(company_id)
-    if not is_visible_to(owner_id, workspace.owner_id):
+    company = service.get_company(company_id)
+    if not is_visible_to(owner_id, company.owner_id):
         raise NotFoundError(f"Company {company_id!r} not found")
-    return CompanySchema.from_domain(workspace)
+    return CompanySchema.from_domain(company)

@@ -13,7 +13,7 @@ class MongoCompanyRepository:
         self._col = db["companies"]
         self._col.create_index("id", unique=True, background=True)
 
-    def _doc_to_workspace(self, item: dict[str, Any]) -> Company:
+    def _doc_to_company(self, item: dict[str, Any]) -> Company:
         created_raw = item.get("createdAt")
         if isinstance(created_raw, datetime):
             created_at = created_raw if created_raw.tzinfo else created_raw.replace(tzinfo=timezone.utc)
@@ -37,7 +37,7 @@ class MongoCompanyRepository:
             owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
         )
 
-    def _workspace_to_doc(self, w: Company) -> dict[str, Any]:
+    def _company_to_doc(self, w: Company) -> dict[str, Any]:
         return {
             "id": w.id,
             "_id": w.id,
@@ -55,15 +55,15 @@ class MongoCompanyRepository:
         }
 
     def list(self) -> list[Company]:
-        return [self._doc_to_workspace(doc) for doc in self._col.find()]
+        return [self._doc_to_company(doc) for doc in self._col.find()]
 
     def get(self, company_id: str) -> Company | None:
         doc = self._col.find_one({"id": company_id})
-        return self._doc_to_workspace(doc) if doc else None
+        return self._doc_to_company(doc) if doc else None
 
-    def upsert(self, workspace: Company) -> Company:
-        self._col.replace_one({"id": workspace.id}, self._workspace_to_doc(workspace), upsert=True)
-        return workspace
+    def upsert(self, company: Company) -> Company:
+        self._col.replace_one({"id": company.id}, self._company_to_doc(company), upsert=True)
+        return company
 
     def delete(self, company_id: str) -> None:
         self._col.delete_one({"id": company_id})

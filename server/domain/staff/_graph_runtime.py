@@ -498,6 +498,20 @@ def build_agent_tools(staff: GraphStaffDefinition, *, conversation_id: str | Non
     return bound_tools
 
 
+def build_bound_tools(
+    staff: GraphStaffDefinition, *, conversation_id: str | None, llm: Any
+) -> list[Any]:
+    """``build_agent_tools`` + ``attach_subagent_toolkit`` for one staff member's turn.
+
+    Every topology (ring/orchestrator/tree/supervisor/mesh) repeats this exact
+    two-call sequence for every node and fan-out branch; centralising it here
+    is what keeps that pairing from drifting apart.
+    """
+    bound_tools = build_agent_tools(staff, conversation_id=conversation_id)
+    attach_subagent_toolkit(bound_tools, staff, llm=llm)
+    return bound_tools
+
+
 def attach_subagent_toolkit(
     bound_tools: list[Any], staff: GraphStaffDefinition, *, llm: Any
 ) -> list[Any]:
@@ -592,6 +606,24 @@ class FanoutBranchResult:
     content: str
     error: bool = False
     turn: int = 0
+
+
+def split_reasoning_and_action(
+    message: str, control_block_re: "re.Pattern[str]"
+) -> tuple[str, str]:
+    """Split model output into user-visible reasoning and machine-readable action blocks.
+
+    Shared by every topology (mesh/supervisor/tree) — each defines its own
+    ``_CONTROL_BLOCK_RE`` (the accepted tag set differs per topology) but the
+    split logic itself is identical.
+    """
+    if not message:
+        return "", ""
+    action_blocks = [m.group(0).strip() for m in control_block_re.finditer(message)]
+    action_payload = "\n".join(block for block in action_blocks if block).strip()
+    reasoning = control_block_re.sub("", message)
+    reasoning = re.sub(r"\n{3,}", "\n\n", reasoning).strip()
+    return reasoning, action_payload
 
 
 def parse_fanout_pairs(

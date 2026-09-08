@@ -19,8 +19,7 @@ from server.app.ports.llm import LLMProvider
 from server.domain.event.schema import EventType
 from server.domain.memory.knowledge_graph import GraphContextConfig
 from server.domain.staff._graph_runtime import (
-    attach_subagent_toolkit,
-    build_agent_tools,
+    build_bound_tools,
     build_turn_messages,
     drain_human_guidance,
     ensure_working_memory,
@@ -30,6 +29,7 @@ from server.domain.staff._graph_runtime import (
     raise_if_llm_failed,
     run_to_final_state,
     safe_chat,
+    split_reasoning_and_action,
     wait_while_paused,
     working_memory_block,
 )
@@ -518,8 +518,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
             if graph_ctx:
                 context_parts += ["", f"[Context]:\n{graph_ctx}"]
 
-            bound_tools = build_agent_tools(staff_member, conversation_id=conversation_id)
-            attach_subagent_toolkit(bound_tools, staff_member, llm=llm)
+            bound_tools = build_bound_tools(staff_member, conversation_id=conversation_id, llm=llm)
 
             # staff_member.system_prompt stays byte-identical every turn so the
             # compiled-agent cache and upstream provider prompt-caching see a
@@ -664,13 +663,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
     # ------------------------------------------------------------------ #
 
     def _split_reasoning_and_action(self, message: str) -> tuple[str, str]:
-        if not message:
-            return "", ""
-        actions = [m.group(0).strip() for m in self._CONTROL_BLOCK_RE.finditer(message)]
-        action_payload = "\n".join(a for a in actions if a).strip()
-        reasoning = self._CONTROL_BLOCK_RE.sub("", message)
-        reasoning = re.sub(r"\n{3,}", "\n\n", reasoning).strip()
-        return reasoning, action_payload
+        return split_reasoning_and_action(message, self._CONTROL_BLOCK_RE)
 
     def _extract_delegation(
         self,

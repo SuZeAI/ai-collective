@@ -66,10 +66,10 @@ class JsonCompanyRepository:
         with self._lock:
             return self._items.get(company_id)
 
-    def upsert(self, workspace: Company) -> Company:
+    def upsert(self, company: Company) -> Company:
         with self._lock:
-            self._items = self._merge_and_persist({workspace.id: workspace}, remove_ids=())
-        return workspace
+            self._items = self._merge_and_persist({company.id: company}, remove_ids=())
+        return company
 
     def delete(self, company_id: str) -> None:
         with self._lock:
@@ -88,8 +88,8 @@ class JsonCompanyRepository:
             merged = {str(d["id"]): d for d in raw_items if isinstance(d, dict) and "id" in d}
             for company_id in remove_ids:
                 merged.pop(company_id, None)
-            for company_id, workspace in upserts.items():
-                merged[company_id] = self._serialize_item(workspace)
+            for company_id, company in upserts.items():
+                merged[company_id] = self._serialize_item(company)
             return list(merged.values())
 
         new_raw = self._store.read_modify_write(modify)

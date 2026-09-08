@@ -23,8 +23,7 @@ from server.domain.memory.knowledge_graph import GraphContextConfig
 from server.domain.staff._graph_runtime import (
     FANOUT_SYNTHESIS_GUIDANCE,
     MESH_FANOUT_MAX_CONCURRENT,
-    attach_subagent_toolkit,
-    build_agent_tools,
+    build_bound_tools,
     build_turn_messages,
     drain_human_guidance,
     ensure_working_memory,
@@ -37,6 +36,7 @@ from server.domain.staff._graph_runtime import (
     run_fanout_wave,
     run_to_final_state,
     safe_chat,
+    split_reasoning_and_action,
     wait_while_paused,
     working_memory_block,
 )
@@ -409,8 +409,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             if recent_log:
                 context_parts += ["", f"[Delegation history]:\n{log_text}"]
 
-            bound_tools = build_agent_tools(lead, conversation_id=conversation_id)
-            attach_subagent_toolkit(bound_tools, lead, llm=llm)
+            bound_tools = build_bound_tools(lead, conversation_id=conversation_id, llm=llm)
 
             # lead.system_prompt stays byte-identical every turn so the
             # compiled-agent cache and upstream provider prompt-caching see a
@@ -622,8 +621,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             if graph_ctx:
                 worker_context_parts.append(f"[Context]:\n{graph_ctx}")
 
-            bound_tools = build_agent_tools(worker, conversation_id=conversation_id)
-            attach_subagent_toolkit(bound_tools, worker, llm=llm)
+            bound_tools = build_bound_tools(worker, conversation_id=conversation_id, llm=llm)
 
             turn, budget_result = build_turn_messages(
                 llm=llm,
@@ -723,13 +721,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
     # ------------------------------------------------------------------ #
 
     def _split_reasoning_and_action(self, message: str) -> tuple[str, str]:
-        if not message:
-            return "", ""
-        actions = [m.group(0).strip() for m in self._CONTROL_BLOCK_RE.finditer(message)]
-        action_payload = "\n".join(a for a in actions if a).strip()
-        reasoning = self._CONTROL_BLOCK_RE.sub("", message)
-        reasoning = re.sub(r"\n{3,}", "\n\n", reasoning).strip()
-        return reasoning, action_payload
+        return split_reasoning_and_action(message, self._CONTROL_BLOCK_RE)
 
     def _extract_delegation(self, action_payload: str) -> tuple[str | None, str]:
         delegate_match = self._DELEGATE_TO_RE.search(action_payload)
@@ -806,8 +798,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         if graph_ctx:
             worker_context_parts.append(f"[Context]:\n{graph_ctx}")
 
-        bound_tools = build_agent_tools(worker, conversation_id=conversation_id)
-        attach_subagent_toolkit(bound_tools, worker, llm=llm)
+        bound_tools = build_bound_tools(worker, conversation_id=conversation_id, llm=llm)
 
         turn, _budget_result = build_turn_messages(
             llm=llm,

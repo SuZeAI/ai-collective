@@ -1,20 +1,20 @@
 from __future__ import annotations
 
-import asyncio
 import logging
-import math
 import re
 import json
 from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-try:
-    import spacy
-except Exception:  # pragma: no cover - fallback if spacy is not installed
-    spacy = None
-
 from server.app.ports.repositories import GraphKnowledgeRepository
+from server.app.service.graph_extraction import LLMGraphExtractor, StaticGraphExtractor
+from server.app.service.graph_retrieval import (
+    pagerank_scores,
+    related_edges,
+    retrieve_embedding,
+    retrieve_lexical,
+)
 from server.domain.memory.knowledge_graph import (
     ConversationKnowledgeGraph,
     GraphContextConfig,
@@ -30,132 +30,6 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-_NLP = None
-_NLP_INIT_ATTEMPTED = False
-
-# ---------------------------------------------------------------------------
-# LLM extraction prompts
-# ---------------------------------------------------------------------------
-
-_LLM_ENTITY_SYSTEM = """\
-You are an expert knowledge graph builder.
-Given a conversation message, extract all meaningful **named entities**
-(people, organizations, locations, products, concepts, technologies, events, etc.).
-
-Return ONLY a valid JSON array. Each element must have:
-- "value": the entity text (string)
-- "type": entity category ("person"|"org"|"location"|"product"|"concept"|"technology"|"event"|"entity")
-- "confidence": 0.0-1.0
-- "salience": 0.0-1.0 (how important is this entity to the message)
-
-Rules:
-- Exclude stopwords and single characters
-- Exclude generic words like "message", "task", "staff", "history"
-- Maximum 15 entities
-- If no meaningful entities, return []
-"""
-
-_LLM_RELATION_SYSTEM = """\
-You are an expert knowledge graph builder.
-Given a conversation message, identify **relationships** between entities.
-
-Return ONLY a valid JSON array. Each element must have:
-- "src": source entity text (string)
-- "src_type": entity category of source
-- "dst": destination entity text (string)
-- "dst_type": entity category of destination
-- "relation": relationship label (e.g. "works_for", "uses", "manages", "created_by", "depends_on", "is_a", "part_of", "related_to")
-- "confidence": 0.0-1.0
-
-Rules:
-- Only extract clear, meaningful relationships
-- Maximum 10 relations
-- If no clear relations, return []
-"""
-
-_STOPWORDS = {
-    "the",
-    "a",
-    "an",
-    "and",
-    "or",
-    "to",
-    "for",
-    "of",
-    "in",
-    "on",
-    "with",
-    "is",
-    "are",
-    "be",
-    "as",
-    "that",
-    "this",
-    "it",
-    "at",
-    "by",
-    "from",
-    "you",
-    "we",
-    "i",
-    "he",
-    "she",
-    "they",
-    "them",
-    "cua",
-    "la",
-    "va",
-    "cho",
-    "voi",
-    "mot",
-    "nhung",
-    "hay",
-    "can",
-    "toi",
-    "ban",
-    "task",
-    "title",
-    "description",
-    "history",
-    "mesage",
-    "message",
-    "graph_context",
-    "staff",
-    "ask",
-}
-
-_GENERIC_ENTITY_TERMS = {
-    "task",
-    "title",
-    "description",
-    "history",
-    "message",
-    "mesage",
-    "graph",
-    "context",
-    "staff",
-}
-
-_CONTROL_BLOCK_RE = re.compile(
-    r"<\s*(NEXT_AGENT|DISCUSSION_END|ASK_NEXT_AGENT)\s*>.*?<\s*/\s*\1\s*>",
-    re.IGNORECASE | re.DOTALL,
-)
-
-
-def _sanitize_graph_text(content: str) -> str:
-    cleaned = _CONTROL_BLOCK_RE.sub(" ", content)
-    cleaned = re.sub(r"<\s*/?\s*[A-Z_]+\s*>", " ", cleaned)
-    cleaned = re.sub(r"\bagent\s+[^\n:]+\s+ask\s*:", " ", cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r"\bhistory\s+mesage\s*:", " ", cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r"\bhistory\s+message\s*:", " ", cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r"\bgraph_context\s*:", " ", cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r"\s+", " ", cleaned).strip()
-    return cleaned
-
-
-def _is_generic_entity(value: str) -> bool:
-    normalized = value.strip().lower()
-    return normalized in _GENERIC_ENTITY_TERMS
 
 
 def _now_iso() -> str:
@@ -180,61 +54,9 @@ def _normalize_chunk_text(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip().lower()
 
 
-def _tokenize(text: str) -> list[str]:
-    words = re.findall(r"[a-zA-Z0-9_]+", text.lower())
-    return [w for w in words if len(w) >= 3 and w not in _STOPWORDS]
-
-
-def _term_freq(tokens: list[str]) -> dict[str, float]:
-    if not tokens:
-        return {}
-    out: dict[str, float] = {}
-    total = float(len(tokens))
-    for token in tokens:
-        out[token] = out.get(token, 0.0) + (1.0 / total)
-    return out
-
-
-def _cosine(a: dict[str, float], b: dict[str, float]) -> float:
-    if not a or not b:
-        return 0.0
-    dot = sum(v * b.get(k, 0.0) for k, v in a.items())
-    if dot <= 0:
-        return 0.0
-    norm_a = math.sqrt(sum(v * v for v in a.values()))
-    norm_b = math.sqrt(sum(v * v for v in b.values()))
-    if norm_a == 0 or norm_b == 0:
-        return 0.0
-    return dot / (norm_a * norm_b)
-
-
 def _canonical_node_id(node_type: str, value: str) -> str:
     key = re.sub(r"\s+", " ", value.strip().lower())
     return f"{node_type}:{key}"
-
-
-def _get_nlp_pipeline():
-    global _NLP, _NLP_INIT_ATTEMPTED
-    if _NLP_INIT_ATTEMPTED:
-        return _NLP
-
-    _NLP_INIT_ATTEMPTED = True
-    if spacy is None:
-        logger.warning("spaCy is not installed; fallback to rule-based extraction")
-        return None
-
-    for model_name in ("xx_ent_wiki_sm", "en_core_web_sm"):
-        try:
-            _NLP = spacy.load(model_name)
-            logger.info("Loaded spaCy model for graph extraction: %s", model_name)
-            return _NLP
-        except Exception:
-            continue
-
-    logger.warning(
-        "No spaCy model found (tried xx_ent_wiki_sm, en_core_web_sm); fallback to rule-based extraction"
-    )
-    return None
 
 
 class GraphContextService:
@@ -246,8 +68,9 @@ class GraphContextService:
         build_mode: str = "static",
     ):
         self._repo = repo
-        self._llm_provider = llm_provider
         self._build_mode = build_mode  # "static" | "llm"
+        self._static_extractor = StaticGraphExtractor()
+        self._llm_extractor = LLMGraphExtractor(llm_provider) if llm_provider else None
         self._chunking_service = get_chunking_service(
             chunk_size=1200,
             overlap_size=100,
@@ -469,25 +292,25 @@ class GraphContextService:
         self._repo.upsert(graph)
 
         if effective_config.retrieve_method == "lexical":
-            seeds = self._retrieve_lexical(graph, query, effective_config)
+            seeds = retrieve_lexical(graph, query, effective_config)
         elif effective_config.retrieve_method == "embedding":
-            seeds = self._retrieve_embedding(graph, query, effective_config)
+            seeds = retrieve_embedding(graph, query, effective_config)
         else:
-            lexical = self._retrieve_lexical(graph, query, effective_config)
-            embedding = self._retrieve_embedding(graph, query, effective_config)
+            lexical = retrieve_lexical(graph, query, effective_config)
+            embedding = retrieve_embedding(graph, query, effective_config)
             seeds = {
                 nid: lexical.get(nid, 0.0) * 0.5 + embedding.get(nid, 0.0) * 0.5
                 for nid in set(lexical) | set(embedding)
             }
 
-        pagerank_scores = self._pagerank_scores(graph, seeds)
+        pagerank_result = pagerank_scores(graph, seeds)
         ranked_entity_nodes = [
             node_id
-            for node_id, _ in sorted(pagerank_scores.items(), key=lambda item: item[1], reverse=True)
+            for node_id, _ in sorted(pagerank_result.items(), key=lambda item: item[1], reverse=True)
             if graph.nodes.get(node_id) and graph.nodes[node_id].type == "entity"
         ]
         node_ids = _unique_preserve_order(ranked_entity_nodes)[:10]
-        edge_ids = _unique_preserve_order(self._related_edges(graph, node_ids, 10))
+        edge_ids = _unique_preserve_order(related_edges(graph, node_ids, 10))
 
         lines: list[str] = []
         seen_relation_lines: set[str] = set()
@@ -603,389 +426,27 @@ class GraphContextService:
         self, content: str, config: GraphContextConfig
     ) -> list[dict[str, object]]:
         """Route entity extraction to LLM or static pipeline based on build_mode."""
-        if self._build_mode == "llm" and self._llm_provider is not None:
+        if self._build_mode == "llm" and self._llm_extractor is not None:
             try:
-                return self._extract_entities_llm(content)
+                return self._llm_extractor.extract_entities(content)
             except Exception:
                 logger.exception(
                     "LLM entity extraction failed; falling back to static pipeline"
                 )
-        return self._extract_entities(content, config)
+        return self._static_extractor.extract_entities(content, config)
 
     def _extract_relations_dispatch(
         self, content: str, config: GraphContextConfig
     ) -> list[dict[str, str]]:
         """Route relation extraction to LLM or static pipeline based on build_mode."""
-        if self._build_mode == "llm" and self._llm_provider is not None:
+        if self._build_mode == "llm" and self._llm_extractor is not None:
             try:
-                return self._extract_relations_llm(content)
+                return self._llm_extractor.extract_relations(content)
             except Exception:
                 logger.exception(
                     "LLM relation extraction failed; falling back to static pipeline"
                 )
-        return self._extract_relations(content, config)
-
-    # ------------------------------------------------------------------
-    # LLM-based extraction
-    # ------------------------------------------------------------------
-
-    def _run_async(self, coro):
-        """Run an async coroutine from sync context safely."""
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
-
-        if loop and loop.is_running():
-            # We are inside an async event loop (e.g. FastAPI)
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                future = pool.submit(asyncio.run, coro)
-                return future.result()
-        else:
-            return asyncio.run(coro)
-
-    def _extract_entities_llm(self, content: str) -> list[dict[str, object]]:
-        """Use LLM to extract entities from content."""
-        sanitized = _sanitize_graph_text(content)
-        if not sanitized:
-            return []
-
-        truncated = sanitized[:3000]  # limit context to avoid token overflow
-
-        async def _call():
-            return await self._llm_provider.chat(
-                system=_LLM_ENTITY_SYSTEM,
-                user=f"Message:\n{truncated}",
-            )
-
-        raw = self._run_async(_call())
-        entities = self._parse_llm_json_list(raw, context="entity extraction")
-
-        result: list[dict[str, object]] = []
-        seen: set[str] = set()
-        for item in entities:
-            value = str(item.get("value", "")).strip()
-            if not value or len(value) < 2:
-                continue
-            if _is_generic_entity(value):
-                continue
-            key = f"{item.get('type', 'entity')}:{value.lower()}"
-            if key in seen:
-                continue
-            seen.add(key)
-            result.append(
-                {
-                    "type": str(item.get("type", "entity")),
-                    "value": value,
-                    "confidence": float(item.get("confidence", 0.8)),
-                    "salience": float(item.get("salience", 0.7)),
-                }
-            )
-        logger.info(
-            "LLM entity extraction | extracted=%d entities",
-            len(result),
-        )
-        return result
-
-    def _extract_relations_llm(self, content: str) -> list[dict[str, str]]:
-        """Use LLM to extract relations from content."""
-        sanitized = _sanitize_graph_text(content)
-        if not sanitized:
-            return []
-
-        truncated = sanitized[:3000]
-
-        async def _call():
-            return await self._llm_provider.chat(
-                system=_LLM_RELATION_SYSTEM,
-                user=f"Message:\n{truncated}",
-            )
-
-        raw = self._run_async(_call())
-        relations_raw = self._parse_llm_json_list(raw, context="relation extraction")
-
-        result: list[dict[str, str]] = []
-        seen: set[str] = set()
-        for item in relations_raw:
-            src = str(item.get("src", "")).strip()
-            dst = str(item.get("dst", "")).strip()
-            relation = str(item.get("relation", "related_to")).strip()
-            if not src or not dst or len(src) < 2 or len(dst) < 2:
-                continue
-            key = f"{src.lower()}:{relation}:{dst.lower()}"
-            if key in seen:
-                continue
-            seen.add(key)
-            result.append(
-                {
-                    "src": src,
-                    "src_type": str(item.get("src_type", "entity")),
-                    "dst": dst,
-                    "dst_type": str(item.get("dst_type", "entity")),
-                    "relation": relation,
-                }
-            )
-        logger.info(
-            "LLM relation extraction | extracted=%d relations",
-            len(result),
-        )
-        return result
-
-    def _parse_llm_json_list(self, raw: str, *, context: str = "") -> list:
-        """Parse a JSON array from LLM response, with fallback extraction."""
-        raw = raw.strip()
-        # Strip markdown code fences if present
-        raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.MULTILINE)
-        raw = re.sub(r"```\s*$", "", raw, flags=re.MULTILINE)
-        raw = raw.strip()
-        try:
-            parsed = json.loads(raw)
-            if isinstance(parsed, list):
-                return parsed
-            if isinstance(parsed, dict) and any(isinstance(v, list) for v in parsed.values()):
-                for v in parsed.values():
-                    if isinstance(v, list):
-                        return v
-        except json.JSONDecodeError:
-            pass
-        # Try to find JSON array in the response
-        start = raw.find("[")
-        end = raw.rfind("]")
-        if start != -1 and end > start:
-            try:
-                parsed = json.loads(raw[start : end + 1])
-                if isinstance(parsed, list):
-                    return parsed
-            except json.JSONDecodeError:
-                pass
-        logger.warning("Could not parse JSON from LLM response for %s; got: %.200s", context, raw)
-        return []
-
-    # ------------------------------------------------------------------
-    # Static (rule-based / spaCy) extraction
-    # ------------------------------------------------------------------
-
-    def _extract_entities(self, content: str, config: GraphContextConfig) -> list[dict[str, object]]:
-        content = _sanitize_graph_text(content)
-        if not content:
-            return []
-
-        entities: list[dict[str, object]] = []
-        nlp = _get_nlp_pipeline()
-
-        if nlp is not None:
-            try:
-                doc = nlp(content)
-                for ent in doc.ents:
-                    value = ent.text.strip()
-                    if len(value) < 3:
-                        continue
-                    if _is_generic_entity(value):
-                        continue
-                    entities.append(
-                        {
-                            "type": "entity",
-                            "value": value,
-                            "confidence": 0.82,
-                            "salience": 0.72,
-                        }
-                    )
-            except Exception:
-                logger.exception("spaCy entity extraction failed; using fallback")
-
-        tokens = _tokenize(content)
-        ranked = sorted(
-            {t: tokens.count(t) for t in set(tokens)}.items(),
-            key=lambda x: x[1],
-            reverse=True,
-        )
-
-        if config.entity_method in {"keyword", "hybrid"}:
-            for token, freq in ranked[:6]:
-                entities.append(
-                    {
-                        "type": "entity",
-                        "value": token,
-                        "confidence": min(0.95, 0.45 + 0.1 * freq),
-                        "salience": min(1.0, 0.4 + 0.08 * freq),
-                    }
-                )
-
-        if config.entity_method in {"capitalized", "hybrid"}:
-            for phrase in re.findall(r"\b(?:[A-Z][a-zA-Z0-9_]{1,}(?:\s+[A-Z][a-zA-Z0-9_]{1,})+)\b", content):
-                value = phrase.strip()
-                if _is_generic_entity(value):
-                    continue
-                entities.append(
-                    {
-                        "type": "entity",
-                        "value": value,
-                        "confidence": 0.76,
-                        "salience": 0.7,
-                    }
-                )
-            for cap in re.findall(r"\b[A-Z][a-zA-Z0-9_]{2,}\b", content):
-                if _is_generic_entity(cap):
-                    continue
-                entities.append(
-                    {
-                        "type": "entity",
-                        "value": cap,
-                        "confidence": 0.7,
-                        "salience": 0.65,
-                    }
-                )
-
-        dedup: dict[str, dict[str, object]] = {}
-        for ent in entities:
-            key = f"{ent['type']}:{str(ent['value']).lower()}"
-            if key not in dedup:
-                dedup[key] = ent
-        return list(dedup.values())
-
-    def _extract_relations(self, content: str, config: GraphContextConfig) -> list[dict[str, str]]:
-        content = _sanitize_graph_text(content)
-        if not content:
-            return []
-
-        relations: list[dict[str, str]] = []
-        nlp = _get_nlp_pipeline()
-        if nlp is not None:
-            try:
-                doc = nlp(content)
-                verb_objects: dict[int, str] = {}
-                for token in doc:
-                    if token.dep_ in {"dobj", "obj", "attr"} and token.head.pos_ == "VERB":
-                        verb_objects[token.head.i] = token.text.strip()
-
-                for token in doc:
-                    if token.dep_ in {"nsubj", "nsubjpass"} and token.head.pos_ == "VERB":
-                        src = token.text.strip()
-                        dst = verb_objects.get(token.head.i)
-                        relation = "unknown"
-                        if not dst or len(src) < 3 or len(dst) < 3:
-                            continue
-                        relations.append(
-                            {
-                                "src": src,
-                                "dst": dst,
-                                "src_type": "entity",
-                                "dst_type": "entity",
-                                "relation": relation,
-                            }
-                        )
-            except Exception:
-                logger.exception("spaCy relation extraction failed; using fallback")
-
-        if config.relation_method == "pattern":
-            patterns = [
-                (r"([\wÀ-ỹ][\wÀ-ỹ\s\-]{1,})\s+là\s+([\wÀ-ỹ][\wÀ-ỹ\s\-]{1,})\s+của\s+([\wÀ-ỹ][\wÀ-ỹ\s\-]{1,})", "vi_is_of"),
-                (r"([A-Za-z0-9_\-\s]{3,})\s+is\s+([A-Za-z0-9_\-\s]{3,})", "about"),
-                (r"([A-Za-z0-9_\-\s]{3,})\s+needs\s+([A-Za-z0-9_\-\s]{3,})", "depends_on"),
-                (r"([A-Za-z0-9_\-\s]{3,})\s+cần\s+([A-Za-z0-9_\-\s]{3,})", "depends_on"),
-            ]
-            for regex, relation in patterns:
-                for match in re.finditer(regex, content, flags=re.IGNORECASE):
-                    if relation == "vi_is_of" and len(match.groups()) == 3:
-                        left = re.sub(r"\s+", " ", match.group(1).strip())
-                        role = re.sub(r"\s+", " ", match.group(2).strip())
-                        right = re.sub(r"\s+", " ", match.group(3).strip())
-                        if len(left) < 2 or len(role) < 2 or len(right) < 2:
-                            continue
-                        relations.append(
-                            {
-                                "src": left,
-                                "dst": right,
-                                "src_type": "entity",
-                                "dst_type": "entity",
-                                "relation": "unknown",
-                            }
-                        )
-                        continue
-
-                    left = re.sub(r"\s+", " ", match.group(1).strip())
-                    right = re.sub(r"\s+", " ", match.group(2).strip())
-                    if len(left) < 3 or len(right) < 3:
-                        continue
-                    relations.append(
-                        {
-                            "src": left,
-                            "dst": right,
-                            "src_type": "entity",
-                            "dst_type": "entity",
-                            "relation": "unknown",
-                        }
-                    )
-            if not relations:
-                tokens = _tokenize(content)
-                for i in range(min(len(tokens) - 1, 6)):
-                    relations.append(
-                        {
-                            "src": tokens[i],
-                            "dst": tokens[i + 1],
-                            "src_type": "entity",
-                            "dst_type": "entity",
-                            "relation": "unknown",
-                        }
-                    )
-        else:
-            tokens = _tokenize(content)
-            for i in range(min(len(tokens) - 1, 6)):
-                relations.append(
-                    {
-                        "src": tokens[i],
-                        "dst": tokens[i + 1],
-                        "src_type": "entity",
-                        "dst_type": "entity",
-                        "relation": "unknown",
-                    }
-                )
-        return relations
-
-    def _pagerank_scores(
-        self,
-        graph: ConversationKnowledgeGraph,
-        seeds: dict[str, float],
-        *,
-        damping: float = 0.85,
-        iterations: int = 20,
-    ) -> dict[str, float]:
-        node_ids = list(graph.nodes.keys())
-        if not node_ids:
-            return {}
-
-        n = len(node_ids)
-        adjacency: dict[str, set[str]] = {node_id: set() for node_id in node_ids}
-        for edge in graph.edges.values():
-            if edge.src in adjacency and edge.dst in adjacency:
-                adjacency[edge.src].add(edge.dst)
-                adjacency[edge.dst].add(edge.src)
-
-        seed_values = {node_id: max(0.0, seeds.get(node_id, 0.0)) for node_id in node_ids}
-        total_seed = sum(seed_values.values())
-        if total_seed > 0:
-            personalization = {node_id: seed_values[node_id] / total_seed for node_id in node_ids}
-        else:
-            uniform = 1.0 / float(n)
-            personalization = {node_id: uniform for node_id in node_ids}
-
-        scores = dict(personalization)
-        for _ in range(iterations):
-            next_scores = {node_id: (1.0 - damping) * personalization[node_id] for node_id in node_ids}
-            for node_id in node_ids:
-                neighbors = adjacency[node_id]
-                if not neighbors:
-                    share = damping * scores[node_id] / float(n)
-                    for target in node_ids:
-                        next_scores[target] += share
-                    continue
-                share = damping * scores[node_id] / float(len(neighbors))
-                for target in neighbors:
-                    next_scores[target] += share
-            scores = next_scores
-
-        return scores
+        return self._static_extractor.extract_relations(content, config)
 
     def _upsert_node(self, graph: ConversationKnowledgeGraph, candidate: GraphNode) -> GraphNode:
         now = _now_iso()
@@ -1019,69 +480,3 @@ class GraphContextService:
         existing.weight = min(1.0, existing.weight + 0.05)
         existing.updated_at = now
         return existing
-
-    def _retrieve_lexical(
-        self,
-        graph: ConversationKnowledgeGraph,
-        query: str,
-        config: GraphContextConfig,
-    ) -> dict[str, float]:
-        query_tokens = set(_tokenize(query))
-        if not query_tokens:
-            return {}
-
-        scores: dict[str, float] = {}
-        recency_bias = max(1.0, float(graph.last_message_index))
-        for node_id, node in graph.nodes.items():
-            node_tokens = set(_tokenize(node.value))
-            if not node_tokens:
-                continue
-            overlap = len(query_tokens & node_tokens) / len(query_tokens | node_tokens)
-            if overlap <= 0:
-                continue
-            recency = min(1.0, len(node.source_message_ids) / recency_bias)
-            score = overlap * config.similarity_weight + recency * config.recency_weight + node.salience_score * config.edge_weight
-            if score >= config.min_score_threshold:
-                scores[node_id] = score
-
-        return dict(sorted(scores.items(), key=lambda x: x[1], reverse=True)[: config.top_k_nodes])
-
-    def _retrieve_embedding(
-        self,
-        graph: ConversationKnowledgeGraph,
-        query: str,
-        config: GraphContextConfig,
-    ) -> dict[str, float]:
-        query_vec = _term_freq(_tokenize(query))
-        if not query_vec:
-            return {}
-
-        scores: dict[str, float] = {}
-        for node_id, node in graph.nodes.items():
-            node_vec = _term_freq(_tokenize(node.value))
-            similarity = _cosine(query_vec, node_vec)
-            if similarity < config.min_score_threshold:
-                continue
-            score = similarity * config.similarity_weight + node.salience_score * config.edge_weight
-            scores[node_id] = score
-
-        return dict(sorted(scores.items(), key=lambda x: x[1], reverse=True)[: config.top_k_nodes])
-
-    def _related_edges(
-        self,
-        graph: ConversationKnowledgeGraph,
-        node_ids: list[str],
-        top_k_edges: int,
-    ) -> list[str]:
-        node_set = set(node_ids)
-        candidates = [
-            edge
-            for edge in graph.edges.values()
-            if edge.src in node_set and edge.dst in node_set
-            and graph.nodes.get(edge.src)
-            and graph.nodes.get(edge.dst)
-            and graph.nodes[edge.src].type == "entity"
-            and graph.nodes[edge.dst].type == "entity"
-        ]
-        candidates.sort(key=lambda edge: edge.weight, reverse=True)
-        return [edge.id for edge in candidates[:top_k_edges]]

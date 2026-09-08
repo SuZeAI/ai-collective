@@ -17,8 +17,7 @@ from server.app.ports.llm import LLMProvider
 from server.domain.event.schema import EventType
 from server.domain.memory.knowledge_graph import GraphContextConfig
 from server.domain.staff._graph_runtime import (
-    attach_subagent_toolkit,
-    build_agent_tools,
+    build_bound_tools,
     build_turn_messages,
     drain_human_guidance,
     ensure_working_memory,
@@ -320,8 +319,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             if graph_context_text:
                 context_parts += ["", "context:", graph_context_text]
 
-            bound_tools = build_agent_tools(staff_member, conversation_id=conversation_id)
-            attach_subagent_toolkit(bound_tools, staff_member, llm=llm)
+            bound_tools = build_bound_tools(staff_member, conversation_id=conversation_id, llm=llm)
 
             # staff_member.system_prompt stays byte-identical every turn so the
             # compiled-agent cache and upstream provider prompt-caching see a

@@ -22,8 +22,7 @@ from server.domain.memory.knowledge_graph import GraphContextConfig
 from server.domain.staff._graph_runtime import (
     FANOUT_SYNTHESIS_GUIDANCE,
     MESH_FANOUT_MAX_CONCURRENT,
-    attach_subagent_toolkit,
-    build_agent_tools,
+    build_bound_tools,
     build_turn_messages,
     drain_human_guidance,
     ensure_working_memory,
@@ -36,6 +35,7 @@ from server.domain.staff._graph_runtime import (
     run_fanout_wave,
     run_to_final_state,
     safe_chat,
+    split_reasoning_and_action,
     wait_while_paused,
     working_memory_block,
 )
@@ -554,23 +554,8 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 staff_name=staff_member.name,
             )
 
-            # Generate a unique thread_id for this staff_member turn.
-            # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
-            from server.infra.sandbox.sandbox_session import (
-                new_thread_id as _new_thread_id,
-                get_thread_workspace as _get_thread_workspace,
-            )
-            from server.api.settings import settings as _settings
-            sandbox_thread_id = _new_thread_id(
-                staff_name=staff_member.name,
-                task_id=conversation_id,
-            )
-            sandbox_workspace = _get_thread_workspace(
-                _settings.sandbox_workspace or "", sandbox_thread_id
-            )
-            logger.debug(
-                "[%s] mesh_node: round=%d thread_id=%s workspace=%s",
-                staff_member.name, state.get("rounds", 0) + 1, sandbox_thread_id, sandbox_workspace,
+            sandbox_thread_id, sandbox_workspace = self._init_mesh_sandbox_thread(
+                staff_member=staff_member, conversation_id=conversation_id, state=state,
             )
 
             # Stream: Staff turn starting
@@ -585,7 +570,6 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             })
 
             conversation_history = state.get("conversation_history", {})
-            context_parts: list[str] = []
 
             # Stream: Building context
             stream_writer({
@@ -593,84 +577,18 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 "agent_name": staff_member.name,
             })
 
-            # Human-in-the-loop: pick up user messages posted mid-run so this
-            # turn (and graph retrieval for later turns) sees the guidance.
-            human_guidance = drain_human_guidance(
+            context_parts, input_text = self._build_mesh_turn_context(
+                staff_member=staff_member,
+                state=state,
+                conversation_history=conversation_history,
+                max_rounds=max_rounds,
                 conversation_id=conversation_id,
-                stream_writer=stream_writer,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
-            )
-            # First so the guidance survives tail-truncation by the token budget.
-            if human_guidance:
-                context_parts += [human_guidance, ""]
-
-            # Shared working memory: pin guidance, then inject the digest so
-            # prior findings survive history windows and truncation.
-            ensure_working_memory(conversation_id, state["original_input"])
-            if human_guidance:
-                record_guidance_in_memory(conversation_id, human_guidance)
-            memory_block = working_memory_block(conversation_id)
-            if memory_block:
-                context_parts += [memory_block, ""]
-
-            all_recent_messages = []
-            for other_staff_name in state["staff_names"]:
-                if other_staff_name != staff_member.name and conversation_history.get(other_staff_name):
-                    for msg in conversation_history[other_staff_name][-3:]:
-                        all_recent_messages.append(f"{other_staff_name}: {msg}")
-
-            if conversation_history.get(staff_member.name):
-                for msg in conversation_history[staff_member.name][-2:]:
-                    all_recent_messages.append(f"{staff_member.name}: {msg}")
-
-            history_text = "\n".join(all_recent_messages[-5:]).strip() or "(empty)"
-            logger.debug(
-                "[%s] mesh_node: history_messages=%d history_chars=%d",
-                staff_member.name, len(all_recent_messages), len(history_text),
+                stream_writer=stream_writer,
             )
 
-            graph_context_text = ""
-            if graph_context_provider and conversation_id:
-                pack = graph_context_provider.build_graph_context(
-                    conversation_id=conversation_id,
-                    query=state["input"],
-                    config=graph_config,
-                )
-                graph_context_text = pack.text
-
-                # Stream: Context retrieved
-                stream_writer({
-                    "type": EventType.CONTEXT_RETRIEVED.value,
-                    "agent_name": staff_member.name,
-                    "node_ids": pack.node_ids,
-                    "edge_ids": pack.edge_ids,
-                    "chunk_ids": pack.chunk_ids,
-                })
-
-            round_budget_text = self._build_round_budget_context(
-                rounds_used=int(state.get("rounds", 0)),
-                max_rounds=max_rounds,
-            )
-
-            if state.get("rounds", 0) == 0:
-                input_text = state["original_input"]
-                context_parts.append(f"user input: {state['original_input']}")
-                context_parts.append("context:")
-                context_parts.append(graph_context_text or "(empty)")
-            else:
-                previous_staff_name = state["turns"][-1].staff_name if state.get("turns") else "user"
-                input_text = state.get("input", "").strip() or "1. Please clarify the next required step."
-                context_parts.append(f"user input: {state['original_input']}")
-                context_parts.append(f"staff_member {previous_staff_name} ask staff_member {staff_member.name}:")
-                context_parts.append("history:")
-                context_parts.append(history_text)
-                context_parts.append("context:")
-                context_parts.append(graph_context_text or "(empty)")
-            context_parts.append(round_budget_text)
-
-            bound_tools = build_agent_tools(staff_member, conversation_id=conversation_id)
-            attach_subagent_toolkit(bound_tools, staff_member, llm=llm)
+            bound_tools = build_bound_tools(staff_member, conversation_id=conversation_id, llm=llm)
 
             logger.debug(
                 "[%s] mesh_node: bound_tools=%s",
@@ -792,59 +710,202 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                     "agent_name": staff_member.name,
                 })
 
-            turns = state["turns"]
-            new_turn = GraphTurn(
-                turn=len(turns) + 1,
-                staff_name=staff_member.name,
-                staff_role=staff_member.role,
-                content=reasoning,
+            return self._finalize_mesh_turn(
+                staff_member=staff_member,
+                state=state,
+                conversation_history=conversation_history,
+                reasoning=reasoning,
+                action_payload=action_payload,
+                new_staff_states=new_staff_states,
+                stream_writer=stream_writer,
             )
-
-            # Deep-copy the inner lists: dict.copy() is shallow and would mutate
-            # the previous state's list in place, corrupting LangGraph snapshots.
-            new_history = {k: list(v) for k, v in conversation_history.items()}
-            new_history.setdefault(staff_member.name, []).append(reasoning)
-
-            discussion_ended = self._has_discussion_end_signal(action_payload)
-            next_staff = self._extract_target_agent_from_message(
-                action_payload,
-                state["staff_names"],
-                staff_member.name,
-            )
-            logger.debug(
-                "[%s] mesh_node: routing — discussion_ended=%s next_staff=%s",
-                staff_member.name, discussion_ended, next_staff,
-            )
-            next_input = ""
-            if not discussion_ended and next_staff:
-                questions = self._extract_questions_for_next_staff(action_payload)
-                if not questions:
-                    questions = [
-                        "Please continue with the highest-priority next analysis and include concrete evidence."
-                    ]
-                next_input = self._format_question_payload(questions)
-
-            # Stream: Turn completed with turn object
-            stream_writer({
-                "type": EventType.TURN_COMPLETE.value,
-                "turn": new_turn,
-                "next_staff": next_staff,
-                "discussion_ended": discussion_ended,
-            })
-
-            return {
-                "turns": [*turns, new_turn],
-                "conversation_history": new_history,
-                "staff_states": new_staff_states,
-                "input": next_input,
-                "current_agent": staff_member.name,
-                "final_response": reasoning,
-                "last_action": action_payload,
-                "final_staff": staff_member.name,
-                "rounds": state.get("rounds", 0) + 1,
-            }
 
         return mesh_node
+
+    def _init_mesh_sandbox_thread(
+        self,
+        *,
+        staff_member: GraphStaffDefinition,
+        conversation_id: str | None,
+        state: MultiAgentMeshState,
+    ) -> tuple[str, str]:
+        """Allocate this turn's sandbox thread id/workspace (creates the dir) and log it."""
+        from server.infra.sandbox.sandbox_session import (
+            new_thread_id as _new_thread_id,
+            get_thread_workspace as _get_thread_workspace,
+        )
+        from server.api.settings import settings as _settings
+
+        sandbox_thread_id = _new_thread_id(
+            staff_name=staff_member.name,
+            task_id=conversation_id,
+        )
+        sandbox_workspace = _get_thread_workspace(
+            _settings.sandbox_workspace or "", sandbox_thread_id
+        )
+        logger.debug(
+            "[%s] mesh_node: round=%d thread_id=%s workspace=%s",
+            staff_member.name, state.get("rounds", 0) + 1, sandbox_thread_id, sandbox_workspace,
+        )
+        return sandbox_thread_id, sandbox_workspace
+
+    def _build_mesh_turn_context(
+        self,
+        *,
+        staff_member: GraphStaffDefinition,
+        state: MultiAgentMeshState,
+        conversation_history: dict,
+        max_rounds: int,
+        conversation_id: str | None,
+        graph_context_provider: GraphContextProvider | None,
+        graph_config: GraphContextConfig | None,
+        stream_writer,
+    ) -> tuple[list[str], str]:
+        """Assemble this turn's context_parts + input_text: human guidance, working
+        memory, recent conversation history, graph-context retrieval, round budget."""
+        context_parts: list[str] = []
+
+        # Human-in-the-loop: pick up user messages posted mid-run so this
+        # turn (and graph retrieval for later turns) sees the guidance.
+        human_guidance = drain_human_guidance(
+            conversation_id=conversation_id,
+            stream_writer=stream_writer,
+            graph_context_provider=graph_context_provider,
+            graph_config=graph_config,
+        )
+        # First so the guidance survives tail-truncation by the token budget.
+        if human_guidance:
+            context_parts += [human_guidance, ""]
+
+        # Shared working memory: pin guidance, then inject the digest so
+        # prior findings survive history windows and truncation.
+        ensure_working_memory(conversation_id, state["original_input"])
+        if human_guidance:
+            record_guidance_in_memory(conversation_id, human_guidance)
+        memory_block = working_memory_block(conversation_id)
+        if memory_block:
+            context_parts += [memory_block, ""]
+
+        all_recent_messages = []
+        for other_staff_name in state["staff_names"]:
+            if other_staff_name != staff_member.name and conversation_history.get(other_staff_name):
+                for msg in conversation_history[other_staff_name][-3:]:
+                    all_recent_messages.append(f"{other_staff_name}: {msg}")
+
+        if conversation_history.get(staff_member.name):
+            for msg in conversation_history[staff_member.name][-2:]:
+                all_recent_messages.append(f"{staff_member.name}: {msg}")
+
+        history_text = "\n".join(all_recent_messages[-5:]).strip() or "(empty)"
+        logger.debug(
+            "[%s] mesh_node: history_messages=%d history_chars=%d",
+            staff_member.name, len(all_recent_messages), len(history_text),
+        )
+
+        graph_context_text = ""
+        if graph_context_provider and conversation_id:
+            pack = graph_context_provider.build_graph_context(
+                conversation_id=conversation_id,
+                query=state["input"],
+                config=graph_config,
+            )
+            graph_context_text = pack.text
+
+            # Stream: Context retrieved
+            stream_writer({
+                "type": EventType.CONTEXT_RETRIEVED.value,
+                "agent_name": staff_member.name,
+                "node_ids": pack.node_ids,
+                "edge_ids": pack.edge_ids,
+                "chunk_ids": pack.chunk_ids,
+            })
+
+        round_budget_text = self._build_round_budget_context(
+            rounds_used=int(state.get("rounds", 0)),
+            max_rounds=max_rounds,
+        )
+
+        if state.get("rounds", 0) == 0:
+            input_text = state["original_input"]
+            context_parts.append(f"user input: {state['original_input']}")
+            context_parts.append("context:")
+            context_parts.append(graph_context_text or "(empty)")
+        else:
+            previous_staff_name = state["turns"][-1].staff_name if state.get("turns") else "user"
+            input_text = state.get("input", "").strip() or "1. Please clarify the next required step."
+            context_parts.append(f"user input: {state['original_input']}")
+            context_parts.append(f"staff_member {previous_staff_name} ask staff_member {staff_member.name}:")
+            context_parts.append("history:")
+            context_parts.append(history_text)
+            context_parts.append("context:")
+            context_parts.append(graph_context_text or "(empty)")
+        context_parts.append(round_budget_text)
+
+        return context_parts, input_text
+
+    def _finalize_mesh_turn(
+        self,
+        *,
+        staff_member: GraphStaffDefinition,
+        state: MultiAgentMeshState,
+        conversation_history: dict,
+        reasoning: str,
+        action_payload: str,
+        new_staff_states: StaffStates,
+        stream_writer,
+    ) -> dict:
+        """Build the routing decision + state update for a completed (non-fanout) turn."""
+        turns = state["turns"]
+        new_turn = GraphTurn(
+            turn=len(turns) + 1,
+            staff_name=staff_member.name,
+            staff_role=staff_member.role,
+            content=reasoning,
+        )
+
+        # Deep-copy the inner lists: dict.copy() is shallow and would mutate
+        # the previous state's list in place, corrupting LangGraph snapshots.
+        new_history = {k: list(v) for k, v in conversation_history.items()}
+        new_history.setdefault(staff_member.name, []).append(reasoning)
+
+        discussion_ended = self._has_discussion_end_signal(action_payload)
+        next_staff = self._extract_target_agent_from_message(
+            action_payload,
+            state["staff_names"],
+            staff_member.name,
+        )
+        logger.debug(
+            "[%s] mesh_node: routing — discussion_ended=%s next_staff=%s",
+            staff_member.name, discussion_ended, next_staff,
+        )
+        next_input = ""
+        if not discussion_ended and next_staff:
+            questions = self._extract_questions_for_next_staff(action_payload)
+            if not questions:
+                questions = [
+                    "Please continue with the highest-priority next analysis and include concrete evidence."
+                ]
+            next_input = self._format_question_payload(questions)
+
+        # Stream: Turn completed with turn object
+        stream_writer({
+            "type": EventType.TURN_COMPLETE.value,
+            "turn": new_turn,
+            "next_staff": next_staff,
+            "discussion_ended": discussion_ended,
+        })
+
+        return {
+            "turns": [*turns, new_turn],
+            "conversation_history": new_history,
+            "staff_states": new_staff_states,
+            "input": next_input,
+            "current_agent": staff_member.name,
+            "final_response": reasoning,
+            "last_action": action_payload,
+            "final_staff": staff_member.name,
+            "rounds": state.get("rounds", 0) + 1,
+        }
 
     def _decide_next_staff(
         self,
@@ -1047,8 +1108,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
         )
 
-        bound_tools = build_agent_tools(branch_agent, conversation_id=conversation_id)
-        attach_subagent_toolkit(bound_tools, branch_agent, llm=llm)
+        bound_tools = build_bound_tools(branch_agent, conversation_id=conversation_id, llm=llm)
 
         return {
             "system": branch_agent.system_prompt,
@@ -1262,16 +1322,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
 
     def _split_reasoning_and_action(self, message: str) -> tuple[str, str]:
         """Split model output into user-visible reasoning and machine-readable action blocks."""
-        if not message:
-            return "", ""
-
-        action_blocks = [m.group(0).strip() for m in self._CONTROL_BLOCK_RE.finditer(message)]
-        action_payload = "\n".join(block for block in action_blocks if block).strip()
-
-        reasoning = self._CONTROL_BLOCK_RE.sub("", message)
-        reasoning = re.sub(r"\n{3,}", "\n\n", reasoning).strip()
-
-        return reasoning, action_payload
+        return split_reasoning_and_action(message, self._CONTROL_BLOCK_RE)
 
     def _extract_questions_for_next_staff(self, message: str) -> list[str]:
         """Extract the handoff questions from `<ASK_NEXT_AGENT>...</ASK_NEXT_AGENT>` block."""

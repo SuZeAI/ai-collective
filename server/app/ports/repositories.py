@@ -193,7 +193,7 @@ class CompanyRepository(Protocol):
     def get(self, company_id: str) -> Company | None:
         ...
 
-    def upsert(self, workspace: Company) -> Company:
+    def upsert(self, company: Company) -> Company:
         ...
 
     def delete(self, company_id: str) -> None:
