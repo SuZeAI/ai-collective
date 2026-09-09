@@ -28,6 +28,7 @@ from server.domain.staff._graph_runtime import (
     drain_human_guidance,
     ensure_working_memory,
     get_fanout_semaphore,
+    ingest_user_message,
     parse_fanout_pairs,
     record_guidance_in_memory,
     record_turn_in_memory,
@@ -174,7 +175,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         if not staff:
             raise ValueError("At least one staff_member definition is required")
 
-        self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
+        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
         graph = self._build_graph(staff, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
         final_state, error = await run_to_final_state(graph, self._initial_state(user_input, staff), max_rounds)
 
@@ -202,7 +203,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         if not staff:
             raise ValueError("At least one staff_member definition is required")
 
-        self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
+        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
         graph = self._build_graph(staff, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
 
         async for event in graph.astream(
@@ -1006,19 +1007,3 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             "final_staff": lead.name,
             "rounds": base_turn,
         }
-
-    @staticmethod
-    def _ingest_user_message(
-        user_input: str,
-        conversation_id: str | None,
-        graph_context_provider: GraphContextProvider | None,
-        graph_config: GraphContextConfig | None,
-    ) -> None:
-        if graph_context_provider and conversation_id:
-            graph_context_provider.ingest_message(
-                conversation_id=conversation_id,
-                message_id=f"user-{uuid4().hex}",
-                speaker="user",
-                content=user_input,
-                config=graph_config,
-            )

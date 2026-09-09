@@ -21,6 +21,7 @@ from server.domain.staff._graph_runtime import (
     build_turn_messages,
     drain_human_guidance,
     ensure_working_memory,
+    ingest_user_message,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
@@ -86,14 +87,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
         if not staff:
             raise ValueError("At least one staff_member definition is required")
 
-        if graph_context_provider and conversation_id:
-            graph_context_provider.ingest_message(
-                conversation_id=conversation_id,
-                message_id=f"user-{uuid4().hex}",
-                speaker="user",
-                content=user_input,
-                config=graph_config,
-            )
+        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
 
         graph = self._build_graph(
             staff=staff,
@@ -130,14 +124,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
         if not staff:
             raise ValueError("At least one staff_member definition is required")
 
-        if graph_context_provider and conversation_id:
-            graph_context_provider.ingest_message(
-                conversation_id=conversation_id,
-                message_id=f"user-{uuid4().hex}",
-                speaker="user",
-                content=user_input,
-                config=graph_config,
-            )
+        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
 
         graph = self._build_graph(
             staff=staff,

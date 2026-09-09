@@ -21,6 +21,7 @@ from server.domain.staff._graph_runtime import (
     build_turn_messages,
     drain_human_guidance,
     ensure_working_memory,
+    ingest_user_message,
     uploads_hint,
     record_guidance_in_memory,
     record_turn_in_memory,
@@ -103,14 +104,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
             "rounds": 0,
         }
 
-        if graph_context_provider and conversation_id:
-            graph_context_provider.ingest_message(
-                conversation_id=conversation_id,
-                message_id=f"user-{uuid4().hex}",
-                speaker="user",
-                content=user_input,
-                config=graph_config,
-            )
+        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
 
         final_state, error = await run_to_final_state(graph, initial, len(selected_agents))
         turns = list(final_state.get("turns", []))
@@ -172,14 +166,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
             "rounds": 0,
         }
 
-        if graph_context_provider and conversation_id:
-            graph_context_provider.ingest_message(
-                conversation_id=conversation_id,
-                message_id=f"user-{uuid4().hex}",
-                speaker="user",
-                content=user_input,
-                config=graph_config,
-            )
+        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
 
         # Stream custom events from nodes using stream_mode="custom"
         async for event in graph.astream(

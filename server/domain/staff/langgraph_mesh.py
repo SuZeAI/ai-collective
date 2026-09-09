@@ -27,6 +27,7 @@ from server.domain.staff._graph_runtime import (
     drain_human_guidance,
     ensure_working_memory,
     get_fanout_semaphore,
+    ingest_user_message,
     parse_fanout_pairs,
     record_guidance_in_memory,
     record_turn_in_memory,
@@ -151,14 +152,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 graph_config=graph_config,
             )
 
-        if graph_context_provider and conversation_id:
-            graph_context_provider.ingest_message(
-                conversation_id=conversation_id,
-                message_id=f"user-{uuid4().hex}",
-                speaker="user",
-                content=user_input,
-                config=graph_config,
-            )
+        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
 
         builder: StateGraph = StateGraph(MultiAgentMeshState)
 
@@ -275,14 +269,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 yield turn
             return
 
-        if graph_context_provider and conversation_id:
-            graph_context_provider.ingest_message(
-                conversation_id=conversation_id,
-                message_id=f"user-{uuid4().hex}",
-                speaker="user",
-                content=user_input,
-                config=graph_config,
-            )
+        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
 
         builder: StateGraph = StateGraph(MultiAgentMeshState)
 
@@ -366,14 +353,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
     ) -> GraphRunResult:
         """Fallback execution path when only one staff_member is provided."""
         logger.debug("_run_single_agent: staff_member=%s max_rounds=%d", staff_member.name, max_rounds)
-        if graph_context_provider and conversation_id:
-            graph_context_provider.ingest_message(
-                conversation_id=conversation_id,
-                message_id=f"user-{uuid4().hex}",
-                speaker="user",
-                content=user_input,
-                config=graph_config,
-            )
+        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
 
         builder: StateGraph = StateGraph(MultiAgentMeshState)
         builder.add_node(
@@ -434,14 +414,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
     ):
         """Streaming fallback when only one staff_member is provided."""
         logger.debug("_run_single_agent_stream: staff_member=%s max_rounds=%d", staff_member.name, max_rounds)
-        if graph_context_provider and conversation_id:
-            graph_context_provider.ingest_message(
-                conversation_id=conversation_id,
-                message_id=f"user-{uuid4().hex}",
-                speaker="user",
-                content=user_input,
-                config=graph_config,
-            )
+        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
 
         builder: StateGraph = StateGraph(MultiAgentMeshState)
         builder.add_node(

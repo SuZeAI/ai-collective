@@ -26,8 +26,9 @@ except Exception:  # pragma: no cover
         """Fallback if langgraph does not expose GraphRecursionError."""
 
 from server.api.settings import settings
-from server.app.ports.staff_graph import GraphStaffDefinition, GraphTurn
+from server.app.ports.staff_graph import GraphContextProvider, GraphStaffDefinition, GraphTurn
 from server.domain.event.schema import EventType
+from server.domain.memory.knowledge_graph import GraphContextConfig
 from server.domain.staff.token_budget import TokenBudgetResult, apply_context_token_budget
 
 logger = logging.getLogger(__name__)
@@ -559,6 +560,23 @@ def uploads_hint(conversation_id: str | None) -> str:
         )
     except Exception:  # noqa: BLE001
         return ""
+
+
+def ingest_user_message(
+    user_input: str,
+    conversation_id: str | None,
+    graph_context_provider: GraphContextProvider | None,
+    graph_config: GraphContextConfig | None,
+) -> None:
+    """Record the user's opening message in the knowledge graph, if wired up."""
+    if graph_context_provider and conversation_id:
+        graph_context_provider.ingest_message(
+            conversation_id=conversation_id,
+            message_id=f"user-{uuid4().hex}",
+            speaker="user",
+            content=user_input,
+            config=graph_config,
+        )
 
 
 def recursion_config(max_rounds: int) -> dict[str, Any]:

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import operator
 from typing import Annotated, TypedDict
-from uuid import uuid4
 
 from langgraph.graph import END, START, StateGraph
 
@@ -16,7 +15,7 @@ from server.app.ports.staff_graph import (
 )
 from server.app.ports.llm import LLMProvider
 from server.domain.memory.knowledge_graph import GraphContextConfig
-from server.domain.staff._graph_runtime import recursion_config, run_to_final_state
+from server.domain.staff._graph_runtime import ingest_user_message, recursion_config, run_to_final_state
 from server.domain.staff.langgraph_orchestrator import LangGraphStaffOrchestrator
 from server.domain.staff.staff_state import StaffStates, init_staff_states, merge_staff_states
 
@@ -80,7 +79,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
             staff, llm, max_rounds, custom_graph,
             conversation_id, graph_context_provider, graph_config,
         )
-        self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
+        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
 
         final_state, error = await run_to_final_state(graph, self._initial_state(user_input, staff), max_rounds)
         turns = list(final_state.get("turns", []))
@@ -111,7 +110,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
             staff, llm, max_rounds, custom_graph,
             conversation_id, graph_context_provider, graph_config,
         )
-        self._ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
+        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
 
         async for event in graph.astream(
             self._initial_state(user_input, staff),
@@ -226,19 +225,3 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
             "final_staff": None,
             "rounds": 0,
         }
-
-    @staticmethod
-    def _ingest_user_message(
-        user_input: str,
-        conversation_id: str | None,
-        graph_context_provider: GraphContextProvider | None,
-        graph_config: GraphContextConfig | None,
-    ) -> None:
-        if graph_context_provider and conversation_id:
-            graph_context_provider.ingest_message(
-                conversation_id=conversation_id,
-                message_id=f"user-{uuid4().hex}",
-                speaker="user",
-                content=user_input,
-                config=graph_config,
-            )
