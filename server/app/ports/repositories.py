@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Protocol
 
-from server.domain.memory.knowledge_graph import ConversationKnowledgeGraph
+from server.domain.memory.knowledge_graph import MeetingKnowledgeGraph
 from server.domain.models import (
     Staff,
     Skill,
@@ -251,10 +251,10 @@ class SystemSettingsRepository(Protocol):
 
 
 class GraphKnowledgeRepository(Protocol):
-    def get(self, conversation_id: str) -> ConversationKnowledgeGraph | None:
+    def get(self, conversation_id: str) -> MeetingKnowledgeGraph | None:
         ...
 
-    def upsert(self, graph: ConversationKnowledgeGraph) -> ConversationKnowledgeGraph:
+    def upsert(self, graph: MeetingKnowledgeGraph) -> MeetingKnowledgeGraph:
         ...
 
     def delete(self, conversation_id: str) -> None:

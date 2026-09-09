@@ -1,5 +1,5 @@
 from .knowledge_graph import (
-    ConversationKnowledgeGraph,
+    MeetingKnowledgeGraph,
     GraphContextConfig,
     GraphContextPack,
     GraphEdge,
@@ -9,7 +9,7 @@ from .knowledge_graph import (
 __all__ = [
     "GraphNode",
     "GraphEdge",
-    "ConversationKnowledgeGraph",
+    "MeetingKnowledgeGraph",
     "GraphContextConfig",
     "GraphContextPack",
 ]

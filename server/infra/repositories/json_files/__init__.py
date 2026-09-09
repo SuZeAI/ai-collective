@@ -7,7 +7,7 @@ from server.infra.repositories.json_files.activity_feed import JsonActivityFeedR
 from server.infra.repositories.json_files.staff import JsonStaffRepository
 from server.infra.repositories.json_files.analytics import JsonAnalyticsRepository
 from server.infra.repositories.json_files.connections import JsonConnectionRepository
-from server.infra.repositories.json_files.conversations import JsonMeetingRepository
+from server.infra.repositories.json_files.meetings import JsonMeetingRepository
 from server.infra.repositories.json_files.epics import JsonEpicRepository
 from server.infra.repositories.json_files.model_pricing import JsonModelPricingRepository
 from server.infra.repositories.json_files.office_builder_sessions import (

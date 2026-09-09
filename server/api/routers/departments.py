@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 
 from server.api.deps import current_owner_id_dep, get_staff_service, get_meeting_service, get_department_service
 from server.api.ownership import require_deletable, require_modifiable
-from server.api.schemas.department import DepartmentSchema, UpsertTeamRequest
+from server.api.schemas.department import DepartmentSchema, UpsertDepartmentRequest
 from server.app.service.department_activation import activate_department_staff, seed_department_kickoff_messages
 from server.app.service.staff_service import StaffService
 from server.app.service.meeting_service import MeetingService
@@ -31,7 +31,7 @@ def list_departments(
 
 @router.post("", response_model=DepartmentSchema)
 def upsert_department(
-    req: UpsertTeamRequest,
+    req: UpsertDepartmentRequest,
     service: DepartmentService = Depends(get_department_service),
     staff_service: StaffService = Depends(get_staff_service),
     conv_service: MeetingService = Depends(get_meeting_service),

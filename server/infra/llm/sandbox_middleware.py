@@ -4,7 +4,7 @@ This is the "sandbox middleware" entry point. It does NOT run as a LangChain
 ``AgentMiddleware`` (tools must be bound before the staff is built, and the
 conversation id isn't available that deep). Instead it exposes a provisioning
 helper that the orchestrator nodes call when assembling an staff's tools — see
-``server.domain.staff._graph_runtime.attach_conversation_sandbox``.
+``server.domain.staff._graph_runtime.attach_meeting_sandbox``.
 
 Responsibilities:
   * Ensure the shared, conversation-scoped workspace exists on the host.
@@ -34,7 +34,7 @@ _restored_lock = threading.Lock()
 
 
 @dataclass(frozen=True)
-class ConversationSandbox:
+class MeetingSandbox:
     conversation_id: str
     thread_id: str
     workspace: str
@@ -69,7 +69,7 @@ def _file_backend() -> str:
         return "local"
 
 
-def ensure_conversation_sandbox(conversation_id: Optional[str]) -> Optional[ConversationSandbox]:
+def ensure_meeting_sandbox(conversation_id: Optional[str]) -> Optional[MeetingSandbox]:
     """Provision (idempotently) the shared workspace for a chat and report files.
 
     Returns ``None`` when *conversation_id* is falsy. Best-effort: on any failure
@@ -82,13 +82,13 @@ def ensure_conversation_sandbox(conversation_id: Optional[str]) -> Optional[Conv
         import os
 
         from server.infra.sandbox.sandbox_session import (
-            conversation_thread_id,
-            ensure_conversation_workspace,
+            meeting_thread_id,
+            ensure_meeting_workspace,
         )
         from server.infra.sandbox.thread_files import conversation_has_files
 
-        thread_id = conversation_thread_id(conversation_id)
-        workspace = ensure_conversation_workspace(conversation_id)
+        thread_id = meeting_thread_id(conversation_id)
+        workspace = ensure_meeting_workspace(conversation_id)
         uploads_dir = os.path.join(workspace, "uploads")
         has_files = conversation_has_files(conversation_id)
 
@@ -102,7 +102,7 @@ def ensure_conversation_sandbox(conversation_id: Optional[str]) -> Optional[Conv
             if _sandbox_mode() != "local":
                 _restore_remote_once(conversation_id, thread_id, workspace)
 
-        return ConversationSandbox(
+        return MeetingSandbox(
             conversation_id=conversation_id,
             thread_id=thread_id,
             workspace=workspace,
@@ -110,7 +110,7 @@ def ensure_conversation_sandbox(conversation_id: Optional[str]) -> Optional[Conv
             has_files=has_files,
         )
     except Exception as exc:  # noqa: BLE001
-        logger.exception("ensure_conversation_sandbox failed for %s: %s", conversation_id, exc)
+        logger.exception("ensure_meeting_sandbox failed for %s: %s", conversation_id, exc)
         return None
 
 
@@ -184,9 +184,9 @@ def push_upload_to_sandbox(conversation_id: str, rel_path: str, content: bytes) 
     filesystem, so only the MinIO backup applies. Best-effort throughout.
     """
     try:
-        from server.infra.sandbox.sandbox_session import conversation_thread_id
+        from server.infra.sandbox.sandbox_session import meeting_thread_id
 
-        thread_id = conversation_thread_id(conversation_id)
+        thread_id = meeting_thread_id(conversation_id)
         if _file_backend() == "s3":
             backup = get_backup_service()
             if backup.enabled:
@@ -205,7 +205,7 @@ def push_upload_to_sandbox(conversation_id: str, rel_path: str, content: bytes) 
         logger.warning("push_upload_to_sandbox failed for %s: %s", conversation_id, exc)
 
 
-def backup_conversation_workspace(conversation_id: str) -> None:
+def backup_meeting_workspace(conversation_id: str) -> None:
     """Sync a conversation's host workspace up to MinIO (best-effort).
 
     Useful in local mode, where staff-written files live directly on the host.
@@ -220,18 +220,18 @@ def backup_conversation_workspace(conversation_id: str) -> None:
         if not backup.enabled:
             return
         from server.infra.sandbox.sandbox_session import (
-            conversation_thread_id,
-            ensure_conversation_workspace,
+            meeting_thread_id,
+            ensure_meeting_workspace,
         )
 
-        thread_id = conversation_thread_id(conversation_id)
-        workspace = ensure_conversation_workspace(conversation_id)
+        thread_id = meeting_thread_id(conversation_id)
+        workspace = ensure_meeting_workspace(conversation_id)
         backup.backup_dir(thread_id, workspace)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("backup_conversation_workspace failed for %s: %s", conversation_id, exc)
+        logger.warning("backup_meeting_workspace failed for %s: %s", conversation_id, exc)
 
 
-def cleanup_conversation_sandbox(conversation_id: str) -> None:
+def cleanup_meeting_sandbox(conversation_id: str) -> None:
     """Best-effort teardown of a conversation's sandbox artifacts.
 
     Removes the host workspace, purges the file records and MinIO objects, and
@@ -245,11 +245,11 @@ def cleanup_conversation_sandbox(conversation_id: str) -> None:
         import shutil
 
         from server.infra.sandbox.sandbox_session import (
-            conversation_thread_id,
+            meeting_thread_id,
         )
         from server.infra.sandbox.thread_files import purge_thread_files
 
-        thread_id = conversation_thread_id(conversation_id)
+        thread_id = meeting_thread_id(conversation_id)
 
         # Records
         purge_thread_files(conversation_id)
@@ -287,7 +287,7 @@ def cleanup_conversation_sandbox(conversation_id: str) -> None:
         with _restored_lock:
             _restored.discard(conversation_id)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("cleanup_conversation_sandbox failed for %s: %s", conversation_id, exc)
+        logger.warning("cleanup_meeting_sandbox failed for %s: %s", conversation_id, exc)
 
 
 def _remote_base(sandbox) -> str:

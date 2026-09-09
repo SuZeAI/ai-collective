@@ -21,7 +21,7 @@ import json
 from dataclasses import asdict
 
 from server.domain.memory.knowledge_graph import (
-    ConversationKnowledgeGraph,
+    MeetingKnowledgeGraph,
     GraphContextConfig,
     GraphEdge,
     GraphNode,
@@ -31,7 +31,7 @@ from server.share.log import get_logger
 logger = get_logger(__name__)
 
 
-def _serialize(graph: ConversationKnowledgeGraph) -> dict:
+def _serialize(graph: MeetingKnowledgeGraph) -> dict:
     return {
         "conversation_id": graph.conversation_id,
         "version": graph.version,
@@ -46,7 +46,7 @@ def _serialize(graph: ConversationKnowledgeGraph) -> dict:
     }
 
 
-def _deserialize(conversation_id: str, raw: dict) -> ConversationKnowledgeGraph:
+def _deserialize(conversation_id: str, raw: dict) -> MeetingKnowledgeGraph:
     raw_config = raw.get("config")
     config = GraphContextConfig()
     if isinstance(raw_config, dict):
@@ -55,7 +55,7 @@ def _deserialize(conversation_id: str, raw: dict) -> ConversationKnowledgeGraph:
         except TypeError:
             config = GraphContextConfig()
 
-    graph = ConversationKnowledgeGraph(
+    graph = MeetingKnowledgeGraph(
         conversation_id=str(raw.get("conversation_id") or conversation_id),
         version=int(raw.get("version") or 1),
         schema_version=int(raw.get("schema_version") or 1),
@@ -114,7 +114,7 @@ class Neo4jGraphKnowledgeRepository:
         with self._driver.session(database=self._database) as s:
             s.run("CREATE CONSTRAINT conv_id IF NOT EXISTS FOR (c:Conversation) REQUIRE c.id IS UNIQUE")
 
-    def get(self, conversation_id: str) -> ConversationKnowledgeGraph | None:
+    def get(self, conversation_id: str) -> MeetingKnowledgeGraph | None:
         try:
             with self._driver.session(database=self._database) as s:
                 rec = s.run(
@@ -132,7 +132,7 @@ class Neo4jGraphKnowledgeRepository:
             logger.exception("Neo4j graph deserialize failed for %s", conversation_id)
             return None
 
-    def upsert(self, graph: ConversationKnowledgeGraph) -> ConversationKnowledgeGraph:
+    def upsert(self, graph: MeetingKnowledgeGraph) -> MeetingKnowledgeGraph:
         cid = graph.conversation_id
         blob = json.dumps(_serialize(graph), ensure_ascii=False)
         try:
@@ -143,7 +143,7 @@ class Neo4jGraphKnowledgeRepository:
         return graph
 
     @staticmethod
-    def _write_graph(tx, cid: str, blob: str, graph: ConversationKnowledgeGraph) -> None:
+    def _write_graph(tx, cid: str, blob: str, graph: MeetingKnowledgeGraph) -> None:
         # Authoritative blob + reset the native projection for this conversation.
         tx.run("MERGE (c:Conversation {id: $id}) SET c.data = $data", id=cid, data=blob)
         tx.run("MATCH (e:Entity {conversation_id: $id}) DETACH DELETE e", id=cid)

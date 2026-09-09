@@ -17,10 +17,10 @@ def _backup_workspace(conversation_id: str | None) -> None:
         return
     try:
         from server.infra.llm.sandbox_middleware import (
-            backup_conversation_workspace,
+            backup_meeting_workspace,
         )
 
-        backup_conversation_workspace(conversation_id)
+        backup_meeting_workspace(conversation_id)
     except Exception:  # noqa: BLE001 - never let backup wiring break a run
         pass
 

@@ -6,7 +6,7 @@ from typing import Any
 import pymongo
 
 from server.domain.memory.knowledge_graph import (
-    ConversationKnowledgeGraph,
+    MeetingKnowledgeGraph,
     GraphContextConfig,
     GraphEdge,
     GraphNode,
@@ -22,13 +22,13 @@ class MongoGraphKnowledgeRepository:
 
     # ---- Graphs ----
 
-    def get(self, conversation_id: str) -> ConversationKnowledgeGraph | None:
+    def get(self, conversation_id: str) -> MeetingKnowledgeGraph | None:
         doc = self._graphs_col.find_one({"conversation_id": conversation_id})
         if not doc:
             return None
         return self._deserialize_graph(conversation_id, doc)
 
-    def upsert(self, graph: ConversationKnowledgeGraph) -> ConversationKnowledgeGraph:
+    def upsert(self, graph: MeetingKnowledgeGraph) -> MeetingKnowledgeGraph:
         payload = self._serialize_graph(graph)
         self._graphs_col.replace_one(
             {"conversation_id": graph.conversation_id}, payload, upsert=True
@@ -46,7 +46,7 @@ class MongoGraphKnowledgeRepository:
 
     # ---- Serialization ----
 
-    def _serialize_graph(self, graph: ConversationKnowledgeGraph) -> dict[str, Any]:
+    def _serialize_graph(self, graph: MeetingKnowledgeGraph) -> dict[str, Any]:
         return {
             "_id": graph.conversation_id,
             "conversation_id": graph.conversation_id,
@@ -61,7 +61,7 @@ class MongoGraphKnowledgeRepository:
             "updated_at": graph.updated_at,
         }
 
-    def _deserialize_graph(self, conversation_id: str, raw: dict[str, Any]) -> ConversationKnowledgeGraph | None:
+    def _deserialize_graph(self, conversation_id: str, raw: dict[str, Any]) -> MeetingKnowledgeGraph | None:
         raw_config = raw.get("config")
         config = GraphContextConfig()
         if isinstance(raw_config, dict):
@@ -70,7 +70,7 @@ class MongoGraphKnowledgeRepository:
             except TypeError:
                 config = GraphContextConfig()
 
-        graph = ConversationKnowledgeGraph(
+        graph = MeetingKnowledgeGraph(
             conversation_id=str(raw.get("conversation_id") or conversation_id),
             version=int(raw.get("version") or 1),
             schema_version=int(raw.get("schema_version") or 1),

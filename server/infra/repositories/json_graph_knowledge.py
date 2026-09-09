@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from server.domain.memory.knowledge_graph import (
-    ConversationKnowledgeGraph,
+    MeetingKnowledgeGraph,
     GraphContextConfig,
     GraphEdge,
     GraphNode,
@@ -17,7 +17,7 @@ class JsonGraphKnowledgeRepository:
         self._event_store = event_store
 
         data = store.read()
-        self._graphs: dict[str, ConversationKnowledgeGraph] = {}
+        self._graphs: dict[str, MeetingKnowledgeGraph] = {}
         if isinstance(data, dict):
             for conversation_id, raw_graph in data.items():
                 graph = self._deserialize_graph(conversation_id, raw_graph)
@@ -33,10 +33,10 @@ class JsonGraphKnowledgeRepository:
                         item for item in items if isinstance(item, dict)
                     ]
 
-    def get(self, conversation_id: str) -> ConversationKnowledgeGraph | None:
+    def get(self, conversation_id: str) -> MeetingKnowledgeGraph | None:
         return self._graphs.get(conversation_id)
 
-    def upsert(self, graph: ConversationKnowledgeGraph) -> ConversationKnowledgeGraph:
+    def upsert(self, graph: MeetingKnowledgeGraph) -> MeetingKnowledgeGraph:
         self._graphs[graph.conversation_id] = graph
         self._persist_graphs()
         return graph
@@ -73,7 +73,7 @@ class JsonGraphKnowledgeRepository:
     def _persist_events(self) -> None:
         self._event_store.write(self._events)
 
-    def _deserialize_graph(self, conversation_id: str, raw_graph: object) -> ConversationKnowledgeGraph | None:
+    def _deserialize_graph(self, conversation_id: str, raw_graph: object) -> MeetingKnowledgeGraph | None:
         if not isinstance(raw_graph, dict):
             return None
 
@@ -85,7 +85,7 @@ class JsonGraphKnowledgeRepository:
             except TypeError:
                 config = GraphContextConfig()
 
-        graph = ConversationKnowledgeGraph(
+        graph = MeetingKnowledgeGraph(
             conversation_id=str(raw_graph.get("conversation_id") or conversation_id),
             version=int(raw_graph.get("version") or 1),
             schema_version=int(raw_graph.get("schema_version") or 1),

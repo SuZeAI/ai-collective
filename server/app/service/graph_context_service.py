@@ -16,7 +16,7 @@ from server.app.service.graph_retrieval import (
     retrieve_lexical,
 )
 from server.domain.memory.knowledge_graph import (
-    ConversationKnowledgeGraph,
+    MeetingKnowledgeGraph,
     GraphContextConfig,
     GraphContextPack,
     GraphEdge,
@@ -85,7 +85,7 @@ class GraphContextService:
         content: str,
         config: GraphContextConfig | None = None,
     ) -> None:
-        graph = self._repo.get(conversation_id) or ConversationKnowledgeGraph(
+        graph = self._repo.get(conversation_id) or MeetingKnowledgeGraph(
             conversation_id=conversation_id
         )
         effective_config = (config or graph.config).normalized()
@@ -448,7 +448,7 @@ class GraphContextService:
                 )
         return self._static_extractor.extract_relations(content, config)
 
-    def _upsert_node(self, graph: ConversationKnowledgeGraph, candidate: GraphNode) -> GraphNode:
+    def _upsert_node(self, graph: MeetingKnowledgeGraph, candidate: GraphNode) -> GraphNode:
         now = _now_iso()
         existing = graph.nodes.get(candidate.id)
         if not existing:
@@ -465,7 +465,7 @@ class GraphContextService:
         existing.updated_at = now
         return existing
 
-    def _upsert_edge(self, graph: ConversationKnowledgeGraph, candidate: GraphEdge) -> GraphEdge:
+    def _upsert_edge(self, graph: MeetingKnowledgeGraph, candidate: GraphEdge) -> GraphEdge:
         now = _now_iso()
         existing = graph.edges.get(candidate.id)
         if not existing:

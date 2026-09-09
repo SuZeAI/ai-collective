@@ -131,12 +131,12 @@ class TestDocumentLibraryService:
         assert rec["rel_path"] == "uploads/brief.txt"
         # The bytes must land in the project's conversation workspace uploads dir.
         from server.infra.sandbox.sandbox_session import (
-            conversation_thread_id,
-            ensure_conversation_workspace,
+            meeting_thread_id,
+            ensure_meeting_workspace,
         )
-        ws = ensure_conversation_workspace("task-abc")
+        ws = ensure_meeting_workspace("task-abc")
         assert (open(os.path.join(ws, "uploads", "brief.txt"), "rb").read()) == b"hello team"
-        assert conversation_thread_id("task-abc")  # deterministic id resolves
+        assert meeting_thread_id("task-abc")  # deterministic id resolves
 
 
 def _mkd(p):

@@ -85,7 +85,7 @@ class GraphEdge:
 
 
 @dataclass(slots=True)
-class ConversationKnowledgeGraph:
+class MeetingKnowledgeGraph:
     conversation_id: str
     version: int = 1
     schema_version: int = 1

@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 
 from server.app.service.graph_extraction import tokenize
-from server.domain.memory.knowledge_graph import ConversationKnowledgeGraph, GraphContextConfig
+from server.domain.memory.knowledge_graph import MeetingKnowledgeGraph, GraphContextConfig
 
 
 def term_freq(tokens: list[str]) -> dict[str, float]:
@@ -30,7 +30,7 @@ def cosine(a: dict[str, float], b: dict[str, float]) -> float:
 
 
 def pagerank_scores(
-    graph: ConversationKnowledgeGraph,
+    graph: MeetingKnowledgeGraph,
     seeds: dict[str, float],
     *,
     damping: float = 0.85,
@@ -74,7 +74,7 @@ def pagerank_scores(
 
 
 def retrieve_lexical(
-    graph: ConversationKnowledgeGraph,
+    graph: MeetingKnowledgeGraph,
     query: str,
     config: GraphContextConfig,
 ) -> dict[str, float]:
@@ -100,7 +100,7 @@ def retrieve_lexical(
 
 
 def retrieve_embedding(
-    graph: ConversationKnowledgeGraph,
+    graph: MeetingKnowledgeGraph,
     query: str,
     config: GraphContextConfig,
 ) -> dict[str, float]:
@@ -121,7 +121,7 @@ def retrieve_embedding(
 
 
 def related_edges(
-    graph: ConversationKnowledgeGraph,
+    graph: MeetingKnowledgeGraph,
     node_ids: list[str],
     top_k_edges: int,
 ) -> list[str]:

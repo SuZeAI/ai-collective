@@ -7,15 +7,15 @@ the (de)serialization that guarantees lossless ``get()`` is pure and always test
 from __future__ import annotations
 
 from server.domain.memory.knowledge_graph import (
-    ConversationKnowledgeGraph,
+    MeetingKnowledgeGraph,
     GraphEdge,
     GraphNode,
 )
 from server.infra.repositories.neo4j_graph_knowledge import _deserialize, _serialize
 
 
-def _graph() -> ConversationKnowledgeGraph:
-    g = ConversationKnowledgeGraph(conversation_id="conv1", last_message_index=3)
+def _graph() -> MeetingKnowledgeGraph:
+    g = MeetingKnowledgeGraph(conversation_id="conv1", last_message_index=3)
     g.nodes["n1"] = GraphNode(id="n1", type="entity", value="Acme Corp", salience_score=0.8)
     g.nodes["n2"] = GraphNode(id="n2", type="entity", value="Project X", salience_score=0.6)
     g.edges["e1"] = GraphEdge(id="e1", src="n1", dst="n2", relation="owns", weight=0.9)

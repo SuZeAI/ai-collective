@@ -105,7 +105,7 @@ def new_thread_id(
 _CONV_THREAD_PREFIX = "conv-"
 
 
-def conversation_thread_id(conversation_id: str) -> str:
+def meeting_thread_id(conversation_id: str) -> str:
     """Deterministic, filesystem-safe thread_id for a whole conversation.
 
     Same conversation_id always maps to the same id, so every staff in the chat
@@ -116,14 +116,14 @@ def conversation_thread_id(conversation_id: str) -> str:
     return f"{_CONV_THREAD_PREFIX}{digest}"
 
 
-def ensure_conversation_workspace(conversation_id: str) -> str:
+def ensure_meeting_workspace(conversation_id: str) -> str:
     """Create ``{SANDBOX_WORKSPACE}/conv-<hash>/`` (+ an ``uploads/`` subdir).
 
     Returns the workspace path. Reuses :func:`_ensure_thread_workspace` so the
     base-path resolution (including the ``~/sandbox_workspace`` fallback) is
     identical to the per-turn path — the uploader and the tools never drift.
     """
-    tid = conversation_thread_id(conversation_id)
+    tid = meeting_thread_id(conversation_id)
     workspace = _ensure_thread_workspace(tid)
     try:
         os.makedirs(os.path.join(workspace, "uploads"), exist_ok=True)
@@ -132,16 +132,16 @@ def ensure_conversation_workspace(conversation_id: str) -> str:
     return workspace
 
 
-def use_conversation_thread(conversation_id: str) -> str:
+def use_meeting_thread(conversation_id: str) -> str:
     """Bind the contextvar to the conversation-scoped (shared) thread_id.
 
     Overwrites any random per-turn id set earlier in the staff node, ensures the
     shared workspace exists, and persists a session record. Call this at node
-    start *only* when the conversation has files (see ``attach_conversation_sandbox``).
+    start *only* when the conversation has files (see ``attach_meeting_sandbox``).
     """
-    tid = conversation_thread_id(conversation_id)
+    tid = meeting_thread_id(conversation_id)
     _current_thread_id.set(tid)
-    workspace = ensure_conversation_workspace(conversation_id)
+    workspace = ensure_meeting_workspace(conversation_id)
     _persist_session(
         thread_id=tid,
         staff_name="conversation",

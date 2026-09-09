@@ -129,7 +129,7 @@ def download_file(
     import io
     from fastapi.responses import StreamingResponse
 
-    from server.infra.sandbox.sandbox_session import conversation_thread_id
+    from server.infra.sandbox.sandbox_session import meeting_thread_id
     from server.infra.sandbox.thread_files import list_thread_files
     from server.infra.storage.file_store import get_file_store
 
@@ -140,7 +140,7 @@ def download_file(
         raise HTTPException(status_code=400, detail="Invalid rel_path.")
 
     record = next((r for r in list_thread_files(task_id) if r.get("rel_path") == rel_path), None)
-    thread_id = conversation_thread_id(task_id)
+    thread_id = meeting_thread_id(task_id)
     data = get_file_store("sandbox").get(thread_id, rel_path)
     if data is None:
         raise HTTPException(status_code=404, detail="File not found.")
@@ -186,11 +186,11 @@ async def upload_file(
         raise HTTPException(status_code=400, detail="Invalid filename.")
 
     from server.infra.sandbox.sandbox_session import (
-        ensure_conversation_workspace,
+        ensure_meeting_workspace,
     )
     from server.infra.sandbox.thread_files import record_thread_file
 
-    workspace = ensure_conversation_workspace(task_id)
+    workspace = ensure_meeting_workspace(task_id)
     rel_path = f"uploads/{raw_name}"
     dest = os.path.join(workspace, rel_path)
     await asyncio.to_thread(_write_bytes, dest, content)

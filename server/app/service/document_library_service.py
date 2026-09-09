@@ -108,10 +108,10 @@ class DocumentLibraryService:
         if data is None:
             raise NotFoundError(f"Document bytes for {doc.id!r} not found")
 
-        from server.infra.sandbox.sandbox_session import ensure_conversation_workspace
+        from server.infra.sandbox.sandbox_session import ensure_meeting_workspace
         from server.infra.sandbox.thread_files import record_thread_file
 
-        workspace = ensure_conversation_workspace(task_id)
+        workspace = ensure_meeting_workspace(task_id)
         rel_path = f"uploads/{doc.name}"
         dest = os.path.join(workspace, rel_path)
         os.makedirs(os.path.dirname(dest), exist_ok=True)

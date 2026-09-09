@@ -413,7 +413,7 @@ def memory_toolkit_tools(conversation_id: str | None, staff_name: str) -> list[A
         return []
 
 
-def attach_conversation_sandbox(
+def attach_meeting_sandbox(
     bound_tools: list[Any],
     *,
     conversation_id: str | None,
@@ -438,16 +438,16 @@ def attach_conversation_sandbox(
         return False
     try:
         from server.infra.llm.sandbox_middleware import (
-            ensure_conversation_sandbox,
+            ensure_meeting_sandbox,
         )
 
-        cs = ensure_conversation_sandbox(conversation_id)
+        cs = ensure_meeting_sandbox(conversation_id)
         if cs is None or not cs.has_files:
             return False
 
-        from server.infra.sandbox.sandbox_session import use_conversation_thread
+        from server.infra.sandbox.sandbox_session import use_meeting_thread
 
-        use_conversation_thread(conversation_id)
+        use_meeting_thread(conversation_id)
 
         existing = {getattr(t, "name", "") for t in bound_tools}
         if "sandbox_bash" not in existing:
@@ -462,7 +462,7 @@ def attach_conversation_sandbox(
             bound_tools.extend(DocumentToolkit().get_tools())
         return True
     except Exception:  # noqa: BLE001
-        logger.exception("attach_conversation_sandbox failed for %s", conversation_id)
+        logger.exception("attach_meeting_sandbox failed for %s", conversation_id)
         return False
 
 
@@ -493,7 +493,7 @@ def build_agent_tools(staff: GraphStaffDefinition, *, conversation_id: str | Non
         )
     bound_tools.extend(memory_toolkit_tools(conversation_id, staff.name))
 
-    attach_conversation_sandbox(bound_tools, conversation_id=conversation_id, staff_name=staff.name)
+    attach_meeting_sandbox(bound_tools, conversation_id=conversation_id, staff_name=staff.name)
 
     return bound_tools
 

@@ -140,15 +140,15 @@ async def chat(
     if req.conversationId:
         try:
             from server.domain.staff._graph_runtime import (
-                attach_conversation_sandbox,
+                attach_meeting_sandbox,
                 uploads_hint,
             )
 
             staff_name = req.staffId or "assistant"
-            if attach_conversation_sandbox(tools, conversation_id=req.conversationId, staff_name=staff_name):
+            if attach_meeting_sandbox(tools, conversation_id=req.conversationId, staff_name=staff_name):
                 prompt = uploads_hint(req.conversationId) + prompt
         except Exception as exc:  # noqa: BLE001 - never break a chat over file wiring
-            logger.warning("attach_conversation_sandbox (direct chat) failed: %s", exc)
+            logger.warning("attach_meeting_sandbox (direct chat) failed: %s", exc)
 
     text = await service.chat(
         prompt=prompt,

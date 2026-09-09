@@ -10,7 +10,7 @@ import pytest
 from server.app.service.rag_retrieval import RagRetrievalService
 from server.domain.memory.bm25 import bm25_rank
 from server.domain.memory.knowledge_graph import (
-    ConversationKnowledgeGraph,
+    MeetingKnowledgeGraph,
     GraphEdge,
     GraphNode,
 )
@@ -21,8 +21,8 @@ def _has(mod: str) -> bool:
     return importlib.util.find_spec(mod) is not None
 
 
-def _graph() -> ConversationKnowledgeGraph:
-    g = ConversationKnowledgeGraph(conversation_id="c1")
+def _graph() -> MeetingKnowledgeGraph:
+    g = MeetingKnowledgeGraph(conversation_id="c1")
     g.chunks = {
         "k1": "The launch date is September 12 for Project X",
         "k2": "Budget ceiling for Q3 is 200k dollars",

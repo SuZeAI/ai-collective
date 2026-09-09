@@ -17,7 +17,7 @@ from server.infra.repositories.mongo_repositories.activity_feed import (
 from server.infra.repositories.mongo_repositories.staff import MongoStaffRepository
 from server.infra.repositories.mongo_repositories.analytics import MongoAnalyticsRepository
 from server.infra.repositories.mongo_repositories.connections import MongoConnectionRepository
-from server.infra.repositories.mongo_repositories.conversations import (
+from server.infra.repositories.mongo_repositories.meetings import (
     MongoMeetingRepository,
 )
 from server.infra.repositories.mongo_repositories.epics import MongoEpicRepository

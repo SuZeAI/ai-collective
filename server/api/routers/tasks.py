@@ -266,10 +266,10 @@ def delete_task(
     conv_service.delete_messages_by_task(task_id)
     try:
         from server.infra.llm.sandbox_middleware import (
-            cleanup_conversation_sandbox,
+            cleanup_meeting_sandbox,
         )
 
-        cleanup_conversation_sandbox(task_id)
+        cleanup_meeting_sandbox(task_id)
     except Exception:  # noqa: BLE001 - best-effort; never block task deletion
         pass
     _sync_runtime_state(service, department_service, staff_service)

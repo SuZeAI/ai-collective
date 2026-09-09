@@ -39,7 +39,7 @@ class DepartmentSchema(BaseModel):
         )
 
 
-class UpsertTeamRequest(BaseModel):
+class UpsertDepartmentRequest(BaseModel):
     id: str | None = None
     name: str
     description: str = ""

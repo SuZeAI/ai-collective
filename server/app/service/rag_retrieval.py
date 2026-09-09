@@ -9,7 +9,7 @@ chunks + entities/relations:
 * ``hybrid`` — Qdrant vector *seeds* fused with Neo4j graph *expansion* (GraphRAG):
   vectors pick the entry chunks, the graph pulls in their connected neighbours.
 
-The retriever operates on an already-loaded ``ConversationKnowledgeGraph`` (which
+The retriever operates on an already-loaded ``MeetingKnowledgeGraph`` (which
 comes from whatever graph backend is configured, including Neo4j), so the
 "hybrid" genuinely combines the vector DB and the graph store. Synchronous, so it
 slots straight into ``graph_context_service.build_graph_context``. Best-effort:

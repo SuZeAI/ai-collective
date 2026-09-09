@@ -3,7 +3,7 @@
 A conversation "has files" once a user uploads a document or an staff writes one
 into the shared workspace. This store records that metadata so the orchestrator
 can cheaply decide whether to provision the conversation sandbox + inject the
-sandbox tools (see ``attach_conversation_sandbox``).
+sandbox tools (see ``attach_meeting_sandbox``).
 
 Mirrors ``sandbox_session``'s dual-mode persistence: MongoDB when
 ``storage_backend == "mongo"``, otherwise ``{STORAGE_DIR}/thread_files.json``
@@ -30,7 +30,7 @@ logger = get_logger(__name__)
 _LOCK_KEY = "thread_files"
 
 # conversation_has_files is called synchronously at the start of *every* agent
-# turn across all 5 topologies (build_agent_tools -> attach_conversation_sandbox),
+# turn across all 5 topologies (build_agent_tools -> attach_meeting_sandbox),
 # which otherwise re-does a disk read (or Mongo round-trip) every single turn.
 # A conversation only ever transitions False -> True (files are never removed
 # mid-conversation — purge_thread_files only runs on task deletion, which ends
@@ -200,7 +200,7 @@ def conversation_has_files(conversation_id: str) -> bool:
     """True if *conversation_id* has any recorded file or an on-disk upload.
 
     Called synchronously at the start of every agent turn (via
-    build_agent_tools/attach_conversation_sandbox in every topology), so a
+    build_agent_tools/attach_meeting_sandbox in every topology), so a
     cache hit short-circuits the disk/Mongo check entirely — see
     ``_has_files_cache``.
 
@@ -249,14 +249,14 @@ def _conversation_has_files_uncached(conversation_id: str) -> bool:
 def _uploads_dir_has_files(conversation_id: str) -> bool:
     try:
         from server.infra.sandbox.sandbox_session import (
-            conversation_thread_id,
+            meeting_thread_id,
         )
         from server.api.settings import settings
 
         base = settings.sandbox_workspace or os.path.join(
             os.path.expanduser("~"), "sandbox_workspace"
         )
-        uploads = os.path.join(base, conversation_thread_id(conversation_id), "uploads")
+        uploads = os.path.join(base, meeting_thread_id(conversation_id), "uploads")
         return os.path.isdir(uploads) and any(os.scandir(uploads))
     except Exception:  # noqa: BLE001
         return False
