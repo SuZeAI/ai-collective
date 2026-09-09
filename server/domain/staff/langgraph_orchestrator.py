@@ -17,6 +17,7 @@ from server.app.ports.llm import LLMProvider
 from server.domain.event.schema import EventType
 from server.domain.memory.knowledge_graph import GraphContextConfig
 from server.domain.staff._graph_runtime import (
+    assemble_run_result,
     build_bound_tools,
     build_turn_messages,
     drain_human_guidance,
@@ -108,17 +109,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
         ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
 
         final_state, error = await run_to_final_state(graph, initial, len(selected_agents))
-        turns = list(final_state.get("turns", []))
-        final_response = final_state.get("final_response") or (turns[-1].content if turns else "")
-        final_staff = final_state.get("final_staff")
-        rounds = int(final_state.get("rounds", len(turns)))
-        return GraphRunResult(
-            turns=turns,
-            final_response=final_response,
-            final_staff=final_staff,
-            rounds=rounds,
-            error=error,
-        )
+        return assemble_run_result(final_state, error)
 
     async def run_stream(
         self,

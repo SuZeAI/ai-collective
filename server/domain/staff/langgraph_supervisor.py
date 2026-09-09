@@ -23,6 +23,7 @@ from server.domain.memory.knowledge_graph import GraphContextConfig
 from server.domain.staff._graph_runtime import (
     FANOUT_SYNTHESIS_GUIDANCE,
     MESH_FANOUT_MAX_CONCURRENT,
+    assemble_run_result,
     build_bound_tools,
     build_turn_messages,
     drain_human_guidance,
@@ -178,15 +179,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
         graph = self._build_graph(staff, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
         final_state, error = await run_to_final_state(graph, self._initial_state(user_input, staff), max_rounds)
-
-        turns = list(final_state.get("turns", []))
-        return GraphRunResult(
-            turns=turns,
-            final_response=final_state.get("final_response") or (turns[-1].content if turns else ""),
-            final_staff=final_state.get("final_staff"),
-            rounds=int(final_state.get("rounds", len(turns))),
-            error=error,
-        )
+        return assemble_run_result(final_state, error)
 
     async def run_stream(
         self,

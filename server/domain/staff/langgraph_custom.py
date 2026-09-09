@@ -15,7 +15,12 @@ from server.app.ports.staff_graph import (
 )
 from server.app.ports.llm import LLMProvider
 from server.domain.memory.knowledge_graph import GraphContextConfig
-from server.domain.staff._graph_runtime import ingest_user_message, recursion_config, run_to_final_state
+from server.domain.staff._graph_runtime import (
+    assemble_run_result,
+    ingest_user_message,
+    recursion_config,
+    run_to_final_state,
+)
 from server.domain.staff.langgraph_orchestrator import LangGraphStaffOrchestrator
 from server.domain.staff.staff_state import StaffStates, init_staff_states, merge_staff_states
 
@@ -82,14 +87,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
         ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
 
         final_state, error = await run_to_final_state(graph, self._initial_state(user_input, staff), max_rounds)
-        turns = list(final_state.get("turns", []))
-        return GraphRunResult(
-            turns=turns,
-            final_response=final_state.get("final_response") or (turns[-1].content if turns else ""),
-            final_staff=final_state.get("final_staff"),
-            rounds=int(final_state.get("rounds", len(turns))),
-            error=error,
-        )
+        return assemble_run_result(final_state, error)
 
     async def run_stream(
         self,

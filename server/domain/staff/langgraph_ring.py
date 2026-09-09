@@ -17,6 +17,7 @@ from server.app.ports.llm import LLMProvider
 from server.domain.event.schema import EventType
 from server.domain.memory.knowledge_graph import GraphContextConfig
 from server.domain.staff._graph_runtime import (
+    assemble_run_result,
     build_bound_tools,
     build_turn_messages,
     drain_human_guidance,
@@ -99,15 +100,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
         )
         initial = self._make_initial_state(user_input, staff)
         final_state, error = await run_to_final_state(graph, initial, max_rounds)
-
-        turns = list(final_state.get("turns", []))
-        return GraphRunResult(
-            turns=turns,
-            final_response=final_state.get("final_response") or (turns[-1].content if turns else ""),
-            final_staff=final_state.get("final_staff"),
-            rounds=int(final_state.get("rounds", len(turns))),
-            error=error,
-        )
+        return assemble_run_result(final_state, error)
 
     async def run_stream(
         self,

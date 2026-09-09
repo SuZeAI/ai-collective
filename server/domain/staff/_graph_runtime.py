@@ -26,7 +26,12 @@ except Exception:  # pragma: no cover
         """Fallback if langgraph does not expose GraphRecursionError."""
 
 from server.api.settings import settings
-from server.app.ports.staff_graph import GraphContextProvider, GraphStaffDefinition, GraphTurn
+from server.app.ports.staff_graph import (
+    GraphContextProvider,
+    GraphRunResult,
+    GraphStaffDefinition,
+    GraphTurn,
+)
 from server.domain.event.schema import EventType
 from server.domain.memory.knowledge_graph import GraphContextConfig
 from server.domain.staff.token_budget import TokenBudgetResult, apply_context_token_budget
@@ -560,6 +565,25 @@ def uploads_hint(conversation_id: str | None) -> str:
         )
     except Exception:  # noqa: BLE001
         return ""
+
+
+def assemble_run_result(final_state: dict[str, Any], error: str | None) -> GraphRunResult:
+    """Build the GraphRunResult a topology's run() returns from its final graph
+    state — turns/final_response/final_staff/rounds all read straight off
+    state, falling back to the last turn where a field wasn't set.
+
+    Not used by mesh: it derives final_staff from turns[-1].staff_name instead
+    of state["final_staff"], which isn't guaranteed equivalent — that's a
+    real (pre-existing) divergence, not something to paper over here.
+    """
+    turns = list(final_state.get("turns", []))
+    return GraphRunResult(
+        turns=turns,
+        final_response=final_state.get("final_response") or (turns[-1].content if turns else ""),
+        final_staff=final_state.get("final_staff"),
+        rounds=int(final_state.get("rounds", len(turns))),
+        error=error,
+    )
 
 
 def ingest_user_message(
