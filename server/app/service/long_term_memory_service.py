@@ -208,7 +208,6 @@ class LongTermMemoryService:
         *,
         conversation_id: str,
         scope: MemoryScope,
-        min_salience: float = 0.6,
         max_items: int = 20,
     ) -> int:
         """Promote salient short-term knowledge into long-term memory.

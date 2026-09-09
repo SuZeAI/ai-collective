@@ -171,11 +171,11 @@ function FlowCanvas({ staff, initialFlow, onChange }: Props) {
     // Drop edges that reference an staff no longer selected.
     const allowed = new Set(staff.map((a) => a.id));
     setEdges((prev) => prev.filter((e) => allowed.has(e.source) && allowed.has(e.target)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally
-    // keyed on selectedIds (not `staff`): `staff` is a fresh array
+    // Intentionally keyed on selectedIds (not `staff`): `staff` is a fresh array
     // reference on every parent render even when the selection is
     // unchanged, so depending on it directly re-runs this effect every
     // render and feeds back into onChange -> parent state -> re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIds, setNodes, setEdges]);
 
   // Push the serialized flow up on every node/edge change.

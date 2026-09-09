@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
   BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit,
-  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, Building2, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban, Star, Plug,
+  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, Building2, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban, Star, Plug, Settings,
 } from "lucide-react";
 import { api, type Company } from "@/lib/api";
 import { setActiveCompanyId, getActiveCompanyId, useCompanyScope } from "@/hooks/use-company-scope";
@@ -54,6 +54,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { key: "officeBuilder", url: "/office-builder", icon: Sparkles },
       { key: "companies", url: "/companies", icon: Building2 },
+      { key: "settings", url: "/settings", icon: Settings },
     ]
   },
   {

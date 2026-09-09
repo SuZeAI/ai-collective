@@ -28,6 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StaffAvatar } from "@/components/StaffAvatar";
 import { getStaffRoleColor } from "@/lib/staff-role-ui";
 import { api, avgCompletionOf, type Staff, type Analytics, type Task, type Department } from "@/lib/api";
+import { chartTooltipStyle as tooltipStyle } from "@/lib/format";
 import { useCompanyScope } from "@/hooks/use-company-scope";
 
 const ROLE_COLORS: Record<string, string> = {
@@ -227,14 +228,6 @@ export default function AnalyticsPage() {
       color: KPI_COLORS.info,
     },
   ];
-
-  const tooltipStyle = {
-    backgroundColor: "hsl(var(--background))",
-    border: "1px solid hsl(var(--border))",
-    borderRadius: "8px",
-    fontSize: "11px",
-    color: "hsl(var(--foreground))",
-  };
 
   return (
     <div className="space-y-6 pb-8">
