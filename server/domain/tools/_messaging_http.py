@@ -28,11 +28,14 @@ def request_json(
     raw_body: Optional[bytes] = None,
     headers: Optional[Dict[str, str]] = None,
     timeout: int = DEFAULT_TIMEOUT,
+    parse_json: bool = True,
 ) -> Dict[str, Any]:
     """Issue an HTTP request and return the parsed JSON response (or ``{}``).
 
     Provide ``json_body`` for a JSON payload, or ``raw_body`` for a pre-encoded
     body (e.g. form-encoded). ``service`` is used only to format error messages.
+    Set ``parse_json=False`` for APIs that reply with a plain-text body (e.g.
+    webhook gateways); the response is then wrapped as ``{"ok": True, "response": body[:500]}``.
     """
     final_headers: Dict[str, str] = dict(headers or {})
     data: Optional[bytes]
@@ -46,6 +49,8 @@ def request_json(
     try:
         with request.urlopen(req, timeout=timeout) as resp:
             body = resp.read().decode("utf-8")
+            if not parse_json:
+                return {"ok": True, "response": body[:500]}
             return json.loads(body) if body.strip() else {}
     except error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")

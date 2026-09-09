@@ -1,36 +1,35 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from typing import Any, Dict, Optional
-from urllib import error, parse, request
+from urllib import parse
 
 from langchain.tools import tool
 
 from server.domain.tools.base import BaseToolkit
+from server.domain.tools._messaging_http import request_json
 
 MS_BOT_TOKEN_URL = "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token"
 SKYPE_DEFAULT_SERVICE_URL = "https://smba.trafficmanager.net/apis"
 
 
 def _get_bot_token(app_id: str, app_password: str, timeout: int = 20) -> str:
-    data = parse.urlencode({
+    body = parse.urlencode({
         "grant_type": "client_credentials",
         "client_id": app_id,
         "client_secret": app_password,
         "scope": "https://api.botframework.com/.default",
     }).encode("utf-8")
-    req = request.Request(
-        url=MS_BOT_TOKEN_URL,
-        method="POST",
-        data=data,
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-    )
     try:
-        with request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8")).get("access_token", "")
-    except Exception as exc:
+        resp = request_json(
+            "POST", MS_BOT_TOKEN_URL, service="Bot Framework token",
+            raw_body=body,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            timeout=timeout,
+        )
+    except RuntimeError as exc:
         raise RuntimeError(f"Failed to get Bot Framework token: {exc}") from exc
+    return resp.get("access_token", "")
 
 
 def _skype_send(
@@ -41,21 +40,12 @@ def _skype_send(
     timeout: int = 30,
 ) -> Dict[str, Any]:
     url = f"{service_url.rstrip('/')}/v3/conversations/{conversation_id}/activities"
-    payload = json.dumps(data).encode("utf-8")
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
-    req = request.Request(url=url, method="POST", data=payload, headers=headers)
-    try:
-        with request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read().decode("utf-8")
-            return json.loads(body) if body.strip() else {"ok": True}
-    except error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Skype Bot API error {exc.code}: {body[:300]}") from exc
-    except (error.URLError, TimeoutError) as exc:
-        raise RuntimeError(f"Skype request failed: {exc}") from exc
+    return request_json(
+        "POST", url, service="Skype Bot",
+        json_body=data,
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=timeout,
+    )
 
 
 class SkypeMessagingToolkit(BaseToolkit):

@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from typing import Any, Dict, Optional
-from urllib import error, request
 
 from langchain.tools import tool
 
 from server.domain.tools.base import BaseToolkit
+from server.domain.tools._messaging_http import request_json
 
 IG_API_BASE = "https://graph.facebook.com/v19.0"
 
@@ -21,19 +20,7 @@ def _ig_request(
 ) -> Dict[str, Any]:
     sep = "&" if "?" in path else "?"
     url = f"{IG_API_BASE}{path}{sep}access_token={access_token}"
-    payload = None
-    headers = {"Content-Type": "application/json"}
-    if data is not None:
-        payload = json.dumps(data).encode("utf-8")
-    req = request.Request(url=url, method=method, data=payload, headers=headers)
-    try:
-        with request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Instagram API error {exc.code}: {body[:300]}") from exc
-    except (error.URLError, TimeoutError) as exc:
-        raise RuntimeError(f"Instagram request failed: {exc}") from exc
+    return request_json(method, url, service="Instagram", json_body=data, timeout=timeout)
 
 
 class InstagramMessagingToolkit(BaseToolkit):

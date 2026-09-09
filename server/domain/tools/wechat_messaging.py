@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import time
 from typing import Any, Dict, Optional
-from urllib import error, request
 
 from langchain.tools import tool
 
 from server.domain.tools.base import BaseToolkit
+from server.domain.tools._messaging_http import request_json
 
 WECHAT_API_BASE = "https://api.weixin.qq.com/cgi-bin"
 
@@ -25,23 +24,19 @@ def _get_access_token(app_id: str, app_secret: str, timeout: int = 15) -> str:
         f"{WECHAT_API_BASE}/token"
         f"?grant_type=client_credential&appid={app_id}&secret={app_secret}"
     )
-    req = request.Request(url=url, method="GET")
     try:
-        with request.urlopen(req, timeout=timeout) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            if "errcode" in data and data["errcode"] != 0:
-                raise RuntimeError(f"WeChat token error {data['errcode']}: {data.get('errmsg')}")
-            token = data.get("access_token", "")
-            expires_in = int(data.get("expires_in", 7200))
-            _token_cache[cache_key] = {
-                "token": token,
-                "expires_at": time.time() + expires_in,
-            }
-            return token
-    except RuntimeError:
-        raise
-    except Exception as exc:
+        data = request_json("GET", url, service="WeChat access token", timeout=timeout)
+    except RuntimeError as exc:
         raise RuntimeError(f"WeChat access token request failed: {exc}") from exc
+    if "errcode" in data and data["errcode"] != 0:
+        raise RuntimeError(f"WeChat token error {data['errcode']}: {data.get('errmsg')}")
+    token = data.get("access_token", "")
+    expires_in = int(data.get("expires_in", 7200))
+    _token_cache[cache_key] = {
+        "token": token,
+        "expires_at": time.time() + expires_in,
+    }
+    return token
 
 
 def _wechat_request(
@@ -53,19 +48,7 @@ def _wechat_request(
 ) -> Dict[str, Any]:
     sep = "&" if "?" in path else "?"
     url = f"{WECHAT_API_BASE}{path}{sep}access_token={access_token}"
-    payload = None
-    headers = {"Content-Type": "application/json"}
-    if data is not None:
-        payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
-    req = request.Request(url=url, method=method, data=payload, headers=headers)
-    try:
-        with request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"WeChat API error {exc.code}: {body[:300]}") from exc
-    except (error.URLError, TimeoutError) as exc:
-        raise RuntimeError(f"WeChat request failed: {exc}") from exc
+    return request_json(method, url, service="WeChat", json_body=data, timeout=timeout)
 
 
 class WeChatMessagingToolkit(BaseToolkit):

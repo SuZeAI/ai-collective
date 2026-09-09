@@ -1,28 +1,16 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from typing import Any, Dict, List, Optional
-from urllib import error, request
 
 from langchain.tools import tool
 
 from server.domain.tools.base import BaseToolkit
+from server.domain.tools._messaging_http import request_json
 
 
 def _webhook_post(webhook_url: str, data: Dict, timeout: int = 30) -> Dict[str, Any]:
-    payload = json.dumps(data).encode("utf-8")
-    headers = {"Content-Type": "application/json"}
-    req = request.Request(url=webhook_url, method="POST", data=payload, headers=headers)
-    try:
-        with request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read().decode("utf-8")
-            return {"ok": True, "response": body[:500]}
-    except error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Teams webhook error {exc.code}: {body[:300]}") from exc
-    except (error.URLError, TimeoutError) as exc:
-        raise RuntimeError(f"Teams request failed: {exc}") from exc
+    return request_json("POST", webhook_url, service="Teams webhook", json_body=data, parse_json=False, timeout=timeout)
 
 
 class TeamsMessagingToolkit(BaseToolkit):

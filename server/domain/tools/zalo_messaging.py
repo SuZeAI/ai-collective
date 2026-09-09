@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from typing import Any, Dict, List, Optional
-from urllib import error, parse, request
+from urllib import parse
 
 from langchain.tools import tool
 
 from server.domain.tools.base import BaseToolkit
+from server.domain.tools._messaging_http import request_json
 
 ZALO_API_BASE = "https://openapi.zalo.me/v2.0/oa"
 
@@ -23,22 +23,12 @@ def _zalo_request(
     url = f"{ZALO_API_BASE}{path}"
     if params:
         url = f"{url}?{parse.urlencode(params)}"
-    payload = None
-    headers = {
-        "access_token": access_token,
-        "Content-Type": "application/json",
-    }
-    if data is not None:
-        payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
-    req = request.Request(url=url, method=method, data=payload, headers=headers)
-    try:
-        with request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Zalo API error {exc.code}: {body[:300]}") from exc
-    except (error.URLError, TimeoutError) as exc:
-        raise RuntimeError(f"Zalo request failed: {exc}") from exc
+    return request_json(
+        method, url, service="Zalo",
+        json_body=data,
+        headers={"access_token": access_token},
+        timeout=timeout,
+    )
 
 
 class ZaloMessagingToolkit(BaseToolkit):

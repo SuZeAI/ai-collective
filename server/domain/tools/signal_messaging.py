@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import asyncio
 from typing import Any, Dict, Optional
-from urllib import error, parse, request
+from urllib import parse
 
 from langchain.tools import tool
 
 from server.domain.tools.base import BaseToolkit
+from server.domain.tools._messaging_http import request_json
 
 CALLMEBOT_SIGNAL_URL = "https://signal.callmebot.com/signal/send.php"
 
@@ -19,16 +20,7 @@ def _signal_send(
 ) -> Dict[str, Any]:
     params = parse.urlencode({"phone": phone, "apikey": api_key, "text": message})
     url = f"{CALLMEBOT_SIGNAL_URL}?{params}"
-    req = request.Request(url=url, method="GET")
-    try:
-        with request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read().decode("utf-8")
-            return {"ok": True, "response": body[:500]}
-    except error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Signal gateway error {exc.code}: {body[:300]}") from exc
-    except (error.URLError, TimeoutError) as exc:
-        raise RuntimeError(f"Signal request failed: {exc}") from exc
+    return request_json("GET", url, service="Signal gateway", parse_json=False, timeout=timeout)
 
 
 class SignalMessagingToolkit(BaseToolkit):
