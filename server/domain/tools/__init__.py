@@ -1,6 +1,6 @@
 from server.domain.tools.base import BaseToolkit, Tool
 from server.domain.tools.bash import BashToolkit
-from server.infra.sandbox import Sandbox as SandboxPort
+from server.app.ports.sandbox import Sandbox as SandboxPort
 from server.domain.tools.brave_search import BraveSearchToolkit
 from server.domain.tools.browser import BrowserPort, BrowserToolkit
 from server.domain.tools.http import HTTPToolkit

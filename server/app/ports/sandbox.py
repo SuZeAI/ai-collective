@@ -1,4 +1,7 @@
-"""Abstract base classes and shared types for sandbox environments."""
+"""Sandbox port: abstract base class and shared types for sandbox environments.
+
+Implementations (server/infra/sandbox/): LocalSandboxAdapter, AioSandbox.
+"""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

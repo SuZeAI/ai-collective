@@ -22,10 +22,11 @@ import time
 from abc import ABC, abstractmethod
 from typing import Optional
 
+from server.app.ports.sandbox import Sandbox
+
 from .aio_sandbox import AioSandbox
 from .backend import SandboxBackend, wait_for_sandbox_ready
 from .remote_backend import RemoteSandboxBackend
-from .sandbox import Sandbox
 from .sandbox_info import SandboxInfo
 
 logger = logging.getLogger(__name__)

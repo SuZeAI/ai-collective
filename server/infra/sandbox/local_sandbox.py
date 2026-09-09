@@ -15,7 +15,7 @@ from typing import Any, Optional
 
 from server.share.log import get_logger
 
-from .sandbox import GrepMatch, Sandbox, SandboxResult
+from server.app.ports.sandbox import GrepMatch, Sandbox, SandboxResult
 
 logger = get_logger()
 

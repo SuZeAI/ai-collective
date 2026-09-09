@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from .sandbox import Sandbox
+from server.app.ports.sandbox import Sandbox
 
 
 def create_sandbox_adapter(session_id: Optional[str] = None) -> Sandbox:

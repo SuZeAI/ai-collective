@@ -187,7 +187,7 @@ class ToolRegistry:
 
         if tool_name in (ToolType.BASH.value, ToolType.SANDBOX.value):
             from server.infra.sandbox.factory import create_sandbox_adapter
-            from server.infra.sandbox import Sandbox
+            from server.app.ports.sandbox import Sandbox
 
             for _k in ("sandbox_mode", "sandbox_url", "sandbox_provisioner_url", "sandbox_timeout", "sandbox_workspace"):
                 kwargs.pop(_k, None)

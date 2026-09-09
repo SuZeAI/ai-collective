@@ -18,7 +18,7 @@ from typing import Any, Optional
 
 import requests
 
-from .sandbox import GrepMatch, Sandbox, SandboxResult
+from server.app.ports.sandbox import GrepMatch, Sandbox, SandboxResult
 
 logger = logging.getLogger(__name__)
 

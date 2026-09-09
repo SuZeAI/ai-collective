@@ -1,7 +1,6 @@
 """Sandbox infrastructure package.
 
 Provides:
-    Sandbox              — abstract base class for all sandbox implementations
     SandboxProvider      — abstract base class for sandbox lifecycle managers
     SandboxBackend       — abstract base class for provisioning backends
 
@@ -14,6 +13,9 @@ Provides:
     create_sandbox_adapter() — factory: returns the right Sandbox for settings.sandbox_mode
     get_sandbox_provider()   — singleton AioSandboxProvider
 
+The Sandbox port itself (abstract base class + GrepMatch/SandboxResult) lives
+in server.app.ports.sandbox — import it from there.
+
 Modes (SANDBOX_MODE env var):
     local — direct host execution (dev-only, no isolation)
     k8s   — K8s/k3s pods via SANDBOX_PROVISIONER_URL
@@ -24,7 +26,6 @@ from .backend import SandboxBackend, wait_for_sandbox_ready
 from .factory import create_sandbox_adapter
 from .local_sandbox import LocalSandboxAdapter
 from .remote_backend import RemoteSandboxBackend
-from .sandbox import GrepMatch, Sandbox, SandboxResult
 from .sandbox_info import SandboxInfo
 from .sandbox_provider import (
     AioSandboxProvider,
@@ -46,14 +47,11 @@ from .sandbox_session import (
 __all__ = [
     "AioSandbox",
     "AioSandboxProvider",
-    "GrepMatch",
     "LocalSandboxAdapter",
     "RemoteSandboxBackend",
-    "Sandbox",
     "SandboxBackend",
     "SandboxInfo",
     "SandboxProvider",
-    "SandboxResult",
     "meeting_thread_id",
     "create_sandbox_adapter",
     "ensure_meeting_workspace",

@@ -4,8 +4,8 @@ from typing import Any, Optional
 
 from langchain.tools import tool
 
+from server.app.ports.sandbox import Sandbox
 from server.domain.tools.base import BaseToolkit
-from server.infra.sandbox import Sandbox
 
 
 class BashToolkit(BaseToolkit):
