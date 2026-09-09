@@ -579,6 +579,15 @@ def ingest_user_message(
         )
 
 
+def init_sandbox_thread(staff_name: str, conversation_id: str | None) -> tuple[str, str]:
+    """Allocate this turn's sandbox thread id/workspace, creating the dir now."""
+    from server.infra.sandbox.sandbox_session import get_thread_workspace, new_thread_id
+
+    sandbox_thread_id = new_thread_id(staff_name=staff_name, task_id=conversation_id)
+    sandbox_workspace = get_thread_workspace(settings.sandbox_workspace or "", sandbox_thread_id)
+    return sandbox_thread_id, sandbox_workspace
+
+
 def recursion_config(max_rounds: int) -> dict[str, Any]:
     """Build a LangGraph config whose recursion limit honors ``max_rounds``.
 

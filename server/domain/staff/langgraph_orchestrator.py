@@ -22,6 +22,7 @@ from server.domain.staff._graph_runtime import (
     drain_human_guidance,
     ensure_working_memory,
     ingest_user_message,
+    init_sandbox_thread,
     uploads_hint,
     record_guidance_in_memory,
     record_turn_in_memory,
@@ -198,18 +199,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
 
             # Generate a unique thread_id for this staff_member turn.
             # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
-            from server.infra.sandbox.sandbox_session import (
-                new_thread_id as _new_thread_id,
-                get_thread_workspace as _get_thread_workspace,
-            )
-            from server.api.settings import settings as _settings
-            sandbox_thread_id = _new_thread_id(
-                staff_name=staff_member.name,
-                task_id=conversation_id,
-            )
-            sandbox_workspace = _get_thread_workspace(
-                _settings.sandbox_workspace or "", sandbox_thread_id
-            )
+            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(staff_member.name, conversation_id)
 
             # Stream: Staff starting
             stream_writer({

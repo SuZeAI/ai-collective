@@ -28,6 +28,7 @@ from server.domain.staff._graph_runtime import (
     ensure_working_memory,
     get_fanout_semaphore,
     ingest_user_message,
+    init_sandbox_thread,
     parse_fanout_pairs,
     record_guidance_in_memory,
     record_turn_in_memory,
@@ -703,19 +704,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         state: MultiAgentMeshState,
     ) -> tuple[str, str]:
         """Allocate this turn's sandbox thread id/workspace (creates the dir) and log it."""
-        from server.infra.sandbox.sandbox_session import (
-            new_thread_id as _new_thread_id,
-            get_thread_workspace as _get_thread_workspace,
-        )
-        from server.api.settings import settings as _settings
-
-        sandbox_thread_id = _new_thread_id(
-            staff_name=staff_member.name,
-            task_id=conversation_id,
-        )
-        sandbox_workspace = _get_thread_workspace(
-            _settings.sandbox_workspace or "", sandbox_thread_id
-        )
+        sandbox_thread_id, sandbox_workspace = init_sandbox_thread(staff_member.name, conversation_id)
         logger.debug(
             "[%s] mesh_node: round=%d thread_id=%s workspace=%s",
             staff_member.name, state.get("rounds", 0) + 1, sandbox_thread_id, sandbox_workspace,
