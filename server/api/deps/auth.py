@@ -109,3 +109,21 @@ def _make_current_owner_id_dep():
 
 
 current_owner_id_dep = _make_current_owner_id_dep()
+
+
+# Gate for admin-only endpoints (/admin/*, shared third-party connections).
+def _make_require_admin_dep():
+    from fastapi import Depends, HTTPException, status
+
+    def dep(user=Depends(current_user_dep)):
+        if getattr(user, "role", "") not in ("admin", "system"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin privileges required",
+            )
+        return user
+
+    return dep
+
+
+require_admin_dep = _make_require_admin_dep()

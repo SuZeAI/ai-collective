@@ -3,9 +3,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 
-from server.api.deps import current_user_dep, get_connection_service
+from server.api.deps import get_connection_service, require_admin_dep as require_admin
 from server.api.schemas.connection import ConnectionSchema, UpsertConnectionRequest
 from server.api.schemas.skill import merge_config_preserving_secrets
 from server.app.service.connection_service import ConnectionService
@@ -13,17 +13,6 @@ from server.domain.errors import NotFoundError
 from server.domain.models import Connection
 
 router = APIRouter(prefix="/connections", tags=["connections"])
-
-
-def require_admin(user=Depends(current_user_dep)):
-    """Connections hold shared third-party credentials (no per-owner scoping) —
-    only admins may view or manage them."""
-    if getattr(user, "role", "") not in ("admin", "system"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin privileges required",
-        )
-    return user
 
 
 @router.get("", response_model=list[ConnectionSchema])

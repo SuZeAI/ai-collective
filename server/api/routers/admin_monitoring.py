@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from server.api.deps import (
     STORAGE_DIR,
     _llm_provider,
     _resolve_active_model_config,
-    current_user_dep,
     get_monitoring_service,
     get_system_settings_repository,
     refresh_llm_provider,
 )
+from server.api.deps import require_admin_dep as require_admin
 from server.api.schemas.admin import (
     ActiveModelSchema,
     EntityCountsSchema,
@@ -30,16 +30,6 @@ from server.infra.monitoring import request_metrics
 
 
 router = APIRouter(prefix="/admin/monitoring", tags=["admin"])
-
-
-def require_admin(user=Depends(current_user_dep)):
-    """Only users with the admin (or legacy system) role may hit /admin/*."""
-    if getattr(user, "role", "") not in ("admin", "system"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin privileges required",
-        )
-    return user
 
 
 @router.get("/usage", response_model=UsageSummarySchema)

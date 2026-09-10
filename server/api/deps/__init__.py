@@ -7,7 +7,7 @@ need to change.
 from __future__ import annotations
 
 from server.api.deps._core import PROJECT_ROOT, SEED_DIR, STORAGE_DIR, Repos
-from server.api.deps.auth import current_owner_id_dep, current_user_dep
+from server.api.deps.auth import current_owner_id_dep, current_user_dep, require_admin_dep
 from server.api.deps.company import get_company_service, get_connection_service
 from server.api.deps.documents import _library_document_store, get_document_library_service
 from server.api.deps.meetings import (
@@ -51,6 +51,7 @@ __all__ = [
     "Repos",
     "current_owner_id_dep",
     "current_user_dep",
+    "require_admin_dep",
     "get_company_service",
     "get_connection_service",
     "_library_document_store",
