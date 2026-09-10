@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends
 
+from server.api.avatars import sanitize_avatar_fields
 from server.api.deps import current_owner_id_dep, get_skill_service
 from server.api.ownership import require_deletable, require_modifiable
 from server.api.schemas.skill import (
@@ -51,15 +52,18 @@ def upsert_skill(
     skill_id = req.id or f"skill_{uuid4().hex}"
     existing = service.try_get_skill(skill_id) if req.id else None
     require_modifiable(existing, owner_id, f"Skill '{skill_id}'")
+    avatar_icon, avatar_color, avatar_url = sanitize_avatar_fields(
+        req.avatar_icon, req.avatar_color, req.avatar_url
+    )
     skill = Skill(
         id=skill_id,
         name=req.name,
         description=req.description or "",
         third_party=req.third_party or "",
         avatar=((req.avatar or "").strip() or req.name[:1].upper() or "S"),
-        avatar_icon=(req.avatar_icon or "").strip(),
-        avatar_color=(req.avatar_color or "").strip(),
-        avatar_url=(req.avatar_url or "").strip(),
+        avatar_icon=avatar_icon,
+        avatar_color=avatar_color,
+        avatar_url=avatar_url,
         tool_name=req.tool_name,
         kind=req.kind or "integration",
         config=merge_config_preserving_secrets(

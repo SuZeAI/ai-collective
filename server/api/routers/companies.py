@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends
 
 import logging
 
+from server.api.avatars import sanitize_avatar_fields
 from server.api.deps import (
     current_owner_id_dep,
     get_company_service,
@@ -45,6 +46,9 @@ def upsert_company(
     existing = service.try_get_company(company_id)
     require_modifiable(existing, owner_id, f"Company {company_id!r}")
     created_at = existing.created_at if existing else datetime.now(timezone.utc)
+    avatar_icon, avatar_color, avatar_url = sanitize_avatar_fields(
+        req.avatar_icon, req.avatar_color, req.avatar_url
+    )
     company = Company(
         id=company_id,
         name=req.name,
@@ -54,9 +58,9 @@ def upsert_company(
         created_at=created_at,
         type=(req.type or (existing.type if existing else None) or "general"),
         avatar=(req.avatar or "").strip() or req.name[:1].upper() or "W",
-        avatar_icon=(req.avatar_icon or "").strip(),
-        avatar_color=(req.avatar_color or "").strip(),
-        avatar_url=(req.avatar_url or "").strip(),
+        avatar_icon=avatar_icon,
+        avatar_color=avatar_color,
+        avatar_url=avatar_url,
         owner_id=existing.owner_id if existing else owner_id,
     )
     saved = service.upsert_company(company)

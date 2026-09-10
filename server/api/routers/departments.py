@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends
 
+from server.api.avatars import sanitize_avatar_fields
 from server.api.deps import current_owner_id_dep, get_staff_service, get_meeting_service, get_department_service
 from server.api.ownership import require_deletable, require_modifiable
 from server.api.schemas.department import DepartmentSchema, UpsertDepartmentRequest
@@ -46,6 +47,9 @@ def upsert_department(
         # A newly created department starts in active mode.
         active_tasks = max(1, req.activeTasks)
 
+    avatar_icon, avatar_color, avatar_url = sanitize_avatar_fields(
+        req.avatar_icon, req.avatar_color, req.avatar_url
+    )
     department = Department(
         id=department_id,
         name=req.name,
@@ -53,9 +57,9 @@ def upsert_department(
         staff=list(req.staff),
         active_tasks=active_tasks,
         avatar=((req.avatar or "").strip() or req.name[:1].upper() or "T"),
-        avatar_icon=(req.avatar_icon or "").strip(),
-        avatar_color=(req.avatar_color or "").strip(),
-        avatar_url=(req.avatar_url or "").strip(),
+        avatar_icon=avatar_icon,
+        avatar_color=avatar_color,
+        avatar_url=avatar_url,
         mode=req.mode or "sequential",
         max_steps=req.maxSteps or 6,
         owner_id=existing.owner_id if existing else owner_id,

@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends
 
+from server.api.avatars import sanitize_avatar_fields
 from server.api.schemas.staff import StaffSchema, UpsertStaffRequest
 from server.app.service.staff_service import StaffService
 from server.api.deps import current_owner_id_dep, get_staff_service
@@ -39,6 +40,9 @@ def upsert_staff(
     existing = service.try_get_staff(staff_id) if req.id else None
     require_modifiable(existing, owner_id, f"Staff '{staff_id}'")
     avatar = req.avatar or (req.name[:1].upper() if req.name else "A")
+    avatar_icon, avatar_color, avatar_url = sanitize_avatar_fields(
+        req.avatar_icon, req.avatar_color, req.avatar_url
+    )
 
     staff = Staff(
         id=staff_id,
@@ -48,9 +52,9 @@ def upsert_staff(
         skill_ids=req.skill_ids or [],
         status=StaffStatus(req.status),
         avatar=avatar,
-        avatar_icon=(req.avatar_icon or "").strip(),
-        avatar_color=(req.avatar_color or "").strip(),
-        avatar_url=(req.avatar_url or "").strip(),
+        avatar_icon=avatar_icon,
+        avatar_color=avatar_color,
+        avatar_url=avatar_url,
         system_prompt=(
             req.system_prompt.strip()
             if isinstance(req.system_prompt, str) and req.system_prompt.strip()
