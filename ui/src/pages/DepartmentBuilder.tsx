@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StaffAvatar, departmentAvatarIconOptions } from "@/components/StaffAvatar";
+import { AvatarPicker, isHexColor, type AvatarMode } from "@/components/AvatarPicker";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
 import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Staff, type CustomFlow, type Department, type DepartmentMode } from "@/lib/api";
 import { useCompanyScope } from "@/hooks/use-company-scope";
@@ -21,12 +22,6 @@ export type DepartmentTestMessage = {
   step: number;
   timestamp: string;
 };
-
-type AvatarMode = "initial" | "icon" | "image";
-
-function isHexColor(value: string): boolean {
-  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
-}
 
 export default function DepartmentBuilder() {
   const scope = useCompanyScope();
@@ -504,67 +499,21 @@ export default function DepartmentBuilder() {
                 <Input placeholder="Department name" value={name} onChange={(e) => setName(e.target.value)} />
                 <Input placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
 
-                <div className="space-y-3">
-                  <div className="text-sm font-medium">Department Icon</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
-                    <select
-                      value={avatarMode}
-                      onChange={(e) => setAvatarMode(e.target.value as AvatarMode)}
-                      className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
-                    >
-                      <option value="initial">Initials</option>
-                      <option value="icon">Icon</option>
-                      <option value="image">Image URL</option>
-                    </select>
-
-                    <div className="flex items-center gap-2 justify-start sm:justify-end">
-                      <span className="text-xs text-muted-foreground">Preview</span>
-                      <StaffAvatar
-                        staff={{
-                          avatar: name.trim()[0]?.toUpperCase() || "T",
-                          avatar_icon: avatarMode === "icon" ? avatarIcon : "",
-                          avatar_color: isHexColor(avatarColor) ? avatarColor : "",
-                          avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
-                        }}
-                        className="w-10 h-10"
-                      />
-                    </div>
-                  </div>
-
-                  {avatarMode === "icon" ? (
-                    <select
-                      value={avatarIcon}
-                      onChange={(e) => setAvatarIcon(e.target.value)}
-                      className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
-                    >
-                      {departmentAvatarIconOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  ) : null}
-
-                  {avatarMode === "image" ? (
-                    <Input
-                      placeholder="https://example.com/department-avatar.png"
-                      value={avatarUrl}
-                      onChange={(e) => setAvatarUrl(e.target.value)}
-                    />
-                  ) : null}
-
-                  <div className="flex items-center gap-3">
-                    <Input
-                      type="color"
-                      value={isHexColor(avatarColor) ? avatarColor : "#0EA5E9"}
-                      onChange={(e) => setAvatarColor(e.target.value)}
-                      className="w-14 p-1 h-10"
-                    />
-                    <Input
-                      placeholder="#0EA5E9"
-                      value={avatarColor}
-                      onChange={(e) => setAvatarColor(e.target.value)}
-                    />
-                  </div>
-                </div>
+                <AvatarPicker
+                  label="Department Icon"
+                  mode={avatarMode}
+                  onModeChange={setAvatarMode}
+                  icon={avatarIcon}
+                  onIconChange={setAvatarIcon}
+                  color={avatarColor}
+                  onColorChange={setAvatarColor}
+                  url={avatarUrl}
+                  onUrlChange={setAvatarUrl}
+                  iconOptions={departmentAvatarIconOptions}
+                  previewFallback={name.trim()[0]?.toUpperCase() || "T"}
+                  defaultColor="#0EA5E9"
+                  urlPlaceholder="https://example.com/department-avatar.png"
+                />
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Workflow Mode</label>

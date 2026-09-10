@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { StaffAvatar, avatarIconOptions } from "@/components/StaffAvatar";
+import { AvatarPicker, isHexColor, type AvatarMode } from "@/components/AvatarPicker";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
 import { StaffTestDialog } from "@/components/StaffTestDialog";
 import { api, canDeleteItem, canEditItem, type Staff, type Skill, type Department } from "@/lib/api";
@@ -102,12 +102,6 @@ const roles = [
   "Real Estate Advisor",
   "Travel Consultant",
 ] as const;
-
-type AvatarMode = "initial" | "icon" | "image";
-
-function isHexColor(value: string): boolean {
-  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
-}
 
 export default function StaffBuilder() {
   const scope = useCompanyScope();
@@ -488,71 +482,21 @@ export default function StaffBuilder() {
                   />
                 </div>
 
-                <div className="space-y-3 border rounded-lg p-3 bg-muted/10">
-                  <div className="text-sm font-medium">Avatar Customization</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
-                    <Select value={avatarMode} onValueChange={(v) => setAvatarMode(v as AvatarMode)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Avatar style" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="initial">Initials</SelectItem>
-                        <SelectItem value="icon">Icon</SelectItem>
-                        <SelectItem value="image">Image URL</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Preview</span>
-                      <StaffAvatar
-                        staff={{
-                          avatar: name.trim()[0]?.toUpperCase() || "A",
-                          avatar_icon: avatarMode === "icon" ? avatarIcon : "",
-                          avatar_color: isHexColor(avatarColor) ? avatarColor : "",
-                          avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
-                        }}
-                        className="w-10 h-10"
-                      />
-                    </div>
-                  </div>
-
-                  {avatarMode === "icon" ? (
-                    <Select value={avatarIcon} onValueChange={setAvatarIcon}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pick icon" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {avatarIconOptions.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : null}
-
-                  {avatarMode === "image" ? (
-                    <Input
-                      placeholder="https://example.com/avatar.png"
-                      value={avatarUrl}
-                      onChange={(e) => setAvatarUrl(e.target.value)}
-                    />
-                  ) : null}
-
-                  <div className="flex items-center gap-3">
-                    <Input
-                      type="color"
-                      value={isHexColor(avatarColor) ? avatarColor : "#3b82f6"}
-                      onChange={(e) => setAvatarColor(e.target.value)}
-                      className="w-14 p-1 h-10 cursor-pointer"
-                    />
-                    <Input
-                      placeholder="#3b82f6"
-                      value={avatarColor}
-                      onChange={(e) => setAvatarColor(e.target.value)}
-                    />
-                  </div>
-                </div>
+                <AvatarPicker
+                  label="Avatar Customization"
+                  mode={avatarMode}
+                  onModeChange={setAvatarMode}
+                  icon={avatarIcon}
+                  onIconChange={setAvatarIcon}
+                  color={avatarColor}
+                  onColorChange={setAvatarColor}
+                  url={avatarUrl}
+                  onUrlChange={setAvatarUrl}
+                  iconOptions={avatarIconOptions}
+                  previewFallback={name.trim()[0]?.toUpperCase() || "A"}
+                  defaultColor="#3b82f6"
+                  urlPlaceholder="https://example.com/avatar.png"
+                />
 
                 <div className="rounded-md border p-3 bg-muted/5">
                   <div className="flex items-center justify-between gap-4">
