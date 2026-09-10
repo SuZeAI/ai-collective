@@ -25,6 +25,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { COMPANY_TYPES } from "@/lib/company-types";
 import type { CompanyType } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { setActiveCompanyId } from "@/hooks/use-company-scope";
 
 const EXAMPLE_PROMPTS = [
   "Create a software company office with engineering, product and QA departments",
@@ -531,8 +532,7 @@ export default function OfficeBuilder() {
       setBuilt(true);
       await new Promise((r) => setTimeout(r, 1600));
       // Refresh the sidebar company switcher and jump to the new office.
-      localStorage.setItem("activeCompanyId", res.company.id);
-      window.dispatchEvent(new CustomEvent("companyChanged"));
+      setActiveCompanyId(res.company.id);
       navigate("/companies");
     } catch (err) {
       const detail = err instanceof Error ? err.message : "Office creation failed";
