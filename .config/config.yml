@@ -72,9 +72,9 @@ models:
       key_cooldown_seconds: 60
 
   - name: deepseek
-    display_name: DeepSeek Chat
+    display_name: DeepSeek Flash
     provider_name: DeepSeek
-    model: deepseek-chat
+    model: deepseek-flash
     api_key: $DEEPSEEK_API_KEY
     base_url: https://api.deepseek.com/v1
     enabled: false
