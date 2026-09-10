@@ -30,7 +30,7 @@ from server.domain.staff._graph_runtime import (
     recursion_config,
     raise_if_llm_failed,
     run_to_final_state,
-    safe_chat,
+    safe_chat_retry_empty,
     split_reasoning_and_action,
     wait_while_paused,
     working_memory_block,
@@ -539,7 +539,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
             })
 
             own_history = llm_ready_messages(state.get("staff_states", {}), staff_member.name)
-            raw_output = await safe_chat(llm,
+            raw_output = await safe_chat_retry_empty(llm,
                 staff_name=staff_member.name,
                 system=staff_member.system_prompt,
                 messages=[*own_history, *turn.as_messages()],

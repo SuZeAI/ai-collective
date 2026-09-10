@@ -36,7 +36,7 @@ from server.domain.staff._graph_runtime import (
     raise_if_llm_failed,
     run_fanout_wave,
     run_to_final_state,
-    safe_chat,
+    safe_chat_retry_empty,
     split_reasoning_and_action,
     wait_while_paused,
     working_memory_block,
@@ -602,7 +602,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
 
             logger.debug("[%s] mesh_node: invoking LLM...", staff_member.name)
             own_history = llm_ready_messages(state.get("staff_states", {}), staff_member.name)
-            response = await safe_chat(llm,
+            response = await safe_chat_retry_empty(llm,
                 staff_name=staff_member.name,
                 system=fixed_system_prompt,
                 messages=[*own_history, *turn.as_messages()],
@@ -1197,7 +1197,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         # FANOUT_SYNTHESIS_GUIDANCE is a static constant, so synthesis_system
         # stays stable across every synthesis call for this coordinator.
         synthesis_system = f"{coordinator_system}\n\n{FANOUT_SYNTHESIS_GUIDANCE}"
-        synth_raw = await safe_chat(
+        synth_raw = await safe_chat_retry_empty(
             llm,
             staff_name=coordinator.name,
             system=synthesis_system,

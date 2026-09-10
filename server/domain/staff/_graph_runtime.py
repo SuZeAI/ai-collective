@@ -110,6 +110,56 @@ async def safe_chat(llm: Any, *, staff_name: str = "", **chat_kwargs: Any) -> st
         current_usage_staff.reset(token)
 
 
+EMPTY_RESPONSE_NUDGE = (
+    "Your previous response was empty — no reasoning and no content. "
+    "Please answer this turn now with your actual output."
+)
+EMPTY_RESPONSE_MAX_RETRIES = 3
+
+
+async def safe_chat_retry_empty(
+    llm: Any,
+    *,
+    staff_name: str = "",
+    nudge_text: str = EMPTY_RESPONSE_NUDGE,
+    max_retries: int = EMPTY_RESPONSE_MAX_RETRIES,
+    **chat_kwargs: Any,
+) -> str:
+    """``safe_chat`` plus a retry loop for empty/blank replies.
+
+    ``safe_chat`` already retries transient provider failures; this covers the
+    separate case of a *successful* call whose content is blank (the staff_member
+    "said nothing"). Each retry appends ``nudge_text`` as a user turn so the
+    staff_member sees its empty reply was rejected, up to ``max_retries`` times,
+    then gives up and returns the last (empty) output so callers proceed
+    exactly as they would for any other turn content.
+
+    Requires a ``messages`` kwarg (a list of role/content dicts) to append the
+    nudge to; callers that don't pass one (e.g. a bespoke ``user``/``system``
+    chat shape) get a single plain ``safe_chat`` call with no retry.
+    """
+    messages = chat_kwargs.pop("messages", None)
+    if messages is None:
+        return await safe_chat(llm, staff_name=staff_name, **chat_kwargs)
+    turn_messages = list(messages)
+    output = ""
+    for attempt in range(max_retries + 1):
+        output = await safe_chat(llm, staff_name=staff_name, messages=turn_messages, **chat_kwargs)
+        if output.strip() or output.startswith("[error]"):
+            return output
+        if attempt < max_retries:
+            logger.warning(
+                "llm.chat returned an empty response (staff_member=%s, attempt=%d/%d); retrying with a nudge",
+                staff_name, attempt + 1, max_retries + 1,
+            )
+            turn_messages = [*turn_messages, {"role": "user", "content": nudge_text}]
+    logger.error(
+        "llm.chat kept returning empty responses (staff_member=%s) after %d attempts — giving up",
+        staff_name, max_retries + 1,
+    )
+    return output
+
+
 def raise_if_llm_failed(output: str) -> None:
     """Stop a serial (chained) run when a staff's turn was a safe_chat() failure.
 
@@ -769,7 +819,7 @@ async def run_fanout_wave(
             })
         async with semaphore:
             chat_kwargs = build_branch_chat_kwargs(staff_def, task_text)
-            raw = await safe_chat(llm, staff_name=name, **chat_kwargs)
+            raw = await safe_chat_retry_empty(llm, staff_name=name, **chat_kwargs)
         if stream_writer:
             stream_writer({
                 "type": EventType.LLM_RESPONSE_COMPLETE.value,
