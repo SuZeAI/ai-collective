@@ -292,7 +292,6 @@ export default function DepartmentBuilder() {
         max_rounds: stepLimit,
         mode: testMode,
         custom_graph: customGraph,
-        conversation_id: testingDepartment.id,
         signal: runToken.controller.signal,
         department_id: testingDepartment.id,
       })) {
