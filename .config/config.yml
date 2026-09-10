@@ -77,7 +77,7 @@ models:
     model: deepseek-flash
     api_key: $DEEPSEEK_API_KEY
     base_url: https://api.deepseek.com/v1
-    enabled: false
+    enabled: true
     failover:
       strategy: rotate
       rotate_max_requests_per_min: 0

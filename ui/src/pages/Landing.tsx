@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { LandingHeader } from "@/components/landing/LandingHeader";
-import { FadeIn, ProviderIcon, type ProviderLogoKey } from "@/components/landing/landing-helpers";
+import { FadeIn, ProviderIcon, PROVIDER_LOGOS, type ProviderLogoKey } from "@/components/landing/landing-helpers";
 import { getLandingCopy } from "@/components/landing/landing-copy";
 
 export default function Landing() {

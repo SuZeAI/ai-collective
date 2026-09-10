@@ -63,6 +63,7 @@ import {
   api,
   type AdminUserActivity,
   type FileStorageStats,
+  type LlmModelOption,
   type ModelPricing,
   type SystemHealth,
   type UsageSummary,
@@ -339,6 +340,8 @@ export default function AdminMonitoring() {
   const [pricing, setPricing] = useState<ModelPricing[]>([]);
   const [userActivity, setUserActivity] = useState<AdminUserActivity[]>([]);
   const [fileStorage, setFileStorage] = useState<FileStorageStats | null>(null);
+  const [models, setModels] = useState<LlmModelOption[]>([]);
+  const [switchingModel, setSwitchingModel] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [pricingDialogOpen, setPricingDialogOpen] = useState(false);
@@ -352,12 +355,13 @@ export default function AdminMonitoring() {
     setError(null);
     (async () => {
       try {
-        const [u, h, p, ua, fs] = await Promise.all([
+        const [u, h, p, ua, fs, m] = await Promise.all([
           api.getAdminUsage(days),
           api.getAdminHealth(),
           api.listModelPricing(),
           api.getAdminUsers(days),
           api.getAdminFileStorage(),
+          api.listLlmModels(),
         ]);
         if (cancelled) return;
         setUsage(u);
@@ -365,6 +369,7 @@ export default function AdminMonitoring() {
         setPricing(p);
         setUserActivity(ua);
         setFileStorage(fs);
+        setModels(m);
       } catch (e) {
         if (!cancelled) setError(String(e));
       } finally {
@@ -390,6 +395,21 @@ export default function AdminMonitoring() {
     setEditingPricing(p);
     setPricingDialogOpen(true);
   }, []);
+
+  const switchModel = useCallback(async (name: string) => {
+    setSwitchingModel(true);
+    try {
+      await api.setActiveModel(name);
+      const [m, h] = await Promise.all([api.listLlmModels(), api.getAdminHealth()]);
+      setModels(m);
+      setHealth(h);
+      toast({ title: `Active model switched to ${m.find((x) => x.name === name)?.displayName ?? name}` });
+    } catch (e) {
+      toast({ title: "Failed to switch model", description: String(e), variant: "destructive" });
+    } finally {
+      setSwitchingModel(false);
+    }
+  }, [toast]);
 
   const chartData = (usage?.byDay ?? []).map((d) => ({
     ...d,
@@ -514,6 +534,24 @@ export default function AdminMonitoring() {
                   </div>
                   <p className="text-sm font-medium capitalize">{health.llm.provider}</p>
                   <p className="text-xs text-muted-foreground">{health.llm.model}</p>
+                  {models.length > 0 && (
+                    <Select
+                      value={models.find((m) => m.active)?.name}
+                      onValueChange={switchModel}
+                      disabled={switchingModel}
+                    >
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="Select active model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {models.map((m) => (
+                          <SelectItem key={m.name} value={m.name} className="text-xs">
+                            {m.displayName} · {m.providerName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 <div className="glass-card p-5 space-y-3">
                   <div className="flex items-center gap-2">
