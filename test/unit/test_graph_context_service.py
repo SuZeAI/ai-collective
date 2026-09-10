@@ -147,7 +147,7 @@ def test_repeated_message_merges_chunk_links_without_dup_nodes_edges(tmp_path: P
         for edge in graph.edges.values()
         if edge.src == _canonical_node_id("entity", "Bao Tin Minh Chau")
         and edge.dst == _canonical_node_id("entity", "price analysis")
-        and edge.relation == "unknown"
+        and edge.relation == "depends_on"
     ]
     assert len(relation_edges) == 1
     relation_edge = relation_edges[0]

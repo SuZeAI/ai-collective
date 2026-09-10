@@ -310,7 +310,7 @@ class StaticGraphExtractor:
                                 "dst": right,
                                 "src_type": "entity",
                                 "dst_type": "entity",
-                                "relation": "unknown",
+                                "relation": role,
                             }
                         )
                         continue
@@ -325,7 +325,7 @@ class StaticGraphExtractor:
                             "dst": right,
                             "src_type": "entity",
                             "dst_type": "entity",
-                            "relation": "unknown",
+                            "relation": relation,
                         }
                     )
             if not relations:
