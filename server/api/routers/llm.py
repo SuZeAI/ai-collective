@@ -19,6 +19,7 @@ from server.api.deps import (
     get_skill_tool_manager,
     get_task_service,
 )
+from server.api.ownership import require_task_visible
 from server.api.schemas.admin import LlmModelOptionSchema
 from server.api.schemas.staff_graph import GraphRunRequest, GraphRunResponse, GraphTurnSchema
 from server.infra.llm.config import get_enabled_models
@@ -29,7 +30,6 @@ from server.app.service.llm_service import LLMService
 from server.app.service.task_service import TaskService
 from server.domain.errors import NotFoundError
 from server.domain.memory.knowledge_graph import GraphContextConfig
-from server.domain.models import is_visible_to
 from server.domain.service.skill_tool_service import SkillToolManager
 from server.infra import task_run_registry
 from server.infra.llm.usage_tracker import current_usage_department
@@ -41,18 +41,7 @@ logger = get_logger(__name__)
 
 
 def _require_conversation_access(task_service: TaskService, conversation_id: str, owner_id: str) -> None:
-    """Raise 404 unless the conversation's task exists and is visible to owner_id.
-
-    Conversation ids are task ids; without this check any caller who can guess
-    or enumerate a task id could interject/respond/pause/resume another
-    owner's active run.
-    """
-    try:
-        task = task_service.get_task(conversation_id)
-    except NotFoundError:
-        raise HTTPException(status_code=404, detail="Meeting not found")
-    if not is_visible_to(owner_id, task.owner_id):
-        raise HTTPException(status_code=404, detail="Meeting not found")
+    require_task_visible(task_service, conversation_id, owner_id, label="Meeting")
 
 
 @router.get("/models", response_model=list[LlmModelOptionSchema])

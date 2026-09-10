@@ -20,8 +20,8 @@ from server.api.schemas.common import (
 )
 from server.app.service.meeting_service import MeetingService
 from server.app.service.task_service import TaskService
-from server.domain.errors import NotFoundError
-from server.domain.models import Message, User, is_owned_by, is_visible_to
+from server.api.ownership import require_task_visible
+from server.domain.models import Message, User, is_owned_by
 from server.share.log import get_logger
 
 logger = get_logger(__name__)
@@ -50,17 +50,7 @@ _MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
 
 
 def _require_task_access(task_service: TaskService, task_id: str, owner_id: str) -> None:
-    """Raise 404 unless task_id exists and is visible to owner_id.
-
-    Without this, any caller who knows/enumerates a task_id could read or
-    inject messages and download files for tasks they don't own.
-    """
-    try:
-        task = task_service.get_task(task_id)
-    except NotFoundError:
-        raise HTTPException(status_code=404, detail="Task not found")
-    if not is_visible_to(owner_id, task.owner_id):
-        raise HTTPException(status_code=404, detail="Task not found")
+    require_task_visible(task_service, task_id, owner_id, label="Task")
 
 
 @router.get("", response_model=list[MessageSchema])
