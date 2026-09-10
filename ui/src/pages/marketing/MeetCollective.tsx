@@ -1,10 +1,8 @@
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import { ArrowRight, Bot, Brain, Shield, Zap, Network, Code2, ExternalLink, ChevronRight } from "lucide-react";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { API_DOCS_URL } from "@/lib/api";
+import { MarketingNav, FadeIn } from "@/components/marketing/MarketingNav";
 
 const MODELS = [
   { key: "gemini-3-flash-preview", color: "hsl(220 80% 55%)", desc: "Default speed engine, optimized for entity extraction and real-time knowledge graphs." },
@@ -25,42 +23,13 @@ const FEATURE_DATA = [
   { name: "Human-in-the-Loop", desc: "Intervene directly in running staff discussions to steer staff or inject manual inputs." },
 ];
 
-function FadeIn({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay, ease: "easeOut" }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
 export default function MeetCollective() {
   const { t } = useLanguage();
   const m = t.marketing;
 
   return (
     <div className="min-h-screen bg-[#faf9f5] dark:bg-[#141413] text-foreground font-sans">
-      {/* Nav */}
-      <div className="border-b border-border/60 bg-background/90 backdrop-blur-xl sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/spider.png" alt="AI Collective" className="h-6 w-6 object-contain" />
-            <span className="font-serif text-lg font-medium">AI Collective</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <LanguageSwitcher />
-            <ThemeToggle />
-            <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{m.common.login}</Link>
-            <Link to="/dashboard" className="inline-flex h-9 px-4 items-center justify-center rounded-lg bg-foreground text-background text-sm font-semibold hover:opacity-90 transition-opacity">
-              {m.common.startBuilding}
-            </Link>
-          </div>
-        </div>
-      </div>
+      <MarketingNav />
 
       {/* Hero */}
       <section className="max-w-7xl mx-auto px-6 pt-24 pb-20">

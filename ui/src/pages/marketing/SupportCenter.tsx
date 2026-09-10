@@ -6,9 +6,8 @@ import {
   ArrowLeft, X, ThumbsUp, ThumbsDown, ChevronRight,
   ExternalLink, Mail, MessageSquare, Landmark, HelpCircle
 } from "lucide-react";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { MarketingNav } from "@/components/marketing/MarketingNav";
 
 // ─── TRANSLATIONS & CONTENTS ───────────────────────────────────────────────
 
@@ -406,24 +405,11 @@ export default function SupportCenter() {
     <div className="min-h-screen bg-[#faf9f5] dark:bg-[#141413] text-foreground font-sans transition-colors duration-300">
 
       {/* ─── NAVBAR ──────────────────────────────────────────────────────── */}
-      <div className="border-b border-border/60 bg-background/90 backdrop-blur-xl sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/spider.png" alt="AI Collective" className="h-6 w-6 object-contain" />
-            <span className="font-serif text-lg font-medium">AI Collective</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <LanguageSwitcher />
-            <ThemeToggle />
-            <Link to="/contact-sales" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              {localizedText.contactUs}
-            </Link>
-            <Link to="/dashboard" className="inline-flex h-9 px-4 items-center justify-center rounded-lg bg-foreground text-background text-sm font-semibold hover:opacity-90 transition-opacity">
-              {language === "vi" ? "Mở Console" : "Open Console"}
-            </Link>
-          </div>
-        </div>
-      </div>
+      <MarketingNav
+        secondaryLabel={localizedText.contactUs}
+        secondaryHref="/contact-sales"
+        ctaLabel={language === "vi" ? "Mở Console" : "Open Console"}
+      />
 
       {/* ─── HERO & SEARCH ─────────────────────────────────────────────── */}
       <section className="bg-gradient-to-b from-accent/5 to-transparent pt-16 pb-12 px-6">
