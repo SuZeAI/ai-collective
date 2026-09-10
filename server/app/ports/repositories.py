@@ -216,6 +216,9 @@ class UserRepository(Protocol):
     def save(self, user: User) -> User:
         ...
 
+    def delete(self, user_id: str) -> None:
+        ...
+
 
 class TokenUsageRepository(Protocol):
     def add(self, record: TokenUsageRecord) -> TokenUsageRecord:

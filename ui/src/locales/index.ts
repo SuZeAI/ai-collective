@@ -46,6 +46,23 @@ export type AuthTranslations = {
   logoutDesc: string;
   passwordMismatch: string;
   errorDefault: string;
+  connectedApps: string;
+  connectedAppsDesc: string;
+  googleAccount: string;
+  googleLinked: string;
+  googleNotLinked: string;
+  linkGoogle: string;
+  unlinkGoogle: string;
+  linking: string;
+  unlinking: string;
+  deleteAccountBtn: string;
+  deleteAccountDesc: string;
+  deleteAccountTitle: string;
+  deleteAccountWarning: string;
+  deleteAccountConfirmLabel: string;
+  deleteAccountConfirmPlaceholder: string;
+  deleteAccountConfirmBtn: string;
+  deletingAccount: string;
   orContinueWith: string;
   socialComingSoon: string;
   phoneBtn: string;
@@ -394,6 +411,23 @@ export const translations: Record<Language, Translations> = {
       logoutDesc: "Sign out of your account on this device.",
       passwordMismatch: "Passwords do not match.",
       errorDefault: "Something went wrong. Please try again.",
+      connectedApps: "Connected Apps",
+      connectedAppsDesc: "Manage third-party accounts linked to your login.",
+      googleAccount: "Google Account",
+      googleLinked: "Linked",
+      googleNotLinked: "Not linked",
+      linkGoogle: "Link Google account",
+      unlinkGoogle: "Unlink",
+      linking: "Redirecting…",
+      unlinking: "Unlinking…",
+      deleteAccountBtn: "Delete account",
+      deleteAccountDesc: "Permanently delete your account and all data you own.",
+      deleteAccountTitle: "Delete your account?",
+      deleteAccountWarning: "This permanently deletes your account and everything you own — companies, departments, staff, tasks, projects, and connected apps. This action cannot be undone.",
+      deleteAccountConfirmLabel: "Type your email to confirm:",
+      deleteAccountConfirmPlaceholder: "Enter your email",
+      deleteAccountConfirmBtn: "Permanently delete account",
+      deletingAccount: "Deleting…",
       sessionExpiredTitle: "Session expired",
       sessionExpiredDesc: "Please sign in again to continue.",
       orContinueWith: "Or continue with",
@@ -757,6 +791,23 @@ export const translations: Record<Language, Translations> = {
       logoutDesc: "Đăng xuất khỏi tài khoản của bạn trên thiết bị này.",
       passwordMismatch: "Mật khẩu không khớp.",
       errorDefault: "Đã xảy ra lỗi. Vui lòng thử lại.",
+      connectedApps: "Ứng dụng liên kết",
+      connectedAppsDesc: "Quản lý tài khoản bên thứ ba được liên kết với đăng nhập của bạn.",
+      googleAccount: "Tài khoản Google",
+      googleLinked: "Đã liên kết",
+      googleNotLinked: "Chưa liên kết",
+      linkGoogle: "Liên kết tài khoản Google",
+      unlinkGoogle: "Hủy liên kết",
+      linking: "Đang chuyển hướng…",
+      unlinking: "Đang hủy liên kết…",
+      deleteAccountBtn: "Xóa tài khoản",
+      deleteAccountDesc: "Xóa vĩnh viễn tài khoản và toàn bộ dữ liệu bạn sở hữu.",
+      deleteAccountTitle: "Xóa tài khoản của bạn?",
+      deleteAccountWarning: "Thao tác này sẽ xóa vĩnh viễn tài khoản của bạn và mọi thứ bạn sở hữu — công ty, phòng ban, nhân sự, công việc, dự án và ứng dụng liên kết. Không thể hoàn tác.",
+      deleteAccountConfirmLabel: "Nhập email của bạn để xác nhận:",
+      deleteAccountConfirmPlaceholder: "Nhập email của bạn",
+      deleteAccountConfirmBtn: "Xóa vĩnh viễn tài khoản",
+      deletingAccount: "Đang xóa…",
       sessionExpiredTitle: "Phiên đăng nhập đã hết hạn",
       sessionExpiredDesc: "Vui lòng đăng nhập lại để tiếp tục.",
       orContinueWith: "Hoặc tiếp tục với",
@@ -1120,6 +1171,23 @@ export const translations: Record<Language, Translations> = {
       logoutDesc: "在此设备上退出您的账户。",
       passwordMismatch: "密码不匹配。",
       errorDefault: "出现错误，请重试。",
+      connectedApps: "已连接的应用",
+      connectedAppsDesc: "管理与您的登录关联的第三方账户。",
+      googleAccount: "Google 账户",
+      googleLinked: "已关联",
+      googleNotLinked: "未关联",
+      linkGoogle: "关联 Google 账户",
+      unlinkGoogle: "取消关联",
+      linking: "正在跳转…",
+      unlinking: "正在取消关联…",
+      deleteAccountBtn: "删除账户",
+      deleteAccountDesc: "永久删除您的账户及您拥有的所有数据。",
+      deleteAccountTitle: "删除您的账户？",
+      deleteAccountWarning: "此操作将永久删除您的账户及您拥有的一切——公司、部门、员工、任务、项目和已连接的应用。此操作无法撤销。",
+      deleteAccountConfirmLabel: "输入您的邮箱以确认：",
+      deleteAccountConfirmPlaceholder: "输入您的邮箱",
+      deleteAccountConfirmBtn: "永久删除账户",
+      deletingAccount: "正在删除…",
       sessionExpiredTitle: "登录已过期",
       sessionExpiredDesc: "请重新登录以继续。",
       orContinueWith: "或继续使用",
@@ -1483,6 +1551,23 @@ export const translations: Record<Language, Translations> = {
       logoutDesc: "このデバイスからサインアウトします。",
       passwordMismatch: "パスワードが一致しません。",
       errorDefault: "エラーが発生しました。もう一度お試しください。",
+      connectedApps: "連携アプリ",
+      connectedAppsDesc: "ログインに連携されたサードパーティのアカウントを管理します。",
+      googleAccount: "Google アカウント",
+      googleLinked: "連携済み",
+      googleNotLinked: "未連携",
+      linkGoogle: "Google アカウントを連携",
+      unlinkGoogle: "連携解除",
+      linking: "リダイレクト中…",
+      unlinking: "連携解除中…",
+      deleteAccountBtn: "アカウントを削除",
+      deleteAccountDesc: "アカウントと所有するすべてのデータを完全に削除します。",
+      deleteAccountTitle: "アカウントを削除しますか？",
+      deleteAccountWarning: "この操作により、アカウントと所有するすべてのデータ（会社、部門、スタッフ、タスク、プロジェクト、連携アプリ）が完全に削除されます。この操作は取り消せません。",
+      deleteAccountConfirmLabel: "確認のためメールアドレスを入力してください：",
+      deleteAccountConfirmPlaceholder: "メールアドレスを入力",
+      deleteAccountConfirmBtn: "アカウントを完全に削除",
+      deletingAccount: "削除中…",
       sessionExpiredTitle: "セッションの有効期限が切れました",
       sessionExpiredDesc: "続けるには再度サインインしてください。",
       orContinueWith: "または以下で続ける",

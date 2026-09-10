@@ -8,6 +8,7 @@ export type AuthUser = {
   avatar?: string;
   role?: string;
   joinedAt?: string;
+  provider?: string;
 };
 
 type AuthContextValue = {

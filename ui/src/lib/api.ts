@@ -616,6 +616,8 @@ export type AuthUser = {
   avatar?: string;
   role?: string;
   joinedAt?: string;
+  provider?: string;
+  hasPassword?: boolean;
 };
 
 export type LoginResponse = {
@@ -632,6 +634,8 @@ type RawAuthUser = {
   role?: string;
   joinedAt?: string;
   joined_at?: string;
+  provider?: string;
+  has_password?: boolean;
 };
 
 // Backend returns snake_case `joined_at`; normalize every auth response to the
@@ -644,6 +648,8 @@ export function mapAuthUser(raw: RawAuthUser): AuthUser {
     avatar: raw.avatar ?? undefined,
     role: raw.role,
     joinedAt: raw.joinedAt ?? raw.joined_at ?? undefined,
+    provider: raw.provider,
+    hasPassword: raw.has_password,
   };
 }
 
@@ -718,6 +724,7 @@ async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
       }
       throw new Error(await parseErrorDetail(res));
     }
+    if (res.status === 204) return undefined as T;
     return (await res.json()) as T;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
@@ -1201,6 +1208,9 @@ export const api = {
     mapAuthUser(await apiFetch<RawAuthUser>("/auth/profile", { method: "PATCH", body: JSON.stringify(payload) })),
   changePassword: (current_password: string, new_password: string) =>
     apiFetch<void>("/auth/password", { method: "PATCH", body: JSON.stringify({ current_password, new_password }) }),
+  unlinkGoogle: async (): Promise<AuthUser> =>
+    mapAuthUser(await apiFetch<RawAuthUser>("/auth/google/unlink", { method: "POST" })),
+  deleteAccount: () => apiFetch<void>("/auth/account", { method: "DELETE" }),
   uploadAvatar: async (file: File): Promise<AuthUser> => {
     const base = getApiBase().replace(/\/$/, "");
     const url = `${base}/auth/avatar`;

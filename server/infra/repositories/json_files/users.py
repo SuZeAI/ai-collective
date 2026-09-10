@@ -75,6 +75,10 @@ class JsonUserRepository:
             self._items = self._merge_and_persist({user.id: user}, remove_ids=())
         return user
 
+    def delete(self, user_id: str) -> None:
+        with self._lock:
+            self._items = self._merge_and_persist({}, remove_ids=(user_id,))
+
     def _merge_and_persist(
         self, upserts: dict[str, User], remove_ids: tuple[str, ...]
     ) -> dict[str, User]:

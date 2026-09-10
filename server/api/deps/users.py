@@ -4,6 +4,7 @@ from functools import lru_cache
 
 from server.api.deps._core import _mongo_db, _store
 from server.api.settings import settings
+from server.app.service.account_deletion_service import AccountDeletionService
 from server.app.service.user_service import UserService
 from server.infra.repositories.json_files import JsonUserRepository
 from server.infra.repositories.mongo_repositories import MongoUserRepository
@@ -25,6 +26,27 @@ def _password_hasher() -> BcryptPasswordHasher:
 
 def get_user_service() -> UserService:
     return UserService(_user_store(), _password_hasher())
+
+
+def get_account_deletion_service() -> AccountDeletionService:
+    from server.api.deps.company import get_company_service, get_connection_service
+    from server.api.deps.office_builder import get_office_builder_session_service
+    from server.api.deps.projects import get_epic_service, get_project_service, get_sprint_service
+    from server.api.deps.staff import get_department_service, get_skill_service, get_staff_service, get_task_service
+
+    return AccountDeletionService(
+        get_user_service(),
+        get_company_service(),
+        get_connection_service(),
+        get_office_builder_session_service(),
+        get_project_service(),
+        get_epic_service(),
+        get_sprint_service(),
+        get_department_service(),
+        get_staff_service(),
+        get_skill_service(),
+        get_task_service(),
+    )
 
 
 def seed_admin_user() -> None:

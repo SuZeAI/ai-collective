@@ -21,6 +21,8 @@ class UserSchema(BaseModel):
     role: str
     avatar: str | None = None
     joined_at: str | None = None
+    provider: str = "local"
+    has_password: bool = False
 
     @staticmethod
     def from_domain(u) -> "UserSchema":
@@ -31,6 +33,8 @@ class UserSchema(BaseModel):
             role=u.role,
             avatar=u.avatar or None,
             joined_at=u.joined_at or None,
+            provider=u.provider,
+            has_password=bool(u.hashed_password),
         )
 
 
@@ -47,7 +51,9 @@ class UpdateProfileRequest(BaseModel):
 
 
 class ChangePasswordRequest(BaseModel):
-    current_password: str
+    # Optional so OAuth-only accounts (no local password yet) can set one for
+    # the first time, e.g. before unlinking Google.
+    current_password: str = ""
     new_password: str = Field(min_length=6, max_length=128)
 
 

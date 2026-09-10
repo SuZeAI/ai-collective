@@ -42,7 +42,7 @@ from server.api.deps.staff import (
     get_staff_service,
     get_task_service,
 )
-from server.api.deps.users import get_user_service, seed_admin_user
+from server.api.deps.users import get_account_deletion_service, get_user_service, seed_admin_user
 
 __all__ = [
     "PROJECT_ROOT",
@@ -83,5 +83,6 @@ __all__ = [
     "get_staff_service",
     "get_task_service",
     "get_user_service",
+    "get_account_deletion_service",
     "seed_admin_user",
 ]

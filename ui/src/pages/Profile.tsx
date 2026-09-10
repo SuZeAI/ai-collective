@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   User, Mail, Lock, Shield, Calendar, LogOut,
-  Check, Pencil, Camera, Upload,
+  Check, Pencil, Camera, Upload, Link2, Unlink, Trash2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -12,7 +12,13 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { api } from "@/lib/api";
+import { getApiBase } from "@/lib/api-base";
 
 type ProfileForm = { name: string; email: string };
 type PasswordForm = { current: string; newPw: string; confirm: string };
@@ -45,12 +51,18 @@ export default function Profile() {
   const queryClient = useQueryClient();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [profileStatus, setProfileStatus] = useState<"idle" | "saving" | "ok" | "error">("idle");
   const [profileError, setProfileError] = useState<string | null>(null);
   const [pwStatus, setPwStatus] = useState<"idle" | "saving" | "ok" | "error">("idle");
   const [pwError, setPwError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
+
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
+  const [deleteStatus, setDeleteStatus] = useState<"idle" | "deleting">("idle");
 
   const [avatarMode, setAvatarMode] = useState<"url" | "upload">("url");
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar ?? "");
@@ -129,6 +141,46 @@ export default function Profile() {
     logout();
     queryClient.clear();
     navigate("/login");
+  };
+
+  const handleLinkGoogle = async () => {
+    setGoogleBusy(true);
+    try {
+      const base = getApiBase().replace(/\/$/, "");
+      const res = await fetch(`${base}/auth/google/login`);
+      if (!res.ok) throw new Error("Failed to start Google login");
+      const { authorize_url } = await res.json();
+      window.location.href = authorize_url;
+    } catch (e) {
+      toast({ title: t.auth.errorDefault, description: e instanceof Error ? e.message : undefined, variant: "destructive" });
+      setGoogleBusy(false);
+    }
+  };
+
+  const handleUnlinkGoogle = async () => {
+    setGoogleBusy(true);
+    try {
+      const updated = await api.unlinkGoogle();
+      updateUser(updated);
+    } catch (e) {
+      toast({ title: t.auth.errorDefault, description: e instanceof Error ? e.message : undefined, variant: "destructive" });
+    } finally {
+      setGoogleBusy(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteStatus("deleting");
+    try {
+      await api.deleteAccount();
+      logout();
+      queryClient.clear();
+      navigate("/login");
+    } catch (e) {
+      toast({ title: t.auth.errorDefault, description: e instanceof Error ? e.message : undefined, variant: "destructive" });
+    } finally {
+      setDeleteStatus("idle");
+    }
   };
 
   if (!user) return null;
@@ -354,6 +406,41 @@ export default function Profile() {
         </form>
       </motion.div>
 
+      {/* Connected apps */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+        className="rounded-2xl border border-border bg-card p-6"
+      >
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center">
+            <Link2 className="w-3.5 h-3.5 text-amber-400" />
+          </div>
+          <h2 className="font-semibold">{t.auth.connectedApps}</h2>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">{t.auth.connectedAppsDesc}</p>
+        <div className="flex items-center justify-between py-2 border-t border-border/50">
+          <div>
+            <p className="text-sm font-medium">{t.auth.googleAccount}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {user.provider === "google" ? t.auth.googleLinked : t.auth.googleNotLinked}
+            </p>
+          </div>
+          {user.provider === "google" ? (
+            <Button variant="outline" size="sm" onClick={handleUnlinkGoogle} disabled={googleBusy}>
+              <Unlink className="w-3.5 h-3.5 mr-1.5" />
+              {googleBusy ? t.auth.unlinking : t.auth.unlinkGoogle}
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={handleLinkGoogle} disabled={googleBusy}>
+              <Link2 className="w-3.5 h-3.5 mr-1.5" />
+              {googleBusy ? t.auth.linking : t.auth.linkGoogle}
+            </Button>
+          )}
+        </div>
+      </motion.div>
+
       {/* Account info */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -392,11 +479,57 @@ export default function Profile() {
       >
         <h2 className="font-semibold text-destructive mb-1">{t.auth.dangerZone}</h2>
         <p className="text-sm text-muted-foreground mb-4">{t.auth.logoutDesc}</p>
-        <Button variant="destructive" onClick={handleLogout}>
-          <LogOut className="w-4 h-4 mr-2" />
-          {t.auth.logoutBtn}
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button variant="destructive" onClick={handleLogout}>
+            <LogOut className="w-4 h-4 mr-2" />
+            {t.auth.logoutBtn}
+          </Button>
+          <Button
+            variant="outline"
+            className="border-destructive/40 text-destructive hover:bg-destructive/10"
+            onClick={() => {
+              setDeleteConfirmEmail("");
+              setDeleteDialogOpen(true);
+            }}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            {t.auth.deleteAccountBtn}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground mt-3">{t.auth.deleteAccountDesc}</p>
       </motion.div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={(o) => !o && setDeleteDialogOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t.auth.deleteAccountTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{t.auth.deleteAccountWarning}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-1.5">
+            <Label htmlFor="delete-confirm-email">
+              {t.auth.deleteAccountConfirmLabel}{" "}
+              <span className="font-mono text-foreground">{user.email}</span>
+            </Label>
+            <Input
+              id="delete-confirm-email"
+              value={deleteConfirmEmail}
+              onChange={(e) => setDeleteConfirmEmail(e.target.value)}
+              placeholder={t.auth.deleteAccountConfirmPlaceholder}
+              autoComplete="off"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t.auth.cancel}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAccount}
+              disabled={deleteConfirmEmail.trim().toLowerCase() !== user.email.toLowerCase() || deleteStatus === "deleting"}
+              className="bg-rose-600 hover:bg-rose-500 text-white"
+            >
+              {deleteStatus === "deleting" ? t.auth.deletingAccount : t.auth.deleteAccountConfirmBtn}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

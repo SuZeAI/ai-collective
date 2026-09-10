@@ -145,7 +145,22 @@ class UserService:
 
     def change_password(self, user_id: str, current_password: str, new_password: str) -> None:
         user = self.find_by_id(user_id)
-        if not self._hasher.verify(current_password, user.hashed_password):
+        # OAuth-only accounts start with no local password — skip the current-password
+        # check so they can set one for the first time (e.g. before unlinking Google).
+        if user.hashed_password and not self._hasher.verify(current_password, user.hashed_password):
             raise ValidationError("Current password is incorrect")
         updated = dataclasses.replace(user, hashed_password=self._hasher.hash(new_password))
         self._repo.save(updated)
+
+    def unlink_oauth_provider(self, user_id: str) -> User:
+        user = self.find_by_id(user_id)
+        if user.provider == "local" or not user.provider_id:
+            raise ValidationError("This account is not linked to an external provider")
+        if not user.hashed_password:
+            raise ValidationError("Set a password for your account before unlinking Google")
+        updated = dataclasses.replace(user, provider="local", provider_id="")
+        return self._repo.save(updated)
+
+    def delete_account(self, user_id: str) -> None:
+        self.find_by_id(user_id)
+        self._repo.delete(user_id)

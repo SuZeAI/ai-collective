@@ -58,3 +58,6 @@ class MongoUserRepository:
     def save(self, user: User) -> User:
         self._col.replace_one({"id": user.id}, self._user_to_doc(user), upsert=True)
         return user
+
+    def delete(self, user_id: str) -> None:
+        self._col.delete_one({"id": user_id})

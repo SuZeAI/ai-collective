@@ -28,7 +28,14 @@ from server.api.schemas.auth_user import (
     GoogleLoginUrlResponse,
 )
 from server.app.service.google_login_service import GoogleLoginService
-from server.api.deps import PROJECT_ROOT, get_user_service, current_user_dep, current_owner_id_dep
+from server.api.deps import (
+    PROJECT_ROOT,
+    get_account_deletion_service,
+    get_user_service,
+    current_user_dep,
+    current_owner_id_dep,
+)
+from server.app.service.account_deletion_service import AccountDeletionService
 from server.app.service.user_service import UserService
 from server.domain.errors import ValidationError, NotFoundError
 from server.domain.models import User
@@ -496,4 +503,27 @@ def change_password(
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(current_user: User = Depends(current_user_dep)) -> None:
     """Sign out — client should discard the JWT token."""
+    return None
+
+
+@router.post("/google/unlink", response_model=UserSchema)
+def unlink_google(
+    current_user: User = Depends(current_user_dep),
+    user_service: UserService = Depends(get_user_service),
+) -> UserSchema:
+    """Unlink the Google account from the current user, keeping local-password login."""
+    try:
+        updated = user_service.unlink_oauth_provider(current_user.id)
+    except ValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    return UserSchema.from_domain(updated)
+
+
+@router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(
+    current_user: User = Depends(current_user_dep),
+    account_deletion_service: AccountDeletionService = Depends(get_account_deletion_service),
+) -> None:
+    """Permanently delete the current user's account and everything they own."""
+    account_deletion_service.delete_account(current_user.id)
     return None

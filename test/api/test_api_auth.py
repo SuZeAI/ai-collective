@@ -70,3 +70,26 @@ def test_profile_update_and_password_change(client, user_headers):
 def test_logout_is_idempotent(client, user_headers):
     resp = client.post(f"{API}/auth/logout", headers=user_headers)
     assert resp.status_code == 204
+
+
+def test_delete_account_removes_user_and_owned_data(client, user_headers):
+    company = client.post(
+        f"{API}/companies",
+        json={"name": unique("acct-del-co")},
+        headers=user_headers,
+    )
+    assert company.status_code in (200, 201), company.text
+
+    resp = client.delete(f"{API}/auth/account", headers=user_headers)
+    assert resp.status_code == 204, resp.text
+
+    me = client.get(f"{API}/auth/me", headers=user_headers)
+    assert me.status_code == 401
+
+    again = client.delete(f"{API}/auth/account", headers=user_headers)
+    assert again.status_code == 401
+
+
+def test_unlink_google_requires_local_password(client, user_headers):
+    resp = client.post(f"{API}/auth/google/unlink", headers=user_headers)
+    assert resp.status_code == 400
