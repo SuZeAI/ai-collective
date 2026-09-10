@@ -25,7 +25,7 @@ interface TaskDetailDialogProps {
   closeTaskView: () => void;
   departmentList: Department[];
   staffById: Map<string, Staff>;
-  taskConversations: Record<string, Message[]>;
+  taskMeetings: Record<string, Message[]>;
   userInputRequests: Record<string, UserInputRequest[]>;
   projectList: Project[];
   epicList: Epic[];
@@ -34,7 +34,7 @@ interface TaskDetailDialogProps {
   sendingInterjectTaskIds: Set<string>;
   updatingTaskIds: Set<string>;
   statusChangePendingIds: Set<string>;
-  loadingConversationTaskIds: Set<string>;
+  loadingMeetingTaskIds: Set<string>;
   isStreaming: (taskId: string) => boolean;
   thinkingStaff: Record<string, Set<string>>;
   activeFanouts: Record<string, { coordinator?: string; targets: string[] }>;
@@ -61,9 +61,9 @@ interface TaskDetailDialogProps {
 }
 
 export function TaskDetailDialog({
-  viewTaskId, selectedTask, closeTaskView, departmentList, staffById, taskConversations,
+  viewTaskId, selectedTask, closeTaskView, departmentList, staffById, taskMeetings,
   userInputRequests, projectList, epicList, sprintList, companyId,
-  sendingInterjectTaskIds, updatingTaskIds, statusChangePendingIds, loadingConversationTaskIds,
+  sendingInterjectTaskIds, updatingTaskIds, statusChangePendingIds, loadingMeetingTaskIds,
   isStreaming, thinkingStaff, activeFanouts, pendingInterjections, heldTaskIds, holdTogglingTaskIds,
   interjectErrors, commentDrafts, setCommentDrafts, userRequestDrafts, setUserRequestDrafts,
   respondingRequestIds, humanInputs, setHumanInputs, chatEndRef, openEditDialog, clearHistory,
@@ -84,7 +84,7 @@ export function TaskDetailDialog({
 
             const department = departmentList.find((t) => t.id === selectedTask.departmentId);
             const assignee = selectedTask.assigneeId ? staffById.get(selectedTask.assigneeId) : undefined;
-            const messages = taskConversations[selectedTask.id] ?? [];
+            const messages = taskMeetings[selectedTask.id] ?? [];
             const visibleMessages = messages.slice(-50);
             const openQuestions = userInputRequests[selectedTask.id] ?? [];
             const taskComments = selectedTask.comments ?? [];
@@ -125,7 +125,7 @@ export function TaskDetailDialog({
             const canStop = selectedTask.status === "in-progress" || selectedTask.status === "paused";
             const isUpdating = updatingTaskIds.has(selectedTask.id);
             const isStatusChangePending = statusChangePendingIds.has(selectedTask.id);
-            const isConversationLoading = loadingConversationTaskIds.has(selectedTask.id);
+            const isMeetingLoading = loadingMeetingTaskIds.has(selectedTask.id);
             const isRestart = selectedTask.status === "completed" || isOrphaned;
             const Icon = statusIcons[selectedTask.status] ?? Circle;
 
@@ -411,7 +411,7 @@ export function TaskDetailDialog({
                       </span>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-3.5 scrollbar-thin">
-                      {isConversationLoading && messages.length === 0 && (thinkingStaff[selectedTask.id]?.size ?? 0) === 0 ? (
+                      {isMeetingLoading && messages.length === 0 && (thinkingStaff[selectedTask.id]?.size ?? 0) === 0 ? (
                         <p className="text-xs text-muted-foreground animate-pulse">Loading meeting...</p>
                       ) : visibleMessages.length > 0 || (thinkingStaff[selectedTask.id]?.size ?? 0) > 0 || openQuestions.length > 0 || !!activeFanouts[selectedTask.id] ? (
                         <div className="space-y-3.5">

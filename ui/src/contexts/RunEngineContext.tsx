@@ -137,7 +137,7 @@ export type RunEngineValue = {
   heldTaskIds: Set<string>;
   pendingInterjections: Record<string, Set<string>>;
   userInputRequests: Record<string, UserInputRequest[]>;
-  loadingConversationTaskIds: Set<string>;
+  loadingMeetingTaskIds: Set<string>;
   updatingTaskIds: Set<string>;
   statusChangePendingIds: Set<string>;
   sendingInterjectTaskIds: Set<string>;
@@ -180,7 +180,7 @@ const RunEngineContext = createContext<RunEngineValue | null>(null);
 
 export function RunEngineProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [meetings, setConversations] = useState<Record<string, Message[]>>({});
+  const [meetings, setMeetings] = useState<Record<string, Message[]>>({});
   const [thinkingStaff, setThinkingStaff] = useState<Record<string, Set<string>>>({});
   const [activeFanouts, setActiveFanouts] = useState<Record<string, { coordinator?: string; targets: string[] }>>({});
   const [graphSnapshots, setGraphSnapshots] = useState<Record<string, GraphContextSnapshot>>({});
@@ -189,7 +189,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
   const [heldTaskIds, setHeldTaskIds] = useState<Set<string>>(new Set());
   const [pendingInterjections, setPendingInterjections] = useState<Record<string, Set<string>>>({});
   const [userInputRequests, setUserInputRequests] = useState<Record<string, UserInputRequest[]>>({});
-  const [loadingConversationTaskIds, setLoadingConversationTaskIds] = useState<Set<string>>(new Set());
+  const [loadingMeetingTaskIds, setLoadingMeetingTaskIds] = useState<Set<string>>(new Set());
   const [updatingTaskIds, setUpdatingTaskIds] = useState<Set<string>>(new Set());
   // Short-lived: true only while a setStatus() PUT is actually in flight (a few
   // hundred ms), unlike updatingTaskIds which startTask keeps true for the
@@ -280,7 +280,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
   // ---- Run-state housekeeping -------------------------------------------------
 
   const clearRunState = useCallback((taskId: string) => {
-    setConversations((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
+    setMeetings((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
     setGraphSnapshots((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
     setGraphHighlights((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
     setPendingInterjections((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
@@ -317,7 +317,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
       delete next[updated.id];
       return next;
     });
-    setLoadingConversationTaskIds((prev) => new Set(prev).add(updated.id));
+    setLoadingMeetingTaskIds((prev) => new Set(prev).add(updated.id));
 
     let endReason: RunEndedEvent["reason"] = "completed";
 
@@ -495,7 +495,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
               return next;
             });
             messages.push(message);
-            setConversations((prev) => ({
+            setMeetings((prev) => ({
               ...prev,
               [updated.id]: appendCappedMessage(prev[updated.id], message),
             }));
@@ -521,7 +521,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
               taskId: updated.id,
             };
             messages.push(message);
-            setConversations((prev) => ({
+            setMeetings((prev) => ({
               ...prev,
               [updated.id]: appendCappedMessage(prev[updated.id], message),
             }));
@@ -594,7 +594,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
       setPendingInterjections((prev) => { const next = { ...prev }; delete next[updated.id]; return next; });
       setHeldTaskIds((prev) => { const next = new Set(prev); next.delete(updated.id); return next; });
       setUserInputRequests((prev) => { const next = { ...prev }; delete next[updated.id]; return next; });
-      setLoadingConversationTaskIds((prev) => { const next = new Set(prev); next.delete(updated.id); return next; });
+      setLoadingMeetingTaskIds((prev) => { const next = new Set(prev); next.delete(updated.id); return next; });
       emit(updated.id, { type: "run_ended", taskId: updated.id, reason: endReason });
     }
   }, [applyTask, emit, refreshGraph]);
@@ -700,7 +700,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         timestamp: new Date().toISOString(),
         taskId: task.id,
       };
-      setConversations((prev) => ({ ...prev, [task.id]: appendCappedMessage(prev[task.id], message) }));
+      setMeetings((prev) => ({ ...prev, [task.id]: appendCappedMessage(prev[task.id], message) }));
       try {
         await api.addMeeting({ staffId: "user", content, taskId: task.id });
       } catch (e) {
@@ -751,7 +751,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         timestamp: new Date().toISOString(),
         taskId: task.id,
       };
-      setConversations((prev) => ({ ...prev, [task.id]: appendCappedMessage(prev[task.id], message) }));
+      setMeetings((prev) => ({ ...prev, [task.id]: appendCappedMessage(prev[task.id], message) }));
       setPendingInterjections((prev) => ({
         ...prev,
         [task.id]: new Set([...(prev[task.id] ?? []), messageId]),
@@ -801,7 +801,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         timestamp: new Date().toISOString(),
         taskId: task.id,
       };
-      setConversations((prev) => ({ ...prev, [task.id]: appendCappedMessage(prev[task.id], message) }));
+      setMeetings((prev) => ({ ...prev, [task.id]: appendCappedMessage(prev[task.id], message) }));
       try {
         await api.addMeeting({ staffId: "user", content, taskId: task.id });
       } catch (e) {
@@ -889,7 +889,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
   const ingestMeetings = useCallback((taskId: string, messages: Message[]) => {
     // Seed only when the engine has no live transcript — never overwrite a run
     // in progress (its optimistic messages would duplicate against backend ids).
-    setConversations((prev) => {
+    setMeetings((prev) => {
       if (prev[taskId] && prev[taskId].length > 0) return prev;
       if (messages.length === 0) return prev;
       return { ...prev, [taskId]: capMessages(messages) };
@@ -913,7 +913,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
       heldTaskIds,
       pendingInterjections,
       userInputRequests,
-      loadingConversationTaskIds,
+      loadingMeetingTaskIds,
       updatingTaskIds,
       statusChangePendingIds,
       sendingInterjectTaskIds,
@@ -950,7 +950,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
       heldTaskIds,
       pendingInterjections,
       userInputRequests,
-      loadingConversationTaskIds,
+      loadingMeetingTaskIds,
       updatingTaskIds,
       statusChangePendingIds,
       sendingInterjectTaskIds,

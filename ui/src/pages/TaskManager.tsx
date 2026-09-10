@@ -36,13 +36,13 @@ export default function TaskManager() {
   const engine = useRunEngine();
   const {
     tasks: taskList,
-    meetings: taskConversations,
+    meetings: taskMeetings,
     thinkingStaff,
     activeFanouts,
     heldTaskIds,
     pendingInterjections,
     userInputRequests,
-    loadingConversationTaskIds,
+    loadingMeetingTaskIds,
     updatingTaskIds,
     statusChangePendingIds,
     sendingInterjectTaskIds,
@@ -287,7 +287,7 @@ export default function TaskManager() {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [taskConversations, viewTaskId, userInputRequests]);
+  }, [taskMeetings, viewTaskId, userInputRequests]);
 
   const closeTaskView = () => {
     setViewTaskId(null);
@@ -505,7 +505,7 @@ export default function TaskManager() {
     if (task.assignedStaff.length === 0) return;
     // Snapshot the recent transcript BEFORE the follow-up so the new run sees
     // verbatim what was said (the knowledge graph alone is lossy).
-    const transcriptTail = (taskConversations[task.id] ?? [])
+    const transcriptTail = (taskMeetings[task.id] ?? [])
       .slice(-10)
       .map((m) => {
         const speaker = m.staffId === "user" ? "User" : (staffById.get(m.staffId)?.name ?? m.staffId);
@@ -884,7 +884,7 @@ export default function TaskManager() {
                   {columnTasks.map((task) => {
                     const department = task.departmentId ? departmentList.find((t) => t.id === task.departmentId) : undefined;
                     const assignee = task.assigneeId ? staffById.get(task.assigneeId) : undefined;
-                    const messages = taskConversations[task.id] ?? [];
+                    const messages = taskMeetings[task.id] ?? [];
                     const progress = task.status === "completed" ? 100 : Math.min(Math.round((messages.length / (department?.maxSteps ?? 6)) * 100), 99);
                     return (
                       <KanbanCard
@@ -910,7 +910,7 @@ export default function TaskManager() {
             if (!dragTask) return null;
             const department = dragTask.departmentId ? departmentList.find((t) => t.id === dragTask.departmentId) : undefined;
             const assignee = dragTask.assigneeId ? staffById.get(dragTask.assigneeId) : undefined;
-            const messages = taskConversations[dragTask.id] ?? [];
+            const messages = taskMeetings[dragTask.id] ?? [];
             const progress = dragTask.status === "completed" ? 100 : Math.min(Math.round((messages.length / (department?.maxSteps ?? 6)) * 100), 99);
             return (
               <div className="rounded-xl border border-border/40 p-3 bg-card shadow-2xl w-[276px] cursor-grabbing">
@@ -928,7 +928,7 @@ export default function TaskManager() {
         closeTaskView={closeTaskView}
         departmentList={departmentList}
         staffById={staffById}
-        taskConversations={taskConversations}
+        taskMeetings={taskMeetings}
         userInputRequests={userInputRequests}
         projectList={projectList}
         epicList={epicList}
@@ -937,7 +937,7 @@ export default function TaskManager() {
         sendingInterjectTaskIds={sendingInterjectTaskIds}
         updatingTaskIds={updatingTaskIds}
         statusChangePendingIds={statusChangePendingIds}
-        loadingConversationTaskIds={loadingConversationTaskIds}
+        loadingMeetingTaskIds={loadingMeetingTaskIds}
         isStreaming={isStreaming}
         thinkingStaff={thinkingStaff}
         activeFanouts={activeFanouts}
