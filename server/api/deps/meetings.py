@@ -11,7 +11,7 @@ from server.infra.llm.factory import build_default_llm_provider
 
 def get_meeting_service() -> MeetingService:
     repos = _repos()
-    conversations, graph_knowledge = repos.conversations, repos.graph_knowledge
+    meetings, graph_knowledge = repos.meetings, repos.graph_knowledge
     graph_llm = None
     if settings.graph_build_mode == "llm":
         graph_llm = build_default_llm_provider(
@@ -19,7 +19,7 @@ def get_meeting_service() -> MeetingService:
             model=settings.graph_llm_model,
         )
     return MeetingService(
-        conversations,
+        meetings,
         GraphContextService(
             graph_knowledge,
             llm_provider=graph_llm,

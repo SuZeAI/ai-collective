@@ -101,7 +101,7 @@ class Repos(NamedTuple):
     skills: SkillRepository
     departments: DepartmentRepository
     tasks: TaskRepository
-    conversations: MeetingRepository
+    meetings: MeetingRepository
     analytics: AnalyticsRepository
     activity_feed: ActivityFeedRepository
     graph_knowledge: GraphKnowledgeRepository
@@ -132,7 +132,7 @@ def _repos() -> Repos:
         skills = MongoSkillRepository(db)
         departments = MongoDepartmentRepository(db)
         tasks = MongoTaskRepository(db)
-        conversations = MongoMeetingRepository(db)
+        meetings = MongoMeetingRepository(db)
         analytics = MongoAnalyticsRepository(db)
         activity_feed = MongoActivityFeedRepository(db)
         graph_knowledge = MongoGraphKnowledgeRepository(db)
@@ -143,7 +143,7 @@ def _repos() -> Repos:
         skills = JsonSkillRepository(_store("skills.json"))
         departments = JsonDepartmentRepository(_store("departments.json"))
         tasks = JsonTaskRepository(_store("tasks.json"))
-        conversations = JsonMeetingRepository(_store("meetings.json"))
+        meetings = JsonMeetingRepository(_store("meetings.json"))
         analytics = JsonAnalyticsRepository(_store("analytics.json"))
         activity_feed = JsonActivityFeedRepository(_store("activity_feed.json"))
         graph_knowledge = JsonGraphKnowledgeRepository(
@@ -180,7 +180,7 @@ def _repos() -> Repos:
         skills=skills,
         departments=departments,
         tasks=tasks,
-        conversations=conversations,
+        meetings=meetings,
         analytics=analytics,
         activity_feed=activity_feed,
         graph_knowledge=graph_knowledge,
