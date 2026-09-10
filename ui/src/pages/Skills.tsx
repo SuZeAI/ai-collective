@@ -11,6 +11,7 @@ import { StaffAvatar, skillAvatarIconOptions } from "@/components/StaffAvatar";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
 import { api, canDeleteItem, canEditItem, type Staff, type Skill, type SkillToolConfigField, type SkillToolPreset } from "@/lib/api";
 import { useCompanyScope } from "@/hooks/use-company-scope";
+import { useToast } from "@/hooks/use-toast";
 
 type ToolName = string;
 type AvatarMode = "initial" | "icon" | "image";
@@ -193,6 +194,7 @@ function validateRequiredConfig(
 
 export default function Skills() {
   const scope = useCompanyScope();
+  const { toast } = useToast();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [toolPresets, setToolPresets] = useState<SkillToolPreset[]>([]);
@@ -540,6 +542,7 @@ export default function Skills() {
       resetForm();
     } catch (e) {
       console.error(e);
+      toast({ title: "Could not save skill", description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -549,6 +552,7 @@ export default function Skills() {
       setSkills((prev) => prev.filter((s) => s.id !== id));
     } catch (e) {
       console.error(e);
+      toast({ title: "Could not delete skill", description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 

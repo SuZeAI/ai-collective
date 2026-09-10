@@ -28,9 +28,11 @@ import { api, buildCustomGraphPayload, canEditItem, type Staff, type GraphContex
 import { useRunEngine, type GraphHighlight, type UserInputRequest } from "@/contexts/RunEngineContext";
 import { useCompanyScope } from "@/hooks/use-company-scope";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 export default function TaskManager() {
   const scope = useCompanyScope();
+  const { toast } = useToast();
   // Shared run engine (lives above the router): owns the streaming loop and all
   // run-state so a task keeps running and stays in sync when navigating away.
   const engine = useRunEngine();
@@ -395,6 +397,7 @@ export default function TaskManager() {
       setOpen(false);
     } catch (e) {
       console.error(e);
+      toast({ title: "Could not save task", description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -431,6 +434,7 @@ export default function TaskManager() {
       void engine.startTask(updated, departmentRunOpts(updated));
     } catch (e) {
       console.error(e);
+      toast({ title: "Could not assign task", description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -541,6 +545,7 @@ export default function TaskManager() {
       setCommentDrafts((prev) => ({ ...prev, [task.id]: "" }));
     } catch (e) {
       console.error(e);
+      toast({ title: "Could not add comment", description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -551,6 +556,7 @@ export default function TaskManager() {
       await engine.clearHistory(id);
     } catch (e) {
       console.error(e);
+      toast({ title: "Could not clear history", description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -569,6 +575,7 @@ export default function TaskManager() {
       }
     } catch (e) {
       console.error(e);
+      toast({ title: "Could not delete task", description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 

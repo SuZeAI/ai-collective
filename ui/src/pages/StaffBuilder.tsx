@@ -15,6 +15,7 @@ import { StaffTestDialog } from "@/components/StaffTestDialog";
 import { api, canDeleteItem, canEditItem, type Staff, type Skill, type Department } from "@/lib/api";
 import { getStaffDotColor, getStaffRoleColor } from "@/lib/staff-role-ui";
 import { useCompanyScope } from "@/hooks/use-company-scope";
+import { useToast } from "@/hooks/use-toast";
 
 const roles = [
   "Other Position",
@@ -105,6 +106,7 @@ const roles = [
 
 export default function StaffBuilder() {
   const scope = useCompanyScope();
+  const { toast } = useToast();
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [skillCatalog, setSkillCatalog] = useState<Skill[]>([]);
   const [departmentList, setDepartmentList] = useState<Department[]>([]);
@@ -252,6 +254,7 @@ export default function StaffBuilder() {
       setOpen(false);
     } catch (e) {
       console.error(e);
+      toast({ title: "Could not save staff", description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -265,6 +268,7 @@ export default function StaffBuilder() {
       }
     } catch (e) {
       console.error(e);
+      toast({ title: "Could not delete staff", description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 

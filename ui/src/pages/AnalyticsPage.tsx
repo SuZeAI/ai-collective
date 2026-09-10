@@ -30,6 +30,7 @@ import { getStaffRoleColor } from "@/lib/staff-role-ui";
 import { api, avgCompletionOf, type Staff, type Analytics, type Task, type Department } from "@/lib/api";
 import { chartTooltipStyle as tooltipStyle } from "@/lib/format";
 import { useCompanyScope } from "@/hooks/use-company-scope";
+import { useToast } from "@/hooks/use-toast";
 
 const ROLE_COLORS: Record<string, string> = {
   manager: "hsl(350 75% 55%)",
@@ -117,6 +118,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function AnalyticsPage() {
   const scope = useCompanyScope();
+  const { toast } = useToast();
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [allTasks, setTasks] = useState<Task[]>([]);
@@ -156,6 +158,7 @@ export default function AnalyticsPage() {
         setDepartments(tms);
       } catch (e) {
         console.error(e);
+        toast({ title: "Could not load analytics", description: String((e as Error).message ?? e), variant: "destructive" });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -163,7 +166,7 @@ export default function AnalyticsPage() {
     return () => {
       cancelled = true;
     };
-  }, [refreshKey]);
+  }, [refreshKey, toast]);
 
   const staffById = useMemo(() => {
     const map = new Map<string, Staff>();

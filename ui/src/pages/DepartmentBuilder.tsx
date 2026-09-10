@@ -14,6 +14,7 @@ import { useCompanyScope } from "@/hooks/use-company-scope";
 import CustomFlowEditor from "@/components/department/CustomFlowEditor";
 import { DepartmentTestDialog } from "@/components/department/DepartmentTestDialog";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 export type DepartmentTestMessage = {
   id: string;
@@ -25,6 +26,7 @@ export type DepartmentTestMessage = {
 
 export default function DepartmentBuilder() {
   const scope = useCompanyScope();
+  const { toast } = useToast();
   const [departmentList, setDepartmentList] = useState<Department[]>([]);
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [name, setName] = useState("");
@@ -210,12 +212,14 @@ export default function DepartmentBuilder() {
           window.dispatchEvent(new CustomEvent("companyChanged"));
         } catch (err) {
           console.error("Failed to attach department to office:", err);
+          toast({ title: "Department saved, but could not attach to office", description: String((err as Error).message ?? err), variant: "destructive" });
         }
       }
       resetForm();
       setOpen(false);
     } catch (e) {
       console.error(e);
+      toast({ title: "Could not save department", description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -229,6 +233,7 @@ export default function DepartmentBuilder() {
       }
     } catch (e) {
       console.error(e);
+      toast({ title: "Could not delete department", description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 

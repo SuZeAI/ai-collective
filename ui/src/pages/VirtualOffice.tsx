@@ -15,6 +15,7 @@ import { api, buildCustomGraphPayload, type Staff, type Task, type Department, t
 import { useRunEngine, type EngineEvent } from "@/contexts/RunEngineContext";
 import { useCompanyScope } from "@/hooks/use-company-scope";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface StaffState {
   staffId: string;
@@ -34,6 +35,7 @@ interface FlyingDocument {
 export default function VirtualOffice() {
   const { t } = useLanguage();
   const scope = useCompanyScope();
+  const { toast } = useToast();
   const { theme } = useTheme();
   const isDark = theme !== "light";
 
@@ -415,6 +417,7 @@ export default function VirtualOffice() {
       runTask(newTask);
     } catch (e) {
       console.error("Failed to create task:", e);
+      toast({ title: "Could not create task", description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -474,6 +477,7 @@ export default function VirtualOffice() {
       });
     } catch (e) {
       console.error(e);
+      toast({ title: "Could not send message", description: String((e as Error).message ?? e), variant: "destructive" });
     } finally {
       setIsDirectChatLoading(false);
     }

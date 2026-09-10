@@ -11,6 +11,7 @@ import { useCompanyScope, setActiveCompanyId } from "@/hooks/use-company-scope";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { companyTypeOf } from "@/lib/company-types";
+import { useToast } from "@/hooks/use-toast";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -43,6 +44,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   useStaffSimulation();
   const scope = useCompanyScope();
+  const { toast } = useToast();
   const { t } = useLanguage();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin" || user?.role === "system";
@@ -90,12 +92,13 @@ export default function Dashboard() {
         setDepartments(tm);
       } catch (e) {
         console.error(e);
+        toast({ title: "Could not load dashboard", description: String((e as Error).message ?? e), variant: "destructive" });
       } finally {
         if (!cancelled) setIsLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [toast]);
 
   const staffById = useMemo(() => {
     const map = new Map<string, Staff>();
