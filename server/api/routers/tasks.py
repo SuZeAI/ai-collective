@@ -30,24 +30,12 @@ from server.domain.models import Message, Task, is_owned_by, is_visible_to
 from server.infra import task_run_registry
 from server.infra import task_queue
 from server.infra import working_memory_store
+from server.infra.repositories._helpers import parse_iso_utc as _parse_iso_datetime
 from server.share.log import get_logger
 
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
-
-
-def _parse_iso_datetime(value: str | None) -> datetime | None:
-    if not value:
-        return None
-    try:
-        normalized = value.replace("Z", "+00:00")
-        dt = datetime.fromisoformat(normalized)
-        if dt.tzinfo is None:
-            return dt.replace(tzinfo=timezone.utc)
-        return dt.astimezone(timezone.utc)
-    except ValueError:
-        return None
 
 
 def _sync_runtime_state(task_service: TaskService, department_service: DepartmentService, staff_service: StaffService) -> None:

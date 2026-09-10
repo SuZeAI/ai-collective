@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends
@@ -13,18 +12,9 @@ from server.app.service.project_service import ProjectService
 from server.domain.enums import TaskStatus
 from server.domain.errors import NotFoundError
 from server.domain.models import Epic, is_owned_by, is_visible_to
+from server.infra.repositories._helpers import parse_iso_utc as _parse_iso
 
 router = APIRouter(prefix="/epics", tags=["epics"])
-
-
-def _parse_iso(value: str | None) -> datetime | None:
-    if not value:
-        return None
-    try:
-        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
-    except ValueError:
-        return None
 
 
 @router.get("", response_model=list[EpicSchema])

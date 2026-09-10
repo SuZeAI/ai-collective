@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends
@@ -11,18 +10,9 @@ from server.api.schemas.sprint import SprintSchema, UpsertSprintRequest
 from server.app.service.sprint_service import SprintService
 from server.domain.enums import SprintStatus
 from server.domain.models import Sprint, is_owned_by
+from server.infra.repositories._helpers import parse_iso_utc as _parse_iso
 
 router = APIRouter(prefix="/sprints", tags=["sprints"])
-
-
-def _parse_iso(value: str | None) -> datetime | None:
-    if not value:
-        return None
-    try:
-        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
-    except ValueError:
-        return None
 
 
 @router.get("", response_model=list[SprintSchema])
