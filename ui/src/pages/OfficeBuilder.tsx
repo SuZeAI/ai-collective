@@ -767,13 +767,13 @@ export default function OfficeBuilder() {
                   )}
                 </div>
               </div>
-              {plan && appliedCompanyId && (
-                <Badge variant="outline" className="text-[9px] gap-1 shrink-0 text-emerald-500 border-emerald-500/40">
-                  <CheckCircle2 className="h-2.5 w-2.5" /> Created
-                </Badge>
-              )}
-              {plan && !appliedCompanyId && (
+              {plan && (
                 <div className="flex items-center gap-1.5 shrink-0">
+                  {appliedCompanyId && (
+                    <Badge variant="outline" className="text-[9px] gap-1 shrink-0 text-emerald-500 border-emerald-500/40">
+                      <CheckCircle2 className="h-2.5 w-2.5" /> Created
+                    </Badge>
+                  )}
                   <Select value={companyType} onValueChange={(v) => setCompanyType(v as CompanyType)} disabled={busy}>
                     <SelectTrigger className="h-8 w-[150px] text-xs" title={t.companyTypeLabel}>
                       <SelectValue />
@@ -795,7 +795,7 @@ export default function OfficeBuilder() {
                     ) : (
                       <CheckCircle2 className="h-3.5 w-3.5" />
                     )}
-                    {creating ? "Creating…" : "Create Company"}
+                    {creating ? "Creating…" : appliedCompanyId ? "Create Again" : "Create Company"}
                   </Button>
                 </div>
               )}

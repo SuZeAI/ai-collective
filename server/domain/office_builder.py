@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
+from typing import Any
 
 from server.domain.models import Company
 from server.share.log import get_logger
@@ -20,6 +21,16 @@ TEAM_MODES = ("sequential", "mesh", "ring", "supervisor", "tree")
 # to bound token usage.
 MAX_EXISTING_LISTED = 60
 
+# Config keys that look like secrets (API keys, tokens, ...) are never
+# accepted from the designer LLM or from a client-submitted plan — the user
+# configures those by hand after the plan is applied.
+_SECRET_KEY_HINTS = ("key", "secret", "token", "password", "credential")
+
+
+def is_secret_config_key(key: str) -> bool:
+    lowered = key.lower()
+    return any(hint in lowered for hint in _SECRET_KEY_HINTS)
+
 
 @dataclass
 class SkillPlan:
@@ -27,6 +38,7 @@ class SkillPlan:
     description: str = ""
     tool_name: str | None = None  # must reference an available tool, or None
     existing_id: str | None = None  # reuse this existing skill instead of creating one
+    config: dict[str, Any] = field(default_factory=dict)  # non-secret tool param values, pre-filled by the LLM
 
 
 @dataclass
@@ -80,12 +92,24 @@ def _optional_str(raw: dict, key: str) -> str | None:
     return value if isinstance(value, str) else None
 
 
+def _parse_skill_config(raw: dict) -> dict[str, Any]:
+    value = raw.get("config")
+    if not isinstance(value, dict):
+        return {}
+    return {
+        k: v
+        for k, v in value.items()
+        if isinstance(k, str) and isinstance(v, (str, bool, int, float)) and not is_secret_config_key(k)
+    }
+
+
 def _parse_skill_plan(raw: dict) -> SkillPlan:
     return SkillPlan(
         name=_require_str(raw, "name"),
         description=str(raw.get("description") or ""),
         tool_name=_optional_str(raw, "tool_name"),
         existing_id=_optional_str(raw, "existing_id"),
+        config=_parse_skill_config(raw),
     )
 
 
@@ -126,7 +150,9 @@ def sanitize_office_plan(
     existing_department_ids: set[str],
     existing_staff_ids: set[str],
     existing_skill_ids: set[str],
+    presets_by_tool: dict[str, dict] | None = None,
 ) -> OfficePlan:
+    presets_by_tool = presets_by_tool or {}
     for dept in plan.departments:
         if dept.existing_id and dept.existing_id not in existing_department_ids:
             dept.existing_id = None
@@ -145,6 +171,16 @@ def sanitize_office_plan(
                         skill.name,
                     )
                     skill.tool_name = None
+                # Only keep config values for fields the tool's preset actually
+                # declares, and never for secret-looking keys (API keys, tokens, ...).
+                allowed_keys = {
+                    f.get("key") for f in (presets_by_tool.get(skill.tool_name or "") or {}).get("config_fields") or []
+                }
+                skill.config = (
+                    {k: v for k, v in skill.config.items() if k in allowed_keys and not is_secret_config_key(k)}
+                    if skill.tool_name
+                    else {}
+                )
     return plan
 
 
@@ -177,6 +213,7 @@ def split_reply_and_plan(
     existing_department_ids: set[str],
     existing_staff_ids: set[str],
     existing_skill_ids: set[str],
+    presets_by_tool: dict[str, dict] | None = None,
 ) -> tuple[str, OfficePlan | None]:
     """Split streamed output into the visible reply and a sanitized plan (if any)."""
     fence = full.find("```")
@@ -192,6 +229,7 @@ def split_reply_and_plan(
                 existing_department_ids,
                 existing_staff_ids,
                 existing_skill_ids,
+                presets_by_tool,
             )
         except Exception:
             get_logger().exception("Office builder: streamed plan failed to parse/validate")
@@ -212,3 +250,21 @@ def preset_default_config(tool_name: str | None, presets_by_tool: dict[str, dict
         if key is not None and cfg_field.get("default") is not None:
             config[key] = cfg_field["default"]
     return config
+
+
+def resolve_skill_config(
+    tool_name: str | None, plan_config: dict[str, Any], presets_by_tool: dict[str, dict]
+) -> dict:
+    """Preset defaults, overlaid with the plan's (already non-secret) values for
+    fields the tool actually declares — re-filtered here too, since a plan can
+    reach `apply()` straight from a client-submitted request, not only from the
+    designer LLM via `sanitize_office_plan`."""
+    if not tool_name:
+        return {}
+    defaults = preset_default_config(tool_name, presets_by_tool)
+    preset = presets_by_tool.get(tool_name) or {}
+    allowed_keys = {f.get("key") for f in preset.get("config_fields") or []}
+    safe_plan_config = {
+        k: v for k, v in (plan_config or {}).items() if k in allowed_keys and not is_secret_config_key(k)
+    }
+    return {**defaults, **safe_plan_config}

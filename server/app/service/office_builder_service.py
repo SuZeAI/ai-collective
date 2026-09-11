@@ -21,7 +21,7 @@ from server.domain.office_builder import (
     OfficePlan,
     chunk_text,
     parse_office_plan,
-    preset_default_config,
+    resolve_skill_config,
     sanitize_office_plan,
     split_reply_and_plan,
 )
@@ -81,6 +81,7 @@ class OfficeBuilderService:
         owner_id: str,
     ) -> tuple[str, OfficePlan | None]:
         presets = self._skills.list_tool_presets()
+        presets_by_tool = {p["tool_name"]: p for p in presets}
         existing_departments, existing_staff, existing_skills, existing_companies = self._load_existing_context(
             owner_id
         )
@@ -103,6 +104,7 @@ class OfficeBuilderService:
                     {d.id for d in existing_departments},
                     {s.id for s in existing_staff},
                     {s.id for s in existing_skills},
+                    presets_by_tool,
                 )
             except Exception:
                 logger.exception("Office builder: generated plan failed validation")
@@ -124,6 +126,7 @@ class OfficeBuilderService:
         from langchain_core.messages import HumanMessage, SystemMessage
 
         presets = self._skills.list_tool_presets()
+        presets_by_tool = {p["tool_name"]: p for p in presets}
         available = set(self._skills.list_available_tool_names())
         existing_departments, existing_staff, existing_skills, existing_companies = self._load_existing_context(
             owner_id
@@ -160,7 +163,7 @@ class OfficeBuilderService:
                 yield {"type": "delta", "text": full[sent:visible_end]}
 
             reply, plan = split_reply_and_plan(
-                full, available, existing_department_ids, existing_staff_ids, existing_skill_ids
+                full, available, existing_department_ids, existing_staff_ids, existing_skill_ids, presets_by_tool
             )
             if plan is not None:
                 yield {"type": "plan", "plan": plan}
@@ -201,7 +204,9 @@ class OfficeBuilderService:
         reused_skill_ids: list[str] = []
         plan_skill_ids: dict[tuple[str, str], str] = {}
 
-        def _resolve_skill(name: str, description: str, tool_name: str | None, existing_id: str | None) -> str:
+        def _resolve_skill(
+            name: str, description: str, tool_name: str | None, existing_id: str | None, config: dict
+        ) -> str:
             if existing_id and existing_id in existing_skills_by_id:
                 if existing_id not in reused_skill_ids:
                     reused_skill_ids.append(existing_id)
@@ -223,7 +228,7 @@ class OfficeBuilderService:
                     description=description.strip(),
                     third_party=preset.get("third_party") or "",
                     kind="integration",
-                    config=preset_default_config(tool, presets_by_tool),
+                    config=resolve_skill_config(tool, config, presets_by_tool),
                     avatar=(name.strip()[:1] or "S").upper(),
                     tool_name=tool,
                     owner_id=owner_id,
@@ -247,7 +252,7 @@ class OfficeBuilderService:
                     reused_staff_ids.append(member.existing_id)
                     continue
                 skill_ids = [
-                    _resolve_skill(s.name, s.description, s.tool_name, s.existing_id)
+                    _resolve_skill(s.name, s.description, s.tool_name, s.existing_id, s.config)
                     for s in member.skills
                     if s.name.strip()
                 ]

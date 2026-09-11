@@ -6,7 +6,7 @@ import json
 from dataclasses import asdict
 
 from server.domain.models import Company, Department, Skill, Staff
-from server.domain.office_builder import MAX_EXISTING_LISTED, OfficePlan
+from server.domain.office_builder import MAX_EXISTING_LISTED, OfficePlan, is_secret_config_key
 
 PLAN_SCHEMA_TEXT = (
     "{\n"
@@ -25,7 +25,9 @@ PLAN_SCHEMA_TEXT = (
     '          "role": "<job title>",\n'
     '          "description": "<mission / responsibilities>",\n'
     '          "skills": [\n'
-    '            {"existing_id": "<id of an existing skill to reuse, or null>", "name": "<skill name>", "description": "<what it does>", "tool_name": "<tool_name or null>"}\n'
+    '            {"existing_id": "<id of an existing skill to reuse, or null>", "name": "<skill name>", '
+    '"description": "<what it does>", "tool_name": "<tool_name or null>", '
+    '"config": {"<fillable field key from the tool\'s list above>": "<concrete generated value>"}}\n'
     "          ]\n"
     "        }\n"
     "      ]\n"
@@ -41,6 +43,14 @@ DESIGNER_RULES_TEXT = (
     "- tool_name MUST be one of the available tools above, or null.\n"
     "- Prefer free tools (websearch, http, hackernews, youtube) over ones requiring API keys, "
     "unless the user asks for a specific integration.\n"
+    "- For every skill whose tool has \"fillable fields\" listed above, set \"config\" with a concrete, "
+    "ready-to-use value for each of those fields, tailored to that staff member's role and mission — "
+    "e.g. write the actual system-prompt text for a prompt tool's system_prompt field, a sensible "
+    "default channel name, a real search query template, etc. Do not leave them as placeholders. "
+    "If the tool has no fillable fields listed, set \"config\" to {}.\n"
+    "- NEVER put API keys, tokens, passwords, secrets or credentials into \"config\" — those fields "
+    "are intentionally left out of the list above; the user configures them by hand after the plan "
+    "is applied.\n"
     "- Reuse an existing department/staff/skill (listed above, if any) by setting its "
     "\"existing_id\" to the id shown, instead of creating a near-duplicate — but only when it "
     "genuinely fits the need. Set \"existing_id\" to null to create a new one.\n"
@@ -136,6 +146,17 @@ def _existing_context_text(
     return text
 
 
+def _tool_fillable_fields_hint(preset: dict) -> str:
+    """Describe the preset's non-secret config fields, so the designer LLM can
+    pre-fill them in the plan. Secret-looking fields (API keys, tokens, ...)
+    are deliberately omitted — those stay for the user to fill in by hand."""
+    fields = [f for f in preset.get("config_fields") or [] if not is_secret_config_key(f.get("key") or "")]
+    if not fields:
+        return ""
+    parts = [f"{f['key']} ({f.get('description') or f.get('label') or f['key']})" for f in fields]
+    return " — fillable fields: " + ", ".join(parts)
+
+
 def _designer_prompt_intro(
     tool_presets: list[dict],
     existing_departments: list[Department],
@@ -143,7 +164,9 @@ def _designer_prompt_intro(
     existing_skills: list[Skill],
     existing_companies: list[Company],
 ) -> str:
-    tool_lines = "\n".join(f"- \"{p['tool_name']}\": {p['label']}" for p in tool_presets)
+    tool_lines = "\n".join(
+        f"- \"{p['tool_name']}\": {p['label']}{_tool_fillable_fields_hint(p)}" for p in tool_presets
+    )
     intro = (
         "You are an expert AI organization designer for the AI Collective platform. "
         "The user wants to build a full OFFICE through conversation. An office contains "

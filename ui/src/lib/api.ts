@@ -340,6 +340,9 @@ export type OfficeSkillPlan = {
   description: string;
   tool_name?: string | null;
   existing_id?: string | null;
+  // Non-secret tool param values pre-filled by the designer LLM (e.g. a prompt
+  // tool's system_prompt text). API keys/tokens are never included here.
+  config?: Record<string, string | number | boolean>;
 };
 
 export type OfficeStaffPlan = {

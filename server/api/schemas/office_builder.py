@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 from server.api.schemas.company import CompanySchema
@@ -16,6 +18,7 @@ class SkillPlan(BaseModel):
     description: str = ""
     tool_name: str | None = None  # must reference an available tool, or None
     existing_id: str | None = None  # reuse this existing skill instead of creating one
+    config: dict[str, Any] = Field(default_factory=dict)  # non-secret tool param values, pre-filled by the LLM
 
     def to_domain(self) -> domain_plan.SkillPlan:
         return domain_plan.SkillPlan(
@@ -23,11 +26,18 @@ class SkillPlan(BaseModel):
             description=self.description,
             tool_name=self.tool_name,
             existing_id=self.existing_id,
+            config=dict(self.config),
         )
 
     @staticmethod
     def from_domain(p: domain_plan.SkillPlan) -> "SkillPlan":
-        return SkillPlan(name=p.name, description=p.description, tool_name=p.tool_name, existing_id=p.existing_id)
+        return SkillPlan(
+            name=p.name,
+            description=p.description,
+            tool_name=p.tool_name,
+            existing_id=p.existing_id,
+            config=dict(p.config),
+        )
 
 
 class StaffPlan(BaseModel):
