@@ -9,7 +9,6 @@ const backend: { tasks: any[]; convos: Record<string, any[]> } = {
   convos: {},
 };
 
-let releaseStream: () => void = () => {};
 const events: any[] = [
   { type: "llm_request_start", agent_id: "a1" },
   { type: "turn_complete", turn: { agent_id: "a1", turn: 1, content: "Hello from staff" } },
@@ -40,7 +39,7 @@ vi.mock("@/lib/api", () => ({
     respondStaffGraph: vi.fn(async () => ({ delivered: true })),
     runStaffGraphStream: async function* () {
       for (const e of events) yield e;
-      await new Promise<void>((resolve) => { releaseStream = resolve; }); // stay open
+      await new Promise<void>(() => {}); // stay open
     },
   },
 }));
@@ -92,7 +91,6 @@ function Harness() {
 
 describe("RunEngine persistence across navigation", () => {
   beforeEach(() => {
-    releaseStream = () => {};
     backend.tasks = [{ id: "task-1", title: "T", departmentId: "department-1", status: "pending", progress: 0, assignedStaff: ["a1"], description: "" }];
     backend.convos = {};
   });

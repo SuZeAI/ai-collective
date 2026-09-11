@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import {
-  ArrowRight, Star, Bot, Check,
+  ArrowRight, Bot, Check,
   Play, Sparkles,
-  ExternalLink, Mail, ArrowUpRight
+  Mail, ArrowUpRight
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { LandingHeader } from "@/components/landing/LandingHeader";

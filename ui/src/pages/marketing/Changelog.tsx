@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { ExternalLink, GitCommit, Package, Wrench, Zap, Shield, Bug, Tag } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { MarketingNav, FadeIn } from "@/components/marketing/MarketingNav";

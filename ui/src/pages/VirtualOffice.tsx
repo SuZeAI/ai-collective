@@ -11,10 +11,9 @@ import remarkGfm from "remark-gfm";
 import { useTheme } from "next-themes";
 import { StaffAvatar } from "@/components/StaffAvatar";
 import { MeetingFiles } from "@/components/MeetingFiles";
-import { api, buildCustomGraphPayload, type Staff, type Task, type Department, type Message } from "@/lib/api";
+import { api, buildCustomGraphPayload, type Staff, type Task, type Department } from "@/lib/api";
 import { useRunEngine, type EngineEvent } from "@/contexts/RunEngineContext";
 import { useCompanyScope } from "@/hooks/use-company-scope";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 
 interface StaffState {
@@ -33,7 +32,6 @@ interface FlyingDocument {
 }
 
 export default function VirtualOffice() {
-  const { t } = useLanguage();
   const scope = useCompanyScope();
   const { toast } = useToast();
   const { theme } = useTheme();

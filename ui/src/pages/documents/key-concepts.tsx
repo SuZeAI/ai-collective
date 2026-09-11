@@ -1,6 +1,6 @@
 import { Building2, Users, UserCircle, Wrench, CheckSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { H1, H2, P, DocLink, NextSteps, NextStepCard, type DocPageProps } from "./_shared";
+import { H1, H2, P, NextSteps, NextStepCard, type DocPageProps } from "./_shared";
 
 const ICONS = [
   { icon: Building2, color: "text-sky-500 bg-sky-500/10" },

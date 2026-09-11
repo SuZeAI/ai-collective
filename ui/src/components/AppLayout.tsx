@@ -3,8 +3,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
-  BarChart3, Cpu, Play, Wrench, ChevronRight, BrainCircuit,
-  LogOut, User, UserCircle, ChevronDown, Sparkles, Globe, ShieldCheck, Building, Building2, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban, Star, Plug, Settings,
+  BarChart3, Cpu, Play, Wrench, ChevronRight,
+  LogOut, User, UserCircle, Sparkles, Globe, ShieldCheck, Building, Building2, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban, Star, Plug, Settings,
 } from "lucide-react";
 import { api, type Company } from "@/lib/api";
 import { setActiveCompanyId, getActiveCompanyId, useCompanyScope } from "@/hooks/use-company-scope";

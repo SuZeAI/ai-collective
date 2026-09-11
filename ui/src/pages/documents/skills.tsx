@@ -1,4 +1,4 @@
-import { H1, H2, P, UL, LI, OL, OLI, Pill, Callout, CodeBlock, InlineCode, DocLink, NextSteps, NextStepCard, type DocPageProps } from "./_shared";
+import { H1, H2, P, UL, LI, OL, OLI, Pill, Callout, CodeBlock, NextSteps, NextStepCard, type DocPageProps } from "./_shared";
 
 const TOOLKIT_GROUPS: { en: string; vi: string; zh: string; ja: string; items: string }[] = [
   { en: "Google Workspace", vi: "Google Workspace", zh: "Google Workspace", ja: "Google Workspace", items: "Drive, Docs, Sheets, Calendar" },

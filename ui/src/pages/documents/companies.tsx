@@ -1,4 +1,4 @@
-import { H1, H2, P, UL, LI, OL, OLI, CodeBlock, InlineCode, ApiRow, Callout, DocLink, NextSteps, NextStepCard, type DocPageProps } from "./_shared";
+import { H1, H2, P, UL, LI, OL, OLI, CodeBlock, ApiRow, Callout, DocLink, NextSteps, NextStepCard, type DocPageProps } from "./_shared";
 
 const TXT = {
   en: {

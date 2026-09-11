@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { BarChart3 } from "lucide-react";
-import { api, type Sprint, type Task } from "@/lib/api";
+import { api } from "@/lib/api";
 import { ProjectSubnav } from "@/components/ProjectSubnav";
 import { Card } from "@/components/ui/card";
 import { useScopedProject } from "@/hooks/use-scoped-project";

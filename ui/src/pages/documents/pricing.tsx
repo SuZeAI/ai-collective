@@ -1,4 +1,4 @@
-import { H1, H2, P, UL, LI, Callout, DocLink, NextSteps, NextStepCard, type DocPageProps } from "./_shared";
+import { H1, H2, P, UL, LI, Callout, NextSteps, NextStepCard, type DocPageProps } from "./_shared";
 
 const TXT = {
   en: {
