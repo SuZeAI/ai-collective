@@ -63,6 +63,8 @@ export type AuthTranslations = {
   deleteAccountConfirmPlaceholder: string;
   deleteAccountConfirmBtn: string;
   deletingAccount: string;
+  sessionExpiredTitle: string;
+  sessionExpiredDesc: string;
   orContinueWith: string;
   socialComingSoon: string;
   phoneBtn: string;

@@ -53,7 +53,10 @@ function loadPersistedAuth(): { user: AuthUser | null; token: string | null } {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     const raw = localStorage.getItem(AUTH_USER_KEY);
     const parsed: unknown = raw ? JSON.parse(raw) : null;
-    if (parsed !== null && !isValidAuthUser(parsed)) {
+    if (parsed === null) {
+      return { user: null, token };
+    }
+    if (!isValidAuthUser(parsed)) {
       // Corrupt/incompatible record — log out rather than trust a malformed
       // user object throughout the app.
       localStorage.removeItem(AUTH_TOKEN_KEY);

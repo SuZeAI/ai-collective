@@ -115,14 +115,14 @@ function ConnectionDialog({
   const [platform, setPlatform] = useState(existing?.platform || "");
   const [name, setName] = useState(existing?.name || "");
   const [description, setDescription] = useState(existing?.description || "");
-  const [config, setConfig] = useState<Record<string, string>>(existing?.config || {});
+  const [config, setConfig] = useState<Record<string, string>>((existing?.config as Record<string, string>) || {});
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
 
   const reset = () => {
     setPlatform(existing?.platform || "");
     setName(existing?.name || "");
     setDescription(existing?.description || "");
-    setConfig(existing?.config || {});
+    setConfig((existing?.config as Record<string, string>) || {});
     setShowSecrets({});
   };
 
@@ -339,7 +339,7 @@ function ConnectionCard({
               <div key={k} className="flex items-center gap-2 text-xs">
                 <span className="text-muted-foreground font-mono w-32 truncate shrink-0">{k}:</span>
                 <span className="font-mono text-muted-foreground/70 truncate">
-                  {showSecrets ? connection.config[k] : "••••••••"}
+                  {showSecrets ? String(connection.config[k]) : "••••••••"}
                 </span>
               </div>
             ))}
@@ -362,7 +362,7 @@ export default function Settings() {
 
   const { data: connections = [], isLoading } = useQuery({
     queryKey: ["connections"],
-    queryFn: api.listConnections,
+    queryFn: () => api.listConnections(),
   });
 
   const { data: platforms = [] } = useQuery({

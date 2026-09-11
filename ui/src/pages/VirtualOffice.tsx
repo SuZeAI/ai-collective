@@ -325,7 +325,9 @@ export default function VirtualOffice() {
   useEffect(() => {
     const unsubscribe = engine.subscribe("*", (event: EngineEvent) => {
       const eventType = event.type;
-      const staffId = event.agent_id || event.staffId || event.agent_name || event.staffName;
+      const staffId = event.type !== "run_ended"
+        ? event.agent_id || event.staffId || event.agent_name || event.staffName
+        : undefined;
 
       if (eventType === "llm_request_start") {
         if (!staffId) return;
@@ -363,7 +365,7 @@ export default function VirtualOffice() {
         // page renders only the currently-selected task's staff \u2014 a
         // different task finishing elsewhere must not idle-out staff that
         // belong to the task the user is actively viewing.
-        const endedTaskId = event.taskId || event.task_id;
+        const endedTaskId = event.taskId;
         if (endedTaskId && endedTaskId !== selectedTaskIdRef.current) return;
         lastActiveStaffIdRef.current = null;
         setStaffRealtimeStates((prev) => {
