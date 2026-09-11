@@ -56,6 +56,17 @@ RUN if [ -n "${APT_MIRROR}" ]; then \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     bash \
+    ca-certificates \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Node 20 LTS via NodeSource: stdio MCP servers configured through the skills
+# UI (e.g. `npx -y @modelcontextprotocol/server-filesystem`) run as a child
+# process of this container and need node/npx on PATH. Debian bookworm's own
+# `nodejs` package is v18, which current @modelcontextprotocol packages
+# already warn is below their required engine version.
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=uv /uv /bin/uv
