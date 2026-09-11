@@ -19,7 +19,7 @@ describe("apiFetch (via api.* calls)", () => {
   });
 
   it("GETs from the api base with a JSON content-type header", async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify([{ id: "s1" }]), { status: 200 }));
+    const fetchMock = vi.fn(async (_url: string, _options?: RequestInit) => new Response(JSON.stringify([{ id: "s1" }]), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await api.listStaff();
@@ -33,7 +33,7 @@ describe("apiFetch (via api.* calls)", () => {
 
   it("attaches an Authorization header when a token is stored", async () => {
     localStorage.setItem(AUTH_TOKEN_KEY, "tok123");
-    const fetchMock = vi.fn(async () => new Response("[]", { status: 200 }));
+    const fetchMock = vi.fn(async (_url: string, _options?: RequestInit) => new Response("[]", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
     await api.listStaff();
@@ -43,7 +43,7 @@ describe("apiFetch (via api.* calls)", () => {
   });
 
   it("sends upsertTask as a POST with a JSON body", async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ id: "t1", title: "New" }), { status: 200 }));
+    const fetchMock = vi.fn(async (_url: string, _options?: RequestInit) => new Response(JSON.stringify({ id: "t1", title: "New" }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await api.upsertTask({ title: "New" });
