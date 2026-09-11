@@ -43,6 +43,10 @@ export default function Projects() {
   const [saving, setSaving] = useState(false);
 
   const staffById = useMemo(() => new Map(staff.map((a) => [a.id, a])), [staff]);
+  const scopedStaff = useMemo(
+    () => (scope.isOverall ? staff : staff.filter((a) => scope.staffIds.has(a.id))),
+    [staff, scope.isOverall, scope.staffIds],
+  );
   const existingKeys = useMemo(() => new Set(projects.map((p) => p.key)), [projects]);
   const withPlannerCount = useMemo(() => projects.filter((p) => p.plannerStaffId).length, [projects]);
   // Real issue count per project, from actual task rows — NOT project.issueCounter,
@@ -241,7 +245,7 @@ export default function Projects() {
                       <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value={PLANNER_NONE}>None</SelectItem>
-                        {staff.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                        {scopedStaff.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -253,7 +257,7 @@ export default function Projects() {
                       <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value={PLANNER_NONE}>None</SelectItem>
-                        {staff.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                        {scopedStaff.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
