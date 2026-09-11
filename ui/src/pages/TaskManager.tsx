@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams, useParams, Link } from "react-router-dom";
+import { useSearchParams, useParams } from "react-router-dom";
 import {
   DndContext,
   DragOverlay,
@@ -16,16 +16,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
 import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
 import { ProjectSubnav } from "@/components/ProjectSubnav";
 import { TaskDetailDialog } from "@/components/task-manager/TaskDetailDialog";
 import {
-  statusIcons, statusColors, BOARD_COLUMNS, PRIORITY_CONFIG,
+  BOARD_COLUMNS, PRIORITY_CONFIG,
   priorityOf, KanbanCard, KanbanCardBody, KanbanColumn,
 } from "@/components/task-manager/KanbanBoard";
-import { api, buildCustomGraphPayload, canEditItem, type Staff, type GraphContextSnapshot, type Message, type Department, type Task, type TaskPriority, type Project, type Sprint, type Epic } from "@/lib/api";
-import { useRunEngine, type GraphHighlight, type UserInputRequest } from "@/contexts/RunEngineContext";
+import { api, buildCustomGraphPayload, canEditItem, type Staff, type Department, type Task, type TaskPriority, type Project, type Sprint, type Epic } from "@/lib/api";
+import { useRunEngine, type UserInputRequest } from "@/contexts/RunEngineContext";
 import { useCompanyScope } from "@/hooks/use-company-scope";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -484,21 +483,7 @@ export default function TaskManager() {
   // Dispatch the detail-panel status buttons to the shared engine. Start/restart
   // opens the run stream (which lives in the engine, so it survives navigation);
   // the engine aborts on stop/pause and clears run state when restarting.
-  const updateTaskStatus = (task: Task, status: Task["status"]) => {
-    // See moveTaskToStatus: allow re-triggering "in-progress" when the task is
-    // orphaned (DB says in-progress but no stream is live in this session).
-    if (task.status === status && !(status === "in-progress" && !engine.isStreaming(task.id))) return;
-    if (status === "in-progress") {
-      if (updatingTaskIds.has(task.id)) return;
-      requestStart(task);
-    } else if (status === "stopped") {
-      if (statusChangePendingIds.has(task.id)) return;
-      void engine.stopTask(task);
-    } else if (status === "paused") {
-      if (statusChangePendingIds.has(task.id)) return;
-      void engine.pauseTask(task);
-    }
-  };
+  const updateTaskStatus = (task: Task, status: Task["status"]) => moveTaskToStatus(task, status);
 
   // Follow-up on a finished task: relaunch in the SAME meeting (graph
   // context preserved) with the message as the steering instruction. The engine
