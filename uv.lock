@@ -17,7 +17,6 @@ dependencies = [
     { name = "browser-use" },
     { name = "ddgs" },
     { name = "defusedxml" },
-    { name = "duckduckgo-search" },
     { name = "fastapi" },
     { name = "google-api-python-client" },
     { name = "google-auth" },
@@ -40,7 +39,6 @@ dependencies = [
     { name = "pyjwt" },
     { name = "pymongo" },
     { name = "pypdf" },
-    { name = "pytest" },
     { name = "python-docx" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
@@ -80,6 +78,7 @@ redis = [
 [package.dev-dependencies]
 dev = [
     { name = "pre-commit" },
+    { name = "pytest" },
     { name = "ruff" },
 ]
 
@@ -89,7 +88,6 @@ requires-dist = [
     { name = "browser-use", specifier = ">=0.12.3" },
     { name = "ddgs", specifier = ">=9.11.4" },
     { name = "defusedxml", specifier = ">=0.7.1" },
-    { name = "duckduckgo-search", specifier = ">=6.3.0" },
     { name = "faiss-cpu", marker = "extra == 'faiss'", specifier = ">=1.8.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "google-api-python-client", specifier = ">=2.181.0" },
@@ -118,7 +116,6 @@ requires-dist = [
     { name = "pyjwt", specifier = ">=2.0.0" },
     { name = "pymongo", specifier = ">=4.7.0" },
     { name = "pypdf", specifier = ">=4.0.0" },
-    { name = "pytest", specifier = ">=9.0.2" },
     { name = "python-docx", specifier = ">=1.1.0" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "pyyaml", specifier = ">=6.0" },
@@ -137,6 +134,7 @@ provides-extras = ["rabbitmq", "redis", "queue-all", "backup", "faiss", "qdrant"
 [package.metadata.requires-dev]
 dev = [
     { name = "pre-commit", specifier = ">=4.0.0" },
+    { name = "pytest", specifier = ">=9.0.2" },
     { name = "ruff", specifier = ">=0.8.0" },
 ]
 
@@ -1041,20 +1039,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/b2/9d/c3b43da9515bd270df0f80548d9944e389870713cc1fe2b8fb35fe2bcefd/docstring_parser-0.17.0.tar.gz", hash = "sha256:583de4a309722b3315439bb31d64ba3eebada841f2e2cee23b99df001434c912", size = 27442, upload-time = "2025-07-21T07:35:01.868Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/55/e2/2537ebcff11c1ee1ff17d8d0b6f4db75873e3b0fb32c2d4a2ee31ecb310a/docstring_parser-0.17.0-py3-none-any.whl", hash = "sha256:cf2569abd23dce8099b300f9b4fa8191e9582dda731fd533daf54c4551658708", size = 36896, upload-time = "2025-07-21T07:35:00.684Z" },
-]
-
-[[package]]
-name = "duckduckgo-search"
-version = "8.1.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "click" },
-    { name = "lxml" },
-    { name = "primp" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/10/ef/07791a05751e6cc9de1dd49fb12730259ee109b18e6d097e25e6c32d5617/duckduckgo_search-8.1.1.tar.gz", hash = "sha256:9da91c9eb26a17e016ea1da26235d40404b46b0565ea86d75a9f78cc9441f935", size = 22868, upload-time = "2025-07-06T15:30:59.73Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/db/72/c027b3b488b1010cf71670032fcf7e681d44b81829d484bb04e31a949a8d/duckduckgo_search-8.1.1-py3-none-any.whl", hash = "sha256:f48adbb06626ee05918f7e0cef3a45639e9939805c4fc179e68c48a12f1b5062", size = 18932, upload-time = "2025-07-06T15:30:58.339Z" },
 ]
 
 [[package]]

@@ -21,7 +21,6 @@ dependencies = [
 	"langchain-openai>=0.3.0",
 	"langgraph>=0.2.34",
 	"mcp>=1.9.0",
-	"duckduckgo-search>=6.3.0",
 	"browser-use>=0.12.3",
 	"playwright>=1.58.0",
 	"ddgs>=9.11.4",
@@ -32,7 +31,6 @@ dependencies = [
 	"google-api-python-client>=2.181.0",
 	"spacy>=3.8.7",
 	"rembg[cpu]>=2.0.74",
-	"pytest>=9.0.2",
 	"motor>=3.4.0",
 	"pymongo>=4.7.0",
 	"requests>=2.31.0",
@@ -63,7 +61,7 @@ host = "0.0.0.0"
 port = 8000
 
 [dependency-groups]
-dev = ["ruff>=0.8.0", "pre-commit>=4.0.0"]
+dev = ["ruff>=0.8.0", "pre-commit>=4.0.0", "pytest>=9.0.2"]
 
 [tool.ruff]
 line-length = 120
