@@ -113,6 +113,17 @@ export type DeleteImpact = {
   tasks_updated?: number;
 };
 
+export type KeptDepartment = { id: string; name: string; shared_with: string[] };
+
+export type CompanyDeleteImpact = {
+  removed_teams: number;
+  removed_staff: number;
+  removed_skills: number;
+  removed_tasks: number;
+  removed_documents: number;
+  kept_departments: KeptDepartment[];
+};
+
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
 
 export type IssueType = "epic" | "story" | "task" | "bug" | "subtask";
@@ -1128,6 +1139,7 @@ export const api = {
   upsertCompany: (payload: Partial<Company> & Pick<Company, "name">) =>
     apiFetch<Company>("/companies", { method: "POST", body: JSON.stringify(payload) }),
   deleteCompany: (id: string) => apiFetch<{ deleted: boolean }>(`/companies/${id}`, { method: "DELETE" }),
+  getCompanyDeleteImpact: (id: string) => apiFetch<CompanyDeleteImpact>(`/companies/${id}/impact`),
   listPlatforms: () => apiFetch<PlatformDef[]>("/companies/platforms"),
 
   listConnections: (companyId?: string, kind?: "inbound_webhook" | "outbound") => {

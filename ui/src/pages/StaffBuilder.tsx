@@ -275,15 +275,6 @@ export default function StaffBuilder() {
   const requestDeleteStaff = async (staff: Staff) => {
     try {
       const impact = await api.getStaffDeleteImpact(staff.id);
-      const hasImpact =
-        impact.affected_companies.length > 0 ||
-        (impact.departments_updated ?? 0) > 0 ||
-        (impact.projects_updated ?? 0) > 0 ||
-        (impact.tasks_updated ?? 0) > 0;
-      if (!hasImpact) {
-        await deleteStaff(staff.id);
-        return;
-      }
       setPendingDelete({ staff, impact });
     } catch (e) {
       console.error(e);

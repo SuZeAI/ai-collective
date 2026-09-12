@@ -6,7 +6,7 @@ import {
   BrainCircuit, Users, Settings2, RefreshCw, Download,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { api, canDeleteItem, canEditItem, type Company, type Department, type CompanyType } from "@/lib/api";
+import { api, canDeleteItem, canEditItem, type Company, type Department, type CompanyType, type CompanyDeleteImpact } from "@/lib/api";
 import { setActiveCompanyId } from "@/hooks/use-company-scope";
 import { COMPANY_TYPES, COMPANY_TYPE_MAP, companyTypeOf } from "@/lib/company-types";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -340,6 +340,7 @@ export default function Companies() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Company | undefined>();
   const [deleting, setDeleting] = useState<Company | undefined>();
+  const [deletingImpact, setDeletingImpact] = useState<CompanyDeleteImpact | null>(null);
 
   const { data: companies = [], isLoading: wsLoading } = useQuery({
     queryKey: ["companies"],
@@ -392,6 +393,18 @@ export default function Companies() {
     if (!deleting) return;
     remove.mutate(deleting.id);
     setDeleting(undefined);
+    setDeletingImpact(null);
+  };
+
+  const requestDelete = async (ws: Company) => {
+    setDeleting(ws);
+    setDeletingImpact(null);
+    try {
+      setDeletingImpact(await api.getCompanyDeleteImpact(ws.id));
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Could not check delete impact", description: String((e as Error).message ?? e), variant: "destructive" });
+    }
   };
 
   const openNew = () => { setEditing(undefined); setDialogOpen(true); };
@@ -478,7 +491,7 @@ export default function Companies() {
                 company={ws}
                 departments={departments}
                 onEdit={() => openEdit(ws)}
-                onDelete={() => setDeleting(ws)}
+                onDelete={() => requestDelete(ws)}
               />
             ))}
           </div>
@@ -496,18 +509,38 @@ export default function Companies() {
       />
 
       {/* Delete confirmation */}
-      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(undefined)}>
+      <AlertDialog
+        open={!!deleting}
+        onOpenChange={(o) => { if (!o) { setDeleting(undefined); setDeletingImpact(null); } }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete company?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deleting ? (
-                <>
-                  Are you sure you want to delete <span className="font-semibold text-foreground">{deleting.name}</span>?
-                  This permanently removes the company along with all of its related data — departments links,
-                  platform apps, document library, and office-builder history. This action cannot be undone.
-                </>
-              ) : null}
+            <AlertDialogDescription asChild>
+              <div>
+                {deleting ? (
+                  <p>
+                    Are you sure you want to delete <span className="font-semibold text-foreground">{deleting.name}</span>?
+                    This action cannot be undone.
+                  </p>
+                ) : null}
+                {deletingImpact ? (
+                  <ul className="mt-2 list-disc pl-4 space-y-0.5">
+                    {deletingImpact.removed_teams > 0 && <li>{deletingImpact.removed_teams} department(s) removed</li>}
+                    {deletingImpact.removed_staff > 0 && <li>{deletingImpact.removed_staff} staff member(s) removed</li>}
+                    {deletingImpact.removed_skills > 0 && <li>{deletingImpact.removed_skills} skill(s) removed</li>}
+                    {deletingImpact.removed_tasks > 0 && <li>{deletingImpact.removed_tasks} task(s) removed</li>}
+                    {deletingImpact.removed_documents > 0 && <li>{deletingImpact.removed_documents} document(s) removed</li>}
+                    {deletingImpact.kept_departments.map((d) => (
+                      <li key={d.id} className="text-amber-500">
+                        "{d.name}" is kept — still used by {d.shared_with.join(", ")}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-xs">Checking what this will affect…</p>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

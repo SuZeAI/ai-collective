@@ -248,10 +248,6 @@ export default function DepartmentBuilder() {
   const requestDeleteDepartment = async (department: Department) => {
     try {
       const impact = await api.getDepartmentDeleteImpact(department.id);
-      if (impact.affected_companies.length === 0) {
-        await deleteDepartment(department.id);
-        return;
-      }
       setPendingDelete({ department, impact });
     } catch (e) {
       console.error(e);
@@ -629,10 +625,12 @@ export default function DepartmentBuilder() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete department?</AlertDialogTitle>
             <AlertDialogDescription>
-              Deleting <span className="font-semibold text-foreground">{pendingDelete?.department.name}</span> will
-              unlink it from {pendingDelete?.impact.affected_companies.map((c) => c.name).join(", ")}. Its staff are
-              not affected — they stay in the company, just no longer rostered under this department. This action
-              cannot be undone.
+              Deleting <span className="font-semibold text-foreground">{pendingDelete?.department.name}</span>{" "}
+              {pendingDelete?.impact.affected_companies.length
+                ? `will unlink it from ${pendingDelete.impact.affected_companies.map((c) => c.name).join(", ")}. `
+                : ""}
+              Its staff are not affected — they stay in the company, just no longer rostered under this department.
+              This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

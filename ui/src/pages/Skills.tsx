@@ -565,10 +565,6 @@ export default function Skills() {
   const requestDeleteSkill = async (skill: Skill) => {
     try {
       const impact = await api.getSkillDeleteImpact(skill.id);
-      if (!impact.staff_updated) {
-        await deleteSkill(skill.id);
-        return;
-      }
       setPendingDelete({ skill, impact });
     } catch (e) {
       console.error(e);
