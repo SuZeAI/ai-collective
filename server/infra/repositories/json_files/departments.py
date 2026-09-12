@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import threading
 
-from server.domain.models import DEFAULT_OWNER_ID, Department
+from server.domain.models import CATALOG_COMPANY_ID, DEFAULT_OWNER_ID, Department
 from server.infra.repositories.json_store import JsonFileStore
 
 
@@ -35,6 +35,7 @@ class JsonDepartmentRepository:
                 mode=str(item.get("mode", "sequential")),
                 max_steps=int(item.get("maxSteps", 6)),
                 owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
+                company_id=str(item.get("company_id") or CATALOG_COMPANY_ID),
                 flow=item.get("flow") if isinstance(item.get("flow"), dict) else None,
             )
         except Exception:
@@ -55,6 +56,7 @@ class JsonDepartmentRepository:
             "mode": t.mode,
             "maxSteps": t.max_steps,
             "owner_id": t.owner_id,
+            "company_id": t.company_id,
             "flow": t.flow,
         }
 

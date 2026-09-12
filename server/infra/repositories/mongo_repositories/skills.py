@@ -4,7 +4,7 @@ from typing import Any
 
 import pymongo
 
-from server.domain.models import DEFAULT_OWNER_ID, Skill
+from server.domain.models import CATALOG_COMPANY_ID, DEFAULT_OWNER_ID, Skill
 
 
 class MongoSkillRepository:
@@ -28,6 +28,7 @@ class MongoSkillRepository:
             code=(str(item.get("code")) if item.get("code") is not None else None),
             instruction=str(item.get("instruction", "") or ""),
             owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
+            company_id=str(item.get("company_id") or CATALOG_COMPANY_ID),
         )
 
     def _skill_to_doc(self, s: Skill) -> dict[str, Any]:
@@ -47,6 +48,7 @@ class MongoSkillRepository:
             "code": s.code,
             "instruction": s.instruction,
             "owner_id": s.owner_id,
+            "company_id": s.company_id,
         }
 
     def list(self) -> list[Skill]:

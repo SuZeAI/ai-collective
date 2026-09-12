@@ -5,7 +5,7 @@ from typing import Any
 import pymongo
 
 from server.domain.enums import StaffStatus
-from server.domain.models import DEFAULT_OWNER_ID, Staff
+from server.domain.models import CATALOG_COMPANY_ID, DEFAULT_OWNER_ID, Staff
 from server.infra.repositories._helpers import default_staff_system_prompt
 
 
@@ -31,6 +31,7 @@ def _doc_to_agent(item: dict[str, Any]) -> Staff:
         ),
         subagent_enabled=bool(item.get("subagent_enabled", False)),
         owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
+        company_id=str(item.get("company_id") or CATALOG_COMPANY_ID),
     )
 
 
@@ -51,6 +52,7 @@ def _agent_to_doc(a: Staff) -> dict[str, Any]:
         or default_staff_system_prompt(name=a.name, role=a.role, description=a.description),
         "subagent_enabled": a.subagent_enabled,
         "owner_id": a.owner_id,
+        "company_id": a.company_id,
     }
 
 

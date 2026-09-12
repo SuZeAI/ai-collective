@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import threading
 
-from server.domain.models import DEFAULT_OWNER_ID, Skill
+from server.domain.models import CATALOG_COMPANY_ID, DEFAULT_OWNER_ID, Skill
 from server.infra.repositories.json_store import JsonFileStore
 
 
@@ -37,6 +37,7 @@ class JsonSkillRepository:
                 code=(str(item.get("code")) if item.get("code") is not None else None),
                 instruction=str(item.get("instruction", "") or ""),
                 owner_id=str(item.get("owner_id") or DEFAULT_OWNER_ID),
+                company_id=str(item.get("company_id") or CATALOG_COMPANY_ID),
             )
         except Exception:
             return None
@@ -58,6 +59,7 @@ class JsonSkillRepository:
             "code": s.code,
             "instruction": s.instruction,
             "owner_id": s.owner_id,
+            "company_id": s.company_id,
         }
 
     def list(self) -> list[Skill]:

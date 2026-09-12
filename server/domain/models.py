@@ -12,6 +12,12 @@ from server.domain.enums import StaffStatus, IssueType, SprintStatus, TaskPriori
 DEFAULT_OWNER_ID = "default"
 GUEST_OWNER_ID = "guest"
 
+# Company scoping: Skill/Staff/Department each carry a company_id tying them to
+# exactly one company. CATALOG_COMPANY_ID marks the admin-curated template
+# catalog (browsed and cloned via Recruiting) rather than any real company —
+# mirrors the identically-named constant in ui/src/hooks/use-company-scope.ts.
+CATALOG_COMPANY_ID = "__default__"
+
 
 def is_visible_to(owner_id: str, entity_owner_id: str) -> bool:
     """An entity is visible to a user if it is shared ("default") or theirs.
@@ -59,6 +65,7 @@ class Skill:
     tool_name: str | None = None  # Linked tool (e.g. "websearch", "browser", "bash")
     code: str | None = None
     owner_id: str = DEFAULT_OWNER_ID
+    company_id: str = CATALOG_COMPANY_ID
     instruction: str = ""  # User-facing guide: how to get an API key / enable / use this skill
 
 
@@ -77,6 +84,7 @@ class Staff:
     system_prompt: str = ""
     subagent_enabled: bool = False
     owner_id: str = DEFAULT_OWNER_ID
+    company_id: str = CATALOG_COMPANY_ID
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,6 +101,7 @@ class Department:
     mode: str = "sequential"  # "sequential" | "mesh" | "ring" | "supervisor" | "tree" | "custom"
     max_steps: int = 6
     owner_id: str = DEFAULT_OWNER_ID
+    company_id: str = CATALOG_COMPANY_ID
     # For mode == "custom": the user-drawn flow graph (React Flow nodes/edges +
     # positions). Stored opaquely so the editor can restore the layout, and the
     # edges drive the custom orchestrator. None for every other mode.
