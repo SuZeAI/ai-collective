@@ -5,9 +5,16 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, Query
 
 from server.api.avatars import sanitize_avatar_fields
-from server.api.deps import current_owner_id_dep, get_staff_service, get_meeting_service, get_department_service
+from server.api.deps import (
+    current_owner_id_dep,
+    get_company_service,
+    get_staff_service,
+    get_meeting_service,
+    get_department_service,
+)
 from server.api.ownership import require_deletable, require_modifiable
 from server.api.schemas.department import DepartmentSchema, UpsertDepartmentRequest
+from server.app.service.company_service import CompanyService
 from server.app.service.department_activation import activate_department_staff, seed_department_kickoff_messages
 from server.app.service.staff_service import StaffService
 from server.app.service.meeting_service import MeetingService
@@ -77,13 +84,22 @@ def upsert_department(
     return DepartmentSchema.from_domain(saved)
 
 
+@router.get("/{department_id}/impact")
+def get_department_delete_impact(
+    department_id: str,
+    company_service: CompanyService = Depends(get_company_service),
+) -> dict:
+    """Preview which companies/staff a delete would affect, without deleting anything."""
+    return company_service.preview_department_delete(department_id)
+
+
 @router.delete("/{department_id}")
 def delete_department(
     department_id: str,
     service: DepartmentService = Depends(get_department_service),
+    company_service: CompanyService = Depends(get_company_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
     existing = service.try_get_department(department_id)
     require_deletable(existing, owner_id, f"Department '{department_id}'")
-    service.delete_department(department_id)
-    return {"deleted": True}
+    return company_service.delete_department_cascade(department_id, existing, owner_id)

@@ -6,8 +6,9 @@ from fastapi import APIRouter, Depends, Query
 
 from server.api.avatars import sanitize_avatar_fields
 from server.api.schemas.staff import StaffSchema, UpsertStaffRequest
+from server.app.service.company_service import CompanyService
 from server.app.service.staff_service import StaffService
-from server.api.deps import current_owner_id_dep, get_staff_service
+from server.api.deps import current_owner_id_dep, get_company_service, get_staff_service
 from server.api.ownership import require_deletable, require_modifiable
 from server.domain.enums import StaffStatus
 from server.domain.models import CATALOG_COMPANY_ID, Staff, is_visible_to
@@ -75,13 +76,22 @@ def upsert_staff(
     return StaffSchema.from_domain(saved, skills)
 
 
+@router.get("/{staff_id}/impact")
+def get_staff_delete_impact(
+    staff_id: str,
+    company_service: CompanyService = Depends(get_company_service),
+) -> dict:
+    """Preview which companies/departments/projects/tasks a delete would affect."""
+    return company_service.preview_staff_delete(staff_id)
+
+
 @router.delete("/{staff_id}")
 def delete_staff(
     staff_id: str,
     service: StaffService = Depends(get_staff_service),
+    company_service: CompanyService = Depends(get_company_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
     existing = service.try_get_staff(staff_id)
     require_deletable(existing, owner_id, f"Staff '{staff_id}'")
-    service.delete_staff(staff_id)
-    return {"deleted": True}
+    return company_service.delete_staff_cascade(staff_id, existing, owner_id)

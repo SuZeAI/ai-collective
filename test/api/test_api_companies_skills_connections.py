@@ -54,6 +54,26 @@ def test_create_skill_and_delete(client, user_headers):
     assert deleted.status_code == 200
 
 
+def test_delete_skill_cascade_removes_from_staff(client, user_headers):
+    skill = client.post(
+        f"{API}/skills",
+        json={"name": unique("skill"), "description": "d", "third_party": "Custom", "tool_name": "http", "config": {}},
+        headers=user_headers,
+    ).json()
+    staff = make_staff(client, user_headers, skill_ids=[skill["id"]])
+
+    impact = client.get(f"{API}/skills/{skill['id']}/impact", headers=user_headers).json()
+    assert impact["staff_updated"] == 1
+
+    deleted = client.delete(f"{API}/skills/{skill['id']}", headers=user_headers)
+    assert deleted.status_code == 200
+    assert deleted.json()["staff_updated"] == 1
+
+    staff_after = client.get(f"{API}/staff", headers=user_headers).json()
+    refreshed = next(s for s in staff_after if s["id"] == staff["id"])
+    assert skill["id"] not in refreshed["skill_ids"]
+
+
 def test_delete_company_cascade_does_not_touch_other_companys_department(client, user_headers):
     company_a = client.post(f"{API}/companies", json={"name": unique("company"), "type": "general"}, headers=user_headers).json()
     company_b = client.post(f"{API}/companies", json={"name": unique("company"), "type": "general"}, headers=user_headers).json()

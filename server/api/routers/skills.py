@@ -5,7 +5,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, Query
 
 from server.api.avatars import sanitize_avatar_fields
-from server.api.deps import current_owner_id_dep, get_skill_service
+from server.api.deps import current_owner_id_dep, get_company_service, get_skill_service
 from server.api.ownership import require_deletable, require_modifiable
 from server.api.schemas.skill import (
     SkillSchema,
@@ -13,6 +13,7 @@ from server.api.schemas.skill import (
     UpsertSkillRequest,
     merge_config_preserving_secrets,
 )
+from server.app.service.company_service import CompanyService
 from server.app.service.skill_service import SkillService
 from server.domain.models import CATALOG_COMPANY_ID, Skill, is_visible_to
 
@@ -80,13 +81,22 @@ def upsert_skill(
     return SkillSchema.from_domain(saved)
 
 
+@router.get("/{skill_id}/impact")
+def get_skill_delete_impact(
+    skill_id: str,
+    company_service: CompanyService = Depends(get_company_service),
+) -> dict:
+    """Preview which staff/companies a delete would affect, without deleting anything."""
+    return company_service.preview_skill_delete(skill_id)
+
+
 @router.delete("/{skill_id}")
 def delete_skill(
     skill_id: str,
     service: SkillService = Depends(get_skill_service),
+    company_service: CompanyService = Depends(get_company_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
     existing = service.try_get_skill(skill_id)
     require_deletable(existing, owner_id, f"Skill '{skill_id}'")
-    service.delete_skill(skill_id)
-    return {"deleted": True}
+    return company_service.delete_skill_cascade(skill_id, existing, owner_id)

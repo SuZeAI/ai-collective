@@ -13,7 +13,7 @@ from server.app.service.skill_service import SkillService
 from server.app.service.staff_service import StaffService
 from server.app.service.task_service import TaskService
 from server.domain.errors import NotFoundError
-from server.domain.models import CATALOG_COMPANY_ID, Company, can_delete
+from server.domain.models import CATALOG_COMPANY_ID, Company, Department, Skill, Staff, can_delete, can_modify
 
 logger = logging.getLogger(__name__)
 
@@ -297,4 +297,197 @@ class CompanyService:
             "removed_tasks": removed_tasks,
             "removed_documents": removed_documents,
             "kept_departments": kept_departments,
+        }
+
+    # ----- department delete: impact preview + cascade -----------------------
+
+    def _plan_department_delete(self, department: Department | None) -> dict:
+        if department is None:
+            return {"affected_companies": [], "staff_to_remove": []}
+        department_id = department.id
+
+        affected_company_ids = {department.company_id}
+        for company in self.list_companies():
+            if department_id in company.department_ids or company.primary_department_id == department_id:
+                affected_company_ids.add(company.id)
+        affected_companies = [
+            {"id": c.id, "name": c.name} for c in self.list_companies() if c.id in affected_company_ids
+        ]
+
+        other_staff_ids: set[str] = set()
+        for other in self._departments.list_departments():
+            if other.id == department_id:
+                continue
+            other_staff_ids.update(other.staff)
+        staff_to_remove = [sid for sid in department.staff if sid not in other_staff_ids]
+
+        return {"affected_companies": affected_companies, "staff_to_remove": staff_to_remove}
+
+    def preview_department_delete(self, department_id: str) -> dict:
+        plan = self._plan_department_delete(self._departments.try_get_department(department_id))
+        return {"affected_companies": plan["affected_companies"], "staff_removed": len(plan["staff_to_remove"])}
+
+    def delete_department_cascade(self, department_id: str, existing: Department | None, owner_id: str) -> dict:
+        plan = self._plan_department_delete(existing)
+        affected_ids = {c["id"] for c in plan["affected_companies"]}
+
+        for company in self.list_companies():
+            if company.id not in affected_ids:
+                continue
+            new_department_ids = [d for d in company.department_ids if d != department_id]
+            new_primary = "" if company.primary_department_id == department_id else company.primary_department_id
+            if new_department_ids == company.department_ids and new_primary == company.primary_department_id:
+                continue
+            try:
+                self.upsert_company(
+                    replace(company, department_ids=new_department_ids, primary_department_id=new_primary)
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("failed to unlink department %s from company %s: %s", department_id, company.id, exc)
+
+        removed_staff = 0
+        for staff_id in plan["staff_to_remove"]:
+            staff = self._staff.try_get_staff(staff_id)
+            if staff is not None and not can_delete(owner_id, staff.owner_id):
+                continue
+            try:
+                self._staff.delete_staff(staff_id)
+                removed_staff += 1
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("failed to delete staff %s for department %s: %s", staff_id, department_id, exc)
+
+        self._departments.delete_department(department_id)
+        return {"deleted": True, "affected_companies": plan["affected_companies"], "removed_staff": removed_staff}
+
+    # ----- staff delete: impact preview + cascade -----------------------------
+
+    def _plan_staff_delete(self, staff: Staff | None) -> dict:
+        if staff is None:
+            return {"affected_companies": [], "department_ids": [], "project_ids": [], "task_ids": []}
+        staff_id = staff.id
+
+        departments_with_staff = [d for d in self._departments.list_departments() if staff_id in d.staff]
+        projects_with_staff = [
+            p for p in self._projects.list_projects() if p.lead_id == staff_id or p.planner_staff_id == staff_id
+        ]
+        tasks_with_staff = [
+            t for t in self._tasks.list_tasks() if t.assignee_id == staff_id or staff_id in t.assigned_staff
+        ]
+
+        affected_company_ids = {staff.company_id}
+        affected_company_ids.update(d.company_id for d in departments_with_staff)
+        affected_company_ids.update(p.company_id for p in projects_with_staff if p.company_id)
+        affected_companies = [
+            {"id": c.id, "name": c.name} for c in self.list_companies() if c.id in affected_company_ids
+        ]
+
+        return {
+            "affected_companies": affected_companies,
+            "department_ids": [d.id for d in departments_with_staff],
+            "project_ids": [p.id for p in projects_with_staff],
+            "task_ids": [t.id for t in tasks_with_staff],
+        }
+
+    def preview_staff_delete(self, staff_id: str) -> dict:
+        plan = self._plan_staff_delete(self._staff.try_get_staff(staff_id))
+        return {
+            "affected_companies": plan["affected_companies"],
+            "departments_updated": len(plan["department_ids"]),
+            "projects_updated": len(plan["project_ids"]),
+            "tasks_updated": len(plan["task_ids"]),
+        }
+
+    def delete_staff_cascade(self, staff_id: str, existing: Staff | None, owner_id: str) -> dict:
+        plan = self._plan_staff_delete(existing)
+
+        for department_id in plan["department_ids"]:
+            department = self._departments.try_get_department(department_id)
+            if department is None or not can_modify(owner_id, department.owner_id):
+                continue
+            try:
+                self._departments.upsert_department(
+                    replace(department, staff=[sid for sid in department.staff if sid != staff_id])
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("failed to unassign staff %s from department %s: %s", staff_id, department_id, exc)
+
+        for project_id in plan["project_ids"]:
+            project = self._projects.try_get_project(project_id)
+            if project is None or not can_modify(owner_id, project.owner_id):
+                continue
+            try:
+                self._projects.upsert_project(
+                    replace(
+                        project,
+                        lead_id="" if project.lead_id == staff_id else project.lead_id,
+                        planner_staff_id="" if project.planner_staff_id == staff_id else project.planner_staff_id,
+                    )
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("failed to clear staff %s from project %s: %s", staff_id, project_id, exc)
+
+        for task_id in plan["task_ids"]:
+            task = self._tasks.try_get_task(task_id)
+            if task is None or not can_modify(owner_id, task.owner_id):
+                continue
+            try:
+                self._tasks.upsert_task(
+                    replace(
+                        task,
+                        assignee_id=None if task.assignee_id == staff_id else task.assignee_id,
+                        assigned_staff=[sid for sid in task.assigned_staff if sid != staff_id],
+                    )
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("failed to clear staff %s from task %s: %s", staff_id, task_id, exc)
+
+        self._staff.delete_staff(staff_id)
+        return {
+            "deleted": True,
+            "affected_companies": plan["affected_companies"],
+            "departments_updated": len(plan["department_ids"]),
+            "projects_updated": len(plan["project_ids"]),
+            "tasks_updated": len(plan["task_ids"]),
+        }
+
+    # ----- skill delete: impact preview + cascade -----------------------------
+
+    def _plan_skill_delete(self, skill: Skill | None) -> dict:
+        if skill is None:
+            return {"affected_companies": [], "staff_ids": []}
+        skill_id = skill.id
+
+        staff_with_skill = [s for s in self._staff.list_staff() if skill_id in s.skill_ids]
+
+        affected_company_ids = {skill.company_id}
+        affected_company_ids.update(s.company_id for s in staff_with_skill)
+        affected_companies = [
+            {"id": c.id, "name": c.name} for c in self.list_companies() if c.id in affected_company_ids
+        ]
+
+        return {"affected_companies": affected_companies, "staff_ids": [s.id for s in staff_with_skill]}
+
+    def preview_skill_delete(self, skill_id: str) -> dict:
+        plan = self._plan_skill_delete(self._skills.try_get_skill(skill_id))
+        return {"affected_companies": plan["affected_companies"], "staff_updated": len(plan["staff_ids"])}
+
+    def delete_skill_cascade(self, skill_id: str, existing: Skill | None, owner_id: str) -> dict:
+        plan = self._plan_skill_delete(existing)
+
+        for staff_id in plan["staff_ids"]:
+            staff = self._staff.try_get_staff(staff_id)
+            if staff is None or not can_modify(owner_id, staff.owner_id):
+                continue
+            try:
+                self._staff.upsert_staff(
+                    replace(staff, skill_ids=[sid for sid in staff.skill_ids if sid != skill_id])
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("failed to remove skill %s from staff %s: %s", skill_id, staff_id, exc)
+
+        self._skills.delete_skill(skill_id)
+        return {
+            "deleted": True,
+            "affected_companies": plan["affected_companies"],
+            "staff_updated": len(plan["staff_ids"]),
         }
