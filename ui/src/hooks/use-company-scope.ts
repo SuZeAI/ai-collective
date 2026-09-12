@@ -72,8 +72,9 @@ const OVERALL_SCOPE: CompanyScopeState = {
 
 /**
  * Resolve the active office (company) into entity-id sets so pages can show
- * only the departments/staff/skills that belong to it. Membership is derived
- * from the existing hierarchy: company.departmentIds → department.staff → staff.skill_ids.
+ * only the departments/staff/skills that belong to it. Staff/Skill/Department
+ * each carry their own company_id, so membership is a direct server-side
+ * filter rather than a transitive walk of the old shared-catalog hierarchy.
  * Reacts to the sidebar switcher via the activeCompanyChanged/companyChanged events.
  */
 export function useCompanyScope(): CompanyScope {
@@ -105,20 +106,17 @@ export function useCompanyScope(): CompanyScope {
     setScope((prev) => ({ ...prev, isOverall: false, ready: false }));
     (async () => {
       try {
-        const [ws, departments, staff, projects] = await Promise.all([
+        const [ws, departments, staff, skills, projects] = await Promise.all([
           api.getCompany(companyId),
-          api.listDepartments(),
-          api.listStaff(),
+          api.listDepartments(companyId),
+          api.listStaff(companyId),
+          api.listSkills(companyId),
           api.listProjects(companyId).catch(() => []),
         ]);
         if (!active) return;
-        const departmentIds = new Set(ws.departmentIds);
-        const staffIds = new Set(
-          departments.filter((t) => departmentIds.has(t.id)).flatMap((t) => t.staff),
-        );
-        const skillIds = new Set(
-          staff.filter((a) => staffIds.has(a.id)).flatMap((a) => a.skill_ids),
-        );
+        const departmentIds = new Set(departments.map((t) => t.id));
+        const staffIds = new Set(staff.map((a) => a.id));
+        const skillIds = new Set(skills.map((s) => s.id));
         const projectIds = new Set(projects.map((p) => p.id));
         setScope({ isOverall: false, company: ws, departmentIds, staffIds, skillIds, projectIds, ready: true });
       } catch (err) {

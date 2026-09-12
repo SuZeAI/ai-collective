@@ -15,6 +15,7 @@ export type Staff = {
   avatar_url?: string;
   subagent_enabled?: boolean;
   owner_id?: string;
+  company_id?: string;
 };
 
 export type Skill = {
@@ -32,6 +33,7 @@ export type Skill = {
   code?: string | null;
   instruction?: string;
   owner_id?: string;
+  company_id?: string;
 };
 
 export type SkillToolOption = {
@@ -97,6 +99,7 @@ export type Department = {
   mode?: DepartmentMode;
   maxSteps?: number;
   owner_id?: string;
+  company_id?: string;
   flow?: CustomFlow | null;
 };
 
@@ -802,12 +805,14 @@ export function saveBlob(blob: Blob, filename: string): void {
 }
 
 export const api = {
-  listStaff: () => apiFetch<Staff[]>("/staff"),
+  listStaff: (companyId?: string) =>
+    apiFetch<Staff[]>(`/staff${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`),
   upsertStaff: (payload: Partial<Staff> & Pick<Staff, "name" | "role">) =>
     apiFetch<Staff>("/staff", { method: "POST", body: JSON.stringify(payload) }),
   deleteStaff: (id: string) => apiFetch<{ deleted: boolean }>(`/staff/${id}`, { method: "DELETE" }),
 
-  listSkills: () => apiFetch<Skill[]>("/skills"),
+  listSkills: (companyId?: string) =>
+    apiFetch<Skill[]>(`/skills${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`),
   listSkillTools: () => apiFetch<string[]>("/skills/tools"),
   listSkillToolPresets: () => apiFetch<SkillToolPreset[]>("/skills/tool-presets"),
   startSheetOAuth: (payload: { email_hint?: string; tool_name?: string }) =>
@@ -821,7 +826,8 @@ export const api = {
     apiFetch<Skill>("/skills", { method: "POST", body: JSON.stringify(payload) }),
   deleteSkill: (id: string) => apiFetch<{ deleted: boolean }>(`/skills/${id}`, { method: "DELETE" }),
 
-  listDepartments: () => apiFetch<Department[]>("/departments"),
+  listDepartments: (companyId?: string) =>
+    apiFetch<Department[]>(`/departments${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`),
   upsertDepartment: (payload: Partial<Department> & Pick<Department, "name" | "staff">) =>
     apiFetch<Department>("/departments", { method: "POST", body: JSON.stringify(payload) }),
   deleteDepartment: (id: string) => apiFetch<{ deleted: boolean }>(`/departments/${id}`, { method: "DELETE" }),

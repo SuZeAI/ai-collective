@@ -6,6 +6,7 @@ vi.mock("@/lib/api", () => ({
     getCompany: vi.fn(),
     listDepartments: vi.fn(async () => []),
     listStaff: vi.fn(async () => []),
+    listSkills: vi.fn(async () => []),
     listProjects: vi.fn(async () => []),
   },
 }));
@@ -52,6 +53,7 @@ describe("useCompanyScope", () => {
     vi.clearAllMocks();
     (api.listDepartments as any).mockResolvedValue([]);
     (api.listStaff as any).mockResolvedValue([]);
+    (api.listSkills as any).mockResolvedValue([]);
     (api.listProjects as any).mockResolvedValue([]);
   });
 
@@ -63,9 +65,12 @@ describe("useCompanyScope", () => {
   });
 
   it("resolves department/staff/project id sets for the active company", async () => {
+    // Staff/Skill/Department are fetched pre-scoped to companyId, not derived
+    // transitively — each list call only returns what already belongs to c1.
     (api.getCompany as any).mockResolvedValue({ id: "c1", departmentIds: ["d1"] });
-    (api.listDepartments as any).mockResolvedValue([{ id: "d1", staff: ["a1"] }, { id: "d2", staff: ["a2"] }]);
-    (api.listStaff as any).mockResolvedValue([{ id: "a1", skill_ids: ["sk1"] }, { id: "a2", skill_ids: ["sk2"] }]);
+    (api.listDepartments as any).mockResolvedValue([{ id: "d1" }]);
+    (api.listStaff as any).mockResolvedValue([{ id: "a1" }]);
+    (api.listSkills as any).mockResolvedValue([{ id: "sk1" }]);
     (api.listProjects as any).mockResolvedValue([{ id: "p1" }]);
     setActiveCompanyId("c1");
 
