@@ -21,7 +21,7 @@ judgement instead of dying.
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from typing import Any, Callable
 from uuid import uuid4
 
 from langchain.tools import tool
@@ -40,9 +40,24 @@ _POLL_SECONDS = 0.25
 _HEARTBEAT_EVERY_POLLS = max(1, int(15 / _POLL_SECONDS))  # ~15s, keeps SSE alive
 
 
-def _emit_event(payload: dict) -> None:
-    """Best-effort custom stream event (no-op outside a LangGraph node)."""
+def _emit_event(payload: dict, writer: Callable[[dict], None] | None = None) -> None:
+    """Best-effort custom stream event.
+
+    A caller-supplied ``writer`` is used when available. This tool always
+    runs inside ``llm.chat()``'s inner agent, which invokes its compiled
+    graph via ``ainvoke()`` (base_langchain.py) rather than the outer
+    ``astream(..., stream_mode="custom")`` call the SSE endpoint is actually
+    reading from — so ``get_stream_writer()`` resolved *here* returns a
+    no-op writer scoped to that disconnected inner run, silently dropping
+    every event. The outer graph node captures the real writer before
+    entering that inner call and passes it down (see
+    ``_graph_runtime.build_agent_tools``); ``get_stream_writer()`` is kept
+    only as a fallback for callers that don't wire one through.
+    """
     try:
+        if writer is not None:
+            writer(payload)
+            return
         from langgraph.config import get_stream_writer
 
         writer = get_stream_writer()
@@ -62,12 +77,14 @@ class AskUserToolkit(BaseToolkit):
         conversation_id: str,
         staff_name: str | None = None,
         timeout_seconds: int = ASK_USER_TIMEOUT_SECONDS,
+        stream_writer: Callable[[dict], None] | None = None,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self._conversation_id = conversation_id
         self._staff_name = staff_name
         self._timeout_seconds = max(5, int(timeout_seconds))
+        self._stream_writer = stream_writer
 
     @tool(parse_docstring=True)
     async def ask_user(
@@ -116,7 +133,7 @@ class AskUserToolkit(BaseToolkit):
             "options": clean_options,
             "allow_free_text": bool(allow_free_text) or not clean_options,
         }
-        _emit_event(payload)
+        _emit_event(payload, self._stream_writer)
         logger.info(
             "ask_user: staff=%s conversation=%s request=%s options=%d",
             self._staff_name, self._conversation_id, request_id, len(clean_options),
@@ -135,7 +152,7 @@ class AskUserToolkit(BaseToolkit):
                         "type": EventType.USER_INPUT_RECEIVED.value,
                         "request_id": request_id,
                         "agent_name": self._staff_name,
-                    })
+                    }, self._stream_writer)
                     return f"The user answered: {response}"
 
                 if task_run_registry.is_cancelled(self._conversation_id):
@@ -144,14 +161,14 @@ class AskUserToolkit(BaseToolkit):
                 # Heartbeat: re-announce the open question so idle SSE
                 # connections survive proxy timeouts (UI dedupes by request_id).
                 if polls % _HEARTBEAT_EVERY_POLLS == 0:
-                    _emit_event({**payload, "heartbeat": True})
+                    _emit_event({**payload, "heartbeat": True}, self._stream_writer)
 
             _emit_event({
                 "type": EventType.USER_INPUT_RECEIVED.value,
                 "request_id": request_id,
                 "agent_name": self._staff_name,
                 "timed_out": True,
-            })
+            }, self._stream_writer)
             return (
                 f"[ask_user timeout] The user did not answer within "
                 f"{self._timeout_seconds}s. Proceed on your best judgement and "

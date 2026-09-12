@@ -43,6 +43,15 @@ LLM_TIMEOUT_SECONDS = max(10, settings.staff.llm_timeout_seconds)
 LLM_MAX_RETRIES = max(0, settings.staff.llm_max_retries)
 _LLM_RETRY_BASE_DELAY = 1.5
 
+# llm.chat() runs its whole tool-calling loop under one wall-clock budget, and
+# the ask_user tool can legitimately block inside that loop for up to
+# ask_user_timeout_seconds waiting on a human. If the outer budget were just
+# LLM_TIMEOUT_SECONDS, any unanswered ask_user would always be killed by this
+# timeout (mislabeled as a slow model, and treated as terminal/non-retryable)
+# long before ask_user's own timeout could return its graceful fallback
+# message. Widen the outer budget to cover that case.
+LLM_CALL_TIMEOUT_SECONDS = max(LLM_TIMEOUT_SECONDS, settings.staff.ask_user_timeout_seconds)
+
 # How many fan-out branches (named staff dispatched in one parallel wave) may
 # run concurrently. Falls back to the subagent cap so a single env var can tune
 # both layers; both are independent semaphores, so the worst-case simultaneous
@@ -74,7 +83,7 @@ async def safe_chat(llm: Any, *, staff_name: str = "", **chat_kwargs: Any) -> st
         last_exc: Exception | None = None
         for attempt in range(LLM_MAX_RETRIES + 1):
             try:
-                async with asyncio.timeout(LLM_TIMEOUT_SECONDS):
+                async with asyncio.timeout(LLM_CALL_TIMEOUT_SECONDS):
                     return await llm.chat(**chat_kwargs)
             except asyncio.CancelledError:
                 raise
@@ -88,9 +97,9 @@ async def safe_chat(llm: Any, *, staff_name: str = "", **chat_kwargs: Any) -> st
                 logger.exception(
                     "llm.chat timed out (staff_member=%s) after %ss; not retrying "
                     "to avoid re-running tool calls already made this attempt",
-                    staff_name, LLM_TIMEOUT_SECONDS,
+                    staff_name, LLM_CALL_TIMEOUT_SECONDS,
                 )
-                return f"[error] The model call timed out after {LLM_TIMEOUT_SECONDS}s."
+                return f"[error] The model call timed out after {LLM_CALL_TIMEOUT_SECONDS}s."
             except Exception as exc:  # noqa: BLE001 - provider errors are heterogeneous
                 last_exc = exc
                 if attempt < LLM_MAX_RETRIES:
@@ -544,8 +553,25 @@ def build_agent_tools(staff: GraphStaffDefinition, *, conversation_id: str | Non
     if conversation_id:
         from server.domain.tools.ask_user import AskUserToolkit
 
+        # Capture the real stream writer here, while still inside the outer
+        # graph node's own astream() context — llm.chat() (base_langchain.py)
+        # runs its tool-calling loop through a nested, non-streaming
+        # staff.ainvoke() call, so ask_user calling get_stream_writer() itself
+        # at tool-call time would silently resolve to a no-op writer scoped to
+        # that disconnected inner run, and every question would go unseen by
+        # the frontend until it quietly timed out.
+        stream_writer = None
+        try:
+            from langgraph.config import get_stream_writer
+
+            stream_writer = get_stream_writer()
+        except Exception:
+            pass
+
         bound_tools.extend(
-            AskUserToolkit(conversation_id=conversation_id, staff_name=staff.name).get_tools()
+            AskUserToolkit(
+                conversation_id=conversation_id, staff_name=staff.name, stream_writer=stream_writer
+            ).get_tools()
         )
     bound_tools.extend(memory_toolkit_tools(conversation_id, staff.name))
 
