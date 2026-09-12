@@ -7,8 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { StaffAvatar, skillAvatarIconOptions } from "@/components/StaffAvatar";
-import { api, canDeleteItem, canEditItem, type Skill, type SkillToolConfigField, type SkillToolPreset } from "@/lib/api";
+import { api, canDeleteItem, canEditItem, type Skill, type SkillToolConfigField, type SkillToolPreset, type DeleteImpact } from "@/lib/api";
 import { useCompanyScope, CATALOG_COMPANY_ID } from "@/hooks/use-company-scope";
 import { useToast } from "@/hooks/use-toast";
 
@@ -556,6 +560,22 @@ export default function Skills() {
     }
   };
 
+  const [pendingDelete, setPendingDelete] = useState<{ skill: Skill; impact: DeleteImpact } | null>(null);
+
+  const requestDeleteSkill = async (skill: Skill) => {
+    try {
+      const impact = await api.getSkillDeleteImpact(skill.id);
+      if (!impact.staff_updated) {
+        await deleteSkill(skill.id);
+        return;
+      }
+      setPendingDelete({ skill, impact });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Could not check delete impact", description: String((e as Error).message ?? e), variant: "destructive" });
+    }
+  };
+
   const updateConfigValue = (field: SkillToolConfigField, value: ToolConfigValue) => {
     setConfigValues((prev) => ({ ...prev, [field.key]: value }));
   };
@@ -868,7 +888,7 @@ export default function Skills() {
                   </Button>
                 )}
                 {canDeleteItem(s) && (
-                  <Button variant="ghost" size="icon" onClick={() => deleteSkill(s.id)} aria-label={`Delete ${s.name}`}>
+                  <Button variant="ghost" size="icon" onClick={() => requestDeleteSkill(s)} aria-label={`Delete ${s.name}`}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 )}
@@ -908,6 +928,34 @@ export default function Skills() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete skill?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deleting <span className="font-semibold text-foreground">{pendingDelete?.skill.name}</span> will remove
+              it from {pendingDelete?.impact.staff_updated} staff member(s)
+              {pendingDelete?.impact.affected_companies.length
+                ? ` in ${pendingDelete.impact.affected_companies.map((c) => c.name).join(", ")}`
+                : ""}
+              . This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingDelete) deleteSkill(pendingDelete.skill.id);
+                setPendingDelete(null);
+              }}
+              className="bg-rose-600 hover:bg-rose-500 text-white"
+            >
+              Delete skill
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

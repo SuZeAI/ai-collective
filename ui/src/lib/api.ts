@@ -103,6 +103,17 @@ export type Department = {
   flow?: CustomFlow | null;
 };
 
+export type AffectedCompany = { id: string; name: string };
+
+export type DeleteImpact = {
+  affected_companies: AffectedCompany[];
+  staff_removed?: number;
+  staff_updated?: number;
+  departments_updated?: number;
+  projects_updated?: number;
+  tasks_updated?: number;
+};
+
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
 
 export type IssueType = "epic" | "story" | "task" | "bug" | "subtask";
@@ -810,6 +821,7 @@ export const api = {
   upsertStaff: (payload: Partial<Staff> & Pick<Staff, "name" | "role">) =>
     apiFetch<Staff>("/staff", { method: "POST", body: JSON.stringify(payload) }),
   deleteStaff: (id: string) => apiFetch<{ deleted: boolean }>(`/staff/${id}`, { method: "DELETE" }),
+  getStaffDeleteImpact: (id: string) => apiFetch<DeleteImpact>(`/staff/${id}/impact`),
 
   listSkills: (companyId?: string) =>
     apiFetch<Skill[]>(`/skills${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`),
@@ -825,12 +837,14 @@ export const api = {
   upsertSkill: (payload: Partial<Skill> & Pick<Skill, "name" | "kind">) =>
     apiFetch<Skill>("/skills", { method: "POST", body: JSON.stringify(payload) }),
   deleteSkill: (id: string) => apiFetch<{ deleted: boolean }>(`/skills/${id}`, { method: "DELETE" }),
+  getSkillDeleteImpact: (id: string) => apiFetch<DeleteImpact>(`/skills/${id}/impact`),
 
   listDepartments: (companyId?: string) =>
     apiFetch<Department[]>(`/departments${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`),
   upsertDepartment: (payload: Partial<Department> & Pick<Department, "name" | "staff">) =>
     apiFetch<Department>("/departments", { method: "POST", body: JSON.stringify(payload) }),
   deleteDepartment: (id: string) => apiFetch<{ deleted: boolean }>(`/departments/${id}`, { method: "DELETE" }),
+  getDepartmentDeleteImpact: (id: string) => apiFetch<DeleteImpact>(`/departments/${id}/impact`),
 
   listTasks: () => apiFetch<Task[]>("/tasks"),
   upsertTask: (payload: Partial<Task> & Pick<Task, "title">) =>

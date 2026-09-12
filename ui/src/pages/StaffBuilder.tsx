@@ -7,10 +7,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { StaffAvatar, avatarIconOptions } from "@/components/StaffAvatar";
 import { AvatarPicker, isHexColor, type AvatarMode } from "@/components/AvatarPicker";
 import { StaffTestDialog } from "@/components/StaffTestDialog";
-import { api, canDeleteItem, canEditItem, type Staff, type Skill } from "@/lib/api";
+import { api, canDeleteItem, canEditItem, type Staff, type Skill, type DeleteImpact } from "@/lib/api";
 import { getStaffDotColor, getStaffRoleColor } from "@/lib/staff-role-ui";
 import { useCompanyScope, CATALOG_COMPANY_ID } from "@/hooks/use-company-scope";
 import { useToast } from "@/hooks/use-toast";
@@ -252,6 +256,8 @@ export default function StaffBuilder() {
     }
   };
 
+  const [pendingDelete, setPendingDelete] = useState<{ staff: Staff; impact: DeleteImpact } | null>(null);
+
   const deleteStaff = async (id: string) => {
     try {
       await api.deleteStaff(id);
@@ -263,6 +269,25 @@ export default function StaffBuilder() {
     } catch (e) {
       console.error(e);
       toast({ title: "Could not delete staff", description: String((e as Error).message ?? e), variant: "destructive" });
+    }
+  };
+
+  const requestDeleteStaff = async (staff: Staff) => {
+    try {
+      const impact = await api.getStaffDeleteImpact(staff.id);
+      const hasImpact =
+        impact.affected_companies.length > 0 ||
+        (impact.departments_updated ?? 0) > 0 ||
+        (impact.projects_updated ?? 0) > 0 ||
+        (impact.tasks_updated ?? 0) > 0;
+      if (!hasImpact) {
+        await deleteStaff(staff.id);
+        return;
+      }
+      setPendingDelete({ staff, impact });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Could not check delete impact", description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -557,6 +582,36 @@ export default function StaffBuilder() {
         runStaffTest={runStaffTest}
       />
 
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete staff?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deleting <span className="font-semibold text-foreground">{pendingDelete?.staff.name}</span> will unassign
+              it from {pendingDelete?.impact.departments_updated ?? 0} department(s)
+              {pendingDelete?.impact.projects_updated ? `, clear it from ${pendingDelete.impact.projects_updated} project(s)` : ""}
+              {pendingDelete?.impact.tasks_updated ? `, and clear it from ${pendingDelete.impact.tasks_updated} task(s)` : ""}
+              {pendingDelete?.impact.affected_companies.length
+                ? ` — affects ${pendingDelete.impact.affected_companies.map((c) => c.name).join(", ")}`
+                : ""}
+              . This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingDelete) deleteStaff(pendingDelete.staff.id);
+                setPendingDelete(null);
+              }}
+              className="bg-rose-600 hover:bg-rose-500 text-white"
+            >
+              Delete staff
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {visibleStaff.length === 0 && scope.ready && (
         <div className="text-center py-16 text-muted-foreground">
           <p className="text-sm">
@@ -590,7 +645,7 @@ export default function StaffBuilder() {
                       </Button>
                     )}
                     {canDeleteItem(staff) && (
-                      <Button variant="ghost" size="icon" onClick={() => deleteStaff(staff.id)} aria-label={`Delete ${staff.name}`}>
+                      <Button variant="ghost" size="icon" onClick={() => requestDeleteStaff(staff)} aria-label={`Delete ${staff.name}`}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     )}

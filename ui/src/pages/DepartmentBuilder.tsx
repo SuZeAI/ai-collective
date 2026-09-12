@@ -5,9 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { StaffAvatar, departmentAvatarIconOptions } from "@/components/StaffAvatar";
 import { AvatarPicker, isHexColor, type AvatarMode } from "@/components/AvatarPicker";
-import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Staff, type CustomFlow, type Department, type DepartmentMode } from "@/lib/api";
+import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Staff, type CustomFlow, type Department, type DepartmentMode, type DeleteImpact } from "@/lib/api";
 import { useCompanyScope, CATALOG_COMPANY_ID } from "@/hooks/use-company-scope";
 import CustomFlowEditor from "@/components/department/CustomFlowEditor";
 import { DepartmentTestDialog } from "@/components/department/DepartmentTestDialog";
@@ -225,6 +229,8 @@ export default function DepartmentBuilder() {
     }
   };
 
+  const [pendingDelete, setPendingDelete] = useState<{ department: Department; impact: DeleteImpact } | null>(null);
+
   const deleteDepartment = async (id: string) => {
     try {
       await api.deleteDepartment(id);
@@ -236,6 +242,20 @@ export default function DepartmentBuilder() {
     } catch (e) {
       console.error(e);
       toast({ title: "Could not delete department", description: String((e as Error).message ?? e), variant: "destructive" });
+    }
+  };
+
+  const requestDeleteDepartment = async (department: Department) => {
+    try {
+      const impact = await api.getDepartmentDeleteImpact(department.id);
+      if (impact.affected_companies.length === 0 && !impact.staff_removed) {
+        await deleteDepartment(department.id);
+        return;
+      }
+      setPendingDelete({ department, impact });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Could not check delete impact", description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -604,6 +624,37 @@ export default function DepartmentBuilder() {
         staffById={staffById}
       />
 
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete department?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deleting <span className="font-semibold text-foreground">{pendingDelete?.department.name}</span> will
+              {pendingDelete?.impact.staff_removed
+                ? ` remove ${pendingDelete.impact.staff_removed} staff member(s) exclusive to it`
+                : ""}
+              {pendingDelete?.impact.staff_removed && pendingDelete?.impact.affected_companies.length ? " and" : ""}
+              {pendingDelete?.impact.affected_companies.length
+                ? ` unlink it from ${pendingDelete.impact.affected_companies.map((c) => c.name).join(", ")}`
+                : ""}
+              . This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingDelete) deleteDepartment(pendingDelete.department.id);
+                setPendingDelete(null);
+              }}
+              className="bg-rose-600 hover:bg-rose-500 text-white"
+            >
+              Delete department
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {visibleDepartments.length === 0 && scope.ready && (
         <div className="text-center py-16 text-muted-foreground">
           <Users className="w-8 h-8 mx-auto mb-3 opacity-30" />
@@ -643,7 +694,7 @@ export default function DepartmentBuilder() {
                   </Button>
                 )}
                 {canDeleteItem(department) && (
-                  <Button variant="ghost" size="icon" onClick={() => deleteDepartment(department.id)} aria-label={`Delete ${department.name}`}>
+                  <Button variant="ghost" size="icon" onClick={() => requestDeleteDepartment(department)} aria-label={`Delete ${department.name}`}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 )}
