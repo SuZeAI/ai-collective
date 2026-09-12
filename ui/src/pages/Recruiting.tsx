@@ -123,8 +123,10 @@ export default function Recruiting() {
   }, []);
 
   const handleCopy = async (kind: Kind, id: string) => {
-    // Documents are office-bound, so they copy into the active company.
-    if (kind === "document" && !scope.company) {
+    // Staff/skill/department/document all belong to exactly one company, so
+    // every copy needs a destination — this page is gated by RequireCompany,
+    // but stay defensive rather than let the request go out without one.
+    if (kind !== "task" && kind !== "project" && !scope.company) {
       toast({ title: c.toastErr, description: c.docNeedsCompany, variant: "destructive" });
       return;
     }
