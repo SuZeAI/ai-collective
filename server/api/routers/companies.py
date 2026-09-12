@@ -67,6 +67,17 @@ def upsert_company(
     return CompanySchema.from_domain(saved)
 
 
+@router.get("/{company_id}/impact")
+def get_company_delete_impact(
+    company_id: str,
+    service: CompanyService = Depends(get_company_service),
+    owner_id: str = Depends(current_owner_id_dep),
+):
+    """Preview what a delete would remove (departments/staff/skills/tasks/documents
+    exclusive to this company) vs. keep because another company still uses it."""
+    return service.preview_company_delete(company_id, owner_id)
+
+
 @router.delete("/{company_id}")
 def delete_company(
     company_id: str,

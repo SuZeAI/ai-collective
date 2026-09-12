@@ -163,17 +163,7 @@ class CompanyService:
         )
         return self._departments.upsert_department(clone).id
 
-    def delete_company_cascade(self, company_id: str, existing: Company | None, owner_id: str) -> dict:
-        """Delete a company and everything exclusive to it (departments, staff,
-        skills, tasks, documents), so none of it lingers in the "All" scope as
-        an orphan. Each cleanup is best-effort — a failure on related data must
-        not block deleting the company itself.
-
-        Historical stats (Cost Monitoring / token-usage records) are never
-        touched here: those only carry a department_id string, not a live
-        reference, so "All" keeps aggregating them forever, even for companies
-        deleted since.
-        """
+    def _plan_company_delete(self, company_id: str, existing: Company | None, owner_id: str) -> dict:
         all_departments = self._departments.list_departments()
         all_companies = self.list_companies()
 
@@ -235,13 +225,54 @@ class CompanyService:
                 skills_to_delete_ids.update(sid for sid in member.skill_ids if sid not in remaining_skill_ids)
 
         # Tasks tied to a department or staff member being removed have no home left.
+        tasks_to_delete = [
+            task
+            for task in self._tasks.list_tasks()
+            if task.department_id in departments_to_delete_ids
+            or (task.assignee_id is not None and task.assignee_id in staff_to_delete_ids)
+        ]
+
+        documents_to_delete = [doc for doc in self._documents.list_documents() if doc.company_id == company_id]
+
+        return {
+            "departments_to_delete": departments_to_delete,
+            "kept_departments": kept_departments,
+            "staff_to_delete_ids": staff_to_delete_ids,
+            "skills_to_delete_ids": skills_to_delete_ids,
+            "tasks_to_delete": tasks_to_delete,
+            "documents_to_delete": documents_to_delete,
+        }
+
+    def preview_company_delete(self, company_id: str, owner_id: str) -> dict:
+        """Preview a company delete: how much is exclusive to it (and thus
+        would be removed) vs. still shared with (and thus kept for) another
+        company, without deleting anything.
+        """
+        plan = self._plan_company_delete(company_id, self.try_get_company(company_id), owner_id)
+        return {
+            "removed_teams": len(plan["departments_to_delete"]),
+            "removed_staff": len(plan["staff_to_delete_ids"]),
+            "removed_skills": len(plan["skills_to_delete_ids"]),
+            "removed_tasks": len(plan["tasks_to_delete"]),
+            "removed_documents": len(plan["documents_to_delete"]),
+            "kept_departments": plan["kept_departments"],
+        }
+
+    def delete_company_cascade(self, company_id: str, existing: Company | None, owner_id: str) -> dict:
+        """Delete a company and everything exclusive to it (departments, staff,
+        skills, tasks, documents), so none of it lingers in the "All" scope as
+        an orphan. Each cleanup is best-effort — a failure on related data must
+        not block deleting the company itself.
+
+        Historical stats (Cost Monitoring / token-usage records) are never
+        touched here: those only carry a department_id string, not a live
+        reference, so "All" keeps aggregating them forever, even for companies
+        deleted since.
+        """
+        plan = self._plan_company_delete(company_id, existing, owner_id)
+
         removed_tasks = 0
-        for task in self._tasks.list_tasks():
-            orphaned = task.department_id in departments_to_delete_ids or (
-                task.assignee_id is not None and task.assignee_id in staff_to_delete_ids
-            )
-            if not orphaned:
-                continue
+        for task in plan["tasks_to_delete"]:
             try:
                 self._tasks.delete_task(task.id)
                 removed_tasks += 1
@@ -249,7 +280,7 @@ class CompanyService:
                 logger.warning("failed to delete task %s for company %s: %s", task.id, company_id, exc)
 
         removed_staff = 0
-        for staff_id in staff_to_delete_ids:
+        for staff_id in plan["staff_to_delete_ids"]:
             try:
                 self._staff.delete_staff(staff_id)
                 removed_staff += 1
@@ -257,7 +288,7 @@ class CompanyService:
                 logger.warning("failed to delete staff %s for company %s: %s", staff_id, company_id, exc)
 
         removed_skills = 0
-        for skill_id in skills_to_delete_ids:
+        for skill_id in plan["skills_to_delete_ids"]:
             skill = self._skills.try_get_skill(skill_id)
             if skill is not None and not can_delete(owner_id, skill.owner_id):
                 continue
@@ -268,7 +299,7 @@ class CompanyService:
                 logger.warning("failed to delete skill %s for company %s: %s", skill_id, company_id, exc)
 
         removed_teams = 0
-        for department in departments_to_delete:
+        for department in plan["departments_to_delete"]:
             try:
                 self._departments.delete_department(department.id)
                 removed_teams += 1
@@ -276,9 +307,7 @@ class CompanyService:
                 logger.warning("failed to delete department %s for company %s: %s", department.id, company_id, exc)
 
         removed_documents = 0
-        for doc in self._documents.list_documents():
-            if doc.company_id != company_id:
-                continue
+        for doc in plan["documents_to_delete"]:
             try:
                 self._documents.delete_document(doc)
                 removed_documents += 1
@@ -296,7 +325,7 @@ class CompanyService:
             "removed_skills": removed_skills,
             "removed_tasks": removed_tasks,
             "removed_documents": removed_documents,
-            "kept_departments": kept_departments,
+            "kept_departments": plan["kept_departments"],
         }
 
     # ----- department delete: impact preview + cascade -----------------------

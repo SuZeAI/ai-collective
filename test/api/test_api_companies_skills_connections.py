@@ -92,6 +92,10 @@ def test_delete_company_cascade_does_not_touch_other_companys_department(client,
         headers=user_headers,
     )
 
+    impact = client.get(f"{API}/companies/{company_a['id']}/impact", headers=user_headers).json()
+    assert impact["removed_teams"] == 1
+    assert impact["kept_departments"] == []
+
     deleted = client.delete(f"{API}/companies/{company_a['id']}", headers=user_headers)
     assert deleted.status_code == 200
     body = deleted.json()
