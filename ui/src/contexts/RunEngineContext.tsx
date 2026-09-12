@@ -92,6 +92,7 @@ export type RunStreamEvent = {
   question?: string;
   options?: unknown[];
   allow_free_text?: boolean;
+  heartbeat?: boolean;
   message_ids?: unknown[];
   node_ids?: unknown[];
   edge_ids?: unknown[];
@@ -378,9 +379,13 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         } else if (eventType === "user_input_request") {
           const requestId = String(event.request_id ?? "");
           if (requestId) {
+            const question = String(event.question ?? "");
+            const askerName = event.agent_name ? String(event.agent_name) : "A staff member";
+            let isNewRequest = false;
             setUserInputRequests((prev) => {
               const list = prev[updated.id] ?? [];
               if (list.some((r) => r.requestId === requestId)) return prev;
+              isNewRequest = true;
               return {
                 ...prev,
                 [updated.id]: [
@@ -389,13 +394,22 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
                     requestId,
                     staffId: staffId ? String(staffId) : undefined,
                     staffName: event.agent_name ? String(event.agent_name) : undefined,
-                    question: String(event.question ?? ""),
+                    question,
                     options: Array.isArray(event.options) ? event.options.map(String) : [],
                     allowFreeText: event.allow_free_text !== false,
                   },
                 ],
               };
             });
+            // Only alert on the first announcement — ask_user re-emits this
+            // event every ~15s (heartbeat: true) just to keep idle SSE
+            // connections alive, not as a new question.
+            if (isNewRequest && !event.heartbeat) {
+              toast({
+                title: `${askerName} needs your input on "${updated.title}"`,
+                description: question.length > 160 ? `${question.slice(0, 160)}…` : question,
+              });
+            }
           }
         } else if (eventType === "user_input_received") {
           const requestId = String(event.request_id ?? "");
