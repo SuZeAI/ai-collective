@@ -107,7 +107,6 @@ export type AffectedCompany = { id: string; name: string };
 
 export type DeleteImpact = {
   affected_companies: AffectedCompany[];
-  staff_removed?: number;
   staff_updated?: number;
   departments_updated?: number;
   projects_updated?: number;
