@@ -348,7 +348,7 @@ export default function Companies() {
 
   const { data: departments = [] } = useQuery({
     queryKey: ["departments"],
-    queryFn: api.listDepartments,
+    queryFn: () => api.listDepartments(),
   });
 
   const upsert = useMutation({

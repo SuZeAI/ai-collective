@@ -532,12 +532,12 @@ export default function Platform() {
 
   const { data: allDepartments = [] } = useQuery({
     queryKey: ["departments"],
-    queryFn: api.listDepartments,
+    queryFn: () => api.listDepartments(),
   });
 
   const { data: allStaff = [] } = useQuery({
     queryKey: ["staff"],
-    queryFn: api.listStaff,
+    queryFn: () => api.listStaff(),
   });
 
   // Restrict routing targets to entities that belong to the active company.
