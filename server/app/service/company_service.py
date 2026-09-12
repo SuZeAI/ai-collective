@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import logging
 
+from dataclasses import replace
+from uuid import uuid4
+
 from server.app.ports.repositories import CompanyRepository
 from server.app.service.department_service import DepartmentService
 from server.app.service.document_library_service import DocumentLibraryService
@@ -47,10 +50,118 @@ class CompanyService:
         return company
 
     def upsert_company(self, company: Company) -> Company:
+        """Save a company, claiming or cloning any department it newly lists.
+
+        ``department_ids`` is client-supplied (the "Manage Companies" UI lets a
+        user free-pick from every department, including "Import settings from
+        another Company"), so without this a company could end up listing a
+        department another company already owns — exactly the cross-company
+        sharing ``company_id`` was introduced to rule out. Each id is resolved
+        so it always ends up scoped to exactly this company: unclaimed catalog
+        templates are claimed in place, departments already owned by a
+        *different* real company are cloned instead of aliased (mirrors
+        scripts/migrate_company_scoping.py's claim-or-clone pattern).
+        """
+        resolved_department_ids, id_map = self._resolve_department_ids(company.department_ids, company)
+        if resolved_department_ids != company.department_ids:
+            primary = id_map.get(company.primary_department_id, company.primary_department_id)
+            if primary not in resolved_department_ids:
+                primary = resolved_department_ids[0] if resolved_department_ids else ""
+            company = replace(company, department_ids=resolved_department_ids, primary_department_id=primary)
         return self._repo.upsert(company)
 
     def delete_company(self, company_id: str) -> None:
         self._repo.delete(company_id)
+
+    # ----- claim-or-clone (upsert_company department_ids resolution) --------
+
+    def _resolve_department_ids(
+        self, department_ids: list[str], target_company: Company
+    ) -> tuple[list[str], dict[str, str]]:
+        resolved: list[str] = []
+        id_map: dict[str, str] = {}
+        for department_id in department_ids:
+            new_id = self._claim_or_clone_department(department_id, target_company)
+            if new_id is not None:
+                resolved.append(new_id)
+                id_map[department_id] = new_id
+        return resolved, id_map
+
+    def _claim_or_clone_skill(self, skill_id: str, target_company: Company) -> str | None:
+        skill = self._skills.try_get_skill(skill_id)
+        if skill is None:
+            return None
+        if skill.company_id == target_company.id:
+            return skill.id
+        if skill.company_id == CATALOG_COMPANY_ID:
+            self._skills.upsert_skill(
+                replace(skill, company_id=target_company.id, owner_id=target_company.owner_id)
+            )
+            return skill.id
+        clone = replace(
+            skill,
+            id=f"skill_{uuid4().hex}",
+            config=dict(skill.config or {}),
+            company_id=target_company.id,
+            owner_id=target_company.owner_id,
+        )
+        return self._skills.upsert_skill(clone).id
+
+    def _claim_or_clone_staff(self, staff_id: str, target_company: Company) -> str | None:
+        staff = self._staff.try_get_staff(staff_id)
+        if staff is None:
+            return None
+        new_skill_ids = [
+            sid
+            for sid in (self._claim_or_clone_skill(sid, target_company) for sid in staff.skill_ids)
+            if sid is not None
+        ]
+        if staff.company_id == target_company.id:
+            if new_skill_ids != staff.skill_ids:
+                self._staff.upsert_staff(replace(staff, skill_ids=new_skill_ids))
+            return staff.id
+        if staff.company_id == CATALOG_COMPANY_ID:
+            self._staff.upsert_staff(
+                replace(staff, skill_ids=new_skill_ids, company_id=target_company.id, owner_id=target_company.owner_id)
+            )
+            return staff.id
+        clone = replace(
+            staff,
+            id=f"agent_{uuid4().hex}",
+            skill_ids=new_skill_ids,
+            company_id=target_company.id,
+            owner_id=target_company.owner_id,
+        )
+        return self._staff.upsert_staff(clone).id
+
+    def _claim_or_clone_department(self, department_id: str, target_company: Company) -> str | None:
+        department = self._departments.try_get_department(department_id)
+        if department is None:
+            return None
+        new_staff_ids = [
+            sid
+            for sid in (self._claim_or_clone_staff(sid, target_company) for sid in department.staff)
+            if sid is not None
+        ]
+        if department.company_id == target_company.id:
+            if new_staff_ids != department.staff:
+                self._departments.upsert_department(replace(department, staff=new_staff_ids))
+            return department.id
+        if department.company_id == CATALOG_COMPANY_ID:
+            self._departments.upsert_department(
+                replace(
+                    department, staff=new_staff_ids, company_id=target_company.id, owner_id=target_company.owner_id
+                )
+            )
+            return department.id
+        clone = replace(
+            department,
+            id=f"team_{uuid4().hex}",
+            staff=new_staff_ids,
+            company_id=target_company.id,
+            owner_id=target_company.owner_id,
+        )
+        return self._departments.upsert_department(clone).id
 
     def delete_company_cascade(self, company_id: str, existing: Company | None, owner_id: str) -> dict:
         """Delete a company and everything exclusive to it (departments, staff,

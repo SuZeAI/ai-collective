@@ -8,7 +8,7 @@ use admin_headers, not user_headers.
 
 from __future__ import annotations
 
-from conftest import API, make_department, unique
+from conftest import API, make_department, make_staff, unique
 
 
 def test_create_company_and_list(client, user_headers):
@@ -81,6 +81,47 @@ def test_delete_company_cascade_does_not_touch_other_companys_department(client,
     departments = client.get(f"{API}/departments", headers=user_headers).json()
     assert any(d["id"] == dept_b["id"] for d in departments)
     assert all(d["id"] != dept_a["id"] for d in departments)
+
+
+def test_upsert_company_claims_catalog_department(client, admin_headers, user_headers):
+    catalog_dept = client.post(
+        f"{API}/departments", json={"name": unique("catalog-dept"), "staff": []}, headers=admin_headers
+    ).json()
+    assert catalog_dept["company_id"] == "__default__"
+
+    company = client.post(
+        f"{API}/companies",
+        json={"name": unique("company"), "type": "general", "departmentIds": [catalog_dept["id"]]},
+        headers=user_headers,
+    ).json()
+    assert company["departmentIds"] == [catalog_dept["id"]]
+
+    departments = client.get(f"{API}/departments?company_id={company['id']}", headers=user_headers).json()
+    assert any(d["id"] == catalog_dept["id"] for d in departments)
+
+
+def test_upsert_company_clones_department_owned_by_other_company(client, user_headers):
+    company_a = client.post(f"{API}/companies", json={"name": unique("company"), "type": "general"}, headers=user_headers).json()
+    staff = make_staff(client, user_headers, company_id=company_a["id"])
+    dept_a = make_department(client, user_headers, staff=[staff["id"]], company_id=company_a["id"])
+
+    company_b = client.post(
+        f"{API}/companies",
+        json={"name": unique("company"), "type": "general", "departmentIds": [dept_a["id"]]},
+        headers=user_headers,
+    ).json()
+
+    assert company_b["departmentIds"] != [dept_a["id"]]
+    cloned_id = company_b["departmentIds"][0]
+    assert cloned_id != dept_a["id"]
+
+    departments = client.get(f"{API}/departments", headers=user_headers).json()
+    original = next(d for d in departments if d["id"] == dept_a["id"])
+    assert original["company_id"] == company_a["id"]
+    cloned = next(d for d in departments if d["id"] == cloned_id)
+    assert cloned["company_id"] == company_b["id"]
+    assert len(cloned["staff"]) == 1
+    assert cloned["staff"] != original["staff"]
 
 
 def test_skills_tools_and_tool_presets_are_listable(client, user_headers):
