@@ -56,7 +56,7 @@ def test_department_requires_staff_field(client, user_headers):
     assert resp.status_code == 422
 
 
-def test_delete_department_cascade_unlinks_company_and_removes_exclusive_staff(client, user_headers):
+def test_delete_department_cascade_unlinks_company_without_touching_staff(client, user_headers):
     company = client.post(
         f"{API}/companies", json={"name": unique("company"), "type": "general"}, headers=user_headers
     ).json()
@@ -72,17 +72,18 @@ def test_delete_department_cascade_unlinks_company_and_removes_exclusive_staff(c
 
     impact = client.get(f"{API}/departments/{department['id']}/impact", headers=user_headers).json()
     assert impact["affected_companies"] == [{"id": company["id"], "name": company["name"]}]
-    assert impact["staff_removed"] == 1
 
     deleted = client.delete(f"{API}/departments/{department['id']}", headers=user_headers)
     assert deleted.status_code == 200
-    assert deleted.json()["removed_staff"] == 1
+    assert deleted.json()["affected_companies"] == [{"id": company["id"], "name": company["name"]}]
 
     refreshed_company = client.get(f"{API}/companies/{company['id']}", headers=user_headers).json()
     assert department["id"] not in refreshed_company["departmentIds"]
 
+    # Deleting a department never touches its staff -- they're a reusable
+    # entity, just no longer rostered under this (now-deleted) department.
     staff_after = client.get(f"{API}/staff", headers=user_headers).json()
-    assert all(s["id"] != staff["id"] for s in staff_after)
+    assert any(s["id"] == staff["id"] for s in staff_after)
 
 
 def test_delete_staff_cascade_unassigns_from_department(client, user_headers):

@@ -89,7 +89,7 @@ def get_department_delete_impact(
     department_id: str,
     company_service: CompanyService = Depends(get_company_service),
 ) -> dict:
-    """Preview which companies/staff a delete would affect, without deleting anything."""
+    """Preview which companies a delete would affect (staff are never touched)."""
     return company_service.preview_department_delete(department_id)
 
 

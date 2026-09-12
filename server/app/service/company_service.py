@@ -303,7 +303,7 @@ class CompanyService:
 
     def _plan_department_delete(self, department: Department | None) -> dict:
         if department is None:
-            return {"affected_companies": [], "staff_to_remove": []}
+            return {"affected_companies": []}
         department_id = department.id
 
         affected_company_ids = {department.company_id}
@@ -314,20 +314,21 @@ class CompanyService:
             {"id": c.id, "name": c.name} for c in self.list_companies() if c.id in affected_company_ids
         ]
 
-        other_staff_ids: set[str] = set()
-        for other in self._departments.list_departments():
-            if other.id == department_id:
-                continue
-            other_staff_ids.update(other.staff)
-        staff_to_remove = [sid for sid in department.staff if sid not in other_staff_ids]
-
-        return {"affected_companies": affected_companies, "staff_to_remove": staff_to_remove}
+        return {"affected_companies": affected_companies}
 
     def preview_department_delete(self, department_id: str) -> dict:
         plan = self._plan_department_delete(self._departments.try_get_department(department_id))
-        return {"affected_companies": plan["affected_companies"], "staff_removed": len(plan["staff_to_remove"])}
+        return {"affected_companies": plan["affected_companies"]}
 
     def delete_department_cascade(self, department_id: str, existing: Department | None, owner_id: str) -> dict:
+        """Delete a department without touching its staff.
+
+        Staff are their own entity, reusable across departments in the same
+        company — deleting a department only removes it from whichever
+        company(ies) reference it; staff members stay put, just no longer
+        rostered under this department. (Deleting a staff, in turn, never
+        deletes the departments that referenced it — see delete_staff_cascade.)
+        """
         plan = self._plan_department_delete(existing)
         affected_ids = {c["id"] for c in plan["affected_companies"]}
 
@@ -345,19 +346,8 @@ class CompanyService:
             except Exception as exc:  # noqa: BLE001
                 logger.warning("failed to unlink department %s from company %s: %s", department_id, company.id, exc)
 
-        removed_staff = 0
-        for staff_id in plan["staff_to_remove"]:
-            staff = self._staff.try_get_staff(staff_id)
-            if staff is not None and not can_delete(owner_id, staff.owner_id):
-                continue
-            try:
-                self._staff.delete_staff(staff_id)
-                removed_staff += 1
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("failed to delete staff %s for department %s: %s", staff_id, department_id, exc)
-
         self._departments.delete_department(department_id)
-        return {"deleted": True, "affected_companies": plan["affected_companies"], "removed_staff": removed_staff}
+        return {"deleted": True, "affected_companies": plan["affected_companies"]}
 
     # ----- staff delete: impact preview + cascade -----------------------------
 
