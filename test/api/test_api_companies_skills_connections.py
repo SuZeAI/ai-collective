@@ -8,7 +8,7 @@ use admin_headers, not user_headers.
 
 from __future__ import annotations
 
-from conftest import API, unique
+from conftest import API, make_department, unique
 
 
 def test_create_company_and_list(client, user_headers):
@@ -52,6 +52,35 @@ def test_create_skill_and_delete(client, user_headers):
 
     deleted = client.delete(f"{API}/skills/{body['id']}", headers=user_headers)
     assert deleted.status_code == 200
+
+
+def test_delete_company_cascade_does_not_touch_other_companys_department(client, user_headers):
+    company_a = client.post(f"{API}/companies", json={"name": unique("company"), "type": "general"}, headers=user_headers).json()
+    company_b = client.post(f"{API}/companies", json={"name": unique("company"), "type": "general"}, headers=user_headers).json()
+
+    dept_a = make_department(client, user_headers, company_id=company_a["id"])
+    dept_b = make_department(client, user_headers, company_id=company_b["id"])
+
+    company_a = client.post(
+        f"{API}/companies",
+        json={"id": company_a["id"], "name": company_a["name"], "departmentIds": [dept_a["id"]]},
+        headers=user_headers,
+    ).json()
+    client.post(
+        f"{API}/companies",
+        json={"id": company_b["id"], "name": company_b["name"], "departmentIds": [dept_b["id"]]},
+        headers=user_headers,
+    )
+
+    deleted = client.delete(f"{API}/companies/{company_a['id']}", headers=user_headers)
+    assert deleted.status_code == 200
+    body = deleted.json()
+    assert body["removed_teams"] == 1
+    assert body["kept_departments"] == []
+
+    departments = client.get(f"{API}/departments", headers=user_headers).json()
+    assert any(d["id"] == dept_b["id"] for d in departments)
+    assert all(d["id"] != dept_a["id"] for d in departments)
 
 
 def test_skills_tools_and_tool_presets_are_listable(client, user_headers):

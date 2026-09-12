@@ -5,11 +5,12 @@ import logging
 from server.app.ports.repositories import CompanyRepository
 from server.app.service.department_service import DepartmentService
 from server.app.service.document_library_service import DocumentLibraryService
+from server.app.service.project_service import ProjectService
 from server.app.service.skill_service import SkillService
 from server.app.service.staff_service import StaffService
 from server.app.service.task_service import TaskService
 from server.domain.errors import NotFoundError
-from server.domain.models import Company, can_delete
+from server.domain.models import CATALOG_COMPANY_ID, Company, can_delete
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ class CompanyService:
         skill_service: SkillService,
         task_service: TaskService,
         document_library_service: DocumentLibraryService,
+        project_service: ProjectService,
     ):
         self._repo = repo
         self._departments = department_service
@@ -30,6 +32,7 @@ class CompanyService:
         self._skills = skill_service
         self._tasks = task_service
         self._documents = document_library_service
+        self._projects = project_service
 
     def list_companies(self) -> list[Company]:
         return self._repo.list()
@@ -61,24 +64,40 @@ class CompanyService:
         deleted since.
         """
         all_departments = self._departments.list_departments()
+        all_companies = self.list_companies()
 
-        # Departments still referenced by another company must be kept — they
-        # are shared. Only the ones unique to this company are candidates.
-        other_department_ids: set[str] = set()
-        for company in self.list_companies():
+        # department.company_id is the single source of truth for ownership
+        # now (Department/Staff/Skill each belong to exactly one company).
+        # own_department_ids also covers data that predates company_id and is
+        # still at the CATALOG_COMPANY_ID default (see
+        # scripts/migrate_company_scoping.py) — those are only "owned" via the
+        # legacy department_ids list until migrated.
+        own_department_ids = set(existing.department_ids) if existing is not None else set()
+
+        # A department can still be listed in another company's department_ids
+        # despite company_id saying otherwise — that's drift, not real sharing,
+        # but it must not be silently deleted out from under that company. Kept
+        # departments are reported below instead of guessed away.
+        other_department_ids: dict[str, list[str]] = {}
+        for company in all_companies:
             if company.id == company_id:
                 continue
-            other_department_ids.update(company.department_ids)
+            for did in company.department_ids:
+                other_department_ids.setdefault(did, []).append(company.name)
 
         departments_to_delete = []
-        if existing is not None:
-            own_department_ids = set(existing.department_ids)
-            for department in all_departments:
-                if department.id not in own_department_ids or department.id in other_department_ids:
-                    continue
-                if not can_delete(owner_id, department.owner_id):
-                    continue
-                departments_to_delete.append(department)
+        kept_departments = []
+        for department in all_departments:
+            owns = department.company_id == company_id or (
+                department.company_id == CATALOG_COMPANY_ID and department.id in own_department_ids
+            )
+            if not owns or not can_delete(owner_id, department.owner_id):
+                continue
+            shared_with = other_department_ids.get(department.id)
+            if shared_with:
+                kept_departments.append({"id": department.id, "name": department.name, "shared_with": shared_with})
+                continue
+            departments_to_delete.append(department)
         departments_to_delete_ids = {d.id for d in departments_to_delete}
 
         # Staff exclusive to those departments (not also a member of a
@@ -166,4 +185,5 @@ class CompanyService:
             "removed_skills": removed_skills,
             "removed_tasks": removed_tasks,
             "removed_documents": removed_documents,
+            "kept_departments": kept_departments,
         }
