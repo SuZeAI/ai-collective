@@ -18,6 +18,7 @@ class DepartmentSchema(BaseModel):
     mode: str = "sequential"
     maxSteps: int = 6
     owner_id: str = "default"
+    company_id: str = "__default__"
     flow: dict[str, Any] | None = None
 
     @staticmethod
@@ -35,6 +36,7 @@ class DepartmentSchema(BaseModel):
             mode=t.mode,
             maxSteps=t.max_steps,
             owner_id=getattr(t, "owner_id", "default") or "default",
+            company_id=getattr(t, "company_id", "__default__") or "__default__",
             flow=getattr(t, "flow", None),
         )
 
@@ -51,4 +53,5 @@ class UpsertDepartmentRequest(BaseModel):
     avatar_url: str | None = None
     mode: str = "sequential"
     maxSteps: int = 6
+    company_id: str | None = None
     flow: dict[str, Any] | None = None

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from server.api.avatars import sanitize_avatar_fields
 from server.api.deps import current_owner_id_dep, get_staff_service, get_meeting_service, get_department_service
@@ -12,7 +12,7 @@ from server.app.service.department_activation import activate_department_staff, 
 from server.app.service.staff_service import StaffService
 from server.app.service.meeting_service import MeetingService
 from server.app.service.department_service import DepartmentService
-from server.domain.models import Department, is_owned_by
+from server.domain.models import CATALOG_COMPANY_ID, Department, is_visible_to
 
 
 router = APIRouter(prefix="/departments", tags=["departments"])
@@ -20,13 +20,15 @@ router = APIRouter(prefix="/departments", tags=["departments"])
 
 @router.get("", response_model=list[DepartmentSchema])
 def list_departments(
+    company_id: str | None = Query(default=None),
     service: DepartmentService = Depends(get_department_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> list[DepartmentSchema]:
     return [
         DepartmentSchema.from_domain(t)
         for t in service.list_departments()
-        if is_owned_by(owner_id, t.owner_id)
+        if is_visible_to(owner_id, t.owner_id)
+        and (company_id is None or t.company_id == company_id)
     ]
 
 
@@ -63,6 +65,7 @@ def upsert_department(
         mode=req.mode or "sequential",
         max_steps=req.maxSteps or 6,
         owner_id=existing.owner_id if existing else owner_id,
+        company_id=existing.company_id if existing else (req.company_id or CATALOG_COMPANY_ID),
         flow=req.flow if req.flow is not None else (existing.flow if existing else None),
     )
     saved = service.upsert_department(department)

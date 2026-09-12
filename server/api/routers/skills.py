@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from server.api.avatars import sanitize_avatar_fields
 from server.api.deps import current_owner_id_dep, get_skill_service
@@ -14,7 +14,7 @@ from server.api.schemas.skill import (
     merge_config_preserving_secrets,
 )
 from server.app.service.skill_service import SkillService
-from server.domain.models import Skill, is_owned_by
+from server.domain.models import CATALOG_COMPANY_ID, Skill, is_visible_to
 
 
 router = APIRouter(prefix="/skills", tags=["skills"])
@@ -22,13 +22,15 @@ router = APIRouter(prefix="/skills", tags=["skills"])
 
 @router.get("", response_model=list[SkillSchema])
 def list_skills(
+    company_id: str | None = Query(default=None),
     service: SkillService = Depends(get_skill_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> list[SkillSchema]:
     return [
         SkillSchema.from_domain(s)
         for s in service.list_skills()
-        if is_owned_by(owner_id, s.owner_id)
+        if is_visible_to(owner_id, s.owner_id)
+        and (company_id is None or s.company_id == company_id)
     ]
 
 
@@ -72,6 +74,7 @@ def upsert_skill(
         code=req.code,
         instruction=(req.instruction or "").strip(),
         owner_id=existing.owner_id if existing else owner_id,
+        company_id=existing.company_id if existing else (req.company_id or CATALOG_COMPANY_ID),
     )
     saved = service.upsert_skill(skill)
     return SkillSchema.from_domain(saved)

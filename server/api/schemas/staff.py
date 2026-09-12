@@ -17,6 +17,7 @@ class SkillSchema(BaseModel):
     avatar_url: str = ""
     code: str | None = None
     owner_id: str = "default"
+    company_id: str = "__default__"
 
     @staticmethod
     def from_domain(s) -> "SkillSchema":
@@ -34,6 +35,7 @@ class SkillSchema(BaseModel):
             avatar_url=getattr(s, "avatar_url", "") or "",
             code=s.code,
             owner_id=getattr(s, "owner_id", "default") or "default",
+            company_id=getattr(s, "company_id", "__default__") or "__default__",
         )
 
 
@@ -52,6 +54,7 @@ class StaffSchema(BaseModel):
     system_prompt: str = ""
     subagent_enabled: bool = False
     owner_id: str = "default"
+    company_id: str = "__default__"
 
     @staticmethod
     def from_domain(a, skills: list = None) -> "StaffSchema":
@@ -70,6 +73,7 @@ class StaffSchema(BaseModel):
             system_prompt=getattr(a, "system_prompt", "") or "",
             subagent_enabled=bool(getattr(a, "subagent_enabled", False)),
             owner_id=getattr(a, "owner_id", "default") or "default",
+            company_id=getattr(a, "company_id", "__default__") or "__default__",
         )
 
 
@@ -86,3 +90,4 @@ class UpsertStaffRequest(BaseModel):
     avatar_url: str | None = None
     system_prompt: str | None = None
     subagent_enabled: bool = False
+    company_id: str | None = None

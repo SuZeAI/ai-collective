@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from server.api.avatars import sanitize_avatar_fields
 from server.api.schemas.staff import StaffSchema, UpsertStaffRequest
@@ -10,7 +10,7 @@ from server.app.service.staff_service import StaffService
 from server.api.deps import current_owner_id_dep, get_staff_service
 from server.api.ownership import require_deletable, require_modifiable
 from server.domain.enums import StaffStatus
-from server.domain.models import Staff, is_owned_by
+from server.domain.models import CATALOG_COMPANY_ID, Staff, is_visible_to
 from server.domain.prompt.staff_system_prompt import build_staff_system_prompt
 
 
@@ -19,6 +19,7 @@ router = APIRouter(prefix="/staff", tags=["staff"])
 
 @router.get("", response_model=list[StaffSchema])
 def list_staff(
+    company_id: str | None = Query(default=None),
     service: StaffService = Depends(get_staff_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> list[StaffSchema]:
@@ -26,7 +27,8 @@ def list_staff(
     return [
         StaffSchema.from_domain(staff, skills)
         for staff, skills in service.list_staff_with_skills()
-        if is_owned_by(owner_id, staff.owner_id)
+        if is_visible_to(owner_id, staff.owner_id)
+        and (company_id is None or staff.company_id == company_id)
     ]
 
 
@@ -66,6 +68,7 @@ def upsert_staff(
         ),
         subagent_enabled=req.subagent_enabled,
         owner_id=existing.owner_id if existing else owner_id,
+        company_id=existing.company_id if existing else (req.company_id or CATALOG_COMPANY_ID),
     )
     saved = service.upsert_staff(staff)
     skills = service.get_staff_skills(saved.id)

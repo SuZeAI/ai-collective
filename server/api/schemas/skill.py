@@ -64,6 +64,7 @@ class SkillSchema(BaseModel):
     code: str | None = None
     instruction: str = ""
     owner_id: str = "default"
+    company_id: str = "__default__"
 
     @staticmethod
     def from_domain(s) -> "SkillSchema":
@@ -83,6 +84,7 @@ class SkillSchema(BaseModel):
             code=s.code,
             instruction=getattr(s, "instruction", "") or "",
             owner_id=getattr(s, "owner_id", "default") or "default",
+            company_id=getattr(s, "company_id", "__default__") or "__default__",
         )
 
 
@@ -100,6 +102,7 @@ class UpsertSkillRequest(BaseModel):
     avatar_url: str | None = None
     code: str | None = None
     instruction: str | None = None
+    company_id: str | None = None
 
 
 class SkillToolConfigFieldSchema(BaseModel):
