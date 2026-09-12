@@ -69,6 +69,17 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
+# Pre-install the filesystem MCP server globally so `npx -y
+# @modelcontextprotocol/server-filesystem` (the default_config.py placeholder,
+# and the one server actually exercised by seeded/example skills) resolves
+# from the local global install instead of a cold npm-registry fetch at run
+# time. A first-ever `npx` invocation has to resolve + download + cache the
+# package, which routinely exceeds mcp.discovery_timeout_seconds (default
+# 30s) — especially with several staff hitting it at once — and fails the
+# whole run with "Could not connect to MCP server"; every invocation after
+# that first one is fast (~1-2s) since npx's own cache is then warm.
+RUN npm install -g @modelcontextprotocol/server-filesystem
+
 COPY --from=uv /uv /bin/uv
 
 WORKDIR /app
