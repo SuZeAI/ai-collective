@@ -8,9 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { StaffAvatar, skillAvatarIconOptions } from "@/components/StaffAvatar";
-import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
-import { api, canDeleteItem, canEditItem, type Staff, type Skill, type SkillToolConfigField, type SkillToolPreset } from "@/lib/api";
-import { useCompanyScope } from "@/hooks/use-company-scope";
+import { api, canDeleteItem, canEditItem, type Skill, type SkillToolConfigField, type SkillToolPreset } from "@/lib/api";
+import { useCompanyScope, CATALOG_COMPANY_ID } from "@/hooks/use-company-scope";
 import { useToast } from "@/hooks/use-toast";
 
 type ToolName = string;
@@ -196,7 +195,6 @@ export default function Skills() {
   const scope = useCompanyScope();
   const { toast } = useToast();
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [staffList, setStaffList] = useState<Staff[]>([]);
   const [toolPresets, setToolPresets] = useState<SkillToolPreset[]>([]);
   const [open, setOpen] = useState(false);
   const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
@@ -270,20 +268,21 @@ export default function Skills() {
     setShowPresetSuggestions(false);
   }, [handleToolChange]);
 
+  const companyId = scope.isOverall ? CATALOG_COMPANY_ID : scope.company?.id;
+
   useEffect(() => {
+    if (!companyId) return;
     let cancelled = false;
     (async () => {
       try {
-        const [list, staff, backendPresets] = await Promise.all([
-          api.listSkills(),
-          api.listStaff(),
+        const [list, backendPresets] = await Promise.all([
+          api.listSkills(companyId),
           api.listSkillToolPresets().catch(async () => {
             const tools = await api.listSkillTools();
             return tools.map(toToolPreset);
           }),
         ]);
         if (cancelled) return;
-        setStaffList(staff);
 
         const uniquePresets = Array.from(
           new Map(
@@ -309,7 +308,7 @@ export default function Skills() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [companyId]);
 
   useEffect(() => {
     if (editingSkillId) return;
@@ -503,7 +502,7 @@ export default function Skills() {
   };
 
   const saveSkill = async () => {
-    if (!isValid()) return;
+    if (!isValid() || !companyId) return;
 
     const baseConfig = buildConfigFromValues(selectedPreset ?? undefined, configValues);
     const config = ensureGoogleAuthConfig(
@@ -530,6 +529,7 @@ export default function Skills() {
         avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
         code: null,
         instruction: instruction.trim(),
+        company_id: companyId,
       });
       setSkills((prev) => {
         const idx = prev.findIndex((s) => s.id === saved.id);
@@ -560,10 +560,8 @@ export default function Skills() {
     setConfigValues((prev) => ({ ...prev, [field.key]: value }));
   };
 
-  const visibleSkills = useMemo(
-    () => (scope.isOverall ? skills : skills.filter((s) => scope.skillIds.has(s.id))),
-    [skills, scope],
-  );
+  // skills is already fetched scoped to companyId, so no client-side filter is needed.
+  const visibleSkills = skills;
 
   return (
     <div>
@@ -577,55 +575,6 @@ export default function Skills() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {scope.company && (
-            <AppendFromOverallDialog
-              title={`Append skills & tools to "${scope.company.name}"`}
-              description="Pick existing skills/tools from Overall and equip one of this office's staff with them."
-              items={skills
-                .filter((s) => !scope.skillIds.has(s.id))
-                .map((s) => ({ id: s.id, name: s.name, sub: s.description, badge: s.tool_name || s.kind }))}
-              emptyText="Every skill from Overall is already in use at this office."
-              targets={staffList
-                .filter((a) => scope.staffIds.has(a.id) && canEditItem(a))
-                .map((a) => ({ id: a.id, name: `${a.name} (${a.role})` }))}
-              targetLabel="Equip human"
-              noTargetText="No human in this office can be edited by you. Hire your own human first."
-              copyLabel="Create independent copies for this office (config/code of the copied skills can be customized without affecting Overall)."
-              onAppend={async (ids, targetId, makeCopy) => {
-                const staff = staffList.find((a) => a.id === targetId);
-                if (!staff) return;
-                let skillIdsToAdd = ids;
-                if (makeCopy) {
-                  skillIdsToAdd = [];
-                  for (const id of ids) {
-                    const src = skills.find((s) => s.id === id);
-                    if (!src) continue;
-                    const copied = await api.upsertSkill({
-                      name: src.name,
-                      kind: src.kind,
-                      description: src.description,
-                      third_party: src.third_party,
-                      tool_name: src.tool_name,
-                      config: src.config || {},
-                      code: src.code,
-                      instruction: src.instruction,
-                      avatar: src.avatar,
-                      avatar_icon: src.avatar_icon,
-                      avatar_color: src.avatar_color,
-                      avatar_url: src.avatar_url,
-                    });
-                    setSkills((prev) => [...prev, copied]);
-                    skillIdsToAdd.push(copied.id);
-                  }
-                }
-                const merged = [...new Set([...(staff.skill_ids || []), ...skillIdsToAdd])];
-                const saved = await api.upsertStaff({ ...staff, skill_ids: merged });
-                setStaffList((prev) => prev.map((a) => (a.id === saved.id ? saved : a)));
-                // Refresh the office scope so the appended skills show up.
-                window.dispatchEvent(new CustomEvent("companyChanged"));
-              }}
-            />
-          )}
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> New Skill</Button>

@@ -7,9 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Checkbox } from "@/components/ui/checkbox";
 import { StaffAvatar, departmentAvatarIconOptions } from "@/components/StaffAvatar";
 import { AvatarPicker, isHexColor, type AvatarMode } from "@/components/AvatarPicker";
-import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
 import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Staff, type CustomFlow, type Department, type DepartmentMode } from "@/lib/api";
-import { useCompanyScope } from "@/hooks/use-company-scope";
+import { useCompanyScope, CATALOG_COMPANY_ID } from "@/hooks/use-company-scope";
 import CustomFlowEditor from "@/components/department/CustomFlowEditor";
 import { DepartmentTestDialog } from "@/components/department/DepartmentTestDialog";
 import { cn } from "@/lib/utils";
@@ -68,11 +67,14 @@ export default function DepartmentBuilder() {
     );
   }, [staffList, personnelSearch]);
 
+  const companyId = scope.isOverall ? CATALOG_COMPANY_ID : scope.company?.id;
+
   useEffect(() => {
+    if (!companyId) return;
     let cancelled = false;
     (async () => {
       try {
-        const [departments, staff] = await Promise.all([api.listDepartments(), api.listStaff()]);
+        const [departments, staff] = await Promise.all([api.listDepartments(companyId), api.listStaff(companyId)]);
         if (cancelled) return;
         setDepartmentList(departments);
         setStaffList(staff);
@@ -83,7 +85,7 @@ export default function DepartmentBuilder() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [companyId]);
 
   const staffById = useMemo(() => {
     const map = new Map<string, Staff>();
@@ -174,7 +176,7 @@ export default function DepartmentBuilder() {
   };
 
   const saveDepartment = async () => {
-    if (!name.trim() || selectedStaff.length === 0) return;
+    if (!name.trim() || selectedStaff.length === 0 || !companyId) return;
     const existing = editingDepartmentId ? departmentList.find((t) => t.id === editingDepartmentId) : undefined;
     const parsedSteps = Number(maxSteps);
     const finalSteps = Number.isFinite(parsedSteps) ? Math.max(1, Math.min(10, Math.floor(parsedSteps))) : 6;
@@ -192,6 +194,7 @@ export default function DepartmentBuilder() {
         mode: mode,
         maxSteps: finalSteps,
         flow: mode === "custom" ? flow : null,
+        company_id: companyId,
       });
       setDepartmentList((prev) => {
         const idx = prev.findIndex((t) => t.id === saved.id);
@@ -370,10 +373,8 @@ export default function DepartmentBuilder() {
     }
   };
 
-  const visibleDepartments = useMemo(
-    () => (scope.isOverall ? departmentList : departmentList.filter((t) => scope.departmentIds.has(t.id))),
-    [departmentList, scope],
-  );
+  // departmentList is already fetched scoped to companyId, so no client-side filter is needed.
+  const visibleDepartments = departmentList;
 
   const selectPersonnelNode = (
     <div className="space-y-2">
@@ -425,67 +426,6 @@ export default function DepartmentBuilder() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {scope.company && canEditItem(scope.company) && (
-            <AppendFromOverallDialog
-              title={`Append departments to "${scope.company.name}"`}
-              description="Pick existing departments from Overall to join this office."
-              items={departmentList
-                .filter((t) => !scope.departmentIds.has(t.id))
-                .map((t) => ({ id: t.id, name: t.name, sub: t.description, badge: t.mode }))}
-              emptyText="Every department from Overall already belongs to this office."
-              copyLabel="Create independent copies for this office (the department and its staff are cloned, so edits here won't affect Overall)."
-              onAppend={async (ids, _targetId, makeCopy) => {
-                const ws = scope.company!;
-                let departmentIdsToAdd = ids;
-                if (makeCopy) {
-                  departmentIdsToAdd = [];
-                  for (const id of ids) {
-                    const src = departmentList.find((t) => t.id === id);
-                    if (!src) continue;
-                    // Deep copy: clone the member staff too so the office can customize them.
-                    const memberIds: string[] = [];
-                    for (const staffId of src.staff || []) {
-                      const srcStaff = staffById.get(staffId);
-                      if (!srcStaff) continue;
-                      const copiedStaff = await api.upsertStaff({
-                        name: srcStaff.name,
-                        role: srcStaff.role,
-                        description: srcStaff.description,
-                        system_prompt: srcStaff.system_prompt,
-                        skill_ids: srcStaff.skill_ids || [],
-                        status: "idle",
-                        avatar: srcStaff.avatar,
-                        avatar_icon: srcStaff.avatar_icon,
-                        avatar_color: srcStaff.avatar_color,
-                        avatar_url: srcStaff.avatar_url,
-                        subagent_enabled: srcStaff.subagent_enabled,
-                      });
-                      memberIds.push(copiedStaff.id);
-                      setStaffList((prev) => [...prev, copiedStaff]);
-                    }
-                    const copiedDepartment = await api.upsertDepartment({
-                      name: src.name,
-                      description: src.description,
-                      staff: memberIds,
-                      activeTasks: 0,
-                      avatar: src.avatar || src.name[0]?.toUpperCase() || "T",
-                      avatar_icon: src.avatar_icon,
-                      avatar_color: src.avatar_color,
-                      avatar_url: src.avatar_url,
-                      mode: src.mode,
-                      maxSteps: src.maxSteps,
-                      flow: src.flow ?? null,
-                    });
-                    setDepartmentList((prev) => [...prev, copiedDepartment]);
-                    departmentIdsToAdd.push(copiedDepartment.id);
-                  }
-                }
-                await api.upsertCompany({ ...ws, departmentIds: [...ws.departmentIds, ...departmentIdsToAdd] });
-                // Refresh the office scope so the new departments show up.
-                window.dispatchEvent(new CustomEvent("companyChanged"));
-              }}
-            />
-          )}
           <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> New Department</Button>

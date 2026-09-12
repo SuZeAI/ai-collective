@@ -9,11 +9,10 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { StaffAvatar, avatarIconOptions } from "@/components/StaffAvatar";
 import { AvatarPicker, isHexColor, type AvatarMode } from "@/components/AvatarPicker";
-import { AppendFromOverallDialog } from "@/components/AppendFromOverallDialog";
 import { StaffTestDialog } from "@/components/StaffTestDialog";
-import { api, canDeleteItem, canEditItem, type Staff, type Skill, type Department } from "@/lib/api";
+import { api, canDeleteItem, canEditItem, type Staff, type Skill } from "@/lib/api";
 import { getStaffDotColor, getStaffRoleColor } from "@/lib/staff-role-ui";
-import { useCompanyScope } from "@/hooks/use-company-scope";
+import { useCompanyScope, CATALOG_COMPANY_ID } from "@/hooks/use-company-scope";
 import { useToast } from "@/hooks/use-toast";
 
 const roles = [
@@ -108,7 +107,6 @@ export default function StaffBuilder() {
   const { toast } = useToast();
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [skillCatalog, setSkillCatalog] = useState<Skill[]>([]);
-  const [departmentList, setDepartmentList] = useState<Department[]>([]);
 
   const [open, setOpen] = useState(false);
   const [testOpen, setTestOpen] = useState(false);
@@ -149,15 +147,20 @@ export default function StaffBuilder() {
     );
   }, [skillCatalog, skillSearch]);
 
+  const companyId = scope.isOverall ? CATALOG_COMPANY_ID : scope.company?.id;
+
   useEffect(() => {
+    if (!companyId) return;
     let cancelled = false;
     (async () => {
       try {
-        const [staff, skills, departments] = await Promise.all([api.listStaff(), api.listSkills(), api.listDepartments()]);
+        const [staff, skills] = await Promise.all([
+          api.listStaff(companyId),
+          api.listSkills(companyId),
+        ]);
         if (cancelled) return;
         setStaffList(staff);
         setSkillCatalog(skills);
-        setDepartmentList(departments);
       } catch (e) {
         console.error(e);
       }
@@ -165,23 +168,14 @@ export default function StaffBuilder() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [companyId]);
 
   const selectedSkills = useMemo(() => {
     const byId = new Map(skillCatalog.map((s) => [s.id, s] as const));
     return selectedSkillIds.map((id) => byId.get(id)).filter((s): s is Skill => s !== undefined);
   }, [skillCatalog, selectedSkillIds]);
 
-  const validSkillIdSet = useMemo(() => new Set(skillCatalog.map((s) => s.id)), [skillCatalog]);
-
-  const sanitizeSkillIds = (ids: string[]) => {
-    const seen = new Set<string>();
-    return ids.filter((id) => {
-      if (!validSkillIdSet.has(id) || seen.has(id)) return false;
-      seen.add(id);
-      return true;
-    });
-  };
+  const dedupeIds = (ids: string[]) => [...new Set(ids)];
 
   const toggleSkill = (id: string) => {
     setSelectedSkillIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -218,15 +212,15 @@ export default function StaffBuilder() {
     setAvatarIcon(staff.avatar_icon || "bot");
     setAvatarColor(isHexColor(staff.avatar_color || "") ? (staff.avatar_color as string) : "#3b82f6");
     setAvatarUrl(staff.avatar_url || "");
-    setSelectedSkillIds(sanitizeSkillIds(staff.skill_ids || []));
+    setSelectedSkillIds(dedupeIds(staff.skill_ids || []));
     setSubagentEnabled(staff.subagent_enabled ?? false);
     setOpen(true);
   };
 
   const saveStaff = async () => {
     const normalizedRole = role.trim();
-    if (!name.trim() || !normalizedRole) return;
-    const normalizedSkillIds = sanitizeSkillIds(selectedSkillIds);
+    if (!name.trim() || !normalizedRole || !companyId) return;
+    const normalizedSkillIds = dedupeIds(selectedSkillIds);
     try {
       const saved = await api.upsertStaff({
         id: editingStaffId ?? undefined,
@@ -240,6 +234,7 @@ export default function StaffBuilder() {
         avatar_color: isHexColor(avatarColor) ? avatarColor : "",
         avatar_url: avatarMode === "image" ? avatarUrl.trim() : "",
         subagent_enabled: subagentEnabled,
+        company_id: companyId,
       });
       setSelectedSkillIds(normalizedSkillIds);
       setStaffList((prev) => {
@@ -315,10 +310,8 @@ export default function StaffBuilder() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const visibleStaff = useMemo(
-    () => (scope.isOverall ? staffList : staffList.filter((a) => scope.staffIds.has(a.id))),
-    [staffList, scope],
-  );
+  // staffList is already fetched scoped to companyId, so no client-side filter is needed.
+  const visibleStaff = staffList;
 
   return (
     <div>
@@ -333,54 +326,6 @@ export default function StaffBuilder() {
         </div>
 
         <div className="flex items-center gap-2">
-          {scope.company && (
-            <AppendFromOverallDialog
-              title={`Append staff to "${scope.company.name}"`}
-              description="Pick existing staff from Overall and add them to one of this office's departments."
-              items={staffList
-                .filter((a) => !scope.staffIds.has(a.id))
-                .map((a) => ({ id: a.id, name: a.name, sub: a.role }))}
-              emptyText="Every human from Overall is already part of this office."
-              targets={departmentList
-                .filter((t) => scope.departmentIds.has(t.id) && canEditItem(t))
-                .map((t) => ({ id: t.id, name: t.name }))}
-              targetLabel="Add to department"
-              noTargetText="No department in this office can be edited by you. Create your own department first."
-              copyLabel="Create independent copies for this office (edits to the copied staff won't affect Overall)."
-              onAppend={async (ids, targetId, makeCopy) => {
-                const department = departmentList.find((t) => t.id === targetId);
-                if (!department) return;
-                let staffIdsToAdd = ids;
-                if (makeCopy) {
-                  staffIdsToAdd = [];
-                  for (const id of ids) {
-                    const src = staffList.find((a) => a.id === id);
-                    if (!src) continue;
-                    const copied = await api.upsertStaff({
-                      name: src.name,
-                      role: src.role,
-                      description: src.description,
-                      system_prompt: src.system_prompt,
-                      skill_ids: src.skill_ids || [],
-                      status: "idle",
-                      avatar: src.avatar,
-                      avatar_icon: src.avatar_icon,
-                      avatar_color: src.avatar_color,
-                      avatar_url: src.avatar_url,
-                      subagent_enabled: src.subagent_enabled,
-                    });
-                    setStaffList((prev) => [...prev, copied]);
-                    staffIdsToAdd.push(copied.id);
-                  }
-                }
-                const merged = [...new Set([...(department.staff || []), ...staffIdsToAdd])];
-                const saved = await api.upsertDepartment({ ...department, staff: merged });
-                setDepartmentList((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
-                // Refresh the office scope so the new staff show up.
-                window.dispatchEvent(new CustomEvent("companyChanged"));
-              }}
-            />
-          )}
           <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button onClick={openCreateDialog}>
