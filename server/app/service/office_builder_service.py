@@ -14,7 +14,7 @@ from server.app.service.skill_service import SkillService
 from server.app.service.staff_service import StaffService
 from server.domain.enums import StaffStatus
 from server.domain.errors import ValidationError
-from server.domain.models import Company, Department, Skill, Staff, is_visible_to
+from server.domain.models import CATALOG_COMPANY_ID, Company, Department, Skill, Staff, is_visible_to
 from server.domain.office_builder import (
     TEAM_MODES,
     ApplyOfficePlanResult,
@@ -61,14 +61,26 @@ class OfficeBuilderService:
     def _load_existing_context(
         self, owner_id: str
     ) -> tuple[list[Department], list[Staff], list[Skill], list[Company]]:
-        """Departments/staff/skills already visible to the owner, offered to the
-        designer LLM as reuse candidates instead of always designing from scratch.
-        Companies are included too, purely so the prompt can tag each candidate
-        with which company it already belongs to (departments/staff/skills are
-        not company-scoped themselves — they're linked in via Company.department_ids)."""
-        departments = [d for d in self._departments.list_departments() if is_visible_to(owner_id, d.owner_id)]
-        staff = [s for s in self._staff.list_staff() if is_visible_to(owner_id, s.owner_id)]
-        skills = [s for s in self._skills.list_skills() if is_visible_to(owner_id, s.owner_id)]
+        """Template departments/staff/skills (the shared catalog, company_id ==
+        CATALOG_COMPANY_ID) offered to the designer LLM as reuse candidates
+        instead of always designing from scratch. `apply()` always creates a
+        brand-new company, so candidates from another *real* company are never
+        offered — Staff/Skill/Department each belong to exactly one company."""
+        departments = [
+            d
+            for d in self._departments.list_departments()
+            if is_visible_to(owner_id, d.owner_id) and d.company_id == CATALOG_COMPANY_ID
+        ]
+        staff = [
+            s
+            for s in self._staff.list_staff()
+            if is_visible_to(owner_id, s.owner_id) and s.company_id == CATALOG_COMPANY_ID
+        ]
+        skills = [
+            s
+            for s in self._skills.list_skills()
+            if is_visible_to(owner_id, s.owner_id) and s.company_id == CATALOG_COMPANY_ID
+        ]
         companies = [c for c in self._companies.list_companies() if is_visible_to(owner_id, c.owner_id)]
         return departments, staff, skills, companies
 
@@ -182,17 +194,29 @@ class OfficeBuilderService:
 
         available_tools = set(self._skills.list_available_tool_names())
         presets_by_tool = {p["tool_name"]: p for p in self._skills.list_tool_presets()}
+        # Minted up front (not inline in the Company(...) call below) so cloned
+        # reuse candidates can be stamped with their final company_id as they're created.
+        new_company_id = f"ws_{uuid4().hex}"
 
-        # Only entities visible to the requesting user (shared defaults + their own)
-        # are candidates for reuse.
+        # Only shared templates (the admin-curated catalog) are candidates for
+        # reuse — apply() always creates a brand-new company, and Staff/Skill/
+        # Department each belong to exactly one company, so anything reused
+        # from the catalog is cloned into the new company, never referenced
+        # in place from wherever it already lives.
         existing_skills_by_id = {
-            s.id: s for s in self._skills.list_skills() if is_visible_to(owner_id, s.owner_id)
+            s.id: s
+            for s in self._skills.list_skills()
+            if is_visible_to(owner_id, s.owner_id) and s.company_id == CATALOG_COMPANY_ID
         }
         existing_staff_by_id = {
-            s.id: s for s in self._staff.list_staff() if is_visible_to(owner_id, s.owner_id)
+            s.id: s
+            for s in self._staff.list_staff()
+            if is_visible_to(owner_id, s.owner_id) and s.company_id == CATALOG_COMPANY_ID
         }
         existing_departments_by_id = {
-            d.id: d for d in self._departments.list_departments() if is_visible_to(owner_id, d.owner_id)
+            d.id: d
+            for d in self._departments.list_departments()
+            if is_visible_to(owner_id, d.owner_id) and d.company_id == CATALOG_COMPANY_ID
         }
 
         # Also reuse existing skills when name + tool match (case-insensitive), so repeated
@@ -203,23 +227,38 @@ class OfficeBuilderService:
         created_skill_ids: list[str] = []
         reused_skill_ids: list[str] = []
         plan_skill_ids: dict[tuple[str, str], str] = {}
+        cloned_skill_ids: dict[str, str] = {}  # template skill id -> clone id, so each template is cloned once
+
+        def _clone_skill_template(template: Skill) -> str:
+            if template.id in cloned_skill_ids:
+                return cloned_skill_ids[template.id]
+            saved = self._skills.upsert_skill(
+                replace(
+                    template,
+                    id=f"skill_{uuid4().hex}",
+                    config=dict(template.config or {}),
+                    owner_id=owner_id,
+                    company_id=new_company_id,
+                )
+            )
+            cloned_skill_ids[template.id] = saved.id
+            reused_skill_ids.append(saved.id)
+            return saved.id
 
         def _resolve_skill(
             name: str, description: str, tool_name: str | None, existing_id: str | None, config: dict
         ) -> str:
             if existing_id and existing_id in existing_skills_by_id:
-                if existing_id not in reused_skill_ids:
-                    reused_skill_ids.append(existing_id)
-                return existing_id
+                return _clone_skill_template(existing_skills_by_id[existing_id])
             tool = tool_name if tool_name in available_tools else None
             key = (name.strip().lower(), tool or "")
             if key in plan_skill_ids:
                 return plan_skill_ids[key]
             existing = existing_by_key.get(key)
             if existing is not None:
-                plan_skill_ids[key] = existing.id
-                reused_skill_ids.append(existing.id)
-                return existing.id
+                cloned_id = _clone_skill_template(existing)
+                plan_skill_ids[key] = cloned_id
+                return cloned_id
             preset = presets_by_tool.get(tool or "") or {}
             saved = self._skills.upsert_skill(
                 Skill(
@@ -232,6 +271,7 @@ class OfficeBuilderService:
                     avatar=(name.strip()[:1] or "S").upper(),
                     tool_name=tool,
                     owner_id=owner_id,
+                    company_id=new_company_id,
                 )
             )
             plan_skill_ids[key] = saved.id
@@ -243,13 +283,37 @@ class OfficeBuilderService:
         reused_staff_ids: list[str] = []
         reused_department_ids: list[str] = []
 
+        cloned_staff_by_template_id: dict[str, Staff] = {}
+
+        def _clone_staff_template(template: Staff) -> Staff:
+            if template.id in cloned_staff_by_template_id:
+                return cloned_staff_by_template_id[template.id]
+            skill_ids = [
+                _clone_skill_template(existing_skills_by_id[sid])
+                for sid in template.skill_ids
+                if sid in existing_skills_by_id
+            ]
+            saved_staff = self._staff.upsert_staff(
+                replace(
+                    template,
+                    id=f"agent_{uuid4().hex}",
+                    skill_ids=skill_ids,
+                    status=StaffStatus.active,
+                    owner_id=owner_id,
+                    company_id=new_company_id,
+                )
+            )
+            staff_ids.append(saved_staff.id)
+            reused_staff_ids.append(saved_staff.id)
+            cloned_staff_by_template_id[template.id] = saved_staff
+            return saved_staff
+
         for dept in plan.departments:
             dept_staff_ids: list[str] = []
             for member in dept.staff:
                 if member.existing_id and member.existing_id in existing_staff_by_id:
-                    dept_staff_ids.append(member.existing_id)
-                    staff_ids.append(member.existing_id)
-                    reused_staff_ids.append(member.existing_id)
+                    cloned = _clone_staff_template(existing_staff_by_id[member.existing_id])
+                    dept_staff_ids.append(cloned.id)
                     continue
                 skill_ids = [
                     _resolve_skill(s.name, s.description, s.tool_name, s.existing_id, s.config)
@@ -270,6 +334,7 @@ class OfficeBuilderService:
                             name=member.name, role=member.role, description=description
                         ),
                         owner_id=owner_id,
+                        company_id=new_company_id,
                     )
                 )
                 dept_staff_ids.append(saved_staff.id)
@@ -277,16 +342,29 @@ class OfficeBuilderService:
 
             mode = dept.mode if dept.mode in TEAM_MODES else "sequential"
             if dept.existing_id and dept.existing_id in existing_departments_by_id:
-                existing_dept = existing_departments_by_id[dept.existing_id]
-                merged_staff = list(existing_dept.staff) + [
-                    sid for sid in dept_staff_ids if sid not in existing_dept.staff
+                template_dept = existing_departments_by_id[dept.existing_id]
+                cloned_template_staff_ids = [
+                    _clone_staff_template(existing_staff_by_id[aid]).id
+                    for aid in template_dept.staff
+                    if aid in existing_staff_by_id
                 ]
-                saved_team = self._departments.upsert_department(replace(existing_dept, staff=merged_staff))
+                merged_staff = cloned_template_staff_ids + [
+                    sid for sid in dept_staff_ids if sid not in cloned_template_staff_ids
+                ]
+                saved_team = self._departments.upsert_department(
+                    replace(
+                        template_dept,
+                        id=f"team_{uuid4().hex}",
+                        staff=merged_staff,
+                        active_tasks=1 if merged_staff else 0,
+                        owner_id=owner_id,
+                        company_id=new_company_id,
+                    )
+                )
                 department_ids.append(saved_team.id)
                 reused_department_ids.append(saved_team.id)
-                # Activate any newly-attached staff, but don't re-seed kickoff messages
-                # for a department that was already running.
                 activate_department_staff(saved_team.staff, self._staff)
+                seed_department_kickoff_messages(saved_team, self._staff, self._conversations)
             else:
                 saved_team = self._departments.upsert_department(
                     Department(
@@ -298,6 +376,7 @@ class OfficeBuilderService:
                         avatar=(dept.name.strip()[:1] or "T").upper(),
                         mode=mode,
                         owner_id=owner_id,
+                        company_id=new_company_id,
                     )
                 )
                 department_ids.append(saved_team.id)
@@ -307,7 +386,7 @@ class OfficeBuilderService:
 
         workspace = self._companies.upsert_company(
             Company(
-                id=f"ws_{uuid4().hex}",
+                id=new_company_id,
                 name=plan.name.strip(),
                 description=plan.description.strip(),
                 department_ids=department_ids,

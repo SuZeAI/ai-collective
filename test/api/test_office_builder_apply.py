@@ -1,5 +1,8 @@
 """API tests for POST /office-builder/apply, focused on reusing existing
-departments/staff/skills via existing_id instead of always creating new ones."""
+departments/staff/skills via existing_id. apply() always creates a brand-new
+company, and Staff/Skill/Department each belong to exactly one company, so
+"reusing" a template clones it into the new company rather than referencing
+the original row in place."""
 
 from __future__ import annotations
 
@@ -48,17 +51,25 @@ def test_apply_reuses_existing_department_and_staff_by_existing_id(client, user_
     assert resp.status_code == 200, resp.text
     body = resp.json()
 
-    assert body["department_ids"] == [department["id"]]
-    assert body["reused_department_ids"] == [department["id"]]
-    assert body["staff_ids"] == [staff["id"]]
-    assert body["reused_staff_ids"] == [staff["id"]]
+    # Reusing clones the template into the new company; the original ids are
+    # never reused in place, and each template is cloned exactly once even
+    # though it's referenced both as the department's own staff and directly
+    # as a plan member.
+    assert len(body["department_ids"]) == 1
+    assert body["department_ids"] == body["reused_department_ids"]
+    assert body["department_ids"][0] != department["id"]
+    assert len(body["staff_ids"]) == 1
+    assert body["staff_ids"] == body["reused_staff_ids"]
+    assert body["staff_ids"][0] != staff["id"]
     assert body["skill_ids"] == []
 
-    # The reused department must not be duplicated or lose its original staff.
+    # The original template department/staff are untouched, and a distinct
+    # clone now exists with the cloned staff.
     all_departments = client.get(f"{API}/departments", headers=user_headers).json()
-    matches = [d for d in all_departments if d["id"] == department["id"]]
-    assert len(matches) == 1
-    assert matches[0]["staff"] == [staff["id"]]
+    original = next(d for d in all_departments if d["id"] == department["id"])
+    assert original["staff"] == [staff["id"]]
+    cloned = next(d for d in all_departments if d["id"] == body["department_ids"][0])
+    assert cloned["staff"] == body["staff_ids"]
 
 
 def test_apply_reuses_existing_skill_by_existing_id_for_new_staff(client, user_headers):
@@ -94,11 +105,13 @@ def test_apply_reuses_existing_skill_by_existing_id_for_new_staff(client, user_h
     body = resp.json()
 
     assert body["skill_ids"] == []
-    assert body["reused_skill_ids"] == [skill["id"]]
+    assert len(body["reused_skill_ids"]) == 1
+    cloned_skill_id = body["reused_skill_ids"][0]
+    assert cloned_skill_id != skill["id"]
 
     all_staff = client.get(f"{API}/staff", headers=user_headers).json()
     new_staff = next(s for s in all_staff if s["id"] == body["staff_ids"][0])
-    assert new_staff["skill_ids"] == [skill["id"]]
+    assert new_staff["skill_ids"] == [cloned_skill_id]
 
 
 def test_apply_adds_new_staff_into_reused_department(client, user_headers):
@@ -132,10 +145,19 @@ def test_apply_adds_new_staff_into_reused_department(client, user_headers):
     assert resp.status_code == 200, resp.text
     body = resp.json()
 
-    new_staff_id = body["staff_ids"][0]
-    assert body["reused_staff_ids"] == []
+    # The plan's brand-new member plus a clone of the department's existing
+    # (template) staff member.
+    assert len(body["staff_ids"]) == 2
+    assert len(body["reused_staff_ids"]) == 1
+    cloned_existing_staff_id = body["reused_staff_ids"][0]
+    assert cloned_existing_staff_id != existing_staff["id"]
+    new_staff_id = next(sid for sid in body["staff_ids"] if sid != cloned_existing_staff_id)
+
+    new_department_id = body["department_ids"][0]
+    assert new_department_id != department["id"]
 
     all_departments = client.get(f"{API}/departments", headers=user_headers).json()
-    matches = [d for d in all_departments if d["id"] == department["id"]]
-    assert len(matches) == 1
-    assert set(matches[0]["staff"]) == {existing_staff["id"], new_staff_id}
+    original = next(d for d in all_departments if d["id"] == department["id"])
+    assert original["staff"] == [existing_staff["id"]]
+    cloned = next(d for d in all_departments if d["id"] == new_department_id)
+    assert set(cloned["staff"]) == {cloned_existing_staff_id, new_staff_id}
