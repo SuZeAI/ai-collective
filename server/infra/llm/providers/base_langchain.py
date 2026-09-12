@@ -79,7 +79,12 @@ class LangChainLLMProvider(LLMProvider):
         )
 
         state = {"messages": input_messages}
-        result = await staff.ainvoke(state)
+        # create_agent's middleware stack (ModelCallLimitMiddleware, etc.) adds
+        # its own before/after-model graph steps on top of the model/tools
+        # nodes, so a handful of tool rounds can burn through LangGraph's
+        # hardcoded default recursion_limit (25) well before `rounds` model
+        # calls are reached. Scale it generously with `rounds` instead.
+        result = await staff.ainvoke(state, config={"recursion_limit": max(25, rounds * 6 + 10)})
         result_messages = result.get("messages") if isinstance(result, dict) else None
         if not result_messages:
             get_logger().warning("Staff returned no messages; returning empty string.")
