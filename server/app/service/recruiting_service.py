@@ -16,6 +16,7 @@ from server.app.service.sprint_service import SprintService
 from server.domain.enums import StaffStatus, TaskStatus
 from server.domain.errors import NotFoundError, ValidationError
 from server.domain.models import (
+    CATALOG_COMPANY_ID,
     DEFAULT_OWNER_ID,
     Staff,
     LibraryDocument,
@@ -25,11 +26,6 @@ from server.domain.models import (
     Project,
     is_visible_to,
 )
-
-# Company id under which admins keep the shared "default" document catalog
-# (mirrors CATALOG_COMPANY_ID on the frontend). Documents are company-bound,
-# so catalog docs live here rather than in any single office.
-CATALOG_COMPANY_ID = "__default__"
 
 # The entity kinds users can browse and clone via recruiting.
 RECRUITING_KINDS = ("skill", "staff", "department", "task", "project", "document")
@@ -110,12 +106,14 @@ class RecruitingService:
         Documents are office-bound, so copying one requires the target
         ``company_id`` (the company the user is recruiting into).
         """
+        if kind in ("skill", "staff", "department") and not company_id:
+            raise ValidationError(f"Copying a {kind} requires a target company_id")
         if kind == "skill":
-            return {"type": kind, "id": self._copy_skill(item_id, owner_id).id}
+            return {"type": kind, "id": self._copy_skill(item_id, owner_id, company_id).id}
         if kind == "staff":
-            return {"type": kind, "id": self._copy_staff(item_id, owner_id).id}
+            return {"type": kind, "id": self._copy_staff(item_id, owner_id, company_id).id}
         if kind == "department":
-            department = self._copy_department(item_id, owner_id)
+            department = self._copy_department(item_id, owner_id, company_id)
             self._attach_department(department.id, company_id)
             return {"type": kind, "id": department.id}
         if kind == "task":
@@ -137,62 +135,69 @@ class RecruitingService:
             raise NotFoundError(f"Recruiting skill '{skill_id}' not found")
         return skill
 
-    def _clone_skill(self, src: Skill, owner_id: str) -> Skill:
+    def _clone_skill(self, src: Skill, owner_id: str, company_id: str) -> Skill:
         clone = replace(
             src,
             id=f"skill_{uuid4().hex}",
             config=dict(src.config or {}),
             owner_id=owner_id,
+            company_id=company_id,
         )
         return self._skills.upsert_skill(clone)
 
-    def _clone_staff(self, src: Staff, owner_id: str, skill_lookup: dict[str, Skill]) -> Staff:
+    def _clone_staff(
+        self, src: Staff, owner_id: str, skill_lookup: dict[str, Skill], company_id: str
+    ) -> Staff:
         new_skill_ids: list[str] = []
         for sid in src.skill_ids:
             skill = skill_lookup.get(sid)
             if skill is None:
                 continue  # tolerate dangling references
-            new_skill_ids.append(self._clone_skill(skill, owner_id).id)
+            new_skill_ids.append(self._clone_skill(skill, owner_id, company_id).id)
         clone = replace(
             src,
             id=f"agent_{uuid4().hex}",
             skill_ids=new_skill_ids,
             status=StaffStatus.idle,
             owner_id=owner_id,
+            company_id=company_id,
         )
         return self._staff.upsert_staff(clone)
 
-    def _clone_department(self, src: Department, owner_id: str, skill_lookup: dict[str, Skill]) -> Department:
+    def _clone_department(
+        self, src: Department, owner_id: str, skill_lookup: dict[str, Skill], company_id: str
+    ) -> Department:
         new_staff_ids: list[str] = []
         for aid in src.staff:
             staff = self._staff._repo.get(aid)
             if staff is None:
                 continue
-            new_staff_ids.append(self._clone_staff(staff, owner_id, skill_lookup).id)
+            new_staff_ids.append(self._clone_staff(staff, owner_id, skill_lookup, company_id).id)
         clone = replace(
             src,
             id=f"team_{uuid4().hex}",
             staff=new_staff_ids,
             active_tasks=0,
             owner_id=owner_id,
+            company_id=company_id,
         )
         return self._departments.upsert_department(clone)
 
-    def _copy_skill(self, skill_id: str, owner_id: str) -> Skill:
+    def _copy_skill(self, skill_id: str, owner_id: str, company_id: str) -> Skill:
         src = self._require_default_skill(skill_id, self._skills_by_id())
-        return self._clone_skill(src, owner_id)
+        return self._clone_skill(src, owner_id, company_id)
 
-    def _copy_staff(self, staff_id: str, owner_id: str) -> Staff:
+    def _copy_staff(self, staff_id: str, owner_id: str, company_id: str) -> Staff:
         src = self._staff._repo.get(staff_id)
         if src is None or src.owner_id != DEFAULT_OWNER_ID:
             raise NotFoundError(f"Recruiting staff '{staff_id}' not found")
-        return self._clone_staff(src, owner_id, self._skills_by_id())
+        return self._clone_staff(src, owner_id, self._skills_by_id(), company_id)
 
-    def _copy_department(self, department_id: str, owner_id: str) -> Department:
+    def _copy_department(self, department_id: str, owner_id: str, company_id: str) -> Department:
         src = self._departments._repo.get(department_id)
         if src is None or src.owner_id != DEFAULT_OWNER_ID:
             raise NotFoundError(f"Recruiting department '{department_id}' not found")
-        return self._clone_department(src, owner_id, self._skills_by_id())
+        return self._clone_department(src, owner_id, self._skills_by_id(), company_id)
 
     def _attach_department(self, department_id: str, company_id: str | None) -> None:
         # "Copy to my unit" only means something if the clone actually shows up
@@ -217,12 +222,13 @@ class RecruitingService:
         new_department_id = ""
         src_department = self._departments._repo.get(src.department_id) if src.department_id else None
         if src_department is not None and src_department.owner_id == DEFAULT_OWNER_ID:
+            effective_company_id = company_id or CATALOG_COMPANY_ID
             new_staff_ids: list[str] = []
             for aid in src_department.staff:
                 staff = self._staff._repo.get(aid)
                 if staff is None:
                     continue
-                cloned = self._clone_staff(staff, owner_id, skill_lookup)
+                cloned = self._clone_staff(staff, owner_id, skill_lookup, effective_company_id)
                 staff_id_map[aid] = cloned.id
                 new_staff_ids.append(cloned.id)
             cloned_department = replace(
@@ -231,6 +237,7 @@ class RecruitingService:
                 staff=new_staff_ids,
                 active_tasks=0,
                 owner_id=owner_id,
+                company_id=effective_company_id,
             )
             new_department_id = self._departments.upsert_department(cloned_department).id
             self._attach_department(new_department_id, company_id)

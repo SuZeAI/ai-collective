@@ -17,6 +17,11 @@ def test_recruiting_lists_and_copies_a_skill(client, admin_headers, user_headers
         json={"name": unique("catalog-skill"), "description": "d", "third_party": "Custom", "tool_name": "http", "config": {}},
         headers=admin_headers,
     ).json()
+    company = client.post(
+        f"{API}/companies",
+        json={"name": unique("company"), "description": "a test company", "type": "software"},
+        headers=user_headers,
+    ).json()
 
     catalog = client.get(f"{API}/recruiting/skills", headers=user_headers)
     assert catalog.status_code == 200
@@ -24,7 +29,7 @@ def test_recruiting_lists_and_copies_a_skill(client, admin_headers, user_headers
 
     copied = client.post(
         f"{API}/recruiting/copy",
-        json={"type": "skill", "id": admin_skill["id"]},
+        json={"type": "skill", "id": admin_skill["id"], "companyId": company["id"]},
         headers=user_headers,
     )
     assert copied.status_code == 200, copied.text
@@ -32,14 +37,34 @@ def test_recruiting_lists_and_copies_a_skill(client, admin_headers, user_headers
     new_id = copied.json()["id"]
     assert new_id != admin_skill["id"]
 
-    my_skills = client.get(f"{API}/skills", headers=user_headers).json()
+    my_skills = client.get(f"{API}/skills?company_id={company['id']}", headers=user_headers).json()
     assert any(s["id"] == new_id for s in my_skills)
 
 
-def test_recruiting_copy_of_unknown_id_returns_404(client, user_headers):
+def test_recruiting_copy_without_company_id_is_rejected(client, admin_headers, user_headers):
+    admin_skill = client.post(
+        f"{API}/skills",
+        json={"name": unique("catalog-skill"), "description": "d", "third_party": "Custom", "tool_name": "http", "config": {}},
+        headers=admin_headers,
+    ).json()
+
     resp = client.post(
         f"{API}/recruiting/copy",
-        json={"type": "staff", "id": "agent_does_not_exist"},
+        json={"type": "skill", "id": admin_skill["id"]},
+        headers=user_headers,
+    )
+    assert resp.status_code == 422
+
+
+def test_recruiting_copy_of_unknown_id_returns_404(client, user_headers):
+    company = client.post(
+        f"{API}/companies",
+        json={"name": unique("company"), "description": "a test company", "type": "software"},
+        headers=user_headers,
+    ).json()
+    resp = client.post(
+        f"{API}/recruiting/copy",
+        json={"type": "staff", "id": "agent_does_not_exist", "companyId": company["id"]},
         headers=user_headers,
     )
     assert resp.status_code == 404
