@@ -116,6 +116,14 @@ export type Translations = {
   };
   companyTypeLabel: string;
   companyTypes: { software: string; marketing: string; research: string; general: string };
+  companiesPage: {
+    importFromOffice: string;
+    noDepartmentsYet: string;
+    noDepartmentsAssigned: string;
+    noCompaniesYet: string;
+    deleteCompanyTitle: string;
+    checkingImpact: string;
+  };
   documentLibrary: {
     title: string;
     subtitle: string;
@@ -370,6 +378,305 @@ export type Translations = {
       };
     };
   };
+  meetingsPage: {
+    title: string;
+    communicationsWithinOffice: string;
+    noOfficeSubtitle: string;
+    loadingMeetings: string;
+    errorLoadingMeetings: string;
+    filterMeetings: string;
+    messageCountSingular: string;
+    messageCountPlural: string;
+    departmentLabel: string;
+    allDepartments: string;
+    taskLabel: string;
+    allTasks: string;
+    personnelLabel: string;
+    allPersonnel: string;
+    unknownPerson: string;
+    departmentPrefix: string;
+    taskPrefix: string;
+    noMeetingsFound: string;
+    adjustFiltersHint: string;
+  };
+  taskManagerPage: {
+    searchPlaceholder: string;
+    appendTasksTitle: string;
+    appendTasksDesc: string;
+    appendEmptyText: string;
+    appendTargetLabel: string;
+    appendNoTargetText: string;
+    appendCopyLabel: string;
+    newTaskBtn: string;
+    pageTitle: string;
+    pageSubtitle: string;
+    allEpics: string;
+    allSprints: string;
+    backlogNoSprint: string;
+    allProjects: string;
+    editTaskTitle: string;
+    createTaskTitle: string;
+    taskTitlePlaceholder: string;
+    descriptionPlaceholder: string;
+    assignToLabel: string;
+    departmentBtn: string;
+    staffBtn: string;
+    selectDepartmentPlaceholder: string;
+    selectStaffPlaceholder: string;
+    priorityLabel: string;
+    dueDateLabel: string;
+    labelsLabel: string;
+    labelsPlaceholder: string;
+    saveChangesBtn: string;
+    assignBeforeRunningTitle: string;
+    noAssigneeYetSuffix: string;
+    assignAndRunBtn: string;
+    clearHistoryConfirm: string;
+    couldNotSaveTask: string;
+    couldNotAssignTask: string;
+    couldNotAddComment: string;
+    couldNotClearHistory: string;
+    couldNotDeleteTask: string;
+  };
+  staffBuilderPage: {
+    couldNotSaveStaff: string;
+    couldNotDeleteStaff: string;
+    couldNotCheckDeleteImpact: string;
+    failedToCallTestEndpoint: string;
+    title: string;
+    personnelOfOfficePrefix: string;
+    personnelOfOfficeSuffix: string;
+    hireAndManage: string;
+    newHuman: string;
+    editHumanProfile: string;
+    hireHuman: string;
+    fullName: string;
+    humanNamePlaceholder: string;
+    positionRole: string;
+    positionPlaceholder: string;
+    useCustomPrefix: string;
+    customBadge: string;
+    positionHint: string;
+    description: string;
+    descriptionPlaceholder: string;
+    avatarCustomization: string;
+    managerMode: string;
+    managerModeDesc: string;
+    skillsAssignment: string;
+    availableSkills: string;
+    searchSkillsPlaceholder: string;
+    noMatchingSkills: string;
+    noSkillsRegistered: string;
+    equippedSkills: string;
+    removeAriaLabel: string;
+    noSkillsSelected: string;
+    saveChanges: string;
+    hirePerson: string;
+    deleteStaffTitle: string;
+    deleteStaffDeletingPrefix: string;
+    deleteStaffUnassign: string;
+    deleteStaffProjects: string;
+    deleteStaffTasks: string;
+    deleteStaffAffects: string;
+    deleteStaffUndo: string;
+    cancel: string;
+    deleteStaffConfirm: string;
+    noStaffInCompany: string;
+    noStaffYet: string;
+    editAriaLabel: string;
+    deleteAriaLabel: string;
+    testBtn: string;
+  };
+  departmentBuilderPage: {
+    selectPersonnelLabel: string;
+    selectPersonnelDesc: string;
+    searchPersonnelPlaceholder: string;
+    noMatchingPersonnel: string;
+    title: string;
+    officeScopedPrefix: string;
+    officeScopedSuffix: string;
+    subtitleDefault: string;
+    newDepartmentBtn: string;
+    editDepartmentTitle: string;
+    createDepartmentTitle: string;
+    departmentNamePlaceholder: string;
+    descriptionPlaceholder: string;
+    departmentIconLabel: string;
+    workflowModeLabel: string;
+    modeSequential: string;
+    modeMesh: string;
+    modeRing: string;
+    modeSupervisor: string;
+    modeTree: string;
+    modeCustom: string;
+    customModeHint: string;
+    supervisorHintPrefix: string;
+    supervisorHintBold: string;
+    supervisorHintSuffix: string;
+    treeHintPrefix: string;
+    treeHintRootSuffix: string;
+    treeHintChildrenPrefix: string;
+    maxStepsLabel: string;
+    maxStepsPlaceholder: string;
+    saveChangesBtn: string;
+    createDepartmentBtn: string;
+    customFlowLabel: string;
+    customFlowHint: string;
+    personnelOrderLabel: string;
+    personnelOrderHint: string;
+    removeMemberTitle: string;
+    selectPersonnelHint: string;
+    deleteDepartmentTitle: string;
+    deletingPrefix: string;
+    deleteUnlinkTemplate: string;
+    deleteStaffNote: string;
+    cancelBtn: string;
+    deleteDepartmentBtn: string;
+    emptyScopedTemplate: string;
+    emptyDefault: string;
+    testAriaVerb: string;
+    editAriaVerb: string;
+    deleteAriaVerb: string;
+    activeTasksSuffix: string;
+    badgeMesh: string;
+    badgeRing: string;
+    badgeSupervisor: string;
+    badgeTree: string;
+    badgeCustom: string;
+    badgeSequential: string;
+    stepsSuffix: string;
+    toastAttachFailTitle: string;
+    toastSaveFailTitle: string;
+    toastDeleteFailTitle: string;
+    toastImpactFailTitle: string;
+    testNoStaffError: string;
+    testRunFailError: string;
+  };
+  skillsPage: {
+    title: string;
+    subtitleCompany: string;
+    subtitleDefault: string;
+    newSkillBtn: string;
+    editSkillTitle: string;
+    createSkillTitle: string;
+    presetToolTypeLabel: string;
+    searchPresetPlaceholder: string;
+    skillNameLabel: string;
+    skillNamePlaceholder: string;
+    descriptionLabel: string;
+    instructionsLabel: string;
+    instructionsPlaceholder: string;
+    instructionsHint: string;
+    avatarCustomizationLabel: string;
+    avatarStylePlaceholder: string;
+    avatarModeInitials: string;
+    avatarModeIcon: string;
+    avatarModeImage: string;
+    previewLabel: string;
+    pickIconPlaceholder: string;
+    avatarUrlPlaceholder: string;
+    toolIntegrationConfigLabel: string;
+    noConfigNeeded: string;
+    authenticateGoogleBtn: string;
+    saveChangesBtn: string;
+    noSkillsInUseTemplate: string;
+    noSkillsYet: string;
+    variablesLabel: string;
+    googleSheetsAuthTitle: string;
+    googleAuthInstructions: string;
+    openGoogleAuthorizeBtn: string;
+    statusLabel: string;
+    stateLabel: string;
+    deleteSkillTitle: string;
+    deleteSkillDescPrefix: string;
+    deleteSkillDescMiddle: string;
+    deleteSkillDescStaffSuffix: string;
+    deleteSkillDescInCompanies: string;
+    deleteSkillDescSuffix: string;
+    cancelBtn: string;
+    deleteSkillBtn: string;
+    couldNotSaveSkillToast: string;
+    couldNotDeleteSkillToast: string;
+    couldNotCheckImpactToast: string;
+    editAriaLabel: string;
+    deleteAriaLabel: string;
+    generatingAuthUrlMsg: string;
+    authorizedWithEmailMsg: string;
+    authorizedMsg: string;
+    googleAuthFailedMsg: string;
+    authExpiredMsg: string;
+    cannotStartAuthMsg: string;
+    browserAuthOpenedMsg: string;
+    notReturnedText: string;
+  };
+  virtualOfficePage: {
+    grabbingEspresso: string;
+    developingSoftware: string;
+    toastCreateTaskFailedTitle: string;
+    respondingToQuery: string;
+    standingBy: string;
+    toastSendMessageFailedTitle: string;
+    meetingRoom: string;
+    conference: string;
+    collabArea: string;
+    coffeePantry: string;
+    statusThinking: string;
+    statusWorking: string;
+    statusCollaborating: string;
+    statusOnBreak: string;
+    statusIdle: string;
+    taskBoard: string;
+    assignTaskPlaceholder: string;
+    autoAssign: string;
+    assign: string;
+    stop: string;
+    start: string;
+    inspector: string;
+    role: string;
+    status: string;
+    thinkingEllipsis: string;
+    sendMessagePlaceholder: string;
+    selectStaffToInspect: string;
+    statusLegend: string;
+    officeChat: string;
+    selectTaskToView: string;
+    tuningIn: string;
+    layoutEditor: string;
+    staffOffice: string;
+    realtimeSimulation: string;
+    reviewingCode: string;
+  };
+  adminMonitoringPage: {
+    title: string; subtitle: string; last7Days: string; last30Days: string; last90Days: string;
+    refresh: string; loadErrorTitle: string;
+    tabOverview: string; tabUsage: string; tabPricing: string; tabStorage: string; tabUsers: string;
+    kpiStatus: string; healthy: string; degraded: string; kpiUptime: string; uptimeSub: string;
+    kpiRequests: string; kpiUsers: string; usersSub: string; envSub: string; errorsSub: string;
+    storageTitle: string; connected: string; llmProviderTitle: string; configured: string; noApiKey: string;
+    selectActiveModel: string; infrastructureTitle: string; taskQueueLabel: string; repoLockLabel: string;
+    entitiesLabel: string; entitiesValue: string; okDefault: string; downDefault: string;
+    totalTokens: string; lastNDays: string; inputOutput: string; cachedSub: string; estimatedCost: string;
+    basedOnPricing: string; llmRequests: string; dailyTokenUsage: string; noUsageYet: string;
+    tooltipInputTokens: string; tooltipOutputTokens: string;
+    usageByModel: string; noData: string; unpriced: string; usageByUser: string;
+    modelPricingTitle: string; pricingSubtitle: string; addModel: string; noPricingYet: string;
+    fileStoreLabel: string; sandboxModeSub: string; s3Minio: string; localDisk: string;
+    objectStoreLabel: string; disabled: string; unreachable: string;
+    libraryDocuments: string; storedInMinio: string; objectsCountSub: string;
+    fileByteStorage: string; needsMinio: string; minioWarnTitle: string; minioWarnBodyPrefix: string; minioWarnBodySuffix: string;
+    dlBackendLabel: string; dlBackendS3Value: string; dlBackendLocalValue: string; dlSandboxModeLabel: string;
+    dlCompanyPathLabel: string; dlMinioEndpointLabel: string; dlMinioBucketLabel: string;
+    dlLibraryObjectsLabel: string; dlMeetingObjectsLabel: string;
+    fileStorageS3Note: string; fileStorageLocalNote: string;
+    userActivityTitle: string; accountsCount: string; noUsersYet: string;
+    colUser: string; colRole: string; colStaff: string; colDepartments: string; colTasks: string;
+    colTokensDays: string; colCostDays: string; colIn: string; colOut: string; colCached: string;
+    colCost: string; colReq: string; byUserColTokens: string; colInputPerM: string; colOutputPerM: string;
+    modelNameRequired: string; pricingSaved: string; pricingSaveFailed: string; pricingDeleteFailed: string;
+    pricingRemoved: string; modelSwitched: string; modelSwitchFailed: string;
+    addModelPricingTitle: string; editPricingTitle: string; modelLabel: string; providerLabel: string;
+    selectProvider: string; inputPerMLabel: string; outputPerMLabel: string; cancel: string; save: string; saving: string;
+  };
 };
 
 export const translations: Record<Language, Translations> = {
@@ -472,6 +779,14 @@ export const translations: Record<Language, Translations> = {
     },
     companyTypeLabel: "Company type",
     companyTypes: { software: "Software", marketing: "Marketing", research: "Research", general: "General" },
+    companiesPage: {
+      importFromOffice: "Import settings from another Company",
+      noDepartmentsYet: "No departments yet. Create departments first.",
+      noDepartmentsAssigned: "No departments assigned",
+      noCompaniesYet: "No companies yet",
+      deleteCompanyTitle: "Delete company?",
+      checkingImpact: "Checking what this will affect…",
+    },
     documentLibrary: {
       title: "Document Library",
       subtitle: "Shared documents for this business unit — reusable across its projects.",
@@ -751,7 +1066,314 @@ export const translations: Record<Language, Translations> = {
         },
       },
     },
+    meetingsPage: {
+      title: "Meetings",
+      communicationsWithinOffice: "Communications within office",
+      noOfficeSubtitle: "Browse and filter all personnel communications across departments and tasks.",
+      loadingMeetings: "Loading meetings...",
+      errorLoadingMeetings: "Error loading meetings",
+      filterMeetings: "Filter Meetings",
+      messageCountSingular: "message",
+      messageCountPlural: "messages",
+      departmentLabel: "Department",
+      allDepartments: "All departments",
+      taskLabel: "Task",
+      allTasks: "All tasks",
+      personnelLabel: "Personnel",
+      allPersonnel: "All personnel",
+      unknownPerson: "Unknown Person",
+      departmentPrefix: "Department:",
+      taskPrefix: "Task:",
+      noMeetingsFound: "No meetings found",
+      adjustFiltersHint: "Try adjusting your filters to see messages",
+    },
+    taskManagerPage: {
+      searchPlaceholder: "Search tasks, labels, people...",
+      appendTasksTitle: 'Append tasks to "{name}"',
+      appendTasksDesc: "Pick existing tasks from Overall and assign them to one of this office's departments.",
+      appendEmptyText: "Every task from Overall already belongs to this office.",
+      appendTargetLabel: "Assign to department",
+      appendNoTargetText: "This office has no departments yet. Add a department first.",
+      appendCopyLabel: "Create independent copies for this office (when unchecked, your own tasks are moved instead; shared tasks are always copied).",
+      newTaskBtn: "New Task",
+      pageTitle: "Projects & Tasks",
+      pageSubtitle: "Kanban board · drag cards between columns to change status",
+      allEpics: "All epics",
+      allSprints: "All sprints",
+      backlogNoSprint: "Backlog (no sprint)",
+      allProjects: "All projects",
+      editTaskTitle: "Edit Task",
+      createTaskTitle: "Create Task",
+      taskTitlePlaceholder: "Task title",
+      descriptionPlaceholder: "Description",
+      assignToLabel: "Assign to",
+      departmentBtn: "Department",
+      staffBtn: "Staff",
+      selectDepartmentPlaceholder: "Select a department",
+      selectStaffPlaceholder: "Select a staff member",
+      priorityLabel: "Priority",
+      dueDateLabel: "Due date",
+      labelsLabel: "Labels",
+      labelsPlaceholder: "comma, separated, labels",
+      saveChangesBtn: "Save Changes",
+      assignBeforeRunningTitle: "Assign before running",
+      noAssigneeYetSuffix: "has no department or staff assigned yet, so it can't run. Pick one to continue.",
+      assignAndRunBtn: "Assign & Run",
+      clearHistoryConfirm: "Clear all meeting history and knowledge for this task? This cannot be undone.",
+      couldNotSaveTask: "Could not save task",
+      couldNotAssignTask: "Could not assign task",
+      couldNotAddComment: "Could not add comment",
+      couldNotClearHistory: "Could not clear history",
+      couldNotDeleteTask: "Could not delete task",
+    },
+    staffBuilderPage: {
+      couldNotSaveStaff: "Could not save staff",
+      couldNotDeleteStaff: "Could not delete staff",
+      couldNotCheckDeleteImpact: "Could not check delete impact",
+      failedToCallTestEndpoint: "Failed to call test endpoint",
+      title: "Staff",
+      personnelOfOfficePrefix: "Personnel of office",
+      personnelOfOfficeSuffix: "(members of its departments).",
+      hireAndManage: "Hire and manage your company's personnel roster.",
+      newHuman: "New Human",
+      editHumanProfile: "Edit Human Profile",
+      hireHuman: "Hire Human",
+      fullName: "Full Name",
+      humanNamePlaceholder: "Human name",
+      positionRole: "Position / Role",
+      positionPlaceholder: "Type a position or pick from suggestions",
+      useCustomPrefix: "Use custom",
+      customBadge: "Custom",
+      positionHint: "You can type a custom position or select an existing one.",
+      description: "Description",
+      descriptionPlaceholder: "Description (optional)",
+      avatarCustomization: "Avatar Customization",
+      managerMode: "Manager Mode",
+      managerModeDesc: "Delegate work to other department members via subagents and run tools in parallel.",
+      skillsAssignment: "Skills Assignment",
+      availableSkills: "Available Skills",
+      searchSkillsPlaceholder: "Search skills...",
+      noMatchingSkills: "No matching skills found.",
+      noSkillsRegistered: "No skills registered yet.",
+      equippedSkills: "Equipped Skills",
+      removeAriaLabel: "Remove",
+      noSkillsSelected: "No skills selected.",
+      saveChanges: "Save Changes",
+      hirePerson: "Hire Person",
+      deleteStaffTitle: "Delete staff?",
+      deleteStaffDeletingPrefix: "Deleting",
+      deleteStaffUnassign: "will unassign it from {n} department(s)",
+      deleteStaffProjects: ", clear it from {n} project(s)",
+      deleteStaffTasks: ", and clear it from {n} task(s)",
+      deleteStaffAffects: " — affects {names}",
+      deleteStaffUndo: ". This action cannot be undone.",
+      cancel: "Cancel",
+      deleteStaffConfirm: "Delete staff",
+      noStaffInCompany: 'No staff in "{name}" yet — add them to one of its departments, or switch to Overall.',
+      noStaffYet: "No staff yet. Hire your first one.",
+      editAriaLabel: "Edit",
+      deleteAriaLabel: "Delete",
+      testBtn: "Test",
+    },
+    departmentBuilderPage: {
+      selectPersonnelLabel: "Select Personnel",
+      selectPersonnelDesc: "Choose personnel to add to this department.",
+      searchPersonnelPlaceholder: "Search personnel...",
+      noMatchingPersonnel: "No matching personnel found.",
+      title: "Departments",
+      officeScopedPrefix: "Departments of office",
+      officeScopedSuffix: "New departments join this office.",
+      subtitleDefault: "Assemble departments and project departments for corporate tasks.",
+      newDepartmentBtn: "New Department",
+      editDepartmentTitle: "Edit Department",
+      createDepartmentTitle: "Create Department",
+      departmentNamePlaceholder: "Department name",
+      descriptionPlaceholder: "Description",
+      departmentIconLabel: "Department Icon",
+      workflowModeLabel: "Workflow Mode",
+      modeSequential: "Sequential Pipeline (members work in sequence)",
+      modeMesh: "Mesh Collaboration (all members interact)",
+      modeRing: "Circular Workflow (members pass work in a loop)",
+      modeSupervisor: "Managerial Delegation (lead delegates to department)",
+      modeTree: "Hierarchical Tree (manager delegates down branches)",
+      modeCustom: "Custom Flow (drag-and-drop your own routing)",
+      customModeHint: "Draw the flow on the right: connect nodes to route work. Branch one node into several to run them in parallel, merge several back into one, or loop back (bounded by Max Steps).",
+      supervisorHintPrefix: "First member in the order will be the",
+      supervisorHintBold: "lead manager",
+      supervisorHintSuffix: ". Remaining members are workers.",
+      treeHintPrefix: "Members arranged as a hierarchy tree:",
+      treeHintRootSuffix: "is root.",
+      treeHintChildrenPrefix: "Children:",
+      maxStepsLabel: "Max Steps (for tasks)",
+      maxStepsPlaceholder: "Default: 6",
+      saveChangesBtn: "Save Changes",
+      createDepartmentBtn: "Create Department",
+      customFlowLabel: "Custom Flow",
+      customFlowHint: "Drag from a node's right handle to another node's left handle to route work. Move nodes freely; select an edge and press Delete to remove it.",
+      personnelOrderLabel: "Personnel Workflow Order",
+      personnelOrderHint: "Drag to reorder personnel. If the list is long, scroll here.",
+      removeMemberTitle: "Remove member",
+      selectPersonnelHint: "Select personnel from the left panel to start arranging workflow order.",
+      deleteDepartmentTitle: "Delete department?",
+      deletingPrefix: "Deleting",
+      deleteUnlinkTemplate: "will unlink it from {names}.",
+      deleteStaffNote: "Its staff are not affected — they stay in the company, just no longer rostered under this department. This action cannot be undone.",
+      cancelBtn: "Cancel",
+      deleteDepartmentBtn: "Delete department",
+      emptyScopedTemplate: "No departments in \"{name}\" yet. Create one, or switch to Overall to see everything.",
+      emptyDefault: "No departments yet. Create your first department.",
+      testAriaVerb: "Test",
+      editAriaVerb: "Edit",
+      deleteAriaVerb: "Delete",
+      activeTasksSuffix: "active tasks",
+      badgeMesh: "🔗 Mesh",
+      badgeRing: "🔄 Ring",
+      badgeSupervisor: "👑 Manager",
+      badgeTree: "🌲 Tree",
+      badgeCustom: "🧩 Custom",
+      badgeSequential: "📋 Sequential",
+      stepsSuffix: "steps",
+      toastAttachFailTitle: "Department saved, but could not attach to office",
+      toastSaveFailTitle: "Could not save department",
+      toastDeleteFailTitle: "Could not delete department",
+      toastImpactFailTitle: "Could not check delete impact",
+      testNoStaffError: "This department has no staff to test.",
+      testRunFailError: "Failed to run department test discussion.",
+    },
+    skillsPage: {
+      title: "Skills",
+      subtitleCompany: "Skills used by personnel of office {name}.",
+      subtitleDefault: "Create reusable skills and assign them to personnel.",
+      newSkillBtn: "New Skill",
+      editSkillTitle: "Edit Skill",
+      createSkillTitle: "Create Skill",
+      presetToolTypeLabel: "Preset Tool Type",
+      searchPresetPlaceholder: "Search preset tools...",
+      skillNameLabel: "Skill Name",
+      skillNamePlaceholder: "Skill name",
+      descriptionLabel: "Description",
+      instructionsLabel: "Instructions",
+      instructionsPlaceholder: "Explain how to use this skill — e.g. where to get the API key/token, required accounts or local setup, and how to fill in the config.",
+      instructionsHint: "Shown to users to explain credentials setup.",
+      avatarCustomizationLabel: "Avatar Customization",
+      avatarStylePlaceholder: "Avatar style",
+      avatarModeInitials: "Initials",
+      avatarModeIcon: "Icon",
+      avatarModeImage: "Image URL",
+      previewLabel: "Preview",
+      pickIconPlaceholder: "Pick icon",
+      avatarUrlPlaceholder: "https://example.com/skill-avatar.png",
+      toolIntegrationConfigLabel: "Tool Integration Config",
+      noConfigNeeded: "This tool integration does not require any custom configurations.",
+      authenticateGoogleBtn: "Authenticate Google Services",
+      saveChangesBtn: "Save Changes",
+      noSkillsInUseTemplate: 'No skills in use at "{name}" yet — assign skills to its staff, or switch to Overall.',
+      noSkillsYet: "No skills yet. Create your first skill.",
+      variablesLabel: "Variables:",
+      googleSheetsAuthTitle: "Google Sheets Authorization",
+      googleAuthInstructions: "Click the button below to open Google authorize page. After approving access, this dialog will auto-update.",
+      openGoogleAuthorizeBtn: "Open Google Authorize",
+      statusLabel: "Status:",
+      stateLabel: "State:",
+      deleteSkillTitle: "Delete skill?",
+      deleteSkillDescPrefix: "Deleting",
+      deleteSkillDescMiddle: "will remove it from",
+      deleteSkillDescStaffSuffix: "staff member(s)",
+      deleteSkillDescInCompanies: "in",
+      deleteSkillDescSuffix: "This action cannot be undone.",
+      cancelBtn: "Cancel",
+      deleteSkillBtn: "Delete skill",
+      couldNotSaveSkillToast: "Could not save skill",
+      couldNotDeleteSkillToast: "Could not delete skill",
+      couldNotCheckImpactToast: "Could not check delete impact",
+      editAriaLabel: "Edit",
+      deleteAriaLabel: "Delete",
+      generatingAuthUrlMsg: "Generating authorization URL...",
+      authorizedWithEmailMsg: "Authorized: {email}. Token saved at {path}.",
+      authorizedMsg: "Authorization successful. Token saved at {path}.",
+      googleAuthFailedMsg: "Google authorization failed.",
+      authExpiredMsg: "Authorization expired. Please click Authenticate Google again.",
+      cannotStartAuthMsg: "Cannot start Google authorization.",
+      browserAuthOpenedMsg: "Browser authorization opened. Complete login in the popup window. Redirect URI: {uri}",
+      notReturnedText: "(not returned)",
+    },
+    virtualOfficePage: {
+      grabbingEspresso: "Grabbing a fresh espresso",
+      developingSoftware: "Developing software solutions...",
+      toastCreateTaskFailedTitle: "Could not create task",
+      respondingToQuery: "Responding to query...",
+      standingBy: "Standing by",
+      toastSendMessageFailedTitle: "Could not send message",
+      meetingRoom: "Meeting Room",
+      conference: "Conference",
+      collabArea: "Collab Area",
+      coffeePantry: "Coffee & Pantry",
+      statusThinking: "Thinking",
+      statusWorking: "Working",
+      statusCollaborating: "Collaborating",
+      statusOnBreak: "On break",
+      statusIdle: "Idle",
+      taskBoard: "Task Board",
+      assignTaskPlaceholder: "Assign a task...",
+      autoAssign: "Auto-assign",
+      assign: "Assign",
+      stop: "Stop",
+      start: "Start",
+      inspector: "Inspector",
+      role: "Role",
+      status: "Status",
+      thinkingEllipsis: "Thinking...",
+      sendMessagePlaceholder: "Send message...",
+      selectStaffToInspect: "Select a staff on the map to inspect and chat.",
+      statusLegend: "Status legend",
+      officeChat: "Office Chat",
+      selectTaskToView: "Select a task to view collaboration logs.",
+      tuningIn: "System: Tuning in to active staff channel...",
+      layoutEditor: "Layout Editor",
+      staffOffice: "StaffOffice",
+      realtimeSimulation: "Real-time simulation",
+      reviewingCode: "Reviewing code outputs",
+    },
+    adminMonitoringPage: {
+      title: "System Monitoring", subtitle: "Token usage, model pricing, platform health and user activity.",
+      last7Days: "Last 7 days", last30Days: "Last 30 days", last90Days: "Last 90 days",
+      refresh: "Refresh", loadErrorTitle: "Could not load monitoring data",
+      tabOverview: "Overview", tabUsage: "Token Usage", tabPricing: "Pricing", tabStorage: "Storage", tabUsers: "Users",
+      kpiStatus: "Status", healthy: "Healthy", degraded: "Degraded", kpiUptime: "Uptime", uptimeSub: "since last restart",
+      kpiRequests: "Requests", kpiUsers: "Users", usersSub: "{staff} staff · {departments} departments",
+      envSub: "env: {env}", errorsSub: "{errorRate}% errors · {avgLatency}ms avg",
+      storageTitle: "Storage", connected: "Connected", llmProviderTitle: "LLM Provider", configured: "Configured", noApiKey: "No API key",
+      selectActiveModel: "Select active model", infrastructureTitle: "Infrastructure", taskQueueLabel: "Task queue:", repoLockLabel: "Repository lock:",
+      entitiesLabel: "Entities:", entitiesValue: "{tasks} tasks · {companies} offices", okDefault: "OK", downDefault: "Down",
+      totalTokens: "Total Tokens", lastNDays: "last {days} days", inputOutput: "Input / Output", cachedSub: "{cached} cached (~90% cheaper)",
+      estimatedCost: "Estimated Cost", basedOnPricing: "based on pricing table", llmRequests: "LLM Requests",
+      dailyTokenUsage: "Daily Token Usage", noUsageYet: "No LLM usage recorded yet — run a chat or staff task and it will show up here.",
+      tooltipInputTokens: "Input tokens", tooltipOutputTokens: "Output tokens",
+      usageByModel: "Usage by Model", noData: "No data", unpriced: "unpriced", usageByUser: "Usage by User",
+      modelPricingTitle: "Model Pricing", pricingSubtitle: "USD per 1M tokens — used for cost estimates", addModel: "Add model", noPricingYet: "No pricing configured yet.",
+      fileStoreLabel: "File store", sandboxModeSub: "Sandbox mode: {mode}", s3Minio: "S3 / MinIO", localDisk: "Local disk",
+      objectStoreLabel: "Object store", disabled: "Disabled", unreachable: "Unreachable",
+      libraryDocuments: "Library documents", storedInMinio: "Stored in MinIO", objectsCountSub: "{count} objects",
+      fileByteStorage: "File byte storage", needsMinio: "Needs MinIO", minioWarnTitle: "MinIO is configured but unreachable.",
+      minioWarnBodyPrefix: "Start it with", minioWarnBodySuffix: ".",
+      dlBackendLabel: "Backend", dlBackendS3Value: "s3 (MinIO is system of record)", dlBackendLocalValue: "local (host company volume)",
+      dlSandboxModeLabel: "Sandbox mode", dlCompanyPathLabel: "Company path", dlMinioEndpointLabel: "MinIO endpoint",
+      dlMinioBucketLabel: "MinIO bucket", dlLibraryObjectsLabel: "Library objects (S3)", dlMeetingObjectsLabel: "Meeting objects (S3)",
+      fileStorageS3Note: "Files (uploads, staff outputs, document library) are durably stored in MinIO and restored into the working directory on restart — surviving container/Pod recreation.",
+      fileStorageLocalNote: "Files live only on the host company volume. Set FILE_STORAGE_BACKEND=s3 + MINIO_ENABLED=true for durability across Pod recreation (required in k8s sandbox mode).",
+      userActivityTitle: "User Activity", accountsCount: "{count} accounts", noUsersYet: "No registered users yet.",
+      colUser: "User", colRole: "Role", colStaff: "Staff", colDepartments: "Departments", colTasks: "Tasks",
+      colTokensDays: "Tokens ({days}d)", colCostDays: "Cost ({days}d)", colIn: "In", colOut: "Out", colCached: "Cached",
+      colCost: "Cost", colReq: "Req", byUserColTokens: "Tokens", colInputPerM: "Input $/1M", colOutputPerM: "Output $/1M",
+      modelNameRequired: "Model name is required", pricingSaved: "Pricing for {model} saved", pricingSaveFailed: "Failed to save pricing",
+      pricingDeleteFailed: "Failed to delete pricing", pricingRemoved: "Pricing for {model} removed",
+      modelSwitched: "Active model switched to {model}", modelSwitchFailed: "Failed to switch model",
+      addModelPricingTitle: "Add model pricing", editPricingTitle: "Edit pricing — {model}", modelLabel: "Model", providerLabel: "Provider",
+      selectProvider: "Select provider", inputPerMLabel: "Input $ / 1M tokens", outputPerMLabel: "Output $ / 1M tokens",
+      cancel: "Cancel", save: "Save", saving: "Saving…",
+    },
   },
+
 
   vi: {
     auth: {
@@ -852,6 +1474,14 @@ export const translations: Record<Language, Translations> = {
     },
     companyTypeLabel: "Loại công ty",
     companyTypes: { software: "Phần mềm", marketing: "Marketing", research: "Nghiên cứu", general: "Tổng quát" },
+    companiesPage: {
+      importFromOffice: "Nhập cài đặt từ Công ty khác",
+      noDepartmentsYet: "Chưa có phòng ban nào. Hãy tạo phòng ban trước.",
+      noDepartmentsAssigned: "Chưa gán phòng ban nào",
+      noCompaniesYet: "Chưa có công ty nào",
+      deleteCompanyTitle: "Xóa công ty?",
+      checkingImpact: "Đang kiểm tra mức độ ảnh hưởng…",
+    },
     documentLibrary: {
       title: "Kho tài liệu",
       subtitle: "Tài liệu dùng chung của đơn vị này — tái sử dụng cho mọi dự án bên trong.",
@@ -1131,7 +1761,314 @@ export const translations: Record<Language, Translations> = {
         },
       },
     },
+    meetingsPage: {
+      title: "Cuộc họp",
+      communicationsWithinOffice: "Trao đổi trong văn phòng",
+      noOfficeSubtitle: "Xem và lọc toàn bộ trao đổi của nhân sự theo phòng ban và công việc.",
+      loadingMeetings: "Đang tải cuộc họp...",
+      errorLoadingMeetings: "Lỗi khi tải cuộc họp",
+      filterMeetings: "Lọc cuộc họp",
+      messageCountSingular: "tin nhắn",
+      messageCountPlural: "tin nhắn",
+      departmentLabel: "Phòng ban",
+      allDepartments: "Tất cả phòng ban",
+      taskLabel: "Công việc",
+      allTasks: "Tất cả công việc",
+      personnelLabel: "Nhân sự",
+      allPersonnel: "Tất cả nhân sự",
+      unknownPerson: "Người dùng không xác định",
+      departmentPrefix: "Phòng ban:",
+      taskPrefix: "Công việc:",
+      noMeetingsFound: "Không tìm thấy cuộc họp",
+      adjustFiltersHint: "Hãy thử điều chỉnh bộ lọc để xem tin nhắn",
+    },
+    taskManagerPage: {
+      searchPlaceholder: "Tìm task, nhãn, người...",
+      appendTasksTitle: 'Thêm task vào "{name}"',
+      appendTasksDesc: "Chọn các task hiện có từ Overall và gán cho một phòng ban của công ty này.",
+      appendEmptyText: "Mọi task từ Overall đều đã thuộc về công ty này.",
+      appendTargetLabel: "Gán cho phòng ban",
+      appendNoTargetText: "Công ty này chưa có phòng ban nào. Hãy tạo phòng ban trước.",
+      appendCopyLabel: "Tạo bản sao độc lập cho công ty này (khi bỏ chọn, task của bạn sẽ được chuyển thay vì sao chép; task chia sẻ luôn được sao chép).",
+      newTaskBtn: "Task mới",
+      pageTitle: "Dự án & Task",
+      pageSubtitle: "Bảng Kanban · kéo thẻ giữa các cột để đổi trạng thái",
+      allEpics: "Tất cả epic",
+      allSprints: "Tất cả sprint",
+      backlogNoSprint: "Backlog (không có sprint)",
+      allProjects: "Tất cả dự án",
+      editTaskTitle: "Sửa Task",
+      createTaskTitle: "Tạo Task",
+      taskTitlePlaceholder: "Tiêu đề task",
+      descriptionPlaceholder: "Mô tả",
+      assignToLabel: "Gán cho",
+      departmentBtn: "Phòng ban",
+      staffBtn: "Nhân sự",
+      selectDepartmentPlaceholder: "Chọn phòng ban",
+      selectStaffPlaceholder: "Chọn nhân sự",
+      priorityLabel: "Độ ưu tiên",
+      dueDateLabel: "Hạn hoàn thành",
+      labelsLabel: "Nhãn",
+      labelsPlaceholder: "nhãn, phân tách, bằng dấu phẩy",
+      saveChangesBtn: "Lưu thay đổi",
+      assignBeforeRunningTitle: "Gán trước khi chạy",
+      noAssigneeYetSuffix: "chưa được gán phòng ban hoặc nhân sự nào nên không thể chạy. Hãy chọn một để tiếp tục.",
+      assignAndRunBtn: "Gán & Chạy",
+      clearHistoryConfirm: "Xóa toàn bộ lịch sử cuộc họp và kiến thức của task này? Không thể hoàn tác.",
+      couldNotSaveTask: "Không thể lưu task",
+      couldNotAssignTask: "Không thể gán task",
+      couldNotAddComment: "Không thể thêm bình luận",
+      couldNotClearHistory: "Không thể xóa lịch sử",
+      couldNotDeleteTask: "Không thể xóa task",
+    },
+    staffBuilderPage: {
+      couldNotSaveStaff: "Không thể lưu nhân sự",
+      couldNotDeleteStaff: "Không thể xóa nhân sự",
+      couldNotCheckDeleteImpact: "Không thể kiểm tra mức độ ảnh hưởng khi xóa",
+      failedToCallTestEndpoint: "Gọi thử endpoint không thành công",
+      title: "Nhân sự",
+      personnelOfOfficePrefix: "Nhân sự của văn phòng",
+      personnelOfOfficeSuffix: "(thành viên các phòng ban của văn phòng này).",
+      hireAndManage: "Tuyển dụng và quản lý danh sách nhân sự của công ty.",
+      newHuman: "Thêm người mới",
+      editHumanProfile: "Sửa hồ sơ nhân sự",
+      hireHuman: "Tuyển người",
+      fullName: "Họ và tên",
+      humanNamePlaceholder: "Tên nhân sự",
+      positionRole: "Vị trí / Vai trò",
+      positionPlaceholder: "Nhập vị trí hoặc chọn từ gợi ý",
+      useCustomPrefix: "Dùng tùy chỉnh",
+      customBadge: "Tùy chỉnh",
+      positionHint: "Bạn có thể nhập một vị trí tùy chỉnh hoặc chọn từ danh sách có sẵn.",
+      description: "Mô tả",
+      descriptionPlaceholder: "Mô tả (không bắt buộc)",
+      avatarCustomization: "Tùy chỉnh ảnh đại diện",
+      managerMode: "Chế độ quản lý",
+      managerModeDesc: "Giao việc cho thành viên khác trong phòng ban qua subagent và chạy công cụ song song.",
+      skillsAssignment: "Gán kỹ năng",
+      availableSkills: "Kỹ năng khả dụng",
+      searchSkillsPlaceholder: "Tìm kỹ năng...",
+      noMatchingSkills: "Không tìm thấy kỹ năng phù hợp.",
+      noSkillsRegistered: "Chưa có kỹ năng nào được đăng ký.",
+      equippedSkills: "Kỹ năng đã trang bị",
+      removeAriaLabel: "Xóa",
+      noSkillsSelected: "Chưa chọn kỹ năng nào.",
+      saveChanges: "Lưu thay đổi",
+      hirePerson: "Tuyển người",
+      deleteStaffTitle: "Xóa nhân sự?",
+      deleteStaffDeletingPrefix: "Đang xóa",
+      deleteStaffUnassign: "sẽ bỏ gán khỏi {n} phòng ban",
+      deleteStaffProjects: ", xóa khỏi {n} dự án",
+      deleteStaffTasks: ", và xóa khỏi {n} công việc",
+      deleteStaffAffects: " — ảnh hưởng đến {names}",
+      deleteStaffUndo: ". Hành động này không thể hoàn tác.",
+      cancel: "Hủy",
+      deleteStaffConfirm: "Xóa nhân sự",
+      noStaffInCompany: 'Chưa có nhân sự nào trong "{name}" — hãy thêm vào một phòng ban, hoặc chuyển sang chế độ Tổng quan.',
+      noStaffYet: "Chưa có nhân sự nào. Hãy tuyển người đầu tiên.",
+      editAriaLabel: "Sửa",
+      deleteAriaLabel: "Xóa",
+      testBtn: "Thử",
+    },
+    departmentBuilderPage: {
+      selectPersonnelLabel: "Chọn nhân sự",
+      selectPersonnelDesc: "Chọn nhân sự để thêm vào phòng ban này.",
+      searchPersonnelPlaceholder: "Tìm nhân sự...",
+      noMatchingPersonnel: "Không tìm thấy nhân sự phù hợp.",
+      title: "Phòng ban",
+      officeScopedPrefix: "Phòng ban của công ty",
+      officeScopedSuffix: "Phòng ban mới sẽ thuộc công ty này.",
+      subtitleDefault: "Xây dựng phòng ban và phòng ban dự án cho các nhiệm vụ của công ty.",
+      newDepartmentBtn: "Phòng ban mới",
+      editDepartmentTitle: "Sửa phòng ban",
+      createDepartmentTitle: "Tạo phòng ban",
+      departmentNamePlaceholder: "Tên phòng ban",
+      descriptionPlaceholder: "Mô tả",
+      departmentIconLabel: "Biểu tượng phòng ban",
+      workflowModeLabel: "Chế độ vận hành",
+      modeSequential: "Quy trình tuần tự (thành viên làm việc theo trình tự)",
+      modeMesh: "Hợp tác lưới (mọi thành viên tương tác)",
+      modeRing: "Quy trình vòng tròn (thành viên chuyển việc theo vòng)",
+      modeSupervisor: "Ủy quyền quản lý (trưởng nhóm giao việc cho phòng ban)",
+      modeTree: "Cây phân cấp (quản lý giao việc xuống các nhánh)",
+      modeCustom: "Luồng tùy chỉnh (kéo-thả để định tuyến riêng)",
+      customModeHint: "Vẽ luồng ở bên phải: kết nối các nút để định tuyến công việc. Tách một nút thành nhiều nút để chạy song song, hợp nhất nhiều nút lại thành một, hoặc lặp lại (giới hạn bởi Số bước tối đa).",
+      supervisorHintPrefix: "Thành viên đầu tiên trong danh sách sẽ là",
+      supervisorHintBold: "trưởng nhóm",
+      supervisorHintSuffix: ". Các thành viên còn lại là nhân viên.",
+      treeHintPrefix: "Các thành viên được xếp thành cây phân cấp:",
+      treeHintRootSuffix: "là gốc.",
+      treeHintChildrenPrefix: "Con:",
+      maxStepsLabel: "Số bước tối đa (cho nhiệm vụ)",
+      maxStepsPlaceholder: "Mặc định: 6",
+      saveChangesBtn: "Lưu thay đổi",
+      createDepartmentBtn: "Tạo phòng ban",
+      customFlowLabel: "Luồng tùy chỉnh",
+      customFlowHint: "Kéo từ tay cầm bên phải của một nút đến tay cầm bên trái của nút khác để định tuyến công việc. Di chuyển nút tự do; chọn một cạnh và nhấn Delete để xóa.",
+      personnelOrderLabel: "Thứ tự vận hành nhân sự",
+      personnelOrderHint: "Kéo để sắp xếp lại nhân sự. Nếu danh sách dài, hãy cuộn tại đây.",
+      removeMemberTitle: "Xóa thành viên",
+      selectPersonnelHint: "Chọn nhân sự từ bảng bên trái để bắt đầu sắp xếp thứ tự vận hành.",
+      deleteDepartmentTitle: "Xóa phòng ban?",
+      deletingPrefix: "Đang xóa",
+      deleteUnlinkTemplate: "sẽ gỡ liên kết khỏi {names}.",
+      deleteStaffNote: "Nhân sự của phòng ban không bị ảnh hưởng — họ vẫn thuộc công ty, chỉ không còn thuộc phòng ban này. Hành động này không thể hoàn tác.",
+      cancelBtn: "Hủy",
+      deleteDepartmentBtn: "Xóa phòng ban",
+      emptyScopedTemplate: "Chưa có phòng ban nào trong \"{name}\". Hãy tạo một phòng ban, hoặc chuyển sang Tổng quan để xem tất cả.",
+      emptyDefault: "Chưa có phòng ban nào. Hãy tạo phòng ban đầu tiên.",
+      testAriaVerb: "Thử nghiệm",
+      editAriaVerb: "Sửa",
+      deleteAriaVerb: "Xóa",
+      activeTasksSuffix: "nhiệm vụ đang chạy",
+      badgeMesh: "🔗 Lưới",
+      badgeRing: "🔄 Vòng",
+      badgeSupervisor: "👑 Quản lý",
+      badgeTree: "🌲 Cây",
+      badgeCustom: "🧩 Tùy chỉnh",
+      badgeSequential: "📋 Tuần tự",
+      stepsSuffix: "bước",
+      toastAttachFailTitle: "Đã lưu phòng ban, nhưng không thể gắn vào công ty",
+      toastSaveFailTitle: "Không thể lưu phòng ban",
+      toastDeleteFailTitle: "Không thể xóa phòng ban",
+      toastImpactFailTitle: "Không thể kiểm tra mức độ ảnh hưởng",
+      testNoStaffError: "Phòng ban này chưa có nhân sự để thử nghiệm.",
+      testRunFailError: "Không thể chạy thử nghiệm thảo luận của phòng ban.",
+    },
+    skillsPage: {
+      title: "Kỹ năng",
+      subtitleCompany: "Kỹ năng được nhân sự của công ty {name} sử dụng.",
+      subtitleDefault: "Tạo các kỹ năng có thể tái sử dụng và gán cho nhân sự.",
+      newSkillBtn: "Kỹ năng mới",
+      editSkillTitle: "Sửa kỹ năng",
+      createSkillTitle: "Tạo kỹ năng",
+      presetToolTypeLabel: "Loại công cụ có sẵn",
+      searchPresetPlaceholder: "Tìm công cụ có sẵn...",
+      skillNameLabel: "Tên kỹ năng",
+      skillNamePlaceholder: "Tên kỹ năng",
+      descriptionLabel: "Mô tả",
+      instructionsLabel: "Hướng dẫn",
+      instructionsPlaceholder: "Giải thích cách sử dụng kỹ năng này — ví dụ nơi lấy API key/token, tài khoản hoặc cài đặt cục bộ cần thiết, và cách điền cấu hình.",
+      instructionsHint: "Hiển thị cho người dùng để giải thích cách thiết lập thông tin xác thực.",
+      avatarCustomizationLabel: "Tùy chỉnh ảnh đại diện",
+      avatarStylePlaceholder: "Kiểu ảnh đại diện",
+      avatarModeInitials: "Chữ viết tắt",
+      avatarModeIcon: "Biểu tượng",
+      avatarModeImage: "URL hình ảnh",
+      previewLabel: "Xem trước",
+      pickIconPlaceholder: "Chọn biểu tượng",
+      avatarUrlPlaceholder: "https://example.com/skill-avatar.png",
+      toolIntegrationConfigLabel: "Cấu hình tích hợp công cụ",
+      noConfigNeeded: "Tích hợp công cụ này không cần cấu hình tùy chỉnh nào.",
+      authenticateGoogleBtn: "Xác thực dịch vụ Google",
+      saveChangesBtn: "Lưu thay đổi",
+      noSkillsInUseTemplate: 'Chưa có kỹ năng nào được dùng tại "{name}" — hãy gán kỹ năng cho nhân sự, hoặc chuyển sang chế độ Tổng quan.',
+      noSkillsYet: "Chưa có kỹ năng nào. Hãy tạo kỹ năng đầu tiên.",
+      variablesLabel: "Biến:",
+      googleSheetsAuthTitle: "Xác thực Google Sheets",
+      googleAuthInstructions: "Nhấn nút dưới đây để mở trang xác thực Google. Sau khi cho phép truy cập, hộp thoại này sẽ tự cập nhật.",
+      openGoogleAuthorizeBtn: "Mở trang xác thực Google",
+      statusLabel: "Trạng thái:",
+      stateLabel: "State:",
+      deleteSkillTitle: "Xóa kỹ năng?",
+      deleteSkillDescPrefix: "Xóa",
+      deleteSkillDescMiddle: "sẽ gỡ khỏi",
+      deleteSkillDescStaffSuffix: "nhân sự",
+      deleteSkillDescInCompanies: "tại",
+      deleteSkillDescSuffix: "Hành động này không thể hoàn tác.",
+      cancelBtn: "Hủy",
+      deleteSkillBtn: "Xóa kỹ năng",
+      couldNotSaveSkillToast: "Không thể lưu kỹ năng",
+      couldNotDeleteSkillToast: "Không thể xóa kỹ năng",
+      couldNotCheckImpactToast: "Không thể kiểm tra mức độ ảnh hưởng",
+      editAriaLabel: "Sửa",
+      deleteAriaLabel: "Xóa",
+      generatingAuthUrlMsg: "Đang tạo URL xác thực...",
+      authorizedWithEmailMsg: "Đã xác thực: {email}. Token đã lưu tại {path}.",
+      authorizedMsg: "Xác thực thành công. Token đã lưu tại {path}.",
+      googleAuthFailedMsg: "Xác thực Google thất bại.",
+      authExpiredMsg: "Xác thực đã hết hạn. Vui lòng nhấn Xác thực Google lại.",
+      cannotStartAuthMsg: "Không thể bắt đầu xác thực Google.",
+      browserAuthOpenedMsg: "Đã mở trang xác thực trong trình duyệt. Hoàn tất đăng nhập trong cửa sổ popup. Redirect URI: {uri}",
+      notReturnedText: "(không trả về)",
+    },
+    virtualOfficePage: {
+      grabbingEspresso: "Đang pha một ly espresso",
+      developingSoftware: "Đang phát triển phần mềm...",
+      toastCreateTaskFailedTitle: "Không thể tạo công việc",
+      respondingToQuery: "Đang trả lời câu hỏi...",
+      standingBy: "Đang chờ",
+      toastSendMessageFailedTitle: "Không thể gửi tin nhắn",
+      meetingRoom: "Phòng họp",
+      conference: "Hội nghị",
+      collabArea: "Khu vực hợp tác",
+      coffeePantry: "Khu cà phê & Bếp nhỏ",
+      statusThinking: "Đang suy nghĩ",
+      statusWorking: "Đang làm việc",
+      statusCollaborating: "Đang hợp tác",
+      statusOnBreak: "Đang nghỉ",
+      statusIdle: "Rảnh",
+      taskBoard: "Bảng công việc",
+      assignTaskPlaceholder: "Giao một công việc...",
+      autoAssign: "Tự động gán",
+      assign: "Giao việc",
+      stop: "Dừng",
+      start: "Bắt đầu",
+      inspector: "Trình kiểm tra",
+      role: "Vai trò",
+      status: "Trạng thái",
+      thinkingEllipsis: "Đang suy nghĩ...",
+      sendMessagePlaceholder: "Gửi tin nhắn...",
+      selectStaffToInspect: "Chọn một nhân sự trên bản đồ để kiểm tra và trò chuyện.",
+      statusLegend: "Chú giải trạng thái",
+      officeChat: "Trò chuyện văn phòng",
+      selectTaskToView: "Chọn một công việc để xem nhật ký hợp tác.",
+      tuningIn: "Hệ thống: Đang kết nối với kênh nhân sự đang hoạt động...",
+      layoutEditor: "Chỉnh sửa bố cục",
+      staffOffice: "StaffOffice",
+      realtimeSimulation: "Mô phỏng thời gian thực",
+      reviewingCode: "Đang xem xét mã nguồn",
+    },
+    adminMonitoringPage: {
+      title: "Giám sát hệ thống", subtitle: "Lưu lượng token, giá mô hình, tình trạng nền tảng và hoạt động người dùng.",
+      last7Days: "7 ngày qua", last30Days: "30 ngày qua", last90Days: "90 ngày qua",
+      refresh: "Làm mới", loadErrorTitle: "Không thể tải dữ liệu giám sát",
+      tabOverview: "Tổng quan", tabUsage: "Sử dụng Token", tabPricing: "Giá cả", tabStorage: "Lưu trữ", tabUsers: "Người dùng",
+      kpiStatus: "Trạng thái", healthy: "Hoạt động tốt", degraded: "Suy giảm", kpiUptime: "Thời gian hoạt động", uptimeSub: "từ lần khởi động lại gần nhất",
+      kpiRequests: "Yêu cầu", kpiUsers: "Người dùng", usersSub: "{staff} nhân sự · {departments} phòng ban",
+      envSub: "môi trường: {env}", errorsSub: "{errorRate}% lỗi · {avgLatency}ms trung bình",
+      storageTitle: "Lưu trữ", connected: "Đã kết nối", llmProviderTitle: "Nhà cung cấp LLM", configured: "Đã cấu hình", noApiKey: "Chưa có API key",
+      selectActiveModel: "Chọn mô hình đang dùng", infrastructureTitle: "Hạ tầng", taskQueueLabel: "Hàng đợi công việc:", repoLockLabel: "Khóa repository:",
+      entitiesLabel: "Thực thể:", entitiesValue: "{tasks} công việc · {companies} công ty", okDefault: "OK", downDefault: "Ngừng hoạt động",
+      totalTokens: "Tổng Token", lastNDays: "{days} ngày qua", inputOutput: "Đầu vào / Đầu ra", cachedSub: "{cached} được cache (~rẻ hơn 90%)",
+      estimatedCost: "Chi phí ước tính", basedOnPricing: "dựa trên bảng giá", llmRequests: "Yêu cầu LLM",
+      dailyTokenUsage: "Sử dụng Token theo ngày", noUsageYet: "Chưa có dữ liệu sử dụng LLM — hãy chạy một cuộc trò chuyện hoặc công việc để dữ liệu hiển thị ở đây.",
+      tooltipInputTokens: "Token đầu vào", tooltipOutputTokens: "Token đầu ra",
+      usageByModel: "Sử dụng theo mô hình", noData: "Không có dữ liệu", unpriced: "chưa định giá", usageByUser: "Sử dụng theo người dùng",
+      modelPricingTitle: "Giá mô hình", pricingSubtitle: "USD trên mỗi 1 triệu token — dùng để ước tính chi phí", addModel: "Thêm mô hình", noPricingYet: "Chưa cấu hình giá nào.",
+      fileStoreLabel: "Kho lưu trữ tệp", sandboxModeSub: "Chế độ sandbox: {mode}", s3Minio: "S3 / MinIO", localDisk: "Ổ đĩa cục bộ",
+      objectStoreLabel: "Kho lưu trữ object", disabled: "Đã tắt", unreachable: "Không thể kết nối",
+      libraryDocuments: "Tài liệu thư viện", storedInMinio: "Lưu trong MinIO", objectsCountSub: "{count} đối tượng",
+      fileByteStorage: "Dung lượng lưu trữ tệp", needsMinio: "Cần MinIO", minioWarnTitle: "MinIO đã được cấu hình nhưng không thể kết nối.",
+      minioWarnBodyPrefix: "Khởi động bằng", minioWarnBodySuffix: ".",
+      dlBackendLabel: "Backend", dlBackendS3Value: "s3 (MinIO là nguồn dữ liệu chính)", dlBackendLocalValue: "local (ổ đĩa host công ty)",
+      dlSandboxModeLabel: "Chế độ sandbox", dlCompanyPathLabel: "Đường dẫn công ty", dlMinioEndpointLabel: "Endpoint MinIO",
+      dlMinioBucketLabel: "Bucket MinIO", dlLibraryObjectsLabel: "Đối tượng thư viện (S3)", dlMeetingObjectsLabel: "Đối tượng cuộc họp (S3)",
+      fileStorageS3Note: "Tệp (tải lên, đầu ra của nhân sự, thư viện tài liệu) được lưu trữ bền vững trong MinIO và khôi phục vào thư mục làm việc khi khởi động lại — tồn tại qua việc tạo lại container/Pod.",
+      fileStorageLocalNote: "Tệp chỉ lưu trên ổ đĩa host công ty. Đặt FILE_STORAGE_BACKEND=s3 + MINIO_ENABLED=true để đảm bảo bền vững qua việc tạo lại Pod (bắt buộc ở chế độ sandbox k8s).",
+      userActivityTitle: "Hoạt động người dùng", accountsCount: "{count} tài khoản", noUsersYet: "Chưa có người dùng đăng ký.",
+      colUser: "Người dùng", colRole: "Vai trò", colStaff: "Nhân sự", colDepartments: "Phòng ban", colTasks: "Công việc",
+      colTokensDays: "Token ({days} ngày)", colCostDays: "Chi phí ({days} ngày)", colIn: "Vào", colOut: "Ra", colCached: "Cache",
+      colCost: "Chi phí", colReq: "Yêu cầu", byUserColTokens: "Token", colInputPerM: "Đầu vào $/1M", colOutputPerM: "Đầu ra $/1M",
+      modelNameRequired: "Cần nhập tên mô hình", pricingSaved: "Đã lưu giá cho {model}", pricingSaveFailed: "Lưu giá không thành công",
+      pricingDeleteFailed: "Xóa giá không thành công", pricingRemoved: "Đã xóa giá của {model}",
+      modelSwitched: "Đã chuyển sang mô hình {model}", modelSwitchFailed: "Chuyển mô hình không thành công",
+      addModelPricingTitle: "Thêm giá mô hình", editPricingTitle: "Sửa giá — {model}", modelLabel: "Mô hình", providerLabel: "Nhà cung cấp",
+      selectProvider: "Chọn nhà cung cấp", inputPerMLabel: "Đầu vào $ / 1M token", outputPerMLabel: "Đầu ra $ / 1M token",
+      cancel: "Hủy", save: "Lưu", saving: "Đang lưu…",
+    },
   },
+
 
   zh: {
     auth: {
@@ -1232,6 +2169,14 @@ export const translations: Record<Language, Translations> = {
     },
     companyTypeLabel: "公司类型",
     companyTypes: { software: "软件", marketing: "营销", research: "研究", general: "通用" },
+    companiesPage: {
+      importFromOffice: "从另一个公司导入设置",
+      noDepartmentsYet: "还没有部门。请先创建部门。",
+      noDepartmentsAssigned: "未分配部门",
+      noCompaniesYet: "还没有公司",
+      deleteCompanyTitle: "删除公司？",
+      checkingImpact: "正在检查影响范围…",
+    },
     documentLibrary: {
       title: "文档库",
       subtitle: "本业务单元的共享文档 — 可在其所有项目中复用。",
@@ -1511,7 +2456,314 @@ export const translations: Record<Language, Translations> = {
         },
       },
     },
+    meetingsPage: {
+      title: "会议",
+      communicationsWithinOffice: "办公室内的沟通记录",
+      noOfficeSubtitle: "浏览并按部门和任务筛选所有人员的沟通记录。",
+      loadingMeetings: "正在加载会议...",
+      errorLoadingMeetings: "加载会议出错",
+      filterMeetings: "筛选会议",
+      messageCountSingular: "条消息",
+      messageCountPlural: "条消息",
+      departmentLabel: "部门",
+      allDepartments: "所有部门",
+      taskLabel: "任务",
+      allTasks: "所有任务",
+      personnelLabel: "人员",
+      allPersonnel: "所有人员",
+      unknownPerson: "未知人员",
+      departmentPrefix: "部门：",
+      taskPrefix: "任务：",
+      noMeetingsFound: "未找到会议",
+      adjustFiltersHint: "请尝试调整筛选条件以查看消息",
+    },
+    taskManagerPage: {
+      searchPlaceholder: "搜索任务、标签、人员...",
+      appendTasksTitle: '将任务追加到"{name}"',
+      appendTasksDesc: "从 Overall 中选择现有任务并分配给此公司的一个部门。",
+      appendEmptyText: "Overall 中的所有任务都已属于此公司。",
+      appendTargetLabel: "分配给部门",
+      appendNoTargetText: "此公司还没有部门。请先添加部门。",
+      appendCopyLabel: "为此公司创建独立副本（取消勾选时，将移动您自己的任务而非复制；共享任务始终会被复制）。",
+      newTaskBtn: "新建任务",
+      pageTitle: "项目与任务",
+      pageSubtitle: "看板 · 在列之间拖动卡片以更改状态",
+      allEpics: "所有史诗",
+      allSprints: "所有冲刺",
+      backlogNoSprint: "待办（无冲刺）",
+      allProjects: "所有项目",
+      editTaskTitle: "编辑任务",
+      createTaskTitle: "创建任务",
+      taskTitlePlaceholder: "任务标题",
+      descriptionPlaceholder: "描述",
+      assignToLabel: "分配给",
+      departmentBtn: "部门",
+      staffBtn: "员工",
+      selectDepartmentPlaceholder: "选择部门",
+      selectStaffPlaceholder: "选择员工",
+      priorityLabel: "优先级",
+      dueDateLabel: "截止日期",
+      labelsLabel: "标签",
+      labelsPlaceholder: "标签，用逗号分隔",
+      saveChangesBtn: "保存更改",
+      assignBeforeRunningTitle: "运行前需分配",
+      noAssigneeYetSuffix: "尚未分配部门或员工，因此无法运行。请选择一个以继续。",
+      assignAndRunBtn: "分配并运行",
+      clearHistoryConfirm: "清除此任务的所有会议记录和知识？此操作无法撤销。",
+      couldNotSaveTask: "无法保存任务",
+      couldNotAssignTask: "无法分配任务",
+      couldNotAddComment: "无法添加评论",
+      couldNotClearHistory: "无法清除历史记录",
+      couldNotDeleteTask: "无法删除任务",
+    },
+    staffBuilderPage: {
+      couldNotSaveStaff: "无法保存员工",
+      couldNotDeleteStaff: "无法删除员工",
+      couldNotCheckDeleteImpact: "无法检查删除影响",
+      failedToCallTestEndpoint: "调用测试接口失败",
+      title: "员工",
+      personnelOfOfficePrefix: "办公室人员",
+      personnelOfOfficeSuffix: "（其部门的成员）。",
+      hireAndManage: "招聘并管理公司的人员名册。",
+      newHuman: "新增人员",
+      editHumanProfile: "编辑人员资料",
+      hireHuman: "招聘人员",
+      fullName: "姓名",
+      humanNamePlaceholder: "人员姓名",
+      positionRole: "职位 / 角色",
+      positionPlaceholder: "输入职位或从建议中选择",
+      useCustomPrefix: "使用自定义",
+      customBadge: "自定义",
+      positionHint: "您可以输入自定义职位，或从现有列表中选择。",
+      description: "描述",
+      descriptionPlaceholder: "描述（可选）",
+      avatarCustomization: "头像自定义",
+      managerMode: "管理者模式",
+      managerModeDesc: "通过子代理将工作委派给其他部门成员，并并行运行工具。",
+      skillsAssignment: "技能分配",
+      availableSkills: "可用技能",
+      searchSkillsPlaceholder: "搜索技能...",
+      noMatchingSkills: "未找到匹配的技能。",
+      noSkillsRegistered: "尚未注册任何技能。",
+      equippedSkills: "已装备技能",
+      removeAriaLabel: "移除",
+      noSkillsSelected: "未选择任何技能。",
+      saveChanges: "保存更改",
+      hirePerson: "招聘人员",
+      deleteStaffTitle: "删除员工？",
+      deleteStaffDeletingPrefix: "正在删除",
+      deleteStaffUnassign: "将从 {n} 个部门中移除",
+      deleteStaffProjects: "，从 {n} 个项目中移除",
+      deleteStaffTasks: "，并从 {n} 个任务中移除",
+      deleteStaffAffects: " — 影响 {names}",
+      deleteStaffUndo: "。此操作无法撤销。",
+      cancel: "取消",
+      deleteStaffConfirm: "删除员工",
+      noStaffInCompany: "「{name}」中还没有员工 — 请将其加入某个部门，或切换到总览模式。",
+      noStaffYet: "还没有员工。快去招聘第一位吧。",
+      editAriaLabel: "编辑",
+      deleteAriaLabel: "删除",
+      testBtn: "测试",
+    },
+    departmentBuilderPage: {
+      selectPersonnelLabel: "选择人员",
+      selectPersonnelDesc: "选择要添加到此部门的人员。",
+      searchPersonnelPlaceholder: "搜索人员...",
+      noMatchingPersonnel: "未找到匹配的人员。",
+      title: "部门",
+      officeScopedPrefix: "公司",
+      officeScopedSuffix: "新部门将加入此公司。",
+      subtitleDefault: "组建部门和项目部门以处理公司任务。",
+      newDepartmentBtn: "新建部门",
+      editDepartmentTitle: "编辑部门",
+      createDepartmentTitle: "创建部门",
+      departmentNamePlaceholder: "部门名称",
+      descriptionPlaceholder: "描述",
+      departmentIconLabel: "部门图标",
+      workflowModeLabel: "工作流模式",
+      modeSequential: "顺序流水线（成员依次工作）",
+      modeMesh: "网状协作（所有成员互动）",
+      modeRing: "环形工作流（成员按环传递工作）",
+      modeSupervisor: "管理委派（负责人向部门分配任务）",
+      modeTree: "层级树（管理者沿分支向下委派）",
+      modeCustom: "自定义流程（拖放自定义路由）",
+      customModeHint: "在右侧绘制流程：连接节点以路由工作。将一个节点分支为多个以并行运行，将多个节点合并为一个，或循环回退（受最大步数限制）。",
+      supervisorHintPrefix: "顺序中的第一位成员将是",
+      supervisorHintBold: "负责人",
+      supervisorHintSuffix: "。其余成员为普通成员。",
+      treeHintPrefix: "成员按层级树排列：",
+      treeHintRootSuffix: "为根节点。",
+      treeHintChildrenPrefix: "子节点：",
+      maxStepsLabel: "最大步数（用于任务）",
+      maxStepsPlaceholder: "默认：6",
+      saveChangesBtn: "保存更改",
+      createDepartmentBtn: "创建部门",
+      customFlowLabel: "自定义流程",
+      customFlowHint: "从一个节点的右侧连接点拖动到另一个节点的左侧连接点以路由工作。可自由移动节点；选中一条连线并按 Delete 键删除。",
+      personnelOrderLabel: "人员工作流顺序",
+      personnelOrderHint: "拖动以重新排列人员顺序。如果列表较长，请在此处滚动。",
+      removeMemberTitle: "移除成员",
+      selectPersonnelHint: "从左侧面板选择人员以开始安排工作流顺序。",
+      deleteDepartmentTitle: "删除部门？",
+      deletingPrefix: "正在删除",
+      deleteUnlinkTemplate: "将取消与 {names} 的关联。",
+      deleteStaffNote: "该部门的员工不受影响——他们仍属于公司，只是不再归属于此部门。此操作无法撤销。",
+      cancelBtn: "取消",
+      deleteDepartmentBtn: "删除部门",
+      emptyScopedTemplate: "“{name}”中还没有部门。请创建一个，或切换到\"总览\"查看全部。",
+      emptyDefault: "还没有部门。创建你的第一个部门。",
+      testAriaVerb: "测试",
+      editAriaVerb: "编辑",
+      deleteAriaVerb: "删除",
+      activeTasksSuffix: "个进行中任务",
+      badgeMesh: "🔗 网状",
+      badgeRing: "🔄 环形",
+      badgeSupervisor: "👑 管理",
+      badgeTree: "🌲 树形",
+      badgeCustom: "🧩 自定义",
+      badgeSequential: "📋 顺序",
+      stepsSuffix: "步",
+      toastAttachFailTitle: "部门已保存，但无法关联到公司",
+      toastSaveFailTitle: "无法保存部门",
+      toastDeleteFailTitle: "无法删除部门",
+      toastImpactFailTitle: "无法检查影响范围",
+      testNoStaffError: "该部门尚无人员可供测试。",
+      testRunFailError: "无法运行部门测试讨论。",
+    },
+    skillsPage: {
+      title: "技能",
+      subtitleCompany: "{name} 员工使用的技能。",
+      subtitleDefault: "创建可复用的技能并分配给员工。",
+      newSkillBtn: "新建技能",
+      editSkillTitle: "编辑技能",
+      createSkillTitle: "创建技能",
+      presetToolTypeLabel: "预设工具类型",
+      searchPresetPlaceholder: "搜索预设工具...",
+      skillNameLabel: "技能名称",
+      skillNamePlaceholder: "技能名称",
+      descriptionLabel: "描述",
+      instructionsLabel: "说明",
+      instructionsPlaceholder: "说明如何使用此技能——例如在哪里获取 API 密钥/令牌、所需账户或本地设置，以及如何填写配置。",
+      instructionsHint: "向用户展示以说明凭据设置方法。",
+      avatarCustomizationLabel: "头像自定义",
+      avatarStylePlaceholder: "头像样式",
+      avatarModeInitials: "首字母",
+      avatarModeIcon: "图标",
+      avatarModeImage: "图片 URL",
+      previewLabel: "预览",
+      pickIconPlaceholder: "选择图标",
+      avatarUrlPlaceholder: "https://example.com/skill-avatar.png",
+      toolIntegrationConfigLabel: "工具集成配置",
+      noConfigNeeded: "此工具集成不需要任何自定义配置。",
+      authenticateGoogleBtn: "验证 Google 服务",
+      saveChangesBtn: "保存更改",
+      noSkillsInUseTemplate: '"{name}" 尚未使用任何技能 — 请为其员工分配技能，或切换到总览。',
+      noSkillsYet: "还没有技能。创建你的第一个技能。",
+      variablesLabel: "变量：",
+      googleSheetsAuthTitle: "Google Sheets 授权",
+      googleAuthInstructions: "点击下方按钮打开 Google 授权页面。批准访问后，此对话框将自动更新。",
+      openGoogleAuthorizeBtn: "打开 Google 授权",
+      statusLabel: "状态：",
+      stateLabel: "State：",
+      deleteSkillTitle: "删除技能？",
+      deleteSkillDescPrefix: "删除",
+      deleteSkillDescMiddle: "将从",
+      deleteSkillDescStaffSuffix: "名员工中移除",
+      deleteSkillDescInCompanies: "在",
+      deleteSkillDescSuffix: "此操作无法撤销。",
+      cancelBtn: "取消",
+      deleteSkillBtn: "删除技能",
+      couldNotSaveSkillToast: "无法保存技能",
+      couldNotDeleteSkillToast: "无法删除技能",
+      couldNotCheckImpactToast: "无法检查影响范围",
+      editAriaLabel: "编辑",
+      deleteAriaLabel: "删除",
+      generatingAuthUrlMsg: "正在生成授权 URL...",
+      authorizedWithEmailMsg: "已授权：{email}。令牌已保存至 {path}。",
+      authorizedMsg: "授权成功。令牌已保存至 {path}。",
+      googleAuthFailedMsg: "Google 授权失败。",
+      authExpiredMsg: "授权已过期。请再次点击验证 Google。",
+      cannotStartAuthMsg: "无法启动 Google 授权。",
+      browserAuthOpenedMsg: "已在浏览器中打开授权页面。请在弹出窗口中完成登录。Redirect URI：{uri}",
+      notReturnedText: "（未返回）",
+    },
+    virtualOfficePage: {
+      grabbingEspresso: "正在冲一杯浓缩咖啡",
+      developingSoftware: "正在开发软件方案...",
+      toastCreateTaskFailedTitle: "无法创建任务",
+      respondingToQuery: "正在回复问题...",
+      standingBy: "待命中",
+      toastSendMessageFailedTitle: "无法发送消息",
+      meetingRoom: "会议室",
+      conference: "会议",
+      collabArea: "协作区",
+      coffeePantry: "咖啡休息区",
+      statusThinking: "思考中",
+      statusWorking: "工作中",
+      statusCollaborating: "协作中",
+      statusOnBreak: "休息中",
+      statusIdle: "空闲",
+      taskBoard: "任务看板",
+      assignTaskPlaceholder: "分配一项任务...",
+      autoAssign: "自动分配",
+      assign: "分配",
+      stop: "停止",
+      start: "开始",
+      inspector: "检查器",
+      role: "角色",
+      status: "状态",
+      thinkingEllipsis: "思考中...",
+      sendMessagePlaceholder: "发送消息...",
+      selectStaffToInspect: "在地图上选择一名员工以查看详情并聊天。",
+      statusLegend: "状态图例",
+      officeChat: "办公室聊天",
+      selectTaskToView: "选择一个任务以查看协作日志。",
+      tuningIn: "系统：正在接入活跃的员工频道...",
+      layoutEditor: "布局编辑器",
+      staffOffice: "StaffOffice",
+      realtimeSimulation: "实时模拟",
+      reviewingCode: "正在审查代码输出",
+    },
+    adminMonitoringPage: {
+      title: "系统监控", subtitle: "Token 用量、模型定价、平台健康状况与用户活动。",
+      last7Days: "最近 7 天", last30Days: "最近 30 天", last90Days: "最近 90 天",
+      refresh: "刷新", loadErrorTitle: "无法加载监控数据",
+      tabOverview: "概览", tabUsage: "Token 用量", tabPricing: "定价", tabStorage: "存储", tabUsers: "用户",
+      kpiStatus: "状态", healthy: "正常", degraded: "降级", kpiUptime: "运行时间", uptimeSub: "自上次重启以来",
+      kpiRequests: "请求数", kpiUsers: "用户", usersSub: "{staff} 名员工 · {departments} 个部门",
+      envSub: "环境：{env}", errorsSub: "{errorRate}% 错误率 · 平均 {avgLatency}ms",
+      storageTitle: "存储", connected: "已连接", llmProviderTitle: "LLM 提供方", configured: "已配置", noApiKey: "无 API 密钥",
+      selectActiveModel: "选择当前模型", infrastructureTitle: "基础设施", taskQueueLabel: "任务队列：", repoLockLabel: "仓库锁：",
+      entitiesLabel: "实体：", entitiesValue: "{tasks} 个任务 · {companies} 个公司", okDefault: "正常", downDefault: "已停止",
+      totalTokens: "总 Token 数", lastNDays: "最近 {days} 天", inputOutput: "输入 / 输出", cachedSub: "{cached} 已缓存（约便宜 90%）",
+      estimatedCost: "预估费用", basedOnPricing: "基于定价表", llmRequests: "LLM 请求数",
+      dailyTokenUsage: "每日 Token 用量", noUsageYet: "尚无 LLM 使用记录 — 运行一次对话或任务后将显示在此处。",
+      tooltipInputTokens: "输入 Token", tooltipOutputTokens: "输出 Token",
+      usageByModel: "按模型统计", noData: "暂无数据", unpriced: "未定价", usageByUser: "按用户统计",
+      modelPricingTitle: "模型定价", pricingSubtitle: "每百万 Token 的美元价格 — 用于成本估算", addModel: "添加模型", noPricingYet: "尚未配置定价。",
+      fileStoreLabel: "文件存储", sandboxModeSub: "沙箱模式：{mode}", s3Minio: "S3 / MinIO", localDisk: "本地磁盘",
+      objectStoreLabel: "对象存储", disabled: "已禁用", unreachable: "无法访问",
+      libraryDocuments: "文档库", storedInMinio: "存储于 MinIO", objectsCountSub: "{count} 个对象",
+      fileByteStorage: "文件字节存储", needsMinio: "需要 MinIO", minioWarnTitle: "MinIO 已配置但无法访问。",
+      minioWarnBodyPrefix: "使用以下命令启动", minioWarnBodySuffix: "。",
+      dlBackendLabel: "后端", dlBackendS3Value: "s3（以 MinIO 为主存储）", dlBackendLocalValue: "local（主机公司卷）",
+      dlSandboxModeLabel: "沙箱模式", dlCompanyPathLabel: "公司路径", dlMinioEndpointLabel: "MinIO 端点",
+      dlMinioBucketLabel: "MinIO 存储桶", dlLibraryObjectsLabel: "文档库对象（S3）", dlMeetingObjectsLabel: "会议对象（S3）",
+      fileStorageS3Note: "文件（上传、员工产出、文档库）持久存储于 MinIO，并在重启时恢复到工作目录 — 可在容器/Pod 重建后保留。",
+      fileStorageLocalNote: "文件仅存储在主机公司卷上。设置 FILE_STORAGE_BACKEND=s3 + MINIO_ENABLED=true 以在 Pod 重建后保持持久性（k8s 沙箱模式下必须）。",
+      userActivityTitle: "用户活动", accountsCount: "{count} 个账户", noUsersYet: "尚无注册用户。",
+      colUser: "用户", colRole: "角色", colStaff: "员工", colDepartments: "部门", colTasks: "任务",
+      colTokensDays: "Token（{days}天）", colCostDays: "费用（{days}天）", colIn: "输入", colOut: "输出", colCached: "缓存",
+      colCost: "费用", colReq: "请求", byUserColTokens: "Token", colInputPerM: "输入 $/1M", colOutputPerM: "输出 $/1M",
+      modelNameRequired: "需要输入模型名称", pricingSaved: "已保存 {model} 的定价", pricingSaveFailed: "保存定价失败",
+      pricingDeleteFailed: "删除定价失败", pricingRemoved: "已删除 {model} 的定价",
+      modelSwitched: "已切换到模型 {model}", modelSwitchFailed: "切换模型失败",
+      addModelPricingTitle: "添加模型定价", editPricingTitle: "编辑定价 — {model}", modelLabel: "模型", providerLabel: "提供方",
+      selectProvider: "选择提供方", inputPerMLabel: "输入 $ / 100万 token", outputPerMLabel: "输出 $ / 100万 token",
+      cancel: "取消", save: "保存", saving: "保存中…",
+    },
   },
+
 
   ja: {
     auth: {
@@ -1612,6 +2864,14 @@ export const translations: Record<Language, Translations> = {
     },
     companyTypeLabel: "会社タイプ",
     companyTypes: { software: "ソフトウェア", marketing: "マーケティング", research: "リサーチ", general: "汎用" },
+    companiesPage: {
+      importFromOffice: "他の会社から設定をインポート",
+      noDepartmentsYet: "部署がまだありません。先に部署を作成してください。",
+      noDepartmentsAssigned: "部署が割り当てられていません",
+      noCompaniesYet: "会社がまだありません",
+      deleteCompanyTitle: "会社を削除しますか？",
+      checkingImpact: "影響範囲を確認しています…",
+    },
     documentLibrary: {
       title: "ドキュメントライブラリ",
       subtitle: "このビジネスユニットの共有ドキュメント — 配下の全プロジェクトで再利用できます。",
@@ -1890,6 +3150,312 @@ export const translations: Record<Language, Translations> = {
         successTitle: "ありがとうございます！",
         successDesc: "リクエストが送信されました。担当者より折り返しご連絡いたします。",
       },
+    },
+    meetingsPage: {
+      title: "ミーティング",
+      communicationsWithinOffice: "オフィス内のコミュニケーション",
+      noOfficeSubtitle: "部署とタスクごとに全メンバーのコミュニケーションを閲覧・絞り込みできます。",
+      loadingMeetings: "ミーティングを読み込み中...",
+      errorLoadingMeetings: "ミーティングの読み込みエラー",
+      filterMeetings: "ミーティングを絞り込む",
+      messageCountSingular: "件のメッセージ",
+      messageCountPlural: "件のメッセージ",
+      departmentLabel: "部署",
+      allDepartments: "すべての部署",
+      taskLabel: "タスク",
+      allTasks: "すべてのタスク",
+      personnelLabel: "メンバー",
+      allPersonnel: "すべてのメンバー",
+      unknownPerson: "不明なメンバー",
+      departmentPrefix: "部署：",
+      taskPrefix: "タスク：",
+      noMeetingsFound: "ミーティングが見つかりません",
+      adjustFiltersHint: "フィルターを調整してメッセージを表示してください",
+    },
+    taskManagerPage: {
+      searchPlaceholder: "タスク、ラベル、担当者を検索...",
+      appendTasksTitle: '「{name}」にタスクを追加',
+      appendTasksDesc: "Overall の既存タスクを選び、この会社のいずれかの部署に割り当てます。",
+      appendEmptyText: "Overall のすべてのタスクは既にこの会社に属しています。",
+      appendTargetLabel: "部署に割り当て",
+      appendNoTargetText: "この会社にはまだ部署がありません。先に部署を追加してください。",
+      appendCopyLabel: "この会社用に独立したコピーを作成する（チェックを外すと、自分のタスクはコピーではなく移動されます。共有タスクは常にコピーされます）。",
+      newTaskBtn: "新規タスク",
+      pageTitle: "プロジェクトとタスク",
+      pageSubtitle: "カンバンボード · カードを列間にドラッグしてステータスを変更",
+      allEpics: "すべてのエピック",
+      allSprints: "すべてのスプリント",
+      backlogNoSprint: "バックログ（スプリントなし）",
+      allProjects: "すべてのプロジェクト",
+      editTaskTitle: "タスクを編集",
+      createTaskTitle: "タスクを作成",
+      taskTitlePlaceholder: "タスクのタイトル",
+      descriptionPlaceholder: "説明",
+      assignToLabel: "割り当て先",
+      departmentBtn: "部署",
+      staffBtn: "スタッフ",
+      selectDepartmentPlaceholder: "部署を選択",
+      selectStaffPlaceholder: "スタッフを選択",
+      priorityLabel: "優先度",
+      dueDateLabel: "期限",
+      labelsLabel: "ラベル",
+      labelsPlaceholder: "カンマ区切りのラベル",
+      saveChangesBtn: "変更を保存",
+      assignBeforeRunningTitle: "実行前に割り当てが必要です",
+      noAssigneeYetSuffix: "はまだ部署またはスタッフが割り当てられていないため実行できません。1つ選択して続行してください。",
+      assignAndRunBtn: "割り当てて実行",
+      clearHistoryConfirm: "このタスクのすべての会議履歴と知識を削除しますか？この操作は元に戻せません。",
+      couldNotSaveTask: "タスクを保存できませんでした",
+      couldNotAssignTask: "タスクを割り当てられませんでした",
+      couldNotAddComment: "コメントを追加できませんでした",
+      couldNotClearHistory: "履歴を削除できませんでした",
+      couldNotDeleteTask: "タスクを削除できませんでした",
+    },
+    staffBuilderPage: {
+      couldNotSaveStaff: "スタッフを保存できませんでした",
+      couldNotDeleteStaff: "スタッフを削除できませんでした",
+      couldNotCheckDeleteImpact: "削除の影響を確認できませんでした",
+      failedToCallTestEndpoint: "テストエンドポイントの呼び出しに失敗しました",
+      title: "スタッフ",
+      personnelOfOfficePrefix: "オフィスの人員",
+      personnelOfOfficeSuffix: "（その部署のメンバー）。",
+      hireAndManage: "会社の人員名簿を雇用・管理します。",
+      newHuman: "新しい人材を追加",
+      editHumanProfile: "人材プロフィールを編集",
+      hireHuman: "人材を雇用",
+      fullName: "氏名",
+      humanNamePlaceholder: "人材の名前",
+      positionRole: "職種 / 役割",
+      positionPlaceholder: "職種を入力または候補から選択",
+      useCustomPrefix: "カスタムを使用",
+      customBadge: "カスタム",
+      positionHint: "カスタム職種を入力するか、既存の候補から選択できます。",
+      description: "説明",
+      descriptionPlaceholder: "説明（任意）",
+      avatarCustomization: "アバターのカスタマイズ",
+      managerMode: "マネージャーモード",
+      managerModeDesc: "サブエージェント経由で他部署のメンバーに作業を委任し、ツールを並行実行します。",
+      skillsAssignment: "スキルの割り当て",
+      availableSkills: "利用可能なスキル",
+      searchSkillsPlaceholder: "スキルを検索...",
+      noMatchingSkills: "一致するスキルが見つかりません。",
+      noSkillsRegistered: "登録済みのスキルがまだありません。",
+      equippedSkills: "装備済みスキル",
+      removeAriaLabel: "削除",
+      noSkillsSelected: "スキルが選択されていません。",
+      saveChanges: "変更を保存",
+      hirePerson: "人材を雇用",
+      deleteStaffTitle: "スタッフを削除しますか？",
+      deleteStaffDeletingPrefix: "削除中:",
+      deleteStaffUnassign: "は {n} 件の部署から解除されます",
+      deleteStaffProjects: "、{n} 件のプロジェクトから削除されます",
+      deleteStaffTasks: "、{n} 件のタスクから削除されます",
+      deleteStaffAffects: " — {names} に影響します",
+      deleteStaffUndo: "。この操作は元に戻せません。",
+      cancel: "キャンセル",
+      deleteStaffConfirm: "スタッフを削除",
+      noStaffInCompany: "「{name}」にはまだスタッフがいません — 部署に追加するか、全体表示に切り替えてください。",
+      noStaffYet: "まだスタッフがいません。最初の人材を雇用しましょう。",
+      editAriaLabel: "編集",
+      deleteAriaLabel: "削除",
+      testBtn: "テスト",
+    },
+    departmentBuilderPage: {
+      selectPersonnelLabel: "人員を選択",
+      selectPersonnelDesc: "この部署に追加する人員を選択してください。",
+      searchPersonnelPlaceholder: "人員を検索...",
+      noMatchingPersonnel: "該当する人員が見つかりません。",
+      title: "部署",
+      officeScopedPrefix: "会社の部署",
+      officeScopedSuffix: "新しい部署はこの会社に所属します。",
+      subtitleDefault: "会社の業務のために部署とプロジェクト部署を編成します。",
+      newDepartmentBtn: "新しい部署",
+      editDepartmentTitle: "部署を編集",
+      createDepartmentTitle: "部署を作成",
+      departmentNamePlaceholder: "部署名",
+      descriptionPlaceholder: "説明",
+      departmentIconLabel: "部署アイコン",
+      workflowModeLabel: "ワークフローモード",
+      modeSequential: "順次パイプライン（メンバーが順番に作業）",
+      modeMesh: "メッシュ協働（全メンバーが相互作用）",
+      modeRing: "循環ワークフロー（メンバーが輪になって作業を渡す）",
+      modeSupervisor: "管理委任（リーダーが部署に委任）",
+      modeTree: "階層ツリー（管理者が枝分かれ先に委任）",
+      modeCustom: "カスタムフロー（ドラッグ＆ドロップで独自の経路）",
+      customModeHint: "右側でフローを描きます：ノードを接続して作業を経路付けします。1つのノードを複数に分岐して並列実行、複数を1つに統合、またはループ（最大ステップ数まで）できます。",
+      supervisorHintPrefix: "順番の最初のメンバーが",
+      supervisorHintBold: "リーダー",
+      supervisorHintSuffix: "になります。残りのメンバーは作業者です。",
+      treeHintPrefix: "メンバーは階層ツリーとして配置されます：",
+      treeHintRootSuffix: "がルートです。",
+      treeHintChildrenPrefix: "子:",
+      maxStepsLabel: "最大ステップ数（タスク用）",
+      maxStepsPlaceholder: "デフォルト: 6",
+      saveChangesBtn: "変更を保存",
+      createDepartmentBtn: "部署を作成",
+      customFlowLabel: "カスタムフロー",
+      customFlowHint: "あるノードの右側のハンドルから別のノードの左側のハンドルへドラッグして作業を経路付けします。ノードは自由に移動できます。エッジを選択してDeleteキーで削除します。",
+      personnelOrderLabel: "人員ワークフロー順序",
+      personnelOrderHint: "ドラッグして人員の順序を並べ替えます。リストが長い場合はここでスクロールしてください。",
+      removeMemberTitle: "メンバーを削除",
+      selectPersonnelHint: "左パネルから人員を選択してワークフロー順序の設定を始めてください。",
+      deleteDepartmentTitle: "部署を削除しますか？",
+      deletingPrefix: "削除中",
+      deleteUnlinkTemplate: "{names} からリンクが解除されます。",
+      deleteStaffNote: "この部署のスタッフには影響しません — 会社には残り、この部署の所属ではなくなるだけです。この操作は元に戻せません。",
+      cancelBtn: "キャンセル",
+      deleteDepartmentBtn: "部署を削除",
+      emptyScopedTemplate: "「{name}」にはまだ部署がありません。作成するか、「全体」に切り替えてすべて表示してください。",
+      emptyDefault: "まだ部署がありません。最初の部署を作成してください。",
+      testAriaVerb: "テスト",
+      editAriaVerb: "編集",
+      deleteAriaVerb: "削除",
+      activeTasksSuffix: "件の進行中タスク",
+      badgeMesh: "🔗 メッシュ",
+      badgeRing: "🔄 リング",
+      badgeSupervisor: "👑 管理者",
+      badgeTree: "🌲 ツリー",
+      badgeCustom: "🧩 カスタム",
+      badgeSequential: "📋 順次",
+      stepsSuffix: "ステップ",
+      toastAttachFailTitle: "部署は保存されましたが、会社に関連付けできませんでした",
+      toastSaveFailTitle: "部署を保存できませんでした",
+      toastDeleteFailTitle: "部署を削除できませんでした",
+      toastImpactFailTitle: "影響範囲を確認できませんでした",
+      testNoStaffError: "この部署にはテストできるスタッフがいません。",
+      testRunFailError: "部署のテスト討論を実行できませんでした。",
+    },
+    skillsPage: {
+      title: "スキル",
+      subtitleCompany: "{name} のスタッフが使用しているスキルです。",
+      subtitleDefault: "再利用可能なスキルを作成し、スタッフに割り当てます。",
+      newSkillBtn: "新しいスキル",
+      editSkillTitle: "スキルを編集",
+      createSkillTitle: "スキルを作成",
+      presetToolTypeLabel: "プリセットツールタイプ",
+      searchPresetPlaceholder: "プリセットツールを検索...",
+      skillNameLabel: "スキル名",
+      skillNamePlaceholder: "スキル名",
+      descriptionLabel: "説明",
+      instructionsLabel: "使用方法",
+      instructionsPlaceholder: "このスキルの使い方を説明してください — 例：APIキー/トークンの取得場所、必要なアカウントやローカル設定、設定の入力方法など。",
+      instructionsHint: "認証情報の設定方法を説明するためにユーザーに表示されます。",
+      avatarCustomizationLabel: "アバターのカスタマイズ",
+      avatarStylePlaceholder: "アバタースタイル",
+      avatarModeInitials: "イニシャル",
+      avatarModeIcon: "アイコン",
+      avatarModeImage: "画像URL",
+      previewLabel: "プレビュー",
+      pickIconPlaceholder: "アイコンを選択",
+      avatarUrlPlaceholder: "https://example.com/skill-avatar.png",
+      toolIntegrationConfigLabel: "ツール統合設定",
+      noConfigNeeded: "このツール統合にはカスタム設定は必要ありません。",
+      authenticateGoogleBtn: "Googleサービスを認証",
+      saveChangesBtn: "変更を保存",
+      noSkillsInUseTemplate: "「{name}」ではまだスキルが使用されていません — スタッフにスキルを割り当てるか、全体表示に切り替えてください。",
+      noSkillsYet: "スキルがまだありません。最初のスキルを作成してください。",
+      variablesLabel: "変数：",
+      googleSheetsAuthTitle: "Google Sheets 認証",
+      googleAuthInstructions: "下のボタンをクリックしてGoogle認証ページを開いてください。アクセスを承認すると、このダイアログは自動的に更新されます。",
+      openGoogleAuthorizeBtn: "Google認証を開く",
+      statusLabel: "状態：",
+      stateLabel: "State：",
+      deleteSkillTitle: "スキルを削除しますか？",
+      deleteSkillDescPrefix: "削除すると",
+      deleteSkillDescMiddle: "から",
+      deleteSkillDescStaffSuffix: "名のスタッフが影響を受けます",
+      deleteSkillDescInCompanies: "で",
+      deleteSkillDescSuffix: "この操作は元に戻せません。",
+      cancelBtn: "キャンセル",
+      deleteSkillBtn: "スキルを削除",
+      couldNotSaveSkillToast: "スキルを保存できませんでした",
+      couldNotDeleteSkillToast: "スキルを削除できませんでした",
+      couldNotCheckImpactToast: "影響範囲を確認できませんでした",
+      editAriaLabel: "編集",
+      deleteAriaLabel: "削除",
+      generatingAuthUrlMsg: "認証URLを生成しています...",
+      authorizedWithEmailMsg: "認証済み：{email}。トークンは {path} に保存されました。",
+      authorizedMsg: "認証に成功しました。トークンは {path} に保存されました。",
+      googleAuthFailedMsg: "Google認証に失敗しました。",
+      authExpiredMsg: "認証の有効期限が切れました。もう一度Google認証をクリックしてください。",
+      cannotStartAuthMsg: "Google認証を開始できませんでした。",
+      browserAuthOpenedMsg: "ブラウザで認証ページを開きました。ポップアップウィンドウでログインを完了してください。Redirect URI：{uri}",
+      notReturnedText: "（返されませんでした）",
+    },
+    virtualOfficePage: {
+      grabbingEspresso: "エスプレッソを取りに行っています",
+      developingSoftware: "ソフトウェアを開発中...",
+      toastCreateTaskFailedTitle: "タスクを作成できませんでした",
+      respondingToQuery: "問い合わせに応答中...",
+      standingBy: "待機中",
+      toastSendMessageFailedTitle: "メッセージを送信できませんでした",
+      meetingRoom: "ミーティングルーム",
+      conference: "会議",
+      collabArea: "コラボエリア",
+      coffeePantry: "コーヒー＆パントリー",
+      statusThinking: "思考中",
+      statusWorking: "作業中",
+      statusCollaborating: "協業中",
+      statusOnBreak: "休憩中",
+      statusIdle: "待機中",
+      taskBoard: "タスクボード",
+      assignTaskPlaceholder: "タスクを割り当てる...",
+      autoAssign: "自動割り当て",
+      assign: "割り当て",
+      stop: "停止",
+      start: "開始",
+      inspector: "インスペクター",
+      role: "役割",
+      status: "ステータス",
+      thinkingEllipsis: "思考中...",
+      sendMessagePlaceholder: "メッセージを送信...",
+      selectStaffToInspect: "マップ上のスタッフを選択して詳細確認・チャットできます。",
+      statusLegend: "ステータス凡例",
+      officeChat: "オフィスチャット",
+      selectTaskToView: "コラボレーションログを見るにはタスクを選択してください。",
+      tuningIn: "システム: アクティブなスタッフチャンネルに接続中...",
+      layoutEditor: "レイアウトエディター",
+      staffOffice: "StaffOffice",
+      realtimeSimulation: "リアルタイムシミュレーション",
+      reviewingCode: "コード出力をレビュー中",
+    },
+    adminMonitoringPage: {
+      title: "システム監視", subtitle: "トークン使用量、モデル料金、プラットフォームの健全性とユーザー活動。",
+      last7Days: "過去7日間", last30Days: "過去30日間", last90Days: "過去90日間",
+      refresh: "更新", loadErrorTitle: "監視データを読み込めませんでした",
+      tabOverview: "概要", tabUsage: "トークン使用量", tabPricing: "料金", tabStorage: "ストレージ", tabUsers: "ユーザー",
+      kpiStatus: "状態", healthy: "正常", degraded: "低下", kpiUptime: "稼働時間", uptimeSub: "前回の再起動から",
+      kpiRequests: "リクエスト数", kpiUsers: "ユーザー", usersSub: "スタッフ {staff} 名 · 部署 {departments} 件",
+      envSub: "環境: {env}", errorsSub: "エラー率 {errorRate}% · 平均 {avgLatency}ms",
+      storageTitle: "ストレージ", connected: "接続済み", llmProviderTitle: "LLMプロバイダー", configured: "設定済み", noApiKey: "APIキー未設定",
+      selectActiveModel: "使用中のモデルを選択", infrastructureTitle: "インフラ", taskQueueLabel: "タスクキュー：", repoLockLabel: "リポジトリロック：",
+      entitiesLabel: "エンティティ：", entitiesValue: "タスク {tasks} 件 · 会社 {companies} 件", okDefault: "OK", downDefault: "停止中",
+      totalTokens: "合計トークン数", lastNDays: "過去 {days} 日間", inputOutput: "入力 / 出力", cachedSub: "{cached} がキャッシュ済み（約90%割安）",
+      estimatedCost: "推定コスト", basedOnPricing: "料金表に基づく", llmRequests: "LLMリクエスト数",
+      dailyTokenUsage: "日別トークン使用量", noUsageYet: "LLM使用記録がまだありません — チャットやタスクを実行するとここに表示されます。",
+      tooltipInputTokens: "入力トークン", tooltipOutputTokens: "出力トークン",
+      usageByModel: "モデル別使用量", noData: "データなし", unpriced: "未設定", usageByUser: "ユーザー別使用量",
+      modelPricingTitle: "モデル料金", pricingSubtitle: "100万トークンあたりのUSD — コスト推定に使用", addModel: "モデルを追加", noPricingYet: "料金がまだ設定されていません。",
+      fileStoreLabel: "ファイルストア", sandboxModeSub: "サンドボックスモード: {mode}", s3Minio: "S3 / MinIO", localDisk: "ローカルディスク",
+      objectStoreLabel: "オブジェクトストア", disabled: "無効", unreachable: "接続不可",
+      libraryDocuments: "ライブラリ文書", storedInMinio: "MinIOに保存", objectsCountSub: "{count} オブジェクト",
+      fileByteStorage: "ファイルバイトストレージ", needsMinio: "MinIOが必要", minioWarnTitle: "MinIOは設定済みですが接続できません。",
+      minioWarnBodyPrefix: "次のコマンドで起動してください：", minioWarnBodySuffix: "。",
+      dlBackendLabel: "バックエンド", dlBackendS3Value: "s3（MinIOが正となるストレージ）", dlBackendLocalValue: "local（ホストの会社ボリューム）",
+      dlSandboxModeLabel: "サンドボックスモード", dlCompanyPathLabel: "会社パス", dlMinioEndpointLabel: "MinIOエンドポイント",
+      dlMinioBucketLabel: "MinIOバケット", dlLibraryObjectsLabel: "ライブラリオブジェクト（S3）", dlMeetingObjectsLabel: "ミーティングオブジェクト（S3）",
+      fileStorageS3Note: "ファイル（アップロード、スタッフの出力、文書ライブラリ）はMinIOに永続的に保存され、再起動時に作業ディレクトリへ復元されます — コンテナ/Podの再作成後も維持されます。",
+      fileStorageLocalNote: "ファイルはホストの会社ボリュームにのみ保存されます。Pod再作成後も永続化するには FILE_STORAGE_BACKEND=s3 + MINIO_ENABLED=true を設定してください（k8sサンドボックスモードでは必須）。",
+      userActivityTitle: "ユーザー活動", accountsCount: "{count} アカウント", noUsersYet: "登録済みユーザーはまだいません。",
+      colUser: "ユーザー", colRole: "役割", colStaff: "スタッフ", colDepartments: "部署", colTasks: "タスク",
+      colTokensDays: "トークン（{days}日）", colCostDays: "コスト（{days}日）", colIn: "入力", colOut: "出力", colCached: "キャッシュ",
+      colCost: "コスト", colReq: "リクエスト", byUserColTokens: "トークン", colInputPerM: "入力 $/1M", colOutputPerM: "出力 $/1M",
+      modelNameRequired: "モデル名が必要です", pricingSaved: "{model} の料金を保存しました", pricingSaveFailed: "料金の保存に失敗しました",
+      pricingDeleteFailed: "料金の削除に失敗しました", pricingRemoved: "{model} の料金を削除しました",
+      modelSwitched: "モデルを {model} に切り替えました", modelSwitchFailed: "モデルの切り替えに失敗しました",
+      addModelPricingTitle: "モデル料金を追加", editPricingTitle: "料金を編集 — {model}", modelLabel: "モデル", providerLabel: "プロバイダー",
+      selectProvider: "プロバイダーを選択", inputPerMLabel: "入力 $ / 100万トークン", outputPerMLabel: "出力 $ / 100万トークン",
+      cancel: "キャンセル", save: "保存", saving: "保存中…",
     },
   },
 };

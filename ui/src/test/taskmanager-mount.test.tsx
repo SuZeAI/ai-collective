@@ -25,16 +25,19 @@ vi.mock("@/lib/api", () => ({
 }));
 
 import { RunEngineProvider } from "@/contexts/RunEngineContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import TaskManager from "@/pages/TaskManager";
 
 describe("TaskManager mounts without crashing under the engine provider", () => {
   it("renders", async () => {
     const { container } = render(
-      <RunEngineProvider>
-        <MemoryRouter initialEntries={["/tasks?id=task-1"]}>
-          <TaskManager />
-        </MemoryRouter>
-      </RunEngineProvider>,
+      <LanguageProvider>
+        <RunEngineProvider>
+          <MemoryRouter initialEntries={["/tasks?id=task-1"]}>
+            <TaskManager />
+          </MemoryRouter>
+        </RunEngineProvider>
+      </LanguageProvider>,
     );
     await waitFor(() => expect(container.textContent).toContain("Projects"));
   });

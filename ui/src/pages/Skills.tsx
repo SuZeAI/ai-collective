@@ -15,6 +15,7 @@ import { StaffAvatar, skillAvatarIconOptions } from "@/components/StaffAvatar";
 import { api, canDeleteItem, canEditItem, type Skill, type SkillToolConfigField, type SkillToolPreset, type DeleteImpact } from "@/lib/api";
 import { useCompanyScope, CATALOG_COMPANY_ID } from "@/hooks/use-company-scope";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type ToolName = string;
 type AvatarMode = "initial" | "icon" | "image";
@@ -196,6 +197,7 @@ function validateRequiredConfig(
 }
 
 export default function Skills() {
+  const { t: lang } = useLanguage();
   const scope = useCompanyScope();
   const { toast } = useToast();
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -390,8 +392,8 @@ export default function Skills() {
           setOauthTokenPath(status.token_path || "");
           setOauthMessage(
             status.email
-              ? `Authorized: ${status.email}. Token saved at ${status.token_path}.`
-              : `Authorization successful. Token saved at ${status.token_path}.`,
+              ? lang.skillsPage.authorizedWithEmailMsg.replace("{email}", status.email).replace("{path}", status.token_path || "")
+              : lang.skillsPage.authorizedMsg.replace("{path}", status.token_path || ""),
           );
           if (pollRef.current !== null) {
             window.clearInterval(pollRef.current);
@@ -404,7 +406,7 @@ export default function Skills() {
 
         if (status.status === "error") {
           setOauthStatus("error");
-          setOauthMessage(status.error || "Google authorization failed.");
+          setOauthMessage(status.error || lang.skillsPage.googleAuthFailedMsg);
           if (pollRef.current !== null) {
             window.clearInterval(pollRef.current);
             pollRef.current = null;
@@ -414,7 +416,7 @@ export default function Skills() {
 
         if (Date.now() - startedAt > 10 * 60 * 1000) {
           setOauthStatus("error");
-          setOauthMessage("Authorization expired. Please click Authenticate Google again.");
+          setOauthMessage(lang.skillsPage.authExpiredMsg);
           if (pollRef.current !== null) {
             window.clearInterval(pollRef.current);
             pollRef.current = null;
@@ -429,7 +431,7 @@ export default function Skills() {
   const startGoogleSheetAuth = async () => {
     setAuthDialogOpen(true);
     setOauthStatus("pending");
-    setOauthMessage("Generating authorization URL...");
+    setOauthMessage(lang.skillsPage.generatingAuthUrlMsg);
 
     try {
       const response = await api.startSheetOAuth({
@@ -440,14 +442,14 @@ export default function Skills() {
       setOauthState(response.state);
       setOauthStatus("pending");
       setOauthMessage(
-        `Browser authorization opened. Complete login in the popup window. Redirect URI: ${response.redirect_uri || "(not returned)"}`,
+        lang.skillsPage.browserAuthOpenedMsg.replace("{uri}", response.redirect_uri || lang.skillsPage.notReturnedText),
       );
 
       window.open(response.authorize_url, "google_sheet_oauth", "popup,width=540,height=760");
       startOAuthPolling(response.state);
     } catch (error) {
       setOauthStatus("error");
-      setOauthMessage(error instanceof Error ? error.message : "Cannot start Google authorization.");
+      setOauthMessage(error instanceof Error ? error.message : lang.skillsPage.cannotStartAuthMsg);
     }
   };
 
@@ -546,7 +548,7 @@ export default function Skills() {
       resetForm();
     } catch (e) {
       console.error(e);
-      toast({ title: "Could not save skill", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.skillsPage.couldNotSaveSkillToast, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -556,7 +558,7 @@ export default function Skills() {
       setSkills((prev) => prev.filter((s) => s.id !== id));
     } catch (e) {
       console.error(e);
-      toast({ title: "Could not delete skill", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.skillsPage.couldNotDeleteSkillToast, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -568,7 +570,7 @@ export default function Skills() {
       setPendingDelete({ skill, impact });
     } catch (e) {
       console.error(e);
-      toast({ title: "Could not check delete impact", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.skillsPage.couldNotCheckImpactToast, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -583,30 +585,33 @@ export default function Skills() {
     <div>
       <header className="mb-8 flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Skills</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{lang.skillsPage.title}</h1>
           <p className="text-muted-foreground mt-1">
             {scope.company
-              ? <>Skills used by personnel of office <span className="font-semibold text-foreground">{scope.company.name}</span>.</>
-              : "Create reusable skills and assign them to personnel."}
+              ? (() => {
+                  const [prefix, suffix] = lang.skillsPage.subtitleCompany.split("{name}");
+                  return <>{prefix}<span className="font-semibold text-foreground">{scope.company.name}</span>{suffix}</>;
+                })()
+              : lang.skillsPage.subtitleDefault}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> New Skill</Button>
+              <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> {lang.skillsPage.newSkillBtn}</Button>
             </DialogTrigger>
             <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto overflow-x-hidden p-6">
               <DialogHeader>
-                <DialogTitle>{editingSkillId ? "Edit Skill" : "Create Skill"}</DialogTitle>
+                <DialogTitle>{editingSkillId ? lang.skillsPage.editSkillTitle : lang.skillsPage.createSkillTitle}</DialogTitle>
               </DialogHeader>
               <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6 pt-2">
                 {/* Left Column: Metadata & Styling */}
                 <div className="space-y-4">
                   <div className="space-y-1.5 relative">
-                    <label className="text-sm font-medium">Preset Tool Type</label>
+                    <label className="text-sm font-medium">{lang.skillsPage.presetToolTypeLabel}</label>
                     <div className="relative">
                       <Input
-                        placeholder="Search preset tools..."
+                        placeholder={lang.skillsPage.searchPresetPlaceholder}
                         value={presetSearch}
                         onChange={(e) => setPresetSearch(e.target.value)}
                         onFocus={() => setShowPresetSuggestions(true)}
@@ -633,44 +638,44 @@ export default function Skills() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Skill Name</label>
-                    <Input placeholder="Skill name" value={name} onChange={(e) => setName(e.target.value)} />
+                    <label className="text-sm font-medium">{lang.skillsPage.skillNameLabel}</label>
+                    <Input placeholder={lang.skillsPage.skillNamePlaceholder} value={name} onChange={(e) => setName(e.target.value)} />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Description</label>
-                    <Input placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+                    <label className="text-sm font-medium">{lang.skillsPage.descriptionLabel}</label>
+                    <Input placeholder={lang.skillsPage.descriptionLabel} value={description} onChange={(e) => setDescription(e.target.value)} />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Instructions</label>
+                    <label className="text-sm font-medium">{lang.skillsPage.instructionsLabel}</label>
                     <Textarea
-                      placeholder="Explain how to use this skill — e.g. where to get the API key/token, required accounts or local setup, and how to fill in the config."
+                      placeholder={lang.skillsPage.instructionsPlaceholder}
                       value={instruction}
                       onChange={(e) => setInstruction(e.target.value)}
                       rows={3}
                     />
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Shown to users to explain credentials setup.
+                      {lang.skillsPage.instructionsHint}
                     </p>
                   </div>
 
                   <div className="space-y-3 border rounded-lg p-3 bg-muted/10">
-                    <div className="text-sm font-medium">Avatar Customization</div>
+                    <div className="text-sm font-medium">{lang.skillsPage.avatarCustomizationLabel}</div>
                     <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
                       <Select value={avatarMode} onValueChange={(value) => setAvatarMode(value as AvatarMode)}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Avatar style" />
+                          <SelectValue placeholder={lang.skillsPage.avatarStylePlaceholder} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="initial">Initials</SelectItem>
-                          <SelectItem value="icon">Icon</SelectItem>
-                          <SelectItem value="image">Image URL</SelectItem>
+                          <SelectItem value="initial">{lang.skillsPage.avatarModeInitials}</SelectItem>
+                          <SelectItem value="icon">{lang.skillsPage.avatarModeIcon}</SelectItem>
+                          <SelectItem value="image">{lang.skillsPage.avatarModeImage}</SelectItem>
                         </SelectContent>
                       </Select>
 
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">Preview</span>
+                        <span className="text-xs text-muted-foreground">{lang.skillsPage.previewLabel}</span>
                         <StaffAvatar
                           staff={{
                             avatar: name.trim()[0]?.toUpperCase() || "S",
@@ -686,7 +691,7 @@ export default function Skills() {
                     {avatarMode === "icon" ? (
                       <Select value={avatarIcon} onValueChange={setAvatarIcon}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Pick icon" />
+                          <SelectValue placeholder={lang.skillsPage.pickIconPlaceholder} />
                         </SelectTrigger>
                         <SelectContent>
                           {skillAvatarIconOptions.map((opt) => (
@@ -700,7 +705,7 @@ export default function Skills() {
 
                     {avatarMode === "image" ? (
                       <Input
-                        placeholder="https://example.com/skill-avatar.png"
+                        placeholder={lang.skillsPage.avatarUrlPlaceholder}
                         value={avatarUrl}
                         onChange={(e) => setAvatarUrl(e.target.value)}
                       />
@@ -726,7 +731,7 @@ export default function Skills() {
                 <div className="space-y-4">
                   <div className="rounded-lg border p-4 bg-muted/30 space-y-3 h-full flex flex-col justify-between">
                     <div className="space-y-3">
-                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tool Integration Config</div>
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{lang.skillsPage.toolIntegrationConfigLabel}</div>
                       {selectedPreset && selectedPreset.config_fields.length > 0 ? (
                         <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
                           {selectedPreset.config_fields.map((field) => {
@@ -795,7 +800,7 @@ export default function Skills() {
                           })}
                         </div>
                       ) : (
-                        <p className="text-xs text-muted-foreground py-4">This tool integration does not require any custom configurations.</p>
+                        <p className="text-xs text-muted-foreground py-4">{lang.skillsPage.noConfigNeeded}</p>
                       )}
                     </div>
 
@@ -803,7 +808,7 @@ export default function Skills() {
                       <div className="pt-3 border-t mt-3">
                         <Button type="button" variant="secondary" className="w-full text-xs h-9" onClick={startGoogleSheetAuth}>
                           <ShieldCheck className="w-4 h-4 mr-2 text-primary" />
-                          Authenticate Google Services
+                          {lang.skillsPage.authenticateGoogleBtn}
                         </Button>
                         {oauthStatus === "authorized" ? (
                           <p className="text-xs font-medium text-emerald-600 mt-2">{oauthMessage}</p>
@@ -818,7 +823,7 @@ export default function Skills() {
               </div>
               <div className="pt-4 border-t mt-4">
                 <Button className="w-full" onClick={saveSkill} disabled={!isValid()}>
-                  {editingSkillId ? "Save Changes" : "Create Skill"}
+                  {editingSkillId ? lang.skillsPage.saveChangesBtn : lang.skillsPage.createSkillTitle}
                 </Button>
               </div>
             </DialogContent>
@@ -830,8 +835,8 @@ export default function Skills() {
         <div className="text-center py-16 text-muted-foreground">
           <p className="text-sm">
             {scope.company
-              ? `No skills in use at "${scope.company.name}" yet — assign skills to its staff, or switch to Overall.`
-              : "No skills yet. Create your first skill."}
+              ? lang.skillsPage.noSkillsInUseTemplate.replace("{name}", scope.company.name)
+              : lang.skillsPage.noSkillsYet}
           </p>
         </div>
       )}
@@ -866,7 +871,7 @@ export default function Skills() {
                     ) : null}
                     {getConfigVariableNames(s.config).length ? (
                       <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-                        Variables: {getConfigVariableNames(s.config).join(", ")}
+                        {lang.skillsPage.variablesLabel} {getConfigVariableNames(s.config).join(", ")}
                       </p>
                     ) : null}
                     <div className="flex flex-wrap gap-1.5 mt-3">
@@ -879,12 +884,12 @@ export default function Skills() {
               </div>
               <div className="flex items-center gap-1">
                 {canEditItem(s) && (
-                  <Button variant="ghost" size="icon" onClick={() => openEditDialog(s)} aria-label={`Edit ${s.name}`}>
+                  <Button variant="ghost" size="icon" onClick={() => openEditDialog(s)} aria-label={`${lang.skillsPage.editAriaLabel} ${s.name}`}>
                     <Pencil className="w-4 h-4" />
                   </Button>
                 )}
                 {canDeleteItem(s) && (
-                  <Button variant="ghost" size="icon" onClick={() => requestDeleteSkill(s)} aria-label={`Delete ${s.name}`}>
+                  <Button variant="ghost" size="icon" onClick={() => requestDeleteSkill(s)} aria-label={`${lang.skillsPage.deleteAriaLabel} ${s.name}`}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 )}
@@ -897,11 +902,11 @@ export default function Skills() {
       <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Google Sheets Authorization</DialogTitle>
+            <DialogTitle>{lang.skillsPage.googleSheetsAuthTitle}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <p className="text-muted-foreground">
-              Click the button below to open Google authorize page. After approving access, this dialog will auto-update.
+              {lang.skillsPage.googleAuthInstructions}
             </p>
             <Button
               type="button"
@@ -914,11 +919,11 @@ export default function Skills() {
               className="w-full"
             >
               <ExternalLink className="w-4 h-4 mr-2" />
-              Open Google Authorize
+              {lang.skillsPage.openGoogleAuthorizeBtn}
             </Button>
             <div className="rounded-md bg-muted p-3 text-xs">
-              <div>Status: {oauthStatus}</div>
-              {oauthState ? <div className="mt-1 break-all">State: {oauthState}</div> : null}
+              <div>{lang.skillsPage.statusLabel} {oauthStatus}</div>
+              {oauthState ? <div className="mt-1 break-all">{lang.skillsPage.stateLabel} {oauthState}</div> : null}
               {oauthMessage ? <div className="mt-1">{oauthMessage}</div> : null}
             </div>
           </div>
@@ -928,18 +933,18 @@ export default function Skills() {
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete skill?</AlertDialogTitle>
+            <AlertDialogTitle>{lang.skillsPage.deleteSkillTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              Deleting <span className="font-semibold text-foreground">{pendingDelete?.skill.name}</span> will remove
-              it from {pendingDelete?.impact.staff_updated} staff member(s)
+              {lang.skillsPage.deleteSkillDescPrefix} <span className="font-semibold text-foreground">{pendingDelete?.skill.name}</span> {lang.skillsPage.deleteSkillDescMiddle}
+              {" "}{pendingDelete?.impact.staff_updated} {lang.skillsPage.deleteSkillDescStaffSuffix}
               {pendingDelete?.impact.affected_companies.length
-                ? ` in ${pendingDelete.impact.affected_companies.map((c) => c.name).join(", ")}`
+                ? ` ${lang.skillsPage.deleteSkillDescInCompanies} ${pendingDelete.impact.affected_companies.map((c) => c.name).join(", ")}`
                 : ""}
-              . This action cannot be undone.
+              . {lang.skillsPage.deleteSkillDescSuffix}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{lang.skillsPage.cancelBtn}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (pendingDelete) deleteSkill(pendingDelete.skill.id);
@@ -947,7 +952,7 @@ export default function Skills() {
               }}
               className="bg-rose-600 hover:bg-rose-500 text-white"
             >
-              Delete skill
+              {lang.skillsPage.deleteSkillBtn}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

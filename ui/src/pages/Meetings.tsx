@@ -7,8 +7,10 @@ import { StaffAvatar } from "@/components/StaffAvatar";
 import { api, type Staff, type Message, type Task, type Department } from "@/lib/api";
 import { getStaffRoleColor } from "@/lib/staff-role-ui";
 import { useCompanyScope } from "@/hooks/use-company-scope";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Meetings() {
+  const { t: lang } = useLanguage();
   const scope = useCompanyScope();
   const [messages, setMessages] = useState<Message[]>([]);
   const [allStaff, setStaff] = useState<Staff[]>([]);
@@ -129,25 +131,25 @@ export default function Meetings() {
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden">
       <header className="flex-shrink-0 mb-4 px-1">
-        <h1 className="text-4xl font-bold tracking-tight">Meetings</h1>
+        <h1 className="text-4xl font-bold tracking-tight">{lang.meetingsPage.title}</h1>
         <p className="text-muted-foreground mt-2">
           {scope.company
-            ? <>Communications within office <span className="font-semibold text-foreground">{scope.company.name}</span>.</>
-            : "Browse and filter all personnel communications across departments and tasks."}
+            ? <>{lang.meetingsPage.communicationsWithinOffice} <span className="font-semibold text-foreground">{scope.company.name}</span>.</>
+            : lang.meetingsPage.noOfficeSubtitle}
         </p>
       </header>
 
       {loading && (
         <div className="glass-card p-12 text-center flex-1 flex items-center justify-center">
           <div>
-            <p className="text-muted-foreground text-lg">Loading meetings...</p>
+            <p className="text-muted-foreground text-lg">{lang.meetingsPage.loadingMeetings}</p>
           </div>
         </div>
       )}
 
       {error && (
         <div className="glass-card p-6 border-2 border-destructive/50 rounded-lg mb-6 bg-destructive/8">
-          <p className="text-destructive font-bold text-lg">Error loading meetings</p>
+          <p className="text-destructive font-bold text-lg">{lang.meetingsPage.errorLoadingMeetings}</p>
           <p className="text-destructive/80 text-sm mt-2">{error}</p>
         </div>
       )}
@@ -158,23 +160,23 @@ export default function Meetings() {
           <div className="flex-shrink-0 p-6 border-b border-border bg-gradient-to-r from-background to-muted/20">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-bold text-foreground">Filter Meetings</p>
+                <p className="text-sm font-bold text-foreground">{lang.meetingsPage.filterMeetings}</p>
                 <span className="text-xs font-medium text-muted-foreground bg-muted px-3 py-1 rounded-full">
-                  {messageCount} {messageCount === 1 ? "message" : "messages"}
+                  {messageCount} {messageCount === 1 ? lang.meetingsPage.messageCountSingular : lang.meetingsPage.messageCountPlural}
                 </span>
               </div>
               <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-2 uppercase tracking-wide">Department</label>
+                  <label className="text-xs font-semibold text-foreground block mb-2 uppercase tracking-wide">{lang.meetingsPage.departmentLabel}</label>
                   <Select value={selectedDepartmentId === "" ? "__all__" : selectedDepartmentId} onValueChange={(val) => {
                     setSelectedDepartmentId(val === "__all__" ? "" : val);
                     setSelectedTaskId("");
                   }}>
                     <SelectTrigger className="h-9">
-                      <SelectValue placeholder="All departments" />
+                      <SelectValue placeholder={lang.meetingsPage.allDepartments} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__all__">All departments</SelectItem>
+                      <SelectItem value="__all__">{lang.meetingsPage.allDepartments}</SelectItem>
                       {departments.map((department) => (
                         <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>
                       ))}
@@ -182,15 +184,15 @@ export default function Meetings() {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-2 uppercase tracking-wide">Task</label>
+                  <label className="text-xs font-semibold text-foreground block mb-2 uppercase tracking-wide">{lang.meetingsPage.taskLabel}</label>
                   <Select value={selectedTaskId === "" ? "__all__" : selectedTaskId} onValueChange={(val) => {
                     setSelectedTaskId(val === "__all__" ? "" : val);
                   }}>
                     <SelectTrigger className="h-9">
-                      <SelectValue placeholder="All tasks" />
+                      <SelectValue placeholder={lang.meetingsPage.allTasks} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__all__">All tasks</SelectItem>
+                      <SelectItem value="__all__">{lang.meetingsPage.allTasks}</SelectItem>
                       {tasks
                         .filter((t) => !selectedDepartmentId || t.departmentId === selectedDepartmentId)
                         .map((task) => (
@@ -200,15 +202,15 @@ export default function Meetings() {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-2 uppercase tracking-wide">Personnel</label>
+                  <label className="text-xs font-semibold text-foreground block mb-2 uppercase tracking-wide">{lang.meetingsPage.personnelLabel}</label>
                   <Select value={selectedStaffId === "" ? "__all__" : selectedStaffId} onValueChange={(val) => {
                     setSelectedStaffId(val === "__all__" ? "" : val);
                   }}>
                     <SelectTrigger className="h-9">
-                      <SelectValue placeholder="All personnel" />
+                      <SelectValue placeholder={lang.meetingsPage.allPersonnel} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__all__">All personnel</SelectItem>
+                      <SelectItem value="__all__">{lang.meetingsPage.allPersonnel}</SelectItem>
                       {staff.map((staff) => (
                         <SelectItem key={staff.id} value={staff.id}>{staff.name}</SelectItem>
                       ))}
@@ -226,7 +228,7 @@ export default function Meetings() {
                 const staff = staffById.get(msg.staffId);
                 const task = taskById.get(msg.taskId || "");
                 const department = task ? departmentById.get(task.departmentId) : null;
-                const staffName = staff?.name || "Unknown Person";
+                const staffName = staff?.name || lang.meetingsPage.unknownPerson;
                 const staffRole = staff?.role || "unknown";
                 return (
                   <motion.div
@@ -249,12 +251,12 @@ export default function Meetings() {
                           </span>
                           {department && (
                             <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20">
-                              Department: {department.name}
+                              {lang.meetingsPage.departmentPrefix} {department.name}
                             </span>
                           )}
                           {task && (
                             <span className="text-xs bg-violet-500/10 text-violet-400 px-2 py-0.5 rounded border border-violet-500/20">
-                              Task: {task.title}
+                              {lang.meetingsPage.taskPrefix} {task.title}
                             </span>
                           )}
                           <span className="text-xs text-muted-foreground font-mono ml-auto">
@@ -279,8 +281,8 @@ export default function Meetings() {
             ) : (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center py-12">
-                  <p className="text-lg text-muted-foreground font-medium">No meetings found</p>
-                  <p className="text-sm text-muted-foreground mt-2">Try adjusting your filters to see messages</p>
+                  <p className="text-lg text-muted-foreground font-medium">{lang.meetingsPage.noMeetingsFound}</p>
+                  <p className="text-sm text-muted-foreground mt-2">{lang.meetingsPage.adjustFiltersHint}</p>
                 </div>
               </div>
             )}

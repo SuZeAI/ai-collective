@@ -108,7 +108,7 @@ function CompanyDialog({
               <div className="flex items-center gap-2.5">
                 <Download className="h-4 w-4 text-teal-400 shrink-0" />
                 <div>
-                  <h4 className="text-xs font-semibold text-foreground">Import settings from another Company</h4>
+                  <h4 className="text-xs font-semibold text-foreground">{lang.companiesPage.importFromOffice}</h4>
                   <p className="text-[10px] text-muted-foreground leading-normal">
                     Clone departments instantly from an existing company.
                   </p>
@@ -167,7 +167,7 @@ function CompanyDialog({
               Departments
             </Label>
             {departments.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No departments yet. Create departments first.</p>
+              <p className="text-xs text-muted-foreground">{lang.companiesPage.noDepartmentsYet}</p>
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 {departments.map((t) => {
@@ -305,7 +305,7 @@ function CompanyCard({
               <div>
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Departments</p>
                 {wsDepartments.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No departments assigned</p>
+                  <p className="text-xs text-muted-foreground">{lang.companiesPage.noDepartmentsAssigned}</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {wsDepartments.map((t) => (
@@ -334,6 +334,7 @@ function CompanyCard({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function Companies() {
+  const { t: lang } = useLanguage();
   const { toast } = useToast();
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -472,7 +473,7 @@ export default function Companies() {
           <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br from-teal-500/10 to-cyan-600/10 border border-teal-500/20 mb-6">
             <BrainCircuit className="h-9 w-9 text-teal-400/60" />
           </div>
-          <h2 className="text-xl font-semibold mb-2">No companies yet</h2>
+          <h2 className="text-xl font-semibold mb-2">{lang.companiesPage.noCompaniesYet}</h2>
           <p className="text-sm text-muted-foreground max-w-sm mb-6">
             Create a company to group your departments. Once created, select it and open its Platform page to connect
             Telegram, Discord, Slack, WhatsApp, and more.
@@ -515,7 +516,7 @@ export default function Companies() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete company?</AlertDialogTitle>
+            <AlertDialogTitle>{lang.companiesPage.deleteCompanyTitle}</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div>
                 {deleting ? (
@@ -538,7 +539,7 @@ export default function Companies() {
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-2 text-xs">Checking what this will affect…</p>
+                  <p className="mt-2 text-xs">{lang.companiesPage.checkingImpact}</p>
                 )}
               </div>
             </AlertDialogDescription>

@@ -25,11 +25,13 @@ import {
 } from "@/components/task-manager/KanbanBoard";
 import { api, buildCustomGraphPayload, canEditItem, type Staff, type Department, type Task, type TaskPriority, type Project, type Sprint, type Epic } from "@/lib/api";
 import { useRunEngine, type UserInputRequest } from "@/contexts/RunEngineContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useCompanyScope } from "@/hooks/use-company-scope";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 export default function TaskManager() {
+  const { t: lang } = useLanguage();
   const scope = useCompanyScope();
   const { toast } = useToast();
   // Shared run engine (lives above the router): owns the streaming loop and all
@@ -396,7 +398,7 @@ export default function TaskManager() {
       setOpen(false);
     } catch (e) {
       console.error(e);
-      toast({ title: "Could not save task", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.taskManagerPage.couldNotSaveTask, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -433,7 +435,7 @@ export default function TaskManager() {
       void engine.startTask(updated, departmentRunOpts(updated));
     } catch (e) {
       console.error(e);
-      toast({ title: "Could not assign task", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.taskManagerPage.couldNotAssignTask, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -530,18 +532,18 @@ export default function TaskManager() {
       setCommentDrafts((prev) => ({ ...prev, [task.id]: "" }));
     } catch (e) {
       console.error(e);
-      toast({ title: "Could not add comment", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.taskManagerPage.couldNotAddComment, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
   const clearHistory = async (id: string) => {
     if (updatingTaskIds.has(id)) return;
-    if (!window.confirm("Clear all meeting history and knowledge for this task? This cannot be undone.")) return;
+    if (!window.confirm(lang.taskManagerPage.clearHistoryConfirm)) return;
     try {
       await engine.clearHistory(id);
     } catch (e) {
       console.error(e);
-      toast({ title: "Could not clear history", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.taskManagerPage.couldNotClearHistory, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -560,7 +562,7 @@ export default function TaskManager() {
       }
     } catch (e) {
       console.error(e);
-      toast({ title: "Could not delete task", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.taskManagerPage.couldNotDeleteTask, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -592,19 +594,19 @@ export default function TaskManager() {
       {projectScope && (
         <>
           <Select value={epicFilter} onValueChange={setEpicFilter}>
-            <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All epics" /></SelectTrigger>
+            <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder={lang.taskManagerPage.allEpics} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All epics</SelectItem>
+              <SelectItem value="all">{lang.taskManagerPage.allEpics}</SelectItem>
               {epicList.filter((e) => e.projectId === projectScope.id).map((e) => (
                 <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={sprintFilter} onValueChange={setSprintFilter}>
-            <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All sprints" /></SelectTrigger>
+            <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder={lang.taskManagerPage.allSprints} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All sprints</SelectItem>
-              <SelectItem value="__backlog__">Backlog (no sprint)</SelectItem>
+              <SelectItem value="all">{lang.taskManagerPage.allSprints}</SelectItem>
+              <SelectItem value="__backlog__">{lang.taskManagerPage.backlogNoSprint}</SelectItem>
               {sprintList.filter((s) => s.projectId === projectScope.id).map((s) => (
                 <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
               ))}
@@ -616,7 +618,7 @@ export default function TaskManager() {
       <div className="relative">
         <Input
           type="text"
-          placeholder="Search tasks, labels, people..."
+          placeholder={lang.taskManagerPage.searchPlaceholder}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="h-9 text-xs pl-8 pr-3 w-[220px]"
@@ -629,18 +631,18 @@ export default function TaskManager() {
       {scope.company && (
         <AppendFromOverallDialog
           size="sm"
-          title={`Append tasks to "${scope.company.name}"`}
-          description="Pick existing tasks from Overall and assign them to one of this office's departments."
+          title={lang.taskManagerPage.appendTasksTitle.replace("{name}", scope.company.name)}
+          description={lang.taskManagerPage.appendTasksDesc}
           items={taskList
             .filter((t) => !isTaskInScope(t))
             .map((t) => ({ id: t.id, name: t.title, sub: t.description, badge: t.status }))}
-          emptyText="Every task from Overall already belongs to this office."
+          emptyText={lang.taskManagerPage.appendEmptyText}
           targets={departmentList
             .filter((t) => scope.departmentIds.has(t.id))
             .map((t) => ({ id: t.id, name: t.name }))}
-          targetLabel="Assign to department"
-          noTargetText="This office has no departments yet. Add a department first."
-          copyLabel="Create independent copies for this office (when unchecked, your own tasks are moved instead; shared tasks are always copied)."
+          targetLabel={lang.taskManagerPage.appendTargetLabel}
+          noTargetText={lang.taskManagerPage.appendNoTargetText}
+          copyLabel={lang.taskManagerPage.appendCopyLabel}
           onAppend={async (ids, targetId, makeCopy) => {
             const department = departmentList.find((t) => t.id === targetId);
             if (!department) return;
@@ -666,7 +668,7 @@ export default function TaskManager() {
 
       {canCreateTask && (
         <Button size="sm" onClick={openCreateDialog} className="h-9 gap-1 text-xs">
-          <Plus className="w-3.5 h-3.5" /> New Task
+          <Plus className="w-3.5 h-3.5" /> {lang.taskManagerPage.newTaskBtn}
         </Button>
       )}
     </>
@@ -686,8 +688,8 @@ export default function TaskManager() {
               <LayoutGrid className="w-4.5 h-4.5 text-primary" />
             </div>
             <div>
-              <h1 className="text-base font-bold tracking-tight text-foreground leading-none">Projects &amp; Tasks</h1>
-              <p className="text-[10px] text-muted-foreground mt-1">Kanban board · drag cards between columns to change status</p>
+              <h1 className="text-base font-bold tracking-tight text-foreground leading-none">{lang.taskManagerPage.pageTitle}</h1>
+              <p className="text-[10px] text-muted-foreground mt-1">{lang.taskManagerPage.pageSubtitle}</p>
             </div>
           </div>
 
@@ -697,9 +699,9 @@ export default function TaskManager() {
             value={projectFilter}
             onValueChange={(v) => { setProjectFilter(v); setEpicFilter("all"); setSprintFilter("all"); }}
           >
-            <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder="All projects" /></SelectTrigger>
+            <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue placeholder={lang.taskManagerPage.allProjects} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All projects</SelectItem>
+              <SelectItem value="all">{lang.taskManagerPage.allProjects}</SelectItem>
               {scopedProjectList.map((p) => (
                 <SelectItem key={p.id} value={p.id}>{p.key} · {p.name}</SelectItem>
               ))}
@@ -713,11 +715,11 @@ export default function TaskManager() {
       {/* New Task dialog — trigger buttons live in the toolbar above (see toolbarControls) */}
       <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent>
-            <DialogHeader><DialogTitle>{editingTaskId ? "Edit Task" : "Create Task"}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingTaskId ? lang.taskManagerPage.editTaskTitle : lang.taskManagerPage.createTaskTitle}</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-2">
-              <Input placeholder="Task title" value={title} onChange={(e) => setTitle(e.target.value)} />
+              <Input placeholder={lang.taskManagerPage.taskTitlePlaceholder} value={title} onChange={(e) => setTitle(e.target.value)} />
               <Textarea
-                placeholder="Description"
+                placeholder={lang.taskManagerPage.descriptionPlaceholder}
                 value={desc}
                 onChange={(e) => setDesc(e.target.value)}
                 className="min-h-[100px] max-h-[180px] overflow-y-auto resize-none"
@@ -725,7 +727,7 @@ export default function TaskManager() {
 
               {/* Assignment: department OR an individual staff member */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Assign to</label>
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">{lang.taskManagerPage.assignToLabel}</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -735,7 +737,7 @@ export default function TaskManager() {
                       assignMode === "department" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted/40",
                     )}
                   >
-                    <Building2 className="w-3.5 h-3.5" /> Department
+                    <Building2 className="w-3.5 h-3.5" /> {lang.taskManagerPage.departmentBtn}
                   </button>
                   <button
                     type="button"
@@ -745,12 +747,12 @@ export default function TaskManager() {
                       assignMode === "staff" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted/40",
                     )}
                   >
-                    <UserRound className="w-3.5 h-3.5" /> Staff
+                    <UserRound className="w-3.5 h-3.5" /> {lang.taskManagerPage.staffBtn}
                   </button>
                 </div>
                 {assignMode === "department" ? (
                   <Select value={departmentId} onValueChange={setDepartmentId}>
-                    <SelectTrigger><SelectValue placeholder="Select a department" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={lang.taskManagerPage.selectDepartmentPlaceholder} /></SelectTrigger>
                     <SelectContent>
                       {(scope.isOverall ? departmentList : departmentList.filter((t) => scope.departmentIds.has(t.id)))
                         .map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
@@ -758,7 +760,7 @@ export default function TaskManager() {
                   </Select>
                 ) : (
                   <Select value={assigneeId} onValueChange={setAssigneeId}>
-                    <SelectTrigger><SelectValue placeholder="Select a staff member" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={lang.taskManagerPage.selectStaffPlaceholder} /></SelectTrigger>
                     <SelectContent>
                       {scopedStaff.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                     </SelectContent>
@@ -768,7 +770,7 @@ export default function TaskManager() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Priority</label>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">{lang.taskManagerPage.priorityLabel}</label>
                   <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -783,14 +785,14 @@ export default function TaskManager() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Due date</label>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">{lang.taskManagerPage.dueDateLabel}</label>
                   <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="h-9 text-xs" />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Labels</label>
-                <Input placeholder="comma, separated, labels" value={labelsInput} onChange={(e) => setLabelsInput(e.target.value)} className="h-9 text-xs" />
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">{lang.taskManagerPage.labelsLabel}</label>
+                <Input placeholder={lang.taskManagerPage.labelsPlaceholder} value={labelsInput} onChange={(e) => setLabelsInput(e.target.value)} className="h-9 text-xs" />
               </div>
 
               <Button
@@ -798,7 +800,7 @@ export default function TaskManager() {
                 className="w-full"
                 disabled={!title.trim() || (assignMode === "department" ? !departmentId : !assigneeId)}
               >
-                {editingTaskId ? "Save Changes" : "Create Task"}
+                {editingTaskId ? lang.taskManagerPage.saveChangesBtn : lang.taskManagerPage.createTaskTitle}
               </Button>
             </div>
           </DialogContent>
@@ -809,12 +811,11 @@ export default function TaskManager() {
         <Dialog open={!!assignPromptTaskId} onOpenChange={(o) => !o && setAssignPromptTaskId(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Assign before running</DialogTitle>
+              <DialogTitle>{lang.taskManagerPage.assignBeforeRunningTitle}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <p className="text-xs text-muted-foreground">
-                "{taskList.find((t) => t.id === assignPromptTaskId)?.title}" has no department or staff assigned yet,
-                so it can't run. Pick one to continue.
+                "{taskList.find((t) => t.id === assignPromptTaskId)?.title}" {lang.taskManagerPage.noAssigneeYetSuffix}
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <button
@@ -825,7 +826,7 @@ export default function TaskManager() {
                     assignPromptMode === "department" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted/40",
                   )}
                 >
-                  <Building2 className="w-3.5 h-3.5" /> Department
+                  <Building2 className="w-3.5 h-3.5" /> {lang.taskManagerPage.departmentBtn}
                 </button>
                 <button
                   type="button"
@@ -835,12 +836,12 @@ export default function TaskManager() {
                     assignPromptMode === "staff" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted/40",
                   )}
                 >
-                  <UserRound className="w-3.5 h-3.5" /> Staff
+                  <UserRound className="w-3.5 h-3.5" /> {lang.taskManagerPage.staffBtn}
                 </button>
               </div>
               {assignPromptMode === "department" ? (
                 <Select value={assignPromptDepartmentId} onValueChange={setAssignPromptDepartmentId}>
-                  <SelectTrigger><SelectValue placeholder="Select a department" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={lang.taskManagerPage.selectDepartmentPlaceholder} /></SelectTrigger>
                   <SelectContent>
                     {(scope.isOverall ? departmentList : departmentList.filter((t) => scope.departmentIds.has(t.id)))
                       .map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
@@ -848,7 +849,7 @@ export default function TaskManager() {
                 </Select>
               ) : (
                 <Select value={assignPromptStaffId} onValueChange={setAssignPromptStaffId}>
-                  <SelectTrigger><SelectValue placeholder="Select a staff member" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={lang.taskManagerPage.selectStaffPlaceholder} /></SelectTrigger>
                   <SelectContent>
                     {scopedStaff.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                   </SelectContent>
@@ -859,7 +860,7 @@ export default function TaskManager() {
                 className="w-full"
                 disabled={assignPromptMode === "department" ? !assignPromptDepartmentId : !assignPromptStaffId}
               >
-                Assign &amp; Run
+                {lang.taskManagerPage.assignAndRunBtn}
               </Button>
             </div>
           </DialogContent>

@@ -15,6 +15,7 @@ import { api, buildCustomGraphPayload, type Staff, type Task, type Department } 
 import { useRunEngine, type EngineEvent } from "@/contexts/RunEngineContext";
 import { useCompanyScope } from "@/hooks/use-company-scope";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface StaffState {
   staffId: string;
@@ -32,6 +33,7 @@ interface FlyingDocument {
 }
 
 export default function VirtualOffice() {
+  const { t: lang } = useLanguage();
   const scope = useCompanyScope();
   const { toast } = useToast();
   const { theme } = useTheme();
@@ -214,7 +216,7 @@ export default function VirtualOffice() {
             ...ag,
             status: "coffee",
             emote: "☕",
-            message: "Grabbing a fresh espresso"
+            message: lang.virtualOfficePage.grabbingEspresso
           };
         }
         return next;
@@ -222,7 +224,7 @@ export default function VirtualOffice() {
     }, 8000);
 
     return () => clearInterval(interval);
-  }, [visibleStaff]);
+  }, [visibleStaff, lang.virtualOfficePage.grabbingEspresso]);
 
   // Calculate coordinates on the full 2D grid canvas
   const staffCanvasPositions = useMemo(() => {
@@ -247,7 +249,7 @@ export default function VirtualOffice() {
       if (isThinking) {
         status = "thinking";
         emote = "💭";
-        message = "Developing software solutions...";
+        message = lang.virtualOfficePage.developingSoftware;
       } else if (rtState) {
         status = rtState.status;
         emote = rtState.emote;
@@ -307,7 +309,7 @@ export default function VirtualOffice() {
     });
 
     return positions;
-  }, [visibleStaff, thinkingStaff, selectedTaskId, staffRealtimeStates]);
+  }, [visibleStaff, thinkingStaff, selectedTaskId, staffRealtimeStates, lang]);
 
   // Latest canvas positions / visible staff for the event listener (avoids
   // stale closures without resubscribing on every render).
@@ -317,6 +319,8 @@ export default function VirtualOffice() {
   visibleStaffRef.current = visibleStaff;
   const selectedTaskIdRef = useRef(selectedTaskId);
   selectedTaskIdRef.current = selectedTaskId;
+  const langRef = useRef(lang);
+  langRef.current = lang;
 
   // Drive the office-map animations from engine stream events. The engine owns
   // the run loop and meeting/thinking state; here we only translate events
@@ -348,7 +352,7 @@ export default function VirtualOffice() {
         setStaffRealtimeStates((prev) => {
           const ag = prev[staffId];
           if (!ag) return prev;
-          return { ...prev, [staffId]: { ...ag, status: "thinking", emote: "\ud83d\udcad", message: "Developing software solutions..." } };
+          return { ...prev, [staffId]: { ...ag, status: "thinking", emote: "\ud83d\udcad", message: langRef.current.virtualOfficePage.developingSoftware } };
         });
       } else if (eventType === "turn_complete" && event.turn) {
         const turn = event.turn;
@@ -358,7 +362,7 @@ export default function VirtualOffice() {
         setStaffRealtimeStates((prev) => {
           const ag = prev[turnStaffId];
           if (!ag) return prev;
-          return { ...prev, [turnStaffId]: { ...ag, status: "collaborating", emote: "\ud83d\udcac", message: "Reviewing code outputs" } };
+          return { ...prev, [turnStaffId]: { ...ag, status: "collaborating", emote: "\ud83d\udcac", message: langRef.current.virtualOfficePage.reviewingCode } };
         });
       } else if (eventType === "run_ended") {
         // A run_ended event fires for whichever task just finished, but this
@@ -417,7 +421,7 @@ export default function VirtualOffice() {
       runTask(newTask);
     } catch (e) {
       console.error("Failed to create task:", e);
-      toast({ title: "Could not create task", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.virtualOfficePage.toastCreateTaskFailedTitle, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -445,7 +449,7 @@ export default function VirtualOffice() {
           ...ag,
           status: "thinking",
           emote: "💻",
-          message: "Responding to query..."
+          message: lang.virtualOfficePage.respondingToQuery
         }
       };
     });
@@ -471,13 +475,13 @@ export default function VirtualOffice() {
             ...ag,
             status: "idle",
             emote: "💭",
-            message: "Standing by"
+            message: lang.virtualOfficePage.standingBy
           }
         };
       });
     } catch (e) {
       console.error(e);
-      toast({ title: "Could not send message", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.virtualOfficePage.toastSendMessageFailedTitle, description: String((e as Error).message ?? e), variant: "destructive" });
     } finally {
       setIsDirectChatLoading(false);
     }
@@ -509,7 +513,7 @@ export default function VirtualOffice() {
             style={{ left: "380px", top: "80px", width: "340px", height: "240px" }}
           >
             <span className="text-indigo-600 dark:text-indigo-400 font-bold font-mono text-xs uppercase tracking-wider absolute top-2.5 left-4">
-              👥 Meeting Room
+              👥 {lang.virtualOfficePage.meetingRoom}
             </span>
             {/* Whiteboard */}
             <div className="absolute top-10 left-4 w-12 h-8 bg-slate-100 border border-slate-400 dark:border-slate-700 rounded shadow-sm flex flex-col justify-between p-1">
@@ -519,7 +523,7 @@ export default function VirtualOffice() {
             </div>
             {/* Long Wooden Table */}
             <div className="absolute left-[70px] top-[75px] w-[230px] h-[115px] bg-[#8d6e63] dark:bg-[#5d4037] border-2 border-[#5d4037] dark:border-[#3e2723] rounded-lg shadow-md flex items-center justify-center transition-colors">
-              <span className="text-[10px] text-[#efebe9] dark:text-[#8d6e63] font-bold uppercase tracking-widest">Conference</span>
+              <span className="text-[10px] text-[#efebe9] dark:text-[#8d6e63] font-bold uppercase tracking-widest">{lang.virtualOfficePage.conference}</span>
             </div>
             {/* Meeting Chairs */}
             {/* Top row */}
@@ -538,7 +542,7 @@ export default function VirtualOffice() {
             style={{ left: "780px", top: "80px", width: "340px", height: "240px" }}
           >
             <span className="text-amber-700 dark:text-amber-500 font-bold font-mono text-xs uppercase tracking-wider absolute top-2.5 left-4">
-              💡 Collab Area
+              💡 {lang.virtualOfficePage.collabArea}
             </span>
             {/* Bookshelf */}
             <div className="absolute right-4 top-8 w-8 h-20 bg-[#a1887f] dark:bg-[#6d4c41] border border-slate-300 dark:border-slate-800 rounded flex flex-col justify-between p-1 shadow-inner transition-colors">
@@ -576,7 +580,7 @@ export default function VirtualOffice() {
           >
             <div className="absolute inset-0 bg-emerald-950/10 pointer-events-none" />
             <span className="text-emerald-700 dark:text-emerald-400 font-bold font-mono text-xs uppercase tracking-wider absolute top-2.5 left-4 z-10">
-              ☕ Coffee & Pantry
+              ☕ {lang.virtualOfficePage.coffeePantry}
             </span>
             {/* Coffee machine counter */}
             <div className="absolute right-4 top-10 w-28 h-8 bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded flex items-center justify-around px-2 shadow-inner">
@@ -641,11 +645,11 @@ export default function VirtualOffice() {
               const isCoffee = pos.status === "coffee";
               const isCollab = pos.status === "collaborating" || pos.status === "executing";
               const statusMeta: Record<string, { label: string; dot: string }> = {
-                thinking: { label: "Thinking", dot: "bg-teal-400 animate-pulse" },
-                executing: { label: "Working", dot: "bg-emerald-500 animate-pulse" },
-                collaborating: { label: "Collaborating", dot: "bg-blue-500 animate-pulse" },
-                coffee: { label: "On break", dot: "bg-amber-500" },
-                idle: { label: "Idle", dot: "bg-slate-400" },
+                thinking: { label: lang.virtualOfficePage.statusThinking, dot: "bg-teal-400 animate-pulse" },
+                executing: { label: lang.virtualOfficePage.statusWorking, dot: "bg-emerald-500 animate-pulse" },
+                collaborating: { label: lang.virtualOfficePage.statusCollaborating, dot: "bg-blue-500 animate-pulse" },
+                coffee: { label: lang.virtualOfficePage.statusOnBreak, dot: "bg-amber-500" },
+                idle: { label: lang.virtualOfficePage.statusIdle, dot: "bg-slate-400" },
               };
               const { label: statusLabel, dot: statusDotClass } = statusMeta[pos.status] ?? statusMeta.idle;
 
@@ -760,7 +764,7 @@ export default function VirtualOffice() {
           <div className="absolute top-6 left-6 z-40 w-80 bg-white/95 dark:bg-[#0c0f16]/90 border border-slate-200 dark:border-slate-800/80 rounded-xl p-4 shadow-2xl backdrop-blur-md flex flex-col max-h-[380px] overflow-y-auto scrollbar-thin text-slate-900 dark:text-slate-200 transition-colors">
             <h3 className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-3 flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5" />
-              Task Board
+              {lang.virtualOfficePage.taskBoard}
             </h3>
 
             {/* Task Creator */}
@@ -769,7 +773,7 @@ export default function VirtualOffice() {
                 type="text"
                 value={taskTitle}
                 onChange={(e) => setTaskTitle(e.target.value)}
-                placeholder="Assign a task..."
+                placeholder={lang.virtualOfficePage.assignTaskPlaceholder}
                 className="w-full h-8 px-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-teal-500/50 text-slate-950 dark:text-slate-200"
               />
               <div className="flex gap-2">
@@ -778,7 +782,7 @@ export default function VirtualOffice() {
                   onChange={(e) => setSelectedDepartmentId(e.target.value)}
                   className="flex-1 h-8 px-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-xs focus:outline-none text-slate-600 dark:text-slate-400"
                 >
-                  <option value="">Auto-assign</option>
+                  <option value="">{lang.virtualOfficePage.autoAssign}</option>
                   {filteredDepartments.map((t) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
@@ -788,7 +792,7 @@ export default function VirtualOffice() {
                   disabled={!taskTitle.trim() || !selectedDepartmentId}
                   className="px-3 h-8 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-600/40 text-white font-bold text-xs rounded-md shadow transition-all shrink-0"
                 >
-                  Assign
+                  {lang.virtualOfficePage.assign}
                 </button>
               </div>
             </div>
@@ -827,14 +831,14 @@ export default function VirtualOffice() {
                             onClick={(e) => { e.stopPropagation(); void engine.stopTask(t); }}
                             className="text-[9px] px-2 py-0.5 bg-red-600 text-white rounded hover:bg-red-700"
                           >
-                            Stop
+                            {lang.virtualOfficePage.stop}
                           </button>
                         ) : (
                           <button
                             onClick={(e) => { e.stopPropagation(); runTask(t); }}
                             className="text-[9px] px-2 py-0.5 bg-teal-500 text-black font-bold rounded hover:bg-teal-600"
                           >
-                            Start
+                            {lang.virtualOfficePage.start}
                           </button>
                         )}
                       </div>
@@ -852,7 +856,7 @@ export default function VirtualOffice() {
                 <div className="flex items-center justify-between mb-2 shrink-0">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5" />
-                    Inspector: {inspectorStaff.name}
+                    {lang.virtualOfficePage.inspector}: {inspectorStaff.name}
                   </h3>
                   <button
                     onClick={() => setSelectedStaffId(null)}
@@ -865,13 +869,13 @@ export default function VirtualOffice() {
                 {/* Staff statistics info */}
                 <div className="space-y-1.5 text-[10px] font-mono mb-2 border-b border-slate-200 dark:border-slate-800/80 pb-2 shrink-0">
                   <div>
-                    <span className="text-slate-500 dark:text-slate-400">Role:</span>{" "}
+                    <span className="text-slate-500 dark:text-slate-400">{lang.virtualOfficePage.role}:</span>{" "}
                     <span className="text-slate-800 dark:text-slate-200">{inspectorStaff.role}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 dark:text-slate-400">Status:</span>{" "}
+                    <span className="text-slate-500 dark:text-slate-400">{lang.virtualOfficePage.status}:</span>{" "}
                     <span className="text-emerald-600 dark:text-emerald-400">
-                      {staffRealtimeStates[inspectorStaff.id]?.status || "Idle"}
+                      {staffRealtimeStates[inspectorStaff.id]?.status || lang.virtualOfficePage.statusIdle}
                     </span>
                   </div>
                 </div>
@@ -900,7 +904,7 @@ export default function VirtualOffice() {
                     <div className="flex justify-start animate-pulse">
                       <div className="bg-slate-100 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 p-2 rounded-lg text-xs flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
                         <Loader2 className="w-3 h-3 animate-spin" />
-                        Thinking...
+                        {lang.virtualOfficePage.thinkingEllipsis}
                       </div>
                     </div>
                   )}
@@ -921,7 +925,7 @@ export default function VirtualOffice() {
                     value={directChatInput}
                     onChange={(e) => setDirectChatInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleDirectChat()}
-                    placeholder="Send message..."
+                    placeholder={lang.virtualOfficePage.sendMessagePlaceholder}
                     className="flex-1 h-8 px-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-[11px] focus:outline-none focus:ring-1 focus:ring-teal-500/50 text-slate-950 dark:text-slate-200"
                   />
                   <button
@@ -938,17 +942,17 @@ export default function VirtualOffice() {
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-2.5 flex items-center gap-1.5">
                   <Cpu className="w-3.5 h-3.5" />
-                  Inspector
+                  {lang.virtualOfficePage.inspector}
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">Select a staff on the map to inspect and chat.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{lang.virtualOfficePage.selectStaffToInspect}</p>
                 <div className="mt-4 space-y-1.5">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Status legend</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{lang.virtualOfficePage.statusLegend}</p>
                   {[
-                    { dot: "bg-emerald-500", label: "Working" },
-                    { dot: "bg-teal-400", label: "Thinking" },
-                    { dot: "bg-blue-500", label: "Collaborating" },
-                    { dot: "bg-amber-500", label: "On break" },
-                    { dot: "bg-slate-400", label: "Idle" },
+                    { dot: "bg-emerald-500", label: lang.virtualOfficePage.statusWorking },
+                    { dot: "bg-teal-400", label: lang.virtualOfficePage.statusThinking },
+                    { dot: "bg-blue-500", label: lang.virtualOfficePage.statusCollaborating },
+                    { dot: "bg-amber-500", label: lang.virtualOfficePage.statusOnBreak },
+                    { dot: "bg-slate-400", label: lang.virtualOfficePage.statusIdle },
                   ].map((s) => (
                     <div key={s.label} className="flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-400">
                       <span className={`w-2.5 h-2.5 rounded-full ${s.dot}`} />
@@ -964,7 +968,7 @@ export default function VirtualOffice() {
           <div className="absolute bottom-6 right-6 z-40 w-96 bg-white/95 dark:bg-[#0c0f16]/90 border border-slate-200 dark:border-slate-800/80 rounded-xl p-4 shadow-2xl backdrop-blur-md flex flex-col h-96 text-slate-900 dark:text-slate-200 transition-colors">
             <h3 className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-3 shrink-0 flex items-center gap-1.5">
               <MessageSquare className="w-3.5 h-3.5" />
-              Office Chat
+              {lang.virtualOfficePage.officeChat}
             </h3>
 
             {/* Chat Scrolling logs */}
@@ -987,12 +991,12 @@ export default function VirtualOffice() {
                 })
               ) : (
                 <div className="text-slate-500 font-mono text-[10px] text-center pt-20">
-                  Select a task to view collaboration logs.
+                  {lang.virtualOfficePage.selectTaskToView}
                 </div>
               )}
               {selectedTaskId && isStreaming(selectedTaskId) && (
                 <div className="text-[10px] text-teal-500 dark:text-teal-400 font-semibold animate-pulse">
-                  System: Tuning in to active staff channel...
+                  {lang.virtualOfficePage.tuningIn}
                 </div>
               )}
               <div ref={chatEndRef} />
@@ -1003,7 +1007,7 @@ export default function VirtualOffice() {
           <div className="absolute bottom-6 left-6 z-40 flex flex-col gap-2">
             <button className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-lg transition-colors w-max">
               <Layers className="w-3.5 h-3.5" />
-              Layout Editor
+              {lang.virtualOfficePage.layoutEditor}
             </button>
 
             <div className="bg-white/95 dark:bg-[#0c0f16]/90 border border-slate-200 dark:border-slate-800/80 p-3 rounded-xl shadow-2xl flex items-center gap-3 w-64 backdrop-blur-md text-slate-900 dark:text-slate-200 transition-colors">
@@ -1011,8 +1015,8 @@ export default function VirtualOffice() {
                 <Building className="w-4 h-4 text-teal-600 dark:text-teal-400" />
               </div>
               <div className="min-w-0">
-                <h4 className="text-[11px] font-bold text-slate-800 dark:text-slate-100">StaffOffice</h4>
-                <p className="text-[9px] text-slate-500 dark:text-slate-400 truncate">Real-time simulation</p>
+                <h4 className="text-[11px] font-bold text-slate-800 dark:text-slate-100">{lang.virtualOfficePage.staffOffice}</h4>
+                <p className="text-[9px] text-slate-500 dark:text-slate-400 truncate">{lang.virtualOfficePage.realtimeSimulation}</p>
               </div>
             </div>
           </div>

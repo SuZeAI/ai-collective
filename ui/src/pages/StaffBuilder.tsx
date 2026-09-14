@@ -18,6 +18,7 @@ import { api, canDeleteItem, canEditItem, type Staff, type Skill, type DeleteImp
 import { getStaffDotColor, getStaffRoleColor } from "@/lib/staff-role-ui";
 import { useCompanyScope, CATALOG_COMPANY_ID } from "@/hooks/use-company-scope";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const roles = [
   "Other Position",
@@ -107,6 +108,7 @@ const roles = [
 ] as const;
 
 export default function StaffBuilder() {
+  const { t: lang } = useLanguage();
   const scope = useCompanyScope();
   const { toast } = useToast();
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -252,7 +254,7 @@ export default function StaffBuilder() {
       setOpen(false);
     } catch (e) {
       console.error(e);
-      toast({ title: "Could not save staff", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.staffBuilderPage.couldNotSaveStaff, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -268,7 +270,7 @@ export default function StaffBuilder() {
       }
     } catch (e) {
       console.error(e);
-      toast({ title: "Could not delete staff", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.staffBuilderPage.couldNotDeleteStaff, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -278,7 +280,7 @@ export default function StaffBuilder() {
       setPendingDelete({ staff, impact });
     } catch (e) {
       console.error(e);
-      toast({ title: "Could not check delete impact", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.staffBuilderPage.couldNotCheckDeleteImpact, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -310,7 +312,7 @@ export default function StaffBuilder() {
       setTestOutput(result.response || "(No response)");
     } catch (e) {
       if (testRunIdRef.current !== runId) return;
-      const errorMsg = e instanceof Error ? e.message : "Failed to call test endpoint";
+      const errorMsg = e instanceof Error ? e.message : lang.staffBuilderPage.failedToCallTestEndpoint;
       setTestError(errorMsg);
       setTestOutput("");
     } finally {
@@ -333,11 +335,11 @@ export default function StaffBuilder() {
     <div>
       <header className="mb-8 flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Staff</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{lang.staffBuilderPage.title}</h1>
           <p className="text-muted-foreground mt-1">
             {scope.company
-              ? <>Personnel of office <span className="font-semibold text-foreground">{scope.company.name}</span> (members of its departments).</>
-              : "Hire and manage your company's personnel roster."}
+              ? <>{lang.staffBuilderPage.personnelOfOfficePrefix} <span className="font-semibold text-foreground">{scope.company.name}</span> {lang.staffBuilderPage.personnelOfOfficeSuffix}</>
+              : lang.staffBuilderPage.hireAndManage}
           </p>
         </div>
 
@@ -345,21 +347,21 @@ export default function StaffBuilder() {
           <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button onClick={openCreateDialog}>
-              <Plus className="w-4 h-4 mr-2" /> New Human
+              <Plus className="w-4 h-4 mr-2" /> {lang.staffBuilderPage.newHuman}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto overflow-x-hidden p-6">
             <DialogHeader>
-              <DialogTitle>{editingStaffId ? "Edit Human Profile" : "Hire Human"}</DialogTitle>
+              <DialogTitle>{editingStaffId ? lang.staffBuilderPage.editHumanProfile : lang.staffBuilderPage.hireHuman}</DialogTitle>
             </DialogHeader>
 
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-6 pt-2">
               {/* Left Column: Profile Attributes */}
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Full Name</label>
+                  <label className="text-sm font-medium">{lang.staffBuilderPage.fullName}</label>
                   <Input
-                    placeholder="Human name"
+                    placeholder={lang.staffBuilderPage.humanNamePlaceholder}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     onKeyDown={(e) => {
@@ -374,10 +376,10 @@ export default function StaffBuilder() {
                 </div>
 
                 <div className="space-y-1.5 relative">
-                  <label className="text-sm font-medium">Position / Role</label>
+                  <label className="text-sm font-medium">{lang.staffBuilderPage.positionRole}</label>
                   <div className="relative">
                     <Input
-                      placeholder="Type a position or pick from suggestions"
+                      placeholder={lang.staffBuilderPage.positionPlaceholder}
                       value={role}
                       onChange={(e) => setRole(e.target.value)}
                       onFocus={() => setShowSuggestions(true)}
@@ -407,8 +409,8 @@ export default function StaffBuilder() {
                             setShowSuggestions(false);
                           }}
                         >
-                          <span className="truncate">Use custom: "{role.trim()}"</span>
-                          <span className="text-[9px] uppercase tracking-wider bg-blue-100 dark:bg-blue-950 px-1 py-0.5 rounded text-blue-700 dark:text-blue-300 ml-2 shrink-0">Custom</span>
+                          <span className="truncate">{lang.staffBuilderPage.useCustomPrefix}: "{role.trim()}"</span>
+                          <span className="text-[9px] uppercase tracking-wider bg-blue-100 dark:bg-blue-950 px-1 py-0.5 rounded text-blue-700 dark:text-blue-300 ml-2 shrink-0">{lang.staffBuilderPage.customBadge}</span>
                         </button>
                       )}
                       {filteredRoles.map((r) => (
@@ -426,13 +428,13 @@ export default function StaffBuilder() {
                       ))}
                     </div>
                   )}
-                  <p className="text-[10px] text-muted-foreground leading-normal">You can type a custom position or select an existing one.</p>
+                  <p className="text-[10px] text-muted-foreground leading-normal">{lang.staffBuilderPage.positionHint}</p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Description</label>
+                  <label className="text-sm font-medium">{lang.staffBuilderPage.description}</label>
                   <Input
-                    placeholder="Description (optional)"
+                    placeholder={lang.staffBuilderPage.descriptionPlaceholder}
                     value={desc}
                     onChange={(e) => setDesc(e.target.value)}
                     onKeyDown={(e) => {
@@ -447,7 +449,7 @@ export default function StaffBuilder() {
                 </div>
 
                 <AvatarPicker
-                  label="Avatar Customization"
+                  label={lang.staffBuilderPage.avatarCustomization}
                   mode={avatarMode}
                   onModeChange={setAvatarMode}
                   icon={avatarIcon}
@@ -465,9 +467,9 @@ export default function StaffBuilder() {
                 <div className="rounded-md border p-3 bg-muted/5">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Manager Mode</div>
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{lang.staffBuilderPage.managerMode}</div>
                       <p className="text-[10px] text-muted-foreground leading-normal mt-0.5">
-                        Delegate work to other department members via subagents and run tools in parallel.
+                        {lang.staffBuilderPage.managerModeDesc}
                       </p>
                     </div>
                     <Switch checked={subagentEnabled} onCheckedChange={setSubagentEnabled} />
@@ -478,15 +480,15 @@ export default function StaffBuilder() {
               {/* Right Column: Skills Assignment */}
               <div className="space-y-4 flex flex-col justify-between">
                 <div className="space-y-3">
-                  <label className="text-sm font-medium">Skills Assignment</label>
+                  <label className="text-sm font-medium">{lang.staffBuilderPage.skillsAssignment}</label>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="rounded-lg border p-3 bg-muted/30 h-[450px] flex flex-col">
-                      <div className="text-xs font-medium text-muted-foreground mb-2">Available Skills</div>
+                      <div className="text-xs font-medium text-muted-foreground mb-2">{lang.staffBuilderPage.availableSkills}</div>
                       {skillCatalog.length ? (
                         <>
                           <Input
-                            placeholder="Search skills..."
+                            placeholder={lang.staffBuilderPage.searchSkillsPlaceholder}
                             value={skillSearch}
                             onChange={(e) => setSkillSearch(e.target.value)}
                             className="h-8 text-xs mb-2 bg-background/50 shrink-0"
@@ -509,17 +511,17 @@ export default function StaffBuilder() {
                                 </label>
                               ))
                             ) : (
-                              <p className="text-xs text-muted-foreground py-4 text-center">No matching skills found.</p>
+                              <p className="text-xs text-muted-foreground py-4 text-center">{lang.staffBuilderPage.noMatchingSkills}</p>
                             )}
                           </div>
                         </>
                       ) : (
-                        <p className="text-xs text-muted-foreground py-4 text-center">No skills registered yet.</p>
+                        <p className="text-xs text-muted-foreground py-4 text-center">{lang.staffBuilderPage.noSkillsRegistered}</p>
                       )}
                     </div>
 
                     <div className="rounded-lg border p-3 bg-muted/20 h-[450px] flex flex-col">
-                      <div className="text-xs font-medium text-muted-foreground mb-2">Equipped Skills</div>
+                      <div className="text-xs font-medium text-muted-foreground mb-2">{lang.staffBuilderPage.equippedSkills}</div>
                       <div className="overflow-y-auto pr-1 flex-1">
                         {selectedSkills.length ? (
                           <div className="flex flex-wrap gap-1.5">
@@ -530,7 +532,7 @@ export default function StaffBuilder() {
                                   type="button"
                                   onClick={() => removeSelectedSkill(s.id)}
                                   className="ml-1 inline-flex items-center justify-center text-muted-foreground hover:text-foreground"
-                                  aria-label={`Remove ${s.name}`}
+                                  aria-label={`${lang.staffBuilderPage.removeAriaLabel} ${s.name}`}
                                 >
                                   <X className="w-2.5 h-2.5" />
                                 </button>
@@ -538,7 +540,7 @@ export default function StaffBuilder() {
                             ))}
                           </div>
                         ) : (
-                          <p className="text-xs text-muted-foreground py-4 text-center">No skills selected.</p>
+                          <p className="text-xs text-muted-foreground py-4 text-center">{lang.staffBuilderPage.noSkillsSelected}</p>
                         )}
                       </div>
                     </div>
@@ -549,7 +551,7 @@ export default function StaffBuilder() {
 
             <div className="pt-4 border-t mt-4">
               <Button onClick={saveStaff} className="w-full" disabled={!name.trim() || !role}>
-                {editingStaffId ? "Save Changes" : "Hire Person"}
+                {editingStaffId ? lang.staffBuilderPage.saveChanges : lang.staffBuilderPage.hirePerson}
               </Button>
             </div>
           </DialogContent>
@@ -576,20 +578,20 @@ export default function StaffBuilder() {
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete staff?</AlertDialogTitle>
+            <AlertDialogTitle>{lang.staffBuilderPage.deleteStaffTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              Deleting <span className="font-semibold text-foreground">{pendingDelete?.staff.name}</span> will unassign
-              it from {pendingDelete?.impact.departments_updated ?? 0} department(s)
-              {pendingDelete?.impact.projects_updated ? `, clear it from ${pendingDelete.impact.projects_updated} project(s)` : ""}
-              {pendingDelete?.impact.tasks_updated ? `, and clear it from ${pendingDelete.impact.tasks_updated} task(s)` : ""}
+              {lang.staffBuilderPage.deleteStaffDeletingPrefix} <span className="font-semibold text-foreground">{pendingDelete?.staff.name}</span>{" "}
+              {lang.staffBuilderPage.deleteStaffUnassign.replace("{n}", String(pendingDelete?.impact.departments_updated ?? 0))}
+              {pendingDelete?.impact.projects_updated ? lang.staffBuilderPage.deleteStaffProjects.replace("{n}", String(pendingDelete.impact.projects_updated)) : ""}
+              {pendingDelete?.impact.tasks_updated ? lang.staffBuilderPage.deleteStaffTasks.replace("{n}", String(pendingDelete.impact.tasks_updated)) : ""}
               {pendingDelete?.impact.affected_companies.length
-                ? ` — affects ${pendingDelete.impact.affected_companies.map((c) => c.name).join(", ")}`
+                ? lang.staffBuilderPage.deleteStaffAffects.replace("{names}", pendingDelete.impact.affected_companies.map((c) => c.name).join(", "))
                 : ""}
-              . This action cannot be undone.
+              {lang.staffBuilderPage.deleteStaffUndo}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{lang.staffBuilderPage.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (pendingDelete) deleteStaff(pendingDelete.staff.id);
@@ -597,7 +599,7 @@ export default function StaffBuilder() {
               }}
               className="bg-rose-600 hover:bg-rose-500 text-white"
             >
-              Delete staff
+              {lang.staffBuilderPage.deleteStaffConfirm}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -607,8 +609,8 @@ export default function StaffBuilder() {
         <div className="text-center py-16 text-muted-foreground">
           <p className="text-sm">
             {scope.company
-              ? `No staff in "${scope.company.name}" yet — add them to one of its departments, or switch to Overall.`
-              : "No staff yet. Hire your first one."}
+              ? lang.staffBuilderPage.noStaffInCompany.replace("{name}", scope.company.name)
+              : lang.staffBuilderPage.noStaffYet}
           </p>
         </div>
       )}
@@ -631,12 +633,12 @@ export default function StaffBuilder() {
                   <h3 className="font-bold truncate">{staff.name}</h3>
                   <div className="flex items-center gap-2">
                     {canEditItem(staff) && (
-                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(staff)} aria-label={`Edit ${staff.name}`}>
+                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(staff)} aria-label={`${lang.staffBuilderPage.editAriaLabel} ${staff.name}`}>
                         <Pencil className="w-4 h-4" />
                       </Button>
                     )}
                     {canDeleteItem(staff) && (
-                      <Button variant="ghost" size="icon" onClick={() => requestDeleteStaff(staff)} aria-label={`Delete ${staff.name}`}>
+                      <Button variant="ghost" size="icon" onClick={() => requestDeleteStaff(staff)} aria-label={`${lang.staffBuilderPage.deleteAriaLabel} ${staff.name}`}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     )}
@@ -656,7 +658,7 @@ export default function StaffBuilder() {
                   <span className="text-xs text-muted-foreground">{staff.role}</span>
                   {staff.subagent_enabled ? (
                     <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">
-                      Manager Mode
+                      {lang.staffBuilderPage.managerMode}
                     </Badge>
                   ) : null}
                 </div>
@@ -664,7 +666,7 @@ export default function StaffBuilder() {
                 <div className="mt-2">
                   <Button variant="outline" size="sm" onClick={() => openTestDialog(staff)}>
                     <FlaskConical className="w-3.5 h-3.5 mr-1.5" />
-                    Test
+                    {lang.staffBuilderPage.testBtn}
                   </Button>
                 </div>
 

@@ -17,6 +17,7 @@ import CustomFlowEditor from "@/components/department/CustomFlowEditor";
 import { DepartmentTestDialog } from "@/components/department/DepartmentTestDialog";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export type DepartmentTestMessage = {
   id: string;
@@ -27,6 +28,7 @@ export type DepartmentTestMessage = {
 };
 
 export default function DepartmentBuilder() {
+  const { t: lang } = useLanguage();
   const scope = useCompanyScope();
   const { toast } = useToast();
   const [departmentList, setDepartmentList] = useState<Department[]>([]);
@@ -218,14 +220,14 @@ export default function DepartmentBuilder() {
           window.dispatchEvent(new CustomEvent("companyChanged"));
         } catch (err) {
           console.error("Failed to attach department to office:", err);
-          toast({ title: "Department saved, but could not attach to office", description: String((err as Error).message ?? err), variant: "destructive" });
+          toast({ title: lang.departmentBuilderPage.toastAttachFailTitle, description: String((err as Error).message ?? err), variant: "destructive" });
         }
       }
       resetForm();
       setOpen(false);
     } catch (e) {
       console.error(e);
-      toast({ title: "Could not save department", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.departmentBuilderPage.toastSaveFailTitle, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -241,7 +243,7 @@ export default function DepartmentBuilder() {
       }
     } catch (e) {
       console.error(e);
-      toast({ title: "Could not delete department", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.departmentBuilderPage.toastDeleteFailTitle, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -251,7 +253,7 @@ export default function DepartmentBuilder() {
       setPendingDelete({ department, impact });
     } catch (e) {
       console.error(e);
-      toast({ title: "Could not check delete impact", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.departmentBuilderPage.toastImpactFailTitle, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -286,7 +288,7 @@ export default function DepartmentBuilder() {
     if (!testingDepartment || isTesting) return;
 
     if (testingDepartment.staff.length === 0) {
-      setTestError("This department has no staff to test.");
+      setTestError(lang.departmentBuilderPage.testNoStaffError);
       return;
     }
 
@@ -378,7 +380,7 @@ export default function DepartmentBuilder() {
     } catch (e) {
       const isAbort = e instanceof DOMException && e.name === "AbortError";
       if (!isAbort && activeTestRunRef.current === runToken) {
-        setTestError(e instanceof Error ? e.message : "Failed to run department test discussion.");
+        setTestError(e instanceof Error ? e.message : lang.departmentBuilderPage.testRunFailError);
       }
     } finally {
       if (activeTestRunRef.current === runToken) {
@@ -394,11 +396,11 @@ export default function DepartmentBuilder() {
 
   const selectPersonnelNode = (
     <div className="space-y-2">
-      <label className="text-sm font-medium">Select Personnel</label>
-      <p className="text-xs text-muted-foreground">Choose personnel to add to this department.</p>
+      <label className="text-sm font-medium">{lang.departmentBuilderPage.selectPersonnelLabel}</label>
+      <p className="text-xs text-muted-foreground">{lang.departmentBuilderPage.selectPersonnelDesc}</p>
       {staffList.length > 0 && (
         <Input
-          placeholder="Search personnel..."
+          placeholder={lang.departmentBuilderPage.searchPersonnelPlaceholder}
           value={personnelSearch}
           onChange={(e) => setPersonnelSearch(e.target.value)}
           className="h-8 text-xs bg-background/50"
@@ -423,7 +425,7 @@ export default function DepartmentBuilder() {
               </label>
             ))
           ) : (
-            <p className="text-xs text-muted-foreground py-4 text-center">No matching personnel found.</p>
+            <p className="text-xs text-muted-foreground py-4 text-center">{lang.departmentBuilderPage.noMatchingPersonnel}</p>
           )}
         </div>
       </div>
@@ -434,20 +436,20 @@ export default function DepartmentBuilder() {
     <div>
       <header className="mb-8 flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Departments</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{lang.departmentBuilderPage.title}</h1>
           <p className="text-muted-foreground mt-1">
             {scope.company
-              ? <>Departments of office <span className="font-semibold text-foreground">{scope.company.name}</span>. New departments join this office.</>
-              : "Assemble departments and project departments for corporate tasks."}
+              ? <>{lang.departmentBuilderPage.officeScopedPrefix} <span className="font-semibold text-foreground">{scope.company.name}</span>. {lang.departmentBuilderPage.officeScopedSuffix}</>
+              : lang.departmentBuilderPage.subtitleDefault}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> New Department</Button>
+            <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> {lang.departmentBuilderPage.newDepartmentBtn}</Button>
           </DialogTrigger>
           <DialogContent className="max-w-6xl w-[96vw] max-h-[90vh] overflow-y-auto overflow-x-hidden p-6">
-            <DialogHeader><DialogTitle>{editingDepartmentId ? "Edit Department" : "Create Department"}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingDepartmentId ? lang.departmentBuilderPage.editDepartmentTitle : lang.departmentBuilderPage.createDepartmentTitle}</DialogTitle></DialogHeader>
             <div className={cn(
               "pt-2 grid grid-cols-1 gap-6",
               mode === "custom"
@@ -455,11 +457,11 @@ export default function DepartmentBuilder() {
                 : "xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]"
             )}>
               <div className="space-y-4 min-w-0 pr-2 pb-1">
-                <Input placeholder="Department name" value={name} onChange={(e) => setName(e.target.value)} />
-                <Input placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
+                <Input placeholder={lang.departmentBuilderPage.departmentNamePlaceholder} value={name} onChange={(e) => setName(e.target.value)} />
+                <Input placeholder={lang.departmentBuilderPage.descriptionPlaceholder} value={desc} onChange={(e) => setDesc(e.target.value)} />
 
                 <AvatarPicker
-                  label="Department Icon"
+                  label={lang.departmentBuilderPage.departmentIconLabel}
                   mode={avatarMode}
                   onModeChange={setAvatarMode}
                   icon={avatarIcon}
@@ -475,45 +477,45 @@ export default function DepartmentBuilder() {
                 />
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Workflow Mode</label>
+                  <label className="text-sm font-medium">{lang.departmentBuilderPage.workflowModeLabel}</label>
                   <select
                     value={mode}
                     onChange={(e) => setMode(e.target.value as DepartmentMode)}
                     className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
                   >
-                    <option value="sequential">Sequential Pipeline (members work in sequence)</option>
-                    <option value="mesh">Mesh Collaboration (all members interact)</option>
-                    <option value="ring">Circular Workflow (members pass work in a loop)</option>
-                    <option value="supervisor">Managerial Delegation (lead delegates to department)</option>
-                    <option value="tree">Hierarchical Tree (manager delegates down branches)</option>
-                    <option value="custom">Custom Flow (drag-and-drop your own routing)</option>
+                    <option value="sequential">{lang.departmentBuilderPage.modeSequential}</option>
+                    <option value="mesh">{lang.departmentBuilderPage.modeMesh}</option>
+                    <option value="ring">{lang.departmentBuilderPage.modeRing}</option>
+                    <option value="supervisor">{lang.departmentBuilderPage.modeSupervisor}</option>
+                    <option value="tree">{lang.departmentBuilderPage.modeTree}</option>
+                    <option value="custom">{lang.departmentBuilderPage.modeCustom}</option>
                   </select>
                   {mode === "custom" && (
                     <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                      Draw the flow on the right: connect nodes to route work. Branch one node into several to run them in parallel, merge several back into one, or loop back (bounded by Max Steps).
+                      {lang.departmentBuilderPage.customModeHint}
                     </p>
                   )}
                   {mode === "supervisor" && (
                     <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                      First member in the order will be the <strong>lead manager</strong>. Remaining members are workers.
+                      {lang.departmentBuilderPage.supervisorHintPrefix} <strong>{lang.departmentBuilderPage.supervisorHintBold}</strong>{lang.departmentBuilderPage.supervisorHintSuffix}
                     </p>
                   )}
                   {mode === "tree" && selectedStaff.length > 0 && (
                     <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                      Members arranged as a hierarchy tree: <strong>{staffById.get(selectedStaff[0])?.name ?? "Member 1"}</strong> is root.
-                      {selectedStaff.length > 1 && <> Children: <strong>{[selectedStaff[1], selectedStaff[2]].filter(Boolean).map(id => staffById.get(id)?.name).filter(Boolean).join(", ")}</strong>.</>}
+                      {lang.departmentBuilderPage.treeHintPrefix} <strong>{staffById.get(selectedStaff[0])?.name ?? "Member 1"}</strong> {lang.departmentBuilderPage.treeHintRootSuffix}
+                      {selectedStaff.length > 1 && <> {lang.departmentBuilderPage.treeHintChildrenPrefix} <strong>{[selectedStaff[1], selectedStaff[2]].filter(Boolean).map(id => staffById.get(id)?.name).filter(Boolean).join(", ")}</strong>.</>}
                     </p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Max Steps (for tasks)</label>
+                  <label className="text-sm font-medium">{lang.departmentBuilderPage.maxStepsLabel}</label>
                   <Input
                     type="number"
                     min="1"
                     max="10"
                     value={maxSteps}
                     onChange={(e) => setMaxSteps(e.target.value)}
-                    placeholder="Default: 6"
+                    placeholder={lang.departmentBuilderPage.maxStepsPlaceholder}
                   />
                 </div>
                 {mode === "custom" && (
@@ -522,16 +524,16 @@ export default function DepartmentBuilder() {
                   </div>
                 )}
                 <Button onClick={saveDepartment} className="w-full" disabled={!name.trim() || selectedStaff.length === 0}>
-                  {editingDepartmentId ? "Save Changes" : "Create Department"}
+                  {editingDepartmentId ? lang.departmentBuilderPage.saveChangesBtn : lang.departmentBuilderPage.createDepartmentBtn}
                 </Button>
               </div>
 
               <div className="space-y-4 min-w-0 pr-2 pb-1">
                 {mode === "custom" ? (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Custom Flow</label>
+                    <label className="text-sm font-medium">{lang.departmentBuilderPage.customFlowLabel}</label>
                     <p className="text-xs text-muted-foreground font-medium">
-                      Drag from a node's right handle to another node's left handle to route work. Move nodes freely; select an edge and press Delete to remove it.
+                      {lang.departmentBuilderPage.customFlowHint}
                     </p>
                     <CustomFlowEditor
                       staff={customFlowStaff}
@@ -543,8 +545,8 @@ export default function DepartmentBuilder() {
                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                     {selectPersonnelNode}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Personnel Workflow Order</label>
-                      <p className="text-xs text-muted-foreground">Drag to reorder personnel. If the list is long, scroll here.</p>
+                      <label className="text-sm font-medium">{lang.departmentBuilderPage.personnelOrderLabel}</label>
+                      <p className="text-xs text-muted-foreground">{lang.departmentBuilderPage.personnelOrderHint}</p>
                       <div className="border border-input rounded-lg p-3 h-[320px] overflow-y-auto bg-muted/50">
                         <div className="space-y-2 pb-8">
                           {selectedStaff.length > 0 ? (
@@ -577,7 +579,7 @@ export default function DepartmentBuilder() {
                                   <button
                                     onClick={() => removeStaff(staffId)}
                                     className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                                    title="Remove member"
+                                    title={lang.departmentBuilderPage.removeMemberTitle}
                                   >
                                     <X className="w-4 h-4" />
                                   </button>
@@ -586,7 +588,7 @@ export default function DepartmentBuilder() {
                             })
                           ) : (
                             <div className="h-full flex items-center justify-center text-center text-xs text-muted-foreground px-4 py-8">
-                              Select personnel from the left panel to start arranging workflow order.
+                              {lang.departmentBuilderPage.selectPersonnelHint}
                             </div>
                           )}
                         </div>
@@ -623,18 +625,17 @@ export default function DepartmentBuilder() {
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete department?</AlertDialogTitle>
+            <AlertDialogTitle>{lang.departmentBuilderPage.deleteDepartmentTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              Deleting <span className="font-semibold text-foreground">{pendingDelete?.department.name}</span>{" "}
+              {lang.departmentBuilderPage.deletingPrefix} <span className="font-semibold text-foreground">{pendingDelete?.department.name}</span>{" "}
               {pendingDelete?.impact.affected_companies.length
-                ? `will unlink it from ${pendingDelete.impact.affected_companies.map((c) => c.name).join(", ")}. `
+                ? `${lang.departmentBuilderPage.deleteUnlinkTemplate.replace("{names}", pendingDelete.impact.affected_companies.map((c) => c.name).join(", "))} `
                 : ""}
-              Its staff are not affected — they stay in the company, just no longer rostered under this department.
-              This action cannot be undone.
+              {lang.departmentBuilderPage.deleteStaffNote}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{lang.departmentBuilderPage.cancelBtn}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (pendingDelete) deleteDepartment(pendingDelete.department.id);
@@ -642,7 +643,7 @@ export default function DepartmentBuilder() {
               }}
               className="bg-rose-600 hover:bg-rose-500 text-white"
             >
-              Delete department
+              {lang.departmentBuilderPage.deleteDepartmentBtn}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -653,8 +654,8 @@ export default function DepartmentBuilder() {
           <Users className="w-8 h-8 mx-auto mb-3 opacity-30" />
           <p className="text-sm">
             {scope.company
-              ? `No departments in "${scope.company.name}" yet. Create one, or switch to Overall to see everything.`
-              : "No departments yet. Create your first department."}
+              ? lang.departmentBuilderPage.emptyScopedTemplate.replace("{name}", scope.company.name)
+              : lang.departmentBuilderPage.emptyDefault}
           </p>
         </div>
       )}
@@ -678,16 +679,16 @@ export default function DepartmentBuilder() {
                 <p className="text-xs text-muted-foreground">{department.description}</p>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" onClick={() => openTestDialog(department)} aria-label={`Test ${department.name}`}>
+                <Button variant="ghost" size="icon" onClick={() => openTestDialog(department)} aria-label={`${lang.departmentBuilderPage.testAriaVerb} ${department.name}`}>
                   <FlaskConical className="w-4 h-4" />
                 </Button>
                 {canEditItem(department) && (
-                  <Button variant="ghost" size="icon" onClick={() => openEditDialog(department)} aria-label={`Edit ${department.name}`}>
+                  <Button variant="ghost" size="icon" onClick={() => openEditDialog(department)} aria-label={`${lang.departmentBuilderPage.editAriaVerb} ${department.name}`}>
                     <Pencil className="w-4 h-4" />
                   </Button>
                 )}
                 {canDeleteItem(department) && (
-                  <Button variant="ghost" size="icon" onClick={() => requestDeleteDepartment(department)} aria-label={`Delete ${department.name}`}>
+                  <Button variant="ghost" size="icon" onClick={() => requestDeleteDepartment(department)} aria-label={`${lang.departmentBuilderPage.deleteAriaVerb} ${department.name}`}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 )}
@@ -710,9 +711,9 @@ export default function DepartmentBuilder() {
               })}
             </div>
             <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
-              <span>{department.activeTasks} active tasks</span>
+              <span>{department.activeTasks} {lang.departmentBuilderPage.activeTasksSuffix}</span>
               <span className="px-2 py-1 rounded bg-muted/50">
-                {department.mode === "mesh" ? "🔗 Mesh" : department.mode === "ring" ? "🔄 Ring" : department.mode === "supervisor" ? "👑 Manager" : department.mode === "tree" ? "🌲 Tree" : department.mode === "custom" ? "🧩 Custom" : "📋 Sequential"} • {department.maxSteps || 6} steps
+                {department.mode === "mesh" ? lang.departmentBuilderPage.badgeMesh : department.mode === "ring" ? lang.departmentBuilderPage.badgeRing : department.mode === "supervisor" ? lang.departmentBuilderPage.badgeSupervisor : department.mode === "tree" ? lang.departmentBuilderPage.badgeTree : department.mode === "custom" ? lang.departmentBuilderPage.badgeCustom : lang.departmentBuilderPage.badgeSequential} • {department.maxSteps || 6} {lang.departmentBuilderPage.stepsSuffix}
               </span>
             </div>
           </motion.div>

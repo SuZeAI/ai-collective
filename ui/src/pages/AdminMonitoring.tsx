@@ -59,6 +59,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   api,
   type AdminUserActivity,
@@ -129,16 +130,17 @@ function KpiCard({
   );
 }
 
-function OkBadge({ ok, okLabel = "OK", badLabel = "Down" }: { ok: boolean; okLabel?: string; badLabel?: string }) {
+function OkBadge({ ok, okLabel, badLabel }: { ok: boolean; okLabel?: string; badLabel?: string }) {
+  const { t: lang } = useLanguage();
   return ok ? (
     <Badge className="bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400 hover:bg-green-500/10">
       <CheckCircle2 className="w-3 h-3 mr-1" />
-      {okLabel}
+      {okLabel ?? lang.adminMonitoringPage.okDefault}
     </Badge>
   ) : (
     <Badge className="bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400 hover:bg-red-500/10">
       <AlertTriangle className="w-3 h-3 mr-1" />
-      {badLabel}
+      {badLabel ?? lang.adminMonitoringPage.downDefault}
     </Badge>
   );
 }
@@ -226,6 +228,7 @@ function PricingDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t: lang } = useLanguage();
   const { toast } = useToast();
   const [form, setForm] = useState<ModelPricing>(EMPTY_PRICING);
   const [saving, setSaving] = useState(false);
@@ -237,7 +240,7 @@ function PricingDialog({
 
   const save = async () => {
     if (!form.model.trim()) {
-      toast({ title: "Model name is required", variant: "destructive" });
+      toast({ title: lang.adminMonitoringPage.modelNameRequired, variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -249,11 +252,11 @@ function PricingDialog({
         inputPricePerMillion: Number(form.inputPricePerMillion) || 0,
         outputPricePerMillion: Number(form.outputPricePerMillion) || 0,
       });
-      toast({ title: `Pricing for ${form.model} saved` });
+      toast({ title: lang.adminMonitoringPage.pricingSaved.replace("{model}", form.model) });
       onSaved();
       onClose();
     } catch (e) {
-      toast({ title: "Failed to save pricing", description: String(e), variant: "destructive" });
+      toast({ title: lang.adminMonitoringPage.pricingSaveFailed, description: String(e), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -263,11 +266,15 @@ function PricingDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isNew ? "Add model pricing" : `Edit pricing — ${initial?.model}`}</DialogTitle>
+          <DialogTitle>
+            {isNew
+              ? lang.adminMonitoringPage.addModelPricingTitle
+              : lang.adminMonitoringPage.editPricingTitle.replace("{model}", initial?.model ?? "")}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label htmlFor="pricing-model">Model</Label>
+            <Label htmlFor="pricing-model">{lang.adminMonitoringPage.modelLabel}</Label>
             <Input
               id="pricing-model"
               placeholder="e.g. gemini-2.0-flash"
@@ -277,10 +284,10 @@ function PricingDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="pricing-provider">Provider</Label>
+            <Label htmlFor="pricing-provider">{lang.adminMonitoringPage.providerLabel}</Label>
             <Select value={form.provider || undefined} onValueChange={(v) => setForm({ ...form, provider: v })}>
               <SelectTrigger id="pricing-provider">
-                <SelectValue placeholder="Select provider" />
+                <SelectValue placeholder={lang.adminMonitoringPage.selectProvider} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="anthropic">Anthropic</SelectItem>
@@ -295,7 +302,7 @@ function PricingDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="pricing-input">Input $ / 1M tokens</Label>
+              <Label htmlFor="pricing-input">{lang.adminMonitoringPage.inputPerMLabel}</Label>
               <Input
                 id="pricing-input"
                 type="number"
@@ -306,7 +313,7 @@ function PricingDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="pricing-output">Output $ / 1M tokens</Label>
+              <Label htmlFor="pricing-output">{lang.adminMonitoringPage.outputPerMLabel}</Label>
               <Input
                 id="pricing-output"
                 type="number"
@@ -319,8 +326,8 @@ function PricingDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+          <Button variant="outline" onClick={onClose}>{lang.adminMonitoringPage.cancel}</Button>
+          <Button onClick={save} disabled={saving}>{saving ? lang.adminMonitoringPage.saving : lang.adminMonitoringPage.save}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -330,6 +337,7 @@ function PricingDialog({
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function AdminMonitoring() {
+  const { t: lang } = useLanguage();
   const { toast } = useToast();
   const [days, setDays] = useState(30);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -384,12 +392,12 @@ export default function AdminMonitoring() {
   const deletePricing = useCallback(async (model: string) => {
     try {
       await api.deleteModelPricing(model);
-      toast({ title: `Pricing for ${model} removed` });
+      toast({ title: lang.adminMonitoringPage.pricingRemoved.replace("{model}", model) });
       refresh();
     } catch (e) {
-      toast({ title: "Failed to delete pricing", description: String(e), variant: "destructive" });
+      toast({ title: lang.adminMonitoringPage.pricingDeleteFailed, description: String(e), variant: "destructive" });
     }
-  }, [toast, refresh]);
+  }, [toast, refresh, lang]);
 
   const openEditPricing = useCallback((p: ModelPricing) => {
     setEditingPricing(p);
@@ -403,13 +411,13 @@ export default function AdminMonitoring() {
       const [m, h] = await Promise.all([api.listLlmModels(), api.getAdminHealth()]);
       setModels(m);
       setHealth(h);
-      toast({ title: `Active model switched to ${m.find((x) => x.name === name)?.displayName ?? name}` });
+      toast({ title: lang.adminMonitoringPage.modelSwitched.replace("{model}", m.find((x) => x.name === name)?.displayName ?? name) });
     } catch (e) {
-      toast({ title: "Failed to switch model", description: String(e), variant: "destructive" });
+      toast({ title: lang.adminMonitoringPage.modelSwitchFailed, description: String(e), variant: "destructive" });
     } finally {
       setSwitchingModel(false);
     }
-  }, [toast]);
+  }, [toast, lang]);
 
   const chartData = (usage?.byDay ?? []).map((d) => ({
     ...d,
@@ -423,10 +431,10 @@ export default function AdminMonitoring() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-1 flex items-center gap-2">
             <ShieldCheck className="w-7 h-7 text-primary" />
-            System Monitoring
+            {lang.adminMonitoringPage.title}
           </h1>
           <p className="text-muted-foreground text-sm">
-            Token usage, model pricing, platform health and user activity.
+            {lang.adminMonitoringPage.subtitle}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -435,14 +443,14 @@ export default function AdminMonitoring() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="7">Last 7 days</SelectItem>
-              <SelectItem value="30">Last 30 days</SelectItem>
-              <SelectItem value="90">Last 90 days</SelectItem>
+              <SelectItem value="7">{lang.adminMonitoringPage.last7Days}</SelectItem>
+              <SelectItem value="30">{lang.adminMonitoringPage.last30Days}</SelectItem>
+              <SelectItem value="90">{lang.adminMonitoringPage.last90Days}</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" size="sm" onClick={refresh} disabled={loading} className="gap-2 h-9">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-            Refresh
+            {lang.adminMonitoringPage.refresh}
           </Button>
         </div>
       </header>
@@ -451,7 +459,7 @@ export default function AdminMonitoring() {
         <div className="glass-card p-4 flex items-center gap-3 border border-red-500/30">
           <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
           <div className="text-sm">
-            <p className="font-semibold">Could not load monitoring data</p>
+            <p className="font-semibold">{lang.adminMonitoringPage.loadErrorTitle}</p>
             <p className="text-muted-foreground text-xs">{error}</p>
           </div>
         </div>
@@ -459,11 +467,11 @@ export default function AdminMonitoring() {
 
       <Tabs defaultValue="overview" className="space-y-5">
         <TabsList>
-          <TabsTrigger value="overview" className="gap-1.5"><Gauge className="w-3.5 h-3.5" />Overview</TabsTrigger>
-          <TabsTrigger value="usage" className="gap-1.5"><Coins className="w-3.5 h-3.5" />Token Usage</TabsTrigger>
-          <TabsTrigger value="pricing" className="gap-1.5"><DollarSign className="w-3.5 h-3.5" />Pricing</TabsTrigger>
-          <TabsTrigger value="storage" className="gap-1.5"><HardDrive className="w-3.5 h-3.5" />Storage</TabsTrigger>
-          <TabsTrigger value="users" className="gap-1.5"><UsersIcon className="w-3.5 h-3.5" />Users</TabsTrigger>
+          <TabsTrigger value="overview" className="gap-1.5"><Gauge className="w-3.5 h-3.5" />{lang.adminMonitoringPage.tabOverview}</TabsTrigger>
+          <TabsTrigger value="usage" className="gap-1.5"><Coins className="w-3.5 h-3.5" />{lang.adminMonitoringPage.tabUsage}</TabsTrigger>
+          <TabsTrigger value="pricing" className="gap-1.5"><DollarSign className="w-3.5 h-3.5" />{lang.adminMonitoringPage.tabPricing}</TabsTrigger>
+          <TabsTrigger value="storage" className="gap-1.5"><HardDrive className="w-3.5 h-3.5" />{lang.adminMonitoringPage.tabStorage}</TabsTrigger>
+          <TabsTrigger value="users" className="gap-1.5"><UsersIcon className="w-3.5 h-3.5" />{lang.adminMonitoringPage.tabUsers}</TabsTrigger>
         </TabsList>
 
         {/* ── Overview ──────────────────────────────────────────────────── */}
@@ -482,33 +490,37 @@ export default function AdminMonitoring() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <KpiCard
                   index={0}
-                  label="Status"
-                  value={health.status === "ok" ? "Healthy" : "Degraded"}
-                  sub={`env: ${health.environment}`}
+                  label={lang.adminMonitoringPage.kpiStatus}
+                  value={health.status === "ok" ? lang.adminMonitoringPage.healthy : lang.adminMonitoringPage.degraded}
+                  sub={lang.adminMonitoringPage.envSub.replace("{env}", health.environment)}
                   icon={health.status === "ok" ? CheckCircle2 : AlertTriangle}
                   color={health.status === "ok" ? "hsl(142 71% 45%)" : "hsl(0 84% 60%)"}
                 />
                 <KpiCard
                   index={1}
-                  label="Uptime"
+                  label={lang.adminMonitoringPage.kpiUptime}
                   value={formatUptime(health.uptimeSeconds)}
-                  sub="since last restart"
+                  sub={lang.adminMonitoringPage.uptimeSub}
                   icon={Activity}
                   color="hsl(214 80% 52%)"
                 />
                 <KpiCard
                   index={2}
-                  label="Requests"
+                  label={lang.adminMonitoringPage.kpiRequests}
                   value={formatTokens(health.requests.totalRequests)}
-                  sub={`${(health.requests.errorRate * 100).toFixed(1)}% errors · ${health.requests.avgLatencyMs.toFixed(0)}ms avg`}
+                  sub={lang.adminMonitoringPage.errorsSub
+                    .replace("{errorRate}", (health.requests.errorRate * 100).toFixed(1))
+                    .replace("{avgLatency}", health.requests.avgLatencyMs.toFixed(0))}
                   icon={BarChart3}
                   color="hsl(263 70% 58%)"
                 />
                 <KpiCard
                   index={3}
-                  label="Users"
+                  label={lang.adminMonitoringPage.kpiUsers}
                   value={String(health.counts.users)}
-                  sub={`${health.counts.staff} staff · ${health.counts.departments} departments`}
+                  sub={lang.adminMonitoringPage.usersSub
+                    .replace("{staff}", String(health.counts.staff))
+                    .replace("{departments}", String(health.counts.departments))}
                   icon={UsersIcon}
                   color="hsl(32 90% 52%)"
                 />
@@ -518,8 +530,8 @@ export default function AdminMonitoring() {
                 <div className="glass-card p-5 space-y-3">
                   <div className="flex items-center gap-2">
                     <Database className="w-4 h-4 text-primary" />
-                    <h3 className="text-sm font-semibold">Storage</h3>
-                    <span className="ml-auto"><OkBadge ok={health.storage.ok} okLabel="Connected" /></span>
+                    <h3 className="text-sm font-semibold">{lang.adminMonitoringPage.storageTitle}</h3>
+                    <span className="ml-auto"><OkBadge ok={health.storage.ok} okLabel={lang.adminMonitoringPage.connected} /></span>
                   </div>
                   <p className="text-sm font-medium uppercase">{health.storage.backend}</p>
                   <p className="text-xs text-muted-foreground break-all">{health.storage.detail}</p>
@@ -527,9 +539,9 @@ export default function AdminMonitoring() {
                 <div className="glass-card p-5 space-y-3">
                   <div className="flex items-center gap-2">
                     <Cpu className="w-4 h-4 text-primary" />
-                    <h3 className="text-sm font-semibold">LLM Provider</h3>
+                    <h3 className="text-sm font-semibold">{lang.adminMonitoringPage.llmProviderTitle}</h3>
                     <span className="ml-auto">
-                      <OkBadge ok={health.llm.configured} okLabel="Configured" badLabel="No API key" />
+                      <OkBadge ok={health.llm.configured} okLabel={lang.adminMonitoringPage.configured} badLabel={lang.adminMonitoringPage.noApiKey} />
                     </span>
                   </div>
                   <p className="text-sm font-medium capitalize">{health.llm.provider}</p>
@@ -541,7 +553,7 @@ export default function AdminMonitoring() {
                       disabled={switchingModel}
                     >
                       <SelectTrigger className="h-9 text-xs">
-                        <SelectValue placeholder="Select active model" />
+                        <SelectValue placeholder={lang.adminMonitoringPage.selectActiveModel} />
                       </SelectTrigger>
                       <SelectContent>
                         {models.map((m) => (
@@ -556,15 +568,17 @@ export default function AdminMonitoring() {
                 <div className="glass-card p-5 space-y-3">
                   <div className="flex items-center gap-2">
                     <ServerCog className="w-4 h-4 text-primary" />
-                    <h3 className="text-sm font-semibold">Infrastructure</h3>
+                    <h3 className="text-sm font-semibold">{lang.adminMonitoringPage.infrastructureTitle}</h3>
                   </div>
                   <div className="text-xs text-muted-foreground space-y-1.5">
-                    <p>Task queue: <span className="text-foreground font-medium">{health.taskQueueBackend}</span></p>
-                    <p>Repository lock: <span className="text-foreground font-medium">{health.lockBackend}</span></p>
+                    <p>{lang.adminMonitoringPage.taskQueueLabel} <span className="text-foreground font-medium">{health.taskQueueBackend}</span></p>
+                    <p>{lang.adminMonitoringPage.repoLockLabel} <span className="text-foreground font-medium">{health.lockBackend}</span></p>
                     <p>
-                      Entities:{" "}
+                      {lang.adminMonitoringPage.entitiesLabel}{" "}
                       <span className="text-foreground font-medium">
-                        {health.counts.tasks} tasks · {health.counts.companies} offices
+                        {lang.adminMonitoringPage.entitiesValue
+                          .replace("{tasks}", String(health.counts.tasks))
+                          .replace("{companies}", String(health.counts.companies))}
                       </span>
                     </p>
                   </div>
@@ -590,19 +604,19 @@ export default function AdminMonitoring() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <KpiCard
                   index={0}
-                  label="Total Tokens"
+                  label={lang.adminMonitoringPage.totalTokens}
                   value={formatTokens(usage.totals.totalTokens)}
-                  sub={`last ${usage.days} days`}
+                  sub={lang.adminMonitoringPage.lastNDays.replace("{days}", String(usage.days))}
                   icon={Coins}
                   color="hsl(263 70% 58%)"
                 />
                 <KpiCard
                   index={1}
-                  label="Input / Output"
+                  label={lang.adminMonitoringPage.inputOutput}
                   value={`${formatTokens(usage.totals.inputTokens)} / ${formatTokens(usage.totals.outputTokens)}`}
                   sub={
                     usage.totals.cacheReadTokens > 0
-                      ? `${formatTokens(usage.totals.cacheReadTokens)} cached (~90% cheaper)`
+                      ? lang.adminMonitoringPage.cachedSub.replace("{cached}", formatTokens(usage.totals.cacheReadTokens))
                       : undefined
                   }
                   icon={BarChart3}
@@ -610,15 +624,15 @@ export default function AdminMonitoring() {
                 />
                 <KpiCard
                   index={2}
-                  label="Estimated Cost"
+                  label={lang.adminMonitoringPage.estimatedCost}
                   value={formatCost(usage.totals.cost)}
-                  sub="based on pricing table"
+                  sub={lang.adminMonitoringPage.basedOnPricing}
                   icon={DollarSign}
                   color="hsl(142 71% 45%)"
                 />
                 <KpiCard
                   index={3}
-                  label="LLM Requests"
+                  label={lang.adminMonitoringPage.llmRequests}
                   value={formatTokens(usage.totals.requests)}
                   icon={Activity}
                   color="hsl(32 90% 52%)"
@@ -629,13 +643,13 @@ export default function AdminMonitoring() {
               <div className="glass-card p-5">
                 <div className="flex items-center gap-2 mb-5">
                   <BarChart3 className="w-4 h-4 text-primary" />
-                  <h3 className="text-sm font-semibold">Daily Token Usage</h3>
+                  <h3 className="text-sm font-semibold">{lang.adminMonitoringPage.dailyTokenUsage}</h3>
                 </div>
                 {usage.totals.requests === 0 ? (
                   <div className="flex flex-col items-center justify-center py-14 gap-3">
                     <Coins className="w-9 h-9 text-muted-foreground/30" />
                     <p className="text-sm text-muted-foreground">
-                      No LLM usage recorded yet — run a chat or staff task and it will show up here.
+                      {lang.adminMonitoringPage.noUsageYet}
                     </p>
                   </div>
                 ) : (
@@ -660,7 +674,7 @@ export default function AdminMonitoring() {
                         cursor={{ fill: "hsl(var(--muted))", opacity: 0.5 }}
                         formatter={(value: number, name: string) => [
                           formatTokens(value),
-                          name === "inputTokens" ? "Input tokens" : "Output tokens",
+                          name === "inputTokens" ? lang.adminMonitoringPage.tooltipInputTokens : lang.adminMonitoringPage.tooltipOutputTokens,
                         ]}
                         labelFormatter={(label: string, payload) => {
                           const p = payload?.[0]?.payload;
@@ -679,19 +693,19 @@ export default function AdminMonitoring() {
                 <div className="glass-card p-5">
                   <div className="flex items-center gap-2 mb-4">
                     <Cpu className="w-4 h-4 text-primary" />
-                    <h3 className="text-sm font-semibold">Usage by Model</h3>
+                    <h3 className="text-sm font-semibold">{lang.adminMonitoringPage.usageByModel}</h3>
                   </div>
                   {usage.byModel.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-8 text-center">No data</p>
+                    <p className="text-sm text-muted-foreground py-8 text-center">{lang.adminMonitoringPage.noData}</p>
                   ) : (
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Model</TableHead>
-                          <TableHead className="text-right">In</TableHead>
-                          <TableHead className="text-right">Out</TableHead>
-                          <TableHead className="text-right">Cached</TableHead>
-                          <TableHead className="text-right">Cost</TableHead>
+                          <TableHead>{lang.adminMonitoringPage.modelLabel}</TableHead>
+                          <TableHead className="text-right">{lang.adminMonitoringPage.colIn}</TableHead>
+                          <TableHead className="text-right">{lang.adminMonitoringPage.colOut}</TableHead>
+                          <TableHead className="text-right">{lang.adminMonitoringPage.colCached}</TableHead>
+                          <TableHead className="text-right">{lang.adminMonitoringPage.colCost}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -702,7 +716,7 @@ export default function AdminMonitoring() {
                                 <span className="text-xs font-medium truncate">{m.model}</span>
                                 {!m.priced && (
                                   <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-amber-500 border-amber-500/40 shrink-0">
-                                    unpriced
+                                    {lang.adminMonitoringPage.unpriced}
                                   </Badge>
                                 )}
                               </div>
@@ -725,18 +739,18 @@ export default function AdminMonitoring() {
                 <div className="glass-card p-5">
                   <div className="flex items-center gap-2 mb-4">
                     <UsersIcon className="w-4 h-4 text-primary" />
-                    <h3 className="text-sm font-semibold">Usage by User</h3>
+                    <h3 className="text-sm font-semibold">{lang.adminMonitoringPage.usageByUser}</h3>
                   </div>
                   {usage.byUser.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-8 text-center">No data</p>
+                    <p className="text-sm text-muted-foreground py-8 text-center">{lang.adminMonitoringPage.noData}</p>
                   ) : (
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>User</TableHead>
-                          <TableHead className="text-right">Tokens</TableHead>
-                          <TableHead className="text-right">Req</TableHead>
-                          <TableHead className="text-right">Cost</TableHead>
+                          <TableHead>{lang.adminMonitoringPage.colUser}</TableHead>
+                          <TableHead className="text-right">{lang.adminMonitoringPage.byUserColTokens}</TableHead>
+                          <TableHead className="text-right">{lang.adminMonitoringPage.colReq}</TableHead>
+                          <TableHead className="text-right">{lang.adminMonitoringPage.colCost}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -769,8 +783,8 @@ export default function AdminMonitoring() {
           <div className="glass-card p-5">
             <div className="flex items-center gap-2 mb-4">
               <DollarSign className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-semibold">Model Pricing</h3>
-              <span className="text-xs text-muted-foreground">USD per 1M tokens — used for cost estimates</span>
+              <h3 className="text-sm font-semibold">{lang.adminMonitoringPage.modelPricingTitle}</h3>
+              <span className="text-xs text-muted-foreground">{lang.adminMonitoringPage.pricingSubtitle}</span>
               <Button
                 size="sm"
                 className="ml-auto gap-1.5 h-8"
@@ -780,7 +794,7 @@ export default function AdminMonitoring() {
                 }}
               >
                 <Plus className="w-3.5 h-3.5" />
-                Add model
+                {lang.adminMonitoringPage.addModel}
               </Button>
             </div>
             {loading ? (
@@ -793,10 +807,10 @@ export default function AdminMonitoring() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Model</TableHead>
-                    <TableHead>Provider</TableHead>
-                    <TableHead className="text-right">Input $/1M</TableHead>
-                    <TableHead className="text-right">Output $/1M</TableHead>
+                    <TableHead>{lang.adminMonitoringPage.modelLabel}</TableHead>
+                    <TableHead>{lang.adminMonitoringPage.providerLabel}</TableHead>
+                    <TableHead className="text-right">{lang.adminMonitoringPage.colInputPerM}</TableHead>
+                    <TableHead className="text-right">{lang.adminMonitoringPage.colOutputPerM}</TableHead>
                     <TableHead className="w-[90px]" />
                   </TableRow>
                 </TableHeader>
@@ -807,7 +821,7 @@ export default function AdminMonitoring() {
                   {pricing.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">
-                        No pricing configured yet.
+                        {lang.adminMonitoringPage.noPricingYet}
                       </TableCell>
                     </TableRow>
                   )}
@@ -830,18 +844,18 @@ export default function AdminMonitoring() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <KpiCard
                   index={0}
-                  label="File store"
-                  value={fileStorage.backend === "s3" ? "S3 / MinIO" : "Local disk"}
-                  sub={`Sandbox mode: ${fileStorage.sandboxMode}`}
+                  label={lang.adminMonitoringPage.fileStoreLabel}
+                  value={fileStorage.backend === "s3" ? lang.adminMonitoringPage.s3Minio : lang.adminMonitoringPage.localDisk}
+                  sub={lang.adminMonitoringPage.sandboxModeSub.replace("{mode}", fileStorage.sandboxMode)}
                   icon={fileStorage.backend === "s3" ? Cloud : HardDrive}
                   color={fileStorage.backend === "s3" ? "#06b6d4" : "#64748b"}
                 />
                 <KpiCard
                   index={1}
-                  label="Object store"
+                  label={lang.adminMonitoringPage.objectStoreLabel}
                   value={
-                    !fileStorage.minioEnabled ? "Disabled"
-                      : fileStorage.minioConnected ? "Connected" : "Unreachable"
+                    !fileStorage.minioEnabled ? lang.adminMonitoringPage.disabled
+                      : fileStorage.minioConnected ? lang.adminMonitoringPage.connected : lang.adminMonitoringPage.unreachable
                   }
                   sub={fileStorage.minioEnabled ? fileStorage.minioEndpoint : "MINIO_ENABLED=false"}
                   icon={Database}
@@ -849,7 +863,7 @@ export default function AdminMonitoring() {
                 />
                 <KpiCard
                   index={2}
-                  label="Library documents"
+                  label={lang.adminMonitoringPage.libraryDocuments}
                   value={String(fileStorage.libraryDocCount)}
                   sub={formatBytes(fileStorage.libraryTotalBytes)}
                   icon={FolderOpen}
@@ -857,9 +871,12 @@ export default function AdminMonitoring() {
                 />
                 <KpiCard
                   index={3}
-                  label="Stored in MinIO"
+                  label={lang.adminMonitoringPage.storedInMinio}
                   value={formatBytes(fileStorage.sandboxTotalBytes + fileStorage.libraryObjectBytes)}
-                  sub={`${fileStorage.sandboxObjectCount + fileStorage.libraryObjectCount} objects`}
+                  sub={lang.adminMonitoringPage.objectsCountSub.replace(
+                    "{count}",
+                    String(fileStorage.sandboxObjectCount + fileStorage.libraryObjectCount),
+                  )}
                   icon={ServerCog}
                   color="#a855f7"
                 />
@@ -868,17 +885,17 @@ export default function AdminMonitoring() {
               <div className="glass-card p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <HardDrive className="w-4 h-4 text-primary" />
-                  <h3 className="text-sm font-semibold">File byte storage</h3>
-                  <span className="ml-auto"><OkBadge ok={fileStorage.backend !== "s3" || fileStorage.minioConnected} okLabel="Healthy" badLabel="Needs MinIO" /></span>
+                  <h3 className="text-sm font-semibold">{lang.adminMonitoringPage.fileByteStorage}</h3>
+                  <span className="ml-auto"><OkBadge ok={fileStorage.backend !== "s3" || fileStorage.minioConnected} okLabel={lang.adminMonitoringPage.healthy} badLabel={lang.adminMonitoringPage.needsMinio} /></span>
                 </div>
 
                 {fileStorage.backend === "s3" && fileStorage.minioEnabled && !fileStorage.minioConnected && (
                   <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs">
                     <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold">MinIO is configured but unreachable.</p>
+                      <p className="font-semibold">{lang.adminMonitoringPage.minioWarnTitle}</p>
                       <p className="text-muted-foreground mt-0.5">
-                        Start it with <code className="font-mono">make dev PROFILES=minio</code>.
+                        {lang.adminMonitoringPage.minioWarnBodyPrefix} <code className="font-mono">make dev PROFILES=minio</code>{lang.adminMonitoringPage.minioWarnBodySuffix}
                         {fileStorage.minioError ? ` (${fileStorage.minioError})` : ""}
                       </p>
                     </div>
@@ -887,13 +904,13 @@ export default function AdminMonitoring() {
 
                 <dl className="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-xs">
                   {[
-                    ["Backend", fileStorage.backend === "s3" ? "s3 (MinIO is system of record)" : "local (host company volume)"],
-                    ["Sandbox mode", fileStorage.sandboxMode],
-                    ["Company path", fileStorage.companyBase],
-                    ["MinIO endpoint", fileStorage.minioEnabled ? fileStorage.minioEndpoint : "—"],
-                    ["MinIO bucket", fileStorage.minioEnabled ? fileStorage.minioBucket : "—"],
-                    ["Library objects (S3)", `${fileStorage.libraryObjectCount} · ${formatBytes(fileStorage.libraryObjectBytes)}`],
-                    ["Meeting objects (S3)", `${fileStorage.sandboxObjectCount} · ${formatBytes(fileStorage.sandboxTotalBytes)}`],
+                    [lang.adminMonitoringPage.dlBackendLabel, fileStorage.backend === "s3" ? lang.adminMonitoringPage.dlBackendS3Value : lang.adminMonitoringPage.dlBackendLocalValue],
+                    [lang.adminMonitoringPage.dlSandboxModeLabel, fileStorage.sandboxMode],
+                    [lang.adminMonitoringPage.dlCompanyPathLabel, fileStorage.companyBase],
+                    [lang.adminMonitoringPage.dlMinioEndpointLabel, fileStorage.minioEnabled ? fileStorage.minioEndpoint : "—"],
+                    [lang.adminMonitoringPage.dlMinioBucketLabel, fileStorage.minioEnabled ? fileStorage.minioBucket : "—"],
+                    [lang.adminMonitoringPage.dlLibraryObjectsLabel, `${fileStorage.libraryObjectCount} · ${formatBytes(fileStorage.libraryObjectBytes)}`],
+                    [lang.adminMonitoringPage.dlMeetingObjectsLabel, `${fileStorage.sandboxObjectCount} · ${formatBytes(fileStorage.sandboxTotalBytes)}`],
                   ].map(([k, v]) => (
                     <div key={k} className="flex justify-between gap-4 border-b border-border/40 pb-2">
                       <dt className="text-muted-foreground shrink-0">{k}</dt>
@@ -904,8 +921,8 @@ export default function AdminMonitoring() {
 
                 <p className="text-[11px] text-muted-foreground mt-4 leading-relaxed">
                   {fileStorage.backend === "s3"
-                    ? "Files (uploads, staff outputs, document library) are durably stored in MinIO and restored into the working directory on restart — surviving container/Pod recreation."
-                    : "Files live only on the host company volume. Set FILE_STORAGE_BACKEND=s3 + MINIO_ENABLED=true for durability across Pod recreation (required in k8s sandbox mode)."}
+                    ? lang.adminMonitoringPage.fileStorageS3Note
+                    : lang.adminMonitoringPage.fileStorageLocalNote}
                 </p>
               </div>
             </>
@@ -917,9 +934,9 @@ export default function AdminMonitoring() {
           <div className="glass-card p-5">
             <div className="flex items-center gap-2 mb-4">
               <UsersIcon className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-semibold">User Activity</h3>
+              <h3 className="text-sm font-semibold">{lang.adminMonitoringPage.userActivityTitle}</h3>
               {!loading && (
-                <span className="ml-auto text-xs text-muted-foreground">{userActivity.length} accounts</span>
+                <span className="ml-auto text-xs text-muted-foreground">{lang.adminMonitoringPage.accountsCount.replace("{count}", String(userActivity.length))}</span>
               )}
             </div>
             {loading ? (
@@ -929,18 +946,18 @@ export default function AdminMonitoring() {
                 ))}
               </div>
             ) : userActivity.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">No registered users yet.</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">{lang.adminMonitoringPage.noUsersYet}</p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead className="text-right">Staff</TableHead>
-                    <TableHead className="text-right">Departments</TableHead>
-                    <TableHead className="text-right">Tasks</TableHead>
-                    <TableHead className="text-right">Tokens ({days}d)</TableHead>
-                    <TableHead className="text-right">Cost ({days}d)</TableHead>
+                    <TableHead>{lang.adminMonitoringPage.colUser}</TableHead>
+                    <TableHead>{lang.adminMonitoringPage.colRole}</TableHead>
+                    <TableHead className="text-right">{lang.adminMonitoringPage.colStaff}</TableHead>
+                    <TableHead className="text-right">{lang.adminMonitoringPage.colDepartments}</TableHead>
+                    <TableHead className="text-right">{lang.adminMonitoringPage.colTasks}</TableHead>
+                    <TableHead className="text-right">{lang.adminMonitoringPage.colTokensDays.replace("{days}", String(days))}</TableHead>
+                    <TableHead className="text-right">{lang.adminMonitoringPage.colCostDays.replace("{days}", String(days))}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
