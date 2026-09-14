@@ -371,9 +371,9 @@ export default function Companies() {
         // Edit: just nudge the sidebar to re-read names/avatars.
         window.dispatchEvent(new CustomEvent("companyChanged"));
       }
-      toast({ title: "Office saved" });
+      toast({ title: lang.companiesPage.officeSaved });
     },
-    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: lang.companiesPage.error, description: e.message, variant: "destructive" }),
   });
 
   const remove = useMutation({
@@ -385,9 +385,9 @@ export default function Companies() {
       qc.invalidateQueries({ queryKey: ["companies"] });
       qc.invalidateQueries({ queryKey: ["departments"] });
       window.dispatchEvent(new CustomEvent("companyChanged"));
-      toast({ title: "Company deleted" });
+      toast({ title: lang.companiesPage.companyDeleted });
     },
-    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: lang.companiesPage.error, description: e.message, variant: "destructive" }),
   });
 
   const confirmDelete = () => {

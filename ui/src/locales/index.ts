@@ -123,6 +123,15 @@ export type Translations = {
     noCompaniesYet: string;
     deleteCompanyTitle: string;
     checkingImpact: string;
+    officeSaved: string;
+    error: string;
+    companyDeleted: string;
+  };
+  settingsPage: {
+    modelUpdated: string;
+    error: string;
+    connectionSaved: string;
+    connectionDeleted: string;
   };
   documentLibrary: {
     title: string;
@@ -488,6 +497,8 @@ export type Translations = {
     testBtn: string;
   };
   departmentBuilderPage: {
+    defaultTestPrompt: string;
+    defaultTestPromptFallback: string;
     selectPersonnelLabel: string;
     selectPersonnelDesc: string;
     searchPersonnelPlaceholder: string;
@@ -674,7 +685,7 @@ export type Translations = {
     colCost: string; colReq: string; byUserColTokens: string; colInputPerM: string; colOutputPerM: string;
     modelNameRequired: string; pricingSaved: string; pricingSaveFailed: string; pricingDeleteFailed: string;
     pricingRemoved: string; modelSwitched: string; modelSwitchFailed: string;
-    addModelPricingTitle: string; editPricingTitle: string; modelLabel: string; providerLabel: string;
+    addModelPricingTitle: string; editPricingTitle: string; modelLabel: string; modelPlaceholder: string; providerLabel: string;
     selectProvider: string; inputPerMLabel: string; outputPerMLabel: string; cancel: string; save: string; saving: string;
   };
 };
@@ -786,6 +797,15 @@ export const translations: Record<Language, Translations> = {
       noCompaniesYet: "No companies yet",
       deleteCompanyTitle: "Delete company?",
       checkingImpact: "Checking what this will affect…",
+      officeSaved: "Office saved",
+      error: "Error",
+      companyDeleted: "Company deleted",
+    },
+    settingsPage: {
+      modelUpdated: "Active model updated",
+      error: "Error",
+      connectionSaved: "Connection saved",
+      connectionDeleted: "Connection deleted",
     },
     documentLibrary: {
       title: "Document Library",
@@ -1176,6 +1196,8 @@ export const translations: Record<Language, Translations> = {
       testBtn: "Test",
     },
     departmentBuilderPage: {
+      defaultTestPrompt: "Run a quick kickoff discussion and align responsibilities.",
+      defaultTestPromptFallback: "Coordinate a department execution plan.",
       selectPersonnelLabel: "Select Personnel",
       selectPersonnelDesc: "Choose personnel to add to this department.",
       searchPersonnelPlaceholder: "Search personnel...",
@@ -1368,7 +1390,7 @@ export const translations: Record<Language, Translations> = {
       modelNameRequired: "Model name is required", pricingSaved: "Pricing for {model} saved", pricingSaveFailed: "Failed to save pricing",
       pricingDeleteFailed: "Failed to delete pricing", pricingRemoved: "Pricing for {model} removed",
       modelSwitched: "Active model switched to {model}", modelSwitchFailed: "Failed to switch model",
-      addModelPricingTitle: "Add model pricing", editPricingTitle: "Edit pricing — {model}", modelLabel: "Model", providerLabel: "Provider",
+      addModelPricingTitle: "Add model pricing", editPricingTitle: "Edit pricing — {model}", modelLabel: "Model", modelPlaceholder: "e.g. gemini-2.0-flash", providerLabel: "Provider",
       selectProvider: "Select provider", inputPerMLabel: "Input $ / 1M tokens", outputPerMLabel: "Output $ / 1M tokens",
       cancel: "Cancel", save: "Save", saving: "Saving…",
     },
@@ -1481,6 +1503,15 @@ export const translations: Record<Language, Translations> = {
       noCompaniesYet: "Chưa có công ty nào",
       deleteCompanyTitle: "Xóa công ty?",
       checkingImpact: "Đang kiểm tra mức độ ảnh hưởng…",
+      officeSaved: "Đã lưu văn phòng",
+      error: "Lỗi",
+      companyDeleted: "Đã xóa công ty",
+    },
+    settingsPage: {
+      modelUpdated: "Đã cập nhật mô hình đang dùng",
+      error: "Lỗi",
+      connectionSaved: "Đã lưu kết nối",
+      connectionDeleted: "Đã xóa kết nối",
     },
     documentLibrary: {
       title: "Kho tài liệu",
@@ -1871,6 +1902,8 @@ export const translations: Record<Language, Translations> = {
       testBtn: "Thử",
     },
     departmentBuilderPage: {
+      defaultTestPrompt: "Chạy một buổi thảo luận khởi động nhanh và thống nhất phân công.",
+      defaultTestPromptFallback: "Điều phối một kế hoạch thực thi cho phòng ban.",
       selectPersonnelLabel: "Chọn nhân sự",
       selectPersonnelDesc: "Chọn nhân sự để thêm vào phòng ban này.",
       searchPersonnelPlaceholder: "Tìm nhân sự...",
@@ -2063,7 +2096,7 @@ export const translations: Record<Language, Translations> = {
       modelNameRequired: "Cần nhập tên mô hình", pricingSaved: "Đã lưu giá cho {model}", pricingSaveFailed: "Lưu giá không thành công",
       pricingDeleteFailed: "Xóa giá không thành công", pricingRemoved: "Đã xóa giá của {model}",
       modelSwitched: "Đã chuyển sang mô hình {model}", modelSwitchFailed: "Chuyển mô hình không thành công",
-      addModelPricingTitle: "Thêm giá mô hình", editPricingTitle: "Sửa giá — {model}", modelLabel: "Mô hình", providerLabel: "Nhà cung cấp",
+      addModelPricingTitle: "Thêm giá mô hình", editPricingTitle: "Sửa giá — {model}", modelLabel: "Mô hình", modelPlaceholder: "vd: gemini-2.0-flash", providerLabel: "Nhà cung cấp",
       selectProvider: "Chọn nhà cung cấp", inputPerMLabel: "Đầu vào $ / 1M token", outputPerMLabel: "Đầu ra $ / 1M token",
       cancel: "Hủy", save: "Lưu", saving: "Đang lưu…",
     },
@@ -2176,6 +2209,15 @@ export const translations: Record<Language, Translations> = {
       noCompaniesYet: "还没有公司",
       deleteCompanyTitle: "删除公司？",
       checkingImpact: "正在检查影响范围…",
+      officeSaved: "办公室已保存",
+      error: "错误",
+      companyDeleted: "公司已删除",
+    },
+    settingsPage: {
+      modelUpdated: "已更新当前模型",
+      error: "错误",
+      connectionSaved: "连接已保存",
+      connectionDeleted: "连接已删除",
     },
     documentLibrary: {
       title: "文档库",
@@ -2566,6 +2608,8 @@ export const translations: Record<Language, Translations> = {
       testBtn: "测试",
     },
     departmentBuilderPage: {
+      defaultTestPrompt: "快速进行一次启动讨论并明确职责分工。",
+      defaultTestPromptFallback: "协调一份部门执行计划。",
       selectPersonnelLabel: "选择人员",
       selectPersonnelDesc: "选择要添加到此部门的人员。",
       searchPersonnelPlaceholder: "搜索人员...",
@@ -2758,7 +2802,7 @@ export const translations: Record<Language, Translations> = {
       modelNameRequired: "需要输入模型名称", pricingSaved: "已保存 {model} 的定价", pricingSaveFailed: "保存定价失败",
       pricingDeleteFailed: "删除定价失败", pricingRemoved: "已删除 {model} 的定价",
       modelSwitched: "已切换到模型 {model}", modelSwitchFailed: "切换模型失败",
-      addModelPricingTitle: "添加模型定价", editPricingTitle: "编辑定价 — {model}", modelLabel: "模型", providerLabel: "提供方",
+      addModelPricingTitle: "添加模型定价", editPricingTitle: "编辑定价 — {model}", modelLabel: "模型", modelPlaceholder: "例如 gemini-2.0-flash", providerLabel: "提供方",
       selectProvider: "选择提供方", inputPerMLabel: "输入 $ / 100万 token", outputPerMLabel: "输出 $ / 100万 token",
       cancel: "取消", save: "保存", saving: "保存中…",
     },
@@ -2871,6 +2915,15 @@ export const translations: Record<Language, Translations> = {
       noCompaniesYet: "会社がまだありません",
       deleteCompanyTitle: "会社を削除しますか？",
       checkingImpact: "影響範囲を確認しています…",
+      officeSaved: "オフィスを保存しました",
+      error: "エラー",
+      companyDeleted: "会社を削除しました",
+    },
+    settingsPage: {
+      modelUpdated: "使用中のモデルを更新しました",
+      error: "エラー",
+      connectionSaved: "連携を保存しました",
+      connectionDeleted: "連携を削除しました",
     },
     documentLibrary: {
       title: "ドキュメントライブラリ",
@@ -3261,6 +3314,8 @@ export const translations: Record<Language, Translations> = {
       testBtn: "テスト",
     },
     departmentBuilderPage: {
+      defaultTestPrompt: "簡単なキックオフ討議を行い、役割分担を整理してください。",
+      defaultTestPromptFallback: "部署の実行計画を調整してください。",
       selectPersonnelLabel: "人員を選択",
       selectPersonnelDesc: "この部署に追加する人員を選択してください。",
       searchPersonnelPlaceholder: "人員を検索...",
@@ -3453,7 +3508,7 @@ export const translations: Record<Language, Translations> = {
       modelNameRequired: "モデル名が必要です", pricingSaved: "{model} の料金を保存しました", pricingSaveFailed: "料金の保存に失敗しました",
       pricingDeleteFailed: "料金の削除に失敗しました", pricingRemoved: "{model} の料金を削除しました",
       modelSwitched: "モデルを {model} に切り替えました", modelSwitchFailed: "モデルの切り替えに失敗しました",
-      addModelPricingTitle: "モデル料金を追加", editPricingTitle: "料金を編集 — {model}", modelLabel: "モデル", providerLabel: "プロバイダー",
+      addModelPricingTitle: "モデル料金を追加", editPricingTitle: "料金を編集 — {model}", modelLabel: "モデル", modelPlaceholder: "例: gemini-2.0-flash", providerLabel: "プロバイダー",
       selectProvider: "プロバイダーを選択", inputPerMLabel: "入力 $ / 100万トークン", outputPerMLabel: "出力 $ / 100万トークン",
       cancel: "キャンセル", save: "保存", saving: "保存中…",
     },

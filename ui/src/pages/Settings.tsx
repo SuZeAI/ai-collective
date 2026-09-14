@@ -18,11 +18,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 
 // ─── Active LLM Model Section (admin-only) ────────────────────────────────────
 function ActiveModelSection() {
   const { toast } = useToast();
+  const { t: lang } = useLanguage();
   const qc = useQueryClient();
 
   const { data: models = [], isLoading } = useQuery({
@@ -34,9 +36,9 @@ function ActiveModelSection() {
     mutationFn: (name: string) => api.setActiveModel(name),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["llm-models"] });
-      toast({ title: "Active model updated" });
+      toast({ title: lang.settingsPage.modelUpdated });
     },
-    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: lang.settingsPage.error, description: e.message, variant: "destructive" }),
   });
 
   if (!isLoading && models.length === 0) return null;
@@ -355,6 +357,7 @@ export default function Settings() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin" || user?.role === "system";
   const { toast } = useToast();
+  const { t: lang } = useLanguage();
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Connection | undefined>();
@@ -374,18 +377,18 @@ export default function Settings() {
     mutationFn: api.upsertConnection,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["connections"] });
-      toast({ title: "Connection saved" });
+      toast({ title: lang.settingsPage.connectionSaved });
     },
-    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: lang.settingsPage.error, description: e.message, variant: "destructive" }),
   });
 
   const remove = useMutation({
     mutationFn: api.deleteConnection,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["connections"] });
-      toast({ title: "Connection deleted" });
+      toast({ title: lang.settingsPage.connectionDeleted });
     },
-    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: lang.settingsPage.error, description: e.message, variant: "destructive" }),
   });
 
   const openNew = () => { setEditing(undefined); setDialogOpen(true); };

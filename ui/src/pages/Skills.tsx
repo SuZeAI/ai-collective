@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ExternalLink, Pencil, Plus, ShieldCheck, Trash2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,189 +12,27 @@ import {
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { StaffAvatar, skillAvatarIconOptions } from "@/components/StaffAvatar";
+import { PresetSuggestionRow } from "@/components/skills/PresetSuggestionRow";
 import { api, canDeleteItem, canEditItem, type Skill, type SkillToolConfigField, type SkillToolPreset, type DeleteImpact } from "@/lib/api";
 import { useCompanyScope, CATALOG_COMPANY_ID } from "@/hooks/use-company-scope";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import {
+  type ToolConfigValue,
+  GOOGLE_TOOL_NAMES,
+  toTitleCaseFromToolName,
+  toToolPreset,
+  getConfigVariableNames,
+  isHexColor,
+  ensureGoogleAuthConfig,
+  buildDefaultConfigValues,
+  buildConfigValuesForEdit,
+  buildConfigFromValues,
+  validateRequiredConfig,
+} from "@/lib/skills-config";
 
 type ToolName = string;
 type AvatarMode = "initial" | "icon" | "image";
-type ToolConfigValue = string | boolean;
-
-const GOOGLE_TOOL_NAMES = new Set(["sheet", "drive", "docs", "slides", "calendar"]);
-
-type GoogleAuthConfig = {
-  auth_email: string;
-  token_path: string;
-  credentials_path: string;
-  service_account_path: string;
-};
-
-function toTitleCaseFromToolName(value: string): string {
-  return value
-    .split(/[_\s-]+/)
-    .filter(Boolean)
-    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`)
-    .join(" ");
-}
-
-function toToolPreset(toolName: string): SkillToolPreset {
-  const title = toTitleCaseFromToolName(toolName);
-  return {
-    tool_name: toolName,
-    label: title,
-    third_party: title,
-    config_fields: [],
-  };
-}
-
-function boolFromUnknown(value: unknown, fallback: boolean): boolean {
-  if (typeof value === "boolean") return value;
-  if (typeof value === "string") {
-    const normalized = value.trim().toLowerCase();
-    if (normalized === "true") return true;
-    if (normalized === "false") return false;
-  }
-  return fallback;
-}
-
-function getConfigVariableNames(config: Record<string, unknown> | undefined): string[] {
-  if (!config) return [];
-  return Object.keys(config).filter((key) => key.trim().length > 0);
-}
-
-// Memoized so retyping in the preset-search box only re-renders rows whose
-// membership in the filtered list actually changed, not every row on every
-// keystroke — same pattern as KanbanCard/StaffCard/PlanStats elsewhere.
-const PresetSuggestionRow = memo(function PresetSuggestionRow({
-  preset,
-  onSelect,
-}: {
-  preset: SkillToolPreset;
-  onSelect: (preset: SkillToolPreset) => void;
-}) {
-  return (
-    <button
-      type="button"
-      className="w-full text-left px-2.5 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors font-medium"
-      onMouseDown={() => onSelect(preset)}
-    >
-      {preset.label} <span className="text-[10px] text-muted-foreground ml-1">({preset.tool_name})</span>
-    </button>
-  );
-});
-
-function isHexColor(value: string): boolean {
-  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
-}
-
-function sanitizeEmailForTokenPath(email: string): string {
-  const normalized = String(email || "").trim().toLowerCase();
-  const safe = normalized.replace(/[^a-zA-Z0-9._-]/g, "_");
-  return safe || "default";
-}
-
-function ensureGoogleAuthConfig(
-  config: Record<string, unknown>,
-  toolName: string,
-  oauthAuthEmail: string,
-  oauthTokenPath: string,
-  oauthCredentialsPath: string,
-  oauthServiceAccountPath: string,
-): Record<string, unknown> {
-  if (!GOOGLE_TOOL_NAMES.has(toolName)) {
-    return config;
-  }
-
-  const authEmail = String(oauthAuthEmail || config.auth_email || "").trim();
-  const fallbackTokenPath = `secrets/google/${toolName}/token_${sanitizeEmailForTokenPath(authEmail)}.json`;
-  const tokenPath = String(oauthTokenPath || config.token_path || fallbackTokenPath).trim();
-  const credentialsPath = String(oauthCredentialsPath || config.credentials_path || "").trim();
-  const serviceAccountPath = String(oauthServiceAccountPath || config.service_account_path || "").trim();
-
-  const googleAuthConfig: GoogleAuthConfig = {
-    auth_email: authEmail,
-    token_path: tokenPath,
-    credentials_path: credentialsPath,
-    service_account_path: serviceAccountPath,
-  };
-
-  return {
-    ...config,
-    ...googleAuthConfig,
-  };
-}
-
-function buildDefaultConfigValues(preset: SkillToolPreset | undefined): Record<string, ToolConfigValue> {
-  if (!preset) return {};
-  const next: Record<string, ToolConfigValue> = {};
-
-  for (const field of preset.config_fields || []) {
-    if (field.input === "boolean") {
-      next[field.key] = boolFromUnknown(field.default, false);
-      continue;
-    }
-    next[field.key] = String(field.default ?? "");
-  }
-
-  return next;
-}
-
-function buildConfigValuesForEdit(
-  preset: SkillToolPreset | undefined,
-  config: Record<string, unknown> | undefined,
-): Record<string, ToolConfigValue> {
-  const defaults = buildDefaultConfigValues(preset);
-  if (!preset || !config) return defaults;
-
-  const next = { ...defaults };
-  for (const field of preset.config_fields || []) {
-    const current = config[field.key];
-    if (current === undefined || current === null) continue;
-    if (field.input === "boolean") {
-      next[field.key] = boolFromUnknown(current, boolFromUnknown(field.default, false));
-      continue;
-    }
-    next[field.key] = String(current);
-  }
-  return next;
-}
-
-function buildConfigFromValues(
-  preset: SkillToolPreset | undefined,
-  values: Record<string, ToolConfigValue>,
-): Record<string, unknown> {
-  if (!preset) return {};
-  const config: Record<string, unknown> = {};
-
-  for (const field of preset.config_fields || []) {
-    const value = values[field.key];
-    if (field.input === "boolean") {
-      config[field.key] = Boolean(value);
-      continue;
-    }
-    config[field.key] = String(value ?? "").trim();
-  }
-
-  return config;
-}
-
-function validateRequiredConfig(
-  preset: SkillToolPreset | undefined,
-  values: Record<string, ToolConfigValue>,
-): boolean {
-  if (!preset) return true;
-
-  for (const field of preset.config_fields || []) {
-    if (!field.required) continue;
-
-    const value = values[field.key];
-    if (field.input === "boolean") continue;
-    if (!String(value ?? "").trim()) return false;
-  }
-
-  return true;
-}
 
 export default function Skills() {
   const { t: lang } = useLanguage();
