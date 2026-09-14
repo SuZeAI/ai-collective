@@ -354,12 +354,25 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
               [updated.id]: new Set([...(prev[updated.id] ?? []), staffId]),
             }));
           }
-        } else if (eventType === "subagent_start") {
+        } else if (eventType === "subagent_start" || eventType === "agent_start" || eventType === "agent_turn_start" || eventType === "context_building") {
           if (staffId) {
             setThinkingStaff((prev) => ({
               ...prev,
               [updated.id]: new Set([...(prev[updated.id] ?? []), staffId]),
             }));
+          }
+        } else if (eventType === "subagent_complete") {
+          if (staffId) {
+            setThinkingStaff((prev) => {
+              const next = { ...prev };
+              if (next[updated.id]) {
+                const newSet = new Set(next[updated.id]);
+                newSet.delete(staffId);
+                if (newSet.size > 0) next[updated.id] = newSet;
+                else delete next[updated.id];
+              }
+              return next;
+            });
           }
         } else if (eventType === "fanout_start") {
           const targets = Array.isArray(event.targets) ? event.targets.map(String) : [];
