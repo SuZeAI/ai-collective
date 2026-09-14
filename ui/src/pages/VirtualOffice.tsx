@@ -458,7 +458,7 @@ export default function VirtualOffice() {
       const res = await api.chat({
         prompt: userMessage,
         staffId: selectedStaffId,
-        conversationId: `direct-${selectedStaffId}`,
+        meetingId: `direct-${selectedStaffId}`,
       });
 
       setDirectChatMessages((prev) => ({

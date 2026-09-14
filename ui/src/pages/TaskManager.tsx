@@ -27,6 +27,7 @@ import { api, buildCustomGraphPayload, canEditItem, type Staff, type Department,
 import { useRunEngine, type UserInputRequest } from "@/contexts/RunEngineContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCompanyScope } from "@/hooks/use-company-scope";
+import { useByIdMap } from "@/hooks/use-by-id-map";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -172,11 +173,7 @@ export default function TaskManager() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const staffById = useMemo(() => {
-    const map = new Map<string, Staff>();
-    staffList.forEach((a) => map.set(a.id, a));
-    return map;
-  }, [staffList]);
+  const staffById = useByIdMap(staffList);
 
   // Staff the active office can pick for an individual ("staff") assignment.
   const scopedStaff = useMemo(() => {

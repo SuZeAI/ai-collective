@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useCompanyScope } from "@/hooks/use-company-scope";
+import { useByIdMap } from "@/hooks/use-by-id-map";
+import { useScopedList } from "@/hooks/use-scoped-list";
 import { cn } from "@/lib/utils";
 
 const PLANNER_NONE = "__none__";
@@ -42,11 +44,8 @@ export default function Projects() {
   const [plannerSystemPrompt, setPlannerSystemPrompt] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const staffById = useMemo(() => new Map(staff.map((a) => [a.id, a])), [staff]);
-  const scopedStaff = useMemo(
-    () => (scope.isOverall ? staff : staff.filter((a) => scope.staffIds.has(a.id))),
-    [staff, scope.isOverall, scope.staffIds],
-  );
+  const staffById = useByIdMap(staff);
+  const scopedStaff = useScopedList(staff, scope.isOverall, scope.staffIds, (a) => a.id);
   const existingKeys = useMemo(() => new Set(projects.map((p) => p.key)), [projects]);
   const withPlannerCount = useMemo(() => projects.filter((p) => p.plannerStaffId).length, [projects]);
   // Real issue count per project, from actual task rows — NOT project.issueCounter,

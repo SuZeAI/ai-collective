@@ -339,7 +339,7 @@ export type ChatRequest = {
   prompt: string;
   system?: string;
   staffId?: string;
-  conversationId?: string;
+  meetingId?: string;
 };
 
 export type ChatResponse = {
@@ -682,7 +682,7 @@ export function mapAuthUser(raw: RawAuthUser): AuthUser {
 
 export type MeetingFile = {
   id: string;
-  conversationId: string;
+  meetingId: string;
   filename: string;
   size: number;
   contentType?: string | null;
@@ -1196,7 +1196,7 @@ export const api = {
     fd.append("file", file);
     return apiUpload<MeetingFile>(`/meetings/${encodeURIComponent(taskId)}/files`, fd);
   },
-  downloadConversationFile: (taskId: string, relPath: string) =>
+  downloadMeetingFile: (taskId: string, relPath: string) =>
     apiDownload(`/meetings/${encodeURIComponent(taskId)}/files/download?rel_path=${encodeURIComponent(relPath)}`),
 
   // Document Library (Business Unit scope)

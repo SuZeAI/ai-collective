@@ -30,6 +30,8 @@ import { getStaffRoleColor } from "@/lib/staff-role-ui";
 import { api, avgCompletionOf, type Staff, type Analytics, type Task, type Department } from "@/lib/api";
 import { chartTooltipStyle as tooltipStyle } from "@/lib/format";
 import { useCompanyScope } from "@/hooks/use-company-scope";
+import { useByIdMap } from "@/hooks/use-by-id-map";
+import { useScopedList } from "@/hooks/use-scoped-list";
 import { useToast } from "@/hooks/use-toast";
 
 const ROLE_COLORS: Record<string, string> = {
@@ -131,14 +133,8 @@ export default function AnalyticsPage() {
   const loading = dataLoading || scope.pending;
 
   // Office scoping: every chart below works off these lists.
-  const tasks = useMemo(
-    () => (scope.isOverall ? allTasks : allTasks.filter((t) => scope.departmentIds.has(t.departmentId))),
-    [allTasks, scope],
-  );
-  const departments = useMemo(
-    () => (scope.isOverall ? allDepartments : allDepartments.filter((t) => scope.departmentIds.has(t.id))),
-    [allDepartments, scope],
-  );
+  const tasks = useScopedList(allTasks, scope.isOverall, scope.departmentIds, (t) => t.departmentId);
+  const departments = useScopedList(allDepartments, scope.isOverall, scope.departmentIds, (t) => t.id);
 
   useEffect(() => {
     let cancelled = false;
@@ -168,11 +164,7 @@ export default function AnalyticsPage() {
     };
   }, [refreshKey, toast]);
 
-  const staffById = useMemo(() => {
-    const map = new Map<string, Staff>();
-    staff.forEach((a) => map.set(a.id, a));
-    return map;
-  }, [staff]);
+  const staffById = useByIdMap(staff);
 
   const completedTasks = tasks.filter((t) => t.status === "completed").length;
   const inProgressTasks = tasks.filter((t) => t.status === "in-progress").length;

@@ -58,7 +58,7 @@ export function MeetingFiles({ taskId, companyId }: { taskId: string; companyId?
 
   const download = async (f: MeetingFile) => {
     try {
-      const blob = await api.downloadConversationFile(taskId, f.relPath);
+      const blob = await api.downloadMeetingFile(taskId, f.relPath);
       saveBlob(blob, f.filename);
     } catch (e) {
       toast({ title: e instanceof Error ? e.message : String(e), variant: "destructive" });

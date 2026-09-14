@@ -13,6 +13,7 @@ import { StaffAvatar, departmentAvatarIconOptions } from "@/components/StaffAvat
 import { AvatarPicker, isHexColor, type AvatarMode } from "@/components/AvatarPicker";
 import { api, buildCustomGraphPayload, canDeleteItem, canEditItem, type Staff, type CustomFlow, type Department, type DepartmentMode, type DeleteImpact } from "@/lib/api";
 import { useCompanyScope, CATALOG_COMPANY_ID } from "@/hooks/use-company-scope";
+import { useByIdMap } from "@/hooks/use-by-id-map";
 import CustomFlowEditor from "@/components/department/CustomFlowEditor";
 import { DepartmentTestDialog } from "@/components/department/DepartmentTestDialog";
 import { cn } from "@/lib/utils";
@@ -47,7 +48,7 @@ export default function DepartmentBuilder() {
   const [draggedStaff, setDraggedStaff] = useState<string | null>(null);
   const [testOpen, setTestOpen] = useState(false);
   const [testingDepartment, setTestingDepartment] = useState<Department | null>(null);
-  const [testPrompt, setTestPrompt] = useState("Run a quick kickoff discussion and align responsibilities.");
+  const [testPrompt, setTestPrompt] = useState(lang.departmentBuilderPage.defaultTestPrompt);
   const [testStepLimit, setTestStepLimit] = useState("6");
   const [isTesting, setIsTesting] = useState(false);
   const [testError, setTestError] = useState("");
@@ -93,11 +94,7 @@ export default function DepartmentBuilder() {
     };
   }, [companyId]);
 
-  const staffById = useMemo(() => {
-    const map = new Map<string, Staff>();
-    staffList.forEach((a) => map.set(a.id, a));
-    return map;
-  }, [staffList]);
+  const staffById = useByIdMap(staffList);
 
   // Stable reference for CustomFlowEditor's `staff` prop — a fresh array
   // literal on every render (even with identical content) makes its
@@ -261,7 +258,7 @@ export default function DepartmentBuilder() {
     setTestingDepartment(department);
     setTestMessages([]);
     setTestError("");
-    setTestPrompt("Run a quick kickoff discussion and align responsibilities.");
+    setTestPrompt(lang.departmentBuilderPage.defaultTestPrompt);
     setTestStepLimit("6");
     setTestOpen(true);
   };
@@ -307,7 +304,7 @@ export default function DepartmentBuilder() {
       const customGraph = buildCustomGraphPayload(testingDepartment);
       const testMode = testingDepartment.mode === "custom" && !customGraph ? "sequential" : (testingDepartment.mode ?? "sequential");
       for await (const event of api.runStaffGraphStream({
-        user_input: testPrompt.trim() || "Coordinate a department execution plan.",
+        user_input: testPrompt.trim() || lang.departmentBuilderPage.defaultTestPromptFallback,
         staff: testingDepartment.staff,
         max_rounds: stepLimit,
         mode: testMode,

@@ -7,6 +7,8 @@ import { StaffAvatar } from "@/components/StaffAvatar";
 import { api, type Staff, type Message, type Task, type Department } from "@/lib/api";
 import { getStaffRoleColor } from "@/lib/staff-role-ui";
 import { useCompanyScope } from "@/hooks/use-company-scope";
+import { useByIdMap } from "@/hooks/use-by-id-map";
+import { useScopedList } from "@/hooks/use-scoped-list";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Meetings() {
@@ -18,18 +20,9 @@ export default function Meetings() {
   const [allDepartments, setDepartments] = useState<Department[]>([]);
 
   // Office scoping for the filter dropdowns.
-  const staff = useMemo(
-    () => (scope.isOverall ? allStaff : allStaff.filter((a) => scope.staffIds.has(a.id))),
-    [allStaff, scope],
-  );
-  const tasks = useMemo(
-    () => (scope.isOverall ? allTasks : allTasks.filter((t) => scope.departmentIds.has(t.departmentId))),
-    [allTasks, scope],
-  );
-  const departments = useMemo(
-    () => (scope.isOverall ? allDepartments : allDepartments.filter((t) => scope.departmentIds.has(t.id))),
-    [allDepartments, scope],
-  );
+  const staff = useScopedList(allStaff, scope.isOverall, scope.staffIds, (a) => a.id);
+  const tasks = useScopedList(allTasks, scope.isOverall, scope.departmentIds, (t) => t.departmentId);
+  const departments = useScopedList(allDepartments, scope.isOverall, scope.departmentIds, (t) => t.id);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,23 +68,9 @@ export default function Meetings() {
     };
   }, []);
 
-  const staffById = useMemo(() => {
-    const map = new Map<string, Staff>();
-    allStaff.forEach((a) => map.set(a.id, a));
-    return map;
-  }, [allStaff]);
-
-  const taskById = useMemo(() => {
-    const map = new Map<string, Task>();
-    allTasks.forEach((t) => map.set(t.id, t));
-    return map;
-  }, [allTasks]);
-
-  const departmentById = useMemo(() => {
-    const map = new Map<string, Department>();
-    allDepartments.forEach((tm) => map.set(tm.id, tm));
-    return map;
-  }, [allDepartments]);
+  const staffById = useByIdMap(allStaff);
+  const taskById = useByIdMap(allTasks);
+  const departmentById = useByIdMap(allDepartments);
 
   // Filter messages based on selected filters
   const filteredMessages = useMemo(() => {

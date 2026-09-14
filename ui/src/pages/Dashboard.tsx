@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { useStaffSimulation } from "@/hooks/use-staff-simulation";
+import { useByIdMap } from "@/hooks/use-by-id-map";
 import { api, avgCompletionOf, type Staff, type Analytics, type ActivityFeedItem, type Task, type Company, type Department } from "@/lib/api";
 import { useCompanyScope, setActiveCompanyId } from "@/hooks/use-company-scope";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -100,11 +101,7 @@ export default function Dashboard() {
     return () => { cancelled = true; };
   }, [toast]);
 
-  const staffById = useMemo(() => {
-    const map = new Map<string, Staff>();
-    allStaff.forEach((a) => map.set(a.id, a));
-    return map;
-  }, [allStaff]);
+  const staffById = useByIdMap(allStaff);
 
   // Map each department to its owning office, so deep links from the Overall view can
   // switch into the right company before opening a task.

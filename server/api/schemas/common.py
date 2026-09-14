@@ -38,7 +38,7 @@ class CreateMessageRequest(BaseModel):
 
 class MeetingFileSchema(BaseModel):
     id: str
-    conversationId: str
+    meetingId: str
     filename: str
     size: int
     contentType: str | None = None
@@ -51,7 +51,7 @@ class MeetingFileSchema(BaseModel):
     def from_record(rec: dict) -> "MeetingFileSchema":
         return MeetingFileSchema(
             id=rec.get("id", ""),
-            conversationId=rec.get("conversation_id", ""),
+            meetingId=rec.get("conversation_id", ""),
             filename=rec.get("filename", ""),
             size=rec.get("size", 0),
             contentType=rec.get("content_type"),
