@@ -23,6 +23,8 @@ from server.api.routers import (
     staff,
     analytics,
     auth,
+    auth_google_sheets,
+    auth_google_sso,
     connections,
     consumption,
     meetings,
@@ -133,6 +135,8 @@ def create_app() -> FastAPI:
     app.include_router(llm.router, prefix=settings.api_prefix)
     app.include_router(office_builder.router, prefix=settings.api_prefix)
     app.include_router(auth.router, prefix=settings.api_prefix)
+    app.include_router(auth_google_sheets.router, prefix=settings.api_prefix)
+    app.include_router(auth_google_sso.router, prefix=settings.api_prefix)
     app.include_router(companies.router, prefix=settings.api_prefix)
     app.include_router(connections.router, prefix=settings.api_prefix)
     app.include_router(webhook.router, prefix=settings.api_prefix)

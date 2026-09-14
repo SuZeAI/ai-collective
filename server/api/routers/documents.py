@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from fastapi.responses import StreamingResponse
 
 from server.api.deps import current_owner_id_dep, current_user_dep, get_document_library_service
+from server.api.ownership import require_deletable
 from server.api.routers.meetings import _ALLOWED_UPLOAD_TYPES, _MAX_UPLOAD_BYTES
 from server.api.schemas.library_document import (
     AttachToProjectRequest,
@@ -15,7 +16,7 @@ from server.api.schemas.library_document import (
 )
 from server.app.service.document_library_service import DocumentLibraryService
 from server.domain.errors import NotFoundError
-from server.domain.models import User, can_delete, is_visible_to
+from server.domain.models import User, is_visible_to
 from server.share.log import get_logger
 
 logger = get_logger(__name__)
@@ -186,11 +187,10 @@ def delete_document(
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
     existing = service.try_get_document(doc_id)
-    if existing is None:
-        return {"deleted": True}
-    if not is_visible_to(owner_id, existing.owner_id):
-        raise NotFoundError(f"Document {doc_id!r} not found")
-    if not can_delete(owner_id, existing.owner_id):
-        raise HTTPException(status_code=403, detail="Only the owner can delete this document.")
-    service.delete_document(existing)
+    require_deletable(
+        existing, owner_id, f"Document {doc_id!r}",
+        detail="Only the owner can delete this document.",
+    )
+    if existing is not None:
+        service.delete_document(existing)
     return {"deleted": True}

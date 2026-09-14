@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from server.app.ports.repositories import SprintRepository
-from server.domain.errors import NotFoundError
+from server.app.service._helpers import get_or_raise
 from server.domain.models import Sprint
 
 
@@ -16,15 +16,11 @@ class SprintService:
         return self._repo.get(sprint_id)
 
     def get_sprint(self, sprint_id: str) -> Sprint:
-        sprint = self.try_get_sprint(sprint_id)
-        if not sprint:
-            raise NotFoundError(f"Sprint '{sprint_id}' not found")
-        return sprint
+        return get_or_raise(self.try_get_sprint, "Sprint", sprint_id)
 
     def upsert_sprint(self, sprint: Sprint) -> Sprint:
         return self._repo.upsert(sprint)
 
     def delete_sprint(self, sprint_id: str) -> None:
-        if not self.try_get_sprint(sprint_id):
-            raise NotFoundError(f"Sprint '{sprint_id}' not found")
+        get_or_raise(self.try_get_sprint, "Sprint", sprint_id)
         self._repo.delete(sprint_id)

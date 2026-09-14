@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from server.app.ports.repositories import ProjectRepository
-from server.domain.errors import NotFoundError
+from server.app.service._helpers import get_or_raise
 from server.domain.models import Project
 
 
@@ -16,17 +16,13 @@ class ProjectService:
         return self._repo.get(project_id)
 
     def get_project(self, project_id: str) -> Project:
-        project = self.try_get_project(project_id)
-        if not project:
-            raise NotFoundError(f"Project '{project_id}' not found")
-        return project
+        return get_or_raise(self.try_get_project, "Project", project_id)
 
     def upsert_project(self, project: Project) -> Project:
         return self._repo.upsert(project)
 
     def delete_project(self, project_id: str) -> None:
-        if not self.try_get_project(project_id):
-            raise NotFoundError(f"Project '{project_id}' not found")
+        get_or_raise(self.try_get_project, "Project", project_id)
         self._repo.delete(project_id)
 
     def allocate_issue_number(self, project_id: str) -> int:

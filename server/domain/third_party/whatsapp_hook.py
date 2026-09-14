@@ -10,6 +10,7 @@ from server.domain.third_party.base_hook import (
     _header,
     _http_post,
     hmac_sha256_hex,
+    verify_meta_challenge,
 )
 
 WA_API = "https://graph.facebook.com/v19.0"
@@ -63,13 +64,7 @@ class WhatsAppHookProcessor(BaseHookProcessor):
     def get_verification_response(
         self, query_params: Dict[str, str], config: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
-        mode = query_params.get("hub.mode")
-        token = query_params.get("hub.verify_token")
-        challenge = query_params.get("hub.challenge")
-        verify_token = config.get("verify_token", "")
-        if mode == "subscribe" and challenge and verify_token and hmac.compare_digest(str(token or ""), str(verify_token)):
-            return {"content": challenge}
-        return None
+        return verify_meta_challenge(query_params, config)
 
     async def send_response(self, config: Dict[str, Any], chat_id: str, text: str) -> None:
         access_token = config.get("access_token", "")

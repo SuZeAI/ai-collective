@@ -37,6 +37,37 @@ def hmac_sha256_b64(secret: str, message: bytes) -> str:
     return base64.b64encode(digest).decode("utf-8")
 
 
+def verify_meta_challenge(query_params: Dict[str, str], config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Meta (WhatsApp/Messenger/Instagram) webhook GET-verification handshake:
+    echo back ``hub.challenge`` if ``hub.verify_token`` matches the configured token."""
+    mode = query_params.get("hub.mode")
+    token = query_params.get("hub.verify_token")
+    challenge = query_params.get("hub.challenge")
+    verify_token = config.get("verify_token", "")
+    if mode == "subscribe" and challenge and verify_token and hmac.compare_digest(str(token or ""), str(verify_token)):
+        return {"content": challenge}
+    return None
+
+
+def extract_messenger_style_message(body: Dict[str, Any], object_type: str) -> Optional["IncomingMessage"]:
+    """Shared entry[].messaging[] text extraction for Messenger/Instagram-shaped webhooks."""
+    if body.get("object") != object_type:
+        return None
+    for entry in body.get("entry", []):
+        for messaging in entry.get("messaging", []):
+            if "message" not in messaging:
+                continue
+            msg = messaging["message"]
+            if msg.get("is_echo"):
+                continue
+            text = msg.get("text", "").strip()
+            if not text:
+                continue
+            sender_id = str(messaging.get("sender", {}).get("id", ""))
+            return IncomingMessage(chat_id=sender_id, user_id=sender_id, text=text, raw=body)
+    return None
+
+
 @dataclass
 class IncomingMessage:
     chat_id: str

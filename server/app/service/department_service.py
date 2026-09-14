@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from server.app.ports.repositories import DepartmentRepository
-from server.domain.errors import NotFoundError
+from server.app.service._helpers import get_or_raise
 from server.domain.models import Department
 
 
@@ -16,15 +16,11 @@ class DepartmentService:
         return self._repo.get(department_id)
 
     def get_department(self, department_id: str) -> Department:
-        department = self.try_get_department(department_id)
-        if not department:
-            raise NotFoundError(f"Department '{department_id}' not found")
-        return department
+        return get_or_raise(self.try_get_department, "Department", department_id)
 
     def upsert_department(self, department: Department) -> Department:
         return self._repo.upsert(department)
 
     def delete_department(self, department_id: str) -> None:
-        if not self.try_get_department(department_id):
-            raise NotFoundError(f"Department '{department_id}' not found")
+        get_or_raise(self.try_get_department, "Department", department_id)
         self._repo.delete(department_id)

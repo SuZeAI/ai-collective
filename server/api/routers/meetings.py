@@ -49,10 +49,6 @@ _ALLOWED_UPLOAD_TYPES = {
 _MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
 
 
-def _require_task_access(task_service: TaskService, task_id: str, owner_id: str) -> None:
-    require_task_visible(task_service, task_id, owner_id, label="Task")
-
-
 @router.get("", response_model=list[MessageSchema])
 def list_messages(
     task_id: str | None = Query(default=None),
@@ -61,7 +57,7 @@ def list_messages(
     owner_id: str = Depends(current_owner_id_dep),
 ) -> list[MessageSchema]:
     if task_id is not None:
-        _require_task_access(task_service, task_id, owner_id)
+        require_task_visible(task_service, task_id, owner_id)
         messages = service.list_messages(task_id=task_id)
     else:
         # No task_id: scope to tasks this owner can see rather than returning
@@ -79,7 +75,7 @@ def add_message(
     owner_id: str = Depends(current_owner_id_dep),
 ) -> MessageSchema:
     if req.taskId:
-        _require_task_access(task_service, req.taskId, owner_id)
+        require_task_visible(task_service, req.taskId, owner_id)
     message = Message(
         id=f"m_{uuid4().hex}",
         staff_id=req.staffId,
@@ -100,7 +96,7 @@ def list_files(
     """List files attached to a conversation (user uploads + staff outputs)."""
     from server.infra.sandbox.thread_files import list_thread_files
 
-    _require_task_access(task_service, task_id, owner_id)
+    require_task_visible(task_service, task_id, owner_id)
     return [MeetingFileSchema.from_record(r) for r in list_thread_files(task_id)]
 
 
@@ -123,7 +119,7 @@ def download_file(
     from server.infra.sandbox.thread_files import list_thread_files
     from server.infra.storage.file_store import get_file_store
 
-    _require_task_access(task_service, task_id, owner_id)
+    require_task_visible(task_service, task_id, owner_id)
 
     norm = os.path.normpath(rel_path)
     if norm.startswith("..") or os.path.isabs(norm) or not norm.startswith("uploads" + os.sep):
@@ -158,7 +154,7 @@ async def upload_file(
     sandbox tools for every staff in that chat. In k8s mode the bytes are also
     pushed into the live sandbox and backed up to MinIO (best-effort).
     """
-    _require_task_access(task_service, task_id, owner_id)
+    require_task_visible(task_service, task_id, owner_id)
     if file.content_type not in _ALLOWED_UPLOAD_TYPES:
         raise HTTPException(
             status_code=400,

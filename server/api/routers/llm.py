@@ -40,10 +40,6 @@ router = APIRouter(prefix="/llm", tags=["llm"])
 logger = get_logger(__name__)
 
 
-def _require_conversation_access(task_service: TaskService, conversation_id: str, owner_id: str) -> None:
-    require_task_visible(task_service, conversation_id, owner_id, label="Meeting")
-
-
 @router.get("/models", response_model=list[LlmModelOptionSchema])
 def list_llm_models(
     _owner_id: str = Depends(current_owner_id_dep),
@@ -69,7 +65,7 @@ class ChatRequest(BaseModel):
     prompt: str = Field(min_length=1)
     system: str | None = None
     staffId: str | None = None
-    conversationId: str | None = None
+    meetingId: str | None = None
 
 
 class ChatResponse(BaseModel):
@@ -87,8 +83,8 @@ async def chat(
 ) -> ChatResponse:
     if not service:
         raise HTTPException(status_code=503, detail="LLM not configured")
-    if req.conversationId:
-        _require_conversation_access(task_service, req.conversationId, owner_id)
+    if req.meetingId:
+        require_task_visible(task_service, req.meetingId, owner_id, label="Meeting")
     system_prompt = req.system
     tools: list[object] = []
     subagent_enabled = False
@@ -126,7 +122,7 @@ async def chat(
     # the shared sandbox and inject the file/document tools so the staff can read
     # the uploads (mirrors the staff-graph path).
     prompt = req.prompt
-    if req.conversationId:
+    if req.meetingId:
         try:
             from server.domain.staff._graph_runtime import (
                 attach_meeting_sandbox,
@@ -134,8 +130,8 @@ async def chat(
             )
 
             staff_name = req.staffId or "assistant"
-            if attach_meeting_sandbox(tools, conversation_id=req.conversationId, staff_name=staff_name):
-                prompt = uploads_hint(req.conversationId) + prompt
+            if attach_meeting_sandbox(tools, conversation_id=req.meetingId, staff_name=staff_name):
+                prompt = uploads_hint(req.meetingId) + prompt
         except Exception as exc:  # noqa: BLE001 - never break a chat over file wiring
             logger.warning("attach_meeting_sandbox (direct chat) failed: %s", exc)
 
@@ -173,7 +169,7 @@ async def interject_staff_graph(
     stream event. Returns 409 when the run is no longer active so the client
     can tell the user their guidance was not consumed.
     """
-    _require_conversation_access(task_service, req.conversation_id, owner_id)
+    require_task_visible(task_service, req.conversation_id, owner_id, label="Meeting")
     content = req.content.strip()
     if not content:
         raise HTTPException(status_code=422, detail="content must not be blank")
@@ -205,7 +201,7 @@ async def respond_staff_graph(
     The tool's poll loop picks the answer up, emits ``user_input_received``
     on the stream, and returns the answer to the LLM so it continues its turn.
     """
-    _require_conversation_access(task_service, req.conversation_id, owner_id)
+    require_task_visible(task_service, req.conversation_id, owner_id, label="Meeting")
     response = req.response.strip()
     if not response:
         raise HTTPException(status_code=422, detail="response must not be blank")
@@ -237,7 +233,7 @@ async def pause_staff_graph(
 ) -> dict:
     """Interrupt an active run: the current staff finishes its turn, then the
     run holds at the turn boundary so the user can chat before resuming."""
-    _require_conversation_access(task_service, req.conversation_id, owner_id)
+    require_task_visible(task_service, req.conversation_id, owner_id, label="Meeting")
     if not task_run_registry.signal_pause(req.conversation_id):
         raise HTTPException(
             status_code=409,
@@ -254,7 +250,7 @@ async def resume_staff_graph(
 ) -> dict:
     """Release a held run; the next staff turn proceeds (and picks up any
     interjected messages queued during the hold)."""
-    _require_conversation_access(task_service, req.conversation_id, owner_id)
+    require_task_visible(task_service, req.conversation_id, owner_id, label="Meeting")
     if not task_run_registry.signal_resume(req.conversation_id):
         raise HTTPException(
             status_code=409,
@@ -297,7 +293,7 @@ async def run_staff_graph(
     if not service:
         raise HTTPException(status_code=503, detail="LLM not configured")
     if req.conversation_id:
-        _require_conversation_access(task_service, req.conversation_id, owner_id)
+        require_task_visible(task_service, req.conversation_id, owner_id, label="Meeting")
 
     try:
         definitions, staff_id_to_name = staff_service.prepare_graph_definitions(req.staff, tool_manager)
@@ -341,7 +337,7 @@ async def run_staff_graph_stream(
     if not service:
         raise HTTPException(status_code=503, detail="LLM not configured")
     if req.conversation_id:
-        _require_conversation_access(task_service, req.conversation_id, owner_id)
+        require_task_visible(task_service, req.conversation_id, owner_id, label="Meeting")
 
     try:
         definitions, staff_id_to_name = staff_service.prepare_graph_definitions(req.staff, tool_manager)

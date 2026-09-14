@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import asyncio
-import hmac
 from typing import Any, Dict, Optional
 
-from server.domain.third_party.base_hook import BaseHookProcessor, IncomingMessage, _http_post
+from server.domain.third_party.base_hook import (
+    BaseHookProcessor,
+    IncomingMessage,
+    _http_post,
+    extract_messenger_style_message,
+    verify_meta_challenge,
+)
 from server.domain.third_party.whatsapp_hook import verify_meta_signature
 
 GRAPH_API = "https://graph.facebook.com/v19.0"
@@ -19,34 +24,12 @@ class MessengerHookProcessor(BaseHookProcessor):
         return verify_meta_signature(headers, raw_body, config.get("app_secret", ""))
 
     def extract_message(self, body: Dict[str, Any]) -> Optional[IncomingMessage]:
-        if body.get("object") != "page":
-            return None
-        for entry in body.get("entry", []):
-            for messaging in entry.get("messaging", []):
-                if "message" not in messaging:
-                    continue
-                msg = messaging["message"]
-                if msg.get("is_echo"):
-                    continue
-                text = msg.get("text", "").strip()
-                if not text:
-                    continue
-                sender_id = str(messaging.get("sender", {}).get("id", ""))
-                return IncomingMessage(
-                    chat_id=sender_id, user_id=sender_id, text=text, raw=body
-                )
-        return None
+        return extract_messenger_style_message(body, "page")
 
     def get_verification_response(
         self, query_params: Dict[str, str], config: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
-        mode = query_params.get("hub.mode")
-        token = query_params.get("hub.verify_token")
-        challenge = query_params.get("hub.challenge")
-        verify_token = config.get("verify_token", "")
-        if mode == "subscribe" and challenge and verify_token and hmac.compare_digest(str(token or ""), str(verify_token)):
-            return {"content": challenge}
-        return None
+        return verify_meta_challenge(query_params, config)
 
     async def send_response(self, config: Dict[str, Any], chat_id: str, text: str) -> None:
         access_token = config.get("page_access_token", "")
