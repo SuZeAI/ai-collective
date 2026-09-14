@@ -97,7 +97,7 @@ function CompanyDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BrainCircuit className="h-4 w-4 text-teal-400" />
-            {existing ? "Edit Company" : "New Company"}
+            {existing ? lang.companiesPage.editCompanyTitle : lang.companiesPage.newCompanyTitle}
           </DialogTitle>
         </DialogHeader>
 
@@ -110,14 +110,14 @@ function CompanyDialog({
                 <div>
                   <h4 className="text-xs font-semibold text-foreground">{lang.companiesPage.importFromOffice}</h4>
                   <p className="text-[10px] text-muted-foreground leading-normal">
-                    Clone departments instantly from an existing company.
+                    {lang.companiesPage.cloneDepartmentsDesc}
                   </p>
                 </div>
               </div>
               <div className="max-w-md">
                 <Select onValueChange={handleImportFromOffice}>
                   <SelectTrigger className="h-8 text-xs bg-background/50">
-                    <SelectValue placeholder="Choose office to import from..." />
+                    <SelectValue placeholder={lang.companiesPage.chooseOfficeImportPlaceholder} />
                   </SelectTrigger>
                   <SelectContent>
                     {companies.map((ws) => (
@@ -134,12 +134,12 @@ function CompanyDialog({
           {/* Name + Description */}
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
-              <Label className="text-xs">Company Name <span className="text-rose-400">*</span></Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My AI Company" />
+              <Label className="text-xs">{lang.companiesPage.companyNameLabel} <span className="text-rose-400">*</span></Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={lang.companiesPage.companyNamePlaceholder} />
             </div>
             <div className="grid gap-1.5">
-              <Label className="text-xs">Description</Label>
-              <Input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="What this company does" />
+              <Label className="text-xs">{lang.companiesPage.descriptionLabel}</Label>
+              <Input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={lang.companiesPage.descriptionPlaceholder} />
             </div>
           </div>
 
@@ -164,7 +164,7 @@ function CompanyDialog({
           {/* Departments */}
           <div className="grid gap-2">
             <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-              Departments
+              {lang.companiesPage.departmentsLabel}
             </Label>
             {departments.length === 0 ? (
               <p className="text-xs text-muted-foreground">{lang.companiesPage.noDepartmentsYet}</p>
@@ -192,7 +192,7 @@ function CompanyDialog({
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium truncate">{t.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{t.staff.length} personnel</p>
+                        <p className="text-[10px] text-muted-foreground">{t.staff.length} {lang.companiesPage.personnelSuffix}</p>
                       </div>
                       {active && (
                         <button
@@ -204,7 +204,7 @@ function CompanyDialog({
                               : "border-border text-muted-foreground hover:border-teal-400"
                           )}
                         >
-                          {isPrimary ? "Primary" : "Set Primary"}
+                          {isPrimary ? lang.companiesPage.primaryBadge : lang.companiesPage.setPrimaryBtn}
                         </button>
                       )}
                     </div>
@@ -216,10 +216,10 @@ function CompanyDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" size="sm" onClick={onClose}>{lang.companiesPage.cancelBtn}</Button>
           <Button size="sm" onClick={submit} disabled={!name.trim()}
             className="bg-teal-600 hover:bg-teal-500">
-            {existing ? "Save Changes" : "Create Office"}
+            {existing ? lang.companiesPage.saveChangesBtn : lang.companiesPage.createOfficeBtn}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -266,7 +266,7 @@ function CompanyCard({
               {lang.companyTypes[wsType]}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground truncate">{company.description || "No description"}</p>
+          <p className="text-xs text-muted-foreground truncate">{company.description || lang.companiesPage.noDescriptionText}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 rounded-lg border border-border/40 px-2 py-1">
@@ -303,7 +303,7 @@ function CompanyCard({
             <div className="border-t border-border/40 p-4 grid gap-4">
               {/* Departments */}
               <div>
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Departments</p>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">{lang.companiesPage.departmentsLabel}</p>
                 {wsDepartments.length === 0 ? (
                   <p className="text-xs text-muted-foreground">{lang.companiesPage.noDepartmentsAssigned}</p>
                 ) : (
@@ -316,7 +316,7 @@ function CompanyCard({
                         <span className="text-xs font-medium">{t.name}</span>
                         {company.primaryDepartmentId === t.id && (
                           <Badge variant="outline" className="text-[9px] h-4 px-1 border-teal-500/50 text-teal-400">
-                            primary
+                            {lang.companiesPage.primaryLowercaseBadge}
                           </Badge>
                         )}
                       </div>
@@ -404,7 +404,7 @@ export default function Companies() {
       setDeletingImpact(await api.getCompanyDeleteImpact(ws.id));
     } catch (e) {
       console.error(e);
-      toast({ title: "Could not check delete impact", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.companiesPage.couldNotCheckDeleteImpact, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -426,25 +426,24 @@ export default function Companies() {
               <BrainCircuit className="h-5 w-5 text-teal-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Manage Companies</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{lang.companiesPage.manageCompaniesTitle}</h1>
               <p className="text-sm text-muted-foreground">
-                Create and control companies — group departments into a company. Connect messaging apps from each
-                company's Platform page.
+                {lang.companiesPage.pageSubtitle}
               </p>
             </div>
           </div>
         </div>
         <Button onClick={openNew} className="gap-2 bg-teal-600 hover:bg-teal-500 shadow-lg shadow-teal-500/20">
           <Plus className="h-4 w-4" />
-          New Company
+          {lang.companiesPage.newCompanyTitle}
         </Button>
       </div>
 
       {/* Stats bar */}
       <div className="grid grid-cols-2 gap-4">
         {[
-          { label: "Companies", value: companies.length, icon: BrainCircuit, color: "text-teal-400" },
-          { label: "Departments", value: departments.length, icon: Users, color: "text-violet-400" },
+          { label: lang.companiesPage.statsCompaniesLabel, value: companies.length, icon: BrainCircuit, color: "text-teal-400" },
+          { label: lang.companiesPage.departmentsLabel, value: departments.length, icon: Users, color: "text-violet-400" },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="rounded-2xl border border-border/40 bg-card/40 p-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center">
@@ -462,7 +461,7 @@ export default function Companies() {
       {wsLoading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
           <RefreshCw className="h-5 w-5 animate-spin mr-2" />
-          Loading companies...
+          {lang.companiesPage.loadingCompaniesText}
         </div>
       ) : companies.length === 0 ? (
         <motion.div

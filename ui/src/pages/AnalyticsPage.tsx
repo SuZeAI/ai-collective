@@ -33,6 +33,7 @@ import { useCompanyScope } from "@/hooks/use-company-scope";
 import { useByIdMap } from "@/hooks/use-by-id-map";
 import { useScopedList } from "@/hooks/use-scoped-list";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const ROLE_COLORS: Record<string, string> = {
   manager: "hsl(350 75% 55%)",
@@ -94,17 +95,18 @@ function KpiCard({
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const { t: lang } = useLanguage();
   const map: Record<string, { label: string; cls: string }> = {
     completed: {
-      label: "Done",
+      label: lang.analyticsPage.statusDone,
       cls: "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400",
     },
     "in-progress": {
-      label: "Active",
+      label: lang.analyticsPage.statusActive,
       cls: "bg-primary/10 text-primary border-primary/20",
     },
     pending: {
-      label: "Pending",
+      label: lang.analyticsPage.statusPending,
       cls: "bg-muted text-muted-foreground border-border",
     },
   };
@@ -121,6 +123,7 @@ function StatusBadge({ status }: { status: string }) {
 export default function AnalyticsPage() {
   const scope = useCompanyScope();
   const { toast } = useToast();
+  const { t: lang } = useLanguage();
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [allTasks, setTasks] = useState<Task[]>([]);
@@ -154,7 +157,7 @@ export default function AnalyticsPage() {
         setDepartments(tms);
       } catch (e) {
         console.error(e);
-        toast({ title: "Could not load analytics", description: String((e as Error).message ?? e), variant: "destructive" });
+        toast({ title: lang.analyticsPage.couldNotLoadAnalytics, description: String((e as Error).message ?? e), variant: "destructive" });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -162,7 +165,7 @@ export default function AnalyticsPage() {
     return () => {
       cancelled = true;
     };
-  }, [refreshKey, toast]);
+  }, [refreshKey, toast, lang.analyticsPage.couldNotLoadAnalytics]);
 
   const staffById = useByIdMap(staff);
 
@@ -193,19 +196,19 @@ export default function AnalyticsPage() {
 
   const kpiCards = [
     {
-      label: "Tasks Completed",
+      label: lang.analyticsPage.kpiTasksCompleted,
       value: String(scope.isOverall ? analytics?.tasksCompleted ?? 0 : completedTasks),
       icon: CheckCircle2,
       color: KPI_COLORS.success,
     },
     {
-      label: "Avg. Completion",
+      label: lang.analyticsPage.kpiAvgCompletion,
       value: scope.isOverall ? analytics?.avgCompletionTime ?? "—" : avgCompletionOf(tasks),
       icon: Clock,
       color: KPI_COLORS.primary,
     },
     {
-      label: "Department Efficiency",
+      label: lang.analyticsPage.kpiDeptEfficiency,
       value: scope.isOverall
         ? analytics
           ? `${analytics.departmentEfficiency}%`
@@ -217,7 +220,7 @@ export default function AnalyticsPage() {
       color: KPI_COLORS.warning,
     },
     {
-      label: "Active Departments",
+      label: lang.analyticsPage.kpiActiveDepartments,
       value: String(departments.length),
       icon: Users,
       color: KPI_COLORS.info,
@@ -229,11 +232,11 @@ export default function AnalyticsPage() {
       {/* Header */}
       <header className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-1">Analytics</h1>
+          <h1 className="text-3xl font-bold tracking-tight mb-1">{lang.analyticsPage.pageTitle}</h1>
           <p className="text-muted-foreground text-sm">
             {scope.company
-              ? <>Performance metrics of office <span className="font-semibold text-foreground">{scope.company.name}</span>.</>
-              : "Department performance metrics and productivity insights across all offices."}
+              ? <>{lang.analyticsPage.subtitleOfficePrefix}<span className="font-semibold text-foreground">{scope.company.name}</span>{lang.analyticsPage.subtitleOfficeSuffix}</>
+              : lang.analyticsPage.subtitleAllOffices}
           </p>
         </div>
         <Button
@@ -244,7 +247,7 @@ export default function AnalyticsPage() {
           className="gap-2 shrink-0"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-          Refresh
+          {lang.analyticsPage.refreshBtn}
         </Button>
       </header>
 
@@ -268,10 +271,10 @@ export default function AnalyticsPage() {
         <div className="glass-card p-5">
           <div className="flex items-center gap-2 mb-5">
             <Activity className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-semibold">Personnel Productivity</h3>
+            <h3 className="text-sm font-semibold">{lang.analyticsPage.personnelProductivityTitle}</h3>
             {!loading && (
               <span className="ml-auto text-xs text-muted-foreground">
-                {productivityData.length} members
+                {productivityData.length} {lang.analyticsPage.productivityMembersSuffix}
               </span>
             )}
           </div>
@@ -291,7 +294,7 @@ export default function AnalyticsPage() {
           ) : productivityData.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-14 gap-3">
               <Award className="w-9 h-9 text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">No personnel data yet</p>
+              <p className="text-sm text-muted-foreground">{lang.analyticsPage.noPersonnelDataText}</p>
             </div>
           ) : (
             <>
@@ -350,7 +353,7 @@ export default function AnalyticsPage() {
               {/* Bar Chart */}
               <div className="pt-4 border-t border-border">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
-                  Comparison Chart
+                  {lang.analyticsPage.comparisonChartLabel}
                 </p>
                 <ResponsiveContainer width="100%" height={110}>
                   <BarChart
@@ -379,7 +382,7 @@ export default function AnalyticsPage() {
                     <Tooltip
                       contentStyle={tooltipStyle}
                       cursor={{ fill: "hsl(var(--muted))", opacity: 0.5 }}
-                      formatter={(v: number) => [`${v}%`, "Productivity"]}
+                      formatter={(v: number) => [`${v}%`, lang.analyticsPage.productivityTooltipLabel]}
                     />
                     <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={36}>
                       {productivityData.map((entry, index) => (
@@ -401,7 +404,7 @@ export default function AnalyticsPage() {
         <div className="glass-card p-5">
           <div className="flex items-center gap-2 mb-5">
             <Target className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-semibold">Task Status</h3>
+            <h3 className="text-sm font-semibold">{lang.analyticsPage.taskStatusTitle}</h3>
           </div>
 
           {loading ? (
@@ -416,7 +419,7 @@ export default function AnalyticsPage() {
           ) : taskStatusData.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-14 gap-3">
               <Zap className="w-9 h-9 text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">No tasks yet</p>
+              <p className="text-sm text-muted-foreground">{lang.analyticsPage.noTasksYetText}</p>
             </div>
           ) : (
             <>
@@ -441,7 +444,7 @@ export default function AnalyticsPage() {
                   </PieChart>
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                     <span className="text-2xl font-bold">{tasks.length}</span>
-                    <span className="text-[10px] text-muted-foreground">tasks</span>
+                    <span className="text-[10px] text-muted-foreground">{lang.analyticsPage.tasksLabel}</span>
                   </div>
                 </div>
               </div>
@@ -483,10 +486,10 @@ export default function AnalyticsPage() {
         <div className="glass-card p-5 min-w-0">
           <div className="flex items-center gap-2 mb-5">
             <CheckCircle2 className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-semibold">Recent Tasks</h3>
+            <h3 className="text-sm font-semibold">{lang.analyticsPage.recentTasksTitle}</h3>
             {!loading && (
               <span className="ml-auto text-xs text-muted-foreground">
-                {tasks.length} total
+                {tasks.length} {lang.analyticsPage.totalSuffix}
               </span>
             )}
           </div>
@@ -506,7 +509,7 @@ export default function AnalyticsPage() {
           ) : tasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
               <Activity className="w-9 h-9 text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">No tasks recorded</p>
+              <p className="text-sm text-muted-foreground">{lang.analyticsPage.noTasksRecordedText}</p>
             </div>
           ) : (
             <div className="space-y-1">
@@ -538,7 +541,7 @@ export default function AnalyticsPage() {
               ))}
               {tasks.length > 8 && (
                 <p className="text-xs text-muted-foreground text-center pt-2 pb-1">
-                  +{tasks.length - 8} more tasks
+                  +{tasks.length - 8}{lang.analyticsPage.moreTasksSuffix}
                 </p>
               )}
             </div>
@@ -549,10 +552,10 @@ export default function AnalyticsPage() {
         <div className="glass-card p-5">
           <div className="flex items-center gap-2 mb-5">
             <Users className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-semibold">Departments</h3>
+            <h3 className="text-sm font-semibold">{lang.analyticsPage.departmentsTitle}</h3>
             {!loading && (
               <span className="ml-auto text-xs text-muted-foreground">
-                {departments.length} active
+                {departments.length} {lang.analyticsPage.activeSuffix}
               </span>
             )}
           </div>
@@ -572,7 +575,7 @@ export default function AnalyticsPage() {
           ) : departments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
               <Users className="w-9 h-9 text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">No departments yet</p>
+              <p className="text-sm text-muted-foreground">{lang.analyticsPage.noDepartmentsYetText}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -591,9 +594,8 @@ export default function AnalyticsPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold truncate">{department.name}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {department.staff.length} member
-                      {department.staff.length !== 1 ? "s" : ""}
-                      {department.activeTasks ? ` · ${department.activeTasks} active` : ""}
+                      {department.staff.length} {department.staff.length !== 1 ? lang.analyticsPage.membersLabel : lang.analyticsPage.memberLabel}
+                      {department.activeTasks ? ` · ${department.activeTasks} ${lang.analyticsPage.activeSuffix}` : ""}
                     </p>
                   </div>
                   {department.activeTasks > 0 && (

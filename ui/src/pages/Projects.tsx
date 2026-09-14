@@ -15,19 +15,21 @@ import { useToast } from "@/hooks/use-toast";
 import { useCompanyScope } from "@/hooks/use-company-scope";
 import { useByIdMap } from "@/hooks/use-by-id-map";
 import { useScopedList } from "@/hooks/use-scoped-list";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 
 const PLANNER_NONE = "__none__";
 
 const QUICK_LINKS = [
-  { to: "board", label: "Board", icon: Columns3 },
-  { to: "backlog", label: "Backlog", icon: ListTodo },
-  { to: "roadmap", label: "Roadmap", icon: MapIcon },
-  { to: "reports", label: "Reports", icon: BarChart3 },
+  { to: "board", labelKey: "quickLinkBoard", icon: Columns3 },
+  { to: "backlog", labelKey: "quickLinkBacklog", icon: ListTodo },
+  { to: "roadmap", labelKey: "quickLinkRoadmap", icon: MapIcon },
+  { to: "reports", labelKey: "quickLinkReports", icon: BarChart3 },
 ] as const;
 
 export default function Projects() {
   const { toast } = useToast();
+  const { t: lang } = useLanguage();
   const scope = useCompanyScope();
   const [projects, setProjects] = useState<Project[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -162,19 +164,19 @@ export default function Projects() {
       setOpen(false);
       await load();
     } catch (e) {
-      toast({ title: "Could not save project", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.projectsPage.couldNotSaveProject, description: String((e as Error).message ?? e), variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
   const remove = async (p: Project) => {
-    if (!confirm(`Delete project "${p.name}"? Its issues, epics and sprints will be deleted too.`)) return;
+    if (!confirm(`${lang.projectsPage.deleteProjectConfirmPrefix}${p.name}${lang.projectsPage.deleteProjectConfirmSuffix}`)) return;
     try {
       await api.deleteProject(p.id);
       await load();
     } catch (e) {
-      toast({ title: "Could not delete", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.projectsPage.couldNotDelete, description: String((e as Error).message ?? e), variant: "destructive" });
     }
   };
 
@@ -187,8 +189,8 @@ export default function Projects() {
             <FolderKanban className="w-5 h-5 text-cyan-400" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground leading-none">Projects</h1>
-            <p className="text-xs text-muted-foreground mt-1.5">IT projects · issues, epics, sprints &amp; an AI planner</p>
+            <h1 className="text-xl font-bold tracking-tight text-foreground leading-none">{lang.projectsPage.pageTitle}</h1>
+            <p className="text-xs text-muted-foreground mt-1.5">{lang.projectsPage.pageSubtitle}</p>
           </div>
         </div>
 
@@ -197,15 +199,15 @@ export default function Projects() {
             <div className="hidden sm:flex items-center gap-4 pr-4 border-r border-border/60">
               <div className="text-center">
                 <p className="text-lg font-bold leading-none text-foreground">{projects.length}</p>
-                <p className="text-[10px] text-muted-foreground mt-1">Projects</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{lang.projectsPage.statsProjects}</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold leading-none text-foreground">{totalIssues}</p>
-                <p className="text-[10px] text-muted-foreground mt-1">Issues</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{lang.projectsPage.statsIssues}</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold leading-none text-foreground">{withPlannerCount}</p>
-                <p className="text-[10px] text-muted-foreground mt-1">With planner</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{lang.projectsPage.statsWithPlanner}</p>
               </div>
             </div>
           )}
@@ -213,49 +215,49 @@ export default function Projects() {
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
             <DialogTrigger asChild>
               <Button size="sm" onClick={openCreate} className="h-9 gap-1.5 text-xs bg-teal-600 hover:bg-teal-500 shadow-lg shadow-teal-600/20">
-                <Plus className="w-3.5 h-3.5" /> New Project
+                <Plus className="w-3.5 h-3.5" /> {lang.projectsPage.newProjectBtn}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <FolderKanban className="w-4 h-4 text-cyan-400" />
-                  {editingId ? "Edit Project" : "Create Project"}
+                  {editingId ? lang.projectsPage.editProjectTitle : lang.projectsPage.createProjectTitle}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-2">
                 <div className="flex items-center gap-3">
                   <span className="shrink-0 px-2.5 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-mono font-bold">
-                    {key || "KEY"}
+                    {key || lang.projectsPage.keyPlaceholder}
                   </span>
                   <div className="flex-1 space-y-1.5">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Name</label>
-                    <Input placeholder="Project name" value={name} onChange={(e) => setName(e.target.value)} className="h-9 text-xs" />
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">{lang.projectsPage.nameLabel}</label>
+                    <Input placeholder={lang.projectsPage.namePlaceholder} value={name} onChange={(e) => setName(e.target.value)} className="h-9 text-xs" />
                   </div>
                 </div>
-                <Textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[80px] resize-none text-xs" />
+                <Textarea placeholder={lang.projectsPage.descriptionPlaceholder} value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[80px] resize-none text-xs" />
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                      <UserCircle2 className="w-3 h-3" /> Project lead
+                      <UserCircle2 className="w-3 h-3" /> {lang.projectsPage.projectLeadLabel}
                     </label>
                     <Select value={leadId} onValueChange={setLeadId}>
-                      <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
+                      <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={lang.projectsPage.nonePlaceholder} /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={PLANNER_NONE}>None</SelectItem>
+                        <SelectItem value={PLANNER_NONE}>{lang.projectsPage.noneOption}</SelectItem>
                         {scopedStaff.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                      <Bot className="w-3 h-3" /> Planner staff
+                      <Bot className="w-3 h-3" /> {lang.projectsPage.plannerStaffLabel}
                     </label>
                     <Select value={plannerStaffId} onValueChange={setPlannerStaffId}>
-                      <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
+                      <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={lang.projectsPage.nonePlaceholder} /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={PLANNER_NONE}>None</SelectItem>
+                        <SelectItem value={PLANNER_NONE}>{lang.projectsPage.noneOption}</SelectItem>
                         {scopedStaff.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -263,9 +265,9 @@ export default function Projects() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Planner instructions (optional override)</label>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">{lang.projectsPage.plannerInstructionsLabel}</label>
                   <Textarea
-                    placeholder="How should the planner break work into issues? Leave blank to use the selected staff's own system prompt."
+                    placeholder={lang.projectsPage.plannerInstructionsPlaceholder}
                     value={plannerSystemPrompt}
                     onChange={(e) => setPlannerSystemPrompt(e.target.value)}
                     className="min-h-[80px] resize-none text-xs"
@@ -277,7 +279,7 @@ export default function Projects() {
                   className="w-full bg-teal-600 hover:bg-teal-500"
                   disabled={!key.trim() || !name.trim() || saving}
                 >
-                  {editingId ? "Save Changes" : "Create Project"}
+                  {editingId ? lang.projectsPage.saveChangesBtn : lang.projectsPage.createProjectTitle}
                 </Button>
               </div>
             </DialogContent>
@@ -301,12 +303,12 @@ export default function Projects() {
             <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br from-cyan-500/10 to-teal-600/10 border border-cyan-500/20 mb-6">
               <FolderKanban className="w-9 h-9 text-cyan-400/60" />
             </div>
-            <h2 className="text-lg font-semibold text-foreground mb-2">No projects yet</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-2">{lang.projectsPage.noProjectsTitle}</h2>
             <p className="text-sm text-muted-foreground max-w-sm mb-6">
-              Create your first IT project to organize issues into epics and sprints, with an AI planner to help.
+              {lang.projectsPage.noProjectsDesc}
             </p>
             <Button onClick={openCreate} className="gap-2 bg-teal-600 hover:bg-teal-500">
-              <Plus className="h-4 w-4" /> Create your first project
+              <Plus className="h-4 w-4" /> {lang.projectsPage.createFirstProjectBtn}
             </Button>
           </motion.div>
         ) : (
@@ -336,17 +338,17 @@ export default function Projects() {
                           "text-[11px] text-muted-foreground mt-1.5 line-clamp-2",
                           !p.description && "italic opacity-60",
                         )}>
-                          {p.description || "No description"}
+                          {p.description || lang.projectsPage.noDescriptionText}
                         </p>
                       </Link>
                       <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         {canEditItem(p) && (
-                          <button onClick={() => openEdit(p)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" title="Edit">
+                          <button onClick={() => openEdit(p)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" title={lang.projectsPage.editAriaTitle}>
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                         )}
                         {canDeleteItem(p) && (
-                          <button onClick={() => remove(p)} className="p-1.5 rounded-md hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500" title="Delete">
+                          <button onClick={() => remove(p)} className="p-1.5 rounded-md hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500" title={lang.projectsPage.deleteAriaTitle}>
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
@@ -356,11 +358,11 @@ export default function Projects() {
                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                       <div className="flex items-center gap-1.5">
                         <ListChecks className="w-3 h-3" />
-                        <span>{issuesByProject.get(p.id) ?? 0} issues</span>
+                        <span>{issuesByProject.get(p.id) ?? 0} {lang.projectsPage.issuesSuffix}</span>
                       </div>
                       <div className="flex items-center gap-1.5 min-w-0">
                         <Bot className="w-3 h-3 shrink-0" />
-                        {planner ? <span className="text-foreground/80 font-medium truncate">{planner.name}</span> : <span className="opacity-60">No planner</span>}
+                        {planner ? <span className="text-foreground/80 font-medium truncate">{planner.name}</span> : <span className="opacity-60">{lang.projectsPage.noPlannerText}</span>}
                       </div>
                     </div>
 
@@ -369,18 +371,18 @@ export default function Projects() {
                         <div className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold bg-gradient-to-br from-violet-500 to-indigo-600 text-white shrink-0">
                           {lead.name[0]}
                         </div>
-                        <span>Led by <span className="text-foreground/80 font-medium">{lead.name}</span></span>
+                        <span>{lang.projectsPage.ledByPrefix}<span className="text-foreground/80 font-medium">{lead.name}</span></span>
                       </div>
                     )}
 
                     <div className="grid grid-cols-4 gap-1 mt-auto pt-2 border-t border-border/30">
-                      {QUICK_LINKS.map(({ to, label, icon: Icon }) => (
+                      {QUICK_LINKS.map(({ to, labelKey, icon: Icon }) => (
                         <Link
                           key={to}
                           to={`/projects/${p.key}/${to}`}
                           className="flex flex-col items-center gap-1 py-1.5 rounded-lg hover:bg-cyan-500/10 text-[9px] font-semibold text-muted-foreground hover:text-cyan-400 transition-colors"
                         >
-                          <Icon className="w-3.5 h-3.5" /> {label}
+                          <Icon className="w-3.5 h-3.5" /> {lang.projectsPage[labelKey]}
                         </Link>
                       ))}
                     </div>

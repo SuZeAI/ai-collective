@@ -28,6 +28,7 @@ import {
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 
 // What a connection's dialog collects before saving. Mirrors Connection minus
@@ -114,6 +115,7 @@ function ConnectionDialog({
   staff: Staff[];              // already scoped to the active company
   onSave: (draft: DraftConnection) => void;
 }) {
+  const { t: lang } = useLanguage();
   const [platform, setPlatform] = useState("");
   const [name, setName] = useState("");
   const [config, setConfig] = useState<Record<string, string>>({});
@@ -202,17 +204,17 @@ function ConnectionDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plug className="h-4 w-4 text-teal-400" />
-            {existing ? "Edit App" : "Add App"}
+            {existing ? lang.platformPage.editAppTitle : lang.platformPage.addAppTitle}
           </DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
           {/* Platform selector (locked when editing) */}
           <div className="grid gap-1.5">
-            <Label className="text-xs">Platform</Label>
+            <Label className="text-xs">{lang.platformPage.platformLabel}</Label>
             <Select value={platform} onValueChange={handlePlatformChange} disabled={!!existing}>
               <SelectTrigger className="h-9">
-                <SelectValue placeholder="Select platform..." />
+                <SelectValue placeholder={lang.platformPage.selectPlatformPlaceholder} />
               </SelectTrigger>
               <SelectContent>
                 {platforms.map((p) => (
@@ -241,7 +243,7 @@ function ConnectionDialog({
                 )}
               >
                 <Link2 className="h-3.5 w-3.5" />
-                Use saved connection
+                {lang.platformPage.useSavedConnectionBtn}
                 <span className="ml-1 bg-teal-500/20 text-teal-300 rounded-full px-1.5 text-[9px]">
                   {savedForPlatform.length}
                 </span>
@@ -257,7 +259,7 @@ function ConnectionDialog({
                 )}
               >
                 <Settings2 className="h-3.5 w-3.5" />
-                Configure manually
+                {lang.platformPage.configureManuallyBtn}
               </button>
             </div>
           )}
@@ -265,7 +267,7 @@ function ConnectionDialog({
           {/* Saved connections picker */}
           {platform && !existing && mode === "saved" && savedForPlatform.length > 0 && (
             <div className="grid gap-2">
-              <Label className="text-xs text-muted-foreground">Choose saved connection</Label>
+              <Label className="text-xs text-muted-foreground">{lang.platformPage.chooseSavedConnectionLabel}</Label>
               {savedForPlatform.map((c) => (
                 <button
                   key={c.id}
@@ -304,9 +306,9 @@ function ConnectionDialog({
           {/* App name */}
           {platform && (
             <div className="grid gap-1.5">
-              <Label className="text-xs">App Name <span className="text-rose-400">*</span></Label>
+              <Label className="text-xs">{lang.platformPage.appNameLabel} <span className="text-rose-400">*</span></Label>
               <Input
-                placeholder="e.g. Customer Support Bot"
+                placeholder={lang.platformPage.appNamePlaceholder}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="h-9"
@@ -318,13 +320,13 @@ function ConnectionDialog({
           {platform && (
             <div className="grid gap-2 rounded-xl border border-border/40 p-3">
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-                Receives messages
+                {lang.platformPage.receivesMessagesLabel}
               </Label>
               <div className="grid grid-cols-3 gap-2">
                 {([
-                  { key: "default", label: "Primary dept", icon: Building2 },
-                  { key: "department", label: "Department", icon: Users },
-                  { key: "staff", label: "Specific staff", icon: UserRound },
+                  { key: "default", label: lang.platformPage.routingPrimaryDept, icon: Building2 },
+                  { key: "department", label: lang.platformPage.routingDepartment, icon: Users },
+                  { key: "staff", label: lang.platformPage.routingSpecificStaff, icon: UserRound },
                 ] as { key: RoutingMode; label: string; icon: typeof Users }[]).map((opt) => (
                   <button
                     key={opt.key}
@@ -345,18 +347,18 @@ function ConnectionDialog({
 
               {routingMode === "default" && (
                 <p className="text-[10px] text-muted-foreground">
-                  Messages route to the company's primary department.
+                  {lang.platformPage.routesToPrimaryText}
                 </p>
               )}
 
               {routingMode === "department" && (
                 <Select value={routingDepartmentId} onValueChange={setRoutingDepartmentId}>
                   <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Choose a department..." />
+                    <SelectValue placeholder={lang.platformPage.chooseDepartmentPlaceholder} />
                   </SelectTrigger>
                   <SelectContent>
                     {departments.length === 0 ? (
-                      <div className="px-2 py-1.5 text-xs text-muted-foreground">No departments in this company</div>
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">{lang.platformPage.noDepartmentsInCompanyText}</div>
                     ) : departments.map((d) => (
                       <SelectItem key={d.id} value={d.id} className="text-xs">
                         {(d.avatar || "🏢") + " " + d.name}
@@ -369,7 +371,7 @@ function ConnectionDialog({
               {routingMode === "staff" && (
                 <div className="grid gap-1.5 max-h-44 overflow-y-auto">
                   {staff.length === 0 ? (
-                    <p className="text-[10px] text-muted-foreground">No staff in this company.</p>
+                    <p className="text-[10px] text-muted-foreground">{lang.platformPage.noStaffInCompanyText}</p>
                   ) : staff.map((s) => {
                     const active = routingStaffIds.includes(s.id);
                     return (
@@ -401,16 +403,16 @@ function ConnectionDialog({
           {/* Enabled */}
           {platform && (
             <div className="flex items-center justify-between rounded-lg border border-border/40 px-3 py-2">
-              <Label className="text-xs">Enabled</Label>
+              <Label className="text-xs">{lang.platformPage.enabledLabel}</Label>
               <Switch checked={enabled} onCheckedChange={setEnabled} className="scale-75" />
             </div>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" size="sm" onClick={onClose}>{lang.platformPage.cancelBtn}</Button>
           <Button size="sm" onClick={submit} disabled={!canSubmit} className="bg-teal-600 hover:bg-teal-500">
-            {existing ? "Save Changes" : "Add App"}
+            {existing ? lang.platformPage.saveChangesBtn : lang.platformPage.addAppTitle}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -432,6 +434,7 @@ function ConnectionCard({
   onToggle: () => void;
   onDelete: () => void;
 }) {
+  const { t: lang } = useLanguage();
   const pLabel = platforms.find((p) => p.platform === conn.platform)?.label || conn.platform;
   const url = getWebhookUrl(companyId, conn.id, conn.platform);
 
@@ -441,11 +444,11 @@ function ConnectionCard({
     const names = conn.routingStaffIds
       .map((id) => staff.find((s) => s.id === id)?.name)
       .filter(Boolean);
-    target = names.length ? names.join(", ") : `${conn.routingStaffIds.length} staff`;
+    target = names.length ? names.join(", ") : `${conn.routingStaffIds.length} ${lang.platformPage.staffCountSuffix}`;
   } else if (mode === "department") {
-    target = departments.find((d) => d.id === conn.routingDepartmentId)?.name || "Department";
+    target = departments.find((d) => d.id === conn.routingDepartmentId)?.name || lang.platformPage.departmentFallback;
   } else {
-    target = "Primary department";
+    target = lang.platformPage.primaryDepartmentText;
   }
 
   return (
@@ -471,26 +474,26 @@ function ConnectionCard({
             <p className="text-sm font-medium truncate">{conn.name}</p>
             <Badge variant={conn.enabled ? "default" : "outline"}
               className={cn("text-[9px] h-4 px-1.5", conn.enabled ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "")}>
-              {conn.enabled ? "active" : "disabled"}
+              {conn.enabled ? lang.platformPage.activeBadge : lang.platformPage.disabledBadge}
             </Badge>
           </div>
           <p className="text-[11px] text-muted-foreground">{pLabel}</p>
         </div>
         <Switch checked={conn.enabled} onCheckedChange={onToggle} className="scale-75" />
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={onEdit} title="Edit">
+        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={onEdit} title={lang.platformPage.editTitle}>
           <Pencil className="h-3.5 w-3.5" />
         </Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={onCopy} title="Copy">
+        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={onCopy} title={lang.platformPage.copyTitle}>
           <Copy className="h-3.5 w-3.5" />
         </Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-rose-400" onClick={onDelete} title="Delete">
+        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-rose-400" onClick={onDelete} title={lang.platformPage.deleteTitle}>
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </div>
 
       <div className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
         {mode === "staff" ? <UserRound className="h-3 w-3" /> : <Users className="h-3 w-3" />}
-        <span>Receives messages → </span>
+        <span>{lang.platformPage.receivesMessagesArrow}</span>
         <span className="text-foreground/80 font-medium truncate">{target}</span>
       </div>
 
@@ -504,6 +507,7 @@ function ConnectionCard({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function Platform() {
   const { toast } = useToast();
+  const { t: lang } = useLanguage();
   const qc = useQueryClient();
   const scope = useCompanyScope();
   const company = scope.company;
@@ -567,14 +571,14 @@ export default function Platform() {
         routingDepartmentId: draft.routingDepartmentId,
         routingStaffIds: draft.routingStaffIds,
       }),
-    onSuccess: () => { invalidate(); toast({ title: "App saved" }); },
-    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onSuccess: () => { invalidate(); toast({ title: lang.platformPage.appSavedToast }); },
+    onError: (e: Error) => toast({ title: lang.platformPage.errorTitle, description: e.message, variant: "destructive" }),
   });
 
   const remove = useMutation({
     mutationFn: (id: string) => api.deleteConnection(id),
-    onSuccess: () => { invalidate(); toast({ title: "App deleted" }); },
-    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onSuccess: () => { invalidate(); toast({ title: lang.platformPage.appDeletedToast }); },
+    onError: (e: Error) => toast({ title: lang.platformPage.errorTitle, description: e.message, variant: "destructive" }),
   });
 
   const handleToggle = (c: Connection) =>
@@ -609,7 +613,7 @@ export default function Platform() {
     return (
       <div className="flex items-center justify-center py-20 text-muted-foreground">
         <RefreshCw className="h-5 w-5 animate-spin mr-2" />
-        Loading company...
+        {lang.platformPage.loadingCompanyText}
       </div>
     );
   }
@@ -623,16 +627,15 @@ export default function Platform() {
             <Plug className="h-5 w-5 text-teal-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Platform</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{lang.platformPage.pageTitle}</h1>
             <p className="text-sm text-muted-foreground">
-              Connect <span className="font-medium text-foreground/80">{company.name}</span> to Telegram and other
-              apps, and choose who handles each app's messages.
+              {lang.platformPage.subtitlePrefix}<span className="font-medium text-foreground/80">{company.name}</span>{lang.platformPage.subtitleSuffix}
             </p>
           </div>
         </div>
         <Button onClick={openNew} className="gap-2 bg-teal-600 hover:bg-teal-500 shadow-lg shadow-teal-500/20">
           <Plus className="h-4 w-4" />
-          Add App
+          {lang.platformPage.addAppTitle}
         </Button>
       </div>
 
@@ -640,7 +643,7 @@ export default function Platform() {
       {isLoading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
           <RefreshCw className="h-5 w-5 animate-spin mr-2" />
-          Loading apps...
+          {lang.platformPage.loadingAppsText}
         </div>
       ) : connections.length === 0 ? (
         <motion.div
@@ -651,14 +654,13 @@ export default function Platform() {
           <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br from-teal-500/10 to-cyan-600/10 border border-teal-500/20 mb-6">
             <Plug className="h-9 w-9 text-teal-400/60" />
           </div>
-          <h2 className="text-xl font-semibold mb-2">No apps connected yet</h2>
+          <h2 className="text-xl font-semibold mb-2">{lang.platformPage.noAppsTitle}</h2>
           <p className="text-sm text-muted-foreground max-w-sm mb-6">
-            Add a Telegram bot or another messaging app so users can reach this company. You decide whether a
-            department or specific staff handle the meeting.
+            {lang.platformPage.noAppsDesc}
           </p>
           <Button onClick={openNew} className="gap-2 bg-teal-600 hover:bg-teal-500">
             <Plus className="h-4 w-4" />
-            Add your first app
+            {lang.platformPage.addFirstAppBtn}
           </Button>
         </motion.div>
       ) : (
@@ -698,20 +700,19 @@ export default function Platform() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(undefined)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete app?</AlertDialogTitle>
+            <AlertDialogTitle>{lang.platformPage.deleteAppConfirmTitle}</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting ? (
                 <>
-                  Remove <span className="font-semibold text-foreground">{deleting.name}</span> from this company?
-                  Its webhook URL will stop working. This action cannot be undone.
+                  {lang.platformPage.deleteAppConfirmPrefix}<span className="font-semibold text-foreground">{deleting.name}</span>{lang.platformPage.deleteAppConfirmSuffix}
                 </>
               ) : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{lang.platformPage.cancelBtn}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-rose-600 hover:bg-rose-500 text-white">
-              Delete app
+              {lang.platformPage.deleteAppBtn}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

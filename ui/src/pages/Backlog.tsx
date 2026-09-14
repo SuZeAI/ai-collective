@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useScopedProject } from "@/hooks/use-scoped-project";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 
 const NONE = "__none__";
@@ -27,6 +28,7 @@ const TYPE_CLS: Record<string, string> = {
 export default function Backlog() {
   const { key: projectKey = "" } = useParams<{ key: string }>();
   const { toast } = useToast();
+  const { t: lang } = useLanguage();
   const fetchRelated = useCallback(async () => {
     const [epics, sprints, issues] = await Promise.all([api.listEpics(), api.listSprints(), api.listTasks()]);
     return { epics, sprints, issues };
@@ -41,15 +43,15 @@ export default function Backlog() {
       await api.upsertTask({ ...issue, sprintId });
       await load();
     } catch (e) {
-      toast({ title: "Could not move issue", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.backlogPage.couldNotMoveIssue, description: String((e as Error).message ?? e), variant: "destructive" });
     }
-  }, [toast, load]);
+  }, [toast, load, lang]);
 
   const deleteIssue = useCallback(async (issue: Task) => {
-    if (!confirm(`Delete ${issue.issueKey || "issue"}?`)) return;
+    if (!confirm(`${lang.backlogPage.deleteConfirmPrefix}${issue.issueKey || lang.backlogPage.issueFallback}?`)) return;
     await api.deleteTask(issue.id);
     await load();
-  }, [load]);
+  }, [load, lang]);
 
   const groups = useMemo(() => {
     const bySprint = new Map<string, Task[]>();
@@ -79,9 +81,9 @@ export default function Backlog() {
 
       <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-5">
         {loading ? (
-          <div className="text-center text-muted-foreground text-sm py-10">Loading…</div>
+          <div className="text-center text-muted-foreground text-sm py-10">{lang.backlogPage.loadingText}</div>
         ) : !project ? (
-          <div className="text-center text-muted-foreground text-sm py-10">Project "{projectKey}" not found.</div>
+          <div className="text-center text-muted-foreground text-sm py-10">{lang.backlogPage.projectNotFoundPrefix}{projectKey}{lang.backlogPage.projectNotFoundSuffix}</div>
         ) : (
           <>
             {sprints.map((s) => (
@@ -98,8 +100,8 @@ export default function Backlog() {
               />
             ))}
             <SprintSection
-              title="Backlog"
-              subtitle="Issues not yet planned into a sprint"
+              title={lang.backlogPage.backlogTitle}
+              subtitle={lang.backlogPage.backlogSubtitle}
               issues={groups.backlog}
               sprints={sprints}
               epicById={epicById}
@@ -123,6 +125,7 @@ const IssueRow = memo(function IssueRow({
   issue: Task; sprints: Sprint[]; epic?: Epic;
   onMove: (i: Task, s: string | null) => void; onDelete: (i: Task) => void;
 }) {
+  const { t: lang } = useLanguage();
   return (
     <div className="flex items-center gap-2 px-4 py-2 hover:bg-muted/30 group">
       <span className={cn("px-1 py-0.5 rounded text-[8px] font-bold uppercase shrink-0", TYPE_CLS[issue.issueType ?? "task"])}>
@@ -140,11 +143,11 @@ const IssueRow = memo(function IssueRow({
       >
         <SelectTrigger className="h-7 w-[120px] text-[10px] shrink-0"><SelectValue /></SelectTrigger>
         <SelectContent>
-          <SelectItem value={NONE}>Backlog</SelectItem>
+          <SelectItem value={NONE}>{lang.backlogPage.backlogTitle}</SelectItem>
           {sprints.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
         </SelectContent>
       </Select>
-      <button onClick={() => onDelete(issue)} className="p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-rose-500" title="Delete">
+      <button onClick={() => onDelete(issue)} className="p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-rose-500" title={lang.backlogPage.deleteBtnTitle}>
         <Trash2 className="w-3 h-3" />
       </button>
     </div>
@@ -157,6 +160,7 @@ const SprintSection = memo(function SprintSection({
   title: string; subtitle?: string; badge?: string; issues: Task[]; sprints: Sprint[];
   epicById: Map<string, Epic>; onMove: (i: Task, s: string | null) => void; onDelete: (i: Task) => void;
 }) {
+  const { t: lang } = useLanguage();
   const points = issues.reduce((sum, i) => sum + (i.storyPoints ?? 0), 0);
   return (
     <div className="rounded-xl border border-border/50 bg-card/40">
@@ -165,10 +169,10 @@ const SprintSection = memo(function SprintSection({
         <h3 className="text-xs font-bold text-foreground">{title}</h3>
         {badge && <span className="px-1.5 py-0.5 rounded bg-muted text-[9px] font-semibold uppercase text-muted-foreground">{badge}</span>}
         {subtitle && <span className="text-[10px] text-muted-foreground truncate">· {subtitle}</span>}
-        <span className="ml-auto text-[10px] text-muted-foreground">{issues.length} issues · {points} pts</span>
+        <span className="ml-auto text-[10px] text-muted-foreground">{issues.length} {lang.backlogPage.issuesLabel} · {points} {lang.backlogPage.ptsLabel}</span>
       </div>
       {issues.length === 0 ? (
-        <p className="px-4 py-3 text-[11px] text-muted-foreground italic">No issues</p>
+        <p className="px-4 py-3 text-[11px] text-muted-foreground italic">{lang.backlogPage.noIssuesText}</p>
       ) : (
         <div className="divide-y divide-border/30">
           {issues.map((issue) => (
@@ -188,6 +192,7 @@ const SprintSection = memo(function SprintSection({
 });
 
 function CreateSprintButton({ projectId, onCreated }: { projectId?: string; onCreated: () => void }) {
+  const { t: lang } = useLanguage();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [goal, setGoal] = useState("");
@@ -199,14 +204,14 @@ function CreateSprintButton({ projectId, onCreated }: { projectId?: string; onCr
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="h-9 gap-1 text-xs" disabled={!projectId}><Plus className="w-3.5 h-3.5" /> Sprint</Button>
+        <Button size="sm" variant="outline" className="h-9 gap-1 text-xs" disabled={!projectId}><Plus className="w-3.5 h-3.5" /> {lang.backlogPage.sprintBtnLabel}</Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>New Sprint</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{lang.backlogPage.newSprintTitle}</DialogTitle></DialogHeader>
         <div className="space-y-3 pt-2">
-          <Input placeholder="Sprint name (e.g. Sprint 1)" value={name} onChange={(e) => setName(e.target.value)} />
-          <Input placeholder="Sprint goal (optional)" value={goal} onChange={(e) => setGoal(e.target.value)} />
-          <Button onClick={save} className="w-full" disabled={!name.trim()}>Create Sprint</Button>
+          <Input placeholder={lang.backlogPage.sprintNamePlaceholder} value={name} onChange={(e) => setName(e.target.value)} />
+          <Input placeholder={lang.backlogPage.sprintGoalPlaceholder} value={goal} onChange={(e) => setGoal(e.target.value)} />
+          <Button onClick={save} className="w-full" disabled={!name.trim()}>{lang.backlogPage.createSprintBtn}</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -214,6 +219,7 @@ function CreateSprintButton({ projectId, onCreated }: { projectId?: string; onCr
 }
 
 function CreateEpicButton({ projectId, onCreated }: { projectId?: string; onCreated: () => void }) {
+  const { t: lang } = useLanguage();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -225,14 +231,14 @@ function CreateEpicButton({ projectId, onCreated }: { projectId?: string; onCrea
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="h-9 gap-1 text-xs" disabled={!projectId}><Layers className="w-3.5 h-3.5" /> Epic</Button>
+        <Button size="sm" variant="outline" className="h-9 gap-1 text-xs" disabled={!projectId}><Layers className="w-3.5 h-3.5" /> {lang.backlogPage.epicBtnLabel}</Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>New Epic</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{lang.backlogPage.newEpicTitle}</DialogTitle></DialogHeader>
         <div className="space-y-3 pt-2">
-          <Input placeholder="Epic title" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <Textarea placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} className="resize-none min-h-[70px]" />
-          <Button onClick={save} className="w-full" disabled={!title.trim()}>Create Epic</Button>
+          <Input placeholder={lang.backlogPage.epicTitlePlaceholder} value={title} onChange={(e) => setTitle(e.target.value)} />
+          <Textarea placeholder={lang.backlogPage.descriptionOptionalPlaceholder} value={description} onChange={(e) => setDescription(e.target.value)} className="resize-none min-h-[70px]" />
+          <Button onClick={save} className="w-full" disabled={!title.trim()}>{lang.backlogPage.createEpicBtn}</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -240,6 +246,7 @@ function CreateEpicButton({ projectId, onCreated }: { projectId?: string; onCrea
 }
 
 function CreateIssueButton({ project, epics, sprints, onCreated }: { project?: Project; epics: Epic[]; sprints: Sprint[]; onCreated: () => void }) {
+  const { t: lang } = useLanguage();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -265,35 +272,35 @@ function CreateIssueButton({ project, epics, sprints, onCreated }: { project?: P
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="h-9 gap-1 text-xs" disabled={!project}><Plus className="w-3.5 h-3.5" /> Issue</Button>
+        <Button size="sm" className="h-9 gap-1 text-xs" disabled={!project}><Plus className="w-3.5 h-3.5" /> {lang.backlogPage.issueBtnLabel}</Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>New Issue</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{lang.backlogPage.newIssueTitle}</DialogTitle></DialogHeader>
         <div className="space-y-3 pt-2">
-          <Input placeholder="Issue title" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <Textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} className="resize-none min-h-[70px]" />
+          <Input placeholder={lang.backlogPage.issueTitlePlaceholder} value={title} onChange={(e) => setTitle(e.target.value)} />
+          <Textarea placeholder={lang.backlogPage.descriptionPlaceholder} value={description} onChange={(e) => setDescription(e.target.value)} className="resize-none min-h-[70px]" />
           <div className="grid grid-cols-2 gap-3">
             <Select value={type} onValueChange={(v) => setType(v as IssueType)}>
               <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>{ISSUE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
             </Select>
-            <Input type="number" min={0} placeholder="Story points" value={points} onChange={(e) => setPoints(e.target.value)} className="h-9 text-xs" />
+            <Input type="number" min={0} placeholder={lang.backlogPage.storyPointsPlaceholder} value={points} onChange={(e) => setPoints(e.target.value)} className="h-9 text-xs" />
             <Select value={epicId} onValueChange={setEpicId}>
-              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Epic" /></SelectTrigger>
+              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={lang.backlogPage.epicSelectPlaceholder} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>No epic</SelectItem>
+                <SelectItem value={NONE}>{lang.backlogPage.noEpicOption}</SelectItem>
                 {epics.map((e) => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={sprintId} onValueChange={setSprintId}>
-              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Sprint" /></SelectTrigger>
+              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={lang.backlogPage.sprintSelectPlaceholder} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>Backlog</SelectItem>
+                <SelectItem value={NONE}>{lang.backlogPage.backlogTitle}</SelectItem>
                 {sprints.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={save} className="w-full" disabled={!title.trim()}>Create Issue</Button>
+          <Button onClick={save} className="w-full" disabled={!title.trim()}>{lang.backlogPage.createIssueBtn}</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -302,6 +309,7 @@ function CreateIssueButton({ project, epics, sprints, onCreated }: { project?: P
 
 function PlannerButton({ project, epics, sprints, onCommitted }: { project?: Project; epics: Epic[]; sprints: Sprint[]; onCommitted: () => void }) {
   const { toast } = useToast();
+  const { t: lang } = useLanguage();
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [count, setCount] = useState("8");
@@ -322,9 +330,9 @@ function PlannerButton({ project, epics, sprints, onCommitted }: { project?: Pro
         count: Number(count) || 8,
       });
       setDrafts(res.issues);
-      if (res.issues.length === 0) toast({ title: "Planner returned no issues", description: "Try a more detailed description." });
+      if (res.issues.length === 0) toast({ title: lang.backlogPage.plannerNoIssuesTitle, description: lang.backlogPage.plannerNoIssuesDesc });
     } catch (e) {
-      toast({ title: "Planner failed", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.backlogPage.plannerFailedTitle, description: String((e as Error).message ?? e), variant: "destructive" });
     } finally {
       setGenerating(false);
     }
@@ -344,9 +352,9 @@ function PlannerButton({ project, epics, sprints, onCommitted }: { project?: Pro
       setDescription("");
       setOpen(false);
       onCommitted();
-      toast({ title: "Issues created", description: `${drafts.length} issues added to the backlog.` });
+      toast({ title: lang.backlogPage.issuesCreatedTitle, description: `${drafts.length}${lang.backlogPage.issuesCreatedDescSuffix}` });
     } catch (e) {
-      toast({ title: "Commit failed", description: String((e as Error).message ?? e), variant: "destructive" });
+      toast({ title: lang.backlogPage.commitFailedTitle, description: String((e as Error).message ?? e), variant: "destructive" });
     } finally {
       setCommitting(false);
     }
@@ -362,48 +370,48 @@ function PlannerButton({ project, epics, sprints, onCommitted }: { project?: Pro
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setDrafts(null); }}>
       <DialogTrigger asChild>
         <Button size="sm" variant="secondary" className="h-9 gap-1 text-xs" disabled={!project}>
-          <Sparkles className="w-3.5 h-3.5" /> Generate with planner
+          <Sparkles className="w-3.5 h-3.5" /> {lang.backlogPage.generateWithPlannerBtn}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
-        <DialogHeader><DialogTitle>AI Planner — decompose into issues</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{lang.backlogPage.aiPlannerTitle}</DialogTitle></DialogHeader>
         <div className="space-y-3 pt-2">
           {noPlanner && (
             <p className="text-[11px] text-amber-500 bg-amber-500/10 rounded px-3 py-2">
-              No planner staff is set for this project — a generic planner will be used. Configure one in the project settings for tailored results.
+              {lang.backlogPage.noPlannerWarning}
             </p>
           )}
           <Textarea
-            placeholder="Describe the feature, epic, or project to break down into issues…"
+            placeholder={lang.backlogPage.describePlaceholder}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="resize-none min-h-[90px] text-xs"
           />
           <div className="grid grid-cols-3 gap-3">
-            <Input type="number" min={1} max={30} placeholder="Count" value={count} onChange={(e) => setCount(e.target.value)} className="h-9 text-xs" />
+            <Input type="number" min={1} max={30} placeholder={lang.backlogPage.countPlaceholder} value={count} onChange={(e) => setCount(e.target.value)} className="h-9 text-xs" />
             <Select value={epicId} onValueChange={setEpicId}>
-              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Epic" /></SelectTrigger>
+              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={lang.backlogPage.epicSelectPlaceholder} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>No epic</SelectItem>
+                <SelectItem value={NONE}>{lang.backlogPage.noEpicOption}</SelectItem>
                 {epics.map((e) => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={sprintId} onValueChange={setSprintId}>
-              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Sprint" /></SelectTrigger>
+              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={lang.backlogPage.sprintSelectPlaceholder} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>Backlog</SelectItem>
+                <SelectItem value={NONE}>{lang.backlogPage.backlogTitle}</SelectItem>
                 {sprints.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <Button onClick={generate} variant="secondary" className="w-full gap-1.5" disabled={!description.trim() || generating}>
             {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-            {generating ? "Generating…" : drafts ? "Regenerate" : "Generate draft"}
+            {generating ? lang.backlogPage.generatingBtn : drafts ? lang.backlogPage.regenerateBtn : lang.backlogPage.generateDraftBtn}
           </Button>
 
           {drafts && (
             <div className="border border-border/50 rounded-lg max-h-[260px] overflow-y-auto divide-y divide-border/30">
-              {drafts.length === 0 && <p className="p-3 text-[11px] text-muted-foreground italic">No issues — adjust the description and regenerate.</p>}
+              {drafts.length === 0 && <p className="p-3 text-[11px] text-muted-foreground italic">{lang.backlogPage.noIssuesAdjustText}</p>}
               {drafts.map((d, i) => (
                 <div key={i} className="flex items-center gap-2 px-2 py-1.5">
                   <Select value={d.type} onValueChange={(v) => updateDraft(i, { type: v as IssueType })}>
@@ -414,7 +422,7 @@ function PlannerButton({ project, epics, sprints, onCommitted }: { project?: Pro
                   <Input
                     type="number" min={0} value={d.storyPoints ?? ""}
                     onChange={(e) => updateDraft(i, { storyPoints: e.target.value ? Number(e.target.value) : null })}
-                    className="h-7 w-12 text-[10px] shrink-0" placeholder="pts"
+                    className="h-7 w-12 text-[10px] shrink-0" placeholder={lang.backlogPage.ptsPlaceholder}
                   />
                   <button onClick={() => removeDraft(i)} className="p-1 text-muted-foreground hover:text-rose-500 shrink-0"><X className="w-3.5 h-3.5" /></button>
                 </div>
@@ -425,7 +433,7 @@ function PlannerButton({ project, epics, sprints, onCommitted }: { project?: Pro
           {drafts && drafts.length > 0 && (
             <Button onClick={commit} className="w-full gap-1.5" disabled={committing}>
               {committing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-              Commit {drafts.length} issues
+              {lang.backlogPage.commitIssuesBtnPrefix}{drafts.length}{lang.backlogPage.commitIssuesBtnSuffix}
             </Button>
           )}
         </div>

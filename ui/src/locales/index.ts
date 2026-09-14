@@ -126,12 +126,76 @@ export type Translations = {
     officeSaved: string;
     error: string;
     companyDeleted: string;
+    editCompanyTitle: string;
+    newCompanyTitle: string;
+    cloneDepartmentsDesc: string;
+    chooseOfficeImportPlaceholder: string;
+    companyNameLabel: string;
+    companyNamePlaceholder: string;
+    descriptionLabel: string;
+    descriptionPlaceholder: string;
+    departmentsLabel: string;
+    personnelSuffix: string;
+    primaryBadge: string;
+    setPrimaryBtn: string;
+    cancelBtn: string;
+    saveChangesBtn: string;
+    createOfficeBtn: string;
+    noDescriptionText: string;
+    primaryLowercaseBadge: string;
+    manageCompaniesTitle: string;
+    pageSubtitle: string;
+    statsCompaniesLabel: string;
+    loadingCompaniesText: string;
+    noCompaniesDesc: string;
+    createFirstCompanyBtn: string;
+    couldNotCheckDeleteImpact: string;
+    deleteConfirmPrefix: string;
+    deleteConfirmSuffix: string;
+    removedDepartmentsSuffix: string;
+    removedStaffSuffix: string;
+    removedSkillsSuffix: string;
+    removedTasksSuffix: string;
+    removedDocumentsSuffix: string;
+    keptDeptQuotePrefix: string;
+    keptDeptIsKeptSuffix: string;
+    deleteCompanyBtn: string;
   };
   settingsPage: {
     modelUpdated: string;
     error: string;
     connectionSaved: string;
     connectionDeleted: string;
+    activeModelTitle: string;
+    activeModelDesc: string;
+    loadingModels: string;
+    activeBadge: string;
+    visionBadge: string;
+    editConnectionTitle: string;
+    addConnectionTitle: string;
+    platformLabel: string;
+    selectPlatformPlaceholder: string;
+    connectionNameLabel: string;
+    connectionNamePlaceholder: string;
+    descriptionLabel: string;
+    descriptionPlaceholder: string;
+    credentialsLabel: string;
+    cancelBtn: string;
+    saveChangesBtn: string;
+    savedBadge: string;
+    hideBtn: string;
+    showBtn: string;
+    pageTitle: string;
+    pageSubtitle: string;
+    savedConnectionsLabel: string;
+    platformsConnectedLabel: string;
+    thirdPartyConnectionsTitle: string;
+    thirdPartyConnectionsDesc: string;
+    allPlatformsLabel: string;
+    loadingConnections: string;
+    noConnectionsTitle: string;
+    noConnectionsDesc: string;
+    addFirstConnectionBtn: string;
   };
   documentLibrary: {
     title: string;
@@ -688,6 +752,207 @@ export type Translations = {
     addModelPricingTitle: string; editPricingTitle: string; modelLabel: string; modelPlaceholder: string; providerLabel: string;
     selectProvider: string; inputPerMLabel: string; outputPerMLabel: string; cancel: string; save: string; saving: string;
   };
+  backlogPage: {
+    couldNotMoveIssue: string;
+    deleteConfirmPrefix: string;
+    issueFallback: string;
+    loadingText: string;
+    projectNotFoundPrefix: string;
+    projectNotFoundSuffix: string;
+    backlogTitle: string;
+    backlogSubtitle: string;
+    noIssuesText: string;
+    issuesLabel: string;
+    ptsLabel: string;
+    deleteBtnTitle: string;
+    sprintBtnLabel: string;
+    newSprintTitle: string;
+    sprintNamePlaceholder: string;
+    sprintGoalPlaceholder: string;
+    createSprintBtn: string;
+    epicBtnLabel: string;
+    newEpicTitle: string;
+    epicTitlePlaceholder: string;
+    descriptionOptionalPlaceholder: string;
+    createEpicBtn: string;
+    issueBtnLabel: string;
+    newIssueTitle: string;
+    issueTitlePlaceholder: string;
+    descriptionPlaceholder: string;
+    storyPointsPlaceholder: string;
+    epicSelectPlaceholder: string;
+    noEpicOption: string;
+    sprintSelectPlaceholder: string;
+    createIssueBtn: string;
+    plannerNoIssuesTitle: string;
+    plannerNoIssuesDesc: string;
+    plannerFailedTitle: string;
+    issuesCreatedTitle: string;
+    issuesCreatedDescSuffix: string;
+    commitFailedTitle: string;
+    generateWithPlannerBtn: string;
+    aiPlannerTitle: string;
+    noPlannerWarning: string;
+    describePlaceholder: string;
+    countPlaceholder: string;
+    generatingBtn: string;
+    regenerateBtn: string;
+    generateDraftBtn: string;
+    noIssuesAdjustText: string;
+    ptsPlaceholder: string;
+    commitIssuesBtnPrefix: string;
+    commitIssuesBtnSuffix: string;
+  };
+  projectsPage: {
+    pageTitle: string;
+    pageSubtitle: string;
+    statsProjects: string;
+    statsIssues: string;
+    statsWithPlanner: string;
+    newProjectBtn: string;
+    editProjectTitle: string;
+    createProjectTitle: string;
+    keyPlaceholder: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    descriptionPlaceholder: string;
+    projectLeadLabel: string;
+    nonePlaceholder: string;
+    noneOption: string;
+    plannerStaffLabel: string;
+    plannerInstructionsLabel: string;
+    plannerInstructionsPlaceholder: string;
+    saveChangesBtn: string;
+    couldNotSaveProject: string;
+    deleteProjectConfirmPrefix: string;
+    deleteProjectConfirmSuffix: string;
+    couldNotDelete: string;
+    noProjectsTitle: string;
+    noProjectsDesc: string;
+    createFirstProjectBtn: string;
+    noDescriptionText: string;
+    editAriaTitle: string;
+    deleteAriaTitle: string;
+    issuesSuffix: string;
+    noPlannerText: string;
+    ledByPrefix: string;
+    quickLinkBoard: string;
+    quickLinkBacklog: string;
+    quickLinkRoadmap: string;
+    quickLinkReports: string;
+  };
+  analyticsPage: {
+    couldNotLoadAnalytics: string;
+    statusDone: string;
+    statusActive: string;
+    statusPending: string;
+    kpiTasksCompleted: string;
+    kpiAvgCompletion: string;
+    kpiDeptEfficiency: string;
+    kpiActiveDepartments: string;
+    pageTitle: string;
+    subtitleOfficePrefix: string;
+    subtitleOfficeSuffix: string;
+    subtitleAllOffices: string;
+    refreshBtn: string;
+    personnelProductivityTitle: string;
+    productivityMembersSuffix: string;
+    noPersonnelDataText: string;
+    comparisonChartLabel: string;
+    productivityTooltipLabel: string;
+    taskStatusTitle: string;
+    noTasksYetText: string;
+    tasksLabel: string;
+    recentTasksTitle: string;
+    totalSuffix: string;
+    noTasksRecordedText: string;
+    moreTasksSuffix: string;
+    departmentsTitle: string;
+    activeSuffix: string;
+    noDepartmentsYetText: string;
+    memberLabel: string;
+    membersLabel: string;
+  };
+  platformPage: {
+    editAppTitle: string;
+    addAppTitle: string;
+    platformLabel: string;
+    selectPlatformPlaceholder: string;
+    useSavedConnectionBtn: string;
+    configureManuallyBtn: string;
+    chooseSavedConnectionLabel: string;
+    appNameLabel: string;
+    appNamePlaceholder: string;
+    receivesMessagesLabel: string;
+    routingPrimaryDept: string;
+    routingDepartment: string;
+    routingSpecificStaff: string;
+    routesToPrimaryText: string;
+    chooseDepartmentPlaceholder: string;
+    noDepartmentsInCompanyText: string;
+    noStaffInCompanyText: string;
+    enabledLabel: string;
+    cancelBtn: string;
+    saveChangesBtn: string;
+    activeBadge: string;
+    disabledBadge: string;
+    editTitle: string;
+    copyTitle: string;
+    deleteTitle: string;
+    receivesMessagesArrow: string;
+    staffCountSuffix: string;
+    departmentFallback: string;
+    primaryDepartmentText: string;
+    loadingCompanyText: string;
+    pageTitle: string;
+    subtitlePrefix: string;
+    subtitleSuffix: string;
+    loadingAppsText: string;
+    noAppsTitle: string;
+    noAppsDesc: string;
+    addFirstAppBtn: string;
+    deleteAppConfirmTitle: string;
+    deleteAppConfirmPrefix: string;
+    deleteAppConfirmSuffix: string;
+    deleteAppBtn: string;
+    appSavedToast: string;
+    errorTitle: string;
+    appDeletedToast: string;
+  };
+  dashboardPage: {
+    metricTasksCompleted: string;
+    metricActiveTasks: string;
+    metricDeptEfficiency: string;
+    metricActivePersonnel: string;
+    metricAvgCompletion: string;
+    trendInProgress: string;
+    trendOfPrefix: string;
+    trendAvgTime: string;
+    couldNotLoadDashboard: string;
+    overviewSuffix: string;
+    companyOverviewTitle: string;
+    operationsOfOfficePrefix: string;
+    operationsOfOfficeSuffix: string;
+    overviewAllOfficesText: string;
+    companiesTitle: string;
+    createCompanyBtn: string;
+    activeBadge: string;
+    idleBadge: string;
+    activeTaskSingularSuffix: string;
+    activeTaskPluralSuffix: string;
+    staffLabel: string;
+    noCompaniesYetText: string;
+    createFirstCompanyText: string;
+    recentProjectsTasksTitle: string;
+    totalSuffix: string;
+    progressLabel: string;
+    noProjectsOrTasksText: string;
+    createTaskToStartText: string;
+    activityFeedTitle: string;
+    liveBadge: string;
+    systemFallbackName: string;
+    noActivityYetText: string;
+  };
 };
 
 export const translations: Record<Language, Translations> = {
@@ -800,12 +1065,76 @@ export const translations: Record<Language, Translations> = {
       officeSaved: "Office saved",
       error: "Error",
       companyDeleted: "Company deleted",
+      editCompanyTitle: "Edit Company",
+      newCompanyTitle: "New Company",
+      cloneDepartmentsDesc: "Clone departments instantly from an existing company.",
+      chooseOfficeImportPlaceholder: "Choose office to import from...",
+      companyNameLabel: "Company Name",
+      companyNamePlaceholder: "My AI Company",
+      descriptionLabel: "Description",
+      descriptionPlaceholder: "What this company does",
+      departmentsLabel: "Departments",
+      personnelSuffix: "personnel",
+      primaryBadge: "Primary",
+      setPrimaryBtn: "Set Primary",
+      cancelBtn: "Cancel",
+      saveChangesBtn: "Save Changes",
+      createOfficeBtn: "Create Office",
+      noDescriptionText: "No description",
+      primaryLowercaseBadge: "primary",
+      manageCompaniesTitle: "Manage Companies",
+      pageSubtitle: "Create and control companies — group departments into a company. Connect messaging apps from each company's Platform page.",
+      statsCompaniesLabel: "Companies",
+      loadingCompaniesText: "Loading companies...",
+      noCompaniesDesc: "Create a company to group your departments. Once created, select it and open its Platform page to connect Telegram, Discord, Slack, WhatsApp, and more.",
+      createFirstCompanyBtn: "Create your first company",
+      couldNotCheckDeleteImpact: "Could not check delete impact",
+      deleteConfirmPrefix: "Are you sure you want to delete ",
+      deleteConfirmSuffix: "? This action cannot be undone.",
+      removedDepartmentsSuffix: " department(s) removed",
+      removedStaffSuffix: " staff member(s) removed",
+      removedSkillsSuffix: " skill(s) removed",
+      removedTasksSuffix: " task(s) removed",
+      removedDocumentsSuffix: " document(s) removed",
+      keptDeptQuotePrefix: "\"",
+      keptDeptIsKeptSuffix: "\" is kept — still used by ",
+      deleteCompanyBtn: "Delete company",
     },
     settingsPage: {
       modelUpdated: "Active model updated",
       error: "Error",
       connectionSaved: "Connection saved",
       connectionDeleted: "Connection deleted",
+      activeModelTitle: "Active LLM Model",
+      activeModelDesc: "Pick which model the whole platform uses by default. Enable more options in config.yml.",
+      loadingModels: "Loading models...",
+      activeBadge: "Active",
+      visionBadge: "Vision",
+      editConnectionTitle: "Edit Connection",
+      addConnectionTitle: "Add Connection",
+      platformLabel: "Platform",
+      selectPlatformPlaceholder: "Select platform...",
+      connectionNameLabel: "Connection Name",
+      connectionNamePlaceholder: "e.g. My Telegram Bot",
+      descriptionLabel: "Description",
+      descriptionPlaceholder: "Optional notes",
+      credentialsLabel: "Credentials",
+      cancelBtn: "Cancel",
+      saveChangesBtn: "Save Changes",
+      savedBadge: "Saved",
+      hideBtn: "Hide",
+      showBtn: "Show",
+      pageTitle: "Settings",
+      pageSubtitle: "Manage global third-party connections. Authenticate once and reuse across companies.",
+      savedConnectionsLabel: "Saved Connections",
+      platformsConnectedLabel: "Platforms Connected",
+      thirdPartyConnectionsTitle: "Third Party Connections",
+      thirdPartyConnectionsDesc: "Add your platform credentials here once — then pick them when creating company hooks.",
+      allPlatformsLabel: "All platforms",
+      loadingConnections: "Loading connections...",
+      noConnectionsTitle: "No connections yet",
+      noConnectionsDesc: "Add credentials for Telegram, Discord, Slack, and other platforms. Reuse them freely across companies.",
+      addFirstConnectionBtn: "Add your first connection",
     },
     documentLibrary: {
       title: "Document Library",
@@ -1394,6 +1723,207 @@ export const translations: Record<Language, Translations> = {
       selectProvider: "Select provider", inputPerMLabel: "Input $ / 1M tokens", outputPerMLabel: "Output $ / 1M tokens",
       cancel: "Cancel", save: "Save", saving: "Saving…",
     },
+    backlogPage: {
+      couldNotMoveIssue: "Could not move issue",
+      deleteConfirmPrefix: "Delete ",
+      issueFallback: "issue",
+      loadingText: "Loading…",
+      projectNotFoundPrefix: "Project \"",
+      projectNotFoundSuffix: "\" not found.",
+      backlogTitle: "Backlog",
+      backlogSubtitle: "Issues not yet planned into a sprint",
+      noIssuesText: "No issues",
+      issuesLabel: "issues",
+      ptsLabel: "pts",
+      deleteBtnTitle: "Delete",
+      sprintBtnLabel: "Sprint",
+      newSprintTitle: "New Sprint",
+      sprintNamePlaceholder: "Sprint name (e.g. Sprint 1)",
+      sprintGoalPlaceholder: "Sprint goal (optional)",
+      createSprintBtn: "Create Sprint",
+      epicBtnLabel: "Epic",
+      newEpicTitle: "New Epic",
+      epicTitlePlaceholder: "Epic title",
+      descriptionOptionalPlaceholder: "Description (optional)",
+      createEpicBtn: "Create Epic",
+      issueBtnLabel: "Issue",
+      newIssueTitle: "New Issue",
+      issueTitlePlaceholder: "Issue title",
+      descriptionPlaceholder: "Description",
+      storyPointsPlaceholder: "Story points",
+      epicSelectPlaceholder: "Epic",
+      noEpicOption: "No epic",
+      sprintSelectPlaceholder: "Sprint",
+      createIssueBtn: "Create Issue",
+      plannerNoIssuesTitle: "Planner returned no issues",
+      plannerNoIssuesDesc: "Try a more detailed description.",
+      plannerFailedTitle: "Planner failed",
+      issuesCreatedTitle: "Issues created",
+      issuesCreatedDescSuffix: " issues added to the backlog.",
+      commitFailedTitle: "Commit failed",
+      generateWithPlannerBtn: "Generate with planner",
+      aiPlannerTitle: "AI Planner — decompose into issues",
+      noPlannerWarning: "No planner staff is set for this project — a generic planner will be used. Configure one in the project settings for tailored results.",
+      describePlaceholder: "Describe the feature, epic, or project to break down into issues…",
+      countPlaceholder: "Count",
+      generatingBtn: "Generating…",
+      regenerateBtn: "Regenerate",
+      generateDraftBtn: "Generate draft",
+      noIssuesAdjustText: "No issues — adjust the description and regenerate.",
+      ptsPlaceholder: "pts",
+      commitIssuesBtnPrefix: "Commit ",
+      commitIssuesBtnSuffix: " issues",
+    },
+    projectsPage: {
+      pageTitle: "Projects",
+      pageSubtitle: "IT projects · issues, epics, sprints & an AI planner",
+      statsProjects: "Projects",
+      statsIssues: "Issues",
+      statsWithPlanner: "With planner",
+      newProjectBtn: "New Project",
+      editProjectTitle: "Edit Project",
+      createProjectTitle: "Create Project",
+      keyPlaceholder: "KEY",
+      nameLabel: "Name",
+      namePlaceholder: "Project name",
+      descriptionPlaceholder: "Description",
+      projectLeadLabel: "Project lead",
+      nonePlaceholder: "None",
+      noneOption: "None",
+      plannerStaffLabel: "Planner staff",
+      plannerInstructionsLabel: "Planner instructions (optional override)",
+      plannerInstructionsPlaceholder: "How should the planner break work into issues? Leave blank to use the selected staff's own system prompt.",
+      saveChangesBtn: "Save Changes",
+      couldNotSaveProject: "Could not save project",
+      deleteProjectConfirmPrefix: "Delete project \"",
+      deleteProjectConfirmSuffix: "\"? Its issues, epics and sprints will be deleted too.",
+      couldNotDelete: "Could not delete",
+      noProjectsTitle: "No projects yet",
+      noProjectsDesc: "Create your first IT project to organize issues into epics and sprints, with an AI planner to help.",
+      createFirstProjectBtn: "Create your first project",
+      noDescriptionText: "No description",
+      editAriaTitle: "Edit",
+      deleteAriaTitle: "Delete",
+      issuesSuffix: "issues",
+      noPlannerText: "No planner",
+      ledByPrefix: "Led by ",
+      quickLinkBoard: "Board",
+      quickLinkBacklog: "Backlog",
+      quickLinkRoadmap: "Roadmap",
+      quickLinkReports: "Reports",
+    },
+    analyticsPage: {
+      couldNotLoadAnalytics: "Could not load analytics",
+      statusDone: "Done",
+      statusActive: "Active",
+      statusPending: "Pending",
+      kpiTasksCompleted: "Tasks Completed",
+      kpiAvgCompletion: "Avg. Completion",
+      kpiDeptEfficiency: "Department Efficiency",
+      kpiActiveDepartments: "Active Departments",
+      pageTitle: "Analytics",
+      subtitleOfficePrefix: "Performance metrics of office ",
+      subtitleOfficeSuffix: ".",
+      subtitleAllOffices: "Department performance metrics and productivity insights across all offices.",
+      refreshBtn: "Refresh",
+      personnelProductivityTitle: "Personnel Productivity",
+      productivityMembersSuffix: "members",
+      noPersonnelDataText: "No personnel data yet",
+      comparisonChartLabel: "Comparison Chart",
+      productivityTooltipLabel: "Productivity",
+      taskStatusTitle: "Task Status",
+      noTasksYetText: "No tasks yet",
+      tasksLabel: "tasks",
+      recentTasksTitle: "Recent Tasks",
+      totalSuffix: "total",
+      noTasksRecordedText: "No tasks recorded",
+      moreTasksSuffix: " more tasks",
+      departmentsTitle: "Departments",
+      activeSuffix: "active",
+      noDepartmentsYetText: "No departments yet",
+      memberLabel: "member",
+      membersLabel: "members",
+    },
+    platformPage: {
+      editAppTitle: "Edit App",
+      addAppTitle: "Add App",
+      platformLabel: "Platform",
+      selectPlatformPlaceholder: "Select platform...",
+      useSavedConnectionBtn: "Use saved connection",
+      configureManuallyBtn: "Configure manually",
+      chooseSavedConnectionLabel: "Choose saved connection",
+      appNameLabel: "App Name",
+      appNamePlaceholder: "e.g. Customer Support Bot",
+      receivesMessagesLabel: "Receives messages",
+      routingPrimaryDept: "Primary dept",
+      routingDepartment: "Department",
+      routingSpecificStaff: "Specific staff",
+      routesToPrimaryText: "Messages route to the company's primary department.",
+      chooseDepartmentPlaceholder: "Choose a department...",
+      noDepartmentsInCompanyText: "No departments in this company",
+      noStaffInCompanyText: "No staff in this company.",
+      enabledLabel: "Enabled",
+      cancelBtn: "Cancel",
+      saveChangesBtn: "Save Changes",
+      activeBadge: "active",
+      disabledBadge: "disabled",
+      editTitle: "Edit",
+      copyTitle: "Copy",
+      deleteTitle: "Delete",
+      receivesMessagesArrow: "Receives messages → ",
+      staffCountSuffix: "staff",
+      departmentFallback: "Department",
+      primaryDepartmentText: "Primary department",
+      loadingCompanyText: "Loading company...",
+      pageTitle: "Platform",
+      subtitlePrefix: "Connect ",
+      subtitleSuffix: " to Telegram and other apps, and choose who handles each app's messages.",
+      loadingAppsText: "Loading apps...",
+      noAppsTitle: "No apps connected yet",
+      noAppsDesc: "Add a Telegram bot or another messaging app so users can reach this company. You decide whether a department or specific staff handle the meeting.",
+      addFirstAppBtn: "Add your first app",
+      deleteAppConfirmTitle: "Delete app?",
+      deleteAppConfirmPrefix: "Remove ",
+      deleteAppConfirmSuffix: " from this company? Its webhook URL will stop working. This action cannot be undone.",
+      deleteAppBtn: "Delete app",
+      appSavedToast: "App saved",
+      errorTitle: "Error",
+      appDeletedToast: "App deleted",
+    },
+    dashboardPage: {
+      metricTasksCompleted: "Tasks Completed",
+      metricActiveTasks: "Active Tasks",
+      metricDeptEfficiency: "Department Efficiency",
+      metricActivePersonnel: "Active Personnel",
+      metricAvgCompletion: "Avg. Completion",
+      trendInProgress: "in progress",
+      trendOfPrefix: "of ",
+      trendAvgTime: "avg time",
+      couldNotLoadDashboard: "Could not load dashboard",
+      overviewSuffix: " — Overview",
+      companyOverviewTitle: "Company Overview",
+      operationsOfOfficePrefix: "Operations of office \"",
+      operationsOfOfficeSuffix: "\"",
+      overviewAllOfficesText: "Overview of your company operations across all offices",
+      companiesTitle: "Companies",
+      createCompanyBtn: "Create company",
+      activeBadge: "Active",
+      idleBadge: "Idle",
+      activeTaskSingularSuffix: " active task",
+      activeTaskPluralSuffix: " active tasks",
+      staffLabel: "staff",
+      noCompaniesYetText: "No companies yet",
+      createFirstCompanyText: "Create your first company to get started",
+      recentProjectsTasksTitle: "Recent Projects & Tasks",
+      totalSuffix: "total",
+      progressLabel: "Progress",
+      noProjectsOrTasksText: "No projects or tasks yet",
+      createTaskToStartText: "Create a task to get started",
+      activityFeedTitle: "Activity Feed",
+      liveBadge: "Live",
+      systemFallbackName: "System",
+      noActivityYetText: "No activity yet",
+    },
   },
 
 
@@ -1506,12 +2036,76 @@ export const translations: Record<Language, Translations> = {
       officeSaved: "Đã lưu văn phòng",
       error: "Lỗi",
       companyDeleted: "Đã xóa công ty",
+      editCompanyTitle: "Sửa công ty",
+      newCompanyTitle: "Công ty mới",
+      cloneDepartmentsDesc: "Sao chép ngay phòng ban từ một công ty đã có.",
+      chooseOfficeImportPlaceholder: "Chọn văn phòng để nhập...",
+      companyNameLabel: "Tên công ty",
+      companyNamePlaceholder: "Công ty AI của tôi",
+      descriptionLabel: "Mô tả",
+      descriptionPlaceholder: "Công ty này làm gì",
+      departmentsLabel: "Phòng ban",
+      personnelSuffix: "nhân sự",
+      primaryBadge: "Chính",
+      setPrimaryBtn: "Đặt làm chính",
+      cancelBtn: "Hủy",
+      saveChangesBtn: "Lưu thay đổi",
+      createOfficeBtn: "Tạo văn phòng",
+      noDescriptionText: "Chưa có mô tả",
+      primaryLowercaseBadge: "chính",
+      manageCompaniesTitle: "Quản lý công ty",
+      pageSubtitle: "Tạo và quản lý công ty — nhóm các phòng ban vào một công ty. Kết nối ứng dụng nhắn tin từ trang Platform của từng công ty.",
+      statsCompaniesLabel: "Công ty",
+      loadingCompaniesText: "Đang tải công ty...",
+      noCompaniesDesc: "Tạo một công ty để nhóm các phòng ban của bạn. Sau khi tạo, chọn công ty đó và mở trang Platform để kết nối Telegram, Discord, Slack, WhatsApp và nhiều hơn nữa.",
+      createFirstCompanyBtn: "Tạo công ty đầu tiên",
+      couldNotCheckDeleteImpact: "Không thể kiểm tra mức độ ảnh hưởng",
+      deleteConfirmPrefix: "Bạn có chắc muốn xóa ",
+      deleteConfirmSuffix: "? Không thể hoàn tác.",
+      removedDepartmentsSuffix: " phòng ban sẽ bị xóa",
+      removedStaffSuffix: " nhân sự sẽ bị xóa",
+      removedSkillsSuffix: " skill sẽ bị xóa",
+      removedTasksSuffix: " task sẽ bị xóa",
+      removedDocumentsSuffix: " tài liệu sẽ bị xóa",
+      keptDeptQuotePrefix: "\"",
+      keptDeptIsKeptSuffix: "\" được giữ lại — vẫn đang dùng bởi ",
+      deleteCompanyBtn: "Xóa công ty",
     },
     settingsPage: {
       modelUpdated: "Đã cập nhật mô hình đang dùng",
       error: "Lỗi",
       connectionSaved: "Đã lưu kết nối",
       connectionDeleted: "Đã xóa kết nối",
+      activeModelTitle: "Mô hình LLM đang dùng",
+      activeModelDesc: "Chọn mô hình mặc định cho toàn bộ nền tảng. Bật thêm lựa chọn trong config.yml.",
+      loadingModels: "Đang tải mô hình...",
+      activeBadge: "Đang dùng",
+      visionBadge: "Hỗ trợ hình ảnh",
+      editConnectionTitle: "Sửa kết nối",
+      addConnectionTitle: "Thêm kết nối",
+      platformLabel: "Nền tảng",
+      selectPlatformPlaceholder: "Chọn nền tảng...",
+      connectionNameLabel: "Tên kết nối",
+      connectionNamePlaceholder: "VD: Bot Telegram của tôi",
+      descriptionLabel: "Mô tả",
+      descriptionPlaceholder: "Ghi chú (không bắt buộc)",
+      credentialsLabel: "Thông tin xác thực",
+      cancelBtn: "Hủy",
+      saveChangesBtn: "Lưu thay đổi",
+      savedBadge: "Đã lưu",
+      hideBtn: "Ẩn",
+      showBtn: "Hiện",
+      pageTitle: "Cài đặt",
+      pageSubtitle: "Quản lý kết nối bên thứ ba dùng chung. Xác thực một lần và tái sử dụng cho mọi công ty.",
+      savedConnectionsLabel: "Kết nối đã lưu",
+      platformsConnectedLabel: "Nền tảng đã kết nối",
+      thirdPartyConnectionsTitle: "Kết nối bên thứ ba",
+      thirdPartyConnectionsDesc: "Thêm thông tin xác thực nền tảng ở đây một lần — rồi chọn khi tạo hook cho công ty.",
+      allPlatformsLabel: "Tất cả nền tảng",
+      loadingConnections: "Đang tải kết nối...",
+      noConnectionsTitle: "Chưa có kết nối nào",
+      noConnectionsDesc: "Thêm thông tin xác thực cho Telegram, Discord, Slack và các nền tảng khác. Tái sử dụng tự do cho mọi công ty.",
+      addFirstConnectionBtn: "Thêm kết nối đầu tiên",
     },
     documentLibrary: {
       title: "Kho tài liệu",
@@ -2100,6 +2694,207 @@ export const translations: Record<Language, Translations> = {
       selectProvider: "Chọn nhà cung cấp", inputPerMLabel: "Đầu vào $ / 1M token", outputPerMLabel: "Đầu ra $ / 1M token",
       cancel: "Hủy", save: "Lưu", saving: "Đang lưu…",
     },
+    backlogPage: {
+      couldNotMoveIssue: "Không thể di chuyển issue",
+      deleteConfirmPrefix: "Xóa ",
+      issueFallback: "issue",
+      loadingText: "Đang tải…",
+      projectNotFoundPrefix: "Không tìm thấy dự án \"",
+      projectNotFoundSuffix: "\".",
+      backlogTitle: "Backlog",
+      backlogSubtitle: "Các issue chưa được đưa vào sprint nào",
+      noIssuesText: "Không có issue nào",
+      issuesLabel: "issue",
+      ptsLabel: "điểm",
+      deleteBtnTitle: "Xóa",
+      sprintBtnLabel: "Sprint",
+      newSprintTitle: "Sprint mới",
+      sprintNamePlaceholder: "Tên sprint (VD: Sprint 1)",
+      sprintGoalPlaceholder: "Mục tiêu sprint (không bắt buộc)",
+      createSprintBtn: "Tạo Sprint",
+      epicBtnLabel: "Epic",
+      newEpicTitle: "Epic mới",
+      epicTitlePlaceholder: "Tiêu đề epic",
+      descriptionOptionalPlaceholder: "Mô tả (không bắt buộc)",
+      createEpicBtn: "Tạo Epic",
+      issueBtnLabel: "Issue",
+      newIssueTitle: "Issue mới",
+      issueTitlePlaceholder: "Tiêu đề issue",
+      descriptionPlaceholder: "Mô tả",
+      storyPointsPlaceholder: "Story points",
+      epicSelectPlaceholder: "Epic",
+      noEpicOption: "Không có epic",
+      sprintSelectPlaceholder: "Sprint",
+      createIssueBtn: "Tạo Issue",
+      plannerNoIssuesTitle: "Planner không trả về issue nào",
+      plannerNoIssuesDesc: "Hãy mô tả chi tiết hơn.",
+      plannerFailedTitle: "Planner thất bại",
+      issuesCreatedTitle: "Đã tạo issue",
+      issuesCreatedDescSuffix: " issue đã được thêm vào backlog.",
+      commitFailedTitle: "Lưu thất bại",
+      generateWithPlannerBtn: "Tạo bằng planner",
+      aiPlannerTitle: "AI Planner — phân rã thành issue",
+      noPlannerWarning: "Dự án này chưa gán planner staff — sẽ dùng planner mặc định. Cấu hình riêng trong cài đặt dự án để có kết quả phù hợp hơn.",
+      describePlaceholder: "Mô tả tính năng, epic hoặc dự án cần phân rã thành issue…",
+      countPlaceholder: "Số lượng",
+      generatingBtn: "Đang tạo…",
+      regenerateBtn: "Tạo lại",
+      generateDraftBtn: "Tạo bản nháp",
+      noIssuesAdjustText: "Không có issue — hãy điều chỉnh mô tả và tạo lại.",
+      ptsPlaceholder: "điểm",
+      commitIssuesBtnPrefix: "Lưu ",
+      commitIssuesBtnSuffix: " issue",
+    },
+    projectsPage: {
+      pageTitle: "Dự án",
+      pageSubtitle: "Dự án IT · issue, epic, sprint & planner AI",
+      statsProjects: "Dự án",
+      statsIssues: "Issue",
+      statsWithPlanner: "Có planner",
+      newProjectBtn: "Dự án mới",
+      editProjectTitle: "Sửa dự án",
+      createProjectTitle: "Tạo dự án",
+      keyPlaceholder: "KEY",
+      nameLabel: "Tên",
+      namePlaceholder: "Tên dự án",
+      descriptionPlaceholder: "Mô tả",
+      projectLeadLabel: "Trưởng dự án",
+      nonePlaceholder: "Không có",
+      noneOption: "Không có",
+      plannerStaffLabel: "Nhân sự planner",
+      plannerInstructionsLabel: "Hướng dẫn planner (tùy chọn, ghi đè)",
+      plannerInstructionsPlaceholder: "Planner nên chia công việc thành issue như thế nào? Để trống để dùng system prompt riêng của nhân sự đã chọn.",
+      saveChangesBtn: "Lưu thay đổi",
+      couldNotSaveProject: "Không thể lưu dự án",
+      deleteProjectConfirmPrefix: "Xóa dự án \"",
+      deleteProjectConfirmSuffix: "\"? Các issue, epic và sprint của nó cũng sẽ bị xóa.",
+      couldNotDelete: "Không thể xóa",
+      noProjectsTitle: "Chưa có dự án nào",
+      noProjectsDesc: "Tạo dự án IT đầu tiên để tổ chức issue thành epic và sprint, với sự hỗ trợ của AI planner.",
+      createFirstProjectBtn: "Tạo dự án đầu tiên",
+      noDescriptionText: "Chưa có mô tả",
+      editAriaTitle: "Sửa",
+      deleteAriaTitle: "Xóa",
+      issuesSuffix: "issue",
+      noPlannerText: "Chưa có planner",
+      ledByPrefix: "Trưởng dự án: ",
+      quickLinkBoard: "Board",
+      quickLinkBacklog: "Backlog",
+      quickLinkRoadmap: "Roadmap",
+      quickLinkReports: "Báo cáo",
+    },
+    analyticsPage: {
+      couldNotLoadAnalytics: "Không thể tải dữ liệu phân tích",
+      statusDone: "Hoàn thành",
+      statusActive: "Đang chạy",
+      statusPending: "Chờ xử lý",
+      kpiTasksCompleted: "Task hoàn thành",
+      kpiAvgCompletion: "Thời gian hoàn thành TB",
+      kpiDeptEfficiency: "Hiệu suất department",
+      kpiActiveDepartments: "Department đang hoạt động",
+      pageTitle: "Phân tích",
+      subtitleOfficePrefix: "Số liệu hiệu suất của công ty ",
+      subtitleOfficeSuffix: ".",
+      subtitleAllOffices: "Số liệu hiệu suất department và thông tin năng suất trên toàn bộ công ty.",
+      refreshBtn: "Làm mới",
+      personnelProductivityTitle: "Năng suất nhân sự",
+      productivityMembersSuffix: "thành viên",
+      noPersonnelDataText: "Chưa có dữ liệu nhân sự",
+      comparisonChartLabel: "Biểu đồ so sánh",
+      productivityTooltipLabel: "Năng suất",
+      taskStatusTitle: "Trạng thái Task",
+      noTasksYetText: "Chưa có task nào",
+      tasksLabel: "task",
+      recentTasksTitle: "Task gần đây",
+      totalSuffix: "tổng",
+      noTasksRecordedText: "Chưa ghi nhận task nào",
+      moreTasksSuffix: " task khác",
+      departmentsTitle: "Department",
+      activeSuffix: "đang hoạt động",
+      noDepartmentsYetText: "Chưa có department nào",
+      memberLabel: "thành viên",
+      membersLabel: "thành viên",
+    },
+    platformPage: {
+      editAppTitle: "Sửa ứng dụng",
+      addAppTitle: "Thêm ứng dụng",
+      platformLabel: "Nền tảng",
+      selectPlatformPlaceholder: "Chọn nền tảng...",
+      useSavedConnectionBtn: "Dùng kết nối đã lưu",
+      configureManuallyBtn: "Cấu hình thủ công",
+      chooseSavedConnectionLabel: "Chọn kết nối đã lưu",
+      appNameLabel: "Tên ứng dụng",
+      appNamePlaceholder: "VD: Bot hỗ trợ khách hàng",
+      receivesMessagesLabel: "Nhận tin nhắn",
+      routingPrimaryDept: "Department chính",
+      routingDepartment: "Department",
+      routingSpecificStaff: "Nhân sự cụ thể",
+      routesToPrimaryText: "Tin nhắn sẽ chuyển đến department chính của công ty.",
+      chooseDepartmentPlaceholder: "Chọn department...",
+      noDepartmentsInCompanyText: "Công ty này chưa có department nào",
+      noStaffInCompanyText: "Công ty này chưa có nhân sự nào.",
+      enabledLabel: "Kích hoạt",
+      cancelBtn: "Hủy",
+      saveChangesBtn: "Lưu thay đổi",
+      activeBadge: "đang hoạt động",
+      disabledBadge: "đã tắt",
+      editTitle: "Sửa",
+      copyTitle: "Sao chép",
+      deleteTitle: "Xóa",
+      receivesMessagesArrow: "Nhận tin nhắn → ",
+      staffCountSuffix: "nhân sự",
+      departmentFallback: "Department",
+      primaryDepartmentText: "Department chính",
+      loadingCompanyText: "Đang tải công ty...",
+      pageTitle: "Nền tảng",
+      subtitlePrefix: "Kết nối ",
+      subtitleSuffix: " với Telegram và các ứng dụng khác, và chọn ai sẽ xử lý tin nhắn của từng ứng dụng.",
+      loadingAppsText: "Đang tải ứng dụng...",
+      noAppsTitle: "Chưa có ứng dụng nào được kết nối",
+      noAppsDesc: "Thêm bot Telegram hoặc ứng dụng nhắn tin khác để người dùng có thể liên hệ công ty này. Bạn quyết định department hay nhân sự cụ thể sẽ xử lý cuộc trò chuyện.",
+      addFirstAppBtn: "Thêm ứng dụng đầu tiên",
+      deleteAppConfirmTitle: "Xóa ứng dụng?",
+      deleteAppConfirmPrefix: "Gỡ ",
+      deleteAppConfirmSuffix: " khỏi công ty này? URL webhook của nó sẽ ngừng hoạt động. Không thể hoàn tác.",
+      deleteAppBtn: "Xóa ứng dụng",
+      appSavedToast: "Đã lưu ứng dụng",
+      errorTitle: "Lỗi",
+      appDeletedToast: "Đã xóa ứng dụng",
+    },
+    dashboardPage: {
+      metricTasksCompleted: "Task hoàn thành",
+      metricActiveTasks: "Task đang chạy",
+      metricDeptEfficiency: "Hiệu suất department",
+      metricActivePersonnel: "Nhân sự đang hoạt động",
+      metricAvgCompletion: "Thời gian hoàn thành TB",
+      trendInProgress: "đang thực hiện",
+      trendOfPrefix: "trên ",
+      trendAvgTime: "thời gian TB",
+      couldNotLoadDashboard: "Không thể tải dashboard",
+      overviewSuffix: " — Tổng quan",
+      companyOverviewTitle: "Tổng quan công ty",
+      operationsOfOfficePrefix: "Hoạt động của công ty \"",
+      operationsOfOfficeSuffix: "\"",
+      overviewAllOfficesText: "Tổng quan hoạt động công ty trên toàn bộ các văn phòng",
+      companiesTitle: "Công ty",
+      createCompanyBtn: "Tạo công ty",
+      activeBadge: "Đang hoạt động",
+      idleBadge: "Rảnh",
+      activeTaskSingularSuffix: " task đang chạy",
+      activeTaskPluralSuffix: " task đang chạy",
+      staffLabel: "nhân sự",
+      noCompaniesYetText: "Chưa có công ty nào",
+      createFirstCompanyText: "Tạo công ty đầu tiên để bắt đầu",
+      recentProjectsTasksTitle: "Dự án & Task gần đây",
+      totalSuffix: "tổng",
+      progressLabel: "Tiến độ",
+      noProjectsOrTasksText: "Chưa có dự án hay task nào",
+      createTaskToStartText: "Tạo task để bắt đầu",
+      activityFeedTitle: "Hoạt động gần đây",
+      liveBadge: "Trực tiếp",
+      systemFallbackName: "Hệ thống",
+      noActivityYetText: "Chưa có hoạt động nào",
+    },
   },
 
 
@@ -2212,12 +3007,76 @@ export const translations: Record<Language, Translations> = {
       officeSaved: "办公室已保存",
       error: "错误",
       companyDeleted: "公司已删除",
+      editCompanyTitle: "编辑公司",
+      newCompanyTitle: "新建公司",
+      cloneDepartmentsDesc: "从现有公司即时克隆部门。",
+      chooseOfficeImportPlaceholder: "选择要导入的公司...",
+      companyNameLabel: "公司名称",
+      companyNamePlaceholder: "我的 AI 公司",
+      descriptionLabel: "描述",
+      descriptionPlaceholder: "该公司是做什么的",
+      departmentsLabel: "部门",
+      personnelSuffix: "位人员",
+      primaryBadge: "主要",
+      setPrimaryBtn: "设为主要",
+      cancelBtn: "取消",
+      saveChangesBtn: "保存更改",
+      createOfficeBtn: "创建办公室",
+      noDescriptionText: "暂无描述",
+      primaryLowercaseBadge: "主要",
+      manageCompaniesTitle: "管理公司",
+      pageSubtitle: "创建并管理公司——将部门归组到公司中。可在各公司的 Platform 页面连接消息应用。",
+      statsCompaniesLabel: "公司",
+      loadingCompaniesText: "正在加载公司...",
+      noCompaniesDesc: "创建一个公司来归组你的部门。创建后，选中它并打开其 Platform 页面即可连接 Telegram、Discord、Slack、WhatsApp 等。",
+      createFirstCompanyBtn: "创建第一个公司",
+      couldNotCheckDeleteImpact: "无法检查删除影响",
+      deleteConfirmPrefix: "确定要删除 ",
+      deleteConfirmSuffix: " 吗？此操作无法撤销。",
+      removedDepartmentsSuffix: " 个部门将被移除",
+      removedStaffSuffix: " 名员工将被移除",
+      removedSkillsSuffix: " 个技能将被移除",
+      removedTasksSuffix: " 个任务将被移除",
+      removedDocumentsSuffix: " 个文档将被移除",
+      keptDeptQuotePrefix: "\"",
+      keptDeptIsKeptSuffix: "\" 将被保留——仍被以下对象使用：",
+      deleteCompanyBtn: "删除公司",
     },
     settingsPage: {
       modelUpdated: "已更新当前模型",
       error: "错误",
       connectionSaved: "连接已保存",
       connectionDeleted: "连接已删除",
+      activeModelTitle: "当前使用的 LLM 模型",
+      activeModelDesc: "选择整个平台默认使用的模型。可在 config.yml 中启用更多选项。",
+      loadingModels: "正在加载模型...",
+      activeBadge: "使用中",
+      visionBadge: "支持视觉",
+      editConnectionTitle: "编辑连接",
+      addConnectionTitle: "添加连接",
+      platformLabel: "平台",
+      selectPlatformPlaceholder: "选择平台...",
+      connectionNameLabel: "连接名称",
+      connectionNamePlaceholder: "例如：我的 Telegram 机器人",
+      descriptionLabel: "描述",
+      descriptionPlaceholder: "备注（可选）",
+      credentialsLabel: "凭证信息",
+      cancelBtn: "取消",
+      saveChangesBtn: "保存更改",
+      savedBadge: "已保存",
+      hideBtn: "隐藏",
+      showBtn: "显示",
+      pageTitle: "设置",
+      pageSubtitle: "管理全局第三方连接。认证一次即可在各公司间复用。",
+      savedConnectionsLabel: "已保存的连接",
+      platformsConnectedLabel: "已连接的平台",
+      thirdPartyConnectionsTitle: "第三方连接",
+      thirdPartyConnectionsDesc: "在此添加一次平台凭证——创建公司 Hook 时即可选用。",
+      allPlatformsLabel: "所有平台",
+      loadingConnections: "正在加载连接...",
+      noConnectionsTitle: "暂无连接",
+      noConnectionsDesc: "为 Telegram、Discord、Slack 等平台添加凭证，可在各公司间自由复用。",
+      addFirstConnectionBtn: "添加第一个连接",
     },
     documentLibrary: {
       title: "文档库",
@@ -2806,6 +3665,207 @@ export const translations: Record<Language, Translations> = {
       selectProvider: "选择提供方", inputPerMLabel: "输入 $ / 100万 token", outputPerMLabel: "输出 $ / 100万 token",
       cancel: "取消", save: "保存", saving: "保存中…",
     },
+    backlogPage: {
+      couldNotMoveIssue: "无法移动 issue",
+      deleteConfirmPrefix: "删除 ",
+      issueFallback: "issue",
+      loadingText: "加载中…",
+      projectNotFoundPrefix: "未找到项目 \"",
+      projectNotFoundSuffix: "\"。",
+      backlogTitle: "Backlog",
+      backlogSubtitle: "尚未规划进 sprint 的 issue",
+      noIssuesText: "暂无 issue",
+      issuesLabel: "个 issue",
+      ptsLabel: "点",
+      deleteBtnTitle: "删除",
+      sprintBtnLabel: "Sprint",
+      newSprintTitle: "新建 Sprint",
+      sprintNamePlaceholder: "Sprint 名称（例如 Sprint 1）",
+      sprintGoalPlaceholder: "Sprint 目标（可选）",
+      createSprintBtn: "创建 Sprint",
+      epicBtnLabel: "Epic",
+      newEpicTitle: "新建 Epic",
+      epicTitlePlaceholder: "Epic 标题",
+      descriptionOptionalPlaceholder: "描述（可选）",
+      createEpicBtn: "创建 Epic",
+      issueBtnLabel: "Issue",
+      newIssueTitle: "新建 Issue",
+      issueTitlePlaceholder: "Issue 标题",
+      descriptionPlaceholder: "描述",
+      storyPointsPlaceholder: "Story points",
+      epicSelectPlaceholder: "Epic",
+      noEpicOption: "无 epic",
+      sprintSelectPlaceholder: "Sprint",
+      createIssueBtn: "创建 Issue",
+      plannerNoIssuesTitle: "Planner 未返回任何 issue",
+      plannerNoIssuesDesc: "请尝试更详细的描述。",
+      plannerFailedTitle: "Planner 失败",
+      issuesCreatedTitle: "已创建 issue",
+      issuesCreatedDescSuffix: " 个 issue 已添加到 backlog。",
+      commitFailedTitle: "保存失败",
+      generateWithPlannerBtn: "用 Planner 生成",
+      aiPlannerTitle: "AI Planner — 拆解为 issue",
+      noPlannerWarning: "该项目未设置 planner 员工——将使用通用 planner。可在项目设置中配置以获得更贴合的结果。",
+      describePlaceholder: "描述要拆解为 issue 的功能、epic 或项目…",
+      countPlaceholder: "数量",
+      generatingBtn: "生成中…",
+      regenerateBtn: "重新生成",
+      generateDraftBtn: "生成草稿",
+      noIssuesAdjustText: "暂无 issue——请调整描述后重新生成。",
+      ptsPlaceholder: "点",
+      commitIssuesBtnPrefix: "保存 ",
+      commitIssuesBtnSuffix: " 个 issue",
+    },
+    projectsPage: {
+      pageTitle: "项目",
+      pageSubtitle: "IT 项目 · issue、epic、sprint 与 AI planner",
+      statsProjects: "项目",
+      statsIssues: "Issue",
+      statsWithPlanner: "已配置 planner",
+      newProjectBtn: "新建项目",
+      editProjectTitle: "编辑项目",
+      createProjectTitle: "创建项目",
+      keyPlaceholder: "KEY",
+      nameLabel: "名称",
+      namePlaceholder: "项目名称",
+      descriptionPlaceholder: "描述",
+      projectLeadLabel: "项目负责人",
+      nonePlaceholder: "无",
+      noneOption: "无",
+      plannerStaffLabel: "Planner 员工",
+      plannerInstructionsLabel: "Planner 指令（可选，覆盖默认）",
+      plannerInstructionsPlaceholder: "Planner 应如何将工作拆分为 issue？留空则使用所选员工自身的系统提示词。",
+      saveChangesBtn: "保存更改",
+      couldNotSaveProject: "无法保存项目",
+      deleteProjectConfirmPrefix: "删除项目 \"",
+      deleteProjectConfirmSuffix: "\"？其下的 issue、epic 和 sprint 也将一并删除。",
+      couldNotDelete: "无法删除",
+      noProjectsTitle: "暂无项目",
+      noProjectsDesc: "创建你的第一个 IT 项目，把 issue 组织为 epic 和 sprint，并借助 AI planner。",
+      createFirstProjectBtn: "创建第一个项目",
+      noDescriptionText: "暂无描述",
+      editAriaTitle: "编辑",
+      deleteAriaTitle: "删除",
+      issuesSuffix: "个 issue",
+      noPlannerText: "无 planner",
+      ledByPrefix: "负责人：",
+      quickLinkBoard: "看板",
+      quickLinkBacklog: "Backlog",
+      quickLinkRoadmap: "路线图",
+      quickLinkReports: "报告",
+    },
+    analyticsPage: {
+      couldNotLoadAnalytics: "无法加载分析数据",
+      statusDone: "已完成",
+      statusActive: "进行中",
+      statusPending: "待处理",
+      kpiTasksCompleted: "已完成任务",
+      kpiAvgCompletion: "平均完成时间",
+      kpiDeptEfficiency: "部门效率",
+      kpiActiveDepartments: "活跃部门",
+      pageTitle: "分析",
+      subtitleOfficePrefix: "公司 ",
+      subtitleOfficeSuffix: " 的绩效指标。",
+      subtitleAllOffices: "各公司的部门绩效指标与生产力洞察。",
+      refreshBtn: "刷新",
+      personnelProductivityTitle: "人员生产力",
+      productivityMembersSuffix: "位成员",
+      noPersonnelDataText: "暂无人员数据",
+      comparisonChartLabel: "对比图表",
+      productivityTooltipLabel: "生产力",
+      taskStatusTitle: "任务状态",
+      noTasksYetText: "暂无任务",
+      tasksLabel: "个任务",
+      recentTasksTitle: "近期任务",
+      totalSuffix: "共",
+      noTasksRecordedText: "暂无任务记录",
+      moreTasksSuffix: " 个更多任务",
+      departmentsTitle: "部门",
+      activeSuffix: "活跃",
+      noDepartmentsYetText: "暂无部门",
+      memberLabel: "位成员",
+      membersLabel: "位成员",
+    },
+    platformPage: {
+      editAppTitle: "编辑应用",
+      addAppTitle: "添加应用",
+      platformLabel: "平台",
+      selectPlatformPlaceholder: "选择平台...",
+      useSavedConnectionBtn: "使用已保存的连接",
+      configureManuallyBtn: "手动配置",
+      chooseSavedConnectionLabel: "选择已保存的连接",
+      appNameLabel: "应用名称",
+      appNamePlaceholder: "例如：客服机器人",
+      receivesMessagesLabel: "接收消息",
+      routingPrimaryDept: "主要部门",
+      routingDepartment: "部门",
+      routingSpecificStaff: "指定员工",
+      routesToPrimaryText: "消息将路由到公司的主要部门。",
+      chooseDepartmentPlaceholder: "选择部门...",
+      noDepartmentsInCompanyText: "该公司暂无部门",
+      noStaffInCompanyText: "该公司暂无员工。",
+      enabledLabel: "启用",
+      cancelBtn: "取消",
+      saveChangesBtn: "保存更改",
+      activeBadge: "已启用",
+      disabledBadge: "已停用",
+      editTitle: "编辑",
+      copyTitle: "复制",
+      deleteTitle: "删除",
+      receivesMessagesArrow: "接收消息 → ",
+      staffCountSuffix: "名员工",
+      departmentFallback: "部门",
+      primaryDepartmentText: "主要部门",
+      loadingCompanyText: "正在加载公司...",
+      pageTitle: "平台",
+      subtitlePrefix: "将 ",
+      subtitleSuffix: " 连接到 Telegram 等应用，并选择由谁处理各应用的消息。",
+      loadingAppsText: "正在加载应用...",
+      noAppsTitle: "尚未连接任何应用",
+      noAppsDesc: "添加 Telegram 机器人或其他消息应用，让用户可以联系该公司。你可以决定由部门还是指定员工处理会话。",
+      addFirstAppBtn: "添加第一个应用",
+      deleteAppConfirmTitle: "删除应用？",
+      deleteAppConfirmPrefix: "从该公司移除 ",
+      deleteAppConfirmSuffix: "？其 webhook 地址将停止工作，此操作无法撤销。",
+      deleteAppBtn: "删除应用",
+      appSavedToast: "应用已保存",
+      errorTitle: "错误",
+      appDeletedToast: "应用已删除",
+    },
+    dashboardPage: {
+      metricTasksCompleted: "已完成任务",
+      metricActiveTasks: "进行中任务",
+      metricDeptEfficiency: "部门效率",
+      metricActivePersonnel: "活跃人员",
+      metricAvgCompletion: "平均完成时间",
+      trendInProgress: "进行中",
+      trendOfPrefix: "共 ",
+      trendAvgTime: "平均耗时",
+      couldNotLoadDashboard: "无法加载仪表盘",
+      overviewSuffix: " — 概览",
+      companyOverviewTitle: "公司概览",
+      operationsOfOfficePrefix: "公司 \"",
+      operationsOfOfficeSuffix: "\" 的运营情况",
+      overviewAllOfficesText: "所有公司的运营概览",
+      companiesTitle: "公司",
+      createCompanyBtn: "创建公司",
+      activeBadge: "活跃",
+      idleBadge: "空闲",
+      activeTaskSingularSuffix: " 个进行中任务",
+      activeTaskPluralSuffix: " 个进行中任务",
+      staffLabel: "员工",
+      noCompaniesYetText: "暂无公司",
+      createFirstCompanyText: "创建你的第一个公司以开始",
+      recentProjectsTasksTitle: "近期项目与任务",
+      totalSuffix: "共",
+      progressLabel: "进度",
+      noProjectsOrTasksText: "暂无项目或任务",
+      createTaskToStartText: "创建任务以开始",
+      activityFeedTitle: "活动动态",
+      liveBadge: "实时",
+      systemFallbackName: "系统",
+      noActivityYetText: "暂无活动",
+    },
   },
 
 
@@ -2918,12 +3978,76 @@ export const translations: Record<Language, Translations> = {
       officeSaved: "オフィスを保存しました",
       error: "エラー",
       companyDeleted: "会社を削除しました",
+      editCompanyTitle: "会社を編集",
+      newCompanyTitle: "新規会社",
+      cloneDepartmentsDesc: "既存の会社から部署を即座に複製します。",
+      chooseOfficeImportPlaceholder: "インポート元のオフィスを選択...",
+      companyNameLabel: "会社名",
+      companyNamePlaceholder: "My AI Company",
+      descriptionLabel: "説明",
+      descriptionPlaceholder: "この会社が何を行うか",
+      departmentsLabel: "部署",
+      personnelSuffix: "名",
+      primaryBadge: "主要",
+      setPrimaryBtn: "主要に設定",
+      cancelBtn: "キャンセル",
+      saveChangesBtn: "変更を保存",
+      createOfficeBtn: "オフィスを作成",
+      noDescriptionText: "説明はありません",
+      primaryLowercaseBadge: "主要",
+      manageCompaniesTitle: "会社を管理",
+      pageSubtitle: "会社を作成・管理します——部署を会社にまとめます。各社の Platform ページからメッセージアプリを接続できます。",
+      statsCompaniesLabel: "会社",
+      loadingCompaniesText: "会社を読み込み中...",
+      noCompaniesDesc: "会社を作成して部署をまとめましょう。作成後、選択して Platform ページを開けば Telegram、Discord、Slack、WhatsApp などを接続できます。",
+      createFirstCompanyBtn: "最初の会社を作成",
+      couldNotCheckDeleteImpact: "削除の影響を確認できませんでした",
+      deleteConfirmPrefix: "本当に削除しますか: ",
+      deleteConfirmSuffix: "？この操作は取り消せません。",
+      removedDepartmentsSuffix: " 件の部署が削除されます",
+      removedStaffSuffix: " 名のスタッフが削除されます",
+      removedSkillsSuffix: " 件のスキルが削除されます",
+      removedTasksSuffix: " 件のタスクが削除されます",
+      removedDocumentsSuffix: " 件のドキュメントが削除されます",
+      keptDeptQuotePrefix: "「",
+      keptDeptIsKeptSuffix: "」は保持されます — 以下で引き続き使用中: ",
+      deleteCompanyBtn: "会社を削除",
     },
     settingsPage: {
       modelUpdated: "使用中のモデルを更新しました",
       error: "エラー",
       connectionSaved: "連携を保存しました",
       connectionDeleted: "連携を削除しました",
+      activeModelTitle: "使用中の LLM モデル",
+      activeModelDesc: "プラットフォーム全体が既定で使うモデルを選択します。config.yml でさらに選択肢を有効化できます。",
+      loadingModels: "モデルを読み込み中...",
+      activeBadge: "使用中",
+      visionBadge: "ビジョン対応",
+      editConnectionTitle: "連携を編集",
+      addConnectionTitle: "連携を追加",
+      platformLabel: "プラットフォーム",
+      selectPlatformPlaceholder: "プラットフォームを選択...",
+      connectionNameLabel: "連携名",
+      connectionNamePlaceholder: "例：My Telegram Bot",
+      descriptionLabel: "説明",
+      descriptionPlaceholder: "メモ（任意）",
+      credentialsLabel: "認証情報",
+      cancelBtn: "キャンセル",
+      saveChangesBtn: "変更を保存",
+      savedBadge: "保存済み",
+      hideBtn: "隠す",
+      showBtn: "表示",
+      pageTitle: "設定",
+      pageSubtitle: "共通のサードパーティ連携を管理します。一度認証すれば全社で使い回せます。",
+      savedConnectionsLabel: "保存済みの連携",
+      platformsConnectedLabel: "接続済みプラットフォーム",
+      thirdPartyConnectionsTitle: "サードパーティ連携",
+      thirdPartyConnectionsDesc: "ここでプラットフォームの認証情報を一度追加すれば、会社の Hook 作成時に選択できます。",
+      allPlatformsLabel: "すべてのプラットフォーム",
+      loadingConnections: "連携を読み込み中...",
+      noConnectionsTitle: "まだ連携がありません",
+      noConnectionsDesc: "Telegram、Discord、Slack などのプラットフォームの認証情報を追加してください。全社で自由に使い回せます。",
+      addFirstConnectionBtn: "最初の連携を追加",
     },
     documentLibrary: {
       title: "ドキュメントライブラリ",
@@ -3511,6 +4635,207 @@ export const translations: Record<Language, Translations> = {
       addModelPricingTitle: "モデル料金を追加", editPricingTitle: "料金を編集 — {model}", modelLabel: "モデル", modelPlaceholder: "例: gemini-2.0-flash", providerLabel: "プロバイダー",
       selectProvider: "プロバイダーを選択", inputPerMLabel: "入力 $ / 100万トークン", outputPerMLabel: "出力 $ / 100万トークン",
       cancel: "キャンセル", save: "保存", saving: "保存中…",
+    },
+    backlogPage: {
+      couldNotMoveIssue: "issue を移動できませんでした",
+      deleteConfirmPrefix: "削除しますか: ",
+      issueFallback: "issue",
+      loadingText: "読み込み中…",
+      projectNotFoundPrefix: "プロジェクト「",
+      projectNotFoundSuffix: "」が見つかりません。",
+      backlogTitle: "Backlog",
+      backlogSubtitle: "まだスプリントに割り当てられていない issue",
+      noIssuesText: "issue はありません",
+      issuesLabel: "件の issue",
+      ptsLabel: "pt",
+      deleteBtnTitle: "削除",
+      sprintBtnLabel: "Sprint",
+      newSprintTitle: "新規 Sprint",
+      sprintNamePlaceholder: "Sprint 名（例: Sprint 1）",
+      sprintGoalPlaceholder: "Sprint の目標（任意）",
+      createSprintBtn: "Sprint を作成",
+      epicBtnLabel: "Epic",
+      newEpicTitle: "新規 Epic",
+      epicTitlePlaceholder: "Epic タイトル",
+      descriptionOptionalPlaceholder: "説明（任意）",
+      createEpicBtn: "Epic を作成",
+      issueBtnLabel: "Issue",
+      newIssueTitle: "新規 Issue",
+      issueTitlePlaceholder: "Issue タイトル",
+      descriptionPlaceholder: "説明",
+      storyPointsPlaceholder: "Story points",
+      epicSelectPlaceholder: "Epic",
+      noEpicOption: "Epic なし",
+      sprintSelectPlaceholder: "Sprint",
+      createIssueBtn: "Issue を作成",
+      plannerNoIssuesTitle: "Planner が issue を返しませんでした",
+      plannerNoIssuesDesc: "説明をより詳細にしてお試しください。",
+      plannerFailedTitle: "Planner が失敗しました",
+      issuesCreatedTitle: "issue を作成しました",
+      issuesCreatedDescSuffix: " 件の issue を backlog に追加しました。",
+      commitFailedTitle: "保存に失敗しました",
+      generateWithPlannerBtn: "Planner で生成",
+      aiPlannerTitle: "AI Planner — issue に分解",
+      noPlannerWarning: "このプロジェクトには planner スタッフが設定されていません——汎用の planner が使用されます。適した結果を得るにはプロジェクト設定で個別に設定してください。",
+      describePlaceholder: "issue に分解したい機能・epic・プロジェクトを説明してください…",
+      countPlaceholder: "件数",
+      generatingBtn: "生成中…",
+      regenerateBtn: "再生成",
+      generateDraftBtn: "ドラフトを生成",
+      noIssuesAdjustText: "issue がありません——説明を調整して再生成してください。",
+      ptsPlaceholder: "pt",
+      commitIssuesBtnPrefix: "",
+      commitIssuesBtnSuffix: " 件の issue を保存",
+    },
+    projectsPage: {
+      pageTitle: "プロジェクト",
+      pageSubtitle: "IT プロジェクト · issue、epic、sprint、AI planner",
+      statsProjects: "プロジェクト",
+      statsIssues: "Issue",
+      statsWithPlanner: "Planner 設定済み",
+      newProjectBtn: "新規プロジェクト",
+      editProjectTitle: "プロジェクトを編集",
+      createProjectTitle: "プロジェクトを作成",
+      keyPlaceholder: "KEY",
+      nameLabel: "名前",
+      namePlaceholder: "プロジェクト名",
+      descriptionPlaceholder: "説明",
+      projectLeadLabel: "プロジェクトリード",
+      nonePlaceholder: "なし",
+      noneOption: "なし",
+      plannerStaffLabel: "Planner スタッフ",
+      plannerInstructionsLabel: "Planner の指示（任意・上書き）",
+      plannerInstructionsPlaceholder: "Planner はどのように作業を issue に分解すべきですか？空欄の場合、選択したスタッフ自身のシステムプロンプトを使用します。",
+      saveChangesBtn: "変更を保存",
+      couldNotSaveProject: "プロジェクトを保存できませんでした",
+      deleteProjectConfirmPrefix: "プロジェクト「",
+      deleteProjectConfirmSuffix: "」を削除しますか？関連する issue・epic・sprint もすべて削除されます。",
+      couldNotDelete: "削除できませんでした",
+      noProjectsTitle: "まだプロジェクトがありません",
+      noProjectsDesc: "最初の IT プロジェクトを作成し、issue を epic と sprint に整理しましょう。AI planner がサポートします。",
+      createFirstProjectBtn: "最初のプロジェクトを作成",
+      noDescriptionText: "説明はありません",
+      editAriaTitle: "編集",
+      deleteAriaTitle: "削除",
+      issuesSuffix: "件の issue",
+      noPlannerText: "Planner なし",
+      ledByPrefix: "リード: ",
+      quickLinkBoard: "Board",
+      quickLinkBacklog: "Backlog",
+      quickLinkRoadmap: "Roadmap",
+      quickLinkReports: "レポート",
+    },
+    analyticsPage: {
+      couldNotLoadAnalytics: "分析データを読み込めませんでした",
+      statusDone: "完了",
+      statusActive: "進行中",
+      statusPending: "保留中",
+      kpiTasksCompleted: "完了タスク数",
+      kpiAvgCompletion: "平均完了時間",
+      kpiDeptEfficiency: "部門効率",
+      kpiActiveDepartments: "稼働中の部門",
+      pageTitle: "分析",
+      subtitleOfficePrefix: "会社「",
+      subtitleOfficeSuffix: "」のパフォーマンス指標。",
+      subtitleAllOffices: "全社の部門パフォーマンス指標と生産性のインサイト。",
+      refreshBtn: "更新",
+      personnelProductivityTitle: "人員の生産性",
+      productivityMembersSuffix: "名",
+      noPersonnelDataText: "人員データはまだありません",
+      comparisonChartLabel: "比較チャート",
+      productivityTooltipLabel: "生産性",
+      taskStatusTitle: "タスクステータス",
+      noTasksYetText: "タスクはまだありません",
+      tasksLabel: "件のタスク",
+      recentTasksTitle: "最近のタスク",
+      totalSuffix: "件",
+      noTasksRecordedText: "記録されたタスクはありません",
+      moreTasksSuffix: " 件のタスクがさらにあります",
+      departmentsTitle: "部門",
+      activeSuffix: "稼働中",
+      noDepartmentsYetText: "部門はまだありません",
+      memberLabel: "名",
+      membersLabel: "名",
+    },
+    platformPage: {
+      editAppTitle: "アプリを編集",
+      addAppTitle: "アプリを追加",
+      platformLabel: "プラットフォーム",
+      selectPlatformPlaceholder: "プラットフォームを選択...",
+      useSavedConnectionBtn: "保存済みの連携を使う",
+      configureManuallyBtn: "手動で設定",
+      chooseSavedConnectionLabel: "保存済みの連携を選択",
+      appNameLabel: "アプリ名",
+      appNamePlaceholder: "例：カスタマーサポート Bot",
+      receivesMessagesLabel: "メッセージの受信先",
+      routingPrimaryDept: "主要部門",
+      routingDepartment: "部門",
+      routingSpecificStaff: "特定のスタッフ",
+      routesToPrimaryText: "メッセージは会社の主要部門にルーティングされます。",
+      chooseDepartmentPlaceholder: "部門を選択...",
+      noDepartmentsInCompanyText: "この会社に部門はありません",
+      noStaffInCompanyText: "この会社にスタッフはいません。",
+      enabledLabel: "有効",
+      cancelBtn: "キャンセル",
+      saveChangesBtn: "変更を保存",
+      activeBadge: "有効",
+      disabledBadge: "無効",
+      editTitle: "編集",
+      copyTitle: "コピー",
+      deleteTitle: "削除",
+      receivesMessagesArrow: "受信先 → ",
+      staffCountSuffix: "名のスタッフ",
+      departmentFallback: "部門",
+      primaryDepartmentText: "主要部門",
+      loadingCompanyText: "会社を読み込み中...",
+      pageTitle: "プラットフォーム",
+      subtitlePrefix: "",
+      subtitleSuffix: " を Telegram などのアプリに接続し、各アプリのメッセージを誰が処理するか選択します。",
+      loadingAppsText: "アプリを読み込み中...",
+      noAppsTitle: "まだ接続されたアプリはありません",
+      noAppsDesc: "Telegram Bot や他のメッセージアプリを追加して、ユーザーがこの会社に連絡できるようにします。部門か特定のスタッフのどちらが対応するかを選べます。",
+      addFirstAppBtn: "最初のアプリを追加",
+      deleteAppConfirmTitle: "アプリを削除しますか？",
+      deleteAppConfirmPrefix: "この会社から ",
+      deleteAppConfirmSuffix: " を削除しますか？Webhook URL は使用できなくなります。この操作は取り消せません。",
+      deleteAppBtn: "アプリを削除",
+      appSavedToast: "アプリを保存しました",
+      errorTitle: "エラー",
+      appDeletedToast: "アプリを削除しました",
+    },
+    dashboardPage: {
+      metricTasksCompleted: "完了タスク数",
+      metricActiveTasks: "進行中タスク",
+      metricDeptEfficiency: "部門効率",
+      metricActivePersonnel: "稼働中の人員",
+      metricAvgCompletion: "平均完了時間",
+      trendInProgress: "進行中",
+      trendOfPrefix: "全 ",
+      trendAvgTime: "平均時間",
+      couldNotLoadDashboard: "ダッシュボードを読み込めませんでした",
+      overviewSuffix: " — 概要",
+      companyOverviewTitle: "会社概要",
+      operationsOfOfficePrefix: "会社「",
+      operationsOfOfficeSuffix: "」の運用状況",
+      overviewAllOfficesText: "全社の運用状況の概要",
+      companiesTitle: "会社",
+      createCompanyBtn: "会社を作成",
+      activeBadge: "稼働中",
+      idleBadge: "アイドル",
+      activeTaskSingularSuffix: " 件の進行中タスク",
+      activeTaskPluralSuffix: " 件の進行中タスク",
+      staffLabel: "名のスタッフ",
+      noCompaniesYetText: "まだ会社がありません",
+      createFirstCompanyText: "最初の会社を作成して始めましょう",
+      recentProjectsTasksTitle: "最近のプロジェクトとタスク",
+      totalSuffix: "件",
+      progressLabel: "進捗",
+      noProjectsOrTasksText: "プロジェクトやタスクはまだありません",
+      createTaskToStartText: "タスクを作成して始めましょう",
+      activityFeedTitle: "アクティビティフィード",
+      liveBadge: "ライブ",
+      systemFallbackName: "システム",
+      noActivityYetText: "まだアクティビティはありません",
     },
   },
 };

@@ -46,14 +46,14 @@ function ActiveModelSection() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-base font-semibold">Active LLM Model</h2>
+        <h2 className="text-base font-semibold">{lang.settingsPage.activeModelTitle}</h2>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Pick which model the whole platform uses by default. Enable more options in config.yml.
+          {lang.settingsPage.activeModelDesc}
         </p>
       </div>
 
       {isLoading ? (
-        <div className="py-6 text-center text-muted-foreground text-sm">Loading models...</div>
+        <div className="py-6 text-center text-muted-foreground text-sm">{lang.settingsPage.loadingModels}</div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {models.map((m: LlmModelOption) => (
@@ -82,14 +82,14 @@ function ActiveModelSection() {
                 {m.active && (
                   <Badge variant="outline" className="text-[9px] h-5 px-1.5 border-emerald-500/40 text-emerald-400 gap-1 shrink-0">
                     <CheckCircle2 className="h-2.5 w-2.5" />
-                    Active
+                    {lang.settingsPage.activeBadge}
                   </Badge>
                 )}
               </div>
               {m.supportsVision && (
                 <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground">
                   <Eye className="h-3 w-3" />
-                  Vision
+                  {lang.settingsPage.visionBadge}
                 </div>
               )}
             </button>
@@ -114,6 +114,7 @@ function ConnectionDialog({
   platforms: PlatformDef[];
   onSave: (data: Partial<Connection> & Pick<Connection, "platform" | "name">) => void;
 }) {
+  const { t: lang } = useLanguage();
   const [platform, setPlatform] = useState(existing?.platform || "");
   const [name, setName] = useState(existing?.name || "");
   const [description, setDescription] = useState(existing?.description || "");
@@ -164,16 +165,16 @@ function ConnectionDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plug className="h-4 w-4 text-teal-400" />
-            {existing ? "Edit Connection" : "Add Connection"}
+            {existing ? lang.settingsPage.editConnectionTitle : lang.settingsPage.addConnectionTitle}
           </DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
           <div className="grid gap-1.5">
-            <Label className="text-xs">Platform</Label>
+            <Label className="text-xs">{lang.settingsPage.platformLabel}</Label>
             <Select value={platform} onValueChange={handlePlatformChange} disabled={!!existing}>
               <SelectTrigger className="h-9">
-                <SelectValue placeholder="Select platform..." />
+                <SelectValue placeholder={lang.settingsPage.selectPlatformPlaceholder} />
               </SelectTrigger>
               <SelectContent>
                 {platforms.map((p) => (
@@ -189,9 +190,9 @@ function ConnectionDialog({
           </div>
 
           <div className="grid gap-1.5">
-            <Label className="text-xs">Connection Name <span className="text-rose-400">*</span></Label>
+            <Label className="text-xs">{lang.settingsPage.connectionNameLabel} <span className="text-rose-400">*</span></Label>
             <Input
-              placeholder="e.g. My Telegram Bot"
+              placeholder={lang.settingsPage.connectionNamePlaceholder}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="h-9"
@@ -199,9 +200,9 @@ function ConnectionDialog({
           </div>
 
           <div className="grid gap-1.5">
-            <Label className="text-xs">Description</Label>
+            <Label className="text-xs">{lang.settingsPage.descriptionLabel}</Label>
             <Input
-              placeholder="Optional notes"
+              placeholder={lang.settingsPage.descriptionPlaceholder}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="h-9"
@@ -211,7 +212,7 @@ function ConnectionDialog({
           {platformDef && platformDef.config_fields.length > 0 && (
             <div className="grid gap-3 rounded-xl border border-border/40 bg-muted/20 p-3">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
-                Credentials
+                {lang.settingsPage.credentialsLabel}
               </p>
               {platformDef.config_fields.map((f) => {
                 const isSecret = f.key.toLowerCase().includes("token") ||
@@ -253,10 +254,10 @@ function ConnectionDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" size="sm" onClick={close}>Cancel</Button>
+          <Button variant="outline" size="sm" onClick={close}>{lang.settingsPage.cancelBtn}</Button>
           <Button size="sm" onClick={submit} disabled={!canSubmit}
             className="bg-teal-600 hover:bg-teal-500">
-            {existing ? "Save Changes" : "Add Connection"}
+            {existing ? lang.settingsPage.saveChangesBtn : lang.settingsPage.addConnectionTitle}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -276,6 +277,7 @@ function ConnectionCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { t: lang } = useLanguage();
   const [showSecrets, setShowSecrets] = useState(false);
   const pLabel = platforms.find((p) => p.platform === connection.platform)?.label || connection.platform;
   const color = PLATFORM_COLORS[connection.platform] || "from-slate-500 to-gray-600";
@@ -306,7 +308,7 @@ function ConnectionCard({
         <div className="flex items-center gap-1 shrink-0">
           <Badge variant="outline" className="text-[9px] h-5 px-1.5 border-emerald-500/40 text-emerald-400 gap-1">
             <CheckCircle2 className="h-2.5 w-2.5" />
-            Saved
+            {lang.settingsPage.savedBadge}
           </Badge>
           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onEdit}>
             <Pencil className="h-3.5 w-3.5" />
@@ -325,7 +327,7 @@ function ConnectionCard({
         <div className="mt-3 pt-3 border-t border-border/30">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
-              Credentials
+              {lang.settingsPage.credentialsLabel}
             </p>
             <button
               type="button"
@@ -333,7 +335,7 @@ function ConnectionCard({
               onClick={() => setShowSecrets((v) => !v)}
             >
               {showSecrets ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-              {showSecrets ? "Hide" : "Show"}
+              {showSecrets ? lang.settingsPage.hideBtn : lang.settingsPage.showBtn}
             </button>
           </div>
           <div className="grid gap-1.5">
@@ -418,15 +420,15 @@ export default function Settings() {
             <Settings2 className="h-5 w-5 text-violet-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{lang.settingsPage.pageTitle}</h1>
             <p className="text-sm text-muted-foreground">
-              Manage global third-party connections. Authenticate once and reuse across companies.
+              {lang.settingsPage.pageSubtitle}
             </p>
           </div>
         </div>
         <Button onClick={openNew} className="gap-2 bg-teal-600 hover:bg-teal-500 shadow-lg shadow-teal-500/20">
           <Plus className="h-4 w-4" />
-          Add Connection
+          {lang.settingsPage.addConnectionTitle}
         </Button>
       </div>
 
@@ -440,7 +442,7 @@ export default function Settings() {
           </div>
           <div>
             <p className="text-2xl font-bold">{connections.length}</p>
-            <p className="text-xs text-muted-foreground">Saved Connections</p>
+            <p className="text-xs text-muted-foreground">{lang.settingsPage.savedConnectionsLabel}</p>
           </div>
         </div>
         <div className="rounded-2xl border border-border/40 bg-card/40 p-4 flex items-center gap-4">
@@ -449,7 +451,7 @@ export default function Settings() {
           </div>
           <div>
             <p className="text-2xl font-bold">{usedPlatforms.length}</p>
-            <p className="text-xs text-muted-foreground">Platforms Connected</p>
+            <p className="text-xs text-muted-foreground">{lang.settingsPage.platformsConnectedLabel}</p>
           </div>
         </div>
       </div>
@@ -458,19 +460,19 @@ export default function Settings() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold">Third Party Connections</h2>
+            <h2 className="text-base font-semibold">{lang.settingsPage.thirdPartyConnectionsTitle}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Add your platform credentials here once — then pick them when creating company hooks.
+              {lang.settingsPage.thirdPartyConnectionsDesc}
             </p>
           </div>
 
           {usedPlatforms.length > 1 && (
             <Select value={filterPlatform} onValueChange={setFilterPlatform}>
               <SelectTrigger className="h-8 w-44 text-xs">
-                <SelectValue placeholder="All platforms" />
+                <SelectValue placeholder={lang.settingsPage.allPlatformsLabel} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All platforms</SelectItem>
+                <SelectItem value="all">{lang.settingsPage.allPlatformsLabel}</SelectItem>
                 {usedPlatforms.map((p) => {
                   const def = platforms.find((pl) => pl.platform === p);
                   return (
@@ -487,7 +489,7 @@ export default function Settings() {
         </div>
 
         {isLoading ? (
-          <div className="py-12 text-center text-muted-foreground text-sm">Loading connections...</div>
+          <div className="py-12 text-center text-muted-foreground text-sm">{lang.settingsPage.loadingConnections}</div>
         ) : connections.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -497,13 +499,13 @@ export default function Settings() {
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br from-teal-500/10 to-cyan-600/10 border border-teal-500/20 mb-4">
               <Plug className="h-7 w-7 text-teal-400/60" />
             </div>
-            <h3 className="text-base font-semibold mb-1">No connections yet</h3>
+            <h3 className="text-base font-semibold mb-1">{lang.settingsPage.noConnectionsTitle}</h3>
             <p className="text-sm text-muted-foreground max-w-xs mb-5">
-              Add credentials for Telegram, Discord, Slack, and other platforms. Reuse them freely across companies.
+              {lang.settingsPage.noConnectionsDesc}
             </p>
             <Button onClick={openNew} className="gap-2 bg-teal-600 hover:bg-teal-500" size="sm">
               <Plus className="h-4 w-4" />
-              Add your first connection
+              {lang.settingsPage.addFirstConnectionBtn}
             </Button>
           </motion.div>
         ) : filterPlatform === "all" ? (

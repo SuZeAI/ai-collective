@@ -28,12 +28,12 @@ const itemVariants = {
 };
 
 const metricConfig = [
-  { key: "completed", icon: CheckCircle2, label: "Tasks Completed" },
-  { key: "active", icon: ListTodo, label: "Active Tasks" },
-  { key: "efficiency", icon: Zap, label: "Department Efficiency" },
-  { key: "staff", icon: Users, label: "Active Personnel" },
-  { key: "time", icon: Clock, label: "Avg. Completion" },
-];
+  { key: "completed", icon: CheckCircle2, labelKey: "metricTasksCompleted" },
+  { key: "active", icon: ListTodo, labelKey: "metricActiveTasks" },
+  { key: "efficiency", icon: Zap, labelKey: "metricDeptEfficiency" },
+  { key: "staff", icon: Users, labelKey: "metricActivePersonnel" },
+  { key: "time", icon: Clock, labelKey: "metricAvgCompletion" },
+] as const;
 
 const statusVariant: Record<string, NonNullable<BadgeProps["variant"]>> = {
   completed: "default",
@@ -93,13 +93,13 @@ export default function Dashboard() {
         setDepartments(tm);
       } catch (e) {
         console.error(e);
-        toast({ title: "Could not load dashboard", description: String((e as Error).message ?? e), variant: "destructive" });
+        toast({ title: t.dashboardPage.couldNotLoadDashboard, description: String((e as Error).message ?? e), variant: "destructive" });
       } finally {
         if (!cancelled) setIsLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [toast]);
+  }, [toast, t]);
 
   const staffById = useByIdMap(allStaff);
 
@@ -152,10 +152,10 @@ export default function Dashboard() {
 
   const metricValues = [
     { value: String(completedTasks), trend: "+12%" },
-    { value: String(activeTasks), trend: "in progress" },
+    { value: String(activeTasks), trend: t.dashboardPage.trendInProgress },
     { value: `${efficiency}%`, trend: "+5%" },
-    { value: String(activeStaffCount), trend: `of ${staff.length}` },
-    { value: avgCompletion, trend: "avg time" },
+    { value: String(activeStaffCount), trend: `${t.dashboardPage.trendOfPrefix}${staff.length}` },
+    { value: avgCompletion, trend: t.dashboardPage.trendAvgTime },
   ];
 
   // Office membership is still resolving: the scoped filters above read empty
@@ -177,12 +177,12 @@ export default function Dashboard() {
       {/* Page header */}
       <motion.div variants={itemVariants}>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          {scope.company ? `${scope.company.name} — Overview` : "Company Overview"}
+          {scope.company ? `${scope.company.name}${t.dashboardPage.overviewSuffix}` : t.dashboardPage.companyOverviewTitle}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           {scope.company
-            ? `Operations of office "${scope.company.name}"`
-            : "Overview of your company operations across all offices"}
+            ? `${t.dashboardPage.operationsOfOfficePrefix}${scope.company.name}${t.dashboardPage.operationsOfOfficeSuffix}`
+            : t.dashboardPage.overviewAllOfficesText}
         </p>
       </motion.div>
 
@@ -195,7 +195,7 @@ export default function Dashboard() {
           <MetricCard
             key={cfg.key}
             icon={cfg.icon}
-            label={cfg.label}
+            label={t.dashboardPage[cfg.labelKey]}
             value={metricValues[i].value}
             trend={metricValues[i].trend}
             isLoading={metricsLoading}
@@ -209,13 +209,13 @@ export default function Dashboard() {
         <motion.div variants={itemVariants} className="space-y-3">
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-muted-foreground" />
-            <h3 className="text-sm font-semibold text-foreground">Companies</h3>
+            <h3 className="text-sm font-semibold text-foreground">{t.dashboardPage.companiesTitle}</h3>
             <span className="text-xs text-muted-foreground font-medium">{companyStats.length}</span>
             <button
               onClick={() => navigate("/office-builder")}
               className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
             >
-              <Sparkles className="w-3.5 h-3.5" /> Create company
+              <Sparkles className="w-3.5 h-3.5" /> {t.dashboardPage.createCompanyBtn}
             </button>
           </div>
           {companyStats.length > 0 ? (
@@ -234,7 +234,7 @@ export default function Dashboard() {
                       <div className="font-semibold text-sm text-foreground truncate">{ws.name}</div>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className={`w-1.5 h-1.5 rounded-full ${active ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
-                        <span className="text-[11px] text-muted-foreground">{active ? "Active" : "Idle"}</span>
+                        <span className="text-[11px] text-muted-foreground">{active ? t.dashboardPage.activeBadge : t.dashboardPage.idleBadge}</span>
                         <span className="text-muted-foreground/30">·</span>
                         <span className="text-[11px] text-muted-foreground truncate">{t.companyTypes[companyTypeOf(ws)]}</span>
                       </div>
@@ -244,11 +244,11 @@ export default function Dashboard() {
                   <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-border/40">
                     <div>
                       <div className="text-base font-bold text-foreground leading-none">{taskCount}</div>
-                      <div className="text-[10px] text-muted-foreground mt-1">{activeTasks} active task{activeTasks === 1 ? "" : "s"}</div>
+                      <div className="text-[10px] text-muted-foreground mt-1">{activeTasks}{activeTasks === 1 ? t.dashboardPage.activeTaskSingularSuffix : t.dashboardPage.activeTaskPluralSuffix}</div>
                     </div>
                     <div>
                       <div className="text-base font-bold text-foreground leading-none">{staffCount}</div>
-                      <div className="text-[10px] text-muted-foreground mt-1">staff</div>
+                      <div className="text-[10px] text-muted-foreground mt-1">{t.dashboardPage.staffLabel}</div>
                     </div>
                   </div>
                 </button>
@@ -260,8 +260,8 @@ export default function Dashboard() {
               className="w-full glass-card p-6 text-center text-muted-foreground hover:border-border transition-all"
             >
               <Building2 className="w-7 h-7 opacity-40 mx-auto mb-2" />
-              <p className="text-sm font-medium">No companies yet</p>
-              <p className="text-xs opacity-60 mt-0.5">Create your first company to get started</p>
+              <p className="text-sm font-medium">{t.dashboardPage.noCompaniesYetText}</p>
+              <p className="text-xs opacity-60 mt-0.5">{t.dashboardPage.createFirstCompanyText}</p>
             </button>
           )}
         </motion.div>
@@ -278,9 +278,9 @@ export default function Dashboard() {
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-border flex-shrink-0">
             <div className="flex items-center gap-2">
               <ListTodo className="w-4 h-4 text-muted-foreground" />
-              <h3 className="text-sm font-semibold text-foreground">Recent Projects & Tasks</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t.dashboardPage.recentProjectsTasksTitle}</h3>
             </div>
-            <span className="text-xs text-muted-foreground font-medium">{tasks.length} total</span>
+            <span className="text-xs text-muted-foreground font-medium">{tasks.length} {t.dashboardPage.totalSuffix}</span>
           </div>
           <div className="overflow-y-auto flex-1 scrollbar-thin p-3">
             <div className="space-y-2">
@@ -313,7 +313,7 @@ export default function Dashboard() {
                     {task.progress > 0 && (
                       <div className="mt-2.5">
                         <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-[11px] text-muted-foreground font-medium">Progress</span>
+                          <span className="text-[11px] text-muted-foreground font-medium">{t.dashboardPage.progressLabel}</span>
                           <span className="text-[11px] font-bold text-foreground/70">{task.progress}%</span>
                         </div>
                         <div className="w-full bg-muted/60 rounded-full h-1.5 overflow-hidden">
@@ -334,8 +334,8 @@ export default function Dashboard() {
                     <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
                       <ListTodo className="w-6 h-6 opacity-40" />
                     </div>
-                    <p className="text-sm font-medium">No projects or tasks yet</p>
-                    <p className="text-xs opacity-60 mt-0.5">Create a task to get started</p>
+                    <p className="text-sm font-medium">{t.dashboardPage.noProjectsOrTasksText}</p>
+                    <p className="text-xs opacity-60 mt-0.5">{t.dashboardPage.createTaskToStartText}</p>
                   </div>
                 </div>
               )}
@@ -348,12 +348,12 @@ export default function Dashboard() {
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-border flex-shrink-0">
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-muted-foreground" />
-              <h3 className="text-sm font-semibold text-foreground">Activity Feed</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t.dashboardPage.activityFeedTitle}</h3>
             </div>
             {activityFeed.length > 0 && (
               <span className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-pulse" />
-                Live
+                {t.dashboardPage.liveBadge}
               </span>
             )}
           </div>
@@ -375,7 +375,7 @@ export default function Dashboard() {
                         <div className="min-w-0 flex-1">
                           <p className="text-xs leading-snug">
                             <span className="font-semibold text-foreground">
-                              {staff?.name || "System"}
+                              {staff?.name || t.dashboardPage.systemFallbackName}
                             </span>{" "}
                             <span className="text-muted-foreground">{item.action}</span>
                           </p>
@@ -392,7 +392,7 @@ export default function Dashboard() {
                   <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center mx-auto mb-2.5">
                     <Activity className="w-5 h-5 opacity-40" />
                   </div>
-                  <p className="text-xs font-medium">No activity yet</p>
+                  <p className="text-xs font-medium">{t.dashboardPage.noActivityYetText}</p>
                 </div>
               </div>
             )}
