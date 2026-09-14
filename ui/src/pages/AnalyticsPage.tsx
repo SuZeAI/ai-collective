@@ -189,9 +189,9 @@ export default function AnalyticsPage() {
   }, [analytics, staffById, scope]);
 
   const taskStatusData = [
-    { name: "Completed", value: completedTasks, color: KPI_COLORS.success },
-    { name: "In Progress", value: inProgressTasks, color: KPI_COLORS.primary },
-    { name: "Pending", value: pendingTasks, color: "hsl(215 20% 55%)" },
+    { name: lang.analyticsPage.statusDone, value: completedTasks, color: KPI_COLORS.success },
+    { name: lang.analyticsPage.statusActive, value: inProgressTasks, color: KPI_COLORS.primary },
+    { name: lang.analyticsPage.statusPending, value: pendingTasks, color: "hsl(215 20% 55%)" },
   ].filter((d) => d.value > 0);
 
   const kpiCards = [

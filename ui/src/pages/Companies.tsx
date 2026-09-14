@@ -520,20 +520,21 @@ export default function Companies() {
               <div>
                 {deleting ? (
                   <p>
-                    Are you sure you want to delete <span className="font-semibold text-foreground">{deleting.name}</span>?
-                    This action cannot be undone.
+                    {lang.companiesPage.deleteConfirmPrefix}
+                    <span className="font-semibold text-foreground">{deleting.name}</span>
+                    {lang.companiesPage.deleteConfirmSuffix}
                   </p>
                 ) : null}
                 {deletingImpact ? (
                   <ul className="mt-2 list-disc pl-4 space-y-0.5">
-                    {deletingImpact.removed_teams > 0 && <li>{deletingImpact.removed_teams} department(s) removed</li>}
-                    {deletingImpact.removed_staff > 0 && <li>{deletingImpact.removed_staff} staff member(s) removed</li>}
-                    {deletingImpact.removed_skills > 0 && <li>{deletingImpact.removed_skills} skill(s) removed</li>}
-                    {deletingImpact.removed_tasks > 0 && <li>{deletingImpact.removed_tasks} task(s) removed</li>}
-                    {deletingImpact.removed_documents > 0 && <li>{deletingImpact.removed_documents} document(s) removed</li>}
+                    {deletingImpact.removed_teams > 0 && <li>{deletingImpact.removed_teams}{lang.companiesPage.removedDepartmentsSuffix}</li>}
+                    {deletingImpact.removed_staff > 0 && <li>{deletingImpact.removed_staff}{lang.companiesPage.removedStaffSuffix}</li>}
+                    {deletingImpact.removed_skills > 0 && <li>{deletingImpact.removed_skills}{lang.companiesPage.removedSkillsSuffix}</li>}
+                    {deletingImpact.removed_tasks > 0 && <li>{deletingImpact.removed_tasks}{lang.companiesPage.removedTasksSuffix}</li>}
+                    {deletingImpact.removed_documents > 0 && <li>{deletingImpact.removed_documents}{lang.companiesPage.removedDocumentsSuffix}</li>}
                     {deletingImpact.kept_departments.map((d) => (
                       <li key={d.id} className="text-amber-500">
-                        "{d.name}" is kept — still used by {d.shared_with.join(", ")}
+                        {lang.companiesPage.keptDeptQuotePrefix}{d.name}{lang.companiesPage.keptDeptIsKeptSuffix}{d.shared_with.join(", ")}
                       </li>
                     ))}
                   </ul>
@@ -544,12 +545,12 @@ export default function Companies() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{lang.companiesPage.cancelBtn}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-rose-600 hover:bg-rose-500 text-white"
             >
-              Delete company
+              {lang.companiesPage.deleteCompanyBtn}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
