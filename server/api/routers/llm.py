@@ -130,7 +130,7 @@ async def chat(
             )
 
             staff_name = req.staffId or "assistant"
-            if attach_meeting_sandbox(tools, conversation_id=req.meetingId, staff_name=staff_name):
+            if attach_meeting_sandbox(tools, meeting_id=req.meetingId, staff_name=staff_name):
                 prompt = uploads_hint(req.meetingId) + prompt
         except Exception as exc:  # noqa: BLE001 - never break a chat over file wiring
             logger.warning("attach_meeting_sandbox (direct chat) failed: %s", exc)
@@ -147,7 +147,7 @@ async def chat(
 class InterjectRequest(BaseModel):
     """Human-in-the-loop message posted while an staff-graph run is streaming."""
 
-    conversation_id: str = Field(min_length=1)
+    meeting_id: str = Field(min_length=1)
     content: str = Field(min_length=1, max_length=8000)
 
 
@@ -169,11 +169,11 @@ async def interject_staff_graph(
     stream event. Returns 409 when the run is no longer active so the client
     can tell the user their guidance was not consumed.
     """
-    require_task_visible(task_service, req.conversation_id, owner_id, label="Meeting")
+    require_task_visible(task_service, req.meeting_id, owner_id, label="Meeting")
     content = req.content.strip()
     if not content:
         raise HTTPException(status_code=422, detail="content must not be blank")
-    message_id = task_run_registry.post_user_message(req.conversation_id, content)
+    message_id = task_run_registry.post_user_message(req.meeting_id, content)
     if message_id is None:
         raise HTTPException(
             status_code=409,
@@ -185,7 +185,7 @@ async def interject_staff_graph(
 class UserResponseRequest(BaseModel):
     """Answer to an staff's ask_user question on an active run."""
 
-    conversation_id: str = Field(min_length=1)
+    meeting_id: str = Field(min_length=1)
     request_id: str = Field(min_length=1)
     response: str = Field(min_length=1, max_length=8000)
 
@@ -201,11 +201,11 @@ async def respond_staff_graph(
     The tool's poll loop picks the answer up, emits ``user_input_received``
     on the stream, and returns the answer to the LLM so it continues its turn.
     """
-    require_task_visible(task_service, req.conversation_id, owner_id, label="Meeting")
+    require_task_visible(task_service, req.meeting_id, owner_id, label="Meeting")
     response = req.response.strip()
     if not response:
         raise HTTPException(status_code=422, detail="response must not be blank")
-    status = task_run_registry.answer_user_request(req.conversation_id, req.request_id, response)
+    status = task_run_registry.answer_user_request(req.meeting_id, req.request_id, response)
     if status == "no_run":
         raise HTTPException(
             status_code=409,
@@ -222,7 +222,7 @@ async def respond_staff_graph(
 class RunControlRequest(BaseModel):
     """Targets an actively streaming staff-graph run by conversation id."""
 
-    conversation_id: str = Field(min_length=1)
+    meeting_id: str = Field(min_length=1)
 
 
 @router.post("/staff-graph/pause")
@@ -233,8 +233,8 @@ async def pause_staff_graph(
 ) -> dict:
     """Interrupt an active run: the current staff finishes its turn, then the
     run holds at the turn boundary so the user can chat before resuming."""
-    require_task_visible(task_service, req.conversation_id, owner_id, label="Meeting")
-    if not task_run_registry.signal_pause(req.conversation_id):
+    require_task_visible(task_service, req.meeting_id, owner_id, label="Meeting")
+    if not task_run_registry.signal_pause(req.meeting_id):
         raise HTTPException(
             status_code=409,
             detail="No active run for this meeting (it may have finished or been stopped)",
@@ -250,8 +250,8 @@ async def resume_staff_graph(
 ) -> dict:
     """Release a held run; the next staff turn proceeds (and picks up any
     interjected messages queued during the hold)."""
-    require_task_visible(task_service, req.conversation_id, owner_id, label="Meeting")
-    if not task_run_registry.signal_resume(req.conversation_id):
+    require_task_visible(task_service, req.meeting_id, owner_id, label="Meeting")
+    if not task_run_registry.signal_resume(req.meeting_id):
         raise HTTPException(
             status_code=409,
             detail="No active run for this meeting (it may have finished or been stopped)",
@@ -292,8 +292,8 @@ async def run_staff_graph(
     service = get_staff_graph_service(mode=req.mode)
     if not service:
         raise HTTPException(status_code=503, detail="LLM not configured")
-    if req.conversation_id:
-        require_task_visible(task_service, req.conversation_id, owner_id, label="Meeting")
+    if req.meeting_id:
+        require_task_visible(task_service, req.meeting_id, owner_id, label="Meeting")
 
     try:
         definitions, staff_id_to_name = staff_service.prepare_graph_definitions(req.staff, tool_manager)
@@ -305,7 +305,7 @@ async def run_staff_graph(
         raise HTTPException(status_code=502, detail=str(e))
 
     graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
-    conversation_id = req.conversation_id
+    meeting_id = req.meeting_id
 
     team_token = current_usage_department.set(req.department_id or "")
     try:
@@ -313,7 +313,7 @@ async def run_staff_graph(
             user_input=req.user_input,
             definitions=definitions,
             max_rounds=req.max_rounds,
-            conversation_id=conversation_id,
+            meeting_id=meeting_id,
             graph_context_provider=graph_context_service,
             graph_config=graph_config,
             custom_graph=_build_custom_graph_spec(req, staff_id_to_name),
@@ -336,8 +336,8 @@ async def run_staff_graph_stream(
     service = get_staff_graph_service(mode=req.mode)
     if not service:
         raise HTTPException(status_code=503, detail="LLM not configured")
-    if req.conversation_id:
-        require_task_visible(task_service, req.conversation_id, owner_id, label="Meeting")
+    if req.meeting_id:
+        require_task_visible(task_service, req.meeting_id, owner_id, label="Meeting")
 
     try:
         definitions, staff_id_to_name = staff_service.prepare_graph_definitions(req.staff, tool_manager)
@@ -349,7 +349,7 @@ async def run_staff_graph_stream(
         raise HTTPException(status_code=502, detail=str(e))
 
     graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
-    conversation_id = req.conversation_id
+    meeting_id = req.meeting_id
     staff_name_to_id = {name: staff_id for staff_id, name in staff_id_to_name.items()}
 
     # Long-term memory scope for this run: owner + the task's team (Business Unit
@@ -359,9 +359,9 @@ async def run_staff_graph_stream(
     from server.infra import long_term_memory_store as ltm_store
 
     company_id = None
-    if conversation_id:
+    if meeting_id:
         try:
-            task = task_service.get_task(conversation_id)
+            task = task_service.get_task(meeting_id)
             company_id = getattr(task, "department_id", None) if task else None
         except Exception:  # noqa: BLE001 — scope is best-effort
             company_id = None
@@ -369,7 +369,7 @@ async def run_staff_graph_stream(
     custom_graph_spec = _build_custom_graph_spec(req, staff_id_to_name)
 
     # Register a cancel flag so stop/pause can signal this stream to halt
-    cancel_flag = task_run_registry.register(conversation_id) if conversation_id else None
+    cancel_flag = task_run_registry.register(meeting_id) if meeting_id else None
 
     # How often we re-check the cancel flag while parked waiting for the next
     # event, so a Stop aborts an in-flight turn (LLM call / tool / web search)
@@ -397,7 +397,7 @@ async def run_staff_graph_stream(
             user_input=req.user_input,
             definitions=definitions,
             max_rounds=req.max_rounds,
-            conversation_id=conversation_id,
+            meeting_id=meeting_id,
             graph_context_provider=graph_context_service,
             graph_config=graph_config,
             custom_graph=custom_graph_spec,
@@ -468,16 +468,16 @@ async def run_staff_graph_stream(
 
             if cancelled:
                 logger.info(
-                    "[StaffGraph] STOP — run cancelled, aborting in-flight work | conversation_id=%s",
-                    conversation_id,
+                    "[StaffGraph] STOP — run cancelled, aborting in-flight work | meeting_id=%s",
+                    meeting_id,
                 )
                 yield f"data: {json.dumps({'type': 'cancelled'})}\n\n"
                 return
 
             # Only build graph context if stream completed naturally (not cancelled)
-            if conversation_id and not _is_cancelled():
+            if meeting_id and not _is_cancelled():
                 pack = graph_context_service.build_graph_context(
-                    conversation_id=conversation_id,
+                    meeting_id=meeting_id,
                     query=req.user_input,
                     config=graph_config,
                 )
@@ -486,14 +486,14 @@ async def run_staff_graph_stream(
 
             # Promote salient short-term knowledge into long-term memory on a
             # clean finish (no-op when LTM is disabled). Never breaks the run.
-            if conversation_id and not _is_cancelled():
+            if meeting_id and not _is_cancelled():
                 with contextlib.suppress(Exception):
                     await ltm_store.consolidate(
-                        conversation_id=conversation_id, scope=memory_scope
+                        meeting_id=meeting_id, scope=memory_scope
                     )
         except Exception:
             logger.exception(
-                "[StaffGraph] run-stream failed | conversation_id=%s", conversation_id
+                "[StaffGraph] run-stream failed | meeting_id=%s", meeting_id
             )
             yield f"data: {json.dumps({'error': 'Internal error while running the staff graph'})}\n\n"
         finally:
@@ -503,7 +503,7 @@ async def run_staff_graph_stream(
                 await agen.aclose()
             ltm_store.current_memory_scope.reset(scope_token)
             current_usage_department.reset(team_token)
-            if conversation_id:
-                task_run_registry.unregister(conversation_id, cancel_flag)
+            if meeting_id:
+                task_run_registry.unregister(meeting_id, cancel_flag)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

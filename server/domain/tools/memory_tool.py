@@ -29,12 +29,12 @@ class MemoryToolkit(BaseToolkit):
 
     def __init__(
         self,
-        conversation_id: str,
+        meeting_id: str,
         staff_name: str | None = None,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self._conversation_id = conversation_id
+        self._meeting_id = meeting_id
         self._staff_name = staff_name or "staff"
 
     @tool(parse_docstring=True)
@@ -67,7 +67,7 @@ class MemoryToolkit(BaseToolkit):
         if not content:
             return "[memory_save error] content must not be empty."
         saved = working_memory_store.record_note(
-            self._conversation_id,
+            self._meeting_id,
             staff=self._staff_name,
             content=content,
             kind=(kind or "finding").strip().lower(),
@@ -77,7 +77,7 @@ class MemoryToolkit(BaseToolkit):
             return "[memory_save unavailable] Working memory is disabled for this run."
         logger.info(
             "memory_save: staff=%s conversation=%s pinned=%s chars=%d",
-            self._staff_name, self._conversation_id, pin, len(content),
+            self._staff_name, self._meeting_id, pin, len(content),
         )
         return "Saved to shared working memory."
 
@@ -101,7 +101,7 @@ class MemoryToolkit(BaseToolkit):
         from server.infra import working_memory_store
 
         notes = working_memory_store.search_notes(
-            self._conversation_id, query=query or "", limit=max(1, min(int(limit), 25))
+            self._meeting_id, query=query or "", limit=max(1, min(int(limit), 25))
         )
         if not notes:
             return (

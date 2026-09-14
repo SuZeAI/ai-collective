@@ -15,7 +15,7 @@ from server.infra.repositories.neo4j_graph_knowledge import _deserialize, _seria
 
 
 def _graph() -> MeetingKnowledgeGraph:
-    g = MeetingKnowledgeGraph(conversation_id="conv1", last_message_index=3)
+    g = MeetingKnowledgeGraph(meeting_id="conv1", last_message_index=3)
     g.nodes["n1"] = GraphNode(id="n1", type="entity", value="Acme Corp", salience_score=0.8)
     g.nodes["n2"] = GraphNode(id="n2", type="entity", value="Project X", salience_score=0.6)
     g.edges["e1"] = GraphEdge(id="e1", src="n1", dst="n2", relation="owns", weight=0.9)
@@ -29,7 +29,7 @@ def test_serialize_deserialize_roundtrip():
     blob = _serialize(g)
     restored = _deserialize("conv1", blob)
 
-    assert restored.conversation_id == "conv1"
+    assert restored.meeting_id == "conv1"
     assert restored.last_message_index == 3
     assert set(restored.nodes) == {"n1", "n2"}
     assert restored.nodes["n1"].value == "Acme Corp"

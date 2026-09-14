@@ -17,7 +17,7 @@ from server.domain.memory.knowledge_graph import (
 
 
 def _graph() -> MeetingKnowledgeGraph:
-    g = MeetingKnowledgeGraph(conversation_id="c1", last_message_index=10)
+    g = MeetingKnowledgeGraph(meeting_id="c1", last_message_index=10)
     g.nodes["acme"] = GraphNode(
         id="acme", type="entity", value="Acme Corp", salience_score=0.9, source_message_ids=["m1", "m2"]
     )
@@ -56,7 +56,7 @@ def test_cosine_orthogonal_vectors_is_zero():
 
 
 def test_pagerank_scores_empty_graph_returns_empty():
-    g = MeetingKnowledgeGraph(conversation_id="empty")
+    g = MeetingKnowledgeGraph(meeting_id="empty")
     assert pagerank_scores(g, seeds={}) == {}
 
 

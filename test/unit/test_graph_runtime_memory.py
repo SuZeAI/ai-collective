@@ -23,10 +23,10 @@ from server.infra import working_memory_store
 
 
 def test_record_turn_in_memory_persists_a_note():
-    conversation_id = f"conv_{uuid.uuid4().hex}"
-    record_turn_in_memory(conversation_id, staff_name="Researcher", turn=1, content="Found the answer")
+    meeting_id = f"conv_{uuid.uuid4().hex}"
+    record_turn_in_memory(meeting_id, staff_name="Researcher", turn=1, content="Found the answer")
 
-    memory = working_memory_store.get_memory(conversation_id)
+    memory = working_memory_store.get_memory(meeting_id)
     assert memory is not None
     assert len(memory.notes) == 1
     assert memory.notes[0].staff == "Researcher"
@@ -34,10 +34,10 @@ def test_record_turn_in_memory_persists_a_note():
 
 
 def test_record_guidance_in_memory_persists_a_pinned_note():
-    conversation_id = f"conv_{uuid.uuid4().hex}"
-    record_guidance_in_memory(conversation_id, "Focus on the budget section only")
+    meeting_id = f"conv_{uuid.uuid4().hex}"
+    record_guidance_in_memory(meeting_id, "Focus on the budget section only")
 
-    memory = working_memory_store.get_memory(conversation_id)
+    memory = working_memory_store.get_memory(meeting_id)
     assert memory is not None
     assert len(memory.notes) == 1
     note = memory.notes[0]
@@ -47,6 +47,6 @@ def test_record_guidance_in_memory_persists_a_pinned_note():
 
 
 def test_record_turn_in_memory_is_a_no_op_for_blank_input():
-    conversation_id = f"conv_{uuid.uuid4().hex}"
-    record_turn_in_memory(conversation_id, staff_name="X", turn=1, content="   ")
-    assert working_memory_store.get_memory(conversation_id).notes == []
+    meeting_id = f"conv_{uuid.uuid4().hex}"
+    record_turn_in_memory(meeting_id, staff_name="X", turn=1, content="   ")
+    assert working_memory_store.get_memory(meeting_id).notes == []

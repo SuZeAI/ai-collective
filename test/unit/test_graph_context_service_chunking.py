@@ -24,7 +24,7 @@ class TestGraphContextServiceWithChunking:
     def test_ingest_message_with_chunking(self, graph_repo):
         """Test ingesting a message with chunking."""
         service = GraphContextService(graph_repo)
-        conversation_id = str(uuid4())
+        meeting_id = str(uuid4())
         message_id = str(uuid4())
 
         message_content = """
@@ -34,14 +34,14 @@ class TestGraphContextServiceWithChunking:
         """
 
         service.ingest_message(
-            conversation_id=conversation_id,
+            meeting_id=meeting_id,
             message_id=message_id,
             speaker="user",
             content=message_content,
         )
 
         # Verify graph was created
-        graph = graph_repo.get(conversation_id)
+        graph = graph_repo.get(meeting_id)
         assert graph is not None
         assert len(graph.nodes) > 0
         assert len(graph.chunks) > 0  # NEW: Check chunks exist
@@ -56,7 +56,7 @@ class TestGraphContextServiceWithChunking:
     def test_build_graph_context_with_chunks(self, graph_repo):
         """Test building graph context includes chunks."""
         service = GraphContextService(graph_repo)
-        conversation_id = str(uuid4())
+        meeting_id = str(uuid4())
 
         # Ingest multiple messages
         for i in range(2):
@@ -68,7 +68,7 @@ class TestGraphContextServiceWithChunking:
             This is a significant increase from yesterday.
             """
             service.ingest_message(
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 message_id=message_id,
                 speaker=f"speaker_{i}",
                 content=content,
@@ -77,7 +77,7 @@ class TestGraphContextServiceWithChunking:
         # Build context
         query = "gold price Hanoi"
         context_pack = service.build_graph_context(
-            conversation_id=conversation_id,
+            meeting_id=meeting_id,
             query=query,
         )
 
@@ -96,21 +96,21 @@ class TestGraphContextServiceWithChunking:
     def test_graph_persistence_with_chunks(self, graph_repo):
         """Test persisting and loading graph with chunks."""
         service = GraphContextService(graph_repo)
-        conversation_id = str(uuid4())
+        meeting_id = str(uuid4())
         message_id = str(uuid4())
 
         content = "Bao Tin Minh Chau gold price is 176.7 million VND per ounce today."
 
         # Ingest message
         service.ingest_message(
-            conversation_id=conversation_id,
+            meeting_id=meeting_id,
             message_id=message_id,
             speaker="user",
             content=content,
         )
 
         # Get graph before
-        graph_before = graph_repo.get(conversation_id)
+        graph_before = graph_repo.get(meeting_id)
         chunks_before = {k: v for k, v in graph_before.chunks.items()}
 
         # Create new repo instance (simulates reload from disk)
@@ -122,19 +122,19 @@ class TestGraphContextServiceWithChunking:
     def test_entity_chunk_mapping(self, graph_repo):
         """Test that entities are correctly mapped to chunks."""
         service = GraphContextService(graph_repo)
-        conversation_id = str(uuid4())
+        meeting_id = str(uuid4())
         message_id = str(uuid4())
 
         content = "Bao Tin Minh Chau is located in Hanoi and sells gold rings."
 
         service.ingest_message(
-            conversation_id=conversation_id,
+            meeting_id=meeting_id,
             message_id=message_id,
             speaker="user",
             content=content,
         )
 
-        graph = graph_repo.get(conversation_id)
+        graph = graph_repo.get(meeting_id)
 
         # Find entity nodes
         entity_nodes = [n for n in graph.nodes.values() if n.type == "entity"]

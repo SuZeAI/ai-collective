@@ -117,7 +117,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
-        conversation_id: str | None = None,
+        meeting_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -138,8 +138,8 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             raise ValueError("At least one staff_member definition is required")
 
         logger.debug(
-            "MeshOrchestrator.run: staff=%s max_rounds=%d conversation_id=%s",
-            [a.name for a in staff], max_rounds, conversation_id,
+            "MeshOrchestrator.run: staff=%s max_rounds=%d meeting_id=%s",
+            [a.name for a in staff], max_rounds, meeting_id,
         )
 
         if len(staff) == 1:
@@ -149,12 +149,12 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 staff_member=staff[0],
                 llm=llm,
                 max_rounds=max_rounds,
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             )
 
-        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
+        ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
 
         builder: StateGraph = StateGraph(MultiAgentMeshState)
 
@@ -170,7 +170,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                     max_rounds=max_rounds,
                     all_staff=staff,
                     hub_staff_name=hub_staff.name,
-                    conversation_id=conversation_id,
+                    meeting_id=meeting_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                 ),
@@ -243,7 +243,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
-        conversation_id: str | None = None,
+        meeting_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -253,8 +253,8 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             raise ValueError("At least one staff_member definition is required")
 
         logger.debug(
-            "MeshOrchestrator.run_stream: staff=%s max_rounds=%d conversation_id=%s",
-            [a.name for a in staff], max_rounds, conversation_id,
+            "MeshOrchestrator.run_stream: staff=%s max_rounds=%d meeting_id=%s",
+            [a.name for a in staff], max_rounds, meeting_id,
         )
 
         if len(staff) == 1:
@@ -264,14 +264,14 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 staff_member=staff[0],
                 llm=llm,
                 max_rounds=max_rounds,
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             ):
                 yield turn
             return
 
-        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
+        ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
 
         builder: StateGraph = StateGraph(MultiAgentMeshState)
 
@@ -287,7 +287,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                     max_rounds=max_rounds,
                     all_staff=staff,
                     hub_staff_name=hub_staff.name,
-                    conversation_id=conversation_id,
+                    meeting_id=meeting_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                 ),
@@ -349,13 +349,13 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         staff_member: GraphStaffDefinition,
         llm: LLMProvider,
         max_rounds: int,
-        conversation_id: str | None,
+        meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
     ) -> GraphRunResult:
         """Fallback execution path when only one staff_member is provided."""
         logger.debug("_run_single_agent: staff_member=%s max_rounds=%d", staff_member.name, max_rounds)
-        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
+        ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
 
         builder: StateGraph = StateGraph(MultiAgentMeshState)
         builder.add_node(
@@ -366,7 +366,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 max_rounds=max_rounds,
                 all_staff=[staff_member],
                 hub_staff_name=staff_member.name,
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             ),
@@ -410,13 +410,13 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         staff_member: GraphStaffDefinition,
         llm: LLMProvider,
         max_rounds: int,
-        conversation_id: str | None,
+        meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
     ):
         """Streaming fallback when only one staff_member is provided."""
         logger.debug("_run_single_agent_stream: staff_member=%s max_rounds=%d", staff_member.name, max_rounds)
-        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
+        ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
 
         builder: StateGraph = StateGraph(MultiAgentMeshState)
         builder.add_node(
@@ -427,7 +427,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 max_rounds=max_rounds,
                 all_staff=[staff_member],
                 hub_staff_name=staff_member.name,
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             ),
@@ -475,7 +475,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         max_rounds: int,
         all_staff: list[GraphStaffDefinition] = None,
         hub_staff_name: str = None,
-        conversation_id: str | None = None,
+        meeting_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
     ):
@@ -524,13 +524,13 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
 
             # Human-in-the-loop: hold at the turn boundary while interrupted.
             await wait_while_paused(
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 stream_writer=stream_writer,
                 staff_name=staff_member.name,
             )
 
             sandbox_thread_id, sandbox_workspace = self._init_mesh_sandbox_thread(
-                staff_member=staff_member, conversation_id=conversation_id, state=state,
+                staff_member=staff_member, meeting_id=meeting_id, state=state,
             )
 
             # Stream: Staff turn starting (AGENT_START, matching every other
@@ -559,13 +559,13 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 state=state,
                 conversation_history=conversation_history,
                 max_rounds=max_rounds,
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
                 stream_writer=stream_writer,
             )
 
-            bound_tools = build_bound_tools(staff_member, conversation_id=conversation_id, llm=llm)
+            bound_tools = build_bound_tools(staff_member, meeting_id=meeting_id, llm=llm)
 
             logger.debug(
                 "[%s] mesh_node: bound_tools=%s",
@@ -658,7 +658,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                     llm=llm,
                     all_staff=all_staff,
                     stream_writer=stream_writer,
-                    conversation_id=conversation_id,
+                    meeting_id=meeting_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                 )
@@ -666,16 +666,16 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             # Working memory: full-fidelity note outlives the 5-message
             # rolling history window above.
             record_turn_in_memory(
-                conversation_id,
+                meeting_id,
                 staff_name=staff_member.name,
                 turn=state.get("rounds", 0) + 1,
                 content=reasoning,
                 kind="result",
             )
 
-            if graph_context_provider and conversation_id:
+            if graph_context_provider and meeting_id:
                 graph_context_provider.ingest_message(
-                    conversation_id=conversation_id,
+                    meeting_id=meeting_id,
                     message_id=f"staff_member-{staff_member.name}-{uuid4().hex}",
                     speaker=staff_member.name,
                     content=reasoning,
@@ -703,11 +703,11 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         self,
         *,
         staff_member: GraphStaffDefinition,
-        conversation_id: str | None,
+        meeting_id: str | None,
         state: MultiAgentMeshState,
     ) -> tuple[str, str]:
         """Allocate this turn's sandbox thread id/workspace (creates the dir) and log it."""
-        sandbox_thread_id, sandbox_workspace = init_sandbox_thread(staff_member.name, conversation_id)
+        sandbox_thread_id, sandbox_workspace = init_sandbox_thread(staff_member.name, meeting_id)
         logger.debug(
             "[%s] mesh_node: round=%d thread_id=%s workspace=%s",
             staff_member.name, state.get("rounds", 0) + 1, sandbox_thread_id, sandbox_workspace,
@@ -721,7 +721,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         state: MultiAgentMeshState,
         conversation_history: dict,
         max_rounds: int,
-        conversation_id: str | None,
+        meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
         stream_writer,
@@ -733,7 +733,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         # Human-in-the-loop: pick up user messages posted mid-run so this
         # turn (and graph retrieval for later turns) sees the guidance.
         human_guidance = drain_human_guidance(
-            conversation_id=conversation_id,
+            meeting_id=meeting_id,
             stream_writer=stream_writer,
             graph_context_provider=graph_context_provider,
             graph_config=graph_config,
@@ -742,16 +742,16 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         if human_guidance:
             context_parts += [human_guidance, ""]
 
-        uploads = uploads_hint(conversation_id)
+        uploads = uploads_hint(meeting_id)
         if uploads:
             context_parts += [uploads]
 
         # Shared working memory: pin guidance, then inject the digest so
         # prior findings survive history windows and truncation.
-        ensure_working_memory(conversation_id, state["original_input"])
+        ensure_working_memory(meeting_id, state["original_input"])
         if human_guidance:
-            record_guidance_in_memory(conversation_id, human_guidance)
-        memory_block = working_memory_block(conversation_id)
+            record_guidance_in_memory(meeting_id, human_guidance)
+        memory_block = working_memory_block(meeting_id)
         if memory_block:
             context_parts += [memory_block, ""]
 
@@ -772,9 +772,9 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         )
 
         graph_context_text = ""
-        if graph_context_provider and conversation_id:
+        if graph_context_provider and meeting_id:
             pack = graph_context_provider.build_graph_context(
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 query=state["input"],
                 config=graph_config,
             )
@@ -1035,7 +1035,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         task_text: str,
         state: MultiAgentMeshState,
         llm: LLMProvider,
-        conversation_id: str | None,
+        meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
     ) -> dict:
@@ -1047,10 +1047,10 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         not raced across branches.
         """
         context_parts: list[str] = []
-        memory_block = working_memory_block(conversation_id)
+        memory_block = working_memory_block(meeting_id)
         if memory_block:
             context_parts += [memory_block, ""]
-        uploads = uploads_hint(conversation_id)
+        uploads = uploads_hint(meeting_id)
         if uploads:
             context_parts += [uploads]
         context_parts.append(f"user input: {state['original_input']}")
@@ -1060,9 +1060,9 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         )
 
         graph_context_text = ""
-        if graph_context_provider and conversation_id:
+        if graph_context_provider and meeting_id:
             pack = graph_context_provider.build_graph_context(
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 query=task_text or state.get("input", "") or state["original_input"],
                 config=graph_config,
             )
@@ -1080,7 +1080,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
         )
 
-        bound_tools = build_bound_tools(branch_agent, conversation_id=conversation_id, llm=llm)
+        bound_tools = build_bound_tools(branch_agent, meeting_id=meeting_id, llm=llm)
 
         return {
             "system": branch_agent.system_prompt,
@@ -1101,7 +1101,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         all_staff: list[GraphStaffDefinition],
         stream_writer,
-        conversation_id: str | None,
+        meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
     ) -> dict:
@@ -1118,15 +1118,15 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
 
         # Record/ingest the coordinator's fan-out decision as its own turn.
         record_turn_in_memory(
-            conversation_id,
+            meeting_id,
             staff_name=coordinator.name,
             turn=base_turn,
             content=coordinator_reasoning,
             kind="decision",
         )
-        if graph_context_provider and conversation_id:
+        if graph_context_provider and meeting_id:
             graph_context_provider.ingest_message(
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 message_id=f"staff_member-{coordinator.name}-{uuid4().hex}",
                 speaker=coordinator.name,
                 content=coordinator_reasoning,
@@ -1161,7 +1161,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 task_text=task_text,
                 state=state,
                 llm=llm,
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             )
@@ -1173,7 +1173,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             build_branch_chat_kwargs=lambda a, _t: prebuilt[a.name],
             semaphore=self._get_fanout_semaphore(),
             stream_writer=stream_writer,
-            conversation_id=conversation_id,
+            meeting_id=meeting_id,
             graph_context_provider=graph_context_provider,
             graph_config=graph_config,
             base_turn_number=base_turn,
@@ -1218,15 +1218,15 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
 
         synthesis_turn_number = base_turn + len(results) + 1
         record_turn_in_memory(
-            conversation_id,
+            meeting_id,
             staff_name=coordinator.name,
             turn=synthesis_turn_number,
             content=synth_reasoning,
             kind="result",
         )
-        if graph_context_provider and conversation_id:
+        if graph_context_provider and meeting_id:
             graph_context_provider.ingest_message(
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 message_id=f"staff_member-{coordinator.name}-{uuid4().hex}",
                 speaker=coordinator.name,
                 content=synth_reasoning,

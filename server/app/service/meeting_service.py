@@ -21,7 +21,7 @@ class MeetingService:
         saved = self._repo.add(message)
         if self._graph_context_provider and saved.task_id:
             self._graph_context_provider.ingest_message(
-                conversation_id=saved.task_id,
+                meeting_id=saved.task_id,
                 message_id=saved.id,
                 speaker=saved.staff_id,
                 content=saved.content,

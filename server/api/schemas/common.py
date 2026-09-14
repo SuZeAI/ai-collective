@@ -51,7 +51,7 @@ class MeetingFileSchema(BaseModel):
     def from_record(rec: dict) -> "MeetingFileSchema":
         return MeetingFileSchema(
             id=rec.get("id", ""),
-            meetingId=rec.get("conversation_id", ""),
+            meetingId=rec.get("meeting_id", ""),
             filename=rec.get("filename", ""),
             size=rec.get("size", 0),
             contentType=rec.get("content_type"),

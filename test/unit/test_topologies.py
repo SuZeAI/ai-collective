@@ -72,7 +72,7 @@ def test_orchestrator_e2e_runs_each_staff_once_in_order():
     agents = [_agent("A"), _agent("B")]
     llm = _EchoLLM("done")
     res = asyncio.run(LangGraphStaffOrchestrator().run(
-        user_input="hi", staff=agents, llm=llm, max_rounds=2, conversation_id=None,
+        user_input="hi", staff=agents, llm=llm, max_rounds=2, meeting_id=None,
     ))
     names = [t.staff_name for t in res.turns]
     nums = [t.turn for t in res.turns]
@@ -87,7 +87,7 @@ def test_orchestrator_e2e_caps_at_max_rounds():
     agents = [_agent("A"), _agent("B"), _agent("C")]
     llm = _EchoLLM("done")
     res = asyncio.run(LangGraphStaffOrchestrator().run(
-        user_input="hi", staff=agents, llm=llm, max_rounds=2, conversation_id=None,
+        user_input="hi", staff=agents, llm=llm, max_rounds=2, meeting_id=None,
     ))
     assert [t.staff_name for t in res.turns] == ["A", "B"]
 
@@ -100,7 +100,7 @@ def test_ring_e2e_round_robin_order():
     agents = [_agent("A"), _agent("B")]
     llm = _EchoLLM("done")
     res = asyncio.run(LangGraphRingOrchestrator().run(
-        user_input="hi", staff=agents, llm=llm, max_rounds=3, conversation_id=None,
+        user_input="hi", staff=agents, llm=llm, max_rounds=3, meeting_id=None,
     ))
     names = [t.staff_name for t in res.turns]
     nums = [t.turn for t in res.turns]
@@ -140,7 +140,7 @@ def test_tree_e2e_root_delegates_leaf_reports_root_ends():
     agents = [_agent("Root", "root-sys"), _agent("Leaf", "leaf-sys")]
     llm = _TreeLLM()
     res = asyncio.run(LangGraphTreeOrchestrator().run(
-        user_input="hi", staff=agents, llm=llm, max_rounds=5, conversation_id=None,
+        user_input="hi", staff=agents, llm=llm, max_rounds=5, meeting_id=None,
     ))
     names = [t.staff_name for t in res.turns]
     assert names == ["Root", "Leaf", "Root"]
@@ -164,7 +164,7 @@ def test_tree_e2e_root_only_ends_when_rounds_exhausted_without_tree_end():
             return {}
 
     res = asyncio.run(LangGraphTreeOrchestrator().run(
-        user_input="hi", staff=agents, llm=_SilentRootLLM(), max_rounds=2, conversation_id=None,
+        user_input="hi", staff=agents, llm=_SilentRootLLM(), max_rounds=2, meeting_id=None,
     ))
     assert len(res.turns) <= 2
     assert res.turns[0].staff_name == "Root"
@@ -178,7 +178,7 @@ def test_custom_e2e_falls_back_to_sequential_chain_without_edges():
     agents = [_agent("A"), _agent("B")]
     llm = _EchoLLM("done")
     res = asyncio.run(LangGraphCustomOrchestrator().run(
-        user_input="hi", staff=agents, llm=llm, max_rounds=2, conversation_id=None,
+        user_input="hi", staff=agents, llm=llm, max_rounds=2, meeting_id=None,
         custom_graph=None,
     ))
     assert [t.staff_name for t in res.turns] == ["A", "B"]
@@ -190,7 +190,7 @@ def test_custom_e2e_honors_explicit_edges():
     # Wire A -> C directly, skipping B entirely.
     spec = CustomGraphSpec(edges=(("A", "C"),), entry=("A",))
     res = asyncio.run(LangGraphCustomOrchestrator().run(
-        user_input="hi", staff=agents, llm=llm, max_rounds=3, conversation_id=None,
+        user_input="hi", staff=agents, llm=llm, max_rounds=3, meeting_id=None,
         custom_graph=spec,
     ))
     names = [t.staff_name for t in res.turns]
@@ -212,7 +212,7 @@ def test_ring_sets_sandbox_thread_id_per_turn():
     agents = [_agent("A"), _agent("B")]
     llm = _ThreadIdCapturingLLM("done")
     asyncio.run(LangGraphRingOrchestrator().run(
-        user_input="hi", staff=agents, llm=llm, max_rounds=2, conversation_id="conv-ring",
+        user_input="hi", staff=agents, llm=llm, max_rounds=2, meeting_id="conv-ring",
     ))
     assert len(llm.captured_thread_ids) == 2
     assert all(tid is not None for tid in llm.captured_thread_ids)
@@ -223,7 +223,7 @@ def test_tree_sets_sandbox_thread_id_per_turn():
     agents = [_agent("Root", "root-sys"), _agent("Leaf", "leaf-sys")]
     llm = _ThreadIdCapturingLLM("just thinking, no markers")
     asyncio.run(LangGraphTreeOrchestrator().run(
-        user_input="hi", staff=agents, llm=llm, max_rounds=1, conversation_id="conv-tree",
+        user_input="hi", staff=agents, llm=llm, max_rounds=1, meeting_id="conv-tree",
     ))
     assert len(llm.captured_thread_ids) == 1
     assert llm.captured_thread_ids[0] is not None
@@ -233,7 +233,7 @@ def test_supervisor_sets_sandbox_thread_id_per_turn():
     agents = [_agent("Lead", "lead-sys")]
     llm = _ThreadIdCapturingLLM("Done.\n<FINAL_ANSWER>final</FINAL_ANSWER>")
     asyncio.run(LangGraphSupervisorOrchestrator().run(
-        user_input="hi", staff=agents, llm=llm, max_rounds=2, conversation_id="conv-supervisor",
+        user_input="hi", staff=agents, llm=llm, max_rounds=2, meeting_id="conv-supervisor",
     ))
     assert len(llm.captured_thread_ids) == 1
     assert llm.captured_thread_ids[0] is not None
@@ -243,7 +243,7 @@ def test_custom_sets_sandbox_thread_id_per_turn():
     agents = [_agent("A"), _agent("B")]
     llm = _ThreadIdCapturingLLM("done")
     asyncio.run(LangGraphCustomOrchestrator().run(
-        user_input="hi", staff=agents, llm=llm, max_rounds=2, conversation_id="conv-custom",
+        user_input="hi", staff=agents, llm=llm, max_rounds=2, meeting_id="conv-custom",
         custom_graph=None,
     ))
     assert len(llm.captured_thread_ids) == 2

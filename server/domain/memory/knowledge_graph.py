@@ -86,7 +86,7 @@ class GraphEdge:
 
 @dataclass(slots=True)
 class MeetingKnowledgeGraph:
-    conversation_id: str
+    meeting_id: str
     version: int = 1
     schema_version: int = 1
     last_message_index: int = 0

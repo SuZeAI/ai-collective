@@ -170,7 +170,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
-        conversation_id: str | None = None,
+        meeting_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -178,8 +178,8 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         if not staff:
             raise ValueError("At least one staff_member definition is required")
 
-        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
-        graph = self._build_graph(staff, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
+        ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
+        graph = self._build_graph(staff, llm, max_rounds, meeting_id, graph_context_provider, graph_config)
         final_state, error = await run_to_final_state(graph, self._initial_state(user_input, staff), max_rounds)
         return assemble_run_result(final_state, error)
 
@@ -190,7 +190,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
-        conversation_id: str | None = None,
+        meeting_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -198,8 +198,8 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         if not staff:
             raise ValueError("At least one staff_member definition is required")
 
-        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
-        graph = self._build_graph(staff, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
+        ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
+        graph = self._build_graph(staff, llm, max_rounds, meeting_id, graph_context_provider, graph_config)
 
         async for event in graph.astream(
             self._initial_state(user_input, staff),
@@ -218,7 +218,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
-        conversation_id: str | None,
+        meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
     ):
@@ -236,7 +236,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 workers=workers,
                 llm=llm,
                 max_rounds=max_rounds,
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             ),
@@ -249,7 +249,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 self._make_worker_node(
                     worker=worker,
                     llm=llm,
-                    conversation_id=conversation_id,
+                    meeting_id=meeting_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                 ),
@@ -302,7 +302,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         workers: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
-        conversation_id: str | None,
+        meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
     ):
@@ -316,7 +316,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
 
             # Human-in-the-loop: hold at the turn boundary while interrupted.
             await wait_while_paused(
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 stream_writer=stream_writer,
                 staff_name=lead.name,
             )
@@ -326,7 +326,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
 
             # Generate a unique thread_id for this staff_member turn.
             # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
-            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(lead.name, conversation_id)
+            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(lead.name, meeting_id)
 
             stream_writer({
                 "type": EventType.AGENT_START.value,
@@ -342,7 +342,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             # Human-in-the-loop: the lead is the routing brain, so mid-run user
             # guidance lands here and steers the next delegation/final answer.
             human_guidance = drain_human_guidance(
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 stream_writer=stream_writer,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
@@ -350,16 +350,16 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
 
             # Shared working memory: pin guidance, then build the digest that
             # keeps prior findings alive across log windows and truncation.
-            ensure_working_memory(conversation_id, state["original_input"])
+            ensure_working_memory(meeting_id, state["original_input"])
             if human_guidance:
-                record_guidance_in_memory(conversation_id, human_guidance)
-            memory_block = working_memory_block(conversation_id)
+                record_guidance_in_memory(meeting_id, human_guidance)
+            memory_block = working_memory_block(meeting_id)
 
             # Knowledge graph context
             graph_ctx = ""
-            if graph_context_provider and conversation_id:
+            if graph_context_provider and meeting_id:
                 pack = graph_context_provider.build_graph_context(
-                    conversation_id=conversation_id,
+                    meeting_id=meeting_id,
                     query=state["original_input"],
                     config=graph_config,
                 )
@@ -396,7 +396,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             # First so the guidance survives tail-truncation by the token budget.
             if human_guidance:
                 context_parts += [human_guidance, ""]
-            uploads = uploads_hint(conversation_id)
+            uploads = uploads_hint(meeting_id)
             if uploads:
                 context_parts += [uploads]
             # routing_guidance carries live round counters, so it varies every
@@ -414,7 +414,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             if recent_log:
                 context_parts += ["", f"[Delegation history]:\n{log_text}"]
 
-            bound_tools = build_bound_tools(lead, conversation_id=conversation_id, llm=llm)
+            bound_tools = build_bound_tools(lead, meeting_id=meeting_id, llm=llm)
 
             # lead.system_prompt stays byte-identical every turn so the
             # compiled-agent cache and upstream provider prompt-caching see a
@@ -479,7 +479,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                     state=state,
                     llm=llm,
                     stream_writer=stream_writer,
-                    conversation_id=conversation_id,
+                    meeting_id=meeting_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                     human_guidance=human_guidance,
@@ -515,7 +515,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             # even after the delegation-log window rolls past it.
             if target_worker and task_text:
                 record_turn_in_memory(
-                    conversation_id,
+                    meeting_id,
                     staff_name=lead.name,
                     turn=rounds_used + 1,
                     content=f"Delegated to {target_worker}: {task_text}",
@@ -523,16 +523,16 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 )
             elif final_answer:
                 record_turn_in_memory(
-                    conversation_id,
+                    meeting_id,
                     staff_name=lead.name,
                     turn=rounds_used + 1,
                     content=f"Final answer delivered: {final_answer}",
                     kind="result",
                 )
 
-            if graph_context_provider and conversation_id:
+            if graph_context_provider and meeting_id:
                 graph_context_provider.ingest_message(
-                    conversation_id=conversation_id,
+                    meeting_id=meeting_id,
                     message_id=f"staff_member-{lead.name}-{uuid4().hex}",
                     speaker=lead.name,
                     content=display_content,
@@ -568,7 +568,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         *,
         worker: GraphStaffDefinition,
         llm: LLMProvider,
-        conversation_id: str | None,
+        meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
     ):
@@ -577,7 +577,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
 
             # Human-in-the-loop: hold at the turn boundary while interrupted.
             await wait_while_paused(
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 stream_writer=stream_writer,
                 staff_name=worker.name,
             )
@@ -586,7 +586,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
 
             # Generate a unique thread_id for this staff_member turn.
             # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
-            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(worker.name, conversation_id)
+            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(worker.name, meeting_id)
 
             stream_writer({
                 "type": EventType.AGENT_START.value,
@@ -606,12 +606,12 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
 
             # Shared working memory: workers see what the lead and sibling
             # workers already found, instead of starting blind.
-            memory_block = working_memory_block(conversation_id)
+            memory_block = working_memory_block(meeting_id)
 
             graph_ctx = ""
-            if graph_context_provider and conversation_id:
+            if graph_context_provider and meeting_id:
                 pack = graph_context_provider.build_graph_context(
-                    conversation_id=conversation_id,
+                    meeting_id=meeting_id,
                     query=task_text or state["original_input"],
                     config=graph_config,
                 )
@@ -629,13 +629,13 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             # Memory before graph context so it survives tail-truncation.
             if memory_block:
                 worker_context_parts.append(memory_block)
-            uploads = uploads_hint(conversation_id)
+            uploads = uploads_hint(meeting_id)
             if uploads:
                 worker_context_parts.append(uploads)
             if graph_ctx:
                 worker_context_parts.append(f"[Context]:\n{graph_ctx}")
 
-            bound_tools = build_bound_tools(worker, conversation_id=conversation_id, llm=llm)
+            bound_tools = build_bound_tools(worker, meeting_id=meeting_id, llm=llm)
 
             turn, budget_result = build_turn_messages(
                 llm=llm,
@@ -686,16 +686,16 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             # Working memory: the full-fidelity note outlives the windowed
             # delegation log above (which only keeps the last few entries).
             record_turn_in_memory(
-                conversation_id,
+                meeting_id,
                 staff_name=worker.name,
                 turn=rounds_used + 1,
                 content=output,
                 kind="result",
             )
 
-            if graph_context_provider and conversation_id:
+            if graph_context_provider and meeting_id:
                 graph_context_provider.ingest_message(
-                    conversation_id=conversation_id,
+                    meeting_id=meeting_id,
                     message_id=f"staff_member-{worker.name}-{uuid4().hex}",
                     speaker=worker.name,
                     content=output,
@@ -783,7 +783,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         task_text: str,
         state: SupervisorState,
         llm: LLMProvider,
-        conversation_id: str | None,
+        meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
     ) -> dict:
@@ -795,12 +795,12 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         # Fixed (no per-task placeholders) so it stays byte-identical every
         # call — see TurnMessages docstring for why that matters.
         worker_system = f"{worker.system_prompt}\n\n{_WORKER_ROLE_HEADER}"
-        memory_block = working_memory_block(conversation_id)
+        memory_block = working_memory_block(meeting_id)
 
         graph_ctx = ""
-        if graph_context_provider and conversation_id:
+        if graph_context_provider and meeting_id:
             pack = graph_context_provider.build_graph_context(
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 query=task_text or state["original_input"],
                 config=graph_config,
             )
@@ -809,13 +809,13 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         worker_context_parts = [f"[Original user request, for context]:\n{state['original_input']}"]
         if memory_block:
             worker_context_parts.append(memory_block)
-        uploads = uploads_hint(conversation_id)
+        uploads = uploads_hint(meeting_id)
         if uploads:
             worker_context_parts.append(uploads)
         if graph_ctx:
             worker_context_parts.append(f"[Context]:\n{graph_ctx}")
 
-        bound_tools = build_bound_tools(worker, conversation_id=conversation_id, llm=llm)
+        bound_tools = build_bound_tools(worker, meeting_id=meeting_id, llm=llm)
 
         turn, _budget_result = build_turn_messages(
             llm=llm,
@@ -844,7 +844,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         state: SupervisorState,
         llm: LLMProvider,
         stream_writer,
-        conversation_id: str | None,
+        meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
         human_guidance: str,
@@ -864,15 +864,15 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
 
         # Lead's fan-out decision recorded as its own turn.
         record_turn_in_memory(
-            conversation_id,
+            meeting_id,
             staff_name=lead.name,
             turn=base_turn,
             content=f"Dispatched parallel wave: {[n for n, _ in fanout_pairs]}",
             kind="decision",
         )
-        if graph_context_provider and conversation_id:
+        if graph_context_provider and meeting_id:
             graph_context_provider.ingest_message(
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 message_id=f"staff_member-{lead.name}-{uuid4().hex}",
                 speaker=lead.name,
                 content=lead_reasoning,
@@ -906,7 +906,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 task_text=task_text,
                 state=state,
                 llm=llm,
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             )
@@ -918,7 +918,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             build_branch_chat_kwargs=lambda w, _t: prebuilt[w.name],
             semaphore=self._get_fanout_semaphore(),
             stream_writer=stream_writer,
-            conversation_id=conversation_id,
+            meeting_id=meeting_id,
             graph_context_provider=graph_context_provider,
             graph_config=graph_config,
             base_turn_number=base_turn,
@@ -969,15 +969,15 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
 
         synthesis_turn_number = base_turn + len(results) + 1
         record_turn_in_memory(
-            conversation_id,
+            meeting_id,
             staff_name=lead.name,
             turn=synthesis_turn_number,
             content=final_answer or synth_reasoning,
             kind="result" if final_answer else "decision",
         )
-        if graph_context_provider and conversation_id:
+        if graph_context_provider and meeting_id:
             graph_context_provider.ingest_message(
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 message_id=f"staff_member-{lead.name}-{uuid4().hex}",
                 speaker=lead.name,
                 content=synth_reasoning,

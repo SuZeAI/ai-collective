@@ -66,7 +66,7 @@ class RagRetrievalService:
     # ── public API ────────────────────────────────────────────────────────────
     def retrieve(
         self,
-        conversation_id: str,
+        meeting_id: str,
         query: str,
         graph,
         *,
@@ -82,11 +82,11 @@ class RagRetrievalService:
             return []
         try:
             if self._mode == "qdrant":
-                return self._retrieve_vector(conversation_id, query, chunks)
+                return self._retrieve_vector(meeting_id, query, chunks)
             if self._mode == "neo4j":
                 return self._retrieve_graph(query, graph, chunks)
             if self._mode == "hybrid":
-                return self._retrieve_hybrid(conversation_id, query, graph, chunks)
+                return self._retrieve_hybrid(meeting_id, query, graph, chunks)
             return self._retrieve_bm25(query, chunks)
         except Exception:  # noqa: BLE001 — never break context assembly
             logger.warning("RAG retrieve failed (mode=%s); falling back to BM25", self._mode, exc_info=True)
@@ -118,30 +118,30 @@ class RagRetrievalService:
         getter = self._get_embedder
         return getter() if getter else None
 
-    def _index_chunks(self, conversation_id: str, chunks: dict[str, str], embedder) -> None:
+    def _index_chunks(self, meeting_id: str, chunks: dict[str, str], embedder) -> None:
         """Lazily push not-yet-indexed chunk vectors into the vector store."""
-        seen = self._indexed.setdefault(conversation_id, set())
+        seen = self._indexed.setdefault(meeting_id, set())
         pending = {cid: text for cid, text in chunks.items() if cid not in seen}
         if not pending:
             return
         ids = list(pending)
         vectors = embedder.embed_many_sync([pending[c] for c in ids])
-        scope = MemoryScope(company_id=conversation_id)  # per-conversation namespace
+        scope = MemoryScope(company_id=meeting_id)  # per-conversation namespace
         for cid, vec in zip(ids, vectors):
             if vec is not None:
-                self._vector_store.upsert(f"{conversation_id}::{cid}", vec, scope)
+                self._vector_store.upsert(f"{meeting_id}::{cid}", vec, scope)
             seen.add(cid)
 
-    def _retrieve_vector(self, conversation_id: str, query: str, chunks: dict[str, str]) -> list[RagHit]:
+    def _retrieve_vector(self, meeting_id: str, query: str, chunks: dict[str, str]) -> list[RagHit]:
         embedder = self._embedder()
         if embedder is None or self._vector_store is None:
             return self._retrieve_bm25(query, chunks)  # not configured → fall back
-        self._index_chunks(conversation_id, chunks, embedder)
+        self._index_chunks(meeting_id, chunks, embedder)
         qvec = embedder.embed_one_sync(query)
         if qvec is None:
             return self._retrieve_bm25(query, chunks)
         hits = self._vector_store.search(
-            qvec, top_k=self._top_k, scope=MemoryScope(company_id=conversation_id)
+            qvec, top_k=self._top_k, scope=MemoryScope(company_id=meeting_id)
         )
         out: list[RagHit] = []
         for hit in hits:
@@ -205,9 +205,9 @@ class RagRetrievalService:
         hits.sort(key=lambda h: h.score, reverse=True)
         return hits
 
-    def _retrieve_hybrid(self, conversation_id: str, query: str, graph, chunks: dict[str, str]) -> list[RagHit]:
+    def _retrieve_hybrid(self, meeting_id: str, query: str, graph, chunks: dict[str, str]) -> list[RagHit]:
         # Vector seeds (Qdrant) → their entities → graph expansion (Neo4j) → chunks.
-        vector_hits = self._retrieve_vector(conversation_id, query, chunks)
+        vector_hits = self._retrieve_vector(meeting_id, query, chunks)
         seed_chunk_ids = {h.chunk_id for h in vector_hits}
         seed_entities = [
             n for n in self._entity_nodes(graph)

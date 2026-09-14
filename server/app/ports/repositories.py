@@ -254,14 +254,14 @@ class SystemSettingsRepository(Protocol):
 
 
 class GraphKnowledgeRepository(Protocol):
-    def get(self, conversation_id: str) -> MeetingKnowledgeGraph | None:
+    def get(self, meeting_id: str) -> MeetingKnowledgeGraph | None:
         ...
 
     def upsert(self, graph: MeetingKnowledgeGraph) -> MeetingKnowledgeGraph:
         ...
 
-    def delete(self, conversation_id: str) -> None:
+    def delete(self, meeting_id: str) -> None:
         ...
 
-    def append_event(self, conversation_id: str, event: dict[str, object]) -> None:
+    def append_event(self, meeting_id: str, event: dict[str, object]) -> None:
         ...

@@ -22,7 +22,7 @@ def _has(mod: str) -> bool:
 
 
 def _graph() -> MeetingKnowledgeGraph:
-    g = MeetingKnowledgeGraph(conversation_id="c1")
+    g = MeetingKnowledgeGraph(meeting_id="c1")
     g.chunks = {
         "k1": "The launch date is September 12 for Project X",
         "k2": "Budget ceiling for Q3 is 200k dollars",

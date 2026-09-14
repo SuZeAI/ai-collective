@@ -26,7 +26,7 @@ request — they never saw what sibling workers had already found.
 
 ```
                 ┌──────────────────────────────────────────────┐
-                │  WorkingMemory (per conversation_id)          │
+                │  WorkingMemory (per meeting_id)               │
                 │  • task            (original request)         │
                 │  • rolling_summary (compacted old notes)      │
                 │  • notes[]         (finding/decision/artifact │
@@ -55,10 +55,10 @@ request — they never saw what sibling workers had already found.
   *head* of the context, where tail truncation cannot reach it.
 - **Persistence.** Follows `STORAGE_BACKEND`, like every other repository:
   - `json` (default) — atomic snapshot files at
-    `{STORAGE_DIR}/working_memory/{conversation_id}.json`, fronted by an
+    `{STORAGE_DIR}/working_memory/{meeting_id}.json`, fronted by an
     in-process cache (single-instance deployments).
   - `mongo` — one document per conversation in the `working_memory`
-    collection (unique index on `conversation_id`). **No in-process cache**:
+    collection (unique index on `meeting_id`). **No in-process cache**:
     every operation reads through Mongo, so multiple backend instances see
     each other's notes — this is the multi-instance-safe mode. Writes for one
     conversation are already serialized (one active run per conversation), so

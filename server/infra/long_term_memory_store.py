@@ -128,7 +128,7 @@ async def remember(
     *,
     kind: str = "fact",
     importance: float = 0.5,
-    source_conversation_id: str | None = None,
+    source_meeting_id: str | None = None,
 ) -> MemoryRecord | None:
     service = _get_service()
     if service is None:
@@ -139,19 +139,19 @@ async def remember(
             content,
             kind=kind,
             importance=importance,
-            source_conversation_id=source_conversation_id,
+            source_meeting_id=source_meeting_id,
         )
     except Exception:  # noqa: BLE001
         logger.exception("LTM remember failed")
         return None
 
 
-async def consolidate(*, conversation_id: str, scope: MemoryScope) -> int:
+async def consolidate(*, meeting_id: str, scope: MemoryScope) -> int:
     service = _get_service()
     if service is None or not settings.long_term_memory.consolidate_on_run_end:
         return 0
     try:
-        return await service.consolidate(conversation_id=conversation_id, scope=scope)
+        return await service.consolidate(meeting_id=meeting_id, scope=scope)
     except Exception:  # noqa: BLE001
         logger.exception("LTM consolidate failed")
         return 0

@@ -230,7 +230,7 @@ def upsert_task(
 
     # NOTE: the actual staff run is driven entirely by the SSE endpoint
     # POST /llm/staff-graph/run-stream, which registers its own control handle
-    # under conversation_id (== task_id), holds it for the run's lifetime, and
+    # under meeting_id (== task_id), holds it for the run's lifetime, and
     # writes completion when the stream ends. Starting a parallel background
     # job here would register/unregister the same registry key and clobber the
     # live run's handle (breaking pause/interject/ask_user intermittently) and
@@ -284,7 +284,7 @@ def clear_task_history(
         detail="Only the default (admin) account can edit or run shared default items",
     )
     conv_service.delete_messages_by_task(task_id)
-    graph_context_service.reset_conversation(conversation_id=task_id)
+    graph_context_service.reset_conversation(meeting_id=task_id)
     # Working memory was previously left untouched here — a wiped task would
     # still resume biased by stale notes/task text from before the clear.
     working_memory_store.delete_memory(task_id)
@@ -301,4 +301,4 @@ def get_task_graph_context(
     existing = service.try_get_task(task_id)
     if existing is not None and not is_visible_to(owner_id, existing.owner_id):
         raise NotFoundError(f"Task '{task_id}' not found")
-    return graph_context_service.get_graph_snapshot(conversation_id=task_id)
+    return graph_context_service.get_graph_snapshot(meeting_id=task_id)

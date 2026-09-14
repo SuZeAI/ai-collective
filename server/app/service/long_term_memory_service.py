@@ -152,7 +152,7 @@ class LongTermMemoryService:
         *,
         kind: str = "fact",
         importance: float = 0.5,
-        source_conversation_id: str | None = None,
+        source_meeting_id: str | None = None,
     ) -> MemoryRecord | None:
         content = (content or "").strip()
         if not content:
@@ -189,7 +189,7 @@ class LongTermMemoryService:
             staff_id=scope.staff_id,
             embedding=embedding,
             importance=max(0.0, min(1.0, importance)),
-            source_conversation_id=source_conversation_id,
+            source_meeting_id=source_meeting_id,
             created_at=now,
             last_accessed_at=now,
             access_count=0,
@@ -206,7 +206,7 @@ class LongTermMemoryService:
     async def consolidate(
         self,
         *,
-        conversation_id: str,
+        meeting_id: str,
         scope: MemoryScope,
         max_items: int = 20,
     ) -> int:
@@ -222,7 +222,7 @@ class LongTermMemoryService:
         try:
             from server.infra import working_memory_store
 
-            memory = working_memory_store.get_memory(conversation_id)
+            memory = working_memory_store.get_memory(meeting_id)
             if memory is not None:
                 for note in memory.notes:
                     if note.pinned or note.kind in {"decision", "result", "artifact"}:
@@ -237,7 +237,7 @@ class LongTermMemoryService:
                 content,
                 kind=kind,
                 importance=importance,
-                source_conversation_id=conversation_id,
+                source_meeting_id=meeting_id,
             )
             if rec is not None:
                 written += 1

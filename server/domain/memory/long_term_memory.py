@@ -1,7 +1,7 @@
 """Long-term memory — cross-conversation knowledge that outlives a single run.
 
 Where working memory (``working_memory.py``) and the knowledge graph are scoped
-to one ``conversation_id`` and reset when a run ends, long-term memory persists
+to one ``meeting_id`` and reset when a run ends, long-term memory persists
 durable facts across tasks. Each record is scoped along three independent
 dimensions so it can be recalled at any granularity:
 
@@ -89,7 +89,7 @@ class MemoryRecord:
     staff_id: str | None = None
     embedding: list[float] | None = None
     importance: float = 0.5
-    source_conversation_id: str | None = None
+    source_meeting_id: str | None = None
     created_at: str = ""
     last_accessed_at: str = ""
     access_count: int = 0
@@ -107,7 +107,7 @@ class MemoryRecord:
             "agent_id": self.staff_id,
             "embedding": self.embedding,
             "importance": self.importance,
-            "source_conversation_id": self.source_conversation_id,
+            "source_meeting_id": self.source_meeting_id,
             "created_at": self.created_at,
             "last_accessed_at": self.last_accessed_at,
             "access_count": self.access_count,
@@ -127,7 +127,7 @@ class MemoryRecord:
             staff_id=(data.get("agent_id") or None),
             embedding=embedding,
             importance=float(data.get("importance", 0.5) or 0.5),
-            source_conversation_id=(data.get("source_conversation_id") or None),
+            source_meeting_id=(data.get("source_meeting_id") or None),
             created_at=str(data.get("created_at", "")),
             last_accessed_at=str(data.get("last_accessed_at", "")),
             access_count=int(data.get("access_count", 0) or 0),

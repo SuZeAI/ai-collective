@@ -1,9 +1,9 @@
 """Neo4j-backed knowledge-graph repository.
 
 Implements ``GraphKnowledgeRepository`` (get/upsert/delete/append_event). Two
-representations are kept per conversation:
+representations are kept per meeting:
 
-1. A lossless JSON blob on a ``(:Conversation {id})`` node — the authoritative
+1. A lossless JSON blob on a ``(:Meeting {id})`` node — the authoritative
    source for ``get()`` so reconstruction is exact (same shape the JSON/Mongo
    repos use).
 2. A native projection — each entity as an ``(:Entity)`` node and each relation
@@ -33,7 +33,7 @@ logger = get_logger(__name__)
 
 def _serialize(graph: MeetingKnowledgeGraph) -> dict:
     return {
-        "conversation_id": graph.conversation_id,
+        "meeting_id": graph.meeting_id,
         "version": graph.version,
         "schema_version": graph.schema_version,
         "last_message_index": graph.last_message_index,
@@ -46,7 +46,7 @@ def _serialize(graph: MeetingKnowledgeGraph) -> dict:
     }
 
 
-def _deserialize(conversation_id: str, raw: dict) -> MeetingKnowledgeGraph:
+def _deserialize(meeting_id: str, raw: dict) -> MeetingKnowledgeGraph:
     raw_config = raw.get("config")
     config = GraphContextConfig()
     if isinstance(raw_config, dict):
@@ -56,7 +56,7 @@ def _deserialize(conversation_id: str, raw: dict) -> MeetingKnowledgeGraph:
             config = GraphContextConfig()
 
     graph = MeetingKnowledgeGraph(
-        conversation_id=str(raw.get("conversation_id") or conversation_id),
+        meeting_id=str(raw.get("meeting_id") or meeting_id),
         version=int(raw.get("version") or 1),
         schema_version=int(raw.get("schema_version") or 1),
         last_message_index=int(raw.get("last_message_index") or 0),
@@ -112,28 +112,28 @@ class Neo4jGraphKnowledgeRepository:
         # Fail fast so the factory can fall back when the server is unreachable.
         self._driver.verify_connectivity()
         with self._driver.session(database=self._database) as s:
-            s.run("CREATE CONSTRAINT conv_id IF NOT EXISTS FOR (c:Conversation) REQUIRE c.id IS UNIQUE")
+            s.run("CREATE CONSTRAINT meeting_id IF NOT EXISTS FOR (c:Meeting) REQUIRE c.id IS UNIQUE")
 
-    def get(self, conversation_id: str) -> MeetingKnowledgeGraph | None:
+    def get(self, meeting_id: str) -> MeetingKnowledgeGraph | None:
         try:
             with self._driver.session(database=self._database) as s:
                 rec = s.run(
-                    "MATCH (c:Conversation {id: $id}) RETURN c.data AS data",
-                    id=conversation_id,
+                    "MATCH (c:Meeting {id: $id}) RETURN c.data AS data",
+                    id=meeting_id,
                 ).single()
         except Exception:  # noqa: BLE001
-            logger.exception("Neo4j get failed for %s", conversation_id)
+            logger.exception("Neo4j get failed for %s", meeting_id)
             return None
         if not rec or not rec.get("data"):
             return None
         try:
-            return _deserialize(conversation_id, json.loads(rec["data"]))
+            return _deserialize(meeting_id, json.loads(rec["data"]))
         except Exception:  # noqa: BLE001
-            logger.exception("Neo4j graph deserialize failed for %s", conversation_id)
+            logger.exception("Neo4j graph deserialize failed for %s", meeting_id)
             return None
 
     def upsert(self, graph: MeetingKnowledgeGraph) -> MeetingKnowledgeGraph:
-        cid = graph.conversation_id
+        cid = graph.meeting_id
         blob = json.dumps(_serialize(graph), ensure_ascii=False)
         try:
             with self._driver.session(database=self._database) as s:
@@ -145,8 +145,8 @@ class Neo4jGraphKnowledgeRepository:
     @staticmethod
     def _write_graph(tx, cid: str, blob: str, graph: MeetingKnowledgeGraph) -> None:
         # Authoritative blob + reset the native projection for this conversation.
-        tx.run("MERGE (c:Conversation {id: $id}) SET c.data = $data", id=cid, data=blob)
-        tx.run("MATCH (e:Entity {conversation_id: $id}) DETACH DELETE e", id=cid)
+        tx.run("MERGE (c:Meeting {id: $id}) SET c.data = $data", id=cid, data=blob)
+        tx.run("MATCH (e:Entity {meeting_id: $id}) DETACH DELETE e", id=cid)
         nodes = [
             {"key": f"{cid}:{n.id}", "id": n.id, "value": n.value, "type": n.type,
              "salience": n.salience_score}
@@ -157,7 +157,7 @@ class Neo4jGraphKnowledgeRepository:
                 """
                 UNWIND $nodes AS n
                 MERGE (e:Entity {key: n.key})
-                SET e.conversation_id = $id, e.node_id = n.id, e.value = n.value,
+                SET e.meeting_id = $id, e.node_id = n.id, e.value = n.value,
                     e.type = n.type, e.salience = n.salience
                 """,
                 nodes=nodes, id=cid,
@@ -178,23 +178,23 @@ class Neo4jGraphKnowledgeRepository:
                 edges=edges,
             )
 
-    def delete(self, conversation_id: str) -> None:
+    def delete(self, meeting_id: str) -> None:
         try:
             with self._driver.session(database=self._database) as s:
-                s.run("MATCH (e:Entity {conversation_id: $id}) DETACH DELETE e", id=conversation_id)
-                s.run("MATCH (c:Conversation {id: $id}) DETACH DELETE c", id=conversation_id)
+                s.run("MATCH (e:Entity {meeting_id: $id}) DETACH DELETE e", id=meeting_id)
+                s.run("MATCH (c:Meeting {id: $id}) DETACH DELETE c", id=meeting_id)
         except Exception:  # noqa: BLE001
-            logger.exception("Neo4j delete failed for %s", conversation_id)
+            logger.exception("Neo4j delete failed for %s", meeting_id)
 
-    def append_event(self, conversation_id: str, event: dict[str, object]) -> None:
+    def append_event(self, meeting_id: str, event: dict[str, object]) -> None:
         try:
             with self._driver.session(database=self._database) as s:
                 s.run(
                     """
-                    MERGE (c:Conversation {id: $id})
+                    MERGE (c:Meeting {id: $id})
                     CREATE (c)-[:HAS_EVENT]->(:GraphEvent {data: $data})
                     """,
-                    id=conversation_id, data=json.dumps(event, ensure_ascii=False, default=str),
+                    id=meeting_id, data=json.dumps(event, ensure_ascii=False, default=str),
                 )
         except Exception:  # noqa: BLE001
-            logger.exception("Neo4j append_event failed for %s", conversation_id)
+            logger.exception("Neo4j append_event failed for %s", meeting_id)

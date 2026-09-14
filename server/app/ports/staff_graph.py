@@ -55,7 +55,7 @@ class GraphContextProvider(Protocol):
     def ingest_message(
         self,
         *,
-        conversation_id: str,
+        meeting_id: str,
         message_id: str,
         speaker: str,
         content: str,
@@ -66,7 +66,7 @@ class GraphContextProvider(Protocol):
     def build_graph_context(
         self,
         *,
-        conversation_id: str,
+        meeting_id: str,
         query: str,
         config: GraphContextConfig | None = None,
     ) -> GraphContextPack:
@@ -81,7 +81,7 @@ class StaffGraphOrchestrator(Protocol):
         staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
-        conversation_id: str | None = None,
+        meeting_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph: CustomGraphSpec | None = None,
@@ -95,7 +95,7 @@ class StaffGraphOrchestrator(Protocol):
         staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
-        conversation_id: str | None = None,
+        meeting_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph: CustomGraphSpec | None = None,

@@ -102,7 +102,7 @@ class MemoryNote:
 
 @dataclass
 class WorkingMemory:
-    conversation_id: str
+    meeting_id: str
     task: str = ""
     rolling_summary: str = ""
     notes: list[MemoryNote] = field(default_factory=list)
@@ -277,7 +277,7 @@ class WorkingMemory:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "conversation_id": self.conversation_id,
+            "meeting_id": self.meeting_id,
             "task": self.task,
             "rolling_summary": self.rolling_summary,
             "notes": [n.to_dict() for n in self.notes],
@@ -288,7 +288,7 @@ class WorkingMemory:
     def from_dict(cls, data: dict[str, Any]) -> "WorkingMemory":
         notes = [MemoryNote.from_dict(n) for n in data.get("notes", []) if isinstance(n, dict)]
         return cls(
-            conversation_id=str(data.get("conversation_id", "")),
+            meeting_id=str(data.get("meeting_id", "")),
             task=str(data.get("task", "")),
             rolling_summary=str(data.get("rolling_summary", "")),
             notes=notes,

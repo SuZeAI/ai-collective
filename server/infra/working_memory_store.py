@@ -1,10 +1,10 @@
 """Per-process registry + pluggable persistence for run working memory.
 
-One ``WorkingMemory`` per conversation_id, shared by every staff node and
+One ``WorkingMemory`` per meeting_id, shared by every staff node and
 memory tool call in the process. Persistence follows ``STORAGE_BACKEND``:
 
 - ``json`` (default) — atomic snapshot files under
-  ``{STORAGE_DIR}/working_memory/{conversation_id}.json``. An in-process cache
+  ``{STORAGE_DIR}/working_memory/{meeting_id}.json``. An in-process cache
   fronts the files (single-instance deployments).
 - ``mongo`` — one document per conversation in the ``working_memory``
   collection (same ``pymongo`` client pattern as the other Mongo
@@ -52,11 +52,11 @@ class WorkingMemoryPersistence(Protocol):
     #: read through so other instances' writes are visible.
     cacheable: bool
 
-    def load(self, conversation_id: str) -> WorkingMemory | None: ...
+    def load(self, meeting_id: str) -> WorkingMemory | None: ...
 
     def save(self, memory: WorkingMemory) -> None: ...
 
-    def delete(self, conversation_id: str) -> None: ...
+    def delete(self, meeting_id: str) -> None: ...
 
 
 def _storage_dir() -> Path:
@@ -74,24 +74,24 @@ class FileWorkingMemoryPersistence:
 
     cacheable = True
 
-    def _path(self, conversation_id: str) -> Path:
-        safe = _SAFE_ID_RE.sub("_", conversation_id)[:128] or "default"
+    def _path(self, meeting_id: str) -> Path:
+        safe = _SAFE_ID_RE.sub("_", meeting_id)[:128] or "default"
         return _storage_dir() / f"{safe}.json"
 
-    def load(self, conversation_id: str) -> WorkingMemory | None:
-        path = self._path(conversation_id)
+    def load(self, meeting_id: str) -> WorkingMemory | None:
+        path = self._path(meeting_id)
         try:
             if path.exists():
                 data = json.loads(path.read_text(encoding="utf-8"))
                 memory = WorkingMemory.from_dict(data)
-                memory.conversation_id = conversation_id
+                memory.meeting_id = meeting_id
                 return memory
         except Exception:  # noqa: BLE001 - corrupt snapshot must not kill the run
-            logger.exception("Failed to load working-memory snapshot for %s", conversation_id)
+            logger.exception("Failed to load working-memory snapshot for %s", meeting_id)
         return None
 
     def save(self, memory: WorkingMemory) -> None:
-        path = self._path(memory.conversation_id)
+        path = self._path(memory.meeting_id)
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(".json.tmp")
         tmp.write_text(
@@ -99,8 +99,8 @@ class FileWorkingMemoryPersistence:
         )
         tmp.replace(path)
 
-    def delete(self, conversation_id: str) -> None:
-        self._path(conversation_id).unlink(missing_ok=True)
+    def delete(self, meeting_id: str) -> None:
+        self._path(meeting_id).unlink(missing_ok=True)
 
 
 class MongoWorkingMemoryPersistence:
@@ -110,28 +110,28 @@ class MongoWorkingMemoryPersistence:
 
     def __init__(self, db) -> None:
         self._col = db["working_memory"]
-        self._col.create_index("conversation_id", unique=True, background=True)
+        self._col.create_index("meeting_id", unique=True, background=True)
 
-    def load(self, conversation_id: str) -> WorkingMemory | None:
+    def load(self, meeting_id: str) -> WorkingMemory | None:
         try:
-            doc = self._col.find_one({"conversation_id": conversation_id})
+            doc = self._col.find_one({"meeting_id": meeting_id})
         except Exception:  # noqa: BLE001 - read failure must not kill the run
-            logger.exception("Failed to load working memory from Mongo for %s", conversation_id)
+            logger.exception("Failed to load working memory from Mongo for %s", meeting_id)
             return None
         if not doc:
             return None
         memory = WorkingMemory.from_dict(doc)
-        memory.conversation_id = conversation_id
+        memory.meeting_id = meeting_id
         return memory
 
     def save(self, memory: WorkingMemory) -> None:
-        payload = {"_id": memory.conversation_id, **memory.to_dict()}
+        payload = {"_id": memory.meeting_id, **memory.to_dict()}
         self._col.replace_one(
-            {"conversation_id": memory.conversation_id}, payload, upsert=True
+            {"meeting_id": memory.meeting_id}, payload, upsert=True
         )
 
-    def delete(self, conversation_id: str) -> None:
-        self._col.delete_one({"conversation_id": conversation_id})
+    def delete(self, meeting_id: str) -> None:
+        self._col.delete_one({"meeting_id": meeting_id})
 
 
 _persistence: WorkingMemoryPersistence | None = None
@@ -167,39 +167,39 @@ def _get_persistence() -> WorkingMemoryPersistence:
 # Store API (used by graph runtime and the memory toolkit)             #
 # ------------------------------------------------------------------ #
 
-def get_memory(conversation_id: str) -> WorkingMemory | None:
+def get_memory(meeting_id: str) -> WorkingMemory | None:
     """Return the working memory for a conversation (None when disabled).
 
     With cacheable persistence (files) the in-process instance is reused;
     with shared persistence (Mongo) the snapshot is re-read so concurrent
     instances observe each other's writes.
     """
-    if not WORKING_MEMORY_ENABLED or not conversation_id:
+    if not WORKING_MEMORY_ENABLED or not meeting_id:
         return None
     with _lock:
         backend = _get_persistence()
         if backend.cacheable:
-            memory = _memories.get(conversation_id)
+            memory = _memories.get(meeting_id)
             if memory is None:
-                memory = backend.load(conversation_id) or WorkingMemory(
-                    conversation_id=conversation_id
+                memory = backend.load(meeting_id) or WorkingMemory(
+                    meeting_id=meeting_id
                 )
-                _memories[conversation_id] = memory
+                _memories[meeting_id] = memory
             return memory
-        return backend.load(conversation_id) or WorkingMemory(conversation_id=conversation_id)
+        return backend.load(meeting_id) or WorkingMemory(meeting_id=meeting_id)
 
 
 def _persist(memory: WorkingMemory) -> None:
     try:
         _get_persistence().save(memory)
     except Exception:  # noqa: BLE001 - persistence is best-effort
-        logger.exception("Failed to persist working memory for %s", memory.conversation_id)
+        logger.exception("Failed to persist working memory for %s", memory.meeting_id)
 
 
-def set_task(conversation_id: str, task: str) -> None:
+def set_task(meeting_id: str, task: str) -> None:
     """Record the run's original task once (idempotent)."""
     with _lock:
-        memory = get_memory(conversation_id)
+        memory = get_memory(meeting_id)
         if memory is None or memory.task:
             return
         memory.set_task(task)
@@ -207,7 +207,7 @@ def set_task(conversation_id: str, task: str) -> None:
 
 
 def record_note(
-    conversation_id: str,
+    meeting_id: str,
     *,
     staff: str,
     content: str,
@@ -217,7 +217,7 @@ def record_note(
 ) -> bool:
     """Add a note (auto-compacting) and persist. Returns False when disabled."""
     with _lock:
-        memory = get_memory(conversation_id)
+        memory = get_memory(meeting_id)
         if memory is None:
             return False
         note = memory.add_note(staff=staff, content=content, kind=kind, turn=turn, pinned=pinned)
@@ -226,31 +226,31 @@ def record_note(
         return note is not None
 
 
-def render_digest(conversation_id: str, max_chars: int | None = None) -> str:
+def render_digest(meeting_id: str, max_chars: int | None = None) -> str:
     """Render the prompt-injection digest ('' when disabled or empty)."""
     with _lock:
-        memory = get_memory(conversation_id)
+        memory = get_memory(meeting_id)
         if memory is None:
             return ""
         return memory.render_digest(max_chars)
 
 
-def search_notes(conversation_id: str, query: str = "", limit: int = 8):
+def search_notes(meeting_id: str, query: str = "", limit: int = 8):
     """Lexical recall over the conversation's notes (empty list when disabled)."""
     with _lock:
-        memory = get_memory(conversation_id)
+        memory = get_memory(meeting_id)
         if memory is None:
             return []
         return memory.search(query, limit)
 
 
-def drop_memory(conversation_id: str) -> None:
+def drop_memory(meeting_id: str) -> None:
     """Evict the in-process entry (persisted snapshot is kept)."""
     with _lock:
-        _memories.pop(conversation_id, None)
+        _memories.pop(meeting_id, None)
 
 
-def delete_memory(conversation_id: str) -> None:
+def delete_memory(meeting_id: str) -> None:
     """Permanently remove a conversation's working memory (cache + persisted).
 
     Used by the "clear history" fresh-start action — without this, a wiped
@@ -259,11 +259,11 @@ def delete_memory(conversation_id: str) -> None:
     nothing is persisted.
     """
     with _lock:
-        _memories.pop(conversation_id, None)
+        _memories.pop(meeting_id, None)
         try:
-            _get_persistence().delete(conversation_id)
+            _get_persistence().delete(meeting_id)
         except Exception:  # noqa: BLE001 - persistence is best-effort
-            logger.exception("Failed to delete working memory for %s", conversation_id)
+            logger.exception("Failed to delete working memory for %s", meeting_id)
 
 
 def reset_persistence_for_tests() -> None:

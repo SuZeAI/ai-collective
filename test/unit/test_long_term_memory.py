@@ -99,7 +99,7 @@ def test_consolidate_promotes_working_memory(tmp_path, monkeypatch):
 
     async def run():
         scope = MemoryScope(owner_id="u1")
-        n = await svc.consolidate(conversation_id="conv1", scope=scope)
+        n = await svc.consolidate(meeting_id="conv1", scope=scope)
         # pinned guidance + decision promoted; plain finding skipped
         assert n == 2
         recalled = await svc.recall(scope, "API key", limit=10)

@@ -193,7 +193,7 @@ PAUSE_POLL_SECONDS = 0.25
 
 async def wait_while_paused(
     *,
-    conversation_id: str | None,
+    meeting_id: str | None,
     stream_writer: Any = None,
     staff_name: str = "",
 ) -> None:
@@ -205,11 +205,11 @@ async def wait_while_paused(
     the UI show the hold state. Cancellation or unregistration releases the
     wait so background graph tasks can never hang on a dead run.
     """
-    if not conversation_id:
+    if not meeting_id:
         return
     from server.infra import task_run_registry
 
-    if not task_run_registry.is_paused(conversation_id):
+    if not task_run_registry.is_paused(meeting_id):
         return
     if stream_writer:
         stream_writer({
@@ -219,7 +219,7 @@ async def wait_while_paused(
     polls = 0
     heartbeat_every = max(1, int(15 / PAUSE_POLL_SECONDS))  # ~15s
     max_polls = max(1, int(settings.staff.pause_timeout_seconds / PAUSE_POLL_SECONDS))
-    while task_run_registry.is_paused(conversation_id):
+    while task_run_registry.is_paused(meeting_id):
         await asyncio.sleep(PAUSE_POLL_SECONDS)
         polls += 1
         if polls >= max_polls:
@@ -227,9 +227,9 @@ async def wait_while_paused(
             # occupying a task-queue concurrency slot.
             logger.warning(
                 "Run %s auto-resumed after sitting paused for %ds with no response",
-                conversation_id, settings.staff.pause_timeout_seconds,
+                meeting_id, settings.staff.pause_timeout_seconds,
             )
-            task_run_registry.signal_resume(conversation_id)
+            task_run_registry.signal_resume(meeting_id)
             break
         # Heartbeat so idle SSE connections survive proxy timeouts during a
         # long hold. The UI treats repeated run_paused events as idempotent.
@@ -248,7 +248,7 @@ async def wait_while_paused(
 
 def drain_human_guidance(
     *,
-    conversation_id: str | None,
+    meeting_id: str | None,
     stream_writer: Any = None,
     graph_context_provider: Any = None,
     graph_config: Any = None,
@@ -269,14 +269,14 @@ def drain_human_guidance(
 
     Returns an empty string when there is nothing pending.
     """
-    if not conversation_id:
+    if not meeting_id:
         return ""
     # Local import: the registry lives in infra; nodes already cross
     # this boundary for sandbox/session helpers, and importing lazily keeps
     # domain importable without the full app wiring (e.g. in unit tests).
     from server.infra import task_run_registry
 
-    pending = task_run_registry.drain_user_messages(conversation_id)
+    pending = task_run_registry.drain_user_messages(meeting_id)
     if not pending:
         return ""
 
@@ -284,7 +284,7 @@ def drain_human_guidance(
         for msg in pending:
             try:
                 graph_context_provider.ingest_message(
-                    conversation_id=conversation_id,
+                    meeting_id=meeting_id,
                     message_id=f"user-interject-{msg['id']}",
                     speaker="user",
                     content=msg["content"],
@@ -390,38 +390,38 @@ def build_turn_messages(
 # docs/agent-memory.md for the design.                                  #
 # ------------------------------------------------------------------ #
 
-def ensure_working_memory(conversation_id: str | None, task: str) -> None:
+def ensure_working_memory(meeting_id: str | None, task: str) -> None:
     """Idempotently record the run's original task in working memory."""
-    if not conversation_id:
+    if not meeting_id:
         return
     try:
         from server.infra import working_memory_store
 
-        working_memory_store.set_task(conversation_id, task)
+        working_memory_store.set_task(meeting_id, task)
     except Exception:  # noqa: BLE001
-        logger.exception("Failed to init working memory for %s", conversation_id)
+        logger.exception("Failed to init working memory for %s", meeting_id)
 
 
-def working_memory_block(conversation_id: str | None) -> str:
+def working_memory_block(meeting_id: str | None) -> str:
     """Render the shared working-memory digest for prompt injection.
 
     Inject it *early* in the user context (right after human guidance) so it
     survives tail-truncation by the token budget. Returns '' when memory is
     disabled, empty, or unavailable.
     """
-    if not conversation_id:
+    if not meeting_id:
         return ""
     try:
         from server.infra import working_memory_store
 
-        return working_memory_store.render_digest(conversation_id)
+        return working_memory_store.render_digest(meeting_id)
     except Exception:  # noqa: BLE001
-        logger.exception("Failed to render working memory for %s", conversation_id)
+        logger.exception("Failed to render working memory for %s", meeting_id)
         return ""
 
 
 def record_turn_in_memory(
-    conversation_id: str | None,
+    meeting_id: str | None,
     *,
     staff_name: str,
     turn: int,
@@ -434,35 +434,35 @@ def record_turn_in_memory(
     over or the token budget truncates: the note (or its compacted summary
     line) keeps flowing to every later staff_member via the digest.
     """
-    if not conversation_id or not (content or "").strip():
+    if not meeting_id or not (content or "").strip():
         return
     try:
         from server.infra import working_memory_store
 
         working_memory_store.record_note(
-            conversation_id, staff=staff_name, content=content, kind=kind, turn=turn,
+            meeting_id, staff=staff_name, content=content, kind=kind, turn=turn,
         )
     except Exception:  # noqa: BLE001
-        logger.exception("Failed to record turn in working memory for %s", conversation_id)
+        logger.exception("Failed to record turn in working memory for %s", meeting_id)
 
 
-def record_guidance_in_memory(conversation_id: str | None, guidance: str) -> None:
+def record_guidance_in_memory(meeting_id: str | None, guidance: str) -> None:
     """Pin mid-run human guidance so no later staff_member can lose it."""
-    if not conversation_id or not (guidance or "").strip():
+    if not meeting_id or not (guidance or "").strip():
         return
     try:
         from server.infra import working_memory_store
 
         working_memory_store.record_note(
-            conversation_id, staff="user", content=guidance, kind="guidance", pinned=True,
+            meeting_id, staff="user", content=guidance, kind="guidance", pinned=True,
         )
     except Exception:  # noqa: BLE001
-        logger.exception("Failed to record guidance in working memory for %s", conversation_id)
+        logger.exception("Failed to record guidance in working memory for %s", meeting_id)
 
 
-def memory_toolkit_tools(conversation_id: str | None, staff_name: str) -> list[Any]:
+def memory_toolkit_tools(meeting_id: str | None, staff_name: str) -> list[Any]:
     """Build the default memory tools for an staff_member ([] when unavailable)."""
-    if not conversation_id:
+    if not meeting_id:
         return []
     try:
         from server.domain.memory.working_memory import WORKING_MEMORY_ENABLED
@@ -471,17 +471,17 @@ def memory_toolkit_tools(conversation_id: str | None, staff_name: str) -> list[A
         if not WORKING_MEMORY_ENABLED:
             return []
         return MemoryToolkit(
-            conversation_id=conversation_id, staff_name=staff_name
+            meeting_id=meeting_id, staff_name=staff_name
         ).get_tools()
     except Exception:  # noqa: BLE001
-        logger.exception("Failed to build memory toolkit for %s", conversation_id)
+        logger.exception("Failed to build memory toolkit for %s", meeting_id)
         return []
 
 
 def attach_meeting_sandbox(
     bound_tools: list[Any],
     *,
-    conversation_id: str | None,
+    meeting_id: str | None,
     staff_name: str,
 ) -> bool:
     """If this conversation has files, scope the run to its shared sandbox.
@@ -499,20 +499,20 @@ def attach_meeting_sandbox(
     be called AFTER ``new_thread_id`` (so the conv id wins the contextvar) and
     BEFORE constructing ``TaskToolkit`` (so subagents inherit the sandbox tools).
     """
-    if not conversation_id:
+    if not meeting_id:
         return False
     try:
         from server.infra.llm.sandbox_middleware import (
             ensure_meeting_sandbox,
         )
 
-        cs = ensure_meeting_sandbox(conversation_id)
+        cs = ensure_meeting_sandbox(meeting_id)
         if cs is None or not cs.has_files:
             return False
 
         from server.infra.sandbox.sandbox_session import use_meeting_thread
 
-        use_meeting_thread(conversation_id)
+        use_meeting_thread(meeting_id)
 
         existing = {getattr(t, "name", "") for t in bound_tools}
         if "sandbox_bash" not in existing:
@@ -527,11 +527,11 @@ def attach_meeting_sandbox(
             bound_tools.extend(DocumentToolkit().get_tools())
         return True
     except Exception:  # noqa: BLE001
-        logger.exception("attach_meeting_sandbox failed for %s", conversation_id)
+        logger.exception("attach_meeting_sandbox failed for %s", meeting_id)
         return False
 
 
-def build_agent_tools(staff: GraphStaffDefinition, *, conversation_id: str | None) -> list[Any]:
+def build_agent_tools(staff: GraphStaffDefinition, *, meeting_id: str | None) -> list[Any]:
     """Build the tool list every topology binds before calling the LLM for a
     turn: this staff member's skill tools + the default human-in-the-loop
     ask-user tool + shared working-memory tools + the conversation sandbox
@@ -550,7 +550,7 @@ def build_agent_tools(staff: GraphStaffDefinition, *, conversation_id: str | Non
         for toolkit in staff.tools.values():
             bound_tools.extend(toolkit.get_tools())
 
-    if conversation_id:
+    if meeting_id:
         from server.domain.tools.ask_user import AskUserToolkit
 
         # Capture the real stream writer here, while still inside the outer
@@ -570,18 +570,18 @@ def build_agent_tools(staff: GraphStaffDefinition, *, conversation_id: str | Non
 
         bound_tools.extend(
             AskUserToolkit(
-                conversation_id=conversation_id, staff_name=staff.name, stream_writer=stream_writer
+                meeting_id=meeting_id, staff_name=staff.name, stream_writer=stream_writer
             ).get_tools()
         )
-    bound_tools.extend(memory_toolkit_tools(conversation_id, staff.name))
+    bound_tools.extend(memory_toolkit_tools(meeting_id, staff.name))
 
-    attach_meeting_sandbox(bound_tools, conversation_id=conversation_id, staff_name=staff.name)
+    attach_meeting_sandbox(bound_tools, meeting_id=meeting_id, staff_name=staff.name)
 
     return bound_tools
 
 
 def build_bound_tools(
-    staff: GraphStaffDefinition, *, conversation_id: str | None, llm: Any
+    staff: GraphStaffDefinition, *, meeting_id: str | None, llm: Any
 ) -> list[Any]:
     """``build_agent_tools`` + ``attach_subagent_toolkit`` for one staff member's turn.
 
@@ -589,7 +589,7 @@ def build_bound_tools(
     two-call sequence for every node and fan-out branch; centralising it here
     is what keeps that pairing from drifting apart.
     """
-    bound_tools = build_agent_tools(staff, conversation_id=conversation_id)
+    bound_tools = build_agent_tools(staff, meeting_id=meeting_id)
     attach_subagent_toolkit(bound_tools, staff, llm=llm)
     return bound_tools
 
@@ -619,17 +619,17 @@ def attach_subagent_toolkit(
     return bound_tools
 
 
-def uploads_hint(conversation_id: str | None) -> str:
+def uploads_hint(meeting_id: str | None) -> str:
     """One-line note listing files available in the shared workspace, or ''.
 
     Prepended to an staff_member's input so it knows files exist and which tools to use.
     """
-    if not conversation_id:
+    if not meeting_id:
         return ""
     try:
         from server.infra.sandbox.thread_files import list_thread_files
 
-        names = [f.get("filename", "") for f in list_thread_files(conversation_id)]
+        names = [f.get("filename", "") for f in list_thread_files(meeting_id)]
         names = [n for n in names if n]
         if not names:
             return ""
@@ -664,14 +664,14 @@ def assemble_run_result(final_state: dict[str, Any], error: str | None) -> Graph
 
 def ingest_user_message(
     user_input: str,
-    conversation_id: str | None,
+    meeting_id: str | None,
     graph_context_provider: GraphContextProvider | None,
     graph_config: GraphContextConfig | None,
 ) -> None:
     """Record the user's opening message in the knowledge graph, if wired up."""
-    if graph_context_provider and conversation_id:
+    if graph_context_provider and meeting_id:
         graph_context_provider.ingest_message(
-            conversation_id=conversation_id,
+            meeting_id=meeting_id,
             message_id=f"user-{uuid4().hex}",
             speaker="user",
             content=user_input,
@@ -679,11 +679,11 @@ def ingest_user_message(
         )
 
 
-def init_sandbox_thread(staff_name: str, conversation_id: str | None) -> tuple[str, str]:
+def init_sandbox_thread(staff_name: str, meeting_id: str | None) -> tuple[str, str]:
     """Allocate this turn's sandbox thread id/workspace, creating the dir now."""
     from server.infra.sandbox.sandbox_session import get_thread_workspace, new_thread_id
 
-    sandbox_thread_id = new_thread_id(staff_name=staff_name, task_id=conversation_id)
+    sandbox_thread_id = new_thread_id(staff_name=staff_name, task_id=meeting_id)
     sandbox_workspace = get_thread_workspace(settings.sandbox_workspace or "", sandbox_thread_id)
     return sandbox_thread_id, sandbox_workspace
 
@@ -807,7 +807,7 @@ async def run_fanout_wave(
     build_branch_chat_kwargs: Callable[[GraphStaffDefinition, str], dict],
     semaphore: asyncio.Semaphore,
     stream_writer: Any = None,
-    conversation_id: str | None = None,
+    meeting_id: str | None = None,
     graph_context_provider: Any = None,
     graph_config: Any = None,
     base_turn_number: int,
@@ -835,7 +835,7 @@ async def run_fanout_wave(
         # sequential pre-build loop): asyncio.gather snapshots each branch's
         # context independently when it schedules the Task below, so a thread_id
         # set here is isolated to this branch and never bleeds into siblings.
-        init_sandbox_thread(name, conversation_id)
+        init_sandbox_thread(name, meeting_id)
         if stream_writer:
             stream_writer({
                 "type": EventType.AGENT_TURN_START.value,
@@ -891,16 +891,16 @@ async def run_fanout_wave(
     for offset, res in enumerate(results, start=1):
         res.turn = base_turn_number + offset
         record_turn_in_memory(
-            conversation_id,
+            meeting_id,
             staff_name=res.staff_name,
             turn=res.turn,
             content=res.content,
             kind="result",
         )
-        if graph_context_provider and conversation_id and not res.error:
+        if graph_context_provider and meeting_id and not res.error:
             try:
                 graph_context_provider.ingest_message(
-                    conversation_id=conversation_id,
+                    meeting_id=meeting_id,
                     message_id=f"staff_member-{res.staff_name}-{uuid4().hex}",
                     speaker=res.staff_name,
                     content=res.content,

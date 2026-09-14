@@ -74,14 +74,14 @@ class AskUserToolkit(BaseToolkit):
 
     def __init__(
         self,
-        conversation_id: str,
+        meeting_id: str,
         staff_name: str | None = None,
         timeout_seconds: int = ASK_USER_TIMEOUT_SECONDS,
         stream_writer: Callable[[dict], None] | None = None,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self._conversation_id = conversation_id
+        self._meeting_id = meeting_id
         self._staff_name = staff_name
         self._timeout_seconds = max(5, int(timeout_seconds))
         self._stream_writer = stream_writer
@@ -119,7 +119,7 @@ class AskUserToolkit(BaseToolkit):
         clean_options = [str(o).strip() for o in (options or []) if str(o).strip()][:6]
 
         request_id = uuid4().hex
-        if not task_run_registry.open_user_request(self._conversation_id, request_id):
+        if not task_run_registry.open_user_request(self._meeting_id, request_id):
             return (
                 "[ask_user unavailable] No active interactive run — proceed on "
                 "your best judgement and state the assumption you made."
@@ -136,7 +136,7 @@ class AskUserToolkit(BaseToolkit):
         _emit_event(payload, self._stream_writer)
         logger.info(
             "ask_user: staff=%s conversation=%s request=%s options=%d",
-            self._staff_name, self._conversation_id, request_id, len(clean_options),
+            self._staff_name, self._meeting_id, request_id, len(clean_options),
         )
 
         polls = 0
@@ -146,7 +146,7 @@ class AskUserToolkit(BaseToolkit):
                 await asyncio.sleep(_POLL_SECONDS)
                 polls += 1
 
-                response = task_run_registry.take_user_response(self._conversation_id, request_id)
+                response = task_run_registry.take_user_response(self._meeting_id, request_id)
                 if response is not None:
                     _emit_event({
                         "type": EventType.USER_INPUT_RECEIVED.value,
@@ -155,7 +155,7 @@ class AskUserToolkit(BaseToolkit):
                     }, self._stream_writer)
                     return f"The user answered: {response}"
 
-                if task_run_registry.is_cancelled(self._conversation_id):
+                if task_run_registry.is_cancelled(self._meeting_id):
                     return "[ask_user cancelled] The run was stopped before the user answered."
 
                 # Heartbeat: re-announce the open question so idle SSE
@@ -175,4 +175,4 @@ class AskUserToolkit(BaseToolkit):
                 "state the assumption you made."
             )
         finally:
-            task_run_registry.close_user_request(self._conversation_id, request_id)
+            task_run_registry.close_user_request(self._meeting_id, request_id)

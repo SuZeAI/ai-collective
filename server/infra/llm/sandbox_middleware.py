@@ -35,7 +35,7 @@ _restored_lock = threading.Lock()
 
 @dataclass(frozen=True)
 class MeetingSandbox:
-    conversation_id: str
+    meeting_id: str
     thread_id: str
     workspace: str
     uploads_dir: str
@@ -69,14 +69,14 @@ def _file_backend() -> str:
         return "local"
 
 
-def ensure_meeting_sandbox(conversation_id: Optional[str]) -> Optional[MeetingSandbox]:
+def ensure_meeting_sandbox(meeting_id: Optional[str]) -> Optional[MeetingSandbox]:
     """Provision (idempotently) the shared workspace for a chat and report files.
 
-    Returns ``None`` when *conversation_id* is falsy. Best-effort: on any failure
+    Returns ``None`` when *meeting_id* is falsy. Best-effort: on any failure
     it logs and returns a ``has_files=False`` sandbox so the caller treats the
     chat as file-less and skips injection.
     """
-    if not conversation_id:
+    if not meeting_id:
         return None
     try:
         import os
@@ -87,34 +87,34 @@ def ensure_meeting_sandbox(conversation_id: Optional[str]) -> Optional[MeetingSa
         )
         from server.infra.sandbox.thread_files import conversation_has_files
 
-        thread_id = meeting_thread_id(conversation_id)
-        workspace = ensure_meeting_workspace(conversation_id)
+        thread_id = meeting_thread_id(meeting_id)
+        workspace = ensure_meeting_workspace(meeting_id)
         uploads_dir = os.path.join(workspace, "uploads")
-        has_files = conversation_has_files(conversation_id)
+        has_files = conversation_has_files(meeting_id)
 
         if has_files and _file_backend() == "s3":
             # Rehydrate the host workspace agents read/write so files survive a
             # restart on an ephemeral FS.
-            _restore_local_once(conversation_id, thread_id, workspace)
+            _restore_local_once(meeting_id, thread_id, workspace)
             # k8s Pods may run on a node that doesn't share a filesystem with
             # the backend at all (a real cluster, vs. this host's dev k3s) —
             # always also push the bytes directly into the live pod over HTTP.
             if _sandbox_mode() != "local":
-                _restore_remote_once(conversation_id, thread_id, workspace)
+                _restore_remote_once(meeting_id, thread_id, workspace)
 
         return MeetingSandbox(
-            conversation_id=conversation_id,
+            meeting_id=meeting_id,
             thread_id=thread_id,
             workspace=workspace,
             uploads_dir=uploads_dir,
             has_files=has_files,
         )
     except Exception as exc:  # noqa: BLE001
-        logger.exception("ensure_meeting_sandbox failed for %s: %s", conversation_id, exc)
+        logger.exception("ensure_meeting_sandbox failed for %s: %s", meeting_id, exc)
         return None
 
 
-def _restore_local_once(conversation_id: str, thread_id: str, workspace: str) -> None:
+def _restore_local_once(meeting_id: str, thread_id: str, workspace: str) -> None:
     """Rehydrate the host workspace from S3 once per conversation per process.
 
     In ``s3`` mode the host workspace is a cache: after a restart on an ephemeral
@@ -123,7 +123,7 @@ def _restore_local_once(conversation_id: str, thread_id: str, workspace: str) ->
     staging dir local mode's sandbox tools read/write directly. Idempotent and
     best-effort. Uses a distinct marker so it can coexist with the remote restore.
     """
-    marker = f"local:{conversation_id}"
+    marker = f"local:{meeting_id}"
     with _restored_lock:
         if marker in _restored:
             return
@@ -133,23 +133,23 @@ def _restore_local_once(conversation_id: str, thread_id: str, workspace: str) ->
 
         count = get_file_store("sandbox").restore_to_dir(thread_id, workspace)
         if count:
-            logger.info("Restored %d file(s) into host workspace for %s", count, conversation_id)
+            logger.info("Restored %d file(s) into host workspace for %s", count, meeting_id)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Local sandbox restore failed for %s: %s", conversation_id, exc)
+        logger.warning("Local sandbox restore failed for %s: %s", meeting_id, exc)
         with _restored_lock:
             _restored.discard(marker)  # allow a later retry
 
 
-def _restore_remote_once(conversation_id: str, thread_id: str, workspace: str) -> None:
+def _restore_remote_once(meeting_id: str, thread_id: str, workspace: str) -> None:
     """Fire-and-forget restore of backed-up files into the live sandbox (Pod).
 
     Runs in a background thread so it never blocks an staff node, and only once
     per conversation per process.
     """
     with _restored_lock:
-        if conversation_id in _restored:
+        if meeting_id in _restored:
             return
-        _restored.add(conversation_id)
+        _restored.add(meeting_id)
 
     def _work() -> None:
         try:
@@ -167,16 +167,16 @@ def _restore_remote_once(conversation_id: str, thread_id: str, workspace: str) -
                     continue
                 target = f"{base}/{thread_id}/{rel}"
                 asyncio.run(sandbox.write_bytes(target, data))
-            logger.info("Restored %d file(s) into sandbox for %s", len(rel_paths), conversation_id)
+            logger.info("Restored %d file(s) into sandbox for %s", len(rel_paths), meeting_id)
         except Exception as exc:  # noqa: BLE001
-            logger.warning("Remote sandbox restore failed for %s: %s", conversation_id, exc)
+            logger.warning("Remote sandbox restore failed for %s: %s", meeting_id, exc)
             with _restored_lock:
-                _restored.discard(conversation_id)  # allow a later retry
+                _restored.discard(meeting_id)  # allow a later retry
 
     threading.Thread(target=_work, daemon=True).start()
 
 
-def push_upload_to_sandbox(conversation_id: str, rel_path: str, content: bytes) -> None:
+def push_upload_to_sandbox(meeting_id: str, rel_path: str, content: bytes) -> None:
     """Persist an uploaded file: back it up to MinIO and push it into the Pod.
 
     Called from the upload endpoint via ``asyncio.to_thread`` (a worker thread,
@@ -186,7 +186,7 @@ def push_upload_to_sandbox(conversation_id: str, rel_path: str, content: bytes) 
     try:
         from server.infra.sandbox.sandbox_session import meeting_thread_id
 
-        thread_id = meeting_thread_id(conversation_id)
+        thread_id = meeting_thread_id(meeting_id)
         if _file_backend() == "s3":
             backup = get_backup_service()
             if backup.enabled:
@@ -202,10 +202,10 @@ def push_upload_to_sandbox(conversation_id: str, rel_path: str, content: bytes) 
         target = f"{base}/{thread_id}/{rel_path}"
         asyncio.run(sandbox.write_bytes(target, content))
     except Exception as exc:  # noqa: BLE001
-        logger.warning("push_upload_to_sandbox failed for %s: %s", conversation_id, exc)
+        logger.warning("push_upload_to_sandbox failed for %s: %s", meeting_id, exc)
 
 
-def backup_meeting_workspace(conversation_id: str) -> None:
+def backup_meeting_workspace(meeting_id: str) -> None:
     """Sync a conversation's host workspace up to MinIO (best-effort).
 
     Useful in local mode, where staff-written files live directly on the host.
@@ -224,21 +224,21 @@ def backup_meeting_workspace(conversation_id: str) -> None:
             ensure_meeting_workspace,
         )
 
-        thread_id = meeting_thread_id(conversation_id)
-        workspace = ensure_meeting_workspace(conversation_id)
+        thread_id = meeting_thread_id(meeting_id)
+        workspace = ensure_meeting_workspace(meeting_id)
         backup.backup_dir(thread_id, workspace)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("backup_meeting_workspace failed for %s: %s", conversation_id, exc)
+        logger.warning("backup_meeting_workspace failed for %s: %s", meeting_id, exc)
 
 
-def cleanup_meeting_sandbox(conversation_id: str) -> None:
+def cleanup_meeting_sandbox(meeting_id: str) -> None:
     """Best-effort teardown of a conversation's sandbox artifacts.
 
     Removes the host workspace, purges the file records and MinIO objects, and
     (k8s mode) destroys the per-conversation Pod. Safe to call even when the
     chat never had files. Never raises.
     """
-    if not conversation_id:
+    if not meeting_id:
         return
     try:
         import os
@@ -249,10 +249,10 @@ def cleanup_meeting_sandbox(conversation_id: str) -> None:
         )
         from server.infra.sandbox.thread_files import purge_thread_files
 
-        thread_id = meeting_thread_id(conversation_id)
+        thread_id = meeting_thread_id(meeting_id)
 
         # Records
-        purge_thread_files(conversation_id)
+        purge_thread_files(meeting_id)
 
         # MinIO objects
         try:
@@ -285,9 +285,9 @@ def cleanup_meeting_sandbox(conversation_id: str) -> None:
             pass
 
         with _restored_lock:
-            _restored.discard(conversation_id)
+            _restored.discard(meeting_id)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("cleanup_meeting_sandbox failed for %s: %s", conversation_id, exc)
+        logger.warning("cleanup_meeting_sandbox failed for %s: %s", meeting_id, exc)
 
 
 def _remote_base(sandbox) -> str:

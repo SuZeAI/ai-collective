@@ -285,7 +285,7 @@ def test_e2e_mesh_fanout_full_graph():
     ]
     res = asyncio.run(MultiAgentMeshOrchestrator().run(
         user_input="Investigate.", staff=agents, llm=llm, max_rounds=6,
-        conversation_id=None,
+        meeting_id=None,
     ))
     names = [t.staff_name for t in res.turns]
     nums = [t.turn for t in res.turns]
@@ -314,7 +314,7 @@ def test_e2e_supervisor_fanout_full_graph():
     ]
     res = asyncio.run(LangGraphSupervisorOrchestrator().run(
         user_input="Do the job.", staff=agents, llm=llm, max_rounds=6,
-        conversation_id=None,
+        meeting_id=None,
     ))
     names = [t.staff_name for t in res.turns]
     nums = [t.turn for t in res.turns]
@@ -350,7 +350,7 @@ def test_e2e_mesh_sequential_unchanged_when_no_fanout():
     ]
     res = asyncio.run(MultiAgentMeshOrchestrator().run(
         user_input="hi", staff=agents, llm=SeqLLM(), max_rounds=6,
-        conversation_id=None,
+        meeting_id=None,
     ))
     nums = [t.turn for t in res.turns]
     assert nums == list(range(1, len(nums) + 1))   # one turn per round
@@ -401,7 +401,7 @@ def test_e2e_mesh_second_turn_sees_own_first_turn_reply():
     ]
     res = asyncio.run(MultiAgentMeshOrchestrator().run(
         user_input="hi", staff=agents, llm=_HistoryAwareLLM(), max_rounds=6,
-        conversation_id=None,
+        meeting_id=None,
     ))
     hub_turns = [t.content for t in res.turns if t.staff_name == "Hub"]
     assert len(hub_turns) == 2
@@ -461,7 +461,7 @@ def test_e2e_mesh_fanout_branches_get_distinct_sandbox_thread_ids():
     ]
     asyncio.run(MultiAgentMeshOrchestrator().run(
         user_input="Investigate.", staff=agents, llm=llm, max_rounds=6,
-        conversation_id="conv-mesh-fanout",
+        meeting_id="conv-mesh-fanout",
     ))
     assert len(llm.branch_thread_ids) == 2
     assert all(tid is not None for tid in llm.branch_thread_ids)
@@ -501,7 +501,7 @@ def test_mesh_sequential_turn_emits_agent_start_not_agent_turn_start():
         events = []
         async for event in MultiAgentMeshOrchestrator().run_stream(
             user_input="hi", staff=agents, llm=SeqLLM(), max_rounds=6,
-            conversation_id=None,
+            meeting_id=None,
         ):
             events.append(event)
         return events
@@ -531,7 +531,7 @@ def test_e2e_supervisor_fanout_branches_get_distinct_sandbox_thread_ids():
     ]
     asyncio.run(LangGraphSupervisorOrchestrator().run(
         user_input="Do the job.", staff=agents, llm=llm, max_rounds=6,
-        conversation_id="conv-sup-fanout",
+        meeting_id="conv-sup-fanout",
     ))
     assert len(llm.branch_thread_ids) == 2
     assert all(tid is not None for tid in llm.branch_thread_ids)

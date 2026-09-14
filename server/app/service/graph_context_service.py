@@ -79,14 +79,14 @@ class GraphContextService:
     def ingest_message(
         self,
         *,
-        conversation_id: str,
+        meeting_id: str,
         message_id: str,
         speaker: str,
         content: str,
         config: GraphContextConfig | None = None,
     ) -> None:
-        graph = self._repo.get(conversation_id) or MeetingKnowledgeGraph(
-            conversation_id=conversation_id
+        graph = self._repo.get(meeting_id) or MeetingKnowledgeGraph(
+            meeting_id=meeting_id
         )
         effective_config = (config or graph.config).normalized()
         graph.config = effective_config
@@ -208,7 +208,7 @@ class GraphContextService:
         self._repo.upsert(graph)
         if graph.config.persist_mode == "snapshot_plus_log":
             self._repo.append_event(
-                conversation_id,
+                meeting_id,
                 {
                     "type": "ingest_message",
                     "message_id": message_id,
@@ -218,11 +218,11 @@ class GraphContextService:
                 },
             )
 
-    def reset_conversation(self, *, conversation_id: str) -> None:
+    def reset_conversation(self, *, meeting_id: str) -> None:
         """Drop graph knowledge for a conversation so a restart starts from a clean context."""
-        self._repo.delete(conversation_id)
+        self._repo.delete(meeting_id)
 
-    def _rag_block(self, conversation_id: str, query: str, graph, exclude_texts: set[str]) -> str:
+    def _rag_block(self, meeting_id: str, query: str, graph, exclude_texts: set[str]) -> str:
         """RAG 'additional information' block (bm25 / qdrant / neo4j / hybrid).
 
         Best-effort and additive; never raises into context assembly.
@@ -231,16 +231,16 @@ class GraphContextService:
             from server.infra import rag_retrieval_store
 
             return rag_retrieval_store.retrieve_block(
-                conversation_id, query, graph, exclude_texts=exclude_texts
+                meeting_id, query, graph, exclude_texts=exclude_texts
             )
         except Exception:  # noqa: BLE001
             return ""
 
-    def get_graph_snapshot(self, *, conversation_id: str) -> dict[str, object]:
-        graph = self._repo.get(conversation_id)
+    def get_graph_snapshot(self, *, meeting_id: str) -> dict[str, object]:
+        graph = self._repo.get(meeting_id)
         if not graph:
             return {
-                "conversation_id": conversation_id,
+                "meeting_id": meeting_id,
                 "version": 1,
                 "schema_version": 1,
                 "last_message_index": 0,
@@ -253,7 +253,7 @@ class GraphContextService:
             }
 
         return {
-            "conversation_id": graph.conversation_id,
+            "meeting_id": graph.meeting_id,
             "version": graph.version,
             "schema_version": graph.schema_version,
             "last_message_index": graph.last_message_index,
@@ -268,16 +268,16 @@ class GraphContextService:
     def build_graph_context(
         self,
         *,
-        conversation_id: str,
+        meeting_id: str,
         query: str,
         config: GraphContextConfig | None = None,
     ) -> GraphContextPack:
-        graph = self._repo.get(conversation_id)
+        graph = self._repo.get(meeting_id)
         if not graph:
             # Do not log the raw query (user content / PII) at INFO; only IDs.
             logger.info(
-                "Graph context build snapshot | conversation_id=%s | graph=empty | query_len=%d",
-                conversation_id,
+                "Graph context build snapshot | meeting_id=%s | graph=empty | query_len=%d",
+                meeting_id,
                 len(query or ""),
             )
             return GraphContextPack(
@@ -334,21 +334,21 @@ class GraphContextService:
         if not lines:
             # Log only counts, never the full graph (contains verbatim message text).
             logger.info(
-                "Graph context build snapshot | conversation_id=%s | method=%s | nodes=%d | edges=%d | no_relations",
-                conversation_id,
+                "Graph context build snapshot | meeting_id=%s | method=%s | nodes=%d | edges=%d | no_relations",
+                meeting_id,
                 effective_config.retrieve_method,
                 len(graph.nodes),
                 len(graph.edges),
             )
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(
-                    "Full graph dump | conversation_id=%s | graph=%s",
-                    conversation_id,
+                    "Full graph dump | meeting_id=%s | graph=%s",
+                    meeting_id,
                     json.dumps(asdict(graph), ensure_ascii=False),
                 )
             # Even with no entity relations, RAG retrieval can still surface
             # relevant chunks as additional information.
-            rag_block = self._rag_block(conversation_id, query, graph, set())
+            rag_block = self._rag_block(meeting_id, query, graph, set())
             return GraphContextPack(
                 text=rag_block,
                 node_ids=[],
@@ -399,12 +399,12 @@ class GraphContextService:
         already_shown = {
             _normalize_chunk_text(graph.chunks.get(cid, "")) for cid in chunk_ids
         }
-        rag_block = self._rag_block(conversation_id, query, graph, already_shown)
+        rag_block = self._rag_block(meeting_id, query, graph, already_shown)
         if rag_block:
             context_text += "\n\n" + rag_block
         logger.info(
-            "Graph context build snapshot | conversation_id=%s | method=%s | selected_nodes=%s | selected_edges=%s | chunks=%s",
-            conversation_id,
+            "Graph context build snapshot | meeting_id=%s | method=%s | selected_nodes=%s | selected_edges=%s | chunks=%s",
+            meeting_id,
             "pagerank",
             node_ids,
             edge_ids,

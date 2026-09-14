@@ -237,7 +237,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
         staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
-        conversation_id: str | None = None,
+        meeting_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -245,9 +245,9 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
         if not staff:
             raise ValueError("At least one staff_member definition is required")
 
-        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
+        ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
         tree = _build_tree(staff)
-        graph = self._build_graph(tree, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
+        graph = self._build_graph(tree, llm, max_rounds, meeting_id, graph_context_provider, graph_config)
         final_state, error = await run_to_final_state(graph, self._initial_state(user_input, staff), max_rounds)
         return assemble_run_result(final_state, error)
 
@@ -258,7 +258,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
         staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
-        conversation_id: str | None = None,
+        meeting_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -266,9 +266,9 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
         if not staff:
             raise ValueError("At least one staff_member definition is required")
 
-        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
+        ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
         tree = _build_tree(staff)
-        graph = self._build_graph(tree, llm, max_rounds, conversation_id, graph_context_provider, graph_config)
+        graph = self._build_graph(tree, llm, max_rounds, meeting_id, graph_context_provider, graph_config)
 
         async for event in graph.astream(
             self._initial_state(user_input, staff),
@@ -287,7 +287,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
         tree: list[TreeNode],
         llm: LLMProvider,
         max_rounds: int,
-        conversation_id: str | None,
+        meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
     ):
@@ -305,7 +305,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
                     llm=llm,
                     max_rounds=max_rounds,
                     root_name=root_name,
-                    conversation_id=conversation_id,
+                    meeting_id=meeting_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                 ),
@@ -382,7 +382,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         root_name: str,
-        conversation_id: str | None,
+        meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
     ):
@@ -409,7 +409,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
 
             # Human-in-the-loop: hold at the turn boundary while interrupted.
             await wait_while_paused(
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 stream_writer=stream_writer,
                 staff_name=staff_member.name,
             )
@@ -419,7 +419,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
 
             # Generate a unique thread_id for this staff_member turn.
             # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
-            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(staff_member.name, conversation_id)
+            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(staff_member.name, meeting_id)
 
             stream_writer({
                 "type": EventType.AGENT_START.value,
@@ -436,7 +436,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
             # Human-in-the-loop: pick up user messages posted mid-run so this
             # turn (and graph retrieval for later turns) sees the guidance.
             human_guidance = drain_human_guidance(
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 stream_writer=stream_writer,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
@@ -445,9 +445,9 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
             # Knowledge graph context
             graph_ctx = ""
             query = state.get("current_task") or state["original_input"]
-            if graph_context_provider and conversation_id:
+            if graph_context_provider and meeting_id:
                 pack = graph_context_provider.build_graph_context(
-                    conversation_id=conversation_id,
+                    meeting_id=meeting_id,
                     query=query,
                     config=graph_config,
                 )
@@ -486,10 +486,10 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
 
             # Shared working memory: pin guidance, then inject the digest so
             # other branches' results survive the tree-log window and truncation.
-            ensure_working_memory(conversation_id, state["original_input"])
+            ensure_working_memory(meeting_id, state["original_input"])
             if human_guidance:
-                record_guidance_in_memory(conversation_id, human_guidance)
-            memory_block = working_memory_block(conversation_id)
+                record_guidance_in_memory(meeting_id, human_guidance)
+            memory_block = working_memory_block(meeting_id)
 
             # The actual turn input: a delegated task, a child's report reaching
             # the root, or (root's first turn) the original request itself.
@@ -505,7 +505,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
             # First so the guidance survives tail-truncation by the token budget.
             if human_guidance:
                 context_parts += [human_guidance, ""]
-            uploads = uploads_hint(conversation_id)
+            uploads = uploads_hint(meeting_id)
             if uploads:
                 context_parts += [uploads]
             # routing_guidance carries live round counters, so it varies every
@@ -523,7 +523,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
             if graph_ctx:
                 context_parts += ["", f"[Context]:\n{graph_ctx}"]
 
-            bound_tools = build_bound_tools(staff_member, conversation_id=conversation_id, llm=llm)
+            bound_tools = build_bound_tools(staff_member, meeting_id=meeting_id, llm=llm)
 
             # staff_member.system_prompt stays byte-identical every turn so the
             # compiled-agent cache and upstream provider prompt-caching see a
@@ -601,7 +601,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
             # the tree-log window rolls past them.
             if target_child and task_text:
                 record_turn_in_memory(
-                    conversation_id,
+                    meeting_id,
                     staff_name=staff_member.name,
                     turn=rounds_used + 1,
                     content=f"Delegated to {target_child}: {task_text}",
@@ -609,16 +609,16 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
                 )
             else:
                 record_turn_in_memory(
-                    conversation_id,
+                    meeting_id,
                     staff_name=staff_member.name,
                     turn=rounds_used + 1,
                     content=tree_end or return_result or new_turn.content,
                     kind="result",
                 )
 
-            if graph_context_provider and conversation_id:
+            if graph_context_provider and meeting_id:
                 graph_context_provider.ingest_message(
-                    conversation_id=conversation_id,
+                    meeting_id=meeting_id,
                     message_id=f"staff_member-{staff_member.name}-{uuid4().hex}",
                     speaker=staff_member.name,
                     content=new_turn.content,

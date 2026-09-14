@@ -73,14 +73,14 @@ def _get_service() -> RagRetrievalService | None:
 
 
 def retrieve_block(
-    conversation_id: str, query: str, graph, *, exclude_texts: set[str] | None = None
+    meeting_id: str, query: str, graph, *, exclude_texts: set[str] | None = None
 ) -> str:
     """Return an 'additional information' block ('' on any failure/empty)."""
     try:
         service = _get_service()
         if service is None:
             return ""
-        hits = service.retrieve(conversation_id, query, graph, exclude_texts=exclude_texts)
+        hits = service.retrieve(meeting_id, query, graph, exclude_texts=exclude_texts)
         return service.render(hits)
     except Exception:  # noqa: BLE001 — never break graph-context assembly
         logger.debug("RAG retrieve_block failed", exc_info=True)

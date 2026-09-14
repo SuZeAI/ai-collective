@@ -17,39 +17,39 @@ class MongoGraphKnowledgeRepository:
     def __init__(self, db: pymongo.database.Database) -> None:
         self._graphs_col = db["graph_knowledge"]
         self._events_col = db["graph_knowledge_events"]
-        self._graphs_col.create_index("conversation_id", unique=True, background=True)
-        self._events_col.create_index("conversation_id", background=True)
+        self._graphs_col.create_index("meeting_id", unique=True, background=True)
+        self._events_col.create_index("meeting_id", background=True)
 
     # ---- Graphs ----
 
-    def get(self, conversation_id: str) -> MeetingKnowledgeGraph | None:
-        doc = self._graphs_col.find_one({"conversation_id": conversation_id})
+    def get(self, meeting_id: str) -> MeetingKnowledgeGraph | None:
+        doc = self._graphs_col.find_one({"meeting_id": meeting_id})
         if not doc:
             return None
-        return self._deserialize_graph(conversation_id, doc)
+        return self._deserialize_graph(meeting_id, doc)
 
     def upsert(self, graph: MeetingKnowledgeGraph) -> MeetingKnowledgeGraph:
         payload = self._serialize_graph(graph)
         self._graphs_col.replace_one(
-            {"conversation_id": graph.conversation_id}, payload, upsert=True
+            {"meeting_id": graph.meeting_id}, payload, upsert=True
         )
         return graph
 
-    def delete(self, conversation_id: str) -> None:
-        self._graphs_col.delete_one({"conversation_id": conversation_id})
-        self._events_col.delete_many({"conversation_id": conversation_id})
+    def delete(self, meeting_id: str) -> None:
+        self._graphs_col.delete_one({"meeting_id": meeting_id})
+        self._events_col.delete_many({"meeting_id": meeting_id})
 
     # ---- Events ----
 
-    def append_event(self, conversation_id: str, event: dict[str, object]) -> None:
-        self._events_col.insert_one({"conversation_id": conversation_id, **event})
+    def append_event(self, meeting_id: str, event: dict[str, object]) -> None:
+        self._events_col.insert_one({"meeting_id": meeting_id, **event})
 
     # ---- Serialization ----
 
     def _serialize_graph(self, graph: MeetingKnowledgeGraph) -> dict[str, Any]:
         return {
-            "_id": graph.conversation_id,
-            "conversation_id": graph.conversation_id,
+            "_id": graph.meeting_id,
+            "meeting_id": graph.meeting_id,
             "version": graph.version,
             "schema_version": graph.schema_version,
             "last_message_index": graph.last_message_index,
@@ -61,7 +61,7 @@ class MongoGraphKnowledgeRepository:
             "updated_at": graph.updated_at,
         }
 
-    def _deserialize_graph(self, conversation_id: str, raw: dict[str, Any]) -> MeetingKnowledgeGraph | None:
+    def _deserialize_graph(self, meeting_id: str, raw: dict[str, Any]) -> MeetingKnowledgeGraph | None:
         raw_config = raw.get("config")
         config = GraphContextConfig()
         if isinstance(raw_config, dict):
@@ -71,7 +71,7 @@ class MongoGraphKnowledgeRepository:
                 config = GraphContextConfig()
 
         graph = MeetingKnowledgeGraph(
-            conversation_id=str(raw.get("conversation_id") or conversation_id),
+            meeting_id=str(raw.get("meeting_id") or meeting_id),
             version=int(raw.get("version") or 1),
             schema_version=int(raw.get("schema_version") or 1),
             last_message_index=int(raw.get("last_message_index") or 0),

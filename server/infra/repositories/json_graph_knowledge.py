@@ -19,45 +19,45 @@ class JsonGraphKnowledgeRepository:
         data = store.read()
         self._graphs: dict[str, MeetingKnowledgeGraph] = {}
         if isinstance(data, dict):
-            for conversation_id, raw_graph in data.items():
-                graph = self._deserialize_graph(conversation_id, raw_graph)
+            for meeting_id, raw_graph in data.items():
+                graph = self._deserialize_graph(meeting_id, raw_graph)
                 if graph:
-                    self._graphs[conversation_id] = graph
+                    self._graphs[meeting_id] = graph
 
         events = event_store.read()
         self._events: dict[str, list[dict[str, object]]] = {}
         if isinstance(events, dict):
-            for conversation_id, items in events.items():
+            for meeting_id, items in events.items():
                 if isinstance(items, list):
-                    self._events[conversation_id] = [
+                    self._events[meeting_id] = [
                         item for item in items if isinstance(item, dict)
                     ]
 
-    def get(self, conversation_id: str) -> MeetingKnowledgeGraph | None:
-        return self._graphs.get(conversation_id)
+    def get(self, meeting_id: str) -> MeetingKnowledgeGraph | None:
+        return self._graphs.get(meeting_id)
 
     def upsert(self, graph: MeetingKnowledgeGraph) -> MeetingKnowledgeGraph:
-        self._graphs[graph.conversation_id] = graph
+        self._graphs[graph.meeting_id] = graph
         self._persist_graphs()
         return graph
 
-    def delete(self, conversation_id: str) -> None:
-        removed_graph = self._graphs.pop(conversation_id, None)
-        removed_events = self._events.pop(conversation_id, None)
+    def delete(self, meeting_id: str) -> None:
+        removed_graph = self._graphs.pop(meeting_id, None)
+        removed_events = self._events.pop(meeting_id, None)
         if removed_graph is not None:
             self._persist_graphs()
         if removed_events is not None:
             self._persist_events()
 
-    def append_event(self, conversation_id: str, event: dict[str, object]) -> None:
-        self._events.setdefault(conversation_id, []).append(event)
+    def append_event(self, meeting_id: str, event: dict[str, object]) -> None:
+        self._events.setdefault(meeting_id, []).append(event)
         self._persist_events()
 
     def _persist_graphs(self) -> None:
         payload: dict[str, object] = {}
-        for conversation_id, graph in self._graphs.items():
-            payload[conversation_id] = {
-                "conversation_id": graph.conversation_id,
+        for meeting_id, graph in self._graphs.items():
+            payload[meeting_id] = {
+                "meeting_id": graph.meeting_id,
                 "version": graph.version,
                 "schema_version": graph.schema_version,
                 "last_message_index": graph.last_message_index,
@@ -73,7 +73,7 @@ class JsonGraphKnowledgeRepository:
     def _persist_events(self) -> None:
         self._event_store.write(self._events)
 
-    def _deserialize_graph(self, conversation_id: str, raw_graph: object) -> MeetingKnowledgeGraph | None:
+    def _deserialize_graph(self, meeting_id: str, raw_graph: object) -> MeetingKnowledgeGraph | None:
         if not isinstance(raw_graph, dict):
             return None
 
@@ -86,7 +86,7 @@ class JsonGraphKnowledgeRepository:
                 config = GraphContextConfig()
 
         graph = MeetingKnowledgeGraph(
-            conversation_id=str(raw_graph.get("conversation_id") or conversation_id),
+            meeting_id=str(raw_graph.get("meeting_id") or meeting_id),
             version=int(raw_graph.get("version") or 1),
             schema_version=int(raw_graph.get("schema_version") or 1),
             last_message_index=int(raw_graph.get("last_message_index") or 0),

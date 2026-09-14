@@ -89,7 +89,7 @@ def _mongo_db():
 # ── Recording ──────────────────────────────────────────────────────────────────
 
 def record_thread_file(
-    conversation_id: str,
+    meeting_id: str,
     *,
     filename: str,
     size: int,
@@ -98,10 +98,10 @@ def record_thread_file(
     uploaded_by: str = "user",
     produced_by_agent: Optional[str] = None,
 ) -> dict:
-    """Record a file attached to *conversation_id*; return the stored record."""
+    """Record a file attached to *meeting_id*; return the stored record."""
     record = {
         "id": f"file_{uuid4().hex}",
-        "conversation_id": conversation_id,
+        "meeting_id": meeting_id,
         "filename": filename,
         "size": size,
         "content_type": content_type,
@@ -114,7 +114,7 @@ def record_thread_file(
         _record_mongo(record)
     else:
         _record_json(record)
-    _has_files_cache.add(conversation_id)
+    _has_files_cache.add(meeting_id)
     return record
 
 
@@ -130,11 +130,11 @@ def _record_json(record: dict) -> None:
                         files = []
                 except (json.JSONDecodeError, OSError):
                     files = []
-            # Upsert by (conversation_id, rel_path): overwrite an existing entry.
+            # Upsert by (meeting_id, rel_path): overwrite an existing entry.
             files = [
                 f for f in files
                 if not (
-                    f.get("conversation_id") == record["conversation_id"]
+                    f.get("meeting_id") == record["meeting_id"]
                     and f.get("rel_path") == record["rel_path"]
                 )
             ]
@@ -151,7 +151,7 @@ def _record_mongo(record: dict) -> None:
     try:
         db = _mongo_db()
         doc = dict(record)
-        doc["_id"] = f"{record['conversation_id']}:{record['rel_path']}"
+        doc["_id"] = f"{record['meeting_id']}:{record['rel_path']}"
         db.thread_files.replace_one({"_id": doc["_id"]}, doc, upsert=True)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Failed to persist thread file (mongo): %s", exc)
@@ -159,18 +159,18 @@ def _record_mongo(record: dict) -> None:
 
 # ── Listing ──────────────────────────────────────────────────────────────────
 
-def list_thread_files(conversation_id: str) -> list[dict]:
-    """Return all recorded files for *conversation_id* (newest last)."""
+def list_thread_files(meeting_id: str) -> list[dict]:
+    """Return all recorded files for *meeting_id* (newest last)."""
     try:
         if _is_mongo():
-            return _list_mongo(conversation_id)
-        return _list_json(conversation_id)
+            return _list_mongo(meeting_id)
+        return _list_json(meeting_id)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Failed to list thread files for %s: %s", conversation_id, exc)
+        logger.warning("Failed to list thread files for %s: %s", meeting_id, exc)
         return []
 
 
-def _list_json(conversation_id: str) -> list[dict]:
+def _list_json(meeting_id: str) -> list[dict]:
     path = _storage_path()
     if not path.exists():
         return []
@@ -181,23 +181,23 @@ def _list_json(conversation_id: str) -> list[dict]:
             return []
     if not isinstance(files, list):
         return []
-    return [f for f in files if f.get("conversation_id") == conversation_id]
+    return [f for f in files if f.get("meeting_id") == meeting_id]
 
 
-def _list_mongo(conversation_id: str) -> list[dict]:
+def _list_mongo(meeting_id: str) -> list[dict]:
     import pymongo
 
     db = _mongo_db()
     return list(
-        db.thread_files.find({"conversation_id": conversation_id}, {"_id": False})
+        db.thread_files.find({"meeting_id": meeting_id}, {"_id": False})
         .sort("created_at", pymongo.ASCENDING)
     )
 
 
 # ── Existence check (gates every run — must be cheap and never raise) ──────────
 
-def conversation_has_files(conversation_id: str) -> bool:
-    """True if *conversation_id* has any recorded file or an on-disk upload.
+def conversation_has_files(meeting_id: str) -> bool:
+    """True if *meeting_id* has any recorded file or an on-disk upload.
 
     Called synchronously at the start of every agent turn (via
     build_agent_tools/attach_meeting_sandbox in every topology), so a
@@ -207,23 +207,23 @@ def conversation_has_files(conversation_id: str) -> bool:
     Tolerant: a transient store failure falls back to the on-disk ``uploads/``
     check, and any unexpected error returns ``False`` so a run never breaks.
     """
-    if not conversation_id:
+    if not meeting_id:
         return False
-    if conversation_id in _has_files_cache:
+    if meeting_id in _has_files_cache:
         return True
-    if _conversation_has_files_uncached(conversation_id):
-        _has_files_cache.add(conversation_id)
+    if _conversation_has_files_uncached(meeting_id):
+        _has_files_cache.add(meeting_id)
         return True
     return False
 
 
-def _conversation_has_files_uncached(conversation_id: str) -> bool:
+def _conversation_has_files_uncached(meeting_id: str) -> bool:
     try:
         if _is_mongo():
             try:
                 db = _mongo_db()
                 if db.thread_files.count_documents(
-                    {"conversation_id": conversation_id}, limit=1
+                    {"meeting_id": meeting_id}, limit=1
                 ):
                     return True
             except Exception:  # noqa: BLE001 - fall through to disk check
@@ -234,19 +234,19 @@ def _conversation_has_files_uncached(conversation_id: str) -> bool:
                 try:
                     files = json.loads(path.read_text(encoding="utf-8"))
                     if isinstance(files, list) and any(
-                        f.get("conversation_id") == conversation_id for f in files
+                        f.get("meeting_id") == meeting_id for f in files
                     ):
                         return True
                 except (json.JSONDecodeError, OSError):
                     pass
         # On-disk fallback: a file in the conversation uploads/ dir counts.
-        return _uploads_dir_has_files(conversation_id)
+        return _uploads_dir_has_files(meeting_id)
     except Exception as exc:  # noqa: BLE001
-        logger.debug("conversation_has_files check failed for %s: %s", conversation_id, exc)
+        logger.debug("conversation_has_files check failed for %s: %s", meeting_id, exc)
         return False
 
 
-def _uploads_dir_has_files(conversation_id: str) -> bool:
+def _uploads_dir_has_files(meeting_id: str) -> bool:
     try:
         from server.infra.sandbox.sandbox_session import (
             meeting_thread_id,
@@ -256,18 +256,18 @@ def _uploads_dir_has_files(conversation_id: str) -> bool:
         base = settings.sandbox_workspace or os.path.join(
             os.path.expanduser("~"), "sandbox_workspace"
         )
-        uploads = os.path.join(base, meeting_thread_id(conversation_id), "uploads")
+        uploads = os.path.join(base, meeting_thread_id(meeting_id), "uploads")
         return os.path.isdir(uploads) and any(os.scandir(uploads))
     except Exception:  # noqa: BLE001
         return False
 
 
-def purge_thread_files(conversation_id: str) -> None:
-    """Remove all records for *conversation_id* (best-effort; used on cleanup)."""
+def purge_thread_files(meeting_id: str) -> None:
+    """Remove all records for *meeting_id* (best-effort; used on cleanup)."""
     try:
         if _is_mongo():
             db = _mongo_db()
-            db.thread_files.delete_many({"conversation_id": conversation_id})
+            db.thread_files.delete_many({"meeting_id": meeting_id})
             return
         path = _storage_path()
         if not path.exists():
@@ -279,9 +279,9 @@ def purge_thread_files(conversation_id: str) -> None:
                 return
             if not isinstance(files, list):
                 return
-            remaining = [f for f in files if f.get("conversation_id") != conversation_id]
+            remaining = [f for f in files if f.get("meeting_id") != meeting_id]
             path.write_text(
                 json.dumps(remaining, indent=2, ensure_ascii=False), encoding="utf-8"
             )
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Failed to purge thread files for %s: %s", conversation_id, exc)
+        logger.warning("Failed to purge thread files for %s: %s", meeting_id, exc)

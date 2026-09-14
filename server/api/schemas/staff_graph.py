@@ -29,7 +29,7 @@ class GraphRunRequest(BaseModel):
     max_rounds: int = Field(default=6, ge=1, le=20)
     staff: list[str] = Field(min_length=1)
     mode: Literal["mesh", "sequential", "ring", "supervisor", "tree", "custom"] = Field(default="sequential")
-    conversation_id: str | None = Field(default=None, min_length=1)
+    meeting_id: str | None = Field(default=None, min_length=1)
     # Department/team this run belongs to; used to attribute token spend per team
     # on the cost-monitoring page. Optional — left blank for ad-hoc runs.
     department_id: str | None = Field(default=None, min_length=1)

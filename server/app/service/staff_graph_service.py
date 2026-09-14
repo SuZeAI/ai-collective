@@ -11,16 +11,16 @@ from server.domain.memory.knowledge_graph import GraphContextConfig
 from server.app.ports.llm import LLMProvider
 
 
-def _backup_workspace(conversation_id: str | None) -> None:
+def _backup_workspace(meeting_id: str | None) -> None:
     """Best-effort: mirror staff-written files up to S3 at run-end (s3 mode only)."""
-    if not conversation_id:
+    if not meeting_id:
         return
     try:
         from server.infra.llm.sandbox_middleware import (
             backup_meeting_workspace,
         )
 
-        backup_meeting_workspace(conversation_id)
+        backup_meeting_workspace(meeting_id)
     except Exception:  # noqa: BLE001 - never let backup wiring break a run
         pass
 
@@ -36,7 +36,7 @@ class StaffGraphService:
         user_input: str,
         definitions: list[GraphStaffDefinition],
         max_rounds: int = 6,
-        conversation_id: str | None = None,
+        meeting_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph: CustomGraphSpec | None = None,
@@ -51,13 +51,13 @@ class StaffGraphService:
                 staff=definitions,
                 llm=self._llm,
                 max_rounds=max(1, max_rounds),
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
                 custom_graph=custom_graph,
             )
         finally:
-            _backup_workspace(conversation_id)
+            _backup_workspace(meeting_id)
 
     async def run_stream_with_definitions(
         self,
@@ -65,7 +65,7 @@ class StaffGraphService:
         user_input: str,
         definitions: list[GraphStaffDefinition],
         max_rounds: int = 6,
-        conversation_id: str | None = None,
+        meeting_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph: CustomGraphSpec | None = None,
@@ -81,11 +81,11 @@ class StaffGraphService:
                 staff=definitions,
                 llm=self._llm,
                 max_rounds=max(1, max_rounds),
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
                 custom_graph=custom_graph,
             ):
                 yield turn
         finally:
-            _backup_workspace(conversation_id)
+            _backup_workspace(meeting_id)

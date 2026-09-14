@@ -10,7 +10,7 @@ from server.domain.memory.working_memory import (
 
 
 def _make_memory() -> WorkingMemory:
-    return WorkingMemory(conversation_id="conv-1")
+    return WorkingMemory(meeting_id="conv-1")
 
 
 def test_set_task_is_idempotent():
@@ -155,14 +155,14 @@ class _FakeMongoCollection:
         self.index_calls.append((args, kwargs))
 
     def find_one(self, query):
-        return self.docs.get(query["conversation_id"])
+        return self.docs.get(query["meeting_id"])
 
     def replace_one(self, query, payload, upsert=False):
         assert upsert is True
-        self.docs[query["conversation_id"]] = payload
+        self.docs[query["meeting_id"]] = payload
 
     def delete_one(self, query):
-        self.docs.pop(query["conversation_id"], None)
+        self.docs.pop(query["meeting_id"], None)
 
 
 class _FakeMongoDb(dict):
@@ -176,7 +176,7 @@ def test_mongo_persistence_roundtrip_and_read_through(monkeypatch):
     db = _FakeMongoDb()
     backend = store.MongoWorkingMemoryPersistence(db)
     assert backend.cacheable is False
-    assert db["working_memory"].index_calls  # unique index on conversation_id
+    assert db["working_memory"].index_calls  # unique index on meeting_id
 
     monkeypatch.setattr(store, "_persistence", backend)
     monkeypatch.setattr(store, "_memories", {})

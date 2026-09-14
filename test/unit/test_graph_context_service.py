@@ -19,18 +19,18 @@ def _build_service(tmp_path: Path) -> GraphContextService:
 
 def test_ingest_and_retrieve_lexical(tmp_path: Path) -> None:
     service = _build_service(tmp_path)
-    conversation_id = "task-1"
+    meeting_id = "task-1"
     cfg = GraphContextConfig(retrieve_method="lexical", build_method="rule")
 
     service.ingest_message(
-        conversation_id=conversation_id,
+        meeting_id=meeting_id,
         message_id="m1",
         speaker="user",
         content="Build graph context retrieval for task planning and scheduling.",
         config=cfg,
     )
     service.ingest_message(
-        conversation_id=conversation_id,
+        meeting_id=meeting_id,
         message_id="m2",
         speaker="agent",
         content="Task planning depends on scheduling constraints and milestones.",
@@ -38,7 +38,7 @@ def test_ingest_and_retrieve_lexical(tmp_path: Path) -> None:
     )
 
     pack = service.build_graph_context(
-        conversation_id=conversation_id,
+        meeting_id=meeting_id,
         query="Need planning context",
         config=cfg,
     )
@@ -50,7 +50,7 @@ def test_ingest_and_retrieve_lexical(tmp_path: Path) -> None:
 
 def test_hybrid_options_do_not_crash(tmp_path: Path) -> None:
     service = _build_service(tmp_path)
-    conversation_id = "team-42"
+    meeting_id = "team-42"
     cfg = GraphContextConfig(
         build_method="embedding",
         entity_method="hybrid",
@@ -62,7 +62,7 @@ def test_hybrid_options_do_not_crash(tmp_path: Path) -> None:
     )
 
     service.ingest_message(
-        conversation_id=conversation_id,
+        meeting_id=meeting_id,
         message_id="m1",
         speaker="user",
         content="Agent Alice needs timeline estimation and risk review.",
@@ -70,7 +70,7 @@ def test_hybrid_options_do_not_crash(tmp_path: Path) -> None:
     )
 
     pack = service.build_graph_context(
-        conversation_id=conversation_id,
+        meeting_id=meeting_id,
         query="risk estimation",
         config=cfg,
     )
@@ -82,18 +82,18 @@ def test_hybrid_options_do_not_crash(tmp_path: Path) -> None:
 
 def test_build_graph_context_deduplicates_overlapping_chunk_text(tmp_path: Path) -> None:
     service = _build_service(tmp_path)
-    conversation_id = "task-overlap"
+    meeting_id = "task-overlap"
     cfg = GraphContextConfig(retrieve_method="lexical", build_method="rule")
 
     service.ingest_message(
-        conversation_id=conversation_id,
+        meeting_id=meeting_id,
         message_id="m1",
         speaker="user",
         content="Bao Tin Minh Chau gold price today.",
         config=cfg,
     )
 
-    graph = service._repo.get(conversation_id)
+    graph = service._repo.get(meeting_id)
     assert graph is not None
 
     entity_node = graph.nodes[_canonical_node_id("entity", "Bao Tin Minh Chau")]
@@ -104,7 +104,7 @@ def test_build_graph_context_deduplicates_overlapping_chunk_text(tmp_path: Path)
     service._repo.upsert(graph)
 
     pack = service.build_graph_context(
-        conversation_id=conversation_id,
+        meeting_id=meeting_id,
         query="Bao Tin Minh Chau gold price",
         config=cfg,
     )
@@ -118,27 +118,27 @@ def test_build_graph_context_deduplicates_overlapping_chunk_text(tmp_path: Path)
 
 def test_repeated_message_merges_chunk_links_without_dup_nodes_edges(tmp_path: Path) -> None:
     service = _build_service(tmp_path)
-    conversation_id = "task-repeat"
+    meeting_id = "task-repeat"
     cfg = GraphContextConfig(retrieve_method="lexical", build_method="rule")
 
     content = "Bao Tin Minh Chau needs price analysis."
 
     service.ingest_message(
-        conversation_id=conversation_id,
+        meeting_id=meeting_id,
         message_id="m1",
         speaker="user",
         content=content,
         config=cfg,
     )
     service.ingest_message(
-        conversation_id=conversation_id,
+        meeting_id=meeting_id,
         message_id="m2",
         speaker="user",
         content=content,
         config=cfg,
     )
 
-    graph = service._repo.get(conversation_id)
+    graph = service._repo.get(meeting_id)
     assert graph is not None
 
     entity_node = graph.nodes[_canonical_node_id("entity", "Bao Tin Minh Chau")]
@@ -168,13 +168,13 @@ def test_reset_conversation_clears_only_target_graph(tmp_path: Path) -> None:
     service = _build_service(tmp_path)
 
     service.ingest_message(
-        conversation_id="task-a",
+        meeting_id="task-a",
         message_id="m1",
         speaker="user",
         content="AI engineer la chu cong ty Suzenith.",
     )
     service.ingest_message(
-        conversation_id="task-b",
+        meeting_id="task-b",
         message_id="m1",
         speaker="user",
         content="Bao Tin Minh Chau gold price in Hanoi today.",
@@ -183,7 +183,7 @@ def test_reset_conversation_clears_only_target_graph(tmp_path: Path) -> None:
     assert service._repo.get("task-a") is not None
     assert service._repo.get("task-b") is not None
 
-    service.reset_conversation(conversation_id="task-a")
+    service.reset_conversation(meeting_id="task-a")
 
     assert service._repo.get("task-a") is None
     assert service._repo.get("task-b") is not None

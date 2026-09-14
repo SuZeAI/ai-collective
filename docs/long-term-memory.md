@@ -2,7 +2,7 @@
 
 Long-term memory (LTM) is **durable knowledge that outlives a single
 conversation**. Where the [working memory](agent-memory.md) and the knowledge
-graph are scoped to one `conversation_id` and reset when a run ends, LTM carries
+graph are scoped to one `meeting_id` and reset when a run ends, LTM carries
 facts, preferences and episodic notes **across tasks** so agents recall what was
 learned in earlier runs.
 

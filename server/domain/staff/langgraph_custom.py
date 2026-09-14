@@ -72,7 +72,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
         staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
-        conversation_id: str | None = None,
+        meeting_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph: CustomGraphSpec | None = None,
@@ -82,9 +82,9 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
 
         graph = self._build_graph(
             staff, llm, max_rounds, custom_graph,
-            conversation_id, graph_context_provider, graph_config,
+            meeting_id, graph_context_provider, graph_config,
         )
-        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
+        ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
 
         final_state, error = await run_to_final_state(graph, self._initial_state(user_input, staff), max_rounds)
         return assemble_run_result(final_state, error)
@@ -96,7 +96,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
         staff: list[GraphStaffDefinition],
         llm: LLMProvider,
         max_rounds: int,
-        conversation_id: str | None = None,
+        meeting_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph: CustomGraphSpec | None = None,
@@ -106,9 +106,9 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
 
         graph = self._build_graph(
             staff, llm, max_rounds, custom_graph,
-            conversation_id, graph_context_provider, graph_config,
+            meeting_id, graph_context_provider, graph_config,
         )
-        ingest_user_message(user_input, conversation_id, graph_context_provider, graph_config)
+        ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
 
         async for event in graph.astream(
             self._initial_state(user_input, staff),
@@ -128,7 +128,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         custom_graph: CustomGraphSpec | None,
-        conversation_id: str | None,
+        meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
     ):
@@ -169,7 +169,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
             inner = self._node_factory._make_llm_node(
                 staff_member=staff_member,
                 llm=llm,
-                conversation_id=conversation_id,
+                meeting_id=meeting_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             )
