@@ -24,6 +24,14 @@ def message_text(message: Any) -> str:
     return str(content)
 
 
+def truncate(text: str, limit: int = 300) -> str:
+    """Shorten ``text`` to ``limit`` chars, marking how much was cut."""
+    text = text or ""
+    if len(text) <= limit:
+        return text
+    return f"{text[:limit]}... [+{len(text) - limit} chars]"
+
+
 def estimate_tokens(text: str) -> int:
     """Cheap, provider-agnostic token estimate (~4 chars/token)."""
     return max(1, len(text or "") // 4)

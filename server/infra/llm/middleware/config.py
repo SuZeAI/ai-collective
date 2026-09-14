@@ -80,6 +80,8 @@ class MiddlewareConfig:
     prompt_cache_enabled: bool = False
     prompt_cache_ttl: str = "5m"
     prompt_cache_min_messages: int = 0
+    step_logging_enabled: bool = True
+    step_logging_preview_chars: int = 300
 
 
 def get_middleware_config() -> MiddlewareConfig:
@@ -113,4 +115,6 @@ def get_middleware_config() -> MiddlewareConfig:
         prompt_cache_enabled=bool(_get(s, "prompt_cache", "enabled", llm.prompt_cache_enabled)),
         prompt_cache_ttl=str(_get(s, "prompt_cache", "ttl", llm.prompt_cache_ttl)),
         prompt_cache_min_messages=int(_get(s, "prompt_cache", "min_messages", llm.prompt_cache_min_messages)),
+        step_logging_enabled=bool(_get(s, "step_logging", "enabled", llm.step_logging_enabled)),
+        step_logging_preview_chars=int(_get(s, "step_logging", "preview_chars", llm.step_logging_preview_chars)),
     )

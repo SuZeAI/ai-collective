@@ -22,6 +22,8 @@ from server.infra.llm.middleware.long_term_memory import LongTermMemoryMiddlewar
 from server.infra.llm.middleware.loop_detection import LoopDetectionMiddleware
 from server.infra.llm.middleware.pii_redaction import PIIRedactionMiddleware
 from server.infra.llm.middleware.rolling_summary import RollingSummaryMiddleware
+from server.infra.llm.middleware.run_limit_warning import RunLimitWarningMiddleware
+from server.infra.llm.middleware.step_logging import StepLoggingMiddleware
 from server.infra.llm.middleware.tool_result_cache import ToolResultCacheMiddleware
 from server.infra.llm.middleware.tool_timeout import ToolTimeoutMiddleware
 from server.share.log import get_logger
@@ -41,12 +43,18 @@ def build_default_middleware(
     Always present:
       * ``ModelCallLimitMiddleware`` — caps model calls per run and ends with a
         final answer (replaces the old ``max_tool_rounds`` loop).
+      * ``RunLimitWarningMiddleware`` — nudges the model to answer on the last
+        round it's allowed, one step before ``ModelCallLimitMiddleware`` cuts
+        it off with a synthetic "limits exceeded" message.
       * ``LoopDetectionMiddleware`` — breaks repeated-identical-tool-call loops.
         Placed before retry/timeout so a detected loop short-circuits.
       * ``ToolTimeoutMiddleware`` — custom per-tool timeout.
       * ``ToolRetryMiddleware`` — retries transient tool failures (when max > 0).
 
     Conditionally present (only when configured):
+      * ``StepLoggingMiddleware`` — one concise log line per round/tool call
+        (name, truncated input/output); on by default, toggle via
+        ``step_logging.enabled``.
       * ``ToolCallLimitMiddleware`` — when ``tool_call_limit`` > 0.
       * ``GuardrailMiddleware`` — when deny tools/patterns are configured.
       * ``ToolResultCacheMiddleware`` — when ``tool_cache.enabled``.
@@ -67,9 +75,16 @@ def build_default_middleware(
     """
     cfg = get_middleware_config()
 
+    resolved_run_limit = max(1, max_tool_rounds)
     middleware: list[AgentMiddleware] = [
-        ModelCallLimitMiddleware(run_limit=max(1, max_tool_rounds), exit_behavior="end"),
+        ModelCallLimitMiddleware(run_limit=resolved_run_limit, exit_behavior="end"),
+        RunLimitWarningMiddleware(run_limit=resolved_run_limit),
     ]
+
+    # Outermost tool wrapper: logs the input/output every other wrapper below
+    # (cache, retry, PII redaction) finally settles on, one line per call.
+    if cfg.step_logging_enabled:
+        middleware.append(StepLoggingMiddleware(preview_chars=cfg.step_logging_preview_chars))
 
     if cfg.tool_call_limit > 0:
         middleware.append(

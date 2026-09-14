@@ -122,6 +122,8 @@ class LLMSettings(BaseModel):
     prompt_cache_enabled: bool = Field(default=False, description="Fallback: Anthropic prompt-caching (no-op elsewhere)")
     prompt_cache_ttl: str = Field(default="5m", description="Fallback Anthropic prompt-cache TTL")
     prompt_cache_min_messages: int = Field(default=0, description="Fallback minimum messages before caching kicks in")
+    step_logging_enabled: bool = Field(default=True, description="Fallback: log a concise per-step trace (round, tool, input/output)")
+    step_logging_preview_chars: int = Field(default=300, description="Fallback max chars kept per input/output preview before truncation")
 
     def fallback_model_list(self) -> list[str]:
         raw = self.fallback_models or ""

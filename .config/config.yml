@@ -167,6 +167,9 @@ middleware:
     enabled: false                    # Anthropic prompt-caching (no-op on non-Anthropic providers)
     ttl: 5m
     min_messages: 0
+  step_logging:
+    enabled: true                     # concise per-step log: round #, tool name, input/output (truncated)
+    preview_chars: 300                # max chars kept per input/output preview before truncation
 
 # ── 9Router gateway (docker profile: router) ──────────────────────────────────
 router:
