@@ -23,12 +23,14 @@ from server.domain.staff._graph_runtime import (
     drain_human_guidance,
     ensure_working_memory,
     ingest_user_message,
+    init_sandbox_thread,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
     raise_if_llm_failed,
     run_to_final_state,
     safe_chat_retry_empty,
+    uploads_hint,
     wait_while_paused,
     working_memory_block,
 )
@@ -226,6 +228,10 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             prev_staff_name = staff[(staff_index - 1) % n].name if current_round > 0 else "user"
             next_staff_name = staff[(staff_index + 1) % n].name
 
+            # Generate a unique thread_id for this staff_member turn.
+            # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
+            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(staff_member.name, conversation_id)
+
             stream_writer({
                 "type": EventType.AGENT_START.value,
                 "agent_name": staff_member.name,
@@ -234,6 +240,8 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
                 "ring_position": staff_index + 1,
                 "ring_size": n,
                 "pass_number": pass_number,
+                "sandbox_thread_id": sandbox_thread_id,
+                "sandbox_workspace": sandbox_workspace,
             })
 
             stream_writer({"type": EventType.CONTEXT_BUILDING.value, "agent_name": staff_member.name})
@@ -284,6 +292,9 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             context_parts: list[str] = []
             if human_guidance:
                 context_parts += [human_guidance, ""]
+            uploads = uploads_hint(conversation_id)
+            if uploads:
+                context_parts += [uploads]
             if memory_block:
                 context_parts += [memory_block, ""]
             context_parts += [

@@ -35,6 +35,12 @@ class RedisLockProvider:
 
     Requires the ``redis`` package (``pip install redis``).
     Set LOCK_BACKEND=redis and REDIS_URL=redis://localhost:6379/0 in your .env.
+
+    Unlike ThreadingLockProvider's per-key threading.RLock, this lock is NOT
+    reentrant: a second ``acquire()`` for the same key from the same thread
+    while the first is still held will block and eventually raise
+    ``TimeoutError`` instead of succeeding immediately. Don't nest acquires
+    for the same key.
     """
 
     def __init__(

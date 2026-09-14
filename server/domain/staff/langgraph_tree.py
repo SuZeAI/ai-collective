@@ -25,6 +25,7 @@ from server.domain.staff._graph_runtime import (
     drain_human_guidance,
     ensure_working_memory,
     ingest_user_message,
+    init_sandbox_thread,
     record_guidance_in_memory,
     record_turn_in_memory,
     recursion_config,
@@ -32,6 +33,7 @@ from server.domain.staff._graph_runtime import (
     run_to_final_state,
     safe_chat_retry_empty,
     split_reasoning_and_action,
+    uploads_hint,
     wait_while_paused,
     working_memory_block,
 )
@@ -415,6 +417,10 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
             rounds_used = state["rounds"]
             remaining = max(0, max_rounds - rounds_used)
 
+            # Generate a unique thread_id for this staff_member turn.
+            # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
+            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(staff_member.name, conversation_id)
+
             stream_writer({
                 "type": EventType.AGENT_START.value,
                 "agent_name": staff_member.name,
@@ -422,6 +428,8 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
                 "turn": rounds_used + 1,
                 "tree_node_type": node_type,
                 "tree_index": tree_node.index,
+                "sandbox_thread_id": sandbox_thread_id,
+                "sandbox_workspace": sandbox_workspace,
             })
             stream_writer({"type": EventType.CONTEXT_BUILDING.value, "agent_name": staff_member.name})
 
@@ -497,6 +505,9 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
             # First so the guidance survives tail-truncation by the token budget.
             if human_guidance:
                 context_parts += [human_guidance, ""]
+            uploads = uploads_hint(conversation_id)
+            if uploads:
+                context_parts += [uploads]
             # routing_guidance carries live round counters, so it varies every
             # turn — it belongs in the per-turn context, not the fixed system
             # prompt (which must stay stable for caching to work at all).

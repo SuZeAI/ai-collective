@@ -228,6 +228,10 @@ class RabbitMQTaskQueue(ITaskQueue):
     # Public API
 
     def submit(self, task_id: str, fn: Callable[[], None]) -> int:
+        with self._running_lock:
+            if task_id in self._running:
+                logger.debug("[Queue/rabbitmq] submit skip — task_id=%s already running", task_id)
+                return 0
         with self._registry_lock:
             self._fn_registry[task_id] = fn
         logger.info("[Queue/rabbitmq] task PUBLISHED | task_id=%s | queue=%s", task_id, self._QUEUE_NAME)

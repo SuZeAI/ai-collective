@@ -98,3 +98,15 @@ def test_allocate_issue_number_raises_key_error_when_project_missing(tmp_path):
     service = _make_service(tmp_path)
     with pytest.raises(KeyError):
         service.allocate_issue_number("missing")
+
+
+def test_upsert_with_stale_issue_counter_does_not_clobber_allocated_number(tmp_path):
+    service = _make_service(tmp_path)
+    stale = service.upsert_project(_project())
+
+    service.allocate_issue_number("p1")
+    service.allocate_issue_number("p1")
+
+    service.upsert_project(stale)
+
+    assert service.get_project("p1").issue_counter == 2

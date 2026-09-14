@@ -38,6 +38,7 @@ from server.domain.staff._graph_runtime import (
     run_to_final_state,
     safe_chat_retry_empty,
     split_reasoning_and_action,
+    uploads_hint,
     wait_while_paused,
     working_memory_block,
 )
@@ -532,9 +533,11 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 staff_member=staff_member, conversation_id=conversation_id, state=state,
             )
 
-            # Stream: Staff turn starting
+            # Stream: Staff turn starting (AGENT_START, matching every other
+            # topology's sequential per-turn event — AGENT_TURN_START is
+            # reserved for actual parallel fan-out branches, see run_fanout_wave)
             stream_writer({
-                "type": EventType.AGENT_TURN_START.value,
+                "type": EventType.AGENT_START.value,
                 "agent_name": staff_member.name,
                 "staff_role": staff_member.role,
                 "turn": len(state.get("turns", [])) + 1,
@@ -738,6 +741,10 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         # First so the guidance survives tail-truncation by the token budget.
         if human_guidance:
             context_parts += [human_guidance, ""]
+
+        uploads = uploads_hint(conversation_id)
+        if uploads:
+            context_parts += [uploads]
 
         # Shared working memory: pin guidance, then inject the digest so
         # prior findings survive history windows and truncation.
@@ -1043,6 +1050,9 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         memory_block = working_memory_block(conversation_id)
         if memory_block:
             context_parts += [memory_block, ""]
+        uploads = uploads_hint(conversation_id)
+        if uploads:
+            context_parts += [uploads]
         context_parts.append(f"user input: {state['original_input']}")
         context_parts.append(
             "You have been delegated this sub-task as part of a parallel wave. "

@@ -95,7 +95,14 @@ class JsonProjectRepository:
             for project_id in remove_ids:
                 merged.pop(project_id, None)
             for project_id, project in upserts.items():
-                merged[project_id] = self._serialize_item(project)
+                existing = merged.get(project_id)
+                serialized = self._serialize_item(project)
+                if existing is not None:
+                    # Preserve the on-disk counter: never let a stale in-memory
+                    # issue_counter overwrite a value advanced by a concurrent
+                    # allocate_issue_number call.
+                    serialized["issueCounter"] = existing.get("issueCounter", serialized["issueCounter"])
+                merged[project_id] = serialized
             return list(merged.values())
 
         new_raw = self._store.read_modify_write(modify)

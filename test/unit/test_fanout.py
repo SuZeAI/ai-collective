@@ -19,6 +19,7 @@ from server.domain.staff._graph_runtime import (
 )
 from server.domain.staff.langgraph_mesh import MultiAgentMeshOrchestrator
 from server.domain.staff.langgraph_supervisor import LangGraphSupervisorOrchestrator
+from server.infra.sandbox.sandbox_session import get_current_thread_id
 
 
 # --------------------------------------------------------------------------- #
@@ -405,3 +406,133 @@ def test_e2e_mesh_second_turn_sees_own_first_turn_reply():
     hub_turns = [t.content for t in res.turns if t.staff_name == "Hub"]
     assert len(hub_turns) == 2
     assert "saw-my-own-history" in hub_turns[-1]
+
+
+# --------------------------------------------------------------------------- #
+# Sandbox thread-id isolation across concurrent fan-out branches               #
+#                                                                               #
+# Regression: _build_branch_chat_kwargs (mesh) / _build_worker_chat_kwargs     #
+# (supervisor) never called init_sandbox_thread, so a staff with the sandbox   #
+# skill configured fell back to a shared "default" sandbox_bash session        #
+# across concurrent branches. The fix lives in run_fanout_wave's _run_branch,  #
+# not the kwargs builders — kwargs are pre-built sequentially before gather()  #
+# creates the branch tasks, so a thread_id set there would leak across         #
+# branches; it must be set inside each branch's own coroutine.                 #
+# --------------------------------------------------------------------------- #
+
+class _ThreadIdCapturingScriptedLLM(_ScriptedLLM):
+    """Extends _ScriptedLLM to record get_current_thread_id() during branch calls."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.branch_thread_ids: list[str | None] = []
+
+    async def chat(self, *, system, user=None, messages=None, tools=None,
+                   parallel_tools=False, max_tool_rounds=None, **kwargs):
+        full_prompt = system + "\n" + "\n".join(m["content"] for m in (messages or []))
+        is_branch = (
+            "PARALLEL WAVE SYNTHESIS" not in full_prompt
+            and self.coordinator_marker not in full_prompt
+        )
+        if is_branch:
+            self.branch_thread_ids.append(get_current_thread_id())
+        return await super().chat(
+            system=system, user=user, messages=messages, tools=tools,
+            parallel_tools=parallel_tools, max_tool_rounds=max_tool_rounds, **kwargs,
+        )
+
+
+def test_e2e_mesh_fanout_branches_get_distinct_sandbox_thread_ids():
+    llm = _ThreadIdCapturingScriptedLLM(
+        coordinator_marker="you may dispatch several specialists",
+        coordinator_response=(
+            "Dispatching a wave.\n<FANOUT>"
+            "<DELEGATE_TO>Alice</DELEGATE_TO><TASK>research X</TASK>"
+            "<DELEGATE_TO>Bob</DELEGATE_TO><TASK>analyze Y</TASK>"
+            "</FANOUT>"
+        ),
+        synthesis_response="Synthesized both.\n<DISCUSSION_END>done</DISCUSSION_END>",
+        branch_response="branch result",
+    )
+    agents = [
+        GraphStaffDefinition(name="Hub", role="coordinator", system_prompt="coordinate"),
+        GraphStaffDefinition(name="Alice", role="researcher", system_prompt="research"),
+        GraphStaffDefinition(name="Bob", role="analyst", system_prompt="analyze"),
+    ]
+    asyncio.run(MultiAgentMeshOrchestrator().run(
+        user_input="Investigate.", staff=agents, llm=llm, max_rounds=6,
+        conversation_id="conv-mesh-fanout",
+    ))
+    assert len(llm.branch_thread_ids) == 2
+    assert all(tid is not None for tid in llm.branch_thread_ids)
+    assert len(set(llm.branch_thread_ids)) == 2
+
+
+def test_mesh_sequential_turn_emits_agent_start_not_agent_turn_start():
+    """Regression: mesh's own per-turn node emitted "agent_turn_start" (the
+    parallel-fanout-branch event type) even for a plain sequential turn, while
+    orchestrator/ring/tree/supervisor all emit "agent_start" for the same
+    moment. "agent_turn_start" should be reserved for actual fan-out branches
+    (which set parallel=True alongside it)."""
+
+    class SeqLLM:
+        def __init__(self):
+            self.n = 0
+
+        async def chat(self, *, system, user=None, messages=None, tools=None,
+                       parallel_tools=False, max_tool_rounds=None):
+            self.n += 1
+            if self.n >= 2:
+                return "Wrap up.\n<DISCUSSION_END>summary</DISCUSSION_END>"
+            return "Point.\n<ASK_NEXT_AGENT>\n1. continue\n</ASK_NEXT_AGENT>\n<NEXT_AGENT>Bob</NEXT_AGENT>"
+
+        def get_chat_model(self):
+            return None
+
+        async def generate_json(self, *, system, user):
+            return {}
+
+    agents = [
+        GraphStaffDefinition(name="Hub", role="c", system_prompt="coordinate"),
+        GraphStaffDefinition(name="Bob", role="a", system_prompt="analyze"),
+    ]
+
+    async def _collect():
+        events = []
+        async for event in MultiAgentMeshOrchestrator().run_stream(
+            user_input="hi", staff=agents, llm=SeqLLM(), max_rounds=6,
+            conversation_id=None,
+        ):
+            events.append(event)
+        return events
+
+    events = asyncio.run(_collect())
+    event_types = [e.get("type") for e in events]
+    assert "agent_start" in event_types
+    assert "agent_turn_start" not in event_types
+
+
+def test_e2e_supervisor_fanout_branches_get_distinct_sandbox_thread_ids():
+    llm = _ThreadIdCapturingScriptedLLM(
+        coordinator_marker="SUPERVISOR ROLE",
+        coordinator_response=(
+            "Parallelizing.\n<FANOUT>"
+            "<DELEGATE_TO>W1</DELEGATE_TO><TASK>task one</TASK>"
+            "<DELEGATE_TO>W2</DELEGATE_TO><TASK>task two</TASK>"
+            "</FANOUT>"
+        ),
+        synthesis_response="Merged.\n<FINAL_ANSWER>combined answer</FINAL_ANSWER>",
+        branch_response="worker output",
+    )
+    agents = [
+        GraphStaffDefinition(name="Lead", role="lead", system_prompt="lead"),
+        GraphStaffDefinition(name="W1", role="worker", system_prompt="w1"),
+        GraphStaffDefinition(name="W2", role="worker", system_prompt="w2"),
+    ]
+    asyncio.run(LangGraphSupervisorOrchestrator().run(
+        user_input="Do the job.", staff=agents, llm=llm, max_rounds=6,
+        conversation_id="conv-sup-fanout",
+    ))
+    assert len(llm.branch_thread_ids) == 2
+    assert all(tid is not None for tid in llm.branch_thread_ids)
+    assert len(set(llm.branch_thread_ids)) == 2

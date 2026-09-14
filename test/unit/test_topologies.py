@@ -15,7 +15,9 @@ from server.app.ports.staff_graph import CustomGraphSpec, GraphStaffDefinition
 from server.domain.staff.langgraph_custom import LangGraphCustomOrchestrator
 from server.domain.staff.langgraph_orchestrator import LangGraphStaffOrchestrator
 from server.domain.staff.langgraph_ring import LangGraphRingOrchestrator
+from server.domain.staff.langgraph_supervisor import LangGraphSupervisorOrchestrator
 from server.domain.staff.langgraph_tree import LangGraphTreeOrchestrator
+from server.infra.sandbox.sandbox_session import get_current_thread_id
 
 
 class _EchoLLM:
@@ -40,6 +42,26 @@ class _EchoLLM:
 
 def _agent(name: str, system_prompt: str = "sys") -> GraphStaffDefinition:
     return GraphStaffDefinition(name=name, role=f"role-{name}", system_prompt=system_prompt)
+
+
+class _ThreadIdCapturingLLM:
+    """Always returns a fixed response; records get_current_thread_id() at each
+    chat() call so tests can assert every turn got its own sandbox thread id."""
+
+    def __init__(self, response: str):
+        self.response = response
+        self.captured_thread_ids: list[str | None] = []
+
+    async def chat(self, *, system, user=None, messages=None, tools=None,
+                   parallel_tools=False, max_tool_rounds=None, **kwargs):
+        self.captured_thread_ids.append(get_current_thread_id())
+        return self.response
+
+    def get_chat_model(self):
+        return None
+
+    async def generate_json(self, *, system, user):
+        return {}
 
 
 # --------------------------------------------------------------------------- #
@@ -174,3 +196,56 @@ def test_custom_e2e_honors_explicit_edges():
     names = [t.staff_name for t in res.turns]
     assert names == ["A", "C"]
     assert "B" not in names
+
+
+# --------------------------------------------------------------------------- #
+# Sandbox thread-id isolation                                                  #
+#                                                                               #
+# Regression: ring/supervisor/tree/custom never called init_sandbox_thread,    #
+# so a staff with the sandbox skill configured (independent of file uploads)   #
+# fell back to a shared "default" sandbox_bash session — unrelated concurrent  #
+# conversations under these topologies could collide in the same sandbox.      #
+# orchestrator and mesh already call it; these four should match.              #
+# --------------------------------------------------------------------------- #
+
+def test_ring_sets_sandbox_thread_id_per_turn():
+    agents = [_agent("A"), _agent("B")]
+    llm = _ThreadIdCapturingLLM("done")
+    asyncio.run(LangGraphRingOrchestrator().run(
+        user_input="hi", staff=agents, llm=llm, max_rounds=2, conversation_id="conv-ring",
+    ))
+    assert len(llm.captured_thread_ids) == 2
+    assert all(tid is not None for tid in llm.captured_thread_ids)
+    assert len(set(llm.captured_thread_ids)) == 2  # distinct id per turn
+
+
+def test_tree_sets_sandbox_thread_id_per_turn():
+    agents = [_agent("Root", "root-sys"), _agent("Leaf", "leaf-sys")]
+    llm = _ThreadIdCapturingLLM("just thinking, no markers")
+    asyncio.run(LangGraphTreeOrchestrator().run(
+        user_input="hi", staff=agents, llm=llm, max_rounds=1, conversation_id="conv-tree",
+    ))
+    assert len(llm.captured_thread_ids) == 1
+    assert llm.captured_thread_ids[0] is not None
+
+
+def test_supervisor_sets_sandbox_thread_id_per_turn():
+    agents = [_agent("Lead", "lead-sys")]
+    llm = _ThreadIdCapturingLLM("Done.\n<FINAL_ANSWER>final</FINAL_ANSWER>")
+    asyncio.run(LangGraphSupervisorOrchestrator().run(
+        user_input="hi", staff=agents, llm=llm, max_rounds=2, conversation_id="conv-supervisor",
+    ))
+    assert len(llm.captured_thread_ids) == 1
+    assert llm.captured_thread_ids[0] is not None
+
+
+def test_custom_sets_sandbox_thread_id_per_turn():
+    agents = [_agent("A"), _agent("B")]
+    llm = _ThreadIdCapturingLLM("done")
+    asyncio.run(LangGraphCustomOrchestrator().run(
+        user_input="hi", staff=agents, llm=llm, max_rounds=2, conversation_id="conv-custom",
+        custom_graph=None,
+    ))
+    assert len(llm.captured_thread_ids) == 2
+    assert all(tid is not None for tid in llm.captured_thread_ids)
+    assert len(set(llm.captured_thread_ids)) == 2  # distinct id per turn

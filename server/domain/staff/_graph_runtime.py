@@ -831,6 +831,11 @@ async def run_fanout_wave(
 
     async def _run_branch(staff_def: GraphStaffDefinition, task_text: str) -> FanoutBranchResult:
         name = staff_def.name
+        # Must happen inside this branch's own coroutine (not in the caller's
+        # sequential pre-build loop): asyncio.gather snapshots each branch's
+        # context independently when it schedules the Task below, so a thread_id
+        # set here is isolated to this branch and never bleeds into siblings.
+        init_sandbox_thread(name, conversation_id)
         if stream_writer:
             stream_writer({
                 "type": EventType.AGENT_TURN_START.value,

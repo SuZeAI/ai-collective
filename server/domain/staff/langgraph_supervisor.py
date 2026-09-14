@@ -30,6 +30,7 @@ from server.domain.staff._graph_runtime import (
     ensure_working_memory,
     get_fanout_semaphore,
     ingest_user_message,
+    init_sandbox_thread,
     parse_fanout_pairs,
     record_guidance_in_memory,
     record_turn_in_memory,
@@ -39,6 +40,7 @@ from server.domain.staff._graph_runtime import (
     run_to_final_state,
     safe_chat_retry_empty,
     split_reasoning_and_action,
+    uploads_hint,
     wait_while_paused,
     working_memory_block,
 )
@@ -322,12 +324,18 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             rounds_used = state["rounds"]
             remaining = max(0, max_rounds - rounds_used)
 
+            # Generate a unique thread_id for this staff_member turn.
+            # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
+            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(lead.name, conversation_id)
+
             stream_writer({
                 "type": EventType.AGENT_START.value,
                 "agent_name": lead.name,
                 "staff_role": lead.role,
                 "turn": rounds_used + 1,
                 "is_lead": True,
+                "sandbox_thread_id": sandbox_thread_id,
+                "sandbox_workspace": sandbox_workspace,
             })
             stream_writer({"type": EventType.CONTEXT_BUILDING.value, "agent_name": lead.name})
 
@@ -388,6 +396,9 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             # First so the guidance survives tail-truncation by the token budget.
             if human_guidance:
                 context_parts += [human_guidance, ""]
+            uploads = uploads_hint(conversation_id)
+            if uploads:
+                context_parts += [uploads]
             # routing_guidance carries live round counters, so it varies every
             # turn — it belongs in the per-turn context, not the fixed system
             # prompt (which must stay stable for caching to work at all).
@@ -573,12 +584,18 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
 
             rounds_used = state["rounds"]
 
+            # Generate a unique thread_id for this staff_member turn.
+            # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
+            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(worker.name, conversation_id)
+
             stream_writer({
                 "type": EventType.AGENT_START.value,
                 "agent_name": worker.name,
                 "staff_role": worker.role,
                 "turn": rounds_used + 1,
                 "is_worker": True,
+                "sandbox_thread_id": sandbox_thread_id,
+                "sandbox_workspace": sandbox_workspace,
             })
             stream_writer({"type": EventType.CONTEXT_BUILDING.value, "agent_name": worker.name})
 
@@ -612,6 +629,9 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             # Memory before graph context so it survives tail-truncation.
             if memory_block:
                 worker_context_parts.append(memory_block)
+            uploads = uploads_hint(conversation_id)
+            if uploads:
+                worker_context_parts.append(uploads)
             if graph_ctx:
                 worker_context_parts.append(f"[Context]:\n{graph_ctx}")
 
@@ -789,6 +809,9 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         worker_context_parts = [f"[Original user request, for context]:\n{state['original_input']}"]
         if memory_block:
             worker_context_parts.append(memory_block)
+        uploads = uploads_hint(conversation_id)
+        if uploads:
+            worker_context_parts.append(uploads)
         if graph_ctx:
             worker_context_parts.append(f"[Context]:\n{graph_ctx}")
 
