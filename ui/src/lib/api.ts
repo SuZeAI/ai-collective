@@ -245,7 +245,7 @@ export type GraphContextEdge = {
 };
 
 export type GraphContextSnapshot = {
-  conversation_id: string;
+  meeting_id: string;
   version: number;
   schema_version: number;
   last_message_index: number;
@@ -927,25 +927,25 @@ export const api = {
     apiFetch<Message>("/meetings", { method: "POST", body: JSON.stringify(payload) }),
   // Human-in-the-loop: queue a user message for an actively streaming run.
   // The next staff turn picks it up and injects it into its context.
-  interjectStaffGraph: (payload: { conversation_id: string; content: string }) =>
+  interjectStaffGraph: (payload: { meeting_id: string; content: string }) =>
     apiFetch<{ queued: boolean; message_id: string | null }>("/llm/staff-graph/interject", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
   // Interrupt an active run: current staff finishes its turn, then the run
   // holds at the turn boundary so the user can chat before resuming.
-  pauseStaffGraph: (payload: { conversation_id: string }) =>
+  pauseStaffGraph: (payload: { meeting_id: string }) =>
     apiFetch<{ paused: boolean }>("/llm/staff-graph/pause", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  resumeStaffGraph: (payload: { conversation_id: string }) =>
+  resumeStaffGraph: (payload: { meeting_id: string }) =>
     apiFetch<{ resumed: boolean }>("/llm/staff-graph/resume", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
   // Answer an staff's ask_user question (the staff is blocked waiting on it).
-  respondStaffGraph: (payload: { conversation_id: string; request_id: string; response: string }) =>
+  respondStaffGraph: (payload: { meeting_id: string; request_id: string; response: string }) =>
     apiFetch<{ delivered: boolean }>("/llm/staff-graph/respond", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -963,7 +963,7 @@ export const api = {
     staff: string[];
     max_rounds?: number;
     mode?: DepartmentMode;
-    conversation_id?: string;
+    meeting_id?: string;
     // Department/department this run belongs to, for per-department cost attribution.
     department_id?: string;
     signal?: AbortSignal;
@@ -994,7 +994,7 @@ export const api = {
       staff: payload.staff,
       max_rounds: payload.max_rounds ?? 6,
       mode: payload.mode ?? "sequential",
-      conversation_id: payload.conversation_id,
+      meeting_id: payload.meeting_id,
       department_id: payload.department_id,
       custom_graph: payload.custom_graph,
       graph_config: payload.graph_config,

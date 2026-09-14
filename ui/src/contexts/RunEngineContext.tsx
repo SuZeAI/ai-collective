@@ -330,7 +330,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
         max_rounds: opts.maxSteps ?? 6,
         mode: opts.mode ?? "sequential",
         custom_graph: opts.customGraph,
-        conversation_id: updated.id,
+        meeting_id: updated.id,
         department_id: updated.departmentId,
         signal: controller.signal,
       })) {
@@ -769,7 +769,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     setSendingInterjectTaskIds((prev) => new Set(prev).add(task.id));
     setInterjectErrors((prev) => { const next = { ...prev }; delete next[task.id]; return next; });
     try {
-      const res = await api.interjectStaffGraph({ conversation_id: task.id, content });
+      const res = await api.interjectStaffGraph({ meeting_id: task.id, content });
       const messageId = res.message_id ?? `${Date.now()}-user`;
       const message: Message = {
         id: messageId,
@@ -811,7 +811,7 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     setRespondingRequestIds((prev) => new Set(prev).add(request.requestId));
     setInterjectErrors((prev) => { const next = { ...prev }; delete next[task.id]; return next; });
     try {
-      await api.respondStaffGraph({ conversation_id: task.id, request_id: request.requestId, response: content });
+      await api.respondStaffGraph({ meeting_id: task.id, request_id: request.requestId, response: content });
       setUserInputRequests((prev) => {
         const list = prev[task.id];
         if (!list) return prev;
@@ -856,10 +856,10 @@ export function RunEngineProvider({ children }: { children: ReactNode }) {
     setInterjectErrors((prev) => { const next = { ...prev }; delete next[task.id]; return next; });
     try {
       if (holdRun) {
-        await api.pauseStaffGraph({ conversation_id: task.id });
+        await api.pauseStaffGraph({ meeting_id: task.id });
         setHeldTaskIds((prev) => new Set(prev).add(task.id));
       } else {
-        await api.resumeStaffGraph({ conversation_id: task.id });
+        await api.resumeStaffGraph({ meeting_id: task.id });
         setHeldTaskIds((prev) => {
           const next = new Set(prev);
           next.delete(task.id);
