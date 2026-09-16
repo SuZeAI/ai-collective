@@ -2,7 +2,7 @@
 
 Multi-agent runs are built on **LangGraph**. Each topology compiles a graph of
 agent nodes and streams turns back to the caller. Code lives in
-`backend/domain/staff/`.
+`server/domain/staff/`.
 
 ## Topologies
 

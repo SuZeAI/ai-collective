@@ -4,15 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-AI – Collective: a multi-agent orchestration platform ("programmable AI workforce"). React 18 + TypeScript frontend (`/src`) talking to a FastAPI backend (`/backend`) that runs LangGraph-based multi-agent topologies. Source-available, non-commercial license (see `LICENSE`/`NOTICE`).
+AI – Collective: a platform for creating and managing AI-powered companies — virtual organizations of any type (software, marketing, research, or general) built from Departments staffed by AI, each run as a LangGraph-based multi-agent topology. React 18 + TypeScript frontend (`/ui`) talking to a FastAPI backend (`/server`). Source-available, non-commercial license (see `LICENSE`/`NOTICE`).
 
-**Note:** `README.md` describes an earlier state of the project (pre terminology-rename: mentions `backend/domain/agent/`, `AgentBuilder.tsx`/`TeamBuilder.tsx`/`Workspaces.tsx`, only 4 topologies). Trust this file and the codebase over `README.md` for current names and structure.
+**Note:** `README.md` describes an earlier state of the project (pre terminology-rename: mentions `server/domain/agent/`, `AgentBuilder.tsx`/`TeamBuilder.tsx`/`Workspaces.tsx`, only 4 topologies). Trust this file and the codebase over `README.md` for current names and structure.
 
 ## Commands
 
 ### Setup
 ```bash
-make install          # uv sync --all-extras + npm ci
+make install          # uv sync --all-extras + npm --prefix ui ci
 cp .env.template .env # then fill in at least one provider key (e.g. GOOGLE_API_KEY) referenced by config.yml's models: list
 ```
 
@@ -35,22 +35,24 @@ Optional compose profiles via `PROFILES=` (e.g. `make dev PROFILES=router`): `sa
 
 ### Tests
 ```bash
-# Backend — tests live in test/ at repo root, NOT backend/ (backend/ has no test files despite the Makefile target name)
+# Backend — tests live in test/ at repo root, NOT server/ (server/ has no test files despite the Makefile target name)
+# test/api/ — endpoint tests via the shared `client` TestClient fixture; test/unit/ — everything else;
+# test/manual/ — ad-hoc debug scripts, not collected by pytest.
 PYTHONPATH=. uv run pytest test/ -v
-PYTHONPATH=. uv run pytest test/test_foo.py -v            # single file
-PYTHONPATH=. uv run pytest test/test_foo.py -k name -vv   # single test, verbose
+PYTHONPATH=. uv run pytest test/unit/test_foo.py -v            # single file
+PYTHONPATH=. uv run pytest test/api/test_foo.py -k name -vv    # single test, verbose
 
-# Frontend
-npm run test          # vitest run (jsdom, tests under src/**/*.{test,spec}.{ts,tsx})
-npm run test:watch
-npx vitest run src/path/to/file.test.ts   # single file
+# Frontend (from ui/, or npm --prefix ui ...)
+cd ui && npm run test          # vitest run (jsdom, tests under src/**/*.{test,spec}.{ts,tsx})
+cd ui && npm run test:watch
+cd ui && npx vitest run src/path/to/file.test.ts   # single file
 ```
-`test/conftest.py` provides a session-scoped `client` (FastAPI `TestClient`) plus `admin_headers`/`user_headers` fixtures and a `unique()` helper for collision-free test names; it wipes the test storage dir once per session. CI (`.github/workflows/ci.yml`) runs `pytest test/ -v` and `npm run test` + `npm run build` on every push to `main`; frontend lint is non-blocking there.
+`test/conftest.py` provides a session-scoped `client` (FastAPI `TestClient`) plus `admin_headers`/`user_headers` fixtures and a `unique()` helper for collision-free test names; it wipes the test storage dir once per session. CI (`.github/workflows/ci.yml`) runs `pytest test/ -v` and (in `ui/`) `npm run test` + `npm run build` on every push to `main`; frontend lint is non-blocking there.
 
 ### Lint / build
 ```bash
 make lint            # ruff (backend) + eslint (frontend)
-npm run build         # vite build
+cd ui && npm run build         # vite build
 ```
 
 ## Architecture
@@ -58,34 +60,34 @@ npm run build         # vite build
 ### Backend: ports-and-adapters (hexagonal), dependencies point inward
 
 ```
-backend/
+server/
 ├── api/            # FastAPI app, routers, Pydantic schemas, DI (deps.py), auth, settings
-├── application/    # Use-case services; ports/ holds Protocols (repositories, llm, agent_graph)
+├── app/            # Use-case services; ports/ holds Protocols (repositories, llm, agent_graph)
 ├── domain/         # Framework-free business logic + models.py (frozen dataclasses)
-├── infrastructure/ # Adapters implementing application.ports (repos, LLM providers, queues, locks, sandbox)
+├── infra/          # Adapters implementing app.ports (repos, LLM providers, queues, locks, sandbox)
 └── log/            # Logging setup
 ```
-- `domain` imports nothing from `application`/`api`/`infrastructure`.
-- `application` depends only on `application.ports.*` Protocols, never concrete adapters.
+- `domain` imports nothing from `app`/`api`/`infra` — with one accepted pragmatic exception: `server/domain/tools/*.py`, `server/domain/staff/langgraph_*.py` + `_graph_runtime.py`, and `server/domain/memory/working_memory.py` import `server.api.settings.settings` (and a couple of concrete `server.infra.*` adapters) directly, since threading these through `app.ports` would mean re-deriving config plumbing for ~20 files with no behavioral payoff. Don't treat this as a bug to fix opportunistically; new domain code should still prefer not adding fresh direct-to-infra imports.
+- `app` depends only on `app.ports.*` Protocols, never concrete adapters — except a handful of lazy, function-local imports used to dodge circular imports: `graph_context_service.py` (`rag_retrieval_store`), `document_library_service.py` (`file_store`, `sandbox_session`, `thread_files`, `sandbox_middleware`), `long_term_memory_service.py` (`working_memory_store`), `staff_graph_service.py` (`sandbox_middleware`). Same rule: accepted as-is, not a template for new code.
 - `api/deps.py` is the composition root: it wires concrete adapters into services (`get_staff_service`, `get_task_service`, `get_project_service`, `get_epic_service`, `get_sprint_service`, `get_recruiting_service`, `get_meeting_service`, `get_company_service`, `get_connection_service`, `get_document_library_service`, `get_office_builder_session_service`, `get_simulation_service`, `get_staff_graph_service(mode=...)`, etc.) and also seeds admin user / default data on boot.
 - Domain errors (`NotFoundError`, `ValidationError`) → HTTP 404/422 via handlers in `api/main.py`.
-- Domain models (`backend/domain/models.py`) include `Skill`, `Staff`, `Department`, `Task`, `Project`, `Epic`, `Sprint`, `Message`, `Analytics`, `ActivityFeedItem`, `Company`, `LibraryDocument`, `OfficeBuilderSession`, `Connection`, `ToolResult`, `SimulationStep`, `TokenUsageRecord`, `ModelPricing`, `User`.
+- Domain models (`server/domain/models.py`) include `Skill`, `Staff`, `Department`, `Task`, `Project`, `Epic`, `Sprint`, `Message`, `Analytics`, `ActivityFeedItem`, `Company`, `LibraryDocument`, `OfficeBuilderSession`, `Connection`, `ToolResult`, `SimulationStep`, `TokenUsageRecord`, `ModelPricing`, `User`.
 
-**`backend/api/settings.py` is the single source of truth for config, and `config.yml` is the single, complete source for every setting — including secrets.** No part of the backend reads a bare OS/`.env` variable to configure itself; the *only* way an env var reaches a setting is an explicit `${VAR}` (or `${VAR:-default}`) reference written inline in `config.yml` (e.g. `auth.jwt_secret_key: ${JWT_SECRET_KEY}`), expanded from `.env`/OS environment by `config_loader.load_config()`. Precedence is simply `code defaults < config.yml (${VAR} resolved from .env/OS env)`. Settings are nested by section matching `config.yml`'s top-level keys (`app`, `logging`, `models`, `middleware`, `router`, `staff`, `storage`, `mongo`, `graph`, `task_queue`, `lock`, `sandbox`, `minio`, `auth`, `working_memory`, `embedding`, `long_term_memory`, `retrieval`, `vector_store`, `mcp`, `admin`, `seed`, `browser`, `tools`, `security`) — e.g. `settings.staff.context_token_limit`, `settings.security.allow_private_http` — with flat `@property` delegates kept on the root `Settings` for older call-sites. `docs/configuration.md` still cross-references the historical `UPPER_CASE` env-var-style names some scripts/docs use, but those names don't configure anything by themselves anymore — only the `config.yml` key path shown does. Per-tool credentials are *not* here — they live in each skill's `config` dict (DB-stored, edited via UI). `models:` is a list of provider entries (`ModelConfig`, each with an `api_key: $GOOGLE_API_KEY`-style secret ref and an `enabled` flag plus its own `failover:` block) — not a single flat provider/model pair.
+**`server/api/settings.py` is the single source of truth for config, and `config.yml` (now at `.config/config.yml`, override with `CONFIG_FILE=/path`) is the single, complete source for every setting — including secrets.** No part of the backend reads a bare OS/`.env` variable to configure itself; the *only* way an env var reaches a setting is an explicit `${VAR}` (or `${VAR:-default}`) reference written inline in `config.yml` (e.g. `auth.jwt_secret_key: ${JWT_SECRET_KEY}`), expanded from `.env`/OS environment by `config_loader.load_config()`. Precedence is simply `code defaults < config.yml (${VAR} resolved from .env/OS env)`. Settings are nested by section matching `config.yml`'s top-level keys (`app`, `logging`, `models`, `middleware`, `router`, `staff`, `storage`, `mongo`, `graph`, `task_queue`, `lock`, `sandbox`, `minio`, `auth`, `working_memory`, `embedding`, `long_term_memory`, `retrieval`, `vector_store`, `mcp`, `admin`, `seed`, `browser`, `tools`, `security`) — e.g. `settings.staff.context_token_limit`, `settings.security.allow_private_http` — with flat `@property` delegates kept on the root `Settings` for older call-sites. `docs/configuration.md` still cross-references the historical `UPPER_CASE` env-var-style names some scripts/docs use, but those names don't configure anything by themselves anymore — only the `config.yml` key path shown does. Per-tool credentials are *not* here — they live in each skill's `config` dict (DB-stored, edited via UI). `models:` is a list of provider entries (`ModelConfig`, each with an `api_key: $GOOGLE_API_KEY`-style secret ref and an `enabled` flag plus its own `failover:` block) — not a single flat provider/model pair.
 
-`mcp.yml` seeds MCP servers into the skill store on boot (source of truth for file-declared servers; UI-created ones are left alone) — toggle with `MCP_AUTO_SEED`, point elsewhere with `MCP_CONFIG_FILE`. See `docs/MCP_GUIDE.md`.
+MCP servers are created as skills (`tool_name = "mcp"`) via the UI/API — no file-based auto-seeding. See `docs/mcp-guide.md`.
 
 ### Terminology unification (rename reached code identifiers too, not just UI text)
 
-The user-facing vocabulary was renamed: **Agent → Staff, Team → Department, Workspace → Company, Conversation → Meeting, Marketplace → Recruiting**. This rename was **not** display-text-only — it was carried through to file names, routes, and most Python/TypeScript identifiers. Current (verified) names: `backend/domain/staff/` (topologies live here; `backend/domain/agent/` does not exist), `backend/api/routers/staff.py`, `departments.py`, `companies.py`, `meetings.py`, `recruiting.py` (not `agents.py`/`teams.py`/`workspaces.py`/`conversations.py`/`marketplace.py`); frontend `StaffBuilder.tsx`, `DepartmentBuilder.tsx`, `Companies.tsx`, `Meetings.tsx`, `Recruiting.tsx` (not `AgentBuilder.tsx`/`TeamBuilder.tsx`/`Workspaces.tsx`/`Conversations.tsx`/`Marketplace.tsx`). Settings are under `settings.staff` (`StaffSettings`), not `settings.agent`. The domain model is `class Company` (`backend/domain/models.py`), not `Workspace`. When editing code, use these current names — only a few things still use the old vocabulary: env var strings (see above), the LangGraph "subagent" concept (`subagents.py`, `SUBAGENT_MAX_*`, distinct from the persistent Staff entity), and SSE event-type wire identifiers (e.g. `agent_start`, `subagent_complete` in `docs/STREAMING_GUIDE.md`). `docs/company-model.md` has the label mapping and explains the "All"/company scope split.
+The user-facing vocabulary was renamed: **Agent → Staff, Team → Department, Workspace → Company, Conversation → Meeting, Marketplace → Recruiting**. This rename was **not** display-text-only — it was carried through to file names, routes, and most Python/TypeScript identifiers. Current (verified) names: `server/domain/staff/` (topologies live here; `server/domain/agent/` does not exist), `server/api/routers/staff.py`, `departments.py`, `companies.py`, `meetings.py`, `recruiting.py` (not `agents.py`/`teams.py`/`workspaces.py`/`conversations.py`/`marketplace.py`); frontend `StaffBuilder.tsx`, `DepartmentBuilder.tsx`, `Companies.tsx`, `Meetings.tsx`, `Recruiting.tsx` (not `AgentBuilder.tsx`/`TeamBuilder.tsx`/`Workspaces.tsx`/`Conversations.tsx`/`Marketplace.tsx`). Settings are under `settings.staff` (`StaffSettings`), not `settings.agent`. The domain model is `class Company` (`server/domain/models.py`), not `Workspace`. When editing code, use these current names — only a few things still use the old vocabulary: env var strings (see above), the LangGraph "subagent" concept (`subagents.py`, `SUBAGENT_MAX_*`, distinct from the persistent Staff entity), and SSE event-type wire identifiers (e.g. `agent_start`, `subagent_complete` in `docs/streaming-guide.md`). `docs/company-model.md` has the label mapping and explains the "All"/company scope split.
 
-`PlatformHook` and `ThirdPartyConnection` have been merged into a single `Connection` model (`backend/domain/models.py`, `kind="inbound_webhook"` for what was `PlatformHook`, `kind="outbound"` for what was `ThirdPartyConnection`), used by both `backend/api/routers/webhook.py` and `connections.py`.
+`PlatformHook` and `ThirdPartyConnection` have been merged into a single `Connection` model (`server/domain/models.py`, `kind="inbound_webhook"` for what was `PlatformHook`, `kind="outbound"` for what was `ThirdPartyConnection`), used by both `server/api/routers/webhook.py` and `connections.py`.
 
 Other routers beyond the renamed core: `tasks.py`, `projects.py`, `epics.py`, `sprints.py` (Jira-like hierarchy — Project → Epic/Sprint → Task), `planner.py` (AI planning assistance), `office_builder.py` / `simulations.py` (virtual-office visualization), `activity_feed.py`, `analytics.py`, `consumption.py` (token/cost usage), `admin_monitoring.py`, `documents.py` (Document Library), `skills.py`, `connections.py`, `webhook.py`, `auth.py`, `llm.py`, `health.py`.
 
 ### Staff execution (LangGraph)
 
-Six topologies in `backend/domain/staff/`, selected via `api/deps.get_staff_graph_service(mode=...)`:
+Six topologies in `server/domain/staff/`, selected via `api/deps.get_staff_graph_service(mode=...)`:
 
 | Mode | File |
 |------|------|
@@ -102,19 +104,19 @@ Token budgeting (`token_budget.py`) trims context to `staff.context_token_limit 
 
 Restarting a completed/stopped task (`PUT /tasks/{id}/status` → `in-progress`) preserves message history and the knowledge graph (appends a session-divider message) rather than wiping it; `DELETE /tasks/{id}/history` is the explicit owner/admin-gated full wipe.
 
-Full topology/reliability details: `docs/agent-orchestration.md`. Streaming event types: `docs/STREAMING_GUIDE.md`.
+Full topology/reliability details: `docs/agent-orchestration.md`. Streaming event types: `docs/streaming-guide.md`.
 
 ### Storage, queue, lock backends (swap via `config.yml`, no code changes)
 
 - Storage: `storage.backend=json` (code default, files under `storage.dir`, loaded into memory and rewritten on update) or `mongo`.
 - Task queue: `task_queue.backend=memory` (ThreadPoolExecutor, code default) or `rabbitmq`.
 - Distributed lock: `lock.backend=threading` (code default) or `redis`.
-- Sandbox code execution: `sandbox.mode=local` (code default) or `k8s` (via a separate provisioner service) — there is **no** `docker` mode despite that being a common assumption; `docs/SANDBOX.md` calls this out explicitly.
+- Sandbox code execution: `sandbox.mode=local` (code default) or `k8s` (via a separate provisioner service) — there is **no** `docker` mode despite that being a common assumption; `docs/sandbox.md` calls this out explicitly.
 
 ### Frontend structure
 
 ```
-src/
+ui/src/
 ├── pages/           # One file per route (Dashboard, StaffBuilder, DepartmentBuilder, TaskManager, Recruiting, ...)
 │   └── marketing/   # Public marketing site (Pricing, Solutions, Resources, Changelog, ContactSales, SupportCenter, MeetCollective)
 ├── components/      # Reusable UI (Radix UI-based), incl. AppLayout.tsx (nav)
@@ -124,14 +126,14 @@ src/
 └── locales/         # en/vi/zh/ja
 ```
 
-Two navigation scopes, switched via `setActiveCompanyId()` (`src/hooks/use-company-scope.ts`), persisted in `localStorage.activeCompanyId` (`__overall__` sentinel = "All", broadcast via the `activeCompanyChanged` event):
+Two navigation scopes, switched via `setActiveCompanyId()` (`ui/src/hooks/use-company-scope.ts`), persisted in `localStorage.activeCompanyId` (`__overall__` sentinel = "All", broadcast via the `activeCompanyChanged` event):
 - **"All" (Overall)** — create/monitor all companies; `useCompanyScope().isOverall === true`.
 - **Inside a company** — operate one company; create tasks/projects/staff here.
 
-`AppLayout.tsx`'s `NAV_GROUPS` declares `visibleIn: "overall" | "company" | "both"` per group; `src/App.tsx` guards routes to match (`WithCompanyLayout` vs `WithLayout`, plus `RequireCompany`/`RequireCompanyOrAdmin`/`RequireAdmin` gates). See `docs/company-model.md` for the full nav map, company types (`software`/`marketing`/`research`/`general`), and where `company_type` is threaded end-to-end (UI → `src/lib/api.ts` → `backend/api/schemas/company.py` → `backend/domain/models.py` → repositories).
+`AppLayout.tsx`'s `NAV_GROUPS` declares `visibleIn: "overall" | "company" | "both"` per group; `ui/src/App.tsx` guards routes to match (`WithCompanyLayout` vs `WithLayout`, plus `RequireCompany`/`RequireCompanyOrAdmin`/`RequireAdmin` gates). See `docs/company-model.md` for the full nav map, company types (`software`/`marketing`/`research`/`general`), and where `company_type` is threaded end-to-end (UI → `ui/src/lib/api.ts` → `server/api/schemas/company.py` → `server/domain/models.py` → repositories).
 
 `RunEngineContext` lives above the router so in-flight task runs (streaming, state) survive navigation — `TaskManager`/`VirtualOffice` are just views over it, not owners of run state.
 
 ## Where to look for more
 
-`docs/README.md` indexes backend docs: `architecture.md`, `configuration.md` (full `config.yml` reference), `security.md`, `webhooks.md`, `agent-orchestration.md`, `AGENT_MEMORY.md` (working memory), `LONG_TERM_MEMORY.md` (cross-conversation memory, embeddings/RAG, vector stores), `LLM_MIDDLEWARE.md` (middleware stack: limits/retries/summary/LTM/cache/cost-guard/guardrail/PII), `MCP_GUIDE.md`, `deployment.md`, `api-reference.md`, `company-model.md`, `dashboard_navigation.md`, `SANDBOX.md`, `LLM_KEY_ROTATION.md` (multi-key rotation/failover, now per-`models:`-entry `failover:` blocks, not flat env vars), `9ROUTER_SETUP.md`, `GOOGLE_LOGIN_SETUP.md`, `K3S.md`.
+`docs/README.md` indexes backend docs: `architecture.md`, `configuration.md` (full `config.yml` reference), `security.md`, `webhooks.md`, `agent-orchestration.md`, `agent-memory.md` (working memory), `long-term-memory.md` (cross-conversation memory, embeddings/RAG, vector stores), `llm-middleware.md` (middleware stack: limits/retries/summary/LTM/cache/cost-guard/guardrail/PII), `mcp-guide.md`, `deployment.md`, `api-reference.md`, `company-model.md`, `dashboard-navigation.md`, `sandbox.md`, `llm-key-rotation.md` (multi-key rotation/failover, now per-`models:`-entry `failover:` blocks, not flat env vars), `9router-setup.md`, `google-login-setup.md`, `k3s.md`.

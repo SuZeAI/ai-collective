@@ -1,0 +1,178 @@
+"""ask_user tool — staff-initiated human-in-the-loop interrupt.
+
+Lets an staff pause mid-turn to ask the user a question (a clarification, a
+choice between options, an approval) and block until the user answers — the
+same UX as LangGraph's ``interrupt()`` primitive, but built on this project's
+custom-stream events instead of checkpointers:
+
+1. The tool emits a ``user_input_request`` event through the LangGraph custom
+   stream writer (the SSE stream the frontend already consumes).
+2. The frontend renders a question card (options become buttons, plus an
+   optional free-text box) and posts the answer to
+   ``POST /llm/staff-graph/respond``.
+3. The answer lands in a per-run slot in ``task_run_registry``; the tool's
+   poll loop picks it up and returns it to the LLM, which continues its turn.
+
+The wait releases on run cancellation/unregistration, and on timeout the tool
+returns a graceful "no response" message so the staff can proceed on its own
+judgement instead of dying.
+"""
+
+from __future__ import annotations
+
+import asyncio
+from typing import Any, Callable
+from uuid import uuid4
+
+from langchain.tools import tool
+
+from server.api.settings import settings
+from server.domain.event.schema import EventType
+from server.domain.tools.base import BaseToolkit
+from server.share.log import get_logger
+
+logger = get_logger(__name__)
+
+# How long ask_user waits for an answer before giving up, and how often it
+# re-checks the response slot.
+ASK_USER_TIMEOUT_SECONDS = max(30, settings.staff.ask_user_timeout_seconds)
+_POLL_SECONDS = 0.25
+_HEARTBEAT_EVERY_POLLS = max(1, int(15 / _POLL_SECONDS))  # ~15s, keeps SSE alive
+
+
+def _emit_event(payload: dict, writer: Callable[[dict], None] | None = None) -> None:
+    """Best-effort custom stream event.
+
+    A caller-supplied ``writer`` is used when available. This tool always
+    runs inside ``llm.chat()``'s inner agent, which invokes its compiled
+    graph via ``ainvoke()`` (base_langchain.py) rather than the outer
+    ``astream(..., stream_mode="custom")`` call the SSE endpoint is actually
+    reading from — so ``get_stream_writer()`` resolved *here* returns a
+    no-op writer scoped to that disconnected inner run, silently dropping
+    every event. The outer graph node captures the real writer before
+    entering that inner call and passes it down (see
+    ``_graph_runtime.build_agent_tools``); ``get_stream_writer()`` is kept
+    only as a fallback for callers that don't wire one through.
+    """
+    try:
+        if writer is not None:
+            writer(payload)
+            return
+        from langgraph.config import get_stream_writer
+
+        writer = get_stream_writer()
+        if writer is not None:
+            writer(payload)
+    except Exception:
+        pass
+
+
+class AskUserToolkit(BaseToolkit):
+    """Toolkit exposing a single ``ask_user`` tool for mid-run user input."""
+
+    name: str = "ask_user"
+
+    def __init__(
+        self,
+        meeting_id: str,
+        staff_name: str | None = None,
+        timeout_seconds: int = ASK_USER_TIMEOUT_SECONDS,
+        stream_writer: Callable[[dict], None] | None = None,
+        **kwargs: Any,
+    ):
+        super().__init__(**kwargs)
+        self._meeting_id = meeting_id
+        self._staff_name = staff_name
+        self._timeout_seconds = max(5, int(timeout_seconds))
+        self._stream_writer = stream_writer
+
+    @tool(parse_docstring=True)
+    async def ask_user(
+        self,
+        question: str,
+        options: list[str] | None = None,
+        allow_free_text: bool = True,
+    ) -> str:
+        """Pause and ask the human user a question, waiting for their answer.
+
+        Use this when you genuinely need the user's input to proceed: choosing
+        between approaches, confirming a risky/irreversible action, or getting
+        a clarification that the task description does not answer. Do NOT use
+        it for questions you can resolve yourself. The run blocks until the
+        user answers (or a timeout expires), so ask only when necessary and
+        bundle related questions into one call.
+
+        Args:
+            question: The complete question to show the user. Be specific and
+                give enough context for them to answer without scrolling back.
+            options: Optional list of 2-6 short choice labels rendered as
+                buttons. Omit for a free-form question.
+            allow_free_text: Whether the user may type a custom answer instead
+                of (or in addition to) picking an option. Defaults to True.
+        """
+        from server.infra import task_run_registry
+
+        question = (question or "").strip()
+        if not question:
+            return "[ask_user error] question must not be empty."
+
+        clean_options = [str(o).strip() for o in (options or []) if str(o).strip()][:6]
+
+        request_id = uuid4().hex
+        if not task_run_registry.open_user_request(self._meeting_id, request_id):
+            return (
+                "[ask_user unavailable] No active interactive run — proceed on "
+                "your best judgement and state the assumption you made."
+            )
+
+        payload = {
+            "type": EventType.USER_INPUT_REQUEST.value,
+            "request_id": request_id,
+            "agent_name": self._staff_name,
+            "question": question,
+            "options": clean_options,
+            "allow_free_text": bool(allow_free_text) or not clean_options,
+        }
+        _emit_event(payload, self._stream_writer)
+        logger.info(
+            "ask_user: staff=%s conversation=%s request=%s options=%d",
+            self._staff_name, self._meeting_id, request_id, len(clean_options),
+        )
+
+        polls = 0
+        max_polls = int(self._timeout_seconds / _POLL_SECONDS)
+        try:
+            while polls < max_polls:
+                await asyncio.sleep(_POLL_SECONDS)
+                polls += 1
+
+                response = task_run_registry.take_user_response(self._meeting_id, request_id)
+                if response is not None:
+                    _emit_event({
+                        "type": EventType.USER_INPUT_RECEIVED.value,
+                        "request_id": request_id,
+                        "agent_name": self._staff_name,
+                    }, self._stream_writer)
+                    return f"The user answered: {response}"
+
+                if task_run_registry.is_cancelled(self._meeting_id):
+                    return "[ask_user cancelled] The run was stopped before the user answered."
+
+                # Heartbeat: re-announce the open question so idle SSE
+                # connections survive proxy timeouts (UI dedupes by request_id).
+                if polls % _HEARTBEAT_EVERY_POLLS == 0:
+                    _emit_event({**payload, "heartbeat": True}, self._stream_writer)
+
+            _emit_event({
+                "type": EventType.USER_INPUT_RECEIVED.value,
+                "request_id": request_id,
+                "agent_name": self._staff_name,
+                "timed_out": True,
+            }, self._stream_writer)
+            return (
+                f"[ask_user timeout] The user did not answer within "
+                f"{self._timeout_seconds}s. Proceed on your best judgement and "
+                "state the assumption you made."
+            )
+        finally:
+            task_run_registry.close_user_request(self._meeting_id, request_id)

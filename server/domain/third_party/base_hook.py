@@ -1,0 +1,136 @@
+from __future__ import annotations
+
+import base64
+import hashlib
+import hmac
+import json
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
+from urllib import error, request as urllib_request
+
+from server.domain.tools._ssrf import validate_public_url
+
+
+def _header(headers: Dict[str, str], name: str) -> str:
+    """Case-insensitive header lookup (HTTP headers are case-insensitive)."""
+    name_lower = name.lower()
+    for key, value in headers.items():
+        if key.lower() == name_lower:
+            return value or ""
+    return ""
+
+
+def split_text(text: str, limit: int) -> list:
+    """Chunk text into pieces no longer than limit (for platform message-length caps)."""
+    if len(text) <= limit:
+        return [text]
+    return [text[i : i + limit] for i in range(0, len(text), limit)]
+
+
+def hmac_sha256_hex(secret: str, message: bytes) -> str:
+    return hmac.new(secret.encode("utf-8"), message, hashlib.sha256).hexdigest()
+
+
+def hmac_sha256_b64(secret: str, message: bytes) -> str:
+    digest = hmac.new(secret.encode("utf-8"), message, hashlib.sha256).digest()
+    return base64.b64encode(digest).decode("utf-8")
+
+
+def verify_meta_challenge(query_params: Dict[str, str], config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Meta (WhatsApp/Messenger/Instagram) webhook GET-verification handshake:
+    echo back ``hub.challenge`` if ``hub.verify_token`` matches the configured token."""
+    mode = query_params.get("hub.mode")
+    token = query_params.get("hub.verify_token")
+    challenge = query_params.get("hub.challenge")
+    verify_token = config.get("verify_token", "")
+    if mode == "subscribe" and challenge and verify_token and hmac.compare_digest(str(token or ""), str(verify_token)):
+        return {"content": challenge}
+    return None
+
+
+def extract_messenger_style_message(body: Dict[str, Any], object_type: str) -> Optional["IncomingMessage"]:
+    """Shared entry[].messaging[] text extraction for Messenger/Instagram-shaped webhooks."""
+    if body.get("object") != object_type:
+        return None
+    for entry in body.get("entry", []):
+        for messaging in entry.get("messaging", []):
+            if "message" not in messaging:
+                continue
+            msg = messaging["message"]
+            if msg.get("is_echo"):
+                continue
+            text = msg.get("text", "").strip()
+            if not text:
+                continue
+            sender_id = str(messaging.get("sender", {}).get("id", ""))
+            return IncomingMessage(chat_id=sender_id, user_id=sender_id, text=text, raw=body)
+    return None
+
+
+@dataclass
+class IncomingMessage:
+    chat_id: str
+    user_id: str
+    text: str
+    raw: Dict[str, Any]
+
+
+class BaseHookProcessor(ABC):
+    """Abstract base for all platform webhook processors."""
+
+    platform: str = ""
+
+    @abstractmethod
+    def extract_message(self, body: Dict[str, Any]) -> Optional[IncomingMessage]:
+        """Parse incoming webhook payload and extract message. Returns None if not a chat message."""
+
+    @abstractmethod
+    async def send_response(self, config: Dict[str, Any], chat_id: str, text: str) -> None:
+        """Send a response back to the user on this platform."""
+
+    def verify_request(
+        self,
+        headers: Dict[str, str],
+        raw_body: bytes,
+        config: Dict[str, Any],
+    ) -> bool:
+        """Optionally verify webhook signature. Default accepts all."""
+        return True
+
+    def get_verification_response(
+        self,
+        query_params: Dict[str, str],
+        config: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """Handle GET-based verification challenges (Facebook, Instagram, WhatsApp).
+        Return dict with 'content' key to send as plain text response, or None."""
+        return None
+
+    def post_challenge_response(
+        self,
+        body: Dict[str, Any],
+        config: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """Handle POST-based liveness/handshake challenges that must be answered
+        synchronously with a JSON body (e.g. Discord Interactions PING -> {"type": 1}).
+        Return the JSON dict to send back, or None to continue normal processing."""
+        return None
+
+
+def _http_post(url: str, data: Dict, headers: Dict[str, str], timeout: int = 20) -> Dict:
+    # Admin-configured webhook/service URLs (Teams, Discord, Skype, etc.) must not
+    # be allowed to reach internal services — the same SSRF guard used for
+    # LLM-supplied URLs applies here since these values come from user config.
+    validate_public_url(url)
+    payload = json.dumps(data).encode("utf-8")
+    headers = {"Content-Type": "application/json", **headers}
+    req = urllib_request.Request(url=url, method="POST", data=payload, headers=headers)
+    try:
+        with urllib_request.urlopen(req, timeout=timeout) as resp:
+            body = resp.read().decode("utf-8")
+            return json.loads(body) if body.strip() else {}
+    except error.HTTPError as exc:
+        raise RuntimeError(f"HTTP {exc.code}: {exc.read().decode('utf-8', errors='replace')[:200]}") from exc
+    except Exception as exc:
+        raise RuntimeError(str(exc)) from exc

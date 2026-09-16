@@ -16,7 +16,7 @@ venv/
 # Secrets & local config — must never be baked into the image
 .env
 .env.*
-secrets/
+.secrets/
 *.pem
 *.key
 
@@ -29,8 +29,8 @@ sandbox_workspace/
 static/avatars/
 
 # Build outputs / installable artifacts (regenerated inside the image).
-# NOTE: the build context (repo root) is shared by Dockerfile.frontend, which
-# needs src/ and the config files — do NOT ignore those here.
+# NOTE: the build context (repo root) is shared by ui/Dockerfile, which
+# needs ui/ — do NOT ignore that here.
 node_modules/
 dist/
 build/

@@ -1,47 +1,93 @@
-# <img src="./assets/spider.png" height="25" alt="spider" /> AI – Collective
+<!---
+Copyright 2026 SuZeAI (SuzeNith). All rights reserved.
+
+Licensed under the AI – Collective Non-Commercial / Academic License (the
+"License"); you may not use this file except in compliance with the
+License. You may obtain a copy of the License at
+
+    ./LICENSE
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
 <p align="center">
-<img src="./assets/logo_1_no_bg.png" width="550" alt="AI Collective Logo">
+  <img alt="AI – Collective" src="./assets/logo.png" width="480">
 </p>
 
 <p align="center">
-<strong>A high-performance multi-agent orchestration platform for programmable AI workforces.</strong>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Non--Commercial%20%2F%20Academic-blue"></a>
+  <a href="https://github.com/SuZeAI/ai-collective/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/SuZeAI/ai-collective/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="pyproject.toml"><img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-blue"></a>
+  <a href="ui/package.json"><img alt="Node" src="https://img.shields.io/badge/node-18%2B-green"></a>
 </p>
 
 <p align="center">
-<a href="#-what-is-ai--collective">About</a> •
-<a href="#-key-features">Features</a> •
-<a href="#-architecture">Architecture</a> •
-<a href="#-staff-topology-modes">Topologies</a> •
-<a href="#-option-1--run-locally">Local</a> •
-<a href="#-option-2--run-with-docker">Docker</a> •
-<a href="#-use-cases">Use Cases</a>
+  <a href="#overview">Overview</a> ·
+  <a href="#key-features">Features</a> ·
+  <a href="#architecture">Architecture</a> ·
+  <a href="#staff-topology-modes">Topologies</a> ·
+  <a href="#getting-started">Getting Started</a> ·
+  <a href="#use-cases">Use Cases</a>
+</p>
+
+<h3 align="center">Create and manage AI-powered companies, of any kind</h3>
+
+AI – Collective is a backend and web application for building and running **companies** — virtual
+organizations staffed entirely by AI. Describe a company in chat and the platform proposes its
+departments, staff, and skills; from there you can run a software startup, a marketing agency, a
+research lab, a trading desk, a content studio, or anything else you can describe, and operate any
+number of them side by side from a single control center. Inside each company, "staff" — each with
+its own skills, model, and instructions — are arranged into a topology (sequential, ring, mesh,
+supervisor, tree, or a fully custom graph) that defines how they hand off work and collaborate
+toward a shared objective. Runs stream turn-by-turn over Server-Sent Events, support mid-run human
+intervention, and persist a knowledge graph of what has been discussed so far.
+
+See [`docs/`](docs/README.md) for the full architecture, configuration, and API reference.
+
+<p align="center">
+  <img alt="AI – Collective landing page" src="./assets/landing-page.png" width="960">
 </p>
 
 -----
 
-## 🤖 What is AI – Collective?
+## Overview
 
-**AI – Collective** is a source-available framework (free for educational and research use — see [License](#-license)) for modeling, orchestrating, and executing complex workflows through **Customizable Multi-Agent Departments**. Unlike standard chatbots, it enables the creation of an "AI Workforce" where staff possess specific skills, follow organizational topologies (Sequential, Ring, Mesh, Supervisor, Tree, or Custom), and collaborate to solve high-level objectives — with real-time streaming and human-in-the-loop support.
+Unlike a single-prompt chatbot, AI – Collective models work the way a real organization does: a
+**Company** contains **Departments**, each staffed by **Staff** members with bound **Skills**
+(tools). A company's `type` (software, marketing, research, or general) seeds its suggested
+structure but never restricts it — the AI Office Designer will build whatever kind of company you
+describe. You can create and run any number of companies at once, each isolated with its own
+departments, staff, projects, and data, and switch between them (or monitor all of them together)
+from the "All" control center. Work inside a company is tracked through a lightweight project
+hierarchy (Project → Epic/Sprint → Task), and every staff run is a graph execution — chosen from
+six topology modes — rather than a single LLM call. The platform is LLM-agnostic, supports both
+JSON and MongoDB persistence, and can scale from a laptop (in-memory queue, threading lock) to a
+distributed deployment (RabbitMQ, Redis, Kubernetes sandbox pods).
 
-## ✨ Key Features
+## Key Features
 
 | Feature | Description |
 | :--- | :--- |
-| **6 Staff Topologies** | Sequential, Ring, Mesh, Supervisor, Tree, and Custom (user-defined LangGraph DAG) orchestration patterns. |
-| **Atomic Skill System** | 50+ built-in toolkits (Google Workspace, web search, social media, messaging platforms, browser automation). Bind granular capabilities to any staff member. |
-| **Subagent Support** | Staff can spawn parallel subagents for concurrent task delegation (configurable concurrency + turn limits). |
-| **Real-time SSE Streaming** | Turn-by-turn agent response streaming with intermediate event visibility (`agent_start`, `llm_request_start`, `subagent_complete`, etc.). |
-| **Knowledge Graph Memory** | Conversation context extraction via spaCy (static) or LLM-based semantic graph building. |
-| **Token Budget Management** | Automatic context-window management per agent turn with configurable limits. |
-| **Multi-LLM Support** | LLM-agnostic: Google Gemini, OpenAI, Anthropic Claude, OpenRouter — swappable at runtime. |
-| **Flexible Storage** | JSON-based (zero setup) or MongoDB persistence. |
-| **Human-in-the-Loop** | Seamlessly intervene in agent discussions to provide feedback or steer the workflow. |
-| **Auth & Companies** | JWT + Google OAuth sign-in, multi-company isolation, role-based access. |
-| **Activity Feed & Analytics** | Real-time activity logging, task metrics, per-agent productivity, and team efficiency dashboards. |
+| Six staff topologies | Sequential, Ring, Mesh, Supervisor, Tree, and Custom (user-defined LangGraph DAG) orchestration patterns. |
+| Atomic skill system | 50+ built-in toolkits (Google Workspace, web search, social media, messaging platforms, browser automation). Bind granular capabilities to any staff member. |
+| Subagent support | Staff can spawn parallel subagents for concurrent task delegation, with configurable concurrency and turn limits. |
+| Real-time SSE streaming | Turn-by-turn agent response streaming with intermediate event visibility (`agent_start`, `llm_request_start`, `subagent_complete`, and more). |
+| Knowledge graph memory | Conversation context extraction via spaCy (static) or LLM-based semantic graph building. |
+| Token budget management | Automatic context-window management per agent turn with configurable limits. |
+| Multi-LLM support | LLM-agnostic: Google Gemini, OpenAI, Anthropic Claude, and OpenRouter, swappable at runtime. |
+| Flexible storage | JSON-based (zero setup) or MongoDB persistence. |
+| Human-in-the-loop | Intervene in an in-progress run to provide feedback or steer the workflow. |
+| Auth and companies | JWT and Google OAuth sign-in, multi-company isolation, role-based access. |
+| Activity feed and analytics | Real-time activity logging, task metrics, per-staff productivity, and department efficiency dashboards. |
 
-## 🏗️ Architecture
+## Architecture
 
-AI – Collective follows **Clean Architecture** with strict layer separation and **fully asynchronous execution**.
+AI – Collective follows a ports-and-adapters (hexagonal) architecture with strict layer
+separation and fully asynchronous execution.
 
 ```mermaid
 graph TD
@@ -61,48 +107,52 @@ graph TD
     L --> M[Knowledge Graph + Analytics]
 ```
 
-**Stack:**
-- **Frontend**: React 18 + TypeScript 5.8 + Vite 6 + Tailwind CSS + Framer Motion + Radix UI
-- **Backend**: FastAPI (Python 3.11+) with Clean Architecture (Domain → Application → Infrastructure → API)
-- **Orchestration**: LangGraph 0.2 state machines with 6 topology modes
-- **Storage**: JSON (default) or MongoDB 7 via Motor (async driver)
-- **Task Queue**: In-memory ThreadPoolExecutor (default) or RabbitMQ (distributed)
-- **Distributed Lock**: Threading (default) or Redis
-- **Auth**: PyJWT + bcrypt + Google OAuth 2.0
+**Stack**
+
+- **Frontend** — React 18, TypeScript 5.8, Vite 6, Tailwind CSS, Framer Motion, Radix UI
+- **Backend** — FastAPI (Python 3.11+) with a ports-and-adapters layout (Domain → Application → Infrastructure → API)
+- **Orchestration** — LangGraph 0.2 state machines with six topology modes
+- **Storage** — JSON (default) or MongoDB 7 via Motor (async driver)
+- **Task queue** — In-memory `ThreadPoolExecutor` (default) or RabbitMQ (distributed)
+- **Distributed lock** — Threading (default) or Redis
+- **Auth** — PyJWT, bcrypt, Google OAuth 2.0
 
 -----
 
-## 🔀 Staff Topology Modes
+## Staff Topology Modes
 
-Select a topology at runtime via the `mode` field in the API request.
+The topology is selected at runtime via the `mode` field of the API request.
 
-### Sequential (default)
-Single staff member processes the full request. Fastest and most predictable.
+**Sequential (default)** — a single staff member processes the full request. The fastest and most
+predictable mode.
 
-### Ring
-Staff execute in circular order: `Staff 0 → Staff 1 → … → Staff N → Staff 0`. Each turn sees the full accumulated conversation history. Continues until `max_rounds` is reached. Ideal for iterative refinement and debate scenarios.
+**Ring** — staff execute in circular order: `Staff 0 → Staff 1 → … → Staff N → Staff 0`. Each turn
+sees the full accumulated conversation history. Continues until `max_rounds` is reached. Suited to
+iterative refinement and debate scenarios.
 
-### Mesh
-A **hub staff member** connects bidirectionally to N **spoke staff members**. The hub decides which spoke to activate using control blocks (`<NEXT_AGENT>`, `<DISCUSSION_END>`). Best for diverse specialist departments with a central coordinator.
+**Mesh** — a hub staff member connects bidirectionally to N spoke staff members and decides which
+spoke to activate using control blocks (`<NEXT_AGENT>`, `<DISCUSSION_END>`). Suited to diverse
+specialist departments coordinated centrally.
 
-### Supervisor
-A **lead staff member** delegates to N **worker staff members** via `<DELEGATE_TO>WorkerName</DELEGATE_TO>`. Workers report back to the lead, which synthesizes results and either delegates again or returns a `<FINAL_ANSWER>`. Ideal for hierarchical manager-worker workflows.
+**Supervisor** — a lead staff member delegates to N worker staff members via
+`<DELEGATE_TO>WorkerName</DELEGATE_TO>`. Workers report back to the lead, which synthesizes
+results and either delegates again or returns a `<FINAL_ANSWER>`. Suited to hierarchical
+manager/worker workflows.
 
-### Tree
-Staff are arranged in a hierarchical parent/child tree; results roll up from leaves to root. Ideal for structured, multi-level delegation.
+**Tree** — staff are arranged in a hierarchical parent/child tree; results roll up from leaves to
+root. Suited to structured, multi-level delegation.
 
-### Custom
-A user-defined LangGraph DAG (`CustomGraphSpec`), for workflows that don't fit the built-in topologies.
+**Custom** — a user-defined LangGraph DAG (`CustomGraphSpec`), for workflows that do not fit the
+built-in topologies.
 
 -----
 
-## ⚙️ Configuration
+## Configuration
 
-**`config.yml` (committed to git) is the single, complete source for every
-setting, including secrets.** No part of the backend reads a bare OS/`.env`
-variable to configure itself — the only way an env var reaches a setting is
-an explicit `${VAR}` reference written inline in `config.yml`, resolved from
-a `.env` file (gitignored) at startup:
+`config.yml` (at `.config/config.yml`, committed to git) is the single, complete source for every
+setting, including secrets. No part of the backend reads a bare OS or `.env` variable to configure
+itself — the only way an env var reaches a setting is an explicit `${VAR}` reference written
+inline in `config.yml`, resolved from a `.env` file (gitignored) at startup:
 
 ```bash
 cp .env.template .env
@@ -159,7 +209,7 @@ sandbox:
 logging:
   log_level: info              # debug | info | warning | error
   log_console: true
-  log_file: false               # true → logs/ai_collective.log
+  log_file: false               # true → .artifact/logs/ai_collective.log
 
 auth:
   jwt_secret_key: ${JWT_SECRET_KEY}   # change in production!
@@ -170,18 +220,21 @@ auth:
 # google_login_client_secret: ${GOOGLE_LOGIN_CLIENT_SECRET}
 ```
 
-See `docs/configuration.md` for the full `config.yml` reference and
-`.env.template` for every secret the shipped config references.
+See `docs/configuration.md` for the full `config.yml` reference and `.env.template` for every
+secret the shipped config references.
 
 -----
 
-## 💻 Option 1 — Run Locally
+## Getting Started
+
+### Run Locally
 
 Requires **Node.js 18+**, **Python 3.11+**, and [**uv**](https://github.com/astral-sh/uv).
 
-> **Note:** The local backend defaults to in-memory task queue and threading lock — no Redis or RabbitMQ needed. Start only the infrastructure services via Docker if you need them (step 3b).
+> The local backend defaults to an in-memory task queue and a threading lock — no Redis or
+> RabbitMQ needed. Start infrastructure services via Docker only if you need them (step 3b).
 
-### Prerequisites
+**Prerequisites**
 
 ```bash
 node --version   # v18+
@@ -189,20 +242,17 @@ python --version # 3.11+
 uv --version     # any recent version
 ```
 
-### Step 1 — Clone & install dependencies
+**Step 1 — Clone and install dependencies**
 
 ```bash
 git clone https://github.com/SuZeAI/ai-collective.git
 cd ai-collective
 
-# Install Python dependencies
 uv sync --all-extras
-
-# Install Node.js dependencies
-npm ci
+npm --prefix ui ci
 ```
 
-### Step 2 — Configure environment
+**Step 2 — Configure environment**
 
 ```bash
 cp .env.template .env
@@ -210,21 +260,21 @@ cp .env.template .env
 # (e.g. GOOGLE_API_KEY), and toggle the desired model's enabled: true there
 ```
 
-### Step 3a — Start frontend + backend (minimal, no infra)
+**Step 3a — Start frontend and backend (minimal, no infra)**
 
 Open two terminals:
 
 ```bash
 # Terminal 1 — Backend (http://localhost:8000)
-uv run uvicorn backend.api.main:app --reload --port 8000
+uv run uvicorn server.api.main:app --reload --port 8000
 
 # Terminal 2 — Frontend (http://localhost:8080)
-npm run dev -- --host 0.0.0.0 --port 8080
+npm --prefix ui run dev -- --host 0.0.0.0 --port 8080
 ```
 
-App at **http://localhost:8080** · API docs at **http://localhost:8000/docs**
+App at **http://localhost:8080**, API docs at **http://localhost:8000/docs**.
 
-### Step 3b — (Optional) Start infrastructure services
+**Step 3b — (Optional) Start infrastructure services**
 
 ```bash
 # Start only Redis + RabbitMQ via Docker Compose
@@ -246,7 +296,7 @@ docker compose -f docker/docker-compose-dev.yaml up -d mongodb redis rabbitmq
 #   REDIS_URL=redis://localhost:6379/0
 ```
 
-### Useful make targets (local)
+**Useful make targets (local)**
 
 | Command | Description |
 | :--- | :--- |
@@ -256,22 +306,20 @@ docker compose -f docker/docker-compose-dev.yaml up -d mongodb redis rabbitmq
 | `make infra-down` | Stop infrastructure containers |
 | `make install` | Install all dependencies |
 
------
+### Run with Docker
 
-## 🐳 Option 2 — Run with Docker
+All services (frontend, backend, MongoDB, Redis, RabbitMQ, Nginx) run as Docker containers.
+Requires **Docker 24+** and **Docker Compose v2**.
 
-All services (frontend, backend, MongoDB, Redis, RabbitMQ, Nginx) run as Docker containers. Requires **Docker 24+** and **Docker Compose v2**.
+**Development mode (hot-reload)**
 
-### Development mode (hot-reload)
-
-Source files in `backend/` and `src/` are mounted into containers — changes are reflected immediately without rebuilding.
+Source files in `server/` and `ui/` are mounted into containers — changes are reflected
+immediately without rebuilding.
 
 ```bash
-# 1. Configure environment
 cp .env.template .env
 # Edit .env — fill in a provider key referenced by config.yml's models: list
 
-# 2. Start the full dev stack
 make dev
 # or:
 docker compose -f docker/docker-compose-dev.yaml up --build -d
@@ -287,7 +335,7 @@ docker compose -f docker/docker-compose-dev.yaml up --build -d
 | http://localhost:8081 | Mongo Express (admin/admin) |
 | http://localhost:2026/nginx_status | Nginx connection stats |
 
-**Dev commands:**
+**Dev commands**
 
 | Command | Description |
 | :--- | :--- |
@@ -298,19 +346,19 @@ docker compose -f docker/docker-compose-dev.yaml up --build -d
 | `make dev-build` | Rebuild images without cache |
 | `make dev-ps` | Show container status |
 
-### Production mode
+**Production mode**
 
 Builds optimized images and serves the frontend via Nginx.
 
 ```bash
 cp .env.template .env
-# Edit .env — fill in a provider key + a strong JWT_SECRET_KEY
+# Edit .env — fill in a provider key and a strong JWT_SECRET_KEY
 
 make up
 # App: http://localhost:2026
 ```
 
-**Prod commands:**
+**Prod commands**
 
 | Command | Description |
 | :--- | :--- |
@@ -321,17 +369,16 @@ make up
 | `make ps` | Show container status |
 | `make restart` | Restart all containers |
 
-### Optional Docker profiles
+**Optional Docker profiles**
 
-**AIO Sandbox** — standalone code execution container, for manual/debug use
-(the actual sandbox mode selection below is `local` or `k8s`, not this
-container):
+AIO Sandbox — a standalone code execution container, for manual/debug use (the sandbox mode
+selection below is `local` or `k8s`, not this container):
 
 ```bash
 make dev-sandbox    # or: make prod-sandbox
 ```
 
-**K8s Provisioner** — creates per-request sandbox Pods on Kubernetes:
+K8s Provisioner — creates per-request sandbox Pods on Kubernetes:
 
 ```bash
 make dev-provisioner    # or: make prod-provisioner
@@ -341,24 +388,25 @@ make dev-provisioner    # or: make prod-provisioner
 #   mode: k8s
 #   provisioner_url: http://provisioner:8002
 ```
-See `docs/SANDBOX.md` / `docs/K3S.md` for the full setup.
 
-**MongoDB Express** (prod only):
+See `docs/sandbox.md` and `docs/k3s.md` for the full setup.
+
+MongoDB Express (prod only):
 
 ```bash
 docker compose -f docker/docker-compose.yaml --profile mongo-express up -d
 # UI: http://localhost:8081
 ```
 
-**Monitoring tools** (prod only) — Redis Commander + RabbitMQ UI:
+Monitoring tools (prod only) — Redis Commander and the RabbitMQ management UI:
 
 ```bash
 docker compose -f docker/docker-compose.yaml --profile tools up -d
 ```
 
-> In **dev**, all monitoring UIs are always on — no profile flag needed.
+> In dev, all monitoring UIs are always on — no profile flag needed.
 
-### Services overview
+**Services overview**
 
 | Service | Dev port | Prod port | Description |
 | :--- | :--- | :--- | :--- |
@@ -374,31 +422,31 @@ docker compose -f docker/docker-compose.yaml --profile tools up -d
 | Sandbox | 8081 (profile) | — (profile) | Code execution |
 | Provisioner | 8002 (profile) | — (profile) | K8s sandbox manager |
 
-> Ports in **bold** are browser-accessible UI endpoints.
+Ports in **bold** are browser-accessible UI endpoints.
 
 -----
 
-## 🛠️ System Components
+## System Components
 
-### Backend (Clean Architecture)
+**Backend (ports-and-adapters)**
 
 ```
-backend/
+server/
 ├── api/          # HTTP routers, request/response schemas, dependency injection
-├── application/  # Use-case services, abstract ports (interfaces)
+├── app/          # Use-case services, abstract ports (interfaces)
 ├── domain/       # Business logic
 │   ├── staff/    # Orchestrators: sequential, ring, mesh, supervisor, tree, custom + subagent + token budget
 │   ├── tools/    # 50+ skill toolkits (Google Workspace, web, social, messaging, sandbox)
 │   ├── memory/   # Knowledge graph extraction (spaCy / LLM-based)
 │   └── event/    # SSE event schema definitions
-├── infrastructure/ # Repositories, LLM factories, task queues, lock providers
-└── log/          # Structured logging (console + optional file output)
+├── infra/        # Repositories, LLM factories, task queues, lock providers
+└── share/        # Small utilities shared across the layers above (logging, text helpers)
 ```
 
-### Frontend
+**Frontend**
 
 ```
-src/
+ui/src/
 ├── pages/       # Dashboard, StaffBuilder, DepartmentBuilder, TaskManager,
 │                # Meetings, Playground, Analytics, Skills, Settings, Companies
 ├── components/  # Reusable UI (Radix UI + custom, dark/light theme)
@@ -407,9 +455,10 @@ src/
 └── lib/         # API client, staff-role mapping utilities
 ```
 
-### Real-time Event Streaming
+**Real-time event streaming**
 
-`POST /api/v1/llm/staff-graph/run-stream` returns **Server-Sent Events**. Canonical event types live in the `EventType` enum (`backend/domain/event/schema.py`):
+`POST /api/v1/llm/staff-graph/run-stream` returns Server-Sent Events. Canonical event types live
+in the `EventType` enum (`server/domain/event/schema.py`):
 
 | Event | Description |
 | :--- | :--- |
@@ -427,87 +476,92 @@ src/
 | `run_paused` / `run_resumed` | The run was paused/resumed |
 | `user_input_request` / `user_input_received` | The `ask_user` tool is waiting for/received human input |
 
-### Integrated Tool Ecosystem (50+ Toolkits)
+**Tool ecosystem (50+ toolkits)**
 
 | Category | Tools |
 | :--- | :--- |
-| **Google Workspace** | Drive, Docs, Sheets, Calendar |
-| **Web & Search** | DuckDuckGo, Brave, HackerNews, Reddit, OpenRouter |
-| **Browser Automation** | Playwright-based scraping & interaction |
-| **Social Media** | X/Twitter, Bluesky, Instagram, TikTok, YouTube, Reddit, Xiaohongshu |
-| **Messaging** | Discord, Slack, Telegram, WhatsApp Business, Signal, Teams, WeChat, Zalo, Line, Viber |
-| **Productivity** | HTTP client, Bash command execution, LLM task delegation |
-| **Specialized** | Polymarket predictions, image processing (rembg), YouTube (yt-dlp) |
+| Google Workspace | Drive, Docs, Sheets, Calendar |
+| Web and search | DuckDuckGo, Brave, HackerNews, Reddit, OpenRouter |
+| Browser automation | Playwright-based scraping and interaction |
+| Social media | X/Twitter, Bluesky, Instagram, TikTok, YouTube, Reddit, Xiaohongshu |
+| Messaging | Discord, Slack, Telegram, WhatsApp Business, Signal, Teams, WeChat, Zalo, Line, Viber |
+| Productivity | HTTP client, Bash command execution, LLM task delegation |
+| Specialized | Polymarket predictions, image processing (rembg), YouTube (yt-dlp) |
 
 -----
 
-## ⚙️ Advanced Features & Mechanics
+## Advanced Features
 
-### 1. Concurrent Staff Communication
-Within the mesh topology (`MultiAgentMeshOrchestrator`), the platform supports running staff queries and subagent task delegations concurrently. By setting `staff.subagent_max_concurrent` in `config.yml` (or `staff.mesh_fanout_max_concurrent` for mesh fan-out specifically), the hub staff member can query multiple spoke staff members simultaneously. This achieves parallel execution of task blocks, dramatically reducing overall process latency.
+**Concurrent staff communication.** Within the mesh topology (`MultiAgentMeshOrchestrator`), staff
+queries and subagent task delegations can run concurrently. Setting `staff.subagent_max_concurrent`
+in `config.yml` (or `staff.mesh_fanout_max_concurrent` for mesh fan-out specifically) lets the hub
+staff member query multiple spoke staff members at once, reducing overall run latency.
 
-### 2. Isolated Code Execution Sandboxes
-For untrusted code execution (such as Python scripts or shell commands parsed by staff), the system implements a `SandboxProvider` with two execution modes (`sandbox.mode` in `config.yml`):
-- **Local**: Executes commands as a subprocess directly in the backend host (for development).
-- **Kubernetes (K8s)**: Calls a dedicated remote provisioner service that dynamically spawns per-request sandbox Pods, lifecycle-managed automatically.
+**Isolated code execution sandboxes.** Untrusted code — Python scripts or shell commands invoked
+by staff — runs through a `SandboxProvider` with two modes (`sandbox.mode` in `config.yml`):
+local (a subprocess on the backend host, for development) or Kubernetes (a dedicated provisioner
+service spawns per-request sandbox Pods with automatic lifecycle management).
 
-### 3. Dynamic Knowledge Graph Memory
-Conversations build and consult a persistent semantic model dynamically. Guided by `graph.build_mode` in `config.yml`, the orchestrator extracts entities and relationships from conversation history using:
-- **Static Mode**: Fast, local rule-based entity parsing utilizing `spaCy` NLP libraries.
-- **LLM Mode**: High-fidelity semantic graph extraction using configurable foundation models to capture complex multi-agent interactions and facts.
+**Dynamic knowledge graph memory.** Conversations build and consult a persistent semantic model.
+Guided by `graph.build_mode` in `config.yml`, the orchestrator extracts entities and relationships
+from conversation history using either static mode (fast, rule-based parsing with spaCy) or LLM
+mode (higher-fidelity semantic extraction using a configurable foundation model).
 
-### 4. Distributed Task Queuing & Locking
-For production-grade scalability, the backend detaches long-running staff-graph runs from the HTTP thread pool using a **RabbitMQ** event bus. Mutual exclusion of staff-graph transitions is enforced via distributed locking (backed by **Redis**).
+**Distributed task queuing and locking.** For production-grade scalability, the backend detaches
+long-running staff-graph runs from the HTTP thread pool using a RabbitMQ event bus, and enforces
+mutual exclusion of staff-graph transitions via distributed locking backed by Redis.
 
 -----
 
-## 🧪 Use Cases
+## Use Cases
 
-- **Financial Analysis**: Department of analysts debating market trends based on real-time news.
-- **Content Pipeline**: Strategy → Drafting → Critiquing → Final Polish (Supervisor topology).
-- **Iterative Research**: Ring topology for multi-round refinement across specialist staff.
-- **Software Research**: Automated vulnerability detection and documentation generation.
-- **Parallel Task Execution**: Subagents processing independent subtasks concurrently.
+Any company you can describe, the AI Office Designer can build:
 
-## 📚 Documentation
+- **Software company** — engineering, QA, and DevOps departments shipping and reviewing code.
+- **Marketing agency** — strategy, copy, and design staff running a content pipeline via the
+  supervisor topology.
+- **Research lab** — analysts debating findings via the ring topology for multi-round refinement.
+- **Trading desk** — a department of analysts debating market trends based on real-time news.
+- **Any general company** — parallel task execution via subagents processing independent
+  subtasks concurrently, regardless of industry.
 
-Backend docs live in [`docs/`](docs/README.md): architecture, configuration
-(full `config.yml` reference), security, webhooks, staff orchestration, deployment, and the
-API reference.
+## Documentation
 
-## 🤝 Contributing
+Backend documentation lives in [`docs/`](docs/README.md): architecture, configuration (the full
+`config.yml` reference), security, webhooks, staff orchestration, deployment, and the API
+reference.
 
-We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) and the
-[Code of Conduct](CODE_OF_CONDUCT.md) first. Follow the ports-and-adapters
-patterns in the backend and keep frontend components modular and typed. For
-security reports, see [SECURITY.md](SECURITY.md).
+## Contributing
 
-> By contributing, you agree your contribution is provided under the project
-> license and may be relicensed/offered commercially by the copyright holder.
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) and the
+[Code of Conduct](CODE_OF_CONDUCT.md) first. Follow the ports-and-adapters patterns in the
+backend and keep frontend components modular and typed. For security reports, see
+[SECURITY.md](SECURITY.md).
 
-## 📄 License
+> By contributing, you agree your contribution is provided under the project license and may be
+> relicensed or offered commercially by the copyright holder.
 
-AI – Collective is released under the **AI – Collective Non-Commercial /
-Academic License** — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+## License
 
-- ✅ **Free** for educational and research (non-commercial) use.
-- ⛔ **Commercial use** — products, services, SaaS, for-profit internal
-  operations, consulting, or redistribution under other terms — is **not**
-  granted by this license and requires a **separate written commercial
-  license**.
+AI – Collective is released under the AI – Collective Non-Commercial / Academic License — see
+[LICENSE](LICENSE) and [NOTICE](NOTICE).
 
-To obtain a commercial license or request any other use, please contact the
-author (see below).
+- Free for educational and research (non-commercial) use.
+- Commercial use — products, services, SaaS, for-profit internal operations, consulting, or
+  redistribution under other terms — is not granted by this license and requires a separate
+  written commercial license.
 
-## 👨‍💻 Author & Contact
+To obtain a commercial license or request any other use, please contact the author (see below).
 
-**SuZeAI (SuzeNith)** — AI Research Engineer focused on autonomous multi-agent systems.
+## Author and Contact
 
-- 📧 Email: **suzeai545@gmail.com**
-- 🐙 GitHub: **[https://github.com/SuZeAI](https://github.com/SuZeAI)**
+**SuZeAI (SuzeNith)** — AI research engineer focused on autonomous multi-agent systems.
 
-For commercial licensing, partnerships, or permissions beyond educational and
-research use, please reach out by email.
+- **Email:** suzeai545@gmail.com
+- **GitHub:** [https://github.com/SuZeAI](https://github.com/SuZeAI)
+
+For commercial licensing, partnerships, or permissions beyond educational and research use,
+please reach out by email.
 
 -----
 

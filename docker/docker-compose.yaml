@@ -17,30 +17,19 @@
 #   rabbitmq-mgmt  — RabbitMQ Mgmt UI     (profile: tools, port 15672)
 #                  Enable: docker compose --profile tools up -d
 #
-#   sandbox    — standalone AIO sandbox container (manual/debug; not auto-wired)
-#                Enable: docker compose --profile sandbox up -d
-#                Reach it at http://localhost:8081 on the host.
-#
 #   provisioner — K8s sandbox provisioner (creates per-request sandbox Pods)
 #                Enable: docker compose --profile provisioner up -d
-#                Then set in .env: SANDBOX_MODE=k8s  SANDBOX_PROVISIONER_URL=http://provisioner:8002
+#                Then set sandbox.mode: k8s and sandbox.provisioner_url: http://provisioner:8002
+#                in .config/config.yml (provide a kubeconfig, see docs/k3s.md).
 #
-# Sandbox modes (SANDBOX_MODE, see docs/SANDBOX.md):
-#   local (default) — run commands in-process on the backend (no isolation).
-#   k8s             — activate profile "provisioner"; sandboxes run as k3s Pods.
-#                     Set SANDBOX_PROVISIONER_URL=http://provisioner:8002 and provide a
-#                     kubeconfig (see docs/K3S.md).
+# Sandbox mode, storage backend, minio, and other non-secret ops config live in
+# .config/config.yml, not .env — see server/api/settings.py / docs/configuration.md.
 #
-# Key environment variables (set in .env at project root):
-#   LLM_PROVIDER / LLM_MODEL              — LLM provider & model
-#   GOOGLE_API_KEY / ANTHROPIC_API_KEY / OPENAI_API_KEY
+# Key .env variables (secrets + local paths only):
+#   GOOGLE_API_KEY / ANTHROPIC_API_KEY / OPENAI_API_KEY  — LLM provider keys
 #   RABBITMQ_USER / RABBITMQ_PASS         — RabbitMQ credentials (default: guest/guest)
 #   MONGO_USER / MONGO_PASS               — MongoDB credentials (default: admin/admin)
-#   STORAGE_BACKEND                       — "json" (default) | "mongo"
-#   SANDBOX_MODE                          — "local" (default) | "k8s"
-#   SANDBOX_PROVISIONER_URL               — http://provisioner:8002 (if SANDBOX_MODE=k8s)
-#   SANDBOX_TIMEOUT                       — command timeout in seconds (default: 60)
-#   STORAGE_DIR                           — override storage directory path
+#   STORAGE_DIR                           — override storage directory path (read directly, not via config.yml)
 #   PORT                                  — public port (default: 2026)
 #
 # Access: http://localhost:${PORT:-2026}
@@ -155,7 +144,7 @@ services:
   frontend:
     build:
       context: ../
-      dockerfile: Dockerfile.frontend
+      dockerfile: ui/Dockerfile
       target: prod
     container_name: ai-collective-frontend
     networks:
@@ -166,50 +155,35 @@ services:
   backend:
     build:
       context: ../
-      dockerfile: backend/Dockerfile
+      dockerfile: server/Dockerfile
       args:
         APT_MIRROR: ${APT_MIRROR:-}
         UV_IMAGE: ${UV_IMAGE:-ghcr.io/astral-sh/uv:0.9.5}
         UV_INDEX_URL: ${UV_INDEX_URL:-}
     container_name: ai-collective-backend
-    command: uv run uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --workers ${BACKEND_WORKERS:-4}
+    command: uv run uvicorn server.api.main:app --host 0.0.0.0 --port 8000 --workers ${BACKEND_WORKERS:-4}
     volumes:
-      # storage/ is the committed read-only seed catalog (SEED_DIR);
-      # local_database/ is the per-machine live store (STORAGE_DIR, gitignored).
+      # storage/seed/ is the committed read-only seed catalog (SEED_DIR);
+      # storage/runtime/ is the per-machine live store (STORAGE_DIR, gitignored).
       - ../storage:/app/storage
-      - ../local_database:/app/local_database
-      - ../logs:/app/logs
-      - ../config.yml:/app/config.yml:ro
-      - ../mcp.yml:/app/mcp.yml:ro
+      - ../.artifact/logs:/app/.artifact/logs
+      - ../.config/config.yml:/app/.config/config.yml:ro
       - sandbox-workspace:/app/sandbox_workspace
     env_file:
       - ../.env
     environment:
       - REDIS_URL=redis://redis:6379/0
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
-      # STORAGE_BACKEND is owned by config.yml (storage.backend → STORAGE_BACKEND). Do NOT
-      # set it here — an env var would override config.yml. Override per-machine
-      # via .env (STORAGE_BACKEND=...) if needed.
       - MONGO_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-admin}@mongodb:27017/ai_collective?authSource=admin
-      - MONGO_DB=${MONGO_DB:-ai_collective}
-      # SANDBOX_MODE: local | k8s (see docs/SANDBOX.md).
-      - SANDBOX_MODE=${SANDBOX_MODE:-local}
-      - SANDBOX_PROVISIONER_URL=${SANDBOX_PROVISIONER_URL:-}
-      - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-60}
+      # Sandbox mode/provisioner/minio/file-backend/log-level are owned by
+      # config.yml now (literal values, not ${VAR}) — do NOT pass them here.
       - SANDBOX_WORKSPACE=/app/sandbox_workspace
-      # Live store lives in local_database/ (gitignored), separate from the
-      # committed storage/ seed catalog. Used by json mode + json fallbacks.
-      - STORAGE_DIR=/app/local_database
-      # File byte-store: local (host volume) | s3 (MinIO). Empty → auto (s3 when
-      # MINIO_ENABLED, else local). s3 restores files on restart. See .env.template.
-      - FILE_STORAGE_BACKEND=${FILE_STORAGE_BACKEND:-}
-      # MinIO: durable backup of conversation sandbox files (profile: minio).
-      - MINIO_ENABLED=${MINIO_ENABLED:-false}
-      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-minio:9000}
+      # Live store lives in storage/runtime/ (gitignored), separate from the
+      # committed storage/seed/ catalog. Read directly via os.getenv(STORAGE_DIR),
+      # not through config.yml.
+      - STORAGE_DIR=/app/storage/runtime
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
-      - MINIO_BUCKET=${MINIO_BUCKET:-sandbox-backups}
-      - MINIO_SECURE=${MINIO_SECURE:-false}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -223,30 +197,11 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  # ── Standalone AIO Sandbox Container (optional — profile: sandbox) ────────
-  # Manual / debug container; NOT auto-wired to any SANDBOX_MODE (`k8s` mode
-  # uses the provisioner instead).
-  # Activate: docker compose --profile sandbox up -d
-  sandbox:
-    image: ${SANDBOX_IMAGE:-enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest}
-    container_name: ai-collective-sandbox
-    profiles: ["sandbox"]
-    volumes:
-      - sandbox-workspace:/workspace
-    networks:
-      - ai-collective
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/v1/sandbox"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
   # ── Sandbox Provisioner — K8s/k3s pod manager (optional — profile: provisioner)
-  # Used by SANDBOX_MODE=k8s. Activate: docker compose --profile provisioner up -d
-  # Then set in .env: SANDBOX_MODE=k8s  SANDBOX_PROVISIONER_URL=http://provisioner:8002
-  # Requires: a kubeconfig (see docs/K3S.md)
+  # Sandboxes run as k3s Pods, created via this service. Activate: docker compose
+  # --profile provisioner up -d. Then set sandbox.mode: k8s and
+  # sandbox.provisioner_url: http://provisioner:8002 in .config/config.yml.
+  # Requires: a kubeconfig (see docs/k3s.md)
   provisioner:
     build:
       context: ./provisioner
@@ -330,7 +285,7 @@ services:
   # ── MinIO object storage (optional — profile: minio) ─────────────────────
   # Durable backup/restore of conversation sandbox files so they survive Pod
   # eviction in k8s mode. Activate: docker compose --profile minio up -d
-  # and set MINIO_ENABLED=true for the backend.
+  # and set minio.enabled: true in .config/config.yml.
   minio:
     image: minio/minio:latest
     container_name: ai-collective-minio

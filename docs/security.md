@@ -5,7 +5,7 @@ settings that govern them.
 
 ## Authentication
 
-- Passwords are hashed with **bcrypt** (`backend/api/security.py`).
+- Passwords are hashed with **bcrypt** (`server/api/security.py`).
 - Sessions use **JWT** access tokens (`HS256` by default). Tokens are created on
   login / registration / OAuth and validated by the `current_user_dep`
   dependency, which returns 401 for missing, expired, malformed, or
@@ -26,14 +26,14 @@ openssl rand -hex 32
 
 ## CORS
 
-`backend/api/main.py` configures CORS with an explicit origin list
+`server/api/main.py` configures CORS with an explicit origin list
 (`CORS_ORIGINS`) and **explicit method/header allow-lists** (no wildcards).
 With `allow_credentials=True`, wildcards are both insecure and ignored by
 browsers, so they are avoided.
 
 ## SSRF protection
 
-LLM/agent tools can be told to fetch arbitrary URLs. `backend/domain/tools/_ssrf.py`
+LLM/agent tools can be told to fetch arbitrary URLs. `server/domain/tools/_ssrf.py`
 guards every outbound request:
 
 - Only `http`/`https` schemes are allowed.
@@ -71,7 +71,7 @@ level allow-list.
 
 ## Ownership scoping
 
-Every entity carries an `owner_id` (`backend/domain/models.py`); routers
+Every entity carries an `owner_id` (`server/domain/models.py`); routers
 resolve the caller's scope via `current_owner_id_dep` and gate reads/writes
 through the `is_visible_to` / `is_owned_by` / `can_modify` / `can_delete`
 helpers (also in `models.py`). Non-admin users see the shared `"default"`

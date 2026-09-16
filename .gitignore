@@ -1,5 +1,4 @@
 # Logs
-logs
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -57,8 +56,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -159,9 +158,9 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Local runtime database (per-machine live store; seeded from storage/).
-# The committed default catalog in storage/ is intentionally NOT ignored.
-local_database/
+# Local runtime database (per-machine live store; seeded from storage/seed/).
+# The committed default catalog in storage/seed/ is intentionally NOT ignored.
+storage/runtime/
 
 # Environments
 .env
@@ -215,10 +214,9 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python,jupyternotebooks
 
-!src/lib
-context
-dist
-logs
-node_modules
-secrets
-backup
+# Local scratch notes — not meant to be shared/committed
+.agents
+.claude
+.secrets
+.suzeai
+.context

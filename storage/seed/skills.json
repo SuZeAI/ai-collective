@@ -1,0 +1,1057 @@
+[
+  {
+    "id": "skill_575aebf744dc4c13bb3357058fe60807",
+    "name": "Web Search (DuckDuckGo)",
+    "description": "Search public web sources for research, summaries, and fact checks.",
+    "third_party": "Web",
+    "kind": "integration",
+    "avatar": "W",
+    "avatar_icon": "globe",
+    "avatar_color": "#F59E0B",
+    "avatar_url": "",
+    "tool_name": "websearch",
+    "config": {
+      "provider": "duckduckgo",
+      "region": "wt-wt",
+      "safesearch": "moderate"
+    },
+    "code": null,
+    "instruction": "No API key required — DuckDuckGo is free and public. Just adjust 'region' (e.g. wt-wt for global, vn-vi for Vietnam) and 'safesearch' (off/moderate/strict) in the config, then assign the skill to an agent."
+  },
+  {
+    "id": "skill_a8470bc781b345b99cf15fcbad77ad48",
+    "name": "Browser Automation",
+    "description": "Navigate pages, click/input, inspect console, and extract visible content.",
+    "third_party": "Browser",
+    "kind": "integration",
+    "avatar": "B",
+    "avatar_icon": "search",
+    "avatar_color": "#3B82F6",
+    "avatar_url": "",
+    "tool_name": "browser",
+    "config": {
+      "driver": "browser_use",
+      "cdp_url": "http://localhost:9222",
+      "requires_runtime": true
+    },
+    "code": null,
+    "instruction": "No API key needed, but a Chromium-based browser must be running with remote debugging enabled. Launch it with: chrome --remote-debugging-port=9222 (or set the matching 'cdp_url'). Make sure that URL is reachable from the backend before running the agent."
+  },
+  {
+    "id": "skill_2dc8cd3ae4944efd9a054ac40e93649f",
+    "name": "Shell Automation",
+    "description": "Execute shell commands and control long-running terminal processes.",
+    "third_party": "Shell",
+    "kind": "integration",
+    "avatar": "S",
+    "avatar_icon": "terminal",
+    "avatar_color": "#22C55E",
+    "avatar_url": "",
+    "tool_name": "bash",
+    "config": {
+      "requires_runtime": true
+    },
+    "code": null,
+    "instruction": "No API key required — runs commands on the host/sandbox runtime where the backend executes. Only assign this to trusted agents, since it can run arbitrary shell commands."
+  },
+  {
+    "id": "skill_93cd0344158c41f3b8527f49fc3b647c",
+    "name": "Requirements Clarifier",
+    "description": "Clarify requirements, assumptions, scope, and completion criteria before execution.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "R",
+    "avatar_icon": "brain",
+    "avatar_color": "#EC4899",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a requirements clarification expert. For every new task: 1) summarize the objective in 1-2 sentences, 2) list missing input data, 3) identify technical constraints, 4) propose a clear definition of done. Keep responses concise, practical, and action-oriented."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. It just injects the system prompt into the agent. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_40ab114e0abe4b619ba12808b69378c3",
+    "name": "Task Breakdown Planner",
+    "description": "Break large work into smaller steps with clear priorities and dependencies.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "T",
+    "avatar_icon": "wrench",
+    "avatar_color": "#6366F1",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are an execution planner. Split the goal into 30-90 minute steps, label priority (high/medium/low), map dependencies, identify key risks and mitigations, and finish with a checklist that can be executed immediately."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_df9e759f63894673b5bb705a128e8cf3",
+    "name": "Bug Triage Assistant",
+    "description": "Help classify bugs by impact, reproducibility, and urgency.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "B",
+    "avatar_icon": "server",
+    "avatar_color": "#14B8A6",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a bug triage engineer. For each bug, provide: symptom summary, reproduction steps, severity (S1-S4), user impact, root cause hypothesis, and short-term plus long-term fixes. Always prioritize safety and include a rollback plan."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_6c9d08f965d84b2ba60fe66f75092d87",
+    "name": "Code Review Guardian",
+    "description": "Provide a review checklist focused on bugs, security, performance, and maintainability.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "C",
+    "avatar_icon": "code2",
+    "avatar_color": "#EF4444",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a strict but constructive reviewer. Evaluate in this order: 1) correctness, 2) security, 3) performance, 4) readability, 5) test coverage. Every comment must include priority and a concrete change suggestion. Avoid generic feedback."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_71c4e76fdbe74e06a8eea569951fe132",
+    "name": "Test Case Designer",
+    "description": "Design test cases covering happy paths, edge cases, failure cases, and regressions.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "T",
+    "avatar_icon": "cpu",
+    "avatar_color": "#8B5CF6",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a QA engineer. Create test cases in a table with: test objective, input, execution steps, expected output, priority, and test type (unit/integration/e2e). Always include edge cases for null, empty values, timeouts, permissions, and abnormal data."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_8735dbd9627b40238ace5f620d82c432",
+    "name": "Product Discovery Coach",
+    "description": "Suggest discovery questions to understand user needs and validate product assumptions.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "P",
+    "avatar_icon": "database",
+    "avatar_color": "#0EA5E9",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a product discovery coach. From one idea, generate: target persona, core problem, highest-risk assumptions, user interview questions, and a small experiment to validate within one week. Prioritize approaches that save time and cost."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_f713ef946e784f83a2e860fd538e03b1",
+    "name": "Decision Matrix Advisor",
+    "description": "Compare options using a decision matrix with criteria, weighting, and a clear recommendation.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "D",
+    "avatar_icon": "settings",
+    "avatar_color": "#10B981",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a decision advisor. For each option, build a decision matrix using criteria: cost, timeline, risk, scalability, and goal fit. Score each criterion from 1-5, provide brief reasoning, then conclude with a recommended option and conditions that would change the decision."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_b1b680e74e58497088e42e63ea305ee1",
+    "name": "Data Storyteller",
+    "description": "Turn data into actionable insights understandable by both technical and business audiences.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "D",
+    "avatar_icon": "globe",
+    "avatar_color": "#F97316",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a data storytelling expert. Present results in this structure: context, key findings, data evidence, business impact, and recommended actions (short-term and long-term). Clearly state data limitations and confidence level."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_c77d762185604053b5ac8bc1b24ecd90",
+    "name": "Technical Writer",
+    "description": "Write clear technical documentation: quick start, architecture, API, and troubleshooting.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "T",
+    "avatar_icon": "code2",
+    "avatar_color": "#84CC16",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a technical writer. Produce concise, structured documentation with: goal, prerequisites, step-by-step instructions, runnable examples, common errors, and troubleshooting steps. Use short sentences, consistent terminology, and avoid ambiguity."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_0ad6c42208d842bfb46c0690067bd269",
+    "name": "Meeting Synthesizer",
+    "description": "Summarize meetings into decisions, action items, owners, and clear deadlines.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "M",
+    "avatar_icon": "server",
+    "avatar_color": "#06B6D4",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a meeting synthesis assistant. Output results in 4 sections: finalized decisions, action items, owner and deadline, and open issues. If information is missing, mark clear TODO items instead of guessing."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_f782a1d84873460980c93981191769a1",
+    "name": "Learning Coach",
+    "description": "Build a personalized learning roadmap based on goals, time, and current skill level.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "L",
+    "avatar_icon": "brain",
+    "avatar_color": "#A855F7",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a learning coach. Design a 2-8 week roadmap with weekly goals, practice tasks, progress evaluation criteria, and review milestones. Maintain a 20 percent theory and 80 percent practice balance, with a fallback plan for limited learner time."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_3430577f115c48efb9e41f9f7ef65afb",
+    "name": "TikTok Content Creator",
+    "description": "Generate viral-ready TikTok scripts with strong hooks, scene breakdowns, captions, and hashtags.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "C",
+    "avatar_icon": "brain",
+    "avatar_color": "#3b82f6",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "**TikTok Content Generation Agent **\n\nYou are an AI agent specialized in creating high-performing TikTok content optimized for virality, retention, and engagement.\n\nYour responsibilities include:\n\n* Generating short-form video ideas (15–60 seconds) tailored to current TikTok trends.\n* Writing compelling hooks within the first 1–3 seconds to capture attention.\n* Structuring content with a clear flow: hook → value/entertainment → payoff → call-to-action.\n* Adapting tone and style based on the target audience (educational, storytelling, comedic, dramatic, etc.).\n* Suggesting visual directions (camera angles, scenes, transitions, captions, on-screen text).\n* Incorporating trending formats, sounds, and hashtags when relevant.\n* Optimizing for TikTok algorithm signals: watch time, rewatchability, shareability, and comments.\n* Keeping content concise, emotionally engaging, and mobile-first.\n\nConstraints:\n\n* Content must be platform-native (fast-paced, visually engaging, no long intros).\n* Avoid generic or low-retention phrasing.\n* Prioritize clarity, relatability, and strong emotional or informational impact.\n\nOutput format:\n\n* Hook\n* Script / Voiceover\n* Scene breakdown\n* Caption\n* Hashtags"
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_eb2b06e4808247b88fe84b42c58aa05a",
+    "name": "YouTube Search",
+    "description": "Search YouTube for videos, channels, and topic research.",
+    "third_party": "YouTube",
+    "kind": "integration",
+    "avatar": "Y",
+    "avatar_icon": "search",
+    "avatar_color": "#3bf7e1",
+    "avatar_url": "",
+    "tool_name": "youtube",
+    "config": {
+      "depth": "default"
+    },
+    "code": null,
+    "instruction": "No API key required for the default search. Set 'depth' to control how many results are fetched (default/deep). If you hit rate limits, search less aggressively or add your own YouTube Data API key in the config later."
+  },
+  {
+    "id": "skill_ef1f5d3c6fad41bab4080e4c671e5003",
+    "name": "Xiaohongshu Search",
+    "description": "Search Xiaohongshu (RED) posts and creators for trend and product research.",
+    "third_party": "Xiaohongshu",
+    "kind": "integration",
+    "avatar": "X",
+    "avatar_icon": "",
+    "avatar_color": "#3b82f6",
+    "avatar_url": "",
+    "tool_name": "xiaohongshu",
+    "config": {
+      "base_url": "",
+      "depth": "default"
+    },
+    "code": null,
+    "instruction": "No API key required. If you run a self-hosted Xiaohongshu (RED) scraper/proxy, put its endpoint in 'base_url'; leave it blank to use the built-in default. Set 'depth' to control result volume."
+  },
+  {
+    "id": "skill_5fb1c009d12a40feafb2273449d5aea6",
+    "name": "X Search (xAI Grok)",
+    "description": "Search X (Twitter) by topic or keyword using xAI Grok's live search. Requires a paid xAI API key.",
+    "third_party": "X (xAI)",
+    "kind": "integration",
+    "avatar": "X",
+    "avatar_icon": "search",
+    "avatar_color": "#a1e75a",
+    "avatar_url": "",
+    "tool_name": "xai",
+    "config": {
+      "api_key": "",
+      "model": "grok-4-fast",
+      "depth": "default"
+    },
+    "code": null,
+    "instruction": "Requires a PAID xAI API key. Sign in at https://console.x.ai, open API Keys, create a key, and paste it into 'api_key'. Keep 'model' as grok-4-fast (or another Grok model you have access to). Live X search is billed per request by xAI."
+  },
+  {
+    "id": "skill_5e843c13a58d440cae29a9d19553d2ed",
+    "name": "X Search (Bird GraphQL)",
+    "description": "Free topic/keyword search of X (Twitter) via a local Node.js scraper. Requires Node.js and X session cookies (AUTH_TOKEN/CT0).",
+    "third_party": "X (Bird)",
+    "kind": "integration",
+    "avatar": "X",
+    "avatar_icon": "cpu",
+    "avatar_color": "#516d9a",
+    "avatar_url": "",
+    "tool_name": "bird_x",
+    "config": {
+      "auth_token": "",
+      "ct0": "",
+      "bird_search_mjs": "",
+      "depth": "default"
+    },
+    "code": null,
+    "instruction": "Free, but needs Node.js installed and your own X (Twitter) session cookies. 1) Log in to x.com in a browser. 2) Open DevTools → Application → Cookies → x.com. 3) Copy the 'auth_token' cookie value into 'auth_token' and the 'ct0' cookie value into 'ct0'. 4) Set 'bird_search_mjs' to the absolute path of your local bird_search.mjs scraper script. Cookies expire periodically — re-copy them if search stops working."
+  },
+  {
+    "id": "skill_4b99379b64544c779ed7b6706e6f0892",
+    "name": "Truth Social Search",
+    "description": "Search Truth Social posts and accounts for public commentary and trends.",
+    "third_party": "Truth Social",
+    "kind": "integration",
+    "avatar": "T",
+    "avatar_icon": "",
+    "avatar_color": "#123d82",
+    "avatar_url": "",
+    "tool_name": "truthsocial",
+    "config": {
+      "token": "",
+      "depth": "default"
+    },
+    "code": null,
+    "instruction": "Requires a Truth Social access token. Obtain it from your Truth Social account/API session (e.g. the Bearer token from an authenticated session) and paste it into 'token'. Set 'depth' to control how many results are returned."
+  },
+  {
+    "id": "skill_5db7f5fb0ea0427fadc5ebeb9dd983f8",
+    "name": "TikTok Search (ScrapeCreators)",
+    "description": "Search TikTok videos, creators, and hashtags via ScrapeCreators for trend research.",
+    "third_party": "TikTok",
+    "kind": "integration",
+    "avatar": "T",
+    "avatar_icon": "",
+    "avatar_color": "#3b82f6",
+    "avatar_url": "",
+    "tool_name": "tiktok",
+    "config": {
+      "token": "",
+      "depth": "default"
+    },
+    "code": null,
+    "instruction": "Requires a ScrapeCreators API key. Sign up at https://scrapecreators.com, open the dashboard, copy your API key, and paste it into 'token' (replace the placeholder). The same ScrapeCreators key works for the TikTok / X / Reddit / Instagram ScrapeCreators skills."
+  },
+  {
+    "id": "skill_323ab24d9fe84653b0dbf6836c715498",
+    "name": "X Search (ScrapeCreators)",
+    "description": "Search X (Twitter) posts and profiles via ScrapeCreators for trends and sentiment.",
+    "third_party": "X (ScrapeCreators)",
+    "kind": "integration",
+    "avatar": "X",
+    "avatar_icon": "",
+    "avatar_color": "#99ec55",
+    "avatar_url": "",
+    "tool_name": "scrapecreators_x",
+    "config": {
+      "token": "",
+      "depth": "default"
+    },
+    "code": null,
+    "instruction": "Requires a ScrapeCreators API key. Sign up at https://scrapecreators.com, copy your API key from the dashboard, and paste it into 'token' (replace the placeholder). One ScrapeCreators key is shared across all ScrapeCreators-based skills."
+  },
+  {
+    "id": "skill_143a294c61ff4d1f85c44ff2163a60b0",
+    "name": "Reddit Search (ScrapeCreators)",
+    "description": "Search Reddit posts and subreddits via ScrapeCreators for discussions and opinions.",
+    "third_party": "Reddit",
+    "kind": "integration",
+    "avatar": "R",
+    "avatar_icon": "server",
+    "avatar_color": "#29f1ff",
+    "avatar_url": "",
+    "tool_name": "reddit",
+    "config": {
+      "token": "",
+      "depth": "default"
+    },
+    "code": null,
+    "instruction": "Requires a ScrapeCreators API key. Sign up at https://scrapecreators.com, copy your API key from the dashboard, and paste it into 'token' (replace the placeholder). One ScrapeCreators key is shared across all ScrapeCreators-based skills."
+  },
+  {
+    "id": "skill_fb6152d791f4447dbd28338325e15efe",
+    "name": "Reddit Enrich (Thread Metrics)",
+    "description": "Fetch detailed engagement metrics (scores, comments, awards) for Reddit threads.",
+    "third_party": "Reddit",
+    "kind": "integration",
+    "avatar": "R",
+    "avatar_icon": "",
+    "avatar_color": "#42b844",
+    "avatar_url": "",
+    "tool_name": "reddit_enrich",
+    "config": {
+      "token": "",
+      "backend": "auto"
+    },
+    "code": null,
+    "instruction": "Requires a ScrapeCreators API key in 'token' (get it at https://scrapecreators.com → dashboard). Leave 'backend' as 'auto' to let it pick the best data source, or set it explicitly if you need a specific one."
+  },
+  {
+    "id": "skill_b30d83bd4f04454496a7ea3dd00b4c6e",
+    "name": "Polymarket Search (Gamma API)",
+    "description": "Search Polymarket prediction markets via the Gamma API for live odds and event data.",
+    "third_party": "Polymarket",
+    "kind": "integration",
+    "avatar": "P",
+    "avatar_icon": "search",
+    "avatar_color": "#7ad71d",
+    "avatar_url": "",
+    "tool_name": "polymarket",
+    "config": {
+      "depth": "default"
+    },
+    "code": null,
+    "instruction": "No API key required — the Polymarket Gamma API is public. Just set 'depth' to control how many markets/events are returned, then assign the skill to an agent."
+  },
+  {
+    "id": "skill_cf411d90d3b04fd68ab1799f114cdd4e",
+    "name": "Web Search (Parallel AI)",
+    "description": "Search and extract web content at scale via the Parallel AI search API.",
+    "third_party": "Web",
+    "kind": "integration",
+    "avatar": "W",
+    "avatar_icon": "wrench",
+    "avatar_color": "#74a0e7",
+    "avatar_url": "",
+    "tool_name": "parallel_search",
+    "config": {
+      "api_key": "",
+      "beta_header": "search-extract-2025-10-10"
+    },
+    "code": null,
+    "instruction": "Requires a Parallel AI API key. Sign up at https://platform.parallel.ai, create an API key, and paste it into 'api_key' (replace any placeholder/shared key with your own). Keep 'beta_header' as provided unless Parallel AI tells you to change it."
+  },
+  {
+    "id": "skill_7c4b26f9b2b2427597a1f5928f1603a6",
+    "name": "Web Search (OpenRouter Sonar)",
+    "description": "Search the web with cited answers via OpenRouter's Perplexity Sonar model.",
+    "third_party": "Web",
+    "kind": "integration",
+    "avatar": "W",
+    "avatar_icon": "search",
+    "avatar_color": "#68f392",
+    "avatar_url": "",
+    "tool_name": "openrouter_search",
+    "config": {
+      "api_key": "",
+      "model": "perplexity/sonar-pro"
+    },
+    "code": null,
+    "instruction": "Requires an OpenRouter API key. Create one at https://openrouter.ai/keys (you need credits/billing set up), then paste it into 'api_key'. Keep 'model' as perplexity/sonar-pro or pick another search-capable model from https://openrouter.ai/models."
+  },
+  {
+    "id": "skill_1763c25b94634541b6bb9b4c8aa5242f",
+    "name": "Instagram Reels Search (ScrapeCreators)",
+    "description": "Search Instagram Reels and creators via ScrapeCreators for short-video trends.",
+    "third_party": "Instagram",
+    "kind": "integration",
+    "avatar": "I",
+    "avatar_icon": "wrench",
+    "avatar_color": "#1ec867",
+    "avatar_url": "",
+    "tool_name": "instagram",
+    "config": {
+      "token": "",
+      "depth": "default"
+    },
+    "code": null,
+    "instruction": "Requires a ScrapeCreators API key. Sign up at https://scrapecreators.com, copy your API key from the dashboard, and paste it into 'token' (replace the placeholder). One ScrapeCreators key is shared across all ScrapeCreators-based skills."
+  },
+  {
+    "id": "skill_aa21bdc1e4f141e2af5d58fb47e7290d",
+    "name": "HTTP Client",
+    "description": "Send HTTP requests (GET, POST, etc.) to call REST APIs and fetch web resources.",
+    "third_party": "Network",
+    "kind": "integration",
+    "avatar": "H",
+    "avatar_icon": "wrench",
+    "avatar_color": "#d1e66b",
+    "avatar_url": "",
+    "tool_name": "http",
+    "config": {
+      "timeout": "30",
+      "retries": "5",
+      "user_agent": "ai-collective/http-tool"
+    },
+    "code": null,
+    "instruction": "No API key required for the tool itself. Tune 'timeout' (seconds), 'retries', and 'user_agent' as needed. If a target API needs authentication, the agent must include the auth header/token in the request it sends."
+  },
+  {
+    "id": "skill_6d9d12dc61a047b3b00c2c7d0b7b934c",
+    "name": "Hacker News Search (Algolia)",
+    "description": "Search Hacker News stories and comments via the Algolia API for tech news and discussion.",
+    "third_party": "Hacker News",
+    "kind": "integration",
+    "avatar": "H",
+    "avatar_icon": "cpu",
+    "avatar_color": "#176d45",
+    "avatar_url": "",
+    "tool_name": "hackernews",
+    "config": {
+      "depth": "default"
+    },
+    "code": null,
+    "instruction": "No API key required — the HN Algolia search API is free and public. Just set 'depth' to control result volume, then assign the skill to an agent."
+  },
+  {
+    "id": "skill_3fc577ebcb614f0ba54ba686a647b3ef",
+    "name": "Web Search (Brave Search)",
+    "description": "Search the web via the Brave Search API for fresh, privacy-friendly results.",
+    "third_party": "Web",
+    "kind": "integration",
+    "avatar": "W",
+    "avatar_icon": "wrench",
+    "avatar_color": "#113b7e",
+    "avatar_url": "",
+    "tool_name": "brave_search",
+    "config": {
+      "api_key": "",
+      "use_llm_context": false
+    },
+    "code": null,
+    "instruction": "Requires a Brave Search API key. Register at https://api-dashboard.search.brave.com, subscribe to a plan (a free tier is available), create a key, and paste it into 'api_key'. Set 'use_llm_context' to true if you want richer LLM-oriented result summaries."
+  },
+  {
+    "id": "skill_0137b6075c51484aaab2c5d56215ec34",
+    "name": "Bluesky Search",
+    "description": "Search Bluesky posts and accounts for social trends and discussions.",
+    "third_party": "Bluesky",
+    "kind": "integration",
+    "avatar": "B",
+    "avatar_icon": "server",
+    "avatar_color": "#bc73f7",
+    "avatar_url": "",
+    "tool_name": "bluesky",
+    "config": {
+      "handle": "",
+      "app_password": "",
+      "depth": "default"
+    },
+    "code": null,
+    "instruction": "Requires a Bluesky account and an app password (not your main password). In the Bluesky app go to Settings → Privacy and Security → App Passwords (https://bsky.app/settings/app-passwords) and create one. Put your handle (e.g. yourname.bsky.social) in 'handle' and the generated app password in 'app_password'."
+  },
+  {
+    "id": "skill_8aa319b75ab34b69b0fb2696c0f077c6",
+    "name": "Google Sheets",
+    "description": "Read, write, and format data in Google Sheets spreadsheets.",
+    "third_party": "Google",
+    "kind": "integration",
+    "avatar": "G",
+    "avatar_icon": "",
+    "avatar_color": "#3b82f6",
+    "avatar_url": "",
+    "tool_name": "sheet",
+    "config": {
+      "auth_email": "",
+      "token_path": ".secrets/google/sheet/token_default.json",
+      "credentials_path": "",
+      "service_account_path": ""
+    },
+    "code": null,
+    "instruction": "Needs Google authorization (OAuth). Easiest: open this skill in the editor and click 'Authenticate Google' to sign in and grant access — the token is saved to 'token_path'. For server/headless use instead, create OAuth client credentials or a service account in Google Cloud Console (with the Google Sheets API enabled) and set 'credentials_path' or 'service_account_path' to that JSON file. Enter the Google account email in 'auth_email'."
+  },
+  {
+    "id": "skill_e901042144154de5984e93166aaa63c7",
+    "name": "Google Drive",
+    "description": "Create, upload, download, search, and manage files and folders in Google Drive.",
+    "third_party": "Google",
+    "kind": "integration",
+    "avatar": "G",
+    "avatar_icon": "wrench",
+    "avatar_color": "#92b3e8",
+    "avatar_url": "",
+    "tool_name": "drive",
+    "config": {
+      "auth_email": "",
+      "token_path": ".secrets/google/drive/token_default.json",
+      "credentials_path": "",
+      "service_account_path": ""
+    },
+    "code": null,
+    "instruction": "Needs Google authorization (OAuth). Easiest: open this skill and click 'Authenticate Google' to sign in and grant Drive access — the token is saved to 'token_path'. For server/headless use, create OAuth client credentials or a service account in Google Cloud Console (with the Google Drive API enabled) and set 'credentials_path' or 'service_account_path'. Enter the Google account email in 'auth_email'."
+  },
+  {
+    "id": "skill_5f0170b96a7948b3a3d2ffa920c4c681",
+    "name": "Google Docs",
+    "description": "Create, read, and edit Google Docs documents.",
+    "third_party": "Google",
+    "kind": "integration",
+    "avatar": "G",
+    "avatar_icon": "wrench",
+    "avatar_color": "#17386d",
+    "avatar_url": "",
+    "tool_name": "docs",
+    "config": {
+      "auth_email": "",
+      "token_path": ".secrets/google/docs/token_default.json",
+      "credentials_path": "",
+      "service_account_path": ""
+    },
+    "code": null,
+    "instruction": "Needs Google authorization (OAuth). Easiest: open this skill and click 'Authenticate Google' to sign in and grant Docs access — the token is saved to 'token_path'. For server/headless use, create OAuth client credentials or a service account in Google Cloud Console (with the Google Docs API enabled) and set 'credentials_path' or 'service_account_path'. Enter the Google account email in 'auth_email'."
+  },
+  {
+    "id": "skill_f18c6bd411ff4277962af9f413448b42",
+    "name": "Google Slides",
+    "description": "Create and edit Google Slides presentations.",
+    "third_party": "Google",
+    "kind": "integration",
+    "avatar": "G",
+    "avatar_icon": "",
+    "avatar_color": "#29ae62",
+    "avatar_url": "",
+    "tool_name": "slides",
+    "config": {
+      "auth_email": "",
+      "token_path": ".secrets/google/slides/token_default.json",
+      "credentials_path": "",
+      "service_account_path": ""
+    },
+    "code": null,
+    "instruction": "Needs Google authorization (OAuth). Easiest: open this skill and click 'Authenticate Google' to sign in and grant Slides access — the token is saved to 'token_path'. For server/headless use, create OAuth client credentials or a service account in Google Cloud Console (with the Google Slides API enabled) and set 'credentials_path' or 'service_account_path'. Enter the Google account email in 'auth_email'."
+  },
+  {
+    "id": "skill_66b75bd4f016409ba3d9c4da67b9b330",
+    "name": "Google Calendar",
+    "description": "Create, read, and manage Google Calendar events and schedules.",
+    "third_party": "Google",
+    "kind": "integration",
+    "avatar": "G",
+    "avatar_icon": "",
+    "avatar_color": "#fffb8a",
+    "avatar_url": "",
+    "tool_name": "calendar",
+    "config": {
+      "auth_email": "",
+      "token_path": ".secrets/google/calendar/token_default.json",
+      "credentials_path": "",
+      "service_account_path": ""
+    },
+    "code": null,
+    "instruction": "Needs Google authorization (OAuth). Easiest: open this skill and click 'Authenticate Google' to sign in and grant Calendar access — the token is saved to 'token_path'. For server/headless use, create OAuth client credentials or a service account in Google Cloud Console (with the Google Calendar API enabled) and set 'credentials_path' or 'service_account_path'. Enter the Google account email in 'auth_email'."
+  },
+  {
+    "id": "skill_e3f5c5569bd941dba23c84feb76add7d",
+    "name": "Sandbox",
+    "description": "Run code and commands in an isolated sandbox for safe, reproducible execution.",
+    "third_party": "Sandbox",
+    "kind": "integration",
+    "avatar": "S",
+    "avatar_icon": "terminal",
+    "avatar_color": "#3bf76a",
+    "avatar_url": "",
+    "tool_name": "sandbox",
+    "config": {},
+    "code": null,
+    "instruction": "No API key or extra config required — runs code/commands inside the platform's isolated sandbox runtime. Just assign it to an agent. Make sure the sandbox runtime is enabled/available in your deployment."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000001",
+    "name": "Persona & Character Designer",
+    "description": "Design memorable content characters/personas: name, look, voice, backstory, and catchphrases.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "P",
+    "avatar_icon": "brain",
+    "avatar_color": "#EC4899",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a character & persona designer for social content. From a topic and target audience, produce: 1) character name and one-line concept, 2) personality traits and tone of voice, 3) visual identity (look, outfit, color palette, signature props), 4) backstory and motivation, 5) 3-5 signature catchphrases, 6) how the character reacts on camera. Keep it consistent, recognizable, and brand-safe."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000002",
+    "name": "Content Calendar Strategist",
+    "description": "Turn a topic + character into a multi-platform content plan with hooks, cadence, and KPIs.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "C",
+    "avatar_icon": "database",
+    "avatar_color": "#0EA5E9",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a content strategist. From a topic and character, build a content plan: 1) content pillars, 2) a list of episodes/posts each with title, hook, key message, and CTA, 3) publishing cadence and best posting times per platform (TikTok, Facebook, YouTube), 4) hashtag/keyword sets per platform, 5) success KPIs (watch time, saves, shares, CTR). Output as a clear, executable calendar table."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000003",
+    "name": "Video Script & Storyboard Writer",
+    "description": "Write shot-by-shot video scripts and storyboards optimized for short-form retention.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "V",
+    "avatar_icon": "cpu",
+    "avatar_color": "#8B5CF6",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a short-form video director. From a content brief, produce a production-ready package: 1) hook (first 1-3 seconds), 2) full voiceover/script with timestamps, 3) shot-by-shot storyboard (scene, camera angle, on-screen text, b-roll, transition), 4) recommended music/sound style, 5) caption + hashtags, 6) thumbnail/cover idea. Keep pacing fast and mobile-first."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000004",
+    "name": "Multi-Platform Publishing Orchestrator",
+    "description": "Plan and execute auto-publishing of a finished video to TikTok, Facebook, and YouTube.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "P",
+    "avatar_icon": "workflow",
+    "avatar_color": "#10B981",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a social publishing orchestrator. Given a finished video asset and metadata, produce and execute a publishing plan: 1) per-platform title/description/caption tailored to TikTok, Facebook, and YouTube, 2) platform-specific hashtags and tags, 3) thumbnail/cover selection, 4) scheduled publish times, 5) the upload steps/API or browser actions for each platform, 6) a post-publish checklist (links, pinned comment, cross-promotion). Confirm credentials/permissions before any live upload and report the result of each upload."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key of its own. It only plans/coordinates publishing. To actually upload, pair it on the same agent with the tools that have credentials (e.g. Browser Automation, HTTP Client, or platform-specific skills) and make sure those are authenticated first."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000005",
+    "name": "Business Analysis Framework",
+    "description": "Frame a business problem: stakeholders, current vs desired state, requirements, and success metrics.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "B",
+    "avatar_icon": "scale",
+    "avatar_color": "#F59E0B",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a senior business analyst. For a given problem, deliver: 1) problem statement and business context, 2) stakeholders and their goals, 3) current state vs desired state (gap analysis), 4) functional and non-functional requirements, 5) constraints and assumptions, 6) measurable success criteria/KPIs, 7) prioritized scope (MoSCoW). Be precise and avoid solutioning before the problem is well defined."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000006",
+    "name": "Root Cause Analyzer",
+    "description": "Diagnose root causes using 5-Whys / fishbone and separate symptoms from underlying drivers.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "R",
+    "avatar_icon": "search",
+    "avatar_color": "#EF4444",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a root-cause analysis expert. For an incident or problem: 1) restate the observed symptoms with evidence/data, 2) form hypotheses, 3) apply 5-Whys and a fishbone (people/process/tech/data/external), 4) identify the most probable root cause(s) with confidence level, 5) recommend immediate mitigations and long-term fixes, 6) define how to verify the cause was truly addressed. Distinguish symptoms from root causes."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000007",
+    "name": "Solution Architecture Advisor",
+    "description": "Propose solution options with trade-offs, a recommended design, and an execution roadmap.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "S",
+    "avatar_icon": "settings",
+    "avatar_color": "#6366F1",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a solution architect. Given well-defined requirements, deliver: 1) 2-3 candidate solution options with pros/cons, cost, risk, and timeline, 2) a recommended option with justification, 3) a high-level architecture/approach, 4) key risks and mitigations, 5) a phased delivery roadmap with milestones and owners, 6) what to validate first. Tie every choice back to the success metrics."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000008",
+    "name": "Customer Discovery & Intake",
+    "description": "Capture a customer problem cleanly: context, impact, urgency, and clarifying questions.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "C",
+    "avatar_icon": "server",
+    "avatar_color": "#14B8A6",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a customer intake specialist. When a customer reports a problem: 1) acknowledge and summarize the request in your own words, 2) capture context (who/what/when/where, environment, affected users), 3) quantify impact and urgency (severity, frequency, business cost), 4) list the clarifying questions still needed, 5) record reproduction steps or examples, 6) produce a structured intake ticket ready for analysis. Be empathetic, neutral, and never guess missing facts."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f000000009",
+    "name": "AI Image Generator",
+    "description": "Generate images (character art, scene visuals, thumbnails) from text prompts via an OpenAI-compatible image API.",
+    "third_party": "AI Media",
+    "kind": "integration",
+    "avatar": "I",
+    "avatar_icon": "image",
+    "avatar_color": "#F472B6",
+    "avatar_url": "",
+    "tool_name": "image_generation",
+    "config": {
+      "api_key": "",
+      "endpoint": "https://api.openai.com/v1/images/generations",
+      "model": "gpt-image-1",
+      "size": "1024x1024"
+    },
+    "code": null,
+    "instruction": "Provide an API key in 'api_key' (or set IMAGE_GEN_API_KEY / OPENAI_API_KEY on the backend). Works with any OpenAI-compatible image endpoint — change 'endpoint' and 'model' to use Azure OpenAI, OpenRouter, or a self-hosted gateway. 'size' sets the default output dimensions."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000000a",
+    "name": "AI Voiceover (Text-to-Speech)",
+    "description": "Convert script text into natural voiceover audio via an OpenAI-compatible TTS API; returns base64 audio (and a saved file path if configured).",
+    "third_party": "AI Media",
+    "kind": "integration",
+    "avatar": "V",
+    "avatar_icon": "mic",
+    "avatar_color": "#34D399",
+    "avatar_url": "",
+    "tool_name": "text_to_speech",
+    "config": {
+      "api_key": "",
+      "endpoint": "https://api.openai.com/v1/audio/speech",
+      "model": "gpt-4o-mini-tts",
+      "voice": "alloy",
+      "audio_format": "mp3",
+      "output_dir": ""
+    },
+    "code": null,
+    "instruction": "Provide an API key in 'api_key' (or set TTS_API_KEY / OPENAI_API_KEY on the backend). Pick a 'voice' and 'audio_format'. Point 'endpoint'/'model' at any OpenAI-compatible speech service. Optionally set 'output_dir' to also save audio files to disk and get back the path."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000000b",
+    "name": "AI Video Generator",
+    "description": "Render short-form video clips from a prompt (or animate an image) via a generic async create-then-poll video API.",
+    "third_party": "AI Media",
+    "kind": "integration",
+    "avatar": "V",
+    "avatar_icon": "film",
+    "avatar_color": "#A78BFA",
+    "avatar_url": "",
+    "tool_name": "video_generation",
+    "config": {
+      "api_key": "",
+      "create_endpoint": "",
+      "status_endpoint": "",
+      "model": "video-gen-1",
+      "poll_interval_seconds": "5",
+      "max_wait_seconds": "300"
+    },
+    "code": null,
+    "instruction": "Provider-agnostic. Set 'api_key' (or VIDEO_GEN_API_KEY) and 'create_endpoint' to your provider's job-creation URL. For async providers, set 'status_endpoint' with an {id} placeholder (e.g. https://api.provider.com/jobs/{id}); the tool submits the job then polls until the video URL is ready. Works with Replicate-style, Runway, Pika, Kling gateways, etc."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000000c",
+    "name": "MCP Connector (stdio)",
+    "description": "Connect to a local Model Context Protocol server over stdio to expose its tools to the agent.",
+    "third_party": "MCP",
+    "kind": "integration",
+    "avatar": "M",
+    "avatar_icon": "plug",
+    "avatar_color": "#60A5FA",
+    "avatar_url": "",
+    "tool_name": "mcp",
+    "config": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": "-y @modelcontextprotocol/server-filesystem /tmp",
+      "env": "",
+      "allowed_tools": "",
+      "timeout_seconds": "60"
+    },
+    "code": null,
+    "instruction": "Runs an MCP server as a local subprocess. Set 'command' (npx, uvx, python, ...) and 'args' to the server you want to launch; add 'env' (KEY=VALUE per line) for secrets. Use 'allowed_tools' to whitelist specific tool names. Great for plugging in third-party MCP servers (media generation, databases, file access) without writing code."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000000d",
+    "name": "MCP Connector (HTTP)",
+    "description": "Connect to a remote Model Context Protocol server over HTTP/SSE to expose its tools to the agent.",
+    "third_party": "MCP",
+    "kind": "integration",
+    "avatar": "M",
+    "avatar_icon": "plug",
+    "avatar_color": "#38BDF8",
+    "avatar_url": "",
+    "tool_name": "mcp",
+    "config": {
+      "transport": "streamable_http",
+      "url": "http://localhost:8000/mcp",
+      "headers": "",
+      "allowed_tools": "",
+      "timeout_seconds": "60"
+    },
+    "code": null,
+    "instruction": "Connects to a hosted MCP server. Set 'transport' (streamable_http or sse) and 'url' to the server endpoint; add auth via 'headers' (e.g. 'Authorization=Bearer xxx' per line). Use 'allowed_tools' to whitelist. Use this to attach external/remote MCP services to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000000e",
+    "name": "Art & Visual Director",
+    "description": "Craft precise image-generation prompts and a visual style guide for characters, scenes, and thumbnails.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "A",
+    "avatar_icon": "image",
+    "avatar_color": "#F472B6",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are an art director for short-form content. From a character/topic brief, produce: 1) a reusable visual style guide (palette, lighting, framing, art style), 2) ready-to-use image-generation prompts (subject, composition, style, negative cues) for character art, key scenes, and a thumbnail/cover, 3) the recommended aspect ratio/size per use, 4) consistency notes so every image matches the same character and brand. Then call the image generation tool with those prompts and review the results for on-brand consistency."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f00000000f",
+    "name": "Voiceover & Narration Director",
+    "description": "Turn a script into clean narration text and the right voice/pacing settings, then synthesize the voiceover.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "V",
+    "avatar_icon": "mic",
+    "avatar_color": "#34D399",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a voiceover director. From a video script, produce: 1) clean narration text broken into timed segments, 2) pronunciation/emphasis notes and pacing (words-per-minute) per segment, 3) the recommended voice and tone for the audience, 4) SSML or plain text ready for the text-to-speech tool. Then synthesize the voiceover with the TTS tool and verify it matches the target duration and energy. Keep narration tight and mobile-first."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f000000010",
+    "name": "Publishing & Engagement Analyst",
+    "description": "After publishing, track per-platform performance and recommend concrete optimizations for the next post.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "E",
+    "avatar_icon": "chart",
+    "avatar_color": "#10B981",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a social engagement analyst. Given post links and available metrics per platform (views, watch time, retention, likes, shares, comments, CTR), produce: 1) a performance summary per platform, 2) what worked vs underperformed (hook, length, caption, hashtags, posting time), 3) prioritized, concrete changes for the next post, 4) a short experiment to test the biggest hypothesis. Be specific and data-driven; state confidence and any missing metrics as TODOs."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f000000011",
+    "name": "Customer Response Composer",
+    "description": "Draft a clear, empathetic, customer-ready reply with the diagnosis, the plan, timelines, and next steps.",
+    "third_party": "Prompt",
+    "kind": "integration",
+    "avatar": "R",
+    "avatar_icon": "message",
+    "avatar_color": "#14B8A6",
+    "avatar_url": "",
+    "tool_name": "promt_tool",
+    "config": {
+      "system_prompt": "You are a customer communications specialist. From a root-cause report and recommended solutions, write a customer-ready response that: 1) acknowledges the problem with empathy, 2) explains what was found in plain language (no internal jargon), 3) states the action plan with owners and realistic timelines (quick wins + longer-term fixes), 4) sets clear expectations and next check-in, 5) offers a workaround if available. Provide both a concise version (chat/messaging) and a fuller email version. Keep the tone professional, honest, and reassuring."
+    },
+    "code": null,
+    "instruction": "Prompt-only skill — no API key or external account needed. Edit the system prompt in the config to tune its behaviour, then assign it to an agent."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f000000012",
+    "name": "Gemini Image (Imagen)",
+    "description": "Generate images with Google Imagen via your Gemini API key — character art, scenes, thumbnails.",
+    "third_party": "Google Gemini",
+    "kind": "integration",
+    "avatar": "G",
+    "avatar_icon": "image",
+    "avatar_color": "#4285F4",
+    "avatar_url": "",
+    "tool_name": "gemini_image",
+    "config": {
+      "api_key": "",
+      "model": "imagen-3.0-generate-002",
+      "aspect_ratio": "1:1",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta"
+    },
+    "code": null,
+    "instruction": "Paste your Gemini API key in 'api_key' (or set GEMINI_API_KEY / GOOGLE_API_KEY on the backend). Get a key at https://aistudio.google.com/apikey. Choose an Imagen 'model' and default 'aspect_ratio' (1:1, 9:16, 16:9, 3:4, 4:3). Returns base64 image bytes."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f000000013",
+    "name": "Gemini Text-to-Speech",
+    "description": "Generate natural voiceover audio (WAV) from text using Gemini TTS voices.",
+    "third_party": "Google Gemini",
+    "kind": "integration",
+    "avatar": "G",
+    "avatar_icon": "mic",
+    "avatar_color": "#34A853",
+    "avatar_url": "",
+    "tool_name": "gemini_tts",
+    "config": {
+      "api_key": "",
+      "model": "gemini-2.5-flash-preview-tts",
+      "voice": "Kore",
+      "output_dir": "",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta"
+    },
+    "code": null,
+    "instruction": "Paste your Gemini API key in 'api_key' (or set GEMINI_API_KEY / GOOGLE_API_KEY). Pick a prebuilt 'voice' (Kore, Puck, Charon, Aoede, ...). Audio is returned as base64 WAV; set 'output_dir' to also save WAV files to disk."
+  },
+  {
+    "id": "skill_ch1a0d0001f04a1b9c0d0e0f000000014",
+    "name": "Gemini Video (Veo)",
+    "description": "Render short videos from a prompt with Google Veo via your Gemini API key (async; returns a video URI).",
+    "third_party": "Google Gemini",
+    "kind": "integration",
+    "avatar": "G",
+    "avatar_icon": "film",
+    "avatar_color": "#EA4335",
+    "avatar_url": "",
+    "tool_name": "gemini_video",
+    "config": {
+      "api_key": "",
+      "model": "veo-3.0-generate-preview",
+      "poll_interval_seconds": "10",
+      "max_wait_seconds": "300",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta"
+    },
+    "code": null,
+    "instruction": "Paste your Gemini API key in 'api_key' (or set GEMINI_API_KEY / GOOGLE_API_KEY). Veo generation is async: the tool submits the job and polls until ready, then returns a 'video_uri' (downloadable with your API key). Note Veo access/quota depends on your Google account; tune 'max_wait_seconds' for longer renders."
+  }
+]

@@ -1,1 +1,0 @@
-"""Ports (interfaces) to infrastructure."""

@@ -5,7 +5,7 @@ point inward: the domain knows nothing about the web framework or storage, and
 the application layer talks to infrastructure only through Protocols.
 
 ```
-backend/
+server/
 ├── api/                 # Presentation: FastAPI app, routers, schemas, DI, auth
 │   ├── main.py          # App factory, CORS, exception handlers, lifecycle
 │   ├── deps.py          # Dependency-injection wiring + current_user_dep / current_owner_id_dep
@@ -15,7 +15,7 @@ backend/
 │   ├── routers/         # One module per resource (staff, departments, companies, tasks,
 │   │                    # projects, epics, sprints, meetings, recruiting, connections, webhook, ...)
 │   └── schemas/         # Pydantic request/response models
-├── application/         # Use cases
+├── app/                 # Use cases
 │   ├── ports/           # Protocols (repositories.py, llm.py, staff_graph.py, security.py)
 │   └── service/         # Application services (orchestrate domain + ports)
 ├── domain/              # Core model + business logic (no framework imports)
@@ -28,7 +28,7 @@ backend/
 │   ├── memory/          # Knowledge-graph dataclasses
 │   ├── event/           # SSE event schema definitions
 │   └── prompt/, enums.py, errors.py, pricing_defaults.py, utils/
-├── infrastructure/      # Adapters
+├── infra/               # Adapters
 │   ├── repositories/    # JSON-file / Mongo repositories
 │   ├── llm/             # LangChain provider adapters + middleware stack
 │   ├── sandbox/         # Code-execution sandboxes (local/k8s — no docker mode)
@@ -41,9 +41,9 @@ backend/
 
 ## Layer rules
 
-- **domain** imports nothing from `application`, `api`, or `infrastructure`.
-- **application** depends only on `application.ports.*` Protocols, never on
-  concrete adapters. (`application/ports/repositories.py` defines
+- **domain** imports nothing from `app`, `api`, or `infra`.
+- **app** depends only on `app.ports.*` Protocols, never on
+  concrete adapters. (`app/ports/repositories.py` defines
   `StaffRepository`, `SkillRepository`, `DepartmentRepository`,
   `TaskRepository`, `ProjectRepository`, `EpicRepository`, `SprintRepository`,
   `MeetingRepository`, `ConnectionRepository`, `CompanyRepository`,
@@ -51,7 +51,7 @@ backend/
   `ModelPricingRepository`, `SystemSettingsRepository`,
   `GraphKnowledgeRepository`, and `AnalyticsRepository` /
   `ActivityFeedRepository`.)
-- **infrastructure** implements those Protocols; **api/deps.py** is the
+- **infra** implements those Protocols; **api/deps.py** is the
   composition root that injects concrete adapters into services.
 
 ## Request lifecycle

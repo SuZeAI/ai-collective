@@ -1,0 +1,68 @@
+from __future__ import annotations
+
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends
+
+from server.api.deps import current_owner_id_dep, get_sprint_service
+from server.api.ownership import require_deletable, require_modifiable
+from server.api.schemas.sprint import SprintSchema, UpsertSprintRequest
+from server.app.service.sprint_service import SprintService
+from server.domain.enums import SprintStatus
+from server.domain.models import Sprint, is_owned_by
+from server.infra.repositories._helpers import parse_iso_utc as _parse_iso
+
+router = APIRouter(prefix="/sprints", tags=["sprints"])
+
+
+@router.get("", response_model=list[SprintSchema])
+def list_sprints(
+    service: SprintService = Depends(get_sprint_service),
+    owner_id: str = Depends(current_owner_id_dep),
+) -> list[SprintSchema]:
+    return [
+        SprintSchema.from_domain(s)
+        for s in service.list_sprints()
+        if is_owned_by(owner_id, s.owner_id)
+    ]
+
+
+@router.post("", response_model=SprintSchema)
+def upsert_sprint(
+    req: UpsertSprintRequest,
+    service: SprintService = Depends(get_sprint_service),
+    owner_id: str = Depends(current_owner_id_dep),
+) -> SprintSchema:
+    sprint_id = req.id or f"sprint_{uuid4().hex}"
+    existing = service.try_get_sprint(sprint_id) if req.id else None
+    require_modifiable(existing, owner_id, f"Sprint '{sprint_id}'")
+
+    try:
+        status = SprintStatus(req.status)
+    except ValueError:
+        status = SprintStatus.planned
+
+    sprint = Sprint(
+        id=sprint_id,
+        project_id=req.projectId,
+        name=req.name,
+        goal=req.goal,
+        status=status,
+        start_date=_parse_iso(req.startDate),
+        end_date=_parse_iso(req.endDate),
+        owner_id=existing.owner_id if existing else owner_id,
+    )
+    saved = service.upsert_sprint(sprint)
+    return SprintSchema.from_domain(saved)
+
+
+@router.delete("/{sprint_id}")
+def delete_sprint(
+    sprint_id: str,
+    service: SprintService = Depends(get_sprint_service),
+    owner_id: str = Depends(current_owner_id_dep),
+) -> dict:
+    existing = service.try_get_sprint(sprint_id)
+    require_deletable(existing, owner_id, f"Sprint '{sprint_id}'")
+    service.delete_sprint(sprint_id)
+    return {"deleted": True}

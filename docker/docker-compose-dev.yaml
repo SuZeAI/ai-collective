@@ -10,18 +10,16 @@
 #   nginx           — reverse proxy (port 2026, stats: http://localhost:2026/nginx_status)
 #   frontend        — Vite dev server with hot-reload (port 8080 internal)
 #   backend         — FastAPI with --reload (port 8000 internal)
-#   sandbox         — AIO sandbox container (port 8081 exposed for debugging)
-#   provisioner     — K8s sandbox provisioner (port 8002 exposed for debugging)
+#   provisioner     — K8s sandbox provisioner; creates sandboxes as k3s Pods (port 8002 exposed for debugging)
 #
 # Access: http://localhost:2026
 # MongoDB Express:    http://localhost:8081  (admin/admin)
 # Redis Commander:    http://localhost:8083  (no login required)
 # RabbitMQ Mgmt UI:  http://localhost:15672 (guest/guest)
 # Nginx status:      http://localhost:2026/nginx_status
-# Sandbox direct:    http://localhost:8081  (if running)
 # Provisioner:       http://localhost:8002/health
 #
-# Logs: run `make dev` — per-service log files are written to ./logs/<service>.log
+# Logs: run `make dev` — per-service log files are written to ./.artifact/logs/<service>.log
 
 # ── Shared logging configuration (log rotation for all services) ───────────
 x-logging: &default-logging
@@ -152,21 +150,21 @@ services:
   frontend:
     build:
       context: ../
-      dockerfile: Dockerfile.frontend
+      dockerfile: ui/Dockerfile
       target: dev
     container_name: ai-collective-frontend-dev
     command: npm run dev -- --host 0.0.0.0 --port 8080
     volumes:
-      - ../src:/app/src
-      - ../public:/app/public
-      - ../index.html:/app/index.html
-      - ../vite.config.ts:/app/vite.config.ts:ro
-      - ../tailwind.config.ts:/app/tailwind.config.ts:ro
-      - ../postcss.config.js:/app/postcss.config.js:ro
-      - ../tsconfig.json:/app/tsconfig.json:ro
-      - ../tsconfig.app.json:/app/tsconfig.app.json:ro
-      - ../tsconfig.node.json:/app/tsconfig.node.json:ro
-      - ../components.json:/app/components.json:ro
+      - ../ui/src:/app/src
+      - ../ui/public:/app/public
+      - ../ui/index.html:/app/index.html
+      - ../ui/vite.config.ts:/app/vite.config.ts:ro
+      - ../ui/tailwind.config.ts:/app/tailwind.config.ts:ro
+      - ../ui/postcss.config.js:/app/postcss.config.js:ro
+      - ../ui/tsconfig.json:/app/tsconfig.json:ro
+      - ../ui/tsconfig.app.json:/app/tsconfig.app.json:ro
+      - ../ui/tsconfig.node.json:/app/tsconfig.node.json:ro
+      - ../ui/components.json:/app/components.json:ro
     env_file:
       - ../.env
     environment:
@@ -180,7 +178,7 @@ services:
   backend:
     build:
       context: ../
-      dockerfile: backend/Dockerfile
+      dockerfile: server/Dockerfile
       args:
         APT_MIRROR: ${APT_MIRROR:-}
         UV_IMAGE: ${UV_IMAGE:-ghcr.io/astral-sh/uv:0.9.5}
@@ -188,47 +186,32 @@ services:
     container_name: ai-collective-backend-dev
     command: >
       sh -c "uv sync --all-extras &&
-      uv run uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --reload"
+      uv run uvicorn server.api.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
-      - ../backend:/app/backend
-      - ../secrets:/app/secrets
-      # storage/ is the committed read-only seed catalog (SEED_DIR);
-      # local_database/ is the per-machine live store (STORAGE_DIR, gitignored).
+      - ../server:/app/server
+      - ../.secrets:/app/.secrets
+      # storage/seed/ is the committed read-only seed catalog (SEED_DIR);
+      # storage/runtime/ is the per-machine live store (STORAGE_DIR, gitignored).
       - ../storage:/app/storage
-      - ../local_database:/app/local_database
-      - ../logs:/app/logs
-      - ../config.yml:/app/config.yml:ro
-      - ../mcp.yml:/app/mcp.yml:ro
+      - ../.artifact/logs:/app/.artifact/logs
+      - ../.config/config.yml:/app/.config/config.yml:ro
       - sandbox-workspace:/app/sandbox_workspace
       - backend-venv:/app/.venv
       - backend-uv-cache:/root/.cache/uv
     env_file:
       - ../.env
     environment:
-      - GOOGLE_OAUTH_CLIENT_SECRET_PATH=/app/secrets/credentials/client_secret_126452164764-91jgaonrbbj8upq515jmr8cbnn6sqemt.apps.googleusercontent.com.json
+      - GOOGLE_OAUTH_CLIENT_SECRET_PATH=/app/.secrets/credentials/client_secret_126452164764-91jgaonrbbj8upq515jmr8cbnn6sqemt.apps.googleusercontent.com.json
       - REDIS_URL=redis://redis:6379/0
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
-      # STORAGE_BACKEND is owned by config.yml (storage.backend → STORAGE_BACKEND). Do NOT
-      # set it here — an env var would override config.yml. Override per-machine
-      # via .env (STORAGE_BACKEND=...) if needed.
       - MONGO_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-admin}@mongodb:27017/ai_collective?authSource=admin
-      - MONGO_DB=${MONGO_DB:-ai_collective}
-      # Sandbox mode: local | docker | k8s (see docs/SANDBOX.md).
-      #   local → run commands in-process (default, no isolation)
-      #   k8s   → set SANDBOX_MODE=k8s + SANDBOX_PROVISIONER_URL=http://provisioner:8002
-      #           (activate the `provisioner` profile, e.g. `make dev-provisioner`)
-      - SANDBOX_MODE=${SANDBOX_MODE:-local}
-      - SANDBOX_PROVISIONER_URL=${SANDBOX_PROVISIONER_URL:-}
-      - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-60}
+      # Sandbox mode/provisioner/minio/file-backend/log-level are owned by
+      # config.yml now (literal values, not ${VAR}) — do NOT pass them here.
       - SANDBOX_WORKSPACE=/app/sandbox_workspace
-      # Live store lives in local_database/ (gitignored), separate from the
-      # committed storage/ seed catalog. Used by json mode + json fallbacks.
-      - STORAGE_DIR=/app/local_database
-      # File byte-store (FILE_STORAGE_BACKEND / MINIO_*) is delivered via env_file
-      # (../.env) so it is NOT shadowed by interpolation defaults here. For s3
-      # durability: set FILE_STORAGE_BACKEND=s3 + MINIO_ENABLED=true in .env and
-      # start MinIO with `make dev PROFILES=minio`.
-      - LOG_LEVEL=${LOG_LEVEL:-info}
+      # Live store lives in storage/runtime/ (gitignored), separate from the
+      # committed storage/seed/ catalog. Read directly via os.getenv(STORAGE_DIR),
+      # not through config.yml.
+      - STORAGE_DIR=/app/storage/runtime
       - PYTHONUNBUFFERED=1
     # Reach NodePort sandbox services on the host k3s node (k8s mode).
     extra_hosts:
@@ -245,34 +228,10 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  # ── AIO Sandbox Container (profile: sandbox) ───────────────────────────────
-  # Standalone all-in-one sandbox container for manual / debug use. It is NOT
-  # auto-wired to any SANDBOX_MODE in the current code: `docker` mode spawns its
-  # own containers and `k8s` mode runs Pods via the provisioner. Start on its own
-  # with `make dev-sandbox`; reach it at http://localhost:8081 on the host.
-  sandbox:
-    image: ${SANDBOX_IMAGE:-enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest}
-    container_name: ai-collective-sandbox-dev
-    ports:
-      - "8081:8080"   # exposed as 8081 to avoid conflict with frontend's 8080
-    volumes:
-      - sandbox-workspace:/workspace
-    networks:
-      - ai-collective-dev
-    restart: unless-stopped
-    profiles:
-      - sandbox
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/v1/sandbox"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
   # ── Sandbox Provisioner — K8s/k3s pod manager (profile: provisioner) ───────
   # Used by SANDBOX_MODE=k8s. Set in .env → SANDBOX_MODE=k8s
   #   SANDBOX_PROVISIONER_URL=http://provisioner:8002
-  # Talks to the host's k3s API; see docs/K3S.md and docs/SANDBOX.md.
+  # Talks to the host's k3s API; see docs/k3s.md and docs/sandbox.md.
   provisioner:
     build:
       context: ./provisioner
@@ -359,7 +318,7 @@ services:
   # ── MinIO object storage (optional — profile: minio) ─────────────────────
   # Durable byte-store for uploads/agent-outputs/library docs so files survive
   # container restarts. Activate: make dev PROFILES=minio  (then set
-  # MINIO_ENABLED=true or FILE_STORAGE_BACKEND=s3 in .env). Console: :9001.
+  # minio.enabled: true and storage.file_backend: s3 in .config/config.yml). Console: :9001.
   minio:
     image: minio/minio:latest
     container_name: ai-collective-minio-dev
@@ -384,9 +343,9 @@ services:
       retries: 5
       start_period: 10s
 
-  # Qdrant — vector DB for long-term-memory recall (VECTOR_STORE_BACKEND=qdrant).
-  # Activate: make dev PROFILES=qdrant  (then set QDRANT_URL=http://localhost:6333
-  # in .env and vector_store.backend: qdrant in config.yml). Dashboard: :6333/dashboard.
+  # Qdrant — vector DB for long-term-memory recall.
+  # Activate: make dev PROFILES=qdrant  (then set vector_store.backend: qdrant and
+  # vector_store.qdrant_url: http://qdrant:6333 in config.yml). Dashboard: :6333/dashboard.
   qdrant:
     image: qdrant/qdrant:latest
     container_name: ai-collective-qdrant-dev
@@ -401,9 +360,9 @@ services:
     restart: unless-stopped
     logging: *default-logging
 
-  # Neo4j — graph DB for the knowledge graph (GRAPH_DB_BACKEND=neo4j).
-  # Activate: make dev PROFILES=neo4j  (then set NEO4J_URI=bolt://localhost:7687
-  # and NEO4J_PASSWORD in .env, graph.backend: neo4j in config.yml). Browser: :7474.
+  # Neo4j — graph DB for the knowledge graph.
+  # Activate: make dev PROFILES=neo4j  (then set graph.backend: neo4j and
+  # graph.neo4j_uri: bolt://neo4j:7687 in config.yml; NEO4J_PASSWORD stays in .env). Browser: :7474.
   neo4j:
     image: neo4j:5-community
     container_name: ai-collective-neo4j-dev

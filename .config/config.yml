@@ -1,0 +1,339 @@
+# AI Collective — configuration
+# Single source of truth for app config; keys match server/api/settings.py 1:1.
+# Override file: CONFIG_FILE=/path. Test override merge: CONFIG_OVERRIDE_FILE=/path.
+# Secrets live in .env, pulled in via ${VAR}/$VAR. Per-tool creds are NOT here (UI/MongoDB).
+
+# Schema version (informational only)
+config_version: 1
+
+# ── Application ───────────────────────────────────────────────────────────────
+app:
+  environment: development            # development | production
+  api_prefix: /api/v1
+  cors_origins: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080,http://localhost:2026,http://127.0.0.1:2026"
+  frontend_url: http://localhost:2026
+  vite_api_base_url: http://localhost:2026/api/v1
+
+# ── Logging ─────────────────────────────────────────────────────────────────
+logging:
+  log_level: debug                    # critical | error | warning | info | debug
+  log_console: true
+  log_file: true
+  log_max_bytes: 10485760
+  log_backup_count: 5
+
+# ── Models (LLM registry; active model = first `enabled: true` entry, or the
+#    Settings UI override) ───────────────────────────────────────────────────
+# supports_* flags mark an entry's api_key as a fallback for that tool/embedding.
+models:
+  - name: gemini
+    display_name: Gemini 3 Flash
+    provider_name: Google
+    model: gemini-3-flash-preview
+    api_key: $GOOGLE_API_KEY
+    supports_vision: true
+    supports_embedding: true
+    supports_image_gen: true
+    supports_tts: true
+    supports_video_gen: true
+    enabled: true
+    failover:
+      strategy: rotate
+      rotate_max_requests_per_min: 0
+      rotate_max_tokens_per_min: 0
+      key_cooldown_seconds: 1
+
+  - name: claude
+    display_name: Claude Sonnet 4
+    provider_name: Anthropic
+    model: claude-sonnet-4-20250514
+    api_key: $ANTHROPIC_API_KEY
+    supports_vision: true
+    enabled: false
+    failover:
+      strategy: rotate
+      rotate_max_requests_per_min: 0
+      rotate_max_tokens_per_min: 0
+      key_cooldown_seconds: 60
+
+  - name: gpt-4o
+    display_name: GPT-4o
+    provider_name: OpenAI
+    model: gpt-4o
+    api_key: $OPENAI_API_KEY
+    supports_embedding: true
+    supports_image_gen: true
+    supports_tts: true
+    enabled: false
+    failover:
+      strategy: rotate
+      rotate_max_requests_per_min: 0
+      rotate_max_tokens_per_min: 0
+      key_cooldown_seconds: 60
+
+  - name: deepseek
+    display_name: DeepSeek Flash
+    provider_name: DeepSeek
+    model: deepseek-flash
+    api_key: $DEEPSEEK_API_KEY
+    base_url: https://api.deepseek.com/v1
+    enabled: true
+    failover:
+      strategy: rotate
+      rotate_max_requests_per_min: 0
+      rotate_max_tokens_per_min: 0
+      key_cooldown_seconds: 60
+
+  - name: kimi
+    display_name: Kimi K2
+    provider_name: Kimi
+    model: kimi-k2-0711-preview
+    api_key: $KIMI_API_KEY
+    base_url: https://api.moonshot.ai/v1
+    enabled: false
+    failover:
+      strategy: rotate
+      rotate_max_requests_per_min: 0
+      rotate_max_tokens_per_min: 0
+      key_cooldown_seconds: 60
+
+  - name: glm
+    display_name: GLM 4.6
+    provider_name: GLM
+    model: glm-4.6
+    api_key: $GLM_API_KEY
+    base_url: https://api.z.ai/api/paas/v4
+    enabled: false
+    failover:
+      strategy: rotate
+      rotate_max_requests_per_min: 0
+      rotate_max_tokens_per_min: 0
+      key_cooldown_seconds: 60
+
+  - name: open_weight
+    display_name: OpenRouter (Qwen)
+    provider_name: Open-weight
+    model: qwen/qwen3.5-397b-a17b
+    api_key: $OPENROUTER_API_KEY
+    base_url: https://openrouter.ai/api/v1
+    supports_embedding: true
+    enabled: false
+    failover:
+      strategy: rotate
+      rotate_max_requests_per_min: 0
+      rotate_max_tokens_per_min: 0
+      key_cooldown_seconds: 60
+
+# ── Middleware (staff stack, see server/infra/llm/middleware/) ──────
+# Always-on: ModelCallLimit, LoopDetection, ToolRetry, ToolTimeout.
+middleware:
+  loop_detection:
+    enabled: true                     # break loops repeating an identical tool call
+    max_repeats: 3
+  tool_retry:
+    max: 2                            # transient tool-failure retries (0 = off)
+  tool_call_limit:
+    limit: 0                          # run-wide tool-execution cap (0 = off)
+  tool_cache:
+    enabled: false                    # cache identical idempotent tool calls
+    deny_tools: ""                    # comma-separated tools to never cache
+  guardrail:
+    deny_tools: ""                    # comma-separated tools to block
+    deny_patterns: ""                 # comma-separated arg regexes to block
+  pii_redaction:
+    enabled: false                    # scrub emails/cards/secrets from results
+  model_fallback:
+    models: ""                        # comma-separated fallback model names
+  model_retry:
+    max: 0                            # transient model-error retries (0 = off)
+  context_editing:
+    enabled: false                    # prune old tool outputs on large input
+    trigger_tokens: 100000
+    keep: 3
+  summarization:
+    enabled: false                    # LLM-based history summarization
+    model: ""                         # required when enabled (a `models:` name)
+    trigger_tokens: 8000
+    keep_messages: 20
+  rolling_summary:
+    enabled: false                    # LLM-free history compactor
+    trigger_tokens: 6000
+    keep_messages: 10
+  long_term_memory:
+    enabled: false                    # recall/persist via long-term memory
+  cost_budget:
+    run_token_budget: 0               # soft-stop a run past this token count (0 = off)
+  prompt_cache:
+    enabled: false                    # Anthropic prompt-caching (no-op on non-Anthropic providers)
+    ttl: 5m
+    min_messages: 0
+  step_logging:
+    enabled: true                     # concise per-step log: round #, tool name, input/output (truncated)
+    preview_chars: 300                # max chars kept per input/output preview before truncation
+
+# ── 9Router gateway (docker profile: router) ──────────────────────────────────
+router:
+  port: 20128
+  public_url: http://localhost:20128
+  jwt_secret: ${ROUTER_JWT_SECRET}
+  initial_password: ${ROUTER_INITIAL_PASSWORD}
+
+# ── Staff / tools ─────────────────────────────────────────────────────────────
+staff:
+  max_tool_rounds: 6                  # max LLM<->tool rounds per staff turn
+  tool_timeout_seconds: 0             # per-tool timeout, 0 = disabled
+  subagent_max_concurrent: 3
+  subagent_max_turns: 6
+  context_token_limit: 12000          # context budget per agent turn
+  output_token_reserve: 2000          # tokens reserved for the model's reply
+  llm_timeout_seconds: 120            # per LLM call timeout
+  llm_max_retries: 2                  # per LLM call retries
+  ask_user_timeout_seconds: 600       # ask_user prompt wait limit
+  pause_timeout_seconds: 1800         # max time a run may sit paused before auto-resume
+
+# ── Storage ───────────────────────────────────────────────────────────────────
+storage:
+  backend: mongo                      # json (file) | mongo
+  dir: storage/runtime                 # live DB dir (relative to project root)
+  seed_dir: storage/seed               # read-only default catalog seeded FROM
+  file_backend: s3                    # local | s3 (auto: s3 when minio.enabled)
+
+# ── MongoDB (used when storage.backend=mongo) ─────────────────────────────────
+mongo:
+  db: ai_collective
+  uri: ${MONGO_URI:-mongodb://admin:admin@localhost:27017/ai_collective?authSource=admin}
+
+# ── Graph knowledge extraction ────────────────────────────────────────────────
+graph:
+  build_mode: static                  # static (spaCy, no token cost) | llm
+  backend: neo4j                      # auto (follows storage.backend) | neo4j
+  neo4j_uri: bolt://neo4j:7687
+  neo4j_user: neo4j
+  neo4j_password: ${NEO4J_PASSWORD}
+  neo4j_database: neo4j
+
+# ── Task queue ────────────────────────────────────────────────────────────────
+task_queue:
+  backend: rabbitmq                   # memory (single instance) | rabbitmq
+  max_concurrent: 10                  # system-wide concurrent staff-graph runs
+  rabbitmq_url: ${RABBITMQ_URL}
+
+# ── Repository lock ───────────────────────────────────────────────────────────
+lock:
+  backend: redis                      # threading (single instance) | redis
+  redis_url: ${REDIS_URL}
+
+# ── Sandbox ───────────────────────────────────────────────────────────────────
+sandbox:
+  mode: k8s                           # local | k8s
+  timeout: 120
+  provisioner_url: http://provisioner:8002
+  workspace: ${SANDBOX_WORKSPACE}     # machine-specific absolute path, stays in .env
+
+# ── MinIO (S3 storage: sandbox backups in k8s mode, doc uploads if file_backend=s3) ──
+minio:
+  enabled: true
+  endpoint: minio:9000
+  access_key: ${MINIO_ACCESS_KEY:-minioadmin}
+  secret_key: ${MINIO_SECRET_KEY:-minioadmin}
+  bucket: sandbox-backups
+  secure: false
+
+# ── Authentication / JWT ──────────────────────────────────────────────────────
+auth:
+  jwt_secret_key: ${JWT_SECRET_KEY:-change-me-in-production-use-openssl-rand-hex-32}
+  jwt_algorithm: HS256
+  jwt_access_token_expire_minutes: 10080   # 7 days
+  google_login_client_id: ${GOOGLE_LOGIN_CLIENT_ID}
+  google_login_client_secret: ${GOOGLE_LOGIN_CLIENT_SECRET}
+  google_login_redirect_uri: http://127.0.0.1:2026/api/v1/auth/google/callback
+  google_oauth_redirect_uri: http://127.0.0.1:2026/api/v1/auth/oauth/callback
+  google_oauth_client_secret_path: ${GOOGLE_OAUTH_CLIENT_SECRET_PATH}
+  credentials_path: ${CREDENTIALS_PATH}
+  service_account_path: ${SERVICE_ACCOUNT_PATH}
+
+# ── Agent working memory (short-term, per-conversation) ───────────────────────
+working_memory:
+  enabled: true
+  max_notes: 40
+  compact_tokens: 1500
+  note_chars: 600
+  summary_chars: 3000
+  digest_chars: 4000
+
+# ── Embeddings (pluggable vector backend) ──────────────────────────────────
+# provider: hashing (dependency-free) | google | openai | open_weight
+embedding:
+  enabled: false
+  provider: hashing
+  dim: 256
+  batch_size: 64
+
+# ── Long-term memory (cross-conversation) ──────────────────────────────────
+long_term_memory:
+  enabled: false
+  recall_top_k: 5
+  min_importance: 0.0
+  consolidate_on_run_end: true          # promote salient working-memory notes
+  dedupe_threshold: 0.92
+  digest_chars: 2000
+
+# ── RAG retrieval ───────────────────────────────────────────────────────────
+# mode: bm25 (default, local) | qdrant (vector) | neo4j (graph) | hybrid
+retrieval:
+  mode: bm25
+  top_k: 5
+  hops: 1                  # graph expansion depth for neo4j/hybrid
+  max_chars: 1500
+
+# ── Vector store (ANN index for long-term-memory recall) ──────────────────────
+# backend: none (brute-force) | faiss (local) | qdrant (service)
+vector_store:
+  backend: qdrant                        # none (brute-force) | faiss (local) | qdrant (service)
+  qdrant_url: http://qdrant:6333
+  qdrant_api_key: ${QDRANT_API_KEY}
+  qdrant_collection: ltm_memory
+  overfetch: 5                           # extra candidates before scope filtering
+
+# ── MCP (Model Context Protocol) ──────────────────────────────────────────────
+# Servers are created as skills (tool_name = "mcp") via the UI/API.
+mcp:
+  discovery_timeout_seconds: 30       # list_tools handshake ceiling
+  call_timeout_seconds: 60            # default per-tool-call timeout
+
+# ── Admin bootstrap ───────────────────────────────────────────────────────────
+admin:
+  email: admin@aicollective.com
+  name: Administrator
+  auto_seed: true
+  password: ${ADMIN_PASSWORD}
+
+# ── Default catalog seed ──────────────────────────────────────────────────────
+seed:
+  default_data: true
+
+# ── Browser automation (agent browser tools) ──────────────────────────────────
+browser:
+  model_name: gemini-2.0-flash
+  model_provider: google_genai
+  temperature: 0.0
+  max_tokens: 1024
+
+# ── Tool runtime defaults (NOT per-skill credentials — those are set via the UI) ──
+# One nested section per tool. The Google Workspace tools (calendar/docs/drive/
+# sheets/slides) have no entry here — their OAuth token path is per-user, set
+# on the skill's own config when that user authenticates (see auth.py).
+tools:
+  bird:                                # bird_x (X scraping)
+    bird_search_mjs: ""                # vendored script path override
+  xai:                                 # xai.py (Grok)
+    xai_model: grok-4-fast
+  viber:                               # viber_messaging.py
+    viber_sender_name: "AI Assistant"
+  tts:                                 # text_to_speech.py + gemini.py TTS toolkit
+    tts_output_dir: ""
+
+# ── Tool runtime flags (global, NOT per-skill) ────────────────────────────────
+security:
+  allow_private_http: false           # allow tools to reach private/loopback IPs
+  last30days_debug: false             # verbose HTTP debug logging

@@ -1,0 +1,31 @@
+# Run `make check` to lint everything once, or `pre-commit install` to run
+# these automatically on every commit (staged files only).
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+        exclude: ^ui/tsconfig.*\.json$  # tsconfig files use JSONC (comments), not strict JSON
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=2000]
+      - id: mixed-line-ending
+
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check (backend)
+        entry: uv run ruff check server/
+        language: system
+        pass_filenames: false
+        files: \.py$
+
+      - id: eslint
+        name: eslint (frontend)
+        entry: npm --prefix ui run lint
+        language: system
+        pass_filenames: false
+        files: ^ui/.*\.(ts|tsx)$

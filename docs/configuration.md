@@ -1,7 +1,7 @@
 # Configuration
 
-**`config.yml` is the single, complete source for every setting, including
-secrets.** Precedence:
+**`config.yml` (lives at `.config/config.yml`) is the single, complete source
+for every setting, including secrets.** Precedence:
 
 ```
 code defaults  <  config.yml  (${VAR} / $VAR expanded from .env / OS environment)
@@ -10,7 +10,7 @@ code defaults  <  config.yml  (${VAR} / $VAR expanded from .env / OS environment
 - To change behavior (provider list, timeouts, ports, feature toggles), **edit
   `config.yml` directly** — it is a nested, lowercase-key YAML file where each
   top-level section maps 1:1 onto a `Settings` sub-model
-  (`backend/api/settings.py`) and each leaf key equals that sub-model's field
+  (`server/api/settings.py`) and each leaf key equals that sub-model's field
   name.
 - No part of the backend reads a bare OS/`.env` variable to configure itself.
   The **only** way an env var reaches a setting is an explicit `${VAR}` (or
@@ -23,9 +23,9 @@ code defaults  <  config.yml  (${VAR} / $VAR expanded from .env / OS environment
 - Relocate the file with `CONFIG_FILE=/path/to/config.yml`. The test suite
   layers an optional `CONFIG_OVERRIDE_FILE=/path` on top (deep-merged) to swap
   a handful of ops knobs without duplicating the whole file
-  (`backend/api/config_loader.py`).
-- MCP servers are declared separately in `mcp.yml`, referenced from
-  `mcp.config_file` — see [MCP_GUIDE.md](MCP_GUIDE.md).
+  (`server/api/config_loader.py`).
+- MCP servers are created as skills (`tool_name = "mcp"`) via the UI/API —
+  see [mcp-guide.md](mcp-guide.md).
 - Per-tool/per-skill credentials are **not** here at all — they live in each
   skill's `config` dict (stored in MongoDB, edited via the UI).
 
@@ -46,7 +46,7 @@ no longer do anything by themselves; they map onto the same fields shown here.
 | `app.vite_api_base_url` | `http://localhost:8000/api/v1` | API base URL baked into the Vite frontend build |
 | `logging.log_level` | `info` | `critical` \| `error` \| `warning` \| `info` \| `debug` |
 | `logging.log_console` | `true` | Log to stdout/stderr |
-| `logging.log_file` | `false` | Log to a rotating file under `logs/` |
+| `logging.log_file` | `false` | Log to a rotating file under `.artifact/logs/` |
 | `logging.log_max_bytes` | `10485760` (10 MB) | Rotating log file size cap |
 | `logging.log_backup_count` | `5` | Rotated log files kept |
 
@@ -103,10 +103,10 @@ override), `supports_thinking`, `supports_reasoning_effort`,
 `when_thinking_enabled` / `when_thinking_disabled` / `thinking` (extra kwargs
 merged in based on thinking mode). `provider_name` (falling back to `name`)
 picks the provider wrapper; `api_key` may hold several comma-separated keys —
-see [LLM_KEY_ROTATION.md](LLM_KEY_ROTATION.md) for the full per-key
+see [llm-key-rotation.md](llm-key-rotation.md) for the full per-key
 rotation/failover guide.
 
-To route every request through the bundled [9Router](9ROUTER_SETUP.md)
+To route every request through the bundled [9Router](9router-setup.md)
 multi-provider proxy instead, set an entry's `failover.strategy: 9router`
 (or alias `router`), point `base_url` at
 `http://nine-router:20128/v1`, and use a 9Router-issued key as `api_key`.
@@ -134,7 +134,7 @@ Router container knobs live under `router:` (`router.port`,
 ### LLM middleware (`middleware:`)
 
 Cross-cutting behaviours layered on the `create_agent` path, one nested block
-per middleware, keyed by name. See [LLM_MIDDLEWARE.md](LLM_MIDDLEWARE.md) for
+per middleware, keyed by name. See [llm-middleware.md](llm-middleware.md) for
 the full stack and ordering.
 
 | Key | Default | Description |
@@ -179,7 +179,7 @@ the full stack and ordering.
 | `sandbox.mode` | `local` | `local` \| `k8s` (no `docker` mode) |
 | `sandbox.timeout` | `120` | Command timeout (seconds) |
 | `sandbox.workspace` | — | Local sandbox workspace directory override |
-| `sandbox.image` / `.replicas` / `.idle_timeout` / `.provisioner_url` | k8s defaults | k8s sandbox pool image, replica count, idle eviction, provisioner service URL (`${SANDBOX_PROVISIONER_URL}` if set inline) — see [K3S.md](K3S.md) |
+| `sandbox.image` / `.replicas` / `.idle_timeout` / `.provisioner_url` | k8s defaults | k8s sandbox pool image, replica count, idle eviction, provisioner service URL (`${SANDBOX_PROVISIONER_URL}` if set inline) — see [k3s.md](k3s.md) |
 
 ## Knowledge graph (`graph:`)
 
@@ -194,12 +194,12 @@ the full stack and ordering.
 
 Falls back to the `storage.backend` graph repo if the driver/server is
 unavailable. Install with `pip install '.[neo4j]'`; local dev container via the
-`neo4j` compose profile. See [LONG_TERM_MEMORY.md](LONG_TERM_MEMORY.md).
+`neo4j` compose profile. See [long-term-memory.md](long-term-memory.md).
 
 ## Embeddings & long-term memory (`embedding:` / `long_term_memory:` / `retrieval:` / `vector_store:`)
 
 Real vector RAG + cross-conversation memory. **OFF by default** (lexical
-fallback). Full guide: [LONG_TERM_MEMORY.md](LONG_TERM_MEMORY.md).
+fallback). Full guide: [long-term-memory.md](long-term-memory.md).
 
 | Key | Default | Description |
 |-----|---------|-------------|
@@ -246,7 +246,7 @@ containers via the `qdrant` compose profile.
 ## Working memory (`working_memory:`)
 
 Per-conversation short-term working memory (distinct from long-term memory
-above). See [AGENT_MEMORY.md](AGENT_MEMORY.md).
+above). See [agent-memory.md](agent-memory.md).
 
 | Key | Default | Description |
 |-----|---------|-------------|
@@ -259,13 +259,11 @@ above). See [AGENT_MEMORY.md](AGENT_MEMORY.md).
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `mcp.config_file` | `mcp.yml` | Path (relative to project root) to the MCP server declaration file |
-| `mcp.auto_seed` | `true` | Seed enabled servers from `mcp.yml` into the skill store on boot |
 | `mcp.discovery_timeout_seconds` | `30` | `list_tools` handshake ceiling |
 | `mcp.call_timeout_seconds` | `60` | Default per-tool-call timeout |
 
 Per-server config (transport, command/args, url/headers, allowed tools) lives
-in `mcp.yml` itself — see [MCP_GUIDE.md](MCP_GUIDE.md).
+on each skill's `config` dict — see [mcp-guide.md](mcp-guide.md).
 
 ## Admin bootstrap & seed data (`admin:` / `seed:`)
 

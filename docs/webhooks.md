@@ -2,7 +2,7 @@
 
 The backend can receive messages from ~15 messaging platforms, run the
 configured agent team, and reply. Webhook processors live in
-`backend/domain/third_party/` and are dispatched by `backend/api/routers/webhook.py`.
+`server/domain/third_party/` and are dispatched by `server/api/routers/webhook.py`.
 
 ## Endpoints
 
@@ -16,9 +16,9 @@ POST /api/v1/webhook/{platform}/{company_id}/{hook_id}   # incoming events
 `wechat_messaging`, `viber_messaging`, `zalo_messaging`, `signal_messaging`,
 `skype_messaging`, `teams`, `wire_messaging`, `snapchat_messaging`).
 
-Inbound webhooks are `Connection` rows (`backend/domain/models.py`) with
+Inbound webhooks are `Connection` rows (`server/domain/models.py`) with
 `kind="inbound_webhook"`, resolved and scoped to their owning company by
-`backend/api/routers/webhook.py::_resolve_hook`. They share the `Connection`
+`server/api/routers/webhook.py::_resolve_hook`. They share the `Connection`
 model with outbound third-party connections (`kind="outbound"`), both served
 via `ConnectionService` (`connections.py` for CRUD, `webhook.py` for the
 public receive endpoints).
