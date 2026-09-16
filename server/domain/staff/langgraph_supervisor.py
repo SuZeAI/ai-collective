@@ -60,6 +60,19 @@ RESERVED_OUTPUT_TOKENS = max(256, settings.staff.output_token_reserve)
 
 _DELEGATION_LOG_WINDOW = 6  # last N delegation entries shown to lead
 
+# How many times to nudge the lead when its reply used none of the required
+# control tags (<FANOUT>/<DELEGATE_TO>/<FINAL_ANSWER>) -- without this, a lead
+# that merely describes its plan in prose (small/fast models do this more
+# often) falls through lead_router's "no target, no final answer -> end"
+# branch and silently ends the whole run after a single turn.
+_LEAD_FORMAT_RETRIES = 1
+_LEAD_FORMAT_RETRY_PROMPT = (
+    "Your reply didn't include a valid control tag, so no action can be "
+    "taken. Reply again using ONLY one of: <DELEGATE_TO>...</DELEGATE_TO> "
+    "with <TASK>...</TASK>, <FANOUT>...</FANOUT>, or "
+    "<FINAL_ANSWER>...</FINAL_ANSWER>."
+)
+
 _LEAD_ROUTING_PROMPT = """
 ## SUPERVISOR ROLE
 You are the **lead staff_member**. Your job is to complete the user's request by either answering directly or delegating sub-tasks to specialist workers, then synthesizing their results.
@@ -441,21 +454,44 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             })
 
             own_history = llm_ready_messages(state.get("staff_states", {}), lead.name)
+            messages = [*own_history, *turn.as_messages()]
             raw_output = await safe_chat_retry_empty(llm,
                 staff_name=lead.name,
                 system=lead.system_prompt,
-                messages=[*own_history, *turn.as_messages()],
+                messages=messages,
                 tools=bound_tools or None,
             )
             raise_if_llm_failed(raw_output)
+            reasoning, action = self._split_reasoning_and_action(raw_output)
+
+            # Nudge the lead if it used none of the required control tags,
+            # instead of silently treating this as a final answer/dead end.
+            for _ in range(_LEAD_FORMAT_RETRIES):
+                if (
+                    self._FANOUT_RE.search(action)
+                    or self._DELEGATE_TO_RE.search(action)
+                    or self._FINAL_ANSWER_RE.search(action)
+                ):
+                    break
+                messages = [
+                    *messages,
+                    {"role": "assistant", "content": raw_output},
+                    {"role": "user", "content": _LEAD_FORMAT_RETRY_PROMPT},
+                ]
+                raw_output = await safe_chat_retry_empty(llm,
+                    staff_name=lead.name,
+                    system=lead.system_prompt,
+                    messages=messages,
+                    tools=bound_tools or None,
+                )
+                raise_if_llm_failed(raw_output)
+                reasoning, action = self._split_reasoning_and_action(raw_output)
 
             stream_writer({
                 "type": EventType.LLM_RESPONSE_COMPLETE.value,
                 "agent_name": lead.name,
                 "response_length": len(raw_output),
             })
-
-            reasoning, action = self._split_reasoning_and_action(raw_output)
 
             new_staff_states = append_assistant_turn(
                 append_user_turn(state.get("staff_states", {}), lead.name, input_text),
@@ -486,7 +522,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 )
 
             final_answer = self._extract_final_answer(action)
-            target_worker, task_text = self._extract_delegation(action)
+            target_worker, task_text = self._extract_delegation(action, [w.name for w in workers])
 
             # The lead's reply is sometimes pure <DELEGATE_TO>/<TASK> control tags
             # with no free-text commentary — _split_reasoning_and_action strips
@@ -737,13 +773,24 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
     def _split_reasoning_and_action(self, message: str) -> tuple[str, str]:
         return split_reasoning_and_action(message, self._CONTROL_BLOCK_RE)
 
-    def _extract_delegation(self, action_payload: str) -> tuple[str | None, str]:
+    def _extract_delegation(
+        self, action_payload: str, worker_names: list[str] | None = None,
+    ) -> tuple[str | None, str]:
         delegate_match = self._DELEGATE_TO_RE.search(action_payload)
         task_match = self._TASK_RE.search(action_payload)
         if not delegate_match:
             return None, ""
         target = delegate_match.group(1).strip()
         task = task_match.group(1).strip() if task_match else ""
+        if target and worker_names:
+            # The model reliably gets the tag syntax right but is inconsistent
+            # about the exact casing of the worker's name (e.g. "researcher"
+            # instead of "Researcher") -- match it case-insensitively against
+            # the real names, same as parse_fanout_pairs already does for the
+            # <FANOUT> path, so lead_router's exact-match check doesn't treat
+            # a validly-targeted delegation as "no target" and silently end
+            # the run.
+            target = {name.lower(): name for name in worker_names}.get(target.lower(), target)
         return target or None, task
 
     def _extract_final_answer(self, action_payload: str) -> str:
@@ -965,7 +1012,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         raise_if_llm_failed(synth_raw)
         synth_reasoning, synth_action = self._split_reasoning_and_action(synth_raw)
         final_answer = self._extract_final_answer(synth_action)
-        target_worker, next_task = self._extract_delegation(synth_action)
+        target_worker, next_task = self._extract_delegation(synth_action, [w.name for w in workers])
 
         synthesis_turn_number = base_turn + len(results) + 1
         record_turn_in_memory(

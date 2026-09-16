@@ -324,6 +324,89 @@ def test_e2e_supervisor_fanout_full_graph():
     assert "combined answer" in res.final_response
 
 
+def test_supervisor_lead_retries_once_when_reply_has_no_control_tag():
+    """Regression: a lead reply using none of the required control tags (a
+    small/fast model describing its plan in prose instead of emitting
+    <DELEGATE_TO>/<FANOUT>/<FINAL_ANSWER>) used to fall through
+    lead_router's "no target, no final answer" branch and silently end the
+    whole run after one turn, never actually delegating. The lead must get
+    one nudge to reply in the correct format before that happens."""
+
+    class OnceMalformedLLM:
+        def __init__(self):
+            self.lead_calls = 0
+
+        async def chat(self, *, system, user=None, messages=None, tools=None,
+                       parallel_tools=False, max_tool_rounds=None, **kwargs):
+            if system == "lead":
+                self.lead_calls += 1
+                if self.lead_calls == 1:
+                    return "My plan: I'll delegate research to W1 first."
+                return "<FINAL_ANSWER>done</FINAL_ANSWER>"
+            return "worker output"
+
+        def get_chat_model(self):
+            return None
+
+        async def generate_json(self, *, system, user):
+            return {}
+
+    llm = OnceMalformedLLM()
+    agents = [
+        GraphStaffDefinition(name="Lead", role="lead", system_prompt="lead"),
+        GraphStaffDefinition(name="W1", role="worker", system_prompt="w1"),
+    ]
+    res = asyncio.run(LangGraphSupervisorOrchestrator().run(
+        user_input="Do the job.", staff=agents, llm=llm, max_rounds=6,
+        meeting_id=None,
+    ))
+    assert llm.lead_calls == 2, "lead should have been nudged exactly once"
+    assert "done" in res.final_response
+    assert [t.staff_name for t in res.turns] == ["Lead"]
+
+
+def test_supervisor_delegation_matches_worker_name_case_insensitively():
+    """Regression: found live against DeepSeek -- the lead correctly emitted
+    <DELEGATE_TO>researcher</DELEGATE_TO> (lowercase) targeting the worker
+    registered as "Researcher" (capitalized). lead_router's exact-match
+    ``target in worker_names`` check treated that as no valid target and
+    silently ended the run after the lead's first turn, never actually
+    delegating -- even though every other topology (tree, mesh) and
+    supervisor's own <FANOUT> path already match worker names
+    case-insensitively."""
+
+    class CaseMismatchLLM:
+        def __init__(self):
+            self.lead_calls = 0
+
+        async def chat(self, *, system, user=None, messages=None, tools=None,
+                       parallel_tools=False, max_tool_rounds=None, **kwargs):
+            if system == "lead":
+                self.lead_calls += 1
+                if self.lead_calls == 1:
+                    return "Delegating research.\n<DELEGATE_TO>researcher</DELEGATE_TO><TASK>go</TASK>"
+                return "<FINAL_ANSWER>done</FINAL_ANSWER>"
+            return "research output"
+
+        def get_chat_model(self):
+            return None
+
+        async def generate_json(self, *, system, user):
+            return {}
+
+    llm = CaseMismatchLLM()
+    agents = [
+        GraphStaffDefinition(name="Lead", role="lead", system_prompt="lead"),
+        GraphStaffDefinition(name="Researcher", role="researcher", system_prompt="r"),
+    ]
+    res = asyncio.run(LangGraphSupervisorOrchestrator().run(
+        user_input="Do the job.", staff=agents, llm=llm, max_rounds=6,
+        meeting_id=None,
+    ))
+    names = [t.staff_name for t in res.turns]
+    assert "Researcher" in names, f"lead's lowercase-cased delegation was never actually routed: {names}"
+
+
 def test_e2e_mesh_sequential_unchanged_when_no_fanout():
     """Regression: without <FANOUT>, mesh routes one agent at a time."""
 
