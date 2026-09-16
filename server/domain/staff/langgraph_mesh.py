@@ -110,6 +110,22 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         re.IGNORECASE | re.DOTALL,
     )
 
+    # How many times to nudge a staff whose reply used none of the required
+    # control tags (<NEXT_AGENT>/<DISCUSSION_END>/<FANOUT>) -- e.g. narrating
+    # "routing to SEO" in prose instead of emitting <NEXT_AGENT>SEO</NEXT_AGENT>.
+    # Without this, _decide_next_staff's round-robin-biased-to-hub fallback
+    # kicks in and routes to whichever staff happens to be the hub, even when
+    # that staff has nothing left to contribute -- wasting a full turn (and an
+    # LLM call) on a "nothing new to add" filler response. Reproduced live: a
+    # real 4-staff mesh run against DeepSeek hit this twice in one run.
+    _MESH_FORMAT_RETRIES = 1
+    _MESH_FORMAT_RETRY_PROMPT = (
+        "Your reply didn't include a valid control tag, so no routing "
+        "decision can be made. Reply again using ONLY one of: "
+        "<NEXT_AGENT>ExactStaffName</NEXT_AGENT>, "
+        "<DISCUSSION_END>summary</DISCUSSION_END>, or (hub only) <FANOUT>...</FANOUT>."
+    )
+
     async def run(
         self,
         *,
@@ -605,14 +621,40 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
 
             logger.debug("[%s] mesh_node: invoking LLM...", staff_member.name)
             own_history = llm_ready_messages(state.get("staff_states", {}), staff_member.name)
+            messages = [*own_history, *turn.as_messages()]
             response = await safe_chat_retry_empty(llm,
                 staff_name=staff_member.name,
                 system=fixed_system_prompt,
-                messages=[*own_history, *turn.as_messages()],
+                messages=messages,
                 tools=bound_tools or None,
                 parallel_tools=staff_member.subagent_enabled,
             )
             raise_if_llm_failed(response)
+
+            # Nudge the staff if it used none of the required control tags,
+            # instead of silently falling back to round-robin-biased-to-hub
+            # routing (see _MESH_FORMAT_RETRIES docstring).
+            for _ in range(self._MESH_FORMAT_RETRIES):
+                if (
+                    self._NEXT_AGENT_RE.search(response)
+                    or self._DISCUSSION_END_RE.search(response)
+                    or self._FANOUT_RE.search(response)
+                ):
+                    break
+                messages = [
+                    *messages,
+                    {"role": "assistant", "content": response},
+                    {"role": "user", "content": self._MESH_FORMAT_RETRY_PROMPT},
+                ]
+                response = await safe_chat_retry_empty(llm,
+                    staff_name=staff_member.name,
+                    system=fixed_system_prompt,
+                    messages=messages,
+                    tools=bound_tools or None,
+                    parallel_tools=staff_member.subagent_enabled,
+                )
+                raise_if_llm_failed(response)
+
             logger.debug(
                 "[%s] mesh_node: LLM response received — response_chars=%d",
                 staff_member.name, len(response),

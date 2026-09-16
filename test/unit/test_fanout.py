@@ -440,6 +440,48 @@ def test_e2e_mesh_sequential_unchanged_when_no_fanout():
     assert len(res.turns) >= 2
 
 
+def test_e2e_mesh_retries_once_when_reply_has_no_control_tag():
+    """Regression: found live against DeepSeek -- a spoke's reply describing
+    its routing decision in prose ("Routing to SEO.") instead of emitting
+    <NEXT_AGENT>SEO</NEXT_AGENT> used to fall straight through to
+    _decide_next_staff's round-robin-biased-to-hub fallback, wasting a full
+    turn on whichever staff happens to be the hub even when that staff has
+    nothing left to contribute. The staff must get one nudge to reply in the
+    correct tag format first."""
+
+    class OnceMalformedMeshLLM:
+        def __init__(self):
+            self.editor_calls = 0
+
+        async def chat(self, *, system, user=None, messages=None, tools=None,
+                       parallel_tools=False, max_tool_rounds=None, **kwargs):
+            if system.startswith("editor"):
+                self.editor_calls += 1
+                if self.editor_calls == 1:
+                    return "Approved. Routing to SEO."
+                return "Approved.\n<NEXT_AGENT>SEO</NEXT_AGENT>"
+            if system.startswith("hub"):
+                return "Kickoff.\n<NEXT_AGENT>Editor</NEXT_AGENT>"
+            return "Done.\n<DISCUSSION_END>done</DISCUSSION_END>"
+
+    agents = [
+        GraphStaffDefinition(name="Hub", role="hub", system_prompt="hub"),
+        GraphStaffDefinition(name="Editor", role="editor", system_prompt="editor"),
+        GraphStaffDefinition(name="SEO", role="seo", system_prompt="seo"),
+    ]
+    llm = OnceMalformedMeshLLM()
+    res = asyncio.run(MultiAgentMeshOrchestrator().run(
+        user_input="hi", staff=agents, llm=llm, max_rounds=6,
+        meeting_id=None,
+    ))
+    names = [t.staff_name for t in res.turns]
+    assert llm.editor_calls == 2, "Editor should have been nudged exactly once"
+    assert names == ["Hub", "Editor", "SEO"], (
+        f"malformed reply should have been corrected via retry, not routed to "
+        f"the hub by fallback: {names}"
+    )
+
+
 def test_e2e_mesh_second_turn_sees_own_first_turn_reply():
     """staff_states threads a staff member's own prior turns into later LLM
     calls: Hub's second turn should see its own first-turn assistant reply in
