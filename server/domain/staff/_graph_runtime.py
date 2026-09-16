@@ -56,7 +56,17 @@ _LLM_RETRY_BASE_DELAY = 1.5
 # "[error] The model call timed out ..." (which raise_if_llm_failed treats as
 # terminal), killing the whole run instead of letting the staff proceed on
 # its own judgement.
-_ASK_USER_TIMEOUT_MARGIN_SECONDS = 30
+#
+# The margin has to cover more than just ask_user's own wait: ask_user is
+# usually invoked partway into the tool-calling loop (after context-building
+# and at least one model round already spent some of the outer budget), and
+# once it returns its timeout message the model needs another full round-trip
+# to process that and finalize. Reproduced live: a 30s margin still lost the
+# race (outer timeout fired at +630s while ask_user's own 600s window,
+# started ~15s into the call, didn't resolve and hand back to the model in
+# time) -- so this is deliberately generous, not the tightest bound that
+# happened to pass one test run.
+_ASK_USER_TIMEOUT_MARGIN_SECONDS = 120
 LLM_CALL_TIMEOUT_SECONDS = max(
     LLM_TIMEOUT_SECONDS,
     settings.staff.ask_user_timeout_seconds + _ASK_USER_TIMEOUT_MARGIN_SECONDS,
