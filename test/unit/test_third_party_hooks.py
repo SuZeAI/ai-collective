@@ -2,10 +2,12 @@ import time
 
 from server.domain.third_party.discord_hook import DiscordHookProcessor
 from server.domain.third_party.instagram_hook import InstagramHookProcessor
+from server.domain.third_party.line_hook import LINEHookProcessor
 from server.domain.third_party.messenger_hook import MessengerHookProcessor
 from server.domain.third_party.slack_hook import SlackHookProcessor
+from server.domain.third_party.wechat_hook import WeChatHookProcessor
 from server.domain.third_party.whatsapp_hook import WhatsAppHookProcessor
-from server.domain.third_party.base_hook import hmac_sha256_hex
+from server.domain.third_party.base_hook import hmac_sha256_b64, hmac_sha256_hex
 
 
 def _slack_signature(secret: str, timestamp: str, body: bytes) -> str:
@@ -191,3 +193,68 @@ def test_messenger_extract_message_returns_text():
 def test_messenger_extract_message_none_for_wrong_object_type():
     processor = MessengerHookProcessor()
     assert processor.extract_message(_messaging_body("instagram")) is None
+
+
+# --------------------------------------------------------------------------- #
+# LINE HMAC-SHA256 (base64) signature verification                            #
+# --------------------------------------------------------------------------- #
+
+def test_line_verify_request_accepts_valid_signature():
+    processor = LINEHookProcessor()
+    secret = "line-secret"
+    body = b'{"events":[]}'
+    headers = {"X-Line-Signature": hmac_sha256_b64(secret, body)}
+    assert processor.verify_request(headers, body, {"channel_secret": secret}) is True
+
+
+def test_line_verify_request_rejects_wrong_signature():
+    processor = LINEHookProcessor()
+    body = b'{"events":[]}'
+    headers = {"X-Line-Signature": "not-the-real-signature"}
+    assert processor.verify_request(headers, body, {"channel_secret": "line-secret"}) is False
+
+
+def test_line_verify_request_accepts_when_no_secret_configured():
+    processor = LINEHookProcessor()
+    assert processor.verify_request({}, b"anything", {}) is True
+
+
+# --------------------------------------------------------------------------- #
+# Meta X-Hub-Signature-256 (WhatsApp / Messenger / Instagram share verify_request) #
+# --------------------------------------------------------------------------- #
+
+def test_meta_verify_request_accepts_valid_signature():
+    for cls in _META_PROCESSORS:
+        processor = cls()
+        secret = "app-secret"
+        body = b'{"object":"whatsapp_business_account"}'
+        headers = {"X-Hub-Signature-256": "sha256=" + hmac_sha256_hex(secret, body)}
+        assert processor.verify_request(headers, body, {"app_secret": secret}) is True, cls.__name__
+
+
+def test_meta_verify_request_rejects_wrong_signature():
+    for cls in _META_PROCESSORS:
+        processor = cls()
+        body = b'{"object":"whatsapp_business_account"}'
+        headers = {"X-Hub-Signature-256": "sha256=deadbeef"}
+        assert processor.verify_request(headers, body, {"app_secret": "app-secret"}) is False, cls.__name__
+
+
+def test_meta_verify_request_accepts_when_no_secret_configured():
+    for cls in _META_PROCESSORS:
+        processor = cls()
+        assert processor.verify_request({}, b"anything", {}) is True, cls.__name__
+
+
+# --------------------------------------------------------------------------- #
+# WeChat: docs claim SHA1(sorted token/timestamp/nonce) signature verification #
+# per inbound message, but that check only exists on the one-time GET setup   #
+# handshake (get_verification_response) — verify_request is never overridden #
+# so every POST message is accepted unconditionally via BaseHookProcessor's   #
+# default. This test documents that gap; it should start failing (and the    #
+# doc claim become true) if verify_request is ever implemented for WeChat.   #
+# --------------------------------------------------------------------------- #
+
+def test_wechat_verify_request_has_no_real_signature_check_yet():
+    processor = WeChatHookProcessor()
+    assert processor.verify_request({}, b"any body, no signature at all", {"verify_token": "tok"}) is True
