@@ -49,8 +49,18 @@ _LLM_RETRY_BASE_DELAY = 1.5
 # LLM_TIMEOUT_SECONDS, any unanswered ask_user would always be killed by this
 # timeout (mislabeled as a slow model, and treated as terminal/non-retryable)
 # long before ask_user's own timeout could return its graceful fallback
-# message. Widen the outer budget to cover that case.
-LLM_CALL_TIMEOUT_SECONDS = max(LLM_TIMEOUT_SECONDS, settings.staff.ask_user_timeout_seconds)
+# message. Widen the outer budget to cover that case -- with a margin, not
+# just equality: an outer timeout equal to ask_user's own timeout races it,
+# and asyncio.timeout's cancellation can win, turning ask_user's intended
+# graceful "[ask_user timeout] ..." tool result into safe_chat's fatal
+# "[error] The model call timed out ..." (which raise_if_llm_failed treats as
+# terminal), killing the whole run instead of letting the staff proceed on
+# its own judgement.
+_ASK_USER_TIMEOUT_MARGIN_SECONDS = 30
+LLM_CALL_TIMEOUT_SECONDS = max(
+    LLM_TIMEOUT_SECONDS,
+    settings.staff.ask_user_timeout_seconds + _ASK_USER_TIMEOUT_MARGIN_SECONDS,
+)
 
 # How many fan-out branches (named staff dispatched in one parallel wave) may
 # run concurrently. Falls back to the subagent cap so a single env var can tune
