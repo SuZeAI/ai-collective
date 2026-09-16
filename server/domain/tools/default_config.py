@@ -243,9 +243,10 @@ TOOL_PRESET_DEFAULTS: dict[str, dict[str, Any]] = {
 			{
 				"key": "driver",
 				"label": "Driver",
-				"input": "text",
+				"input": "select",
 				"required": True,
 				"default": "browser_use",
+				"options": ["browser_use"],
 			},
 			{
 				"key": "cdp_url",

@@ -173,14 +173,33 @@ def sanitize_office_plan(
                     skill.tool_name = None
                 # Only keep config values for fields the tool's preset actually
                 # declares, and never for secret-looking keys (API keys, tokens, ...).
-                allowed_keys = {
-                    f.get("key") for f in (presets_by_tool.get(skill.tool_name or "") or {}).get("config_fields") or []
-                }
+                config_fields = (presets_by_tool.get(skill.tool_name or "") or {}).get("config_fields") or []
+                allowed_keys = {f.get("key") for f in config_fields}
                 skill.config = (
                     {k: v for k, v in skill.config.items() if k in allowed_keys and not is_secret_config_key(k)}
                     if skill.tool_name
                     else {}
                 )
+                # A select-type field only accepts its declared options -- the
+                # designer LLM can otherwise invent a plausible-sounding but
+                # unsupported value (e.g. browser.driver="playwright" when only
+                # "browser_use" is implemented), which then only fails much
+                # later at actual tool-run time with a cryptic error. Clamp to
+                # the field's default (or drop it) instead.
+                for field_spec in config_fields:
+                    key = field_spec.get("key")
+                    options = field_spec.get("options")
+                    if key in skill.config and options and skill.config[key] not in options:
+                        get_logger().warning(
+                            "Office builder: skill '%s' field '%s' had unsupported value %r, "
+                            "clamping to default",
+                            skill.name, key, skill.config[key],
+                        )
+                        default = field_spec.get("default")
+                        if default is not None:
+                            skill.config[key] = default
+                        else:
+                            skill.config.pop(key, None)
     return plan
 
 
