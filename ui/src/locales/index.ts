@@ -803,6 +803,15 @@ export type Translations = {
     ptsPlaceholder: string;
     commitIssuesBtnPrefix: string;
     commitIssuesBtnSuffix: string;
+    editBtnTitle: string;
+    editSprintTitle: string;
+    editEpicTitle: string;
+    saveBtn: string;
+    sprintStatusPlanned: string;
+    sprintStatusActive: string;
+    sprintStatusCompleted: string;
+    epicsListTitle: string;
+    noEpicsText: string;
   };
   projectsPage: {
     pageTitle: string;
@@ -1775,6 +1784,15 @@ export const translations: Record<Language, Translations> = {
       ptsPlaceholder: "pts",
       commitIssuesBtnPrefix: "Commit ",
       commitIssuesBtnSuffix: " issues",
+      editBtnTitle: "Edit",
+      editSprintTitle: "Edit Sprint",
+      editEpicTitle: "Edit Epic",
+      saveBtn: "Save",
+      sprintStatusPlanned: "Planned",
+      sprintStatusActive: "Active",
+      sprintStatusCompleted: "Completed",
+      epicsListTitle: "Epics",
+      noEpicsText: "No epics yet.",
     },
     projectsPage: {
       pageTitle: "Projects",
@@ -2747,6 +2765,15 @@ export const translations: Record<Language, Translations> = {
       ptsPlaceholder: "điểm",
       commitIssuesBtnPrefix: "Lưu ",
       commitIssuesBtnSuffix: " issue",
+      editBtnTitle: "Sửa",
+      editSprintTitle: "Sửa Sprint",
+      editEpicTitle: "Sửa Epic",
+      saveBtn: "Lưu",
+      sprintStatusPlanned: "Đã lên kế hoạch",
+      sprintStatusActive: "Đang chạy",
+      sprintStatusCompleted: "Đã hoàn thành",
+      epicsListTitle: "Epic",
+      noEpicsText: "Chưa có epic nào.",
     },
     projectsPage: {
       pageTitle: "Dự án",
@@ -3719,6 +3746,15 @@ export const translations: Record<Language, Translations> = {
       ptsPlaceholder: "点",
       commitIssuesBtnPrefix: "保存 ",
       commitIssuesBtnSuffix: " 个 issue",
+      editBtnTitle: "编辑",
+      editSprintTitle: "编辑 Sprint",
+      editEpicTitle: "编辑 Epic",
+      saveBtn: "保存",
+      sprintStatusPlanned: "计划中",
+      sprintStatusActive: "进行中",
+      sprintStatusCompleted: "已完成",
+      epicsListTitle: "Epic",
+      noEpicsText: "暂无 epic。",
     },
     projectsPage: {
       pageTitle: "项目",
@@ -4691,6 +4727,15 @@ export const translations: Record<Language, Translations> = {
       ptsPlaceholder: "pt",
       commitIssuesBtnPrefix: "",
       commitIssuesBtnSuffix: " 件の issue を保存",
+      editBtnTitle: "編集",
+      editSprintTitle: "Sprint を編集",
+      editEpicTitle: "Epic を編集",
+      saveBtn: "保存",
+      sprintStatusPlanned: "計画中",
+      sprintStatusActive: "進行中",
+      sprintStatusCompleted: "完了",
+      epicsListTitle: "Epic",
+      noEpicsText: "Epic はまだありません。",
     },
     projectsPage: {
       pageTitle: "プロジェクト",

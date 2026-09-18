@@ -1,8 +1,8 @@
 import { memo, useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Plus, Sparkles, Trash2, Loader2, X, Check, Layers, CalendarRange } from "lucide-react";
+import { Plus, Sparkles, Trash2, Pencil, Loader2, X, Check, Layers, CalendarRange } from "lucide-react";
 import {
-  api, type Project, type Epic, type Sprint, type Task, type DraftIssue, type IssueType,
+  api, type Project, type Epic, type Sprint, type SprintStatus, type Task, type DraftIssue, type IssueType,
 } from "@/lib/api";
 import { ProjectSubnav } from "@/components/ProjectSubnav";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,21 @@ export default function Backlog() {
     await load();
   }, [load, lang]);
 
+  const [sprintDialog, setSprintDialog] = useState<{ open: boolean; sprint: Sprint | null }>({ open: false, sprint: null });
+  const [epicDialog, setEpicDialog] = useState<{ open: boolean; epic: Epic | null }>({ open: false, epic: null });
+
+  const deleteSprint = useCallback(async (sprint: Sprint) => {
+    if (!confirm(`${lang.backlogPage.deleteConfirmPrefix}${sprint.name}?`)) return;
+    await api.deleteSprint(sprint.id);
+    await load();
+  }, [load, lang]);
+
+  const deleteEpic = useCallback(async (epic: Epic) => {
+    if (!confirm(`${lang.backlogPage.deleteConfirmPrefix}${epic.title}?`)) return;
+    await api.deleteEpic(epic.id);
+    await load();
+  }, [load, lang]);
+
   const groups = useMemo(() => {
     const bySprint = new Map<string, Task[]>();
     const backlog: Task[] = [];
@@ -72,8 +87,12 @@ export default function Backlog() {
     <div className="h-full w-full flex flex-col bg-background overflow-hidden">
       <ProjectSubnav project={project} projectKey={projectKey} active="backlog">
         <div className="flex items-center gap-2">
-          <CreateSprintButton projectId={project?.id} onCreated={load} />
-          <CreateEpicButton projectId={project?.id} onCreated={load} />
+          <Button size="sm" variant="outline" className="h-9 gap-1 text-xs" disabled={!project?.id} onClick={() => setSprintDialog({ open: true, sprint: null })}>
+            <Plus className="w-3.5 h-3.5" /> {lang.backlogPage.sprintBtnLabel}
+          </Button>
+          <Button size="sm" variant="outline" className="h-9 gap-1 text-xs" disabled={!project?.id} onClick={() => setEpicDialog({ open: true, epic: null })}>
+            <Layers className="w-3.5 h-3.5" /> {lang.backlogPage.epicBtnLabel}
+          </Button>
           <CreateIssueButton project={project} epics={epics} sprints={sprints} onCreated={load} />
           <PlannerButton project={project} epics={epics} sprints={sprints} onCommitted={load} />
         </div>
@@ -86,6 +105,11 @@ export default function Backlog() {
           <div className="text-center text-muted-foreground text-sm py-10">{lang.backlogPage.projectNotFoundPrefix}{projectKey}{lang.backlogPage.projectNotFoundSuffix}</div>
         ) : (
           <>
+            <EpicsBar
+              epics={epics}
+              onEdit={(epic) => setEpicDialog({ open: true, epic })}
+              onDelete={deleteEpic}
+            />
             {sprints.map((s) => (
               <SprintSection
                 key={s.id}
@@ -97,6 +121,8 @@ export default function Backlog() {
                 epicById={epicById}
                 onMove={moveIssueToSprint}
                 onDelete={deleteIssue}
+                onEditSprint={() => setSprintDialog({ open: true, sprint: s })}
+                onDeleteSprint={() => deleteSprint(s)}
               />
             ))}
             <SprintSection
@@ -111,6 +137,21 @@ export default function Backlog() {
           </>
         )}
       </div>
+
+      <SprintDialog
+        projectId={project?.id}
+        sprint={sprintDialog.sprint}
+        open={sprintDialog.open}
+        onOpenChange={(open) => setSprintDialog((d) => ({ ...d, open }))}
+        onSaved={load}
+      />
+      <EpicDialog
+        projectId={project?.id}
+        epic={epicDialog.epic}
+        open={epicDialog.open}
+        onOpenChange={(open) => setEpicDialog((d) => ({ ...d, open }))}
+        onSaved={load}
+      />
     </div>
   );
 }
@@ -155,21 +196,32 @@ const IssueRow = memo(function IssueRow({
 });
 
 const SprintSection = memo(function SprintSection({
-  title, subtitle, badge, issues, sprints, epicById, onMove, onDelete,
+  title, subtitle, badge, issues, sprints, epicById, onMove, onDelete, onEditSprint, onDeleteSprint,
 }: {
   title: string; subtitle?: string; badge?: string; issues: Task[]; sprints: Sprint[];
   epicById: Map<string, Epic>; onMove: (i: Task, s: string | null) => void; onDelete: (i: Task) => void;
+  onEditSprint?: () => void; onDeleteSprint?: () => void;
 }) {
   const { t: lang } = useLanguage();
   const points = issues.reduce((sum, i) => sum + (i.storyPoints ?? 0), 0);
   return (
-    <div className="rounded-xl border border-border/50 bg-card/40">
+    <div className="rounded-xl border border-border/50 bg-card/40 group/sprint">
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/40">
         <CalendarRange className="w-3.5 h-3.5 text-muted-foreground" />
         <h3 className="text-xs font-bold text-foreground">{title}</h3>
         {badge && <span className="px-1.5 py-0.5 rounded bg-muted text-[9px] font-semibold uppercase text-muted-foreground">{badge}</span>}
         {subtitle && <span className="text-[10px] text-muted-foreground truncate">· {subtitle}</span>}
         <span className="ml-auto text-[10px] text-muted-foreground">{issues.length} {lang.backlogPage.issuesLabel} · {points} {lang.backlogPage.ptsLabel}</span>
+        {onEditSprint && (
+          <button onClick={onEditSprint} className="p-1 rounded opacity-0 group-hover/sprint:opacity-100 text-muted-foreground hover:text-foreground" title={lang.backlogPage.editBtnTitle}>
+            <Pencil className="w-3 h-3" />
+          </button>
+        )}
+        {onDeleteSprint && (
+          <button onClick={onDeleteSprint} className="p-1 rounded opacity-0 group-hover/sprint:opacity-100 text-muted-foreground hover:text-rose-500" title={lang.backlogPage.deleteBtnTitle}>
+            <Trash2 className="w-3 h-3" />
+          </button>
+        )}
       </div>
       {issues.length === 0 ? (
         <p className="px-4 py-3 text-[11px] text-muted-foreground italic">{lang.backlogPage.noIssuesText}</p>
@@ -191,54 +243,105 @@ const SprintSection = memo(function SprintSection({
   );
 });
 
-function CreateSprintButton({ projectId, onCreated }: { projectId?: string; onCreated: () => void }) {
+const SPRINT_STATUSES: SprintStatus[] = ["planned", "active", "completed"];
+
+function EpicsBar({ epics, onEdit, onDelete }: { epics: Epic[]; onEdit: (e: Epic) => void; onDelete: (e: Epic) => void }) {
   const { t: lang } = useLanguage();
-  const [open, setOpen] = useState(false);
+  if (epics.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-border/50 bg-card/40">
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/40">
+        <Layers className="w-3.5 h-3.5 text-muted-foreground" />
+        <h3 className="text-xs font-bold text-foreground">{lang.backlogPage.epicsListTitle}</h3>
+      </div>
+      <div className="divide-y divide-border/30">
+        {epics.map((epic) => (
+          <div key={epic.id} className="flex items-center gap-2 px-4 py-2 hover:bg-muted/30 group">
+            <span className="px-1 py-0.5 rounded text-[8px] font-bold uppercase shrink-0 bg-purple-500/15 text-purple-500">epic</span>
+            <span className="text-xs text-foreground truncate flex-1">{epic.title}</span>
+            {epic.description && <span className="text-[10px] text-muted-foreground truncate max-w-[280px]">{epic.description}</span>}
+            <button onClick={() => onEdit(epic)} className="p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground shrink-0" title={lang.backlogPage.editBtnTitle}>
+              <Pencil className="w-3 h-3" />
+            </button>
+            <button onClick={() => onDelete(epic)} className="p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-rose-500 shrink-0" title={lang.backlogPage.deleteBtnTitle}>
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SprintDialog({ projectId, sprint, open, onOpenChange, onSaved }: {
+  projectId?: string; sprint: Sprint | null; open: boolean; onOpenChange: (open: boolean) => void; onSaved: () => void;
+}) {
+  const { t: lang } = useLanguage();
   const [name, setName] = useState("");
   const [goal, setGoal] = useState("");
+  const [status, setStatus] = useState<SprintStatus>("planned");
+  const handleOpenChange = (o: boolean) => {
+    if (o) { setName(sprint?.name ?? ""); setGoal(sprint?.goal ?? ""); setStatus(sprint?.status ?? "planned"); }
+    onOpenChange(o);
+  };
   const save = async () => {
     if (!projectId || !name.trim()) return;
-    await api.upsertSprint({ projectId, name: name.trim(), goal: goal.trim(), status: "planned" });
-    setName(""); setGoal(""); setOpen(false); onCreated();
+    await api.upsertSprint({ id: sprint?.id, projectId, name: name.trim(), goal: goal.trim(), status });
+    onOpenChange(false); onSaved();
   };
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="h-9 gap-1 text-xs" disabled={!projectId}><Plus className="w-3.5 h-3.5" /> {lang.backlogPage.sprintBtnLabel}</Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>{lang.backlogPage.newSprintTitle}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{sprint ? lang.backlogPage.editSprintTitle : lang.backlogPage.newSprintTitle}</DialogTitle></DialogHeader>
         <div className="space-y-3 pt-2">
           <Input placeholder={lang.backlogPage.sprintNamePlaceholder} value={name} onChange={(e) => setName(e.target.value)} />
           <Input placeholder={lang.backlogPage.sprintGoalPlaceholder} value={goal} onChange={(e) => setGoal(e.target.value)} />
-          <Button onClick={save} className="w-full" disabled={!name.trim()}>{lang.backlogPage.createSprintBtn}</Button>
+          {sprint && (
+            <Select value={status} onValueChange={(v) => setStatus(v as SprintStatus)}>
+              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {SPRINT_STATUSES.map((st) => (
+                  <SelectItem key={st} value={st}>
+                    {st === "planned" ? lang.backlogPage.sprintStatusPlanned : st === "active" ? lang.backlogPage.sprintStatusActive : lang.backlogPage.sprintStatusCompleted}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button onClick={save} className="w-full" disabled={!name.trim()}>
+            {sprint ? lang.backlogPage.saveBtn : lang.backlogPage.createSprintBtn}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-function CreateEpicButton({ projectId, onCreated }: { projectId?: string; onCreated: () => void }) {
+function EpicDialog({ projectId, epic, open, onOpenChange, onSaved }: {
+  projectId?: string; epic: Epic | null; open: boolean; onOpenChange: (open: boolean) => void; onSaved: () => void;
+}) {
   const { t: lang } = useLanguage();
-  const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const handleOpenChange = (o: boolean) => {
+    if (o) { setTitle(epic?.title ?? ""); setDescription(epic?.description ?? ""); }
+    onOpenChange(o);
+  };
   const save = async () => {
     if (!projectId || !title.trim()) return;
-    await api.upsertEpic({ projectId, title: title.trim(), description: description.trim() });
-    setTitle(""); setDescription(""); setOpen(false); onCreated();
+    await api.upsertEpic({ id: epic?.id, projectId, title: title.trim(), description: description.trim() });
+    onOpenChange(false); onSaved();
   };
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="h-9 gap-1 text-xs" disabled={!projectId}><Layers className="w-3.5 h-3.5" /> {lang.backlogPage.epicBtnLabel}</Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>{lang.backlogPage.newEpicTitle}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{epic ? lang.backlogPage.editEpicTitle : lang.backlogPage.newEpicTitle}</DialogTitle></DialogHeader>
         <div className="space-y-3 pt-2">
           <Input placeholder={lang.backlogPage.epicTitlePlaceholder} value={title} onChange={(e) => setTitle(e.target.value)} />
           <Textarea placeholder={lang.backlogPage.descriptionOptionalPlaceholder} value={description} onChange={(e) => setDescription(e.target.value)} className="resize-none min-h-[70px]" />
-          <Button onClick={save} className="w-full" disabled={!title.trim()}>{lang.backlogPage.createEpicBtn}</Button>
+          <Button onClick={save} className="w-full" disabled={!title.trim()}>
+            {epic ? lang.backlogPage.saveBtn : lang.backlogPage.createEpicBtn}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
