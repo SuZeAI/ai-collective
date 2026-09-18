@@ -68,7 +68,7 @@ export function MeetingFiles({ taskId, companyId }: { taskId: string; companyId?
   const attachFromLibrary = async (doc: LibraryDocument) => {
     setBusy(true);
     try {
-      await api.attachDocumentToProject(doc.id, taskId);
+      await api.attachDocumentToTask(doc.id, taskId);
       toast({ title: t.documentLibrary.attachSuccess });
       refresh();
     } catch (e) {
@@ -96,7 +96,7 @@ export function MeetingFiles({ taskId, companyId }: { taskId: string; companyId?
             <button
               type="button"
               disabled={busy}
-              title={t.documentLibrary.attachToProject}
+              title={t.documentLibrary.attachToTask}
               className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors disabled:opacity-50"
             >
               <FolderOpen className="w-3.5 h-3.5" />

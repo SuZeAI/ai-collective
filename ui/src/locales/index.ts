@@ -211,8 +211,8 @@ export type Translations = {
     download: string;
     delete: string;
     deleteConfirm: string;
-    attachToProject: string;
-    selectProject: string;
+    attachToTask: string;
+    selectTask: string;
     attach: string;
     cancel: string;
     add: string;
@@ -223,6 +223,7 @@ export type Translations = {
     nameOptional: string;
     uploadedBy: string;
     attachSuccess: string;
+    uploadDone: string;
     uploadSuccess: string;
     deleteSuccess: string;
     all: string;
@@ -1150,18 +1151,19 @@ export const translations: Record<Language, Translations> = {
       download: "Download",
       delete: "Delete",
       deleteConfirm: "Delete this document?",
-      attachToProject: "Attach to project",
-      selectProject: "Select a project",
+      attachToTask: "Attach to task",
+      selectTask: "Select a task",
       attach: "Attach",
       cancel: "Cancel",
       add: "Add",
       uploading: "Uploading…",
       dropHint: "Drag & drop a file here, or click to choose",
+      uploadDone: "Uploaded ✓",
       descriptionOptional: "Description (optional)",
       tagsOptional: "Tags, comma separated (optional)",
       nameOptional: "Name (optional)",
       uploadedBy: "Uploaded by",
-      attachSuccess: "Document attached to project.",
+      attachSuccess: "Document attached to task.",
       uploadSuccess: "Document uploaded.",
       deleteSuccess: "Document deleted.",
       all: "All",
@@ -2121,18 +2123,19 @@ export const translations: Record<Language, Translations> = {
       download: "Tải về",
       delete: "Xoá",
       deleteConfirm: "Xoá tài liệu này?",
-      attachToProject: "Đính kèm vào dự án",
-      selectProject: "Chọn một dự án",
+      attachToTask: "Đính kèm vào task",
+      selectTask: "Chọn một task",
       attach: "Đính kèm",
       cancel: "Huỷ",
       add: "Thêm",
       uploading: "Đang tải lên…",
       dropHint: "Kéo & thả tệp vào đây, hoặc bấm để chọn",
+      uploadDone: "Đã tải lên ✓",
       descriptionOptional: "Mô tả (không bắt buộc)",
       tagsOptional: "Thẻ, cách nhau bởi dấu phẩy (không bắt buộc)",
       nameOptional: "Tên (không bắt buộc)",
       uploadedBy: "Người tải lên",
-      attachSuccess: "Đã đính kèm tài liệu vào dự án.",
+      attachSuccess: "Đã đính kèm tài liệu vào task.",
       uploadSuccess: "Đã tải tài liệu lên.",
       deleteSuccess: "Đã xoá tài liệu.",
       all: "Tất cả",
@@ -3092,18 +3095,19 @@ export const translations: Record<Language, Translations> = {
       download: "下载",
       delete: "删除",
       deleteConfirm: "删除此文档？",
-      attachToProject: "附加到项目",
-      selectProject: "选择项目",
+      attachToTask: "附加到任务",
+      selectTask: "选择任务",
       attach: "附加",
       cancel: "取消",
       add: "添加",
       uploading: "上传中…",
       dropHint: "将文件拖放到此处，或点击选择",
+      uploadDone: "已上传 ✓",
       descriptionOptional: "描述（可选）",
       tagsOptional: "标签，用逗号分隔（可选）",
       nameOptional: "名称（可选）",
       uploadedBy: "上传者",
-      attachSuccess: "文档已附加到项目。",
+      attachSuccess: "文档已附加到任务。",
       uploadSuccess: "文档已上传。",
       deleteSuccess: "文档已删除。",
       all: "全部",
@@ -4063,18 +4067,19 @@ export const translations: Record<Language, Translations> = {
       download: "ダウンロード",
       delete: "削除",
       deleteConfirm: "このドキュメントを削除しますか？",
-      attachToProject: "プロジェクトに添付",
-      selectProject: "プロジェクトを選択",
+      attachToTask: "タスクに添付",
+      selectTask: "タスクを選択",
       attach: "添付",
       cancel: "キャンセル",
       add: "追加",
       uploading: "アップロード中…",
       dropHint: "ここにファイルをドラッグ＆ドロップ、またはクリックして選択",
+      uploadDone: "アップロード完了 ✓",
       descriptionOptional: "説明（任意）",
       tagsOptional: "タグ（カンマ区切り、任意）",
       nameOptional: "名前（任意）",
       uploadedBy: "アップロード者",
-      attachSuccess: "ドキュメントをプロジェクトに添付しました。",
+      attachSuccess: "ドキュメントをタスクに添付しました。",
       uploadSuccess: "ドキュメントをアップロードしました。",
       deleteSuccess: "ドキュメントを削除しました。",
       all: "すべて",

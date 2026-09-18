@@ -1,27 +1,34 @@
 import { useRef, useState } from "react";
-import { UploadCloud, Loader2 } from "lucide-react";
+import { UploadCloud, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Accepted upload extensions (mirrors the backend _ALLOWED_UPLOAD_TYPES whitelist).
 const ACCEPT_ATTR = ".txt,.md,.csv,.json,.pdf,.zip,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp";
 const MAX_BYTES = 25 * 1024 * 1024;
+// How long the "Uploaded ✓" confirmation stays up before the dropzone resets
+// to idle — long enough to register as feedback, short enough not to block
+// uploading a second file right after.
+const DONE_DISPLAY_MS = 2000;
 
 type Props = {
   /** Called for each accepted file; should perform the upload and may throw on error. */
   onFile: (file: File) => Promise<void> | void;
   hint: string;
+  doneHint: string;
   disabled?: boolean;
   busy?: boolean;
   className?: string;
 };
 
-export function DocumentDropzone({ onFile, hint, disabled, busy, className }: Props) {
+export function DocumentDropzone({ onFile, hint, doneHint, disabled, busy, className }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [justUploaded, setJustUploaded] = useState<string | null>(null);
 
   const handleFiles = async (files: FileList | null) => {
     setError(null);
+    setJustUploaded(null);
     if (!files || disabled) return;
     for (const file of Array.from(files)) {
       if (file.size > MAX_BYTES) {
@@ -30,6 +37,8 @@ export function DocumentDropzone({ onFile, hint, disabled, busy, className }: Pr
       }
       try {
         await onFile(file);
+        setJustUploaded(file.name);
+        setTimeout(() => setJustUploaded((prev) => (prev === file.name ? null : prev)), DONE_DISPLAY_MS);
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       }
@@ -53,8 +62,11 @@ export function DocumentDropzone({ onFile, hint, disabled, busy, className }: Pr
         )}
       >
         {busy ? <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              : justUploaded ? <CheckCircle2 className="w-6 h-6 text-emerald-500" />
               : <UploadCloud className="w-6 h-6 text-muted-foreground" />}
-        <span className="text-muted-foreground text-center">{hint}</span>
+        <span className={cn("text-center", justUploaded ? "text-emerald-500 font-medium" : "text-muted-foreground")}>
+          {busy ? hint : justUploaded ? `${doneHint} ${justUploaded}` : hint}
+        </span>
       </button>
       <input
         ref={inputRef}
