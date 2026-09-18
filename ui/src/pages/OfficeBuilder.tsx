@@ -356,6 +356,10 @@ export default function OfficeBuilder() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [appliedCompanyId, setAppliedCompanyId] = useState<string>("");
   const [companyType, setCompanyType] = useState<CompanyType>("general");
+  const applyPlan = (p: OfficePlan | null) => {
+    setPlan(p);
+    if (p?.company_type) setCompanyType(p.company_type as CompanyType);
+  };
   const [messages, setMessages] = useState<OfficeChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [plan, setPlan] = useState<OfficePlan | null>(null);
@@ -401,7 +405,7 @@ export default function OfficeBuilder() {
       const s = await api.getOfficeBuilderSession(id);
       setSessionId(s.id);
       setMessages(s.messages);
-      setPlan(s.plan);
+      applyPlan(s.plan);
       setPlanRev((v) => v + 1);
       setAppliedCompanyId(s.companyId || "");
       setInput("");
@@ -422,7 +426,8 @@ export default function OfficeBuilder() {
     if (busy) return;
     setSessionId(null);
     setMessages([]);
-    setPlan(null);
+    applyPlan(null);
+    setCompanyType("general");
     setAppliedCompanyId("");
     setInput("");
     localStorage.removeItem(ACTIVE_SESSION_KEY);
@@ -489,7 +494,7 @@ export default function OfficeBuilder() {
           showAssistant(assistantText + ev.text);
         } else if (ev.type === "plan") {
           nextPlan = ev.plan;
-          setPlan(ev.plan);
+          applyPlan(ev.plan);
           setPlanRev((v) => v + 1);
         } else if (ev.type === "done") {
           // The backend's canonical reply (trimmed, fence-free) wins.

@@ -16,6 +16,7 @@ from server.domain.models import Company
 from server.share.log import get_logger
 
 TEAM_MODES = ("sequential", "mesh", "ring", "supervisor", "tree")
+COMPANY_TYPES = ("software", "marketing", "research", "general")
 
 # Cap how many existing entities of each kind are listed in the designer prompt,
 # to bound token usage.
@@ -153,6 +154,8 @@ def sanitize_office_plan(
     presets_by_tool: dict[str, dict] | None = None,
 ) -> OfficePlan:
     presets_by_tool = presets_by_tool or {}
+    if plan.company_type not in COMPANY_TYPES:
+        plan.company_type = "general"
     for dept in plan.departments:
         if dept.existing_id and dept.existing_id not in existing_department_ids:
             dept.existing_id = None
