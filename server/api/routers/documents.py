@@ -104,7 +104,7 @@ async def ingest_url(
     from server.domain.tools.document_tools import _strip_html
     from server.domain.tools.http import HTTPError, request
 
-    _validate_workspace_id(req.workspaceId)
+    _validate_workspace_id(req.companyId)
 
     def _fetch() -> str:
         raw = request("GET", req.url, raw=True, retries=2)
