@@ -8,8 +8,10 @@ from uuid import uuid4
 from server.app.ports.repositories import CompanyRepository
 from server.app.service.department_service import DepartmentService
 from server.app.service.document_library_service import DocumentLibraryService
+from server.app.service.epic_service import EpicService
 from server.app.service.project_service import ProjectService
 from server.app.service.skill_service import SkillService
+from server.app.service.sprint_service import SprintService
 from server.app.service.staff_service import StaffService
 from server.app.service.task_service import TaskService
 from server.domain.errors import NotFoundError
@@ -28,6 +30,8 @@ class CompanyService:
         task_service: TaskService,
         document_library_service: DocumentLibraryService,
         project_service: ProjectService,
+        epic_service: EpicService,
+        sprint_service: SprintService,
     ):
         self._repo = repo
         self._departments = department_service
@@ -36,6 +40,8 @@ class CompanyService:
         self._tasks = task_service
         self._documents = document_library_service
         self._projects = project_service
+        self._epics = epic_service
+        self._sprints = sprint_service
 
     def list_companies(self) -> list[Company]:
         return self._repo.list()
@@ -224,12 +230,27 @@ class CompanyService:
             if member.id in staff_to_delete_ids:
                 skills_to_delete_ids.update(sid for sid in member.skill_ids if sid not in remaining_skill_ids)
 
-        # Tasks tied to a department or staff member being removed have no home left.
+        # Projects (Jira-style) belong to exactly one company; a project with
+        # no company left behind is dead weight (its epics/sprints/tasks are
+        # unreachable from any UI scope), so it goes with the company.
+        projects_to_delete = [
+            project
+            for project in self._projects.list_projects()
+            if project.company_id == company_id and can_delete(owner_id, project.owner_id)
+        ]
+        project_ids_to_delete = {p.id for p in projects_to_delete}
+
+        epics_to_delete = [e for e in self._epics.list_epics() if e.project_id in project_ids_to_delete]
+        sprints_to_delete = [s for s in self._sprints.list_sprints() if s.project_id in project_ids_to_delete]
+
+        # Tasks tied to a department or staff member being removed, or to a
+        # project being removed, have no home left.
         tasks_to_delete = [
             task
             for task in self._tasks.list_tasks()
             if task.department_id in departments_to_delete_ids
             or (task.assignee_id is not None and task.assignee_id in staff_to_delete_ids)
+            or task.project_id in project_ids_to_delete
         ]
 
         documents_to_delete = [doc for doc in self._documents.list_documents() if doc.company_id == company_id]
@@ -241,6 +262,9 @@ class CompanyService:
             "skills_to_delete_ids": skills_to_delete_ids,
             "tasks_to_delete": tasks_to_delete,
             "documents_to_delete": documents_to_delete,
+            "projects_to_delete": projects_to_delete,
+            "epics_to_delete": epics_to_delete,
+            "sprints_to_delete": sprints_to_delete,
         }
 
     def preview_company_delete(self, company_id: str, owner_id: str) -> dict:
@@ -255,6 +279,9 @@ class CompanyService:
             "removed_skills": len(plan["skills_to_delete_ids"]),
             "removed_tasks": len(plan["tasks_to_delete"]),
             "removed_documents": len(plan["documents_to_delete"]),
+            "removed_projects": len(plan["projects_to_delete"]),
+            "removed_epics": len(plan["epics_to_delete"]),
+            "removed_sprints": len(plan["sprints_to_delete"]),
             "kept_departments": plan["kept_departments"],
         }
 
@@ -314,6 +341,30 @@ class CompanyService:
             except Exception as exc:  # noqa: BLE001
                 logger.warning("failed to delete document %s for company %s: %s", doc.id, company_id, exc)
 
+        removed_epics = 0
+        for epic in plan["epics_to_delete"]:
+            try:
+                self._epics.delete_epic(epic.id)
+                removed_epics += 1
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("failed to delete epic %s for company %s: %s", epic.id, company_id, exc)
+
+        removed_sprints = 0
+        for sprint in plan["sprints_to_delete"]:
+            try:
+                self._sprints.delete_sprint(sprint.id)
+                removed_sprints += 1
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("failed to delete sprint %s for company %s: %s", sprint.id, company_id, exc)
+
+        removed_projects = 0
+        for project in plan["projects_to_delete"]:
+            try:
+                self._projects.delete_project(project.id)
+                removed_projects += 1
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("failed to delete project %s for company %s: %s", project.id, company_id, exc)
+
         # Office-builder sessions (AI Office Designer chats) are kept even after
         # the company is deleted, so the user can revisit and recreate from them.
 
@@ -325,6 +376,9 @@ class CompanyService:
             "removed_skills": removed_skills,
             "removed_tasks": removed_tasks,
             "removed_documents": removed_documents,
+            "removed_projects": removed_projects,
+            "removed_epics": removed_epics,
+            "removed_sprints": removed_sprints,
             "kept_departments": plan["kept_departments"],
         }
 

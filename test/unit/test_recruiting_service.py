@@ -83,6 +83,8 @@ def _build_services(tmp_path: Path):
         task_service,
         document_service,
         project_service,
+        epic_service,
+        sprint_service,
     )
     recruiting = RecruitingService(
         staff_service,

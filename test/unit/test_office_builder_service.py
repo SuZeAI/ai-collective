@@ -8,10 +8,12 @@ from pathlib import Path
 from server.app.service.company_service import CompanyService
 from server.app.service.department_service import DepartmentService
 from server.app.service.document_library_service import DocumentLibraryService
+from server.app.service.epic_service import EpicService
 from server.app.service.meeting_service import MeetingService
 from server.app.service.office_builder_service import OfficeBuilderService
 from server.app.service.project_service import ProjectService
 from server.app.service.skill_service import SkillService
+from server.app.service.sprint_service import SprintService
 from server.app.service.staff_service import StaffService
 from server.app.service.task_service import TaskService
 from server.domain.errors import ValidationError
@@ -21,9 +23,11 @@ from server.domain.office_builder import DepartmentPlan, OfficePlan, StaffPlan
 from server.infra.repositories.json_files import (
     JsonCompanyRepository,
     JsonDepartmentRepository,
+    JsonEpicRepository,
     JsonMeetingRepository,
     JsonProjectRepository,
     JsonSkillRepository,
+    JsonSprintRepository,
     JsonStaffRepository,
     JsonTaskRepository,
 )
@@ -61,6 +65,8 @@ def _build_service(tmp_path: Path, llm=None) -> OfficeBuilderService:
     department_service = DepartmentService(_repo(JsonDepartmentRepository, tmp_path, "departments"))
     task_service = TaskService(_repo(JsonTaskRepository, tmp_path, "tasks"))
     project_service = ProjectService(_repo(JsonProjectRepository, tmp_path, "projects"))
+    epic_service = EpicService(_repo(JsonEpicRepository, tmp_path, "epics"))
+    sprint_service = SprintService(_repo(JsonSprintRepository, tmp_path, "sprints"))
     document_service = DocumentLibraryService(_repo(JsonLibraryDocumentRepository, tmp_path, "documents"))
     company_service = CompanyService(
         _repo(JsonCompanyRepository, tmp_path, "companies"),
@@ -70,6 +76,8 @@ def _build_service(tmp_path: Path, llm=None) -> OfficeBuilderService:
         task_service,
         document_service,
         project_service,
+        epic_service,
+        sprint_service,
     )
     conv_service = MeetingService(_repo(JsonMeetingRepository, tmp_path, "meetings"))
     return OfficeBuilderService(
