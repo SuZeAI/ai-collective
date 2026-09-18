@@ -1,14 +1,8 @@
 import json
-import os
 
-import requests
+from _smoke_auth import BASE, get_session
 
-BASE = "http://localhost:2026/api/v1"
-ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
-
-s = requests.Session()
-r = s.post(f"{BASE}/auth/login", json={"email": "admin@aicollective.com", "password": ADMIN_PASSWORD})
-headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
+s, headers = get_session()
 
 company = s.post(f"{BASE}/companies", json={"name": "Verify Mesh Opt Co", "type": "marketing"}, headers=headers).json()
 

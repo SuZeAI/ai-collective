@@ -16,11 +16,8 @@ import json
 import os
 import sys
 
-import requests
+from _smoke_auth import BASE, get_session
 
-BASE = os.environ.get("BASE_URL", "http://localhost:2026/api/v1")
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@aicollective.com")
-ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
 OUT_PATH = os.environ.get("OUT_PATH", "/tmp/topology_transcripts.json")
 
 FEATURE_BRIEF = (
@@ -29,10 +26,7 @@ FEATURE_BRIEF = (
     "copy into their own workspace as an independent, editable copy in one click."
 )
 
-s = requests.Session()
-r = s.post(f"{BASE}/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD})
-r.raise_for_status()
-headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
+s, headers = get_session()
 
 company = s.post(f"{BASE}/companies", json={"name": "Topology Use Case Co", "type": "marketing"}, headers=headers).json()
 print("company", company["id"])

@@ -5,19 +5,11 @@ tool (document_fetch_url) actually works end-to-end.
 
 Usage: ADMIN_PASSWORD=... python3 test/manual/smoke_deepseek_documents_tool.py
 """
-import os
 import sys
 
-import requests
+from _smoke_auth import BASE, get_session
 
-BASE = os.environ.get("BASE_URL", "http://localhost:2026/api/v1")
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@aicollective.com")
-ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
-
-s = requests.Session()
-r = s.post(f"{BASE}/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD})
-r.raise_for_status()
-headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
+s, headers = get_session()
 
 company = s.post(f"{BASE}/companies", json={"name": "Documents Tool Smoke Co", "type": "general"}, headers=headers).json()
 print("company", company["id"])

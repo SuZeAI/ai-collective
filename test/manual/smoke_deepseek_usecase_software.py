@@ -11,19 +11,11 @@ itself so this script is runnable standalone.
 Usage: ADMIN_PASSWORD=... python3 test/manual/smoke_deepseek_usecase_software.py
 """
 import json
-import os
 import sys
 
-import requests
+from _smoke_auth import BASE, get_session
 
-BASE = os.environ.get("BASE_URL", "http://localhost:2026/api/v1")
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@aicollective.com")
-ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
-
-s = requests.Session()
-r = s.post(f"{BASE}/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD})
-r.raise_for_status()
-headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
+s, headers = get_session()
 
 
 def get_or_build_software_company():

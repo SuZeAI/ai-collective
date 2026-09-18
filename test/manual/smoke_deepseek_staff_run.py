@@ -7,19 +7,11 @@ POST /llm/staff-graph/run-stream, using whatever LLM is active in config.yml
 Usage: ADMIN_PASSWORD=... python3 test/manual/smoke_deepseek_staff_run.py
 """
 import json
-import os
 import sys
 
-import requests
+from _smoke_auth import BASE, get_session
 
-BASE = os.environ.get("BASE_URL", "http://localhost:2026/api/v1")
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@aicollective.com")
-ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
-
-s = requests.Session()
-r = s.post(f"{BASE}/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD})
-r.raise_for_status()
-headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
+s, headers = get_session()
 
 company = s.post(f"{BASE}/companies", json={"name": "Smoke Test Co", "type": "general"}, headers=headers).json()
 print("company", company["id"])

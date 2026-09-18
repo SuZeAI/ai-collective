@@ -11,20 +11,12 @@ for the marketing archetype every time.
 Usage: ADMIN_PASSWORD=... python3 test/manual/smoke_deepseek_usecase_marketing.py
 """
 import json
-import os
 import sys
 import uuid
 
-import requests
+from _smoke_auth import BASE, get_session
 
-BASE = os.environ.get("BASE_URL", "http://localhost:2026/api/v1")
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@aicollective.com")
-ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
-
-s = requests.Session()
-r = s.post(f"{BASE}/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD})
-r.raise_for_status()
-headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
+s, headers = get_session()
 
 brief = (
     "We run a boutique digital marketing agency. We plan and execute social "
