@@ -68,6 +68,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -84,6 +85,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
                     staff_member=staff_member,
                     llm=llm,
                     meeting_id=meeting_id,
+                    project_id=project_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                 ),
@@ -119,6 +121,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -136,6 +139,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
                     staff_member=staff_member,
                     llm=llm,
                     meeting_id=meeting_id,
+                    project_id=project_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                 ),
@@ -174,6 +178,7 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
         staff_member: GraphStaffDefinition,
         llm: LLMProvider,
         meeting_id: str | None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
     ):
@@ -202,7 +207,9 @@ class LangGraphStaffOrchestrator(StaffGraphOrchestrator):
                 "sandbox_workspace": sandbox_workspace,
             })
 
-            bound_tools = build_bound_tools(staff_member, meeting_id=meeting_id, llm=llm)
+            bound_tools = build_bound_tools(
+                staff_member, meeting_id=meeting_id, project_id=project_id, llm=llm
+            )
 
             # Stream: Building context
             stream_writer({

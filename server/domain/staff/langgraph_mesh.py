@@ -134,6 +134,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -166,6 +167,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 llm=llm,
                 max_rounds=max_rounds,
                 meeting_id=meeting_id,
+                project_id=project_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             )
@@ -187,6 +189,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                     all_staff=staff,
                     hub_staff_name=hub_staff.name,
                     meeting_id=meeting_id,
+                    project_id=project_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                 ),
@@ -260,6 +263,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -281,6 +285,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 llm=llm,
                 max_rounds=max_rounds,
                 meeting_id=meeting_id,
+                project_id=project_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             ):
@@ -304,6 +309,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                     all_staff=staff,
                     hub_staff_name=hub_staff.name,
                     meeting_id=meeting_id,
+                    project_id=project_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                 ),
@@ -368,6 +374,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ) -> GraphRunResult:
         """Fallback execution path when only one staff_member is provided."""
         logger.debug("_run_single_agent: staff_member=%s max_rounds=%d", staff_member.name, max_rounds)
@@ -383,6 +390,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 all_staff=[staff_member],
                 hub_staff_name=staff_member.name,
                 meeting_id=meeting_id,
+                project_id=project_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             ),
@@ -429,6 +437,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ):
         """Streaming fallback when only one staff_member is provided."""
         logger.debug("_run_single_agent_stream: staff_member=%s max_rounds=%d", staff_member.name, max_rounds)
@@ -444,6 +453,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 all_staff=[staff_member],
                 hub_staff_name=staff_member.name,
                 meeting_id=meeting_id,
+                project_id=project_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             ),
@@ -492,6 +502,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         all_staff: list[GraphStaffDefinition] = None,
         hub_staff_name: str = None,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
     ):
@@ -581,7 +592,9 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 stream_writer=stream_writer,
             )
 
-            bound_tools = build_bound_tools(staff_member, meeting_id=meeting_id, llm=llm)
+            bound_tools = build_bound_tools(
+                staff_member, meeting_id=meeting_id, project_id=project_id, llm=llm
+            )
 
             logger.debug(
                 "[%s] mesh_node: bound_tools=%s",
@@ -701,6 +714,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                     all_staff=all_staff,
                     stream_writer=stream_writer,
                     meeting_id=meeting_id,
+                    project_id=project_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                 )
@@ -1080,6 +1094,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ) -> dict:
         """Assemble safe_chat kwargs for one fan-out branch.
 
@@ -1122,7 +1137,9 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             reserved_output_tokens=RESERVED_OUTPUT_TOKENS,
         )
 
-        bound_tools = build_bound_tools(branch_agent, meeting_id=meeting_id, llm=llm)
+        bound_tools = build_bound_tools(
+            branch_agent, meeting_id=meeting_id, project_id=project_id, llm=llm
+        )
 
         return {
             "system": branch_agent.system_prompt,
@@ -1146,6 +1163,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ) -> dict:
         """Run a parallel wave then synthesize, returning the merged state dict.
 
@@ -1204,6 +1222,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
                 state=state,
                 llm=llm,
                 meeting_id=meeting_id,
+                project_id=project_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             )
@@ -1216,6 +1235,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             semaphore=self._get_fanout_semaphore(),
             stream_writer=stream_writer,
             meeting_id=meeting_id,
+            project_id=project_id,
             graph_context_provider=graph_context_provider,
             graph_config=graph_config,
             base_turn_number=base_turn,

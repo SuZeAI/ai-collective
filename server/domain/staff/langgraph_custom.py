@@ -83,6 +83,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph: CustomGraphSpec | None = None,
@@ -92,7 +93,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
 
         graph = self._build_graph(
             staff, llm, max_rounds, custom_graph,
-            meeting_id, graph_context_provider, graph_config,
+            meeting_id, graph_context_provider, graph_config, project_id=project_id,
         )
         ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
 
@@ -107,6 +108,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph: CustomGraphSpec | None = None,
@@ -116,7 +118,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
 
         graph = self._build_graph(
             staff, llm, max_rounds, custom_graph,
-            meeting_id, graph_context_provider, graph_config,
+            meeting_id, graph_context_provider, graph_config, project_id=project_id,
         )
         ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
 
@@ -141,6 +143,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ):
         names = [a.name for a in staff]
         name_set = set(names)
@@ -182,6 +185,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
                 staff_member=staff_member,
                 llm=llm,
                 meeting_id=meeting_id,
+                project_id=project_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             )

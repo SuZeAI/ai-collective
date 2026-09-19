@@ -251,7 +251,10 @@ def test_ring_sets_sandbox_thread_id_per_turn():
     ))
     assert len(llm.captured_thread_ids) == 2
     assert all(tid is not None for tid in llm.captured_thread_ids)
-    assert len(set(llm.captured_thread_ids)) == 2  # distinct id per turn
+    # Sandbox tools are always attached (not gated on files already existing —
+    # a staff member must be able to create a task's first file), so every
+    # turn in the same conversation shares the one deterministic thread id.
+    assert len(set(llm.captured_thread_ids)) == 1
 
 
 def test_tree_sets_sandbox_thread_id_per_turn():
@@ -283,4 +286,7 @@ def test_custom_sets_sandbox_thread_id_per_turn():
     ))
     assert len(llm.captured_thread_ids) == 2
     assert all(tid is not None for tid in llm.captured_thread_ids)
-    assert len(set(llm.captured_thread_ids)) == 2  # distinct id per turn
+    # Sandbox tools are always attached (not gated on files already existing —
+    # a staff member must be able to create a task's first file), so every
+    # turn in the same conversation shares the one deterministic thread id.
+    assert len(set(llm.captured_thread_ids)) == 1

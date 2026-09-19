@@ -307,6 +307,16 @@ async def run_staff_graph(
     graph_config = GraphContextConfig(**req.graph_config.model_dump()).normalized() if req.graph_config else None
     meeting_id = req.meeting_id
 
+    # Project-scoped sandbox: tasks in the same project share one workspace
+    # (see sandbox_session.workspace_thread_id). Best-effort — never blocks the run.
+    project_id = None
+    if meeting_id:
+        try:
+            task = task_service.get_task(meeting_id)
+            project_id = getattr(task, "project_id", "") or None
+        except Exception:  # noqa: BLE001 — scope is best-effort
+            project_id = None
+
     team_token = current_usage_department.set(req.department_id or "")
     try:
         result = await service.run_with_definitions(
@@ -314,6 +324,7 @@ async def run_staff_graph(
             definitions=definitions,
             max_rounds=req.max_rounds,
             meeting_id=meeting_id,
+            project_id=project_id,
             graph_context_provider=graph_context_service,
             graph_config=graph_config,
             custom_graph=_build_custom_graph_spec(req, staff_id_to_name),
@@ -359,12 +370,17 @@ async def run_staff_graph_stream(
     from server.infra import long_term_memory_store as ltm_store
 
     company_id = None
+    project_id = None
     if meeting_id:
         try:
             task = task_service.get_task(meeting_id)
             company_id = getattr(task, "department_id", None) if task else None
+            # Project-scoped sandbox: tasks in the same project share one
+            # workspace (see sandbox_session.workspace_thread_id).
+            project_id = getattr(task, "project_id", "") or None if task else None
         except Exception:  # noqa: BLE001 — scope is best-effort
             company_id = None
+            project_id = None
     memory_scope = MemoryScope(company_id=company_id, owner_id=owner_id).normalized()
     custom_graph_spec = _build_custom_graph_spec(req, staff_id_to_name)
 
@@ -398,6 +414,7 @@ async def run_staff_graph_stream(
             definitions=definitions,
             max_rounds=req.max_rounds,
             meeting_id=meeting_id,
+            project_id=project_id,
             graph_context_provider=graph_context_service,
             graph_config=graph_config,
             custom_graph=custom_graph_spec,

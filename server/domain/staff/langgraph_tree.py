@@ -238,6 +238,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -247,7 +248,9 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
 
         ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
         tree = _build_tree(staff)
-        graph = self._build_graph(tree, llm, max_rounds, meeting_id, graph_context_provider, graph_config)
+        graph = self._build_graph(
+            tree, llm, max_rounds, meeting_id, graph_context_provider, graph_config, project_id=project_id
+        )
         final_state, error = await run_to_final_state(graph, self._initial_state(user_input, staff), max_rounds)
         return assemble_run_result(final_state, error)
 
@@ -259,6 +262,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -268,7 +272,9 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
 
         ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
         tree = _build_tree(staff)
-        graph = self._build_graph(tree, llm, max_rounds, meeting_id, graph_context_provider, graph_config)
+        graph = self._build_graph(
+            tree, llm, max_rounds, meeting_id, graph_context_provider, graph_config, project_id=project_id
+        )
 
         async for event in graph.astream(
             self._initial_state(user_input, staff),
@@ -290,6 +296,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ):
         root = tree[0]
         root_name = root.staff_member.name
@@ -306,6 +313,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
                     max_rounds=max_rounds,
                     root_name=root_name,
                     meeting_id=meeting_id,
+                    project_id=project_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                 ),
@@ -385,6 +393,7 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ):
         staff_member = tree_node.staff_member
         parent = tree[tree_node.parent_index].staff_member if tree_node.parent_index is not None else None
@@ -523,7 +532,9 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
             if graph_ctx:
                 context_parts += ["", f"[Context]:\n{graph_ctx}"]
 
-            bound_tools = build_bound_tools(staff_member, meeting_id=meeting_id, llm=llm)
+            bound_tools = build_bound_tools(
+                staff_member, meeting_id=meeting_id, project_id=project_id, llm=llm
+            )
 
             # staff_member.system_prompt stays byte-identical every turn so the
             # compiled-agent cache and upstream provider prompt-caching see a

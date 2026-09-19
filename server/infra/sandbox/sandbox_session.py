@@ -152,6 +152,57 @@ def use_meeting_thread(meeting_id: str) -> str:
     return tid
 
 
+# ── Project-scoped (shared across every task in a project) workspaces ─────────
+
+_PROJ_THREAD_PREFIX = "proj-"
+
+
+def workspace_thread_id(*, task_id: str, project_id: str | None) -> str:
+    """Deterministic thread_id for a task's sandbox workspace.
+
+    Every task belonging to the same project resolves to the same
+    ``proj-<hash(project_id)>`` workspace, so staff on different tasks in one
+    project can exchange files. Falls back to today's per-task
+    ``conv-<hash(task_id)>`` when the task has no project (``project_id``
+    empty/None) — byte-identical to :func:`meeting_thread_id` in that case.
+    """
+    if project_id:
+        digest = hashlib.sha256(project_id.encode("utf-8")).hexdigest()[:32]
+        return f"{_PROJ_THREAD_PREFIX}{digest}"
+    return meeting_thread_id(task_id)
+
+
+def ensure_workspace_for(*, task_id: str, project_id: str | None) -> str:
+    """Project/meeting analogue of :func:`ensure_meeting_workspace`."""
+    tid = workspace_thread_id(task_id=task_id, project_id=project_id)
+    workspace = _ensure_thread_workspace(tid)
+    try:
+        os.makedirs(os.path.join(workspace, "uploads"), exist_ok=True)
+    except OSError as exc:
+        logger.warning("Could not create uploads dir in %s: %s", workspace, exc)
+    return workspace
+
+
+def use_workspace_thread(*, task_id: str, project_id: str | None) -> str:
+    """Project/meeting analogue of :func:`use_meeting_thread`.
+
+    Binds the contextvar to :func:`workspace_thread_id`, ensures the workspace,
+    and persists a session record (``task_id`` in the record stays the actual
+    task id for traceability even when the workspace itself is project-shared).
+    """
+    tid = workspace_thread_id(task_id=task_id, project_id=project_id)
+    _current_thread_id.set(tid)
+    workspace = ensure_workspace_for(task_id=task_id, project_id=project_id)
+    _persist_session(
+        thread_id=tid,
+        staff_name="conversation",
+        task_id=task_id,
+        run_id=tid,
+        workspace_path=workspace,
+    )
+    return tid
+
+
 # ── Workspace creation ────────────────────────────────────────────────────────
 
 def _ensure_thread_workspace(thread_id: str) -> str:

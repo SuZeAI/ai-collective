@@ -503,16 +503,21 @@ def attach_meeting_sandbox(
     *,
     meeting_id: str | None,
     staff_name: str,
+    project_id: str | None = None,
 ) -> bool:
-    """If this conversation has files, scope the run to its shared sandbox.
+    """Scope the run to its shared sandbox and attach sandbox/document tools.
 
-    When the chat has at least one file (a user upload or an staff_member-written file):
+    Always (not just once a file already exists — a staff member must be able
+    to create a project/task's very first file, not only read files someone
+    else already put there):
       1. Binds the sandbox contextvar to the deterministic conversation-scoped
          thread id (overwriting any random per-turn id set earlier), so every
          staff_member in the chat resolves to the *same* shared workspace and can
-         exchange files.
-      2. Appends ``SandboxToolkit`` tools to *bound_tools* (idempotent — skips if
-         ``sandbox_bash`` is already present from a bound skill).
+         exchange files. When *project_id* is set, this is the project-scoped
+         thread id instead, so every task in the project shares one workspace.
+      2. Appends ``SandboxToolkit`` (+ ``DocumentToolkit``) tools to *bound_tools*
+         (idempotent — skips if ``sandbox_bash`` is already present from a bound
+         skill).
 
     Returns ``True`` when sandbox tools were attached. Best-effort: any failure
     logs and returns ``False`` so a run is never broken by sandbox wiring. Must
@@ -526,13 +531,13 @@ def attach_meeting_sandbox(
             ensure_meeting_sandbox,
         )
 
-        cs = ensure_meeting_sandbox(meeting_id)
-        if cs is None or not cs.has_files:
+        cs = ensure_meeting_sandbox(meeting_id, project_id=project_id)
+        if cs is None:
             return False
 
-        from server.infra.sandbox.sandbox_session import use_meeting_thread
+        from server.infra.sandbox.sandbox_session import use_workspace_thread
 
-        use_meeting_thread(meeting_id)
+        use_workspace_thread(task_id=meeting_id, project_id=project_id)
 
         existing = {getattr(t, "name", "") for t in bound_tools}
         if "sandbox_bash" not in existing:
@@ -540,7 +545,7 @@ def attach_meeting_sandbox(
 
             bound_tools.extend(SandboxToolkit(session_id=cs.thread_id).get_tools())
         # Document understanding (extract pdf/excel/csv text, read tables, fetch URLs,
-        # describe images) — available whenever a chat has files.
+        # describe images) — always available alongside the sandbox tools.
         if "document_extract_text" not in existing:
             from server.domain.tools.document_tools import DocumentToolkit
 
@@ -551,7 +556,9 @@ def attach_meeting_sandbox(
         return False
 
 
-def build_agent_tools(staff: GraphStaffDefinition, *, meeting_id: str | None) -> list[Any]:
+def build_agent_tools(
+    staff: GraphStaffDefinition, *, meeting_id: str | None, project_id: str | None = None
+) -> list[Any]:
     """Build the tool list every topology binds before calling the LLM for a
     turn: this staff member's skill tools + the default human-in-the-loop
     ask-user tool + shared working-memory tools + the conversation sandbox
@@ -595,13 +602,19 @@ def build_agent_tools(staff: GraphStaffDefinition, *, meeting_id: str | None) ->
         )
     bound_tools.extend(memory_toolkit_tools(meeting_id, staff.name))
 
-    attach_meeting_sandbox(bound_tools, meeting_id=meeting_id, staff_name=staff.name)
+    attach_meeting_sandbox(
+        bound_tools, meeting_id=meeting_id, staff_name=staff.name, project_id=project_id
+    )
 
     return bound_tools
 
 
 def build_bound_tools(
-    staff: GraphStaffDefinition, *, meeting_id: str | None, llm: Any
+    staff: GraphStaffDefinition,
+    *,
+    meeting_id: str | None,
+    llm: Any,
+    project_id: str | None = None,
 ) -> list[Any]:
     """``build_agent_tools`` + ``attach_subagent_toolkit`` for one staff member's turn.
 
@@ -609,7 +622,7 @@ def build_bound_tools(
     two-call sequence for every node and fan-out branch; centralising it here
     is what keeps that pairing from drifting apart.
     """
-    bound_tools = build_agent_tools(staff, meeting_id=meeting_id)
+    bound_tools = build_agent_tools(staff, meeting_id=meeting_id, project_id=project_id)
     attach_subagent_toolkit(bound_tools, staff, llm=llm)
     return bound_tools
 
@@ -828,6 +841,7 @@ async def run_fanout_wave(
     semaphore: asyncio.Semaphore,
     stream_writer: Any = None,
     meeting_id: str | None = None,
+    project_id: str | None = None,
     graph_context_provider: Any = None,
     graph_config: Any = None,
     base_turn_number: int,
@@ -853,9 +867,21 @@ async def run_fanout_wave(
         name = staff_def.name
         # Must happen inside this branch's own coroutine (not in the caller's
         # sequential pre-build loop): asyncio.gather snapshots each branch's
-        # context independently when it schedules the Task below, so a thread_id
+        # context independently when it schedules the Task below, so a value
         # set here is isolated to this branch and never bleeds into siblings.
-        init_sandbox_thread(name, meeting_id)
+        # When there's a meeting_id, re-establish the SAME deterministic
+        # shared-sandbox id the pre-build phase's attach_meeting_sandbox
+        # already bound the branch's tools to (conv-/proj-<hash>) — calling
+        # the old random init_sandbox_thread here instead would clobber it
+        # right before the tool calls run, silently sending every sandbox
+        # write to a private, unshared directory instead of the workspace
+        # the pre-built SandboxToolkit was supposed to share with siblings.
+        if meeting_id:
+            from server.infra.sandbox.sandbox_session import use_workspace_thread
+
+            use_workspace_thread(task_id=meeting_id, project_id=project_id)
+        else:
+            init_sandbox_thread(name, meeting_id)
         if stream_writer:
             stream_writer({
                 "type": EventType.AGENT_TURN_START.value,

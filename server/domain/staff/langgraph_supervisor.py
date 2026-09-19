@@ -184,6 +184,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -192,7 +193,9 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             raise ValueError("At least one staff_member definition is required")
 
         ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
-        graph = self._build_graph(staff, llm, max_rounds, meeting_id, graph_context_provider, graph_config)
+        graph = self._build_graph(
+            staff, llm, max_rounds, meeting_id, graph_context_provider, graph_config, project_id=project_id
+        )
         final_state, error = await run_to_final_state(graph, self._initial_state(user_input, staff), max_rounds)
         return assemble_run_result(final_state, error)
 
@@ -204,6 +207,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -212,7 +216,9 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             raise ValueError("At least one staff_member definition is required")
 
         ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
-        graph = self._build_graph(staff, llm, max_rounds, meeting_id, graph_context_provider, graph_config)
+        graph = self._build_graph(
+            staff, llm, max_rounds, meeting_id, graph_context_provider, graph_config, project_id=project_id
+        )
 
         async for event in graph.astream(
             self._initial_state(user_input, staff),
@@ -234,6 +240,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ):
         lead = staff[0]
         workers = staff[1:]
@@ -250,6 +257,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 llm=llm,
                 max_rounds=max_rounds,
                 meeting_id=meeting_id,
+                project_id=project_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             ),
@@ -263,6 +271,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                     worker=worker,
                     llm=llm,
                     meeting_id=meeting_id,
+                    project_id=project_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                 ),
@@ -318,6 +327,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ):
         worker_profiles = "\n".join(
             f"- {w.name}: {w.role}" + (f" — {w.description}" if w.description else "")
@@ -427,7 +437,9 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             if recent_log:
                 context_parts += ["", f"[Delegation history]:\n{log_text}"]
 
-            bound_tools = build_bound_tools(lead, meeting_id=meeting_id, llm=llm)
+            bound_tools = build_bound_tools(
+                lead, meeting_id=meeting_id, project_id=project_id, llm=llm
+            )
 
             # lead.system_prompt stays byte-identical every turn so the
             # compiled-agent cache and upstream provider prompt-caching see a
@@ -516,6 +528,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                     llm=llm,
                     stream_writer=stream_writer,
                     meeting_id=meeting_id,
+                    project_id=project_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                     human_guidance=human_guidance,
@@ -607,6 +620,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ):
         async def worker_node(state: SupervisorState) -> dict:
             stream_writer = get_stream_writer()
@@ -671,7 +685,9 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             if graph_ctx:
                 worker_context_parts.append(f"[Context]:\n{graph_ctx}")
 
-            bound_tools = build_bound_tools(worker, meeting_id=meeting_id, llm=llm)
+            bound_tools = build_bound_tools(
+                worker, meeting_id=meeting_id, project_id=project_id, llm=llm
+            )
 
             turn, budget_result = build_turn_messages(
                 llm=llm,
@@ -833,6 +849,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ) -> dict:
         """Assemble safe_chat kwargs for one fan-out worker (mirrors worker_node).
 
@@ -862,7 +879,9 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         if graph_ctx:
             worker_context_parts.append(f"[Context]:\n{graph_ctx}")
 
-        bound_tools = build_bound_tools(worker, meeting_id=meeting_id, llm=llm)
+        bound_tools = build_bound_tools(
+            worker, meeting_id=meeting_id, project_id=project_id, llm=llm
+        )
 
         turn, _budget_result = build_turn_messages(
             llm=llm,
@@ -895,6 +914,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
         human_guidance: str,
+        project_id: str | None = None,
     ) -> dict:
         """Run a parallel worker wave then synthesize, returning merged state.
 
@@ -954,6 +974,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 state=state,
                 llm=llm,
                 meeting_id=meeting_id,
+                project_id=project_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             )
@@ -966,6 +987,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             semaphore=self._get_fanout_semaphore(),
             stream_writer=stream_writer,
             meeting_id=meeting_id,
+            project_id=project_id,
             graph_context_provider=graph_context_provider,
             graph_config=graph_config,
             base_turn_number=base_turn,

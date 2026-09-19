@@ -567,7 +567,7 @@ class _ThreadIdCapturingScriptedLLM(_ScriptedLLM):
         )
 
 
-def test_e2e_mesh_fanout_branches_get_distinct_sandbox_thread_ids():
+def test_e2e_mesh_fanout_branches_share_sandbox_thread_id():
     llm = _ThreadIdCapturingScriptedLLM(
         coordinator_marker="you may dispatch several specialists",
         coordinator_response=(
@@ -590,7 +590,14 @@ def test_e2e_mesh_fanout_branches_get_distinct_sandbox_thread_ids():
     ))
     assert len(llm.branch_thread_ids) == 2
     assert all(tid is not None for tid in llm.branch_thread_ids)
-    assert len(set(llm.branch_thread_ids)) == 2
+    # Regression: branches used to each get their OWN random thread id
+    # (init_sandbox_thread called inside the branch's isolated gather Task,
+    # clobbering the shared id the pre-build phase's attach_meeting_sandbox
+    # had just bound their tools to) -- so a file one branch wrote via
+    # SandboxToolkit silently landed in a private directory no sibling branch
+    # or later task could see. Fixed: every branch in the same conversation
+    # now shares the ONE deterministic conv-/proj-<hash> workspace.
+    assert len(set(llm.branch_thread_ids)) == 1
 
 
 def test_mesh_sequential_turn_emits_agent_start_not_agent_turn_start():
@@ -637,7 +644,7 @@ def test_mesh_sequential_turn_emits_agent_start_not_agent_turn_start():
     assert "agent_turn_start" not in event_types
 
 
-def test_e2e_supervisor_fanout_branches_get_distinct_sandbox_thread_ids():
+def test_e2e_supervisor_fanout_branches_share_sandbox_thread_id():
     llm = _ThreadIdCapturingScriptedLLM(
         coordinator_marker="SUPERVISOR ROLE",
         coordinator_response=(
@@ -660,4 +667,38 @@ def test_e2e_supervisor_fanout_branches_get_distinct_sandbox_thread_ids():
     ))
     assert len(llm.branch_thread_ids) == 2
     assert all(tid is not None for tid in llm.branch_thread_ids)
-    assert len(set(llm.branch_thread_ids)) == 2
+    # See the mesh counterpart test for why this is 1, not 2: fan-out branches
+    # must share the conversation's/project's one sandbox workspace, not each
+    # get an isolated random one.
+    assert len(set(llm.branch_thread_ids)) == 1
+
+
+def test_e2e_supervisor_fanout_branches_share_PROJECT_scoped_sandbox_thread_id():
+    """Same bug/fix as above, specifically for project_id (not just meeting_id):
+    two tasks' fan-out branches in the same project must resolve to the one
+    proj-<hash> workspace, not conv-<hash(meeting_id)> nor a random id."""
+    from server.infra.sandbox.sandbox_session import workspace_thread_id
+
+    llm = _ThreadIdCapturingScriptedLLM(
+        coordinator_marker="SUPERVISOR ROLE",
+        coordinator_response=(
+            "Parallelizing.\n<FANOUT>"
+            "<DELEGATE_TO>W1</DELEGATE_TO><TASK>task one</TASK>"
+            "<DELEGATE_TO>W2</DELEGATE_TO><TASK>task two</TASK>"
+            "</FANOUT>"
+        ),
+        synthesis_response="Merged.\n<FINAL_ANSWER>combined answer</FINAL_ANSWER>",
+        branch_response="worker output",
+    )
+    agents = [
+        GraphStaffDefinition(name="Lead", role="lead", system_prompt="lead"),
+        GraphStaffDefinition(name="W1", role="worker", system_prompt="w1"),
+        GraphStaffDefinition(name="W2", role="worker", system_prompt="w2"),
+    ]
+    asyncio.run(LangGraphSupervisorOrchestrator().run(
+        user_input="Do the job.", staff=agents, llm=llm, max_rounds=6,
+        meeting_id="task-in-project", project_id="proj-42",
+    ))
+    assert len(llm.branch_thread_ids) == 2
+    expected = workspace_thread_id(task_id="task-in-project", project_id="proj-42")
+    assert set(llm.branch_thread_ids) == {expected}
