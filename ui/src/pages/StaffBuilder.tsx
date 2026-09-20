@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { FlaskConical, Pencil, Plus, Trash2, X, ChevronDown } from "lucide-react";
+import { FlaskConical, Pencil, Plus, Sparkles, Trash2, X, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -134,6 +135,9 @@ export default function StaffBuilder() {
   const [copied, setCopied] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [skillSearch, setSkillSearch] = useState("");
+  const [genOpen, setGenOpen] = useState(false);
+  const [genPrompt, setGenPrompt] = useState("");
+  const [generating, setGenerating] = useState(false);
   const testRunIdRef = useRef(0);
 
   const filteredRoles = useMemo(() => {
@@ -202,6 +206,7 @@ export default function StaffBuilder() {
     setAvatarUrl("");
     setSelectedSkillIds([]);
     setSubagentEnabled(false);
+    setGenPrompt("");
   };
 
   const openCreateDialog = () => {
@@ -221,6 +226,26 @@ export default function StaffBuilder() {
     setSelectedSkillIds(dedupeIds(staff.skill_ids || []));
     setSubagentEnabled(staff.subagent_enabled ?? false);
     setOpen(true);
+  };
+
+  const generateStaffDraft = async () => {
+    if (!genPrompt.trim() || generating || !companyId) return;
+    setGenerating(true);
+    try {
+      const draft = await api.generateStaff({ prompt: genPrompt.trim(), company_id: companyId });
+      resetForm();
+      setName(draft.name);
+      setRole(draft.role);
+      setDesc(draft.description);
+      setSelectedSkillIds(draft.skillIds);
+      setGenOpen(false);
+      setOpen(true);
+    } catch (e) {
+      console.error(e);
+      toast({ title: lang.staffBuilderPage.couldNotGenerateStaffToast, description: String((e as Error).message ?? e), variant: "destructive" });
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const saveStaff = async () => {
@@ -344,6 +369,31 @@ export default function StaffBuilder() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Dialog open={genOpen} onOpenChange={setGenOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" onClick={() => setGenPrompt("")}>
+                <Sparkles className="w-4 h-4 mr-2" /> {lang.staffBuilderPage.generateWithAiBtn}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg w-[92vw] p-6">
+              <DialogHeader>
+                <DialogTitle>{lang.staffBuilderPage.generateDialogTitle}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3 pt-2">
+                <Textarea
+                  placeholder={lang.staffBuilderPage.generatePromptPlaceholder}
+                  value={genPrompt}
+                  onChange={(e) => setGenPrompt(e.target.value)}
+                  rows={4}
+                />
+                <Button className="w-full" onClick={generateStaffDraft} disabled={!genPrompt.trim() || generating}>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {generating ? lang.staffBuilderPage.generatingBtn : lang.staffBuilderPage.generateBtn}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button onClick={openCreateDialog}>
