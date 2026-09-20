@@ -79,6 +79,15 @@ KUBECONFIG_PATH = os.environ.get("KUBECONFIG_PATH", "/root/.kube/config")
 # is ``host.docker.internal``; on Linux it may be the host's LAN IP.
 NODE_HOST = os.environ.get("NODE_HOST", "host.docker.internal")
 
+# The host a *human's browser* should use to reach an exposed NodePort.
+# Deliberately separate from NODE_HOST: "host.docker.internal" only resolves
+# inside a container's own network namespace (confirmed live — a browser or
+# a plain `curl` on the host itself gets an unresolvable-host error for it),
+# never in a person's browser. Defaults to "localhost", correct for the
+# common case where whoever opens the URL is on the same machine the
+# k3s node runs on; override for a remote/multi-machine deployment.
+PUBLIC_HOST = os.environ.get("PUBLIC_HOST", "localhost")
+
 
 def join_host_path(base: str, *parts: str) -> str:
     """Join host filesystem path segments while preserving native style."""
@@ -285,8 +294,15 @@ def _exposed_port_name(port: int) -> str:
 
 
 def _sandbox_url(node_port: int) -> str:
-    """Build the sandbox URL using the configured NODE_HOST."""
+    """Build the sandbox's own control-plane URL (NODE_HOST) — for the
+    *backend* to call directly, never shown to a human."""
     return f"http://{NODE_HOST}:{node_port}"
+
+
+def _public_url(node_port: int) -> str:
+    """Build a URL for a *human* to open (PUBLIC_HOST) — used for exposed
+    app ports, never the sandbox's own control-plane URL."""
+    return f"http://{PUBLIC_HOST}:{node_port}"
 
 
 def _build_volumes(thread_id: str) -> list[k8s_client.V1Volume]:
@@ -683,7 +699,7 @@ async def expose_port(sandbox_id: str, req: ExposePortRequest):
 
     for p in svc.spec.ports or []:
         if p.name == name:
-            return ExposedPortResponse(port=req.port, node_port=p.node_port, url=_sandbox_url(p.node_port))
+            return ExposedPortResponse(port=req.port, node_port=p.node_port, url=_public_url(p.node_port))
 
     # Full PUT (not patch): Service.spec.ports carries a K8s
     # x-kubernetes-patch-merge-key of "port", so a strategic-merge PATCH only
@@ -711,7 +727,7 @@ async def expose_port(sandbox_id: str, req: ExposePortRequest):
         raise HTTPException(status_code=500, detail=f"NodePort for port {req.port} was not allocated in time")
 
     logger.info(f"Exposed port {req.port} for sandbox {sandbox_id} at nodePort {node_port}")
-    return ExposedPortResponse(port=req.port, node_port=node_port, url=_sandbox_url(node_port))
+    return ExposedPortResponse(port=req.port, node_port=node_port, url=_public_url(node_port))
 
 
 @app.get("/api/sandboxes/{sandbox_id}/expose")
@@ -721,7 +737,7 @@ async def list_exposed_ports(sandbox_id: str):
     _validate_sandbox_id(sandbox_id)
     svc = _read_service_or_404(sandbox_id)
     exposed = [
-        ExposedPortResponse(port=p.port, node_port=p.node_port, url=_sandbox_url(p.node_port))
+        ExposedPortResponse(port=p.port, node_port=p.node_port, url=_public_url(p.node_port))
         for p in (svc.spec.ports or [])
         if p.name != "http"
     ]
