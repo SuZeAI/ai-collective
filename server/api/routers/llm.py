@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from server.api.deps import (
     _resolve_active_model_config,
     current_owner_id_dep,
+    get_activity_feed_service,
     get_staff_graph_service,
     get_staff_service,
     get_graph_context_service,
@@ -24,6 +25,7 @@ from server.api.schemas.admin import LlmModelOptionSchema
 from server.api.schemas.staff_graph import GraphRunRequest, GraphRunResponse, GraphTurnSchema
 from server.infra.llm.config import get_enabled_models
 from server.app.ports.staff_graph import CustomGraphSpec
+from server.app.service.activity_feed_service import ActivityFeedService, format_response_action
 from server.app.service.staff_service import StaffService
 from server.app.service.graph_context_service import GraphContextService
 from server.app.service.llm_service import LLMService
@@ -287,6 +289,7 @@ async def run_staff_graph(
     tool_manager: SkillToolManager = Depends(get_skill_tool_manager),
     graph_context_service: GraphContextService = Depends(get_graph_context_service),
     task_service: TaskService = Depends(get_task_service),
+    activity_feed_service: ActivityFeedService = Depends(get_activity_feed_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> GraphRunResponse:
     service = get_staff_graph_service(mode=req.mode)
@@ -331,6 +334,12 @@ async def run_staff_graph(
         )
     finally:
         current_usage_department.reset(team_token)
+    staff_name_to_id = {name: staff_id for staff_id, name in staff_id_to_name.items()}
+    for turn in result.turns:
+        activity_feed_service.log(
+            staff_name_to_id.get(turn.staff_name, turn.staff_name),
+            format_response_action(turn.content),
+        )
     return GraphRunResponse.from_result(result)
 
 
@@ -341,6 +350,7 @@ async def run_staff_graph_stream(
     tool_manager: SkillToolManager = Depends(get_skill_tool_manager),
     graph_context_service: GraphContextService = Depends(get_graph_context_service),
     task_service=Depends(get_task_service),
+    activity_feed_service: ActivityFeedService = Depends(get_activity_feed_service),
     owner_id: str = Depends(current_owner_id_dep),
 ):
     """Stream staff responses in real-time using Server-Sent Events"""
@@ -469,6 +479,12 @@ async def run_staff_graph_stream(
                         turn_staff_name = event_data["turn"].get("staff_name")
                         if turn_staff_name and "agent_id" not in event_data["turn"]:
                             event_data["turn"]["agent_id"] = staff_name_to_id.get(turn_staff_name, turn_staff_name)
+                    if event_data.get("type") == "turn_complete" and isinstance(event_data.get("turn"), dict):
+                        turn_data = event_data["turn"]
+                        activity_feed_service.log(
+                            turn_data.get("agent_id", turn_data.get("staff_name", "")),
+                            format_response_action(turn_data.get("content", "")),
+                        )
                     # Emit custom event as-is
                     yield f"data: {json.dumps(event_data)}\n\n"
                 else:
@@ -481,6 +497,7 @@ async def run_staff_graph_stream(
                         staff_role=turn.staff_role,
                         content=turn.content,
                     )
+                    activity_feed_service.log(turn_schema.staff_id, format_response_action(turn.content))
                     yield f"data: {json.dumps(turn_schema.model_dump())}\n\n"
 
             if cancelled:
