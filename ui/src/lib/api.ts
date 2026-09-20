@@ -103,6 +103,28 @@ export type Department = {
   flow?: CustomFlow | null;
 };
 
+export type GenerateDepartmentDraft = {
+  name: string;
+  description: string;
+  mode: DepartmentMode;
+  maxSteps: number;
+  staffIds: string[];
+};
+
+export type GenerateStaffDraft = {
+  name: string;
+  role: string;
+  description: string;
+  skillIds: string[];
+};
+
+export type GenerateSkillDraft = {
+  name: string;
+  description: string;
+  toolName: string | null;
+  instruction: string;
+};
+
 export type AffectedCompany = { id: string; name: string };
 
 export type DeleteImpact = {
@@ -830,6 +852,8 @@ export const api = {
     apiFetch<Staff[]>(`/staff${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`),
   upsertStaff: (payload: Partial<Staff> & Pick<Staff, "name" | "role">) =>
     apiFetch<Staff>("/staff", { method: "POST", body: JSON.stringify(payload) }),
+  generateStaff: (payload: { prompt: string; company_id?: string }) =>
+    apiFetch<GenerateStaffDraft>("/staff/generate", { method: "POST", body: JSON.stringify(payload) }),
   deleteStaff: (id: string) => apiFetch<{ deleted: boolean }>(`/staff/${id}`, { method: "DELETE" }),
   getStaffDeleteImpact: (id: string) => apiFetch<DeleteImpact>(`/staff/${id}/impact`),
 
@@ -846,6 +870,8 @@ export const api = {
     apiFetch<GoogleSheetOAuthStatusResponse>(`/auth/oauth/status?state=${encodeURIComponent(state)}`),
   upsertSkill: (payload: Partial<Skill> & Pick<Skill, "name" | "kind">) =>
     apiFetch<Skill>("/skills", { method: "POST", body: JSON.stringify(payload) }),
+  generateSkill: (payload: { prompt: string; company_id?: string }) =>
+    apiFetch<GenerateSkillDraft>("/skills/generate", { method: "POST", body: JSON.stringify(payload) }),
   deleteSkill: (id: string) => apiFetch<{ deleted: boolean }>(`/skills/${id}`, { method: "DELETE" }),
   getSkillDeleteImpact: (id: string) => apiFetch<DeleteImpact>(`/skills/${id}/impact`),
 
@@ -853,6 +879,8 @@ export const api = {
     apiFetch<Department[]>(`/departments${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`),
   upsertDepartment: (payload: Partial<Department> & Pick<Department, "name" | "staff">) =>
     apiFetch<Department>("/departments", { method: "POST", body: JSON.stringify(payload) }),
+  generateDepartment: (payload: { prompt: string; company_id?: string }) =>
+    apiFetch<GenerateDepartmentDraft>("/departments/generate", { method: "POST", body: JSON.stringify(payload) }),
   deleteDepartment: (id: string) => apiFetch<{ deleted: boolean }>(`/departments/${id}`, { method: "DELETE" }),
   getDepartmentDeleteImpact: (id: string) => apiFetch<DeleteImpact>(`/departments/${id}/impact`),
 
