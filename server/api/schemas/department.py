@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DepartmentSchema(BaseModel):
@@ -55,3 +55,16 @@ class UpsertDepartmentRequest(BaseModel):
     maxSteps: int = 6
     company_id: str | None = None
     flow: dict[str, Any] | None = None
+
+
+class GenerateDepartmentRequest(BaseModel):
+    prompt: str
+    company_id: str | None = None
+
+
+class GenerateDepartmentResponse(BaseModel):
+    name: str
+    description: str = ""
+    mode: str = "sequential"
+    maxSteps: int = 6
+    staffIds: list[str] = Field(default_factory=list)

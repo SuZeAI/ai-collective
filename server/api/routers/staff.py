@@ -2,20 +2,67 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from server.api.avatars import sanitize_avatar_fields
-from server.api.schemas.staff import StaffSchema, UpsertStaffRequest
+from server.api.schemas.staff import (
+    GenerateStaffRequest,
+    GenerateStaffResponse,
+    StaffSchema,
+    UpsertStaffRequest,
+)
 from server.app.service.company_service import CompanyService
+from server.app.service.llm_service import LLMService
+from server.app.service.skill_service import SkillService
 from server.app.service.staff_service import StaffService
-from server.api.deps import current_owner_id_dep, get_company_service, get_staff_service
+from server.api.deps import (
+    current_owner_id_dep,
+    get_company_service,
+    get_llm_service,
+    get_skill_service,
+    get_staff_service,
+)
 from server.api.ownership import require_deletable, require_modifiable
 from server.domain.enums import StaffStatus
 from server.domain.models import CATALOG_COMPANY_ID, Staff, is_visible_to
 from server.domain.prompt.staff_system_prompt import build_staff_system_prompt
+from server.share.log import get_logger
 
 
 router = APIRouter(prefix="/staff", tags=["staff"])
+
+_ROLE_FALLBACK = "AI Specialist"
+
+
+def _build_staff_generate_system_prompt() -> str:
+    return (
+        "You design AI staff members (job personas) for a virtual company, based on the "
+        "company's available skill/tool catalog and the user's request. Respond with a "
+        "SINGLE JSON object and nothing else:\n"
+        '{\n  "name": "<a plausible human name for this staff member>",\n'
+        '  "role": "<concise job title>",\n  "description": "<what this staff member does, 1-2 sentences>",\n'
+        '  "skillIds": ["<skill id>", ...]\n}\n\n'
+        "Rules:\n- skillIds MUST only contain ids taken from the provided catalog. Pick the "
+        "skills this staff member actually needs; it is fine to leave this empty if none fit.\n"
+        "- The role should fit the chosen skills and the user's request.\n"
+        "- Keep description concise and action-oriented."
+    )
+
+
+def _sanitize_staff_draft(raw: dict, known_skill_ids: set[str]) -> GenerateStaffResponse:
+    skill_ids: list[str] = []
+    raw_skill_ids = raw.get("skillIds")
+    if isinstance(raw_skill_ids, list):
+        for sid in raw_skill_ids:
+            sid = str(sid)
+            if sid in known_skill_ids and sid not in skill_ids:
+                skill_ids.append(sid)
+    return GenerateStaffResponse(
+        name=str(raw.get("name") or "").strip() or "New Staff",
+        role=str(raw.get("role") or "").strip() or _ROLE_FALLBACK,
+        description=str(raw.get("description") or "").strip(),
+        skillIds=skill_ids,
+    )
 
 
 @router.get("", response_model=list[StaffSchema])
@@ -74,6 +121,44 @@ def upsert_staff(
     saved = service.upsert_staff(staff)
     skills = service.get_staff_skills(saved.id)
     return StaffSchema.from_domain(saved, skills)
+
+
+@router.post("/generate", response_model=GenerateStaffResponse)
+async def generate_staff(
+    req: GenerateStaffRequest,
+    skill_service: SkillService = Depends(get_skill_service),
+    llm_service: LLMService | None = Depends(get_llm_service),
+    owner_id: str = Depends(current_owner_id_dep),
+) -> GenerateStaffResponse:
+    if llm_service is None:
+        raise HTTPException(status_code=503, detail="LLM provider is not configured")
+    if not req.prompt.strip():
+        raise HTTPException(status_code=422, detail="Prompt is required")
+
+    catalog = [
+        skill
+        for skill in skill_service.list_skills()
+        if is_visible_to(owner_id, skill.owner_id)
+        and (req.company_id is None or skill.company_id == req.company_id)
+    ]
+    lines = [f"- id={skill.id} | {skill.name} ({skill.kind}): {skill.description or ''}" for skill in catalog]
+
+    user = (
+        "Available skill/tool catalog for this company:\n"
+        + ("\n".join(lines) if lines else "(no skills registered yet)")
+        + f"\n\nUser's request:\n{req.prompt.strip()}"
+    )
+
+    try:
+        data = await llm_service.get_provider().generate_json(
+            system=_build_staff_generate_system_prompt(), user=user
+        )
+    except Exception as exc:
+        get_logger().exception("Staff generation failed")
+        raise HTTPException(status_code=502, detail=f"Generation failed: {exc}")
+
+    known_skill_ids = {skill.id for skill in catalog}
+    return _sanitize_staff_draft(data if isinstance(data, dict) else {}, known_skill_ids)
 
 
 @router.get("/{staff_id}/impact")

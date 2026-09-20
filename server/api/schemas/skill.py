@@ -105,6 +105,18 @@ class UpsertSkillRequest(BaseModel):
     company_id: str | None = None
 
 
+class GenerateSkillRequest(BaseModel):
+    prompt: str
+    company_id: str | None = None
+
+
+class GenerateSkillResponse(BaseModel):
+    name: str
+    description: str = ""
+    toolName: str | None = None
+    instruction: str = ""
+
+
 class SkillToolConfigFieldSchema(BaseModel):
     key: str
     label: str
