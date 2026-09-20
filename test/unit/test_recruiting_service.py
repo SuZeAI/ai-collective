@@ -168,6 +168,7 @@ def test_copy_department_deep_clones_staff_and_skills_with_fresh_ids(tmp_path):
     assert cloned_staff_id != staff.id
     cloned_staff = svc["staff"].get_staff(cloned_staff_id)
     assert cloned_staff.owner_id == "user_1"
+    assert cloned_staff.company_id == target_company.id
     assert len(cloned_staff.skill_ids) == 1
 
     cloned_skill_id = cloned_staff.skill_ids[0]
@@ -175,6 +176,7 @@ def test_copy_department_deep_clones_staff_and_skills_with_fresh_ids(tmp_path):
     cloned_skill = svc["skills"].try_get_skill(cloned_skill_id)
     assert cloned_skill is not None
     assert cloned_skill.owner_id == "user_1"
+    assert cloned_skill.company_id == target_company.id
     assert cloned_skill.config == skill.config  # deep-copied value, not shared reference
 
     # editing the clone must never touch the original

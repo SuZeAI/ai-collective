@@ -38,7 +38,10 @@ _override = {
     "storage": {"backend": "json", "dir": _TEST_STORAGE_DIR, "file_backend": "local"},
     "task_queue": {"backend": "memory"},
     "lock": {"backend": "threading"},
-    "sandbox": {"mode": "local"},
+    # workspace override matters even in "local" mode: without it, sandbox.workspace
+    # falls through to the developer's real ${SANDBOX_WORKSPACE} (.env) and every
+    # staff turn a test simulates litters that real directory with throwaway folders.
+    "sandbox": {"mode": "local", "workspace": os.path.join(_TEST_STORAGE_DIR, "sandbox_workspace")},
     "graph": {"backend": "auto", "neo4j_uri": ""},
     "seed": {"default_data": False},
     "mcp": {"auto_seed": False},

@@ -557,7 +557,7 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
             )
 
             sandbox_thread_id, sandbox_workspace = self._init_mesh_sandbox_thread(
-                staff_member=staff_member, meeting_id=meeting_id, state=state,
+                staff_member=staff_member, meeting_id=meeting_id, project_id=project_id, state=state,
             )
 
             # Stream: Staff turn starting (AGENT_START, matching every other
@@ -760,10 +760,13 @@ class MultiAgentMeshOrchestrator(StaffGraphOrchestrator):
         *,
         staff_member: GraphStaffDefinition,
         meeting_id: str | None,
+        project_id: str | None,
         state: MultiAgentMeshState,
     ) -> tuple[str, str]:
         """Allocate this turn's sandbox thread id/workspace (creates the dir) and log it."""
-        sandbox_thread_id, sandbox_workspace = init_sandbox_thread(staff_member.name, meeting_id)
+        sandbox_thread_id, sandbox_workspace = init_sandbox_thread(
+            staff_member.name, meeting_id, project_id
+        )
         logger.debug(
             "[%s] mesh_node: round=%d thread_id=%s workspace=%s",
             staff_member.name, state.get("rounds", 0) + 1, sandbox_thread_id, sandbox_workspace,

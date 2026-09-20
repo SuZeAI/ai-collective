@@ -712,11 +712,28 @@ def ingest_user_message(
         )
 
 
-def init_sandbox_thread(staff_name: str, meeting_id: str | None) -> tuple[str, str]:
-    """Allocate this turn's sandbox thread id/workspace, creating the dir now."""
-    from server.infra.sandbox.sandbox_session import get_thread_workspace, new_thread_id
+def init_sandbox_thread(
+    staff_name: str, meeting_id: str | None, project_id: str | None = None
+) -> tuple[str, str]:
+    """Allocate this turn's sandbox thread id/workspace, creating the dir now.
 
-    sandbox_thread_id = new_thread_id(staff_name=staff_name, task_id=meeting_id)
+    When meeting_id is set, resolves straight to the deterministic shared
+    workspace (conv-<hash>/proj-<hash>) instead of first creating a
+    throwaway random-uuid folder that attach_meeting_sandbox would
+    immediately replace — that used to leave one abandoned, empty directory
+    behind on every single turn regardless of whether it ever used a sandbox
+    tool (mirrors the fix in run_fanout_wave, which already did this).
+    """
+    from server.infra.sandbox.sandbox_session import (
+        get_thread_workspace,
+        new_thread_id,
+        use_workspace_thread,
+    )
+
+    if meeting_id:
+        sandbox_thread_id = use_workspace_thread(task_id=meeting_id, project_id=project_id)
+    else:
+        sandbox_thread_id = new_thread_id(staff_name=staff_name, task_id=meeting_id)
     sandbox_workspace = get_thread_workspace(settings.sandbox_workspace or "", sandbox_thread_id)
     return sandbox_thread_id, sandbox_workspace
 
@@ -869,19 +886,12 @@ async def run_fanout_wave(
         # sequential pre-build loop): asyncio.gather snapshots each branch's
         # context independently when it schedules the Task below, so a value
         # set here is isolated to this branch and never bleeds into siblings.
-        # When there's a meeting_id, re-establish the SAME deterministic
-        # shared-sandbox id the pre-build phase's attach_meeting_sandbox
-        # already bound the branch's tools to (conv-/proj-<hash>) — calling
-        # the old random init_sandbox_thread here instead would clobber it
-        # right before the tool calls run, silently sending every sandbox
-        # write to a private, unshared directory instead of the workspace
-        # the pre-built SandboxToolkit was supposed to share with siblings.
-        if meeting_id:
-            from server.infra.sandbox.sandbox_session import use_workspace_thread
-
-            use_workspace_thread(task_id=meeting_id, project_id=project_id)
-        else:
-            init_sandbox_thread(name, meeting_id)
+        # Re-bind this branch's own asyncio Task context to the sandbox thread:
+        # with a meeting_id, init_sandbox_thread resolves the SAME deterministic
+        # shared-sandbox id (conv-/proj-<hash>) the pre-build phase's
+        # attach_meeting_sandbox already bound the branch's tools to, so every
+        # branch's writes land in the workspace siblings share.
+        init_sandbox_thread(name, meeting_id, project_id)
         if stream_writer:
             stream_writer({
                 "type": EventType.AGENT_TURN_START.value,

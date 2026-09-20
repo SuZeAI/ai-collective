@@ -426,9 +426,11 @@ class LangGraphTreeOrchestrator(StaffGraphOrchestrator):
             rounds_used = state["rounds"]
             remaining = max(0, max_rounds - rounds_used)
 
-            # Generate a unique thread_id for this staff_member turn.
+            # Resolve this staff_member turn's sandbox thread_id/workspace.
             # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
-            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(staff_member.name, meeting_id)
+            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(
+                staff_member.name, meeting_id, project_id
+            )
 
             stream_writer({
                 "type": EventType.AGENT_START.value,
