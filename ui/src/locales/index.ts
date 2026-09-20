@@ -560,6 +560,13 @@ export type Translations = {
     editAriaLabel: string;
     deleteAriaLabel: string;
     testBtn: string;
+    generateWithAiLabel: string;
+    generatePromptPlaceholder: string;
+    generateBtn: string;
+    generatingBtn: string;
+    couldNotGenerateStaffToast: string;
+    generateWithAiBtn: string;
+    generateDialogTitle: string;
   };
   departmentBuilderPage: {
     defaultTestPrompt: string;
@@ -627,6 +634,13 @@ export type Translations = {
     toastImpactFailTitle: string;
     testNoStaffError: string;
     testRunFailError: string;
+    generateWithAiLabel: string;
+    generatePromptPlaceholder: string;
+    generateBtn: string;
+    generatingBtn: string;
+    couldNotGenerateDepartmentToast: string;
+    generateWithAiBtn: string;
+    generateDialogTitle: string;
   };
   skillsPage: {
     title: string;
@@ -684,6 +698,13 @@ export type Translations = {
     cannotStartAuthMsg: string;
     browserAuthOpenedMsg: string;
     notReturnedText: string;
+    generateWithAiLabel: string;
+    generatePromptPlaceholder: string;
+    generateBtn: string;
+    generatingBtn: string;
+    couldNotGenerateSkillToast: string;
+    generateWithAiBtn: string;
+    generateDialogTitle: string;
   };
   virtualOfficePage: {
     grabbingEspresso: string;
@@ -1534,6 +1555,13 @@ export const translations: Record<Language, Translations> = {
       editAriaLabel: "Edit",
       deleteAriaLabel: "Delete",
       testBtn: "Test",
+      generateWithAiLabel: "Generate with AI",
+      generatePromptPlaceholder: "Describe the staff member you want (e.g. \"a support agent who handles email and Slack\")",
+      generateBtn: "Generate",
+      generatingBtn: "Generating...",
+      couldNotGenerateStaffToast: "Could not generate staff",
+      generateWithAiBtn: "Generate with AI",
+      generateDialogTitle: "Generate Staff with AI",
     },
     departmentBuilderPage: {
       defaultTestPrompt: "Run a quick kickoff discussion and align responsibilities.",
@@ -1601,6 +1629,13 @@ export const translations: Record<Language, Translations> = {
       toastImpactFailTitle: "Could not check delete impact",
       testNoStaffError: "This department has no staff to test.",
       testRunFailError: "Failed to run department test discussion.",
+      generateWithAiLabel: "Generate with AI",
+      generatePromptPlaceholder: "Describe the department you want (e.g. \"a marketing team that plans campaigns\")",
+      generateBtn: "Generate",
+      generatingBtn: "Generating...",
+      couldNotGenerateDepartmentToast: "Could not generate department",
+      generateWithAiBtn: "Generate with AI",
+      generateDialogTitle: "Generate Department with AI",
     },
     skillsPage: {
       title: "Skills",
@@ -1658,6 +1693,13 @@ export const translations: Record<Language, Translations> = {
       cannotStartAuthMsg: "Cannot start Google authorization.",
       browserAuthOpenedMsg: "Browser authorization opened. Complete login in the popup window. Redirect URI: {uri}",
       notReturnedText: "(not returned)",
+      generateWithAiLabel: "Generate with AI",
+      generatePromptPlaceholder: "Describe the skill you need (e.g. \"something that can post to Slack\")",
+      generateBtn: "Generate",
+      generatingBtn: "Generating...",
+      couldNotGenerateSkillToast: "Could not generate skill",
+      generateWithAiBtn: "Generate with AI",
+      generateDialogTitle: "Generate Skill with AI",
     },
     virtualOfficePage: {
       grabbingEspresso: "Grabbing a fresh espresso",
@@ -2515,6 +2557,13 @@ export const translations: Record<Language, Translations> = {
       editAriaLabel: "Sửa",
       deleteAriaLabel: "Xóa",
       testBtn: "Thử",
+      generateWithAiLabel: "Tạo bằng AI",
+      generatePromptPlaceholder: "Mô tả nhân sự bạn cần (vd: \"nhân viên hỗ trợ xử lý email và Slack\")",
+      generateBtn: "Tạo",
+      generatingBtn: "Đang tạo...",
+      couldNotGenerateStaffToast: "Không thể tạo nhân sự",
+      generateWithAiBtn: "Tạo bằng AI",
+      generateDialogTitle: "Tạo nhân sự bằng AI",
     },
     departmentBuilderPage: {
       defaultTestPrompt: "Chạy một buổi thảo luận khởi động nhanh và thống nhất phân công.",
@@ -2582,6 +2631,13 @@ export const translations: Record<Language, Translations> = {
       toastImpactFailTitle: "Không thể kiểm tra mức độ ảnh hưởng",
       testNoStaffError: "Phòng ban này chưa có nhân sự để thử nghiệm.",
       testRunFailError: "Không thể chạy thử nghiệm thảo luận của phòng ban.",
+      generateWithAiLabel: "Tạo bằng AI",
+      generatePromptPlaceholder: "Mô tả phòng ban bạn cần (vd: \"đội marketing lên kế hoạch chiến dịch\")",
+      generateBtn: "Tạo",
+      generatingBtn: "Đang tạo...",
+      couldNotGenerateDepartmentToast: "Không thể tạo phòng ban",
+      generateWithAiBtn: "Tạo bằng AI",
+      generateDialogTitle: "Tạo phòng ban bằng AI",
     },
     skillsPage: {
       title: "Kỹ năng",
@@ -2639,6 +2695,13 @@ export const translations: Record<Language, Translations> = {
       cannotStartAuthMsg: "Không thể bắt đầu xác thực Google.",
       browserAuthOpenedMsg: "Đã mở trang xác thực trong trình duyệt. Hoàn tất đăng nhập trong cửa sổ popup. Redirect URI: {uri}",
       notReturnedText: "(không trả về)",
+      generateWithAiLabel: "Tạo bằng AI",
+      generatePromptPlaceholder: "Mô tả kỹ năng bạn cần (vd: \"thứ có thể gửi tin nhắn Slack\")",
+      generateBtn: "Tạo",
+      generatingBtn: "Đang tạo...",
+      couldNotGenerateSkillToast: "Không thể tạo kỹ năng",
+      generateWithAiBtn: "Tạo bằng AI",
+      generateDialogTitle: "Tạo kỹ năng bằng AI",
     },
     virtualOfficePage: {
       grabbingEspresso: "Đang pha một ly espresso",
@@ -3496,6 +3559,13 @@ export const translations: Record<Language, Translations> = {
       editAriaLabel: "编辑",
       deleteAriaLabel: "删除",
       testBtn: "测试",
+      generateWithAiLabel: "AI 生成",
+      generatePromptPlaceholder: "描述你需要的员工（例如：“负责邮件和 Slack 的客服”）",
+      generateBtn: "生成",
+      generatingBtn: "生成中...",
+      couldNotGenerateStaffToast: "无法生成员工",
+      generateWithAiBtn: "AI 生成",
+      generateDialogTitle: "用 AI 生成员工",
     },
     departmentBuilderPage: {
       defaultTestPrompt: "快速进行一次启动讨论并明确职责分工。",
@@ -3563,6 +3633,13 @@ export const translations: Record<Language, Translations> = {
       toastImpactFailTitle: "无法检查影响范围",
       testNoStaffError: "该部门尚无人员可供测试。",
       testRunFailError: "无法运行部门测试讨论。",
+      generateWithAiLabel: "AI 生成",
+      generatePromptPlaceholder: "描述你需要的部门（例如：“负责策划活动的市场部门”）",
+      generateBtn: "生成",
+      generatingBtn: "生成中...",
+      couldNotGenerateDepartmentToast: "无法生成部门",
+      generateWithAiBtn: "AI 生成",
+      generateDialogTitle: "用 AI 生成部门",
     },
     skillsPage: {
       title: "技能",
@@ -3620,6 +3697,13 @@ export const translations: Record<Language, Translations> = {
       cannotStartAuthMsg: "无法启动 Google 授权。",
       browserAuthOpenedMsg: "已在浏览器中打开授权页面。请在弹出窗口中完成登录。Redirect URI：{uri}",
       notReturnedText: "（未返回）",
+      generateWithAiLabel: "AI 生成",
+      generatePromptPlaceholder: "描述你需要的技能（例如：“可以发送 Slack 消息的功能”）",
+      generateBtn: "生成",
+      generatingBtn: "生成中...",
+      couldNotGenerateSkillToast: "无法生成技能",
+      generateWithAiBtn: "AI 生成",
+      generateDialogTitle: "用 AI 生成技能",
     },
     virtualOfficePage: {
       grabbingEspresso: "正在冲一杯浓缩咖啡",
@@ -4477,6 +4561,13 @@ export const translations: Record<Language, Translations> = {
       editAriaLabel: "編集",
       deleteAriaLabel: "削除",
       testBtn: "テスト",
+      generateWithAiLabel: "AIで生成",
+      generatePromptPlaceholder: "欲しいスタッフを説明してください（例：「メールとSlackを担当するサポート担当者」）",
+      generateBtn: "生成",
+      generatingBtn: "生成中...",
+      couldNotGenerateStaffToast: "スタッフを生成できませんでした",
+      generateWithAiBtn: "AIで生成",
+      generateDialogTitle: "AIでスタッフを生成",
     },
     departmentBuilderPage: {
       defaultTestPrompt: "簡単なキックオフ討議を行い、役割分担を整理してください。",
@@ -4544,6 +4635,13 @@ export const translations: Record<Language, Translations> = {
       toastImpactFailTitle: "影響範囲を確認できませんでした",
       testNoStaffError: "この部署にはテストできるスタッフがいません。",
       testRunFailError: "部署のテスト討論を実行できませんでした。",
+      generateWithAiLabel: "AIで生成",
+      generatePromptPlaceholder: "欲しい部署を説明してください（例：「キャンペーンを計画するマーケティングチーム」）",
+      generateBtn: "生成",
+      generatingBtn: "生成中...",
+      couldNotGenerateDepartmentToast: "部署を生成できませんでした",
+      generateWithAiBtn: "AIで生成",
+      generateDialogTitle: "AIで部署を生成",
     },
     skillsPage: {
       title: "スキル",
@@ -4601,6 +4699,13 @@ export const translations: Record<Language, Translations> = {
       cannotStartAuthMsg: "Google認証を開始できませんでした。",
       browserAuthOpenedMsg: "ブラウザで認証ページを開きました。ポップアップウィンドウでログインを完了してください。Redirect URI：{uri}",
       notReturnedText: "（返されませんでした）",
+      generateWithAiLabel: "AIで生成",
+      generatePromptPlaceholder: "必要なスキルを説明してください（例：「Slackに投稿できるもの」）",
+      generateBtn: "生成",
+      generatingBtn: "生成中...",
+      couldNotGenerateSkillToast: "スキルを生成できませんでした",
+      generateWithAiBtn: "AIで生成",
+      generateDialogTitle: "AIでスキルを生成",
     },
     virtualOfficePage: {
       grabbingEspresso: "エスプレッソを取りに行っています",
