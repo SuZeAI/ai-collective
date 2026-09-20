@@ -36,6 +36,12 @@ class SandboxBackend(ABC):
     LocalSandboxAdapter, in-process on the backend itself.)
     """
 
+    @property
+    @abstractmethod
+    def provisioner_url(self) -> str:
+        """Base URL of the provisioner service managing this backend's sandboxes."""
+        ...
+
     @abstractmethod
     def create(self, thread_id: Optional[str], sandbox_id: str) -> SandboxInfo:
         """Create/provision a new sandbox and return its connection info."""

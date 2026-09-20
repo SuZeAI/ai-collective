@@ -61,6 +61,13 @@ class Sandbox(ABC):
         """Terminate the process running in a session."""
         ...
 
+    @abstractmethod
+    async def expose_port(self, port: int) -> str:
+        """Make *port* (already bound by a process inside the sandbox)
+        reachable from outside the sandbox, returning the URL to reach it at.
+        """
+        ...
+
     # ── File operations ───────────────────────────────────────────────────────
 
     @abstractmethod

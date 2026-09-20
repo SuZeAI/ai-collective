@@ -255,6 +255,18 @@ class SandboxResponse(BaseModel):
     status: str
 
 
+class ExposePortRequest(BaseModel):
+    # >=1024: reject privileged ports a non-root sandbox process couldn't
+    # bind anyway; <=65535: the ceiling of a TCP port number.
+    port: int = Field(ge=1024, le=65535)
+
+
+class ExposedPortResponse(BaseModel):
+    port: int          # the port a process inside the sandbox is listening on
+    node_port: int      # the K8s-allocated NodePort reachable from outside
+    url: str            # http://{NODE_HOST}:{node_port}
+
+
 # ── K8s resource helpers ─────────────────────────────────────────────────
 
 
@@ -264,6 +276,12 @@ def _pod_name(sandbox_id: str) -> str:
 
 def _svc_name(sandbox_id: str) -> str:
     return f"sandbox-{sandbox_id}-svc"
+
+
+def _exposed_port_name(port: int) -> str:
+    # Service port names must be valid DNS-1123 labels (no dots/underscores);
+    # "http" is reserved for the sandbox's own control-plane port (8080).
+    return f"preview-{port}"
 
 
 def _sandbox_url(node_port: int) -> str:
@@ -639,3 +657,95 @@ async def list_sandboxes():
             )
 
     return {"sandboxes": sandboxes, "count": len(sandboxes)}
+
+
+def _read_service_or_404(sandbox_id: str):
+    try:
+        return core_v1.read_namespaced_service(_svc_name(sandbox_id), K8S_NAMESPACE)
+    except ApiException as exc:
+        if exc.status == 404:
+            raise HTTPException(status_code=404, detail=f"Sandbox '{sandbox_id}' not found")
+        raise HTTPException(status_code=500, detail=f"Service lookup failed: {exc.reason}")
+
+
+@app.post("/api/sandboxes/{sandbox_id}/expose", response_model=ExposedPortResponse)
+async def expose_port(sandbox_id: str, req: ExposePortRequest):
+    """Open a NodePort onto *port* inside the sandbox Pod (e.g. a dev server
+    the agent just started), so it becomes reachable from outside the cluster.
+
+    Idempotent: exposing an already-exposed port returns its existing mapping
+    instead of erroring or double-adding it. Cleaned up automatically when the
+    sandbox is destroyed (the whole Service, including this port, is deleted).
+    """
+    _validate_sandbox_id(sandbox_id)
+    name = _exposed_port_name(req.port)
+    svc = _read_service_or_404(sandbox_id)
+
+    for p in svc.spec.ports or []:
+        if p.name == name:
+            return ExposedPortResponse(port=req.port, node_port=p.node_port, url=_sandbox_url(p.node_port))
+
+    # Full PUT (not patch): Service.spec.ports carries a K8s
+    # x-kubernetes-patch-merge-key of "port", so a strategic-merge PATCH only
+    # adds/updates entries present in the body — an entry simply absent from
+    # the patch is left alone, not removed. That's fine for adding a port
+    # here, but would silently no-op unexpose_port's removal below, so both
+    # use replace_namespaced_service (full-object PUT) for consistent,
+    # unambiguous semantics.
+    svc.spec.ports = list(svc.spec.ports or [])
+    svc.spec.ports.append(k8s_client.V1ServicePort(name=name, port=req.port, target_port=req.port, protocol="TCP"))
+    try:
+        core_v1.replace_namespaced_service(_svc_name(sandbox_id), K8S_NAMESPACE, svc)
+    except ApiException as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to expose port {req.port}: {exc.reason}")
+
+    node_port: int | None = None
+    for _ in range(20):
+        svc = _read_service_or_404(sandbox_id)
+        node_port = next((p.node_port for p in (svc.spec.ports or []) if p.name == name), None)
+        if node_port:
+            break
+        time.sleep(0.5)
+
+    if not node_port:
+        raise HTTPException(status_code=500, detail=f"NodePort for port {req.port} was not allocated in time")
+
+    logger.info(f"Exposed port {req.port} for sandbox {sandbox_id} at nodePort {node_port}")
+    return ExposedPortResponse(port=req.port, node_port=node_port, url=_sandbox_url(node_port))
+
+
+@app.get("/api/sandboxes/{sandbox_id}/expose")
+async def list_exposed_ports(sandbox_id: str):
+    """List ports currently exposed for *sandbox_id* (excludes the sandbox's
+    own control-plane port)."""
+    _validate_sandbox_id(sandbox_id)
+    svc = _read_service_or_404(sandbox_id)
+    exposed = [
+        ExposedPortResponse(port=p.port, node_port=p.node_port, url=_sandbox_url(p.node_port))
+        for p in (svc.spec.ports or [])
+        if p.name != "http"
+    ]
+    return {"sandbox_id": sandbox_id, "exposed": exposed}
+
+
+@app.delete("/api/sandboxes/{sandbox_id}/expose/{port}")
+async def unexpose_port(sandbox_id: str, port: int):
+    """Remove a previously-exposed port's NodePort."""
+    _validate_sandbox_id(sandbox_id)
+    name = _exposed_port_name(port)
+    svc = _read_service_or_404(sandbox_id)
+
+    current = svc.spec.ports or []
+    remaining = [p for p in current if p.name != name]
+    if len(remaining) == len(current):
+        raise HTTPException(status_code=404, detail=f"Port {port} is not exposed for sandbox '{sandbox_id}'")
+
+    # Full PUT — see the comment in expose_port for why patch won't do.
+    svc.spec.ports = remaining
+    try:
+        core_v1.replace_namespaced_service(_svc_name(sandbox_id), K8S_NAMESPACE, svc)
+    except ApiException as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to unexpose port {port}: {exc.reason}")
+
+    logger.info(f"Unexposed port {port} for sandbox {sandbox_id}")
+    return {"ok": True, "sandbox_id": sandbox_id, "port": port}

@@ -124,6 +124,11 @@ class LocalSandboxAdapter(Sandbox):
         self._results.pop(id, None)
         return {"success": True}
 
+    async def expose_port(self, port: int) -> str:
+        # Local mode already runs in the same network namespace as the
+        # backend — nothing to provision, the port is already reachable.
+        return f"http://127.0.0.1:{port}"
+
     # ── File operations ───────────────────────────────────────────────────────
 
     async def read_file(

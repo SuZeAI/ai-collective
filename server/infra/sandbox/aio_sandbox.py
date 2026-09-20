@@ -61,9 +61,13 @@ class AioSandbox(Sandbox):
     # uses a fresh session id, so without a bound this map grows forever.
     _MAX_RETAINED_OUTPUTS = 512
 
-    def __init__(self, id: str, base_url: str):
+    def __init__(self, id: str, base_url: str, provisioner_url: str | None = None):
         self._id = id
         self._base_url = base_url.rstrip("/")
+        # Only needed for expose_port — that's a Pod/Service-level operation
+        # (adding a NodePort), which only the provisioner (not this sandbox's
+        # own in-Pod HTTP API) can do.
+        self._provisioner_url = provisioner_url.rstrip("/") if provisioner_url else None
         self._lock = asyncio.Lock()
         self._last_output: "OrderedDict[str, SandboxResult]" = OrderedDict()
 
@@ -100,8 +104,18 @@ class AioSandbox(Sandbox):
                     f"mkdir -p {shlex.quote(exec_dir)} && cd {shlex.quote(exec_dir)} && {command}"
                     if exec_dir else command
                 )
+                # This sandbox's /v1/shell/exec behaves like an interactive
+                # PTY: it echoes every line of the submitted command back into
+                # `output` as if it had been typed, before the real result.
+                # For sandbox_bash's multi-line prelude (cd override, HOME/
+                # TMPDIR exports) that echo can dwarf the actual output,
+                # which — confirmed live — reads to the calling LLM as "the
+                # command produced no real output". `bash -c '<script>'`
+                # runs it as a script instead of "typing" it, which suppresses
+                # the echo entirely while leaving stdout/exit_code unchanged.
+                wrapped_command = f"bash -c {shlex.quote(full_command)}"
                 resp = await asyncio.to_thread(
-                    _post, self._base_url, "/v1/shell/exec", {"session_id": id, "command": full_command}
+                    _post, self._base_url, "/v1/shell/exec", {"session_id": id, "command": wrapped_command}
                 )
                 payload = resp.get("data") or {}
                 output = payload.get("output", "")
@@ -156,6 +170,19 @@ class AioSandbox(Sandbox):
             except requests.RequestException as e:
                 logger.error("kill_process failed for session %s: %s", id, e)
                 return f"Error: {e}"
+
+    async def expose_port(self, port: int) -> str:
+        if not self._provisioner_url:
+            raise SandboxAPIError("expose_port unavailable: sandbox was not constructed with a provisioner_url")
+        try:
+            resp = await asyncio.to_thread(
+                _post, self._provisioner_url, f"/api/sandboxes/{self._id}/expose", {"port": port},
+            )
+            return resp["url"]
+        except SandboxAPIError:
+            raise
+        except (KeyError, requests.RequestException) as e:
+            raise SandboxAPIError(f"expose_port failed for {self._id}:{port}: {e}") from e
 
     # ── File operations (via shell commands inside the container) ─────────────
 

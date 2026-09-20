@@ -136,7 +136,7 @@ class AioSandboxProvider(SandboxProvider):
             # Layer 2: warm pool (container still running, no cold-start)
             if sandbox_id in self._warm_pool:
                 info, _ = self._warm_pool.pop(sandbox_id)
-                sandbox = AioSandbox(id=sandbox_id, base_url=info.sandbox_url)
+                sandbox = AioSandbox(id=sandbox_id, base_url=info.sandbox_url, provisioner_url=self._backend.provisioner_url)
                 self._sandboxes[sandbox_id] = sandbox
                 self._sandbox_infos[sandbox_id] = info
                 self._last_activity[sandbox_id] = time.time()
@@ -232,7 +232,7 @@ class AioSandboxProvider(SandboxProvider):
         # Try to discover a container started by another process
         discovered = self._backend.discover(sandbox_id)
         if discovered:
-            sandbox = AioSandbox(id=discovered.sandbox_id, base_url=discovered.sandbox_url)
+            sandbox = AioSandbox(id=discovered.sandbox_id, base_url=discovered.sandbox_url, provisioner_url=self._backend.provisioner_url)
             with self._lock:
                 self._sandboxes[discovered.sandbox_id] = sandbox
                 self._sandbox_infos[discovered.sandbox_id] = discovered
@@ -249,7 +249,7 @@ class AioSandboxProvider(SandboxProvider):
             self._backend.destroy(info)
             raise RuntimeError(f"Sandbox {sandbox_id} failed to become ready at {info.sandbox_url}")
 
-        sandbox = AioSandbox(id=sandbox_id, base_url=info.sandbox_url)
+        sandbox = AioSandbox(id=sandbox_id, base_url=info.sandbox_url, provisioner_url=self._backend.provisioner_url)
         with self._lock:
             self._sandboxes[sandbox_id] = sandbox
             self._sandbox_infos[sandbox_id] = info
