@@ -59,6 +59,19 @@ def test_list_items_does_not_reread_disk_if_add_was_never_called_on_this_instanc
     assert [i.id for i in service_b.list_items()] == ["1"]
 
 
+def test_add_item_caps_the_feed_so_it_does_not_grow_unbounded(tmp_path):
+    service = _make_service(tmp_path)
+    for i in range(210):
+        service.add_item(ActivityFeedItem(id=str(i), staff_id="staff-1", action="did stuff", time=f"2026-01-01T00:00:{i:03d}Z"))
+
+    items = service.list_items()
+
+    assert len(items) == 200
+    # Newest (highest i, prepended last) stays; oldest ones fall off.
+    assert items[0].id == "209"
+    assert "0" not in [i.id for i in items]
+
+
 def test_add_item_survives_malformed_entries_already_on_disk(tmp_path):
     store = JsonFileStore(tmp_path / "activity_feed.json")
     store.write([{"id": "bad", "action": "kept-because-parseable"}, {"not": "an item at all"}])

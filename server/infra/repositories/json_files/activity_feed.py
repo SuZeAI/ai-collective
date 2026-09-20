@@ -5,6 +5,10 @@ import threading
 from server.domain.models import ActivityFeedItem
 from server.infra.repositories.json_store import JsonFileStore
 
+# This backs a "recent activity" feed, not an audit trail — bound it so the
+# JSON file (rewritten in full on every add()) can't grow unboundedly.
+_MAX_FEED_ITEMS = 200
+
 
 class JsonActivityFeedRepository:
     def __init__(self, store: JsonFileStore):
@@ -18,6 +22,7 @@ class JsonActivityFeedRepository:
             parsed = self._parse_item(item)
             if parsed is not None:
                 self._items.append(parsed)
+        self._items = self._items[:_MAX_FEED_ITEMS]
 
     @staticmethod
     def _parse_item(item: dict) -> ActivityFeedItem | None:
@@ -47,7 +52,8 @@ class JsonActivityFeedRepository:
             def modify(current):
                 raw_items = current if isinstance(current, list) else []
                 existing = [p for p in (self._parse_item(r) for r in raw_items) if p is not None]
-                return [self._serialize_item(item)] + [self._serialize_item(p) for p in existing]
+                merged = [item] + existing
+                return [self._serialize_item(p) for p in merged[:_MAX_FEED_ITEMS]]
 
             new_raw = self._store.read_modify_write(modify)
             self._items = [p for p in (self._parse_item(r) for r in new_raw) if p is not None]
