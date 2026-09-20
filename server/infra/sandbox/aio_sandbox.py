@@ -87,7 +87,19 @@ class AioSandbox(Sandbox):
     async def exec_command(self, id: str, exec_dir: str, command: str) -> SandboxResult:
         async with self._lock:
             try:
-                full_command = f"cd {shlex.quote(exec_dir)} && {command}" if exec_dir else command
+                # mkdir -p before cd: unlike LocalSandboxAdapter (whose caller
+                # pre-creates the workspace dir on the backend's own disk),
+                # nothing creates exec_dir inside this remote Pod's filesystem.
+                # A bare `cd dir && command` would silently skip everything
+                # chained after `&&` on that first line when dir doesn't exist
+                # yet — including sandbox_bash's own prelude, which sets
+                # $__SANDBOX_WS — corrupting TMPDIR/cd-confinement for every
+                # later statement in `command` even though they're on their
+                # own lines and still execute.
+                full_command = (
+                    f"mkdir -p {shlex.quote(exec_dir)} && cd {shlex.quote(exec_dir)} && {command}"
+                    if exec_dir else command
+                )
                 resp = await asyncio.to_thread(
                     _post, self._base_url, "/v1/shell/exec", {"session_id": id, "command": full_command}
                 )

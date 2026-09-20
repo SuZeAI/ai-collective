@@ -199,17 +199,22 @@ say "đó pull rất chậm. Wizard này pull MỘT LẦN, lưu ra file tar cụ
 say "service tự động import LẠI file tar đó (đọc đĩa, không qua mạng — nhanh) mỗi"
 say "khi k3s khởi động. Cần sudo ở vài bước."
 
+# All `ctr images` calls below use `-n k8s.io`: ctr defaults to the "default"
+# namespace, but kubelet/Kubernetes only ever reads images from the "k8s.io"
+# namespace — without this flag, pull/import "succeed" but the Pod scheduler
+# still can't see the image and re-pulls from the (slow) registry anyway.
+
 # ── Stage 1: pull once (idempotent, slow — the step the user flagged) ─────
 stage "Pull image (một lần, có thể chậm)"
 say "Nếu image đã có sẵn trong cache thì bỏ qua bước pull, không mất thời gian."
-if sudo k3s ctr images ls -q 2>/dev/null | grep -qxF "$IMAGE"; then
+if sudo k3s ctr -n k8s.io images ls -q 2>/dev/null | grep -qxF "$IMAGE"; then
   ok "image đã có sẵn trong containerd cache — bỏ qua pull."
 else
   warn "image chưa có trong cache — sẽ pull ngay bây giờ."
   note "registry này có thể CHẬM (vài phút là bình thường). Đừng Ctrl-C sớm."
   note "Nếu bị treo quá lâu (>10 phút không nhúc nhích), Ctrl-C rồi chạy lại wizard để thử lại."
   while true; do
-    if sudo k3s ctr images pull "$IMAGE"; then
+    if sudo k3s ctr -n k8s.io images pull "$IMAGE"; then
       ok "pull thành công."
       break
     else
@@ -230,7 +235,7 @@ mkdir -p "$CACHE_DIR"
 say "Lưu 1 bản backup image ra: $TAR_PATH"
 say "Từ giờ về sau, việc 'khôi phục image sau reboot' chỉ là đọc file này từ đĩa —"
 say "không đụng tới registry chậm kia nữa."
-if sudo k3s ctr images export "$TAR_PATH" "$IMAGE"; then
+if sudo k3s ctr -n k8s.io images export "$TAR_PATH" "$IMAGE"; then
   sudo chown "$(id -u)":"$(id -g)" "$TAR_PATH" 2>/dev/null || true
   ok "đã export: $TAR_PATH ($(du -h "$TAR_PATH" 2>/dev/null | cut -f1))"
 else
@@ -250,7 +255,7 @@ Requires=k3s.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/k3s ctr images import ${TAR_PATH}
+ExecStart=/usr/local/bin/k3s ctr -n k8s.io images import ${TAR_PATH}
 RemainAfterExit=yes
 User=root
 
@@ -287,7 +292,7 @@ note "trạng thái service:"
 sudo systemctl status k3s-sandbox-image-warmup.service --no-pager | sed 's/^/  /'
 
 printf '\n'
-if sudo k3s ctr images ls -q 2>/dev/null | grep -qxF "$IMAGE"; then
+if sudo k3s ctr -n k8s.io images ls -q 2>/dev/null | grep -qxF "$IMAGE"; then
   ok "xác nhận: image có trong containerd cache ngay bây giờ."
 else
   err "image vẫn KHÔNG thấy trong cache sau khi import — báo lại kết quả này, cần điều tra thêm."
@@ -296,7 +301,7 @@ fi
 printf '\n'
 say "Cách kiểm tra thật sự nghiêm ngặt (không cần reboot cả máy, chỉ cần restart k3s):"
 step "sudo systemctl restart k3s.service"
-step "đợi ~10-20s cho k3s lên lại, rồi: sudo k3s ctr images ls -q | grep sandbox"
+step "đợi ~10-20s cho k3s lên lại, rồi: sudo k3s ctr -n k8s.io images ls -q | grep sandbox"
 say "Nếu vẫn thấy image → service warmup hoạt động đúng, sẽ sống sót qua reboot thật."
 
 finish
