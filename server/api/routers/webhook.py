@@ -8,12 +8,14 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import PlainTextResponse
 
 from server.api.deps import (
+    get_activity_feed_service,
     get_staff_service,
     get_skill_tool_manager,
     get_company_service,
     get_connection_service,
 )
 from server.app.ports.staff_graph import GraphStaffDefinition
+from server.app.service.activity_feed_service import format_response_action
 from server.app.service.staff_service import StaffService
 from server.app.service.company_service import CompanyService
 from server.app.service.connection_service import ConnectionService
@@ -106,6 +108,14 @@ async def _process_message(
             definitions=staff_defs,
             max_rounds=max_rounds_default,
         )
+
+        staff_name_to_id = {d.name: d.staff_id for d in staff_defs}
+        activity_feed_service = get_activity_feed_service()
+        for turn in result.turns:
+            activity_feed_service.log(
+                staff_name_to_id.get(turn.staff_name, turn.staff_name),
+                format_response_action(turn.content),
+            )
 
         # Extract final output text
         output = ""

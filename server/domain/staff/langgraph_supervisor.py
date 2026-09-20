@@ -60,6 +60,19 @@ RESERVED_OUTPUT_TOKENS = max(256, settings.staff.output_token_reserve)
 
 _DELEGATION_LOG_WINDOW = 6  # last N delegation entries shown to lead
 
+# How many times to nudge the lead when its reply used none of the required
+# control tags (<FANOUT>/<DELEGATE_TO>/<FINAL_ANSWER>) -- without this, a lead
+# that merely describes its plan in prose (small/fast models do this more
+# often) falls through lead_router's "no target, no final answer -> end"
+# branch and silently ends the whole run after a single turn.
+_LEAD_FORMAT_RETRIES = 1
+_LEAD_FORMAT_RETRY_PROMPT = (
+    "Your reply didn't include a valid control tag, so no action can be "
+    "taken. Reply again using ONLY one of: <DELEGATE_TO>...</DELEGATE_TO> "
+    "with <TASK>...</TASK>, <FANOUT>...</FANOUT>, or "
+    "<FINAL_ANSWER>...</FINAL_ANSWER>."
+)
+
 _LEAD_ROUTING_PROMPT = """
 ## SUPERVISOR ROLE
 You are the **lead staff_member**. Your job is to complete the user's request by either answering directly or delegating sub-tasks to specialist workers, then synthesizing their results.
@@ -171,6 +184,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -179,7 +193,9 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             raise ValueError("At least one staff_member definition is required")
 
         ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
-        graph = self._build_graph(staff, llm, max_rounds, meeting_id, graph_context_provider, graph_config)
+        graph = self._build_graph(
+            staff, llm, max_rounds, meeting_id, graph_context_provider, graph_config, project_id=project_id
+        )
         final_state, error = await run_to_final_state(graph, self._initial_state(user_input, staff), max_rounds)
         return assemble_run_result(final_state, error)
 
@@ -191,6 +207,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -199,7 +216,9 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             raise ValueError("At least one staff_member definition is required")
 
         ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
-        graph = self._build_graph(staff, llm, max_rounds, meeting_id, graph_context_provider, graph_config)
+        graph = self._build_graph(
+            staff, llm, max_rounds, meeting_id, graph_context_provider, graph_config, project_id=project_id
+        )
 
         async for event in graph.astream(
             self._initial_state(user_input, staff),
@@ -221,6 +240,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ):
         lead = staff[0]
         workers = staff[1:]
@@ -237,6 +257,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 llm=llm,
                 max_rounds=max_rounds,
                 meeting_id=meeting_id,
+                project_id=project_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             ),
@@ -250,6 +271,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                     worker=worker,
                     llm=llm,
                     meeting_id=meeting_id,
+                    project_id=project_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                 ),
@@ -305,6 +327,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ):
         worker_profiles = "\n".join(
             f"- {w.name}: {w.role}" + (f" — {w.description}" if w.description else "")
@@ -324,9 +347,11 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             rounds_used = state["rounds"]
             remaining = max(0, max_rounds - rounds_used)
 
-            # Generate a unique thread_id for this staff_member turn.
+            # Resolve this staff_member turn's sandbox thread_id/workspace.
             # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
-            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(lead.name, meeting_id)
+            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(
+                lead.name, meeting_id, project_id
+            )
 
             stream_writer({
                 "type": EventType.AGENT_START.value,
@@ -414,7 +439,9 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             if recent_log:
                 context_parts += ["", f"[Delegation history]:\n{log_text}"]
 
-            bound_tools = build_bound_tools(lead, meeting_id=meeting_id, llm=llm)
+            bound_tools = build_bound_tools(
+                lead, meeting_id=meeting_id, project_id=project_id, llm=llm
+            )
 
             # lead.system_prompt stays byte-identical every turn so the
             # compiled-agent cache and upstream provider prompt-caching see a
@@ -441,21 +468,44 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             })
 
             own_history = llm_ready_messages(state.get("staff_states", {}), lead.name)
+            messages = [*own_history, *turn.as_messages()]
             raw_output = await safe_chat_retry_empty(llm,
                 staff_name=lead.name,
                 system=lead.system_prompt,
-                messages=[*own_history, *turn.as_messages()],
+                messages=messages,
                 tools=bound_tools or None,
             )
             raise_if_llm_failed(raw_output)
+            reasoning, action = self._split_reasoning_and_action(raw_output)
+
+            # Nudge the lead if it used none of the required control tags,
+            # instead of silently treating this as a final answer/dead end.
+            for _ in range(_LEAD_FORMAT_RETRIES):
+                if (
+                    self._FANOUT_RE.search(action)
+                    or self._DELEGATE_TO_RE.search(action)
+                    or self._FINAL_ANSWER_RE.search(action)
+                ):
+                    break
+                messages = [
+                    *messages,
+                    {"role": "assistant", "content": raw_output},
+                    {"role": "user", "content": _LEAD_FORMAT_RETRY_PROMPT},
+                ]
+                raw_output = await safe_chat_retry_empty(llm,
+                    staff_name=lead.name,
+                    system=lead.system_prompt,
+                    messages=messages,
+                    tools=bound_tools or None,
+                )
+                raise_if_llm_failed(raw_output)
+                reasoning, action = self._split_reasoning_and_action(raw_output)
 
             stream_writer({
                 "type": EventType.LLM_RESPONSE_COMPLETE.value,
                 "agent_name": lead.name,
                 "response_length": len(raw_output),
             })
-
-            reasoning, action = self._split_reasoning_and_action(raw_output)
 
             new_staff_states = append_assistant_turn(
                 append_user_turn(state.get("staff_states", {}), lead.name, input_text),
@@ -480,13 +530,14 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                     llm=llm,
                     stream_writer=stream_writer,
                     meeting_id=meeting_id,
+                    project_id=project_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                     human_guidance=human_guidance,
                 )
 
             final_answer = self._extract_final_answer(action)
-            target_worker, task_text = self._extract_delegation(action)
+            target_worker, task_text = self._extract_delegation(action, [w.name for w in workers])
 
             # The lead's reply is sometimes pure <DELEGATE_TO>/<TASK> control tags
             # with no free-text commentary — _split_reasoning_and_action strips
@@ -571,6 +622,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ):
         async def worker_node(state: SupervisorState) -> dict:
             stream_writer = get_stream_writer()
@@ -584,9 +636,11 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
 
             rounds_used = state["rounds"]
 
-            # Generate a unique thread_id for this staff_member turn.
+            # Resolve this staff_member turn's sandbox thread_id/workspace.
             # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
-            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(worker.name, meeting_id)
+            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(
+                worker.name, meeting_id, project_id
+            )
 
             stream_writer({
                 "type": EventType.AGENT_START.value,
@@ -635,7 +689,9 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             if graph_ctx:
                 worker_context_parts.append(f"[Context]:\n{graph_ctx}")
 
-            bound_tools = build_bound_tools(worker, meeting_id=meeting_id, llm=llm)
+            bound_tools = build_bound_tools(
+                worker, meeting_id=meeting_id, project_id=project_id, llm=llm
+            )
 
             turn, budget_result = build_turn_messages(
                 llm=llm,
@@ -737,13 +793,24 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
     def _split_reasoning_and_action(self, message: str) -> tuple[str, str]:
         return split_reasoning_and_action(message, self._CONTROL_BLOCK_RE)
 
-    def _extract_delegation(self, action_payload: str) -> tuple[str | None, str]:
+    def _extract_delegation(
+        self, action_payload: str, worker_names: list[str] | None = None,
+    ) -> tuple[str | None, str]:
         delegate_match = self._DELEGATE_TO_RE.search(action_payload)
         task_match = self._TASK_RE.search(action_payload)
         if not delegate_match:
             return None, ""
         target = delegate_match.group(1).strip()
         task = task_match.group(1).strip() if task_match else ""
+        if target and worker_names:
+            # The model reliably gets the tag syntax right but is inconsistent
+            # about the exact casing of the worker's name (e.g. "researcher"
+            # instead of "Researcher") -- match it case-insensitively against
+            # the real names, same as parse_fanout_pairs already does for the
+            # <FANOUT> path, so lead_router's exact-match check doesn't treat
+            # a validly-targeted delegation as "no target" and silently end
+            # the run.
+            target = {name.lower(): name for name in worker_names}.get(target.lower(), target)
         return target or None, task
 
     def _extract_final_answer(self, action_payload: str) -> str:
@@ -786,6 +853,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ) -> dict:
         """Assemble safe_chat kwargs for one fan-out worker (mirrors worker_node).
 
@@ -815,7 +883,9 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         if graph_ctx:
             worker_context_parts.append(f"[Context]:\n{graph_ctx}")
 
-        bound_tools = build_bound_tools(worker, meeting_id=meeting_id, llm=llm)
+        bound_tools = build_bound_tools(
+            worker, meeting_id=meeting_id, project_id=project_id, llm=llm
+        )
 
         turn, _budget_result = build_turn_messages(
             llm=llm,
@@ -848,6 +918,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
         human_guidance: str,
+        project_id: str | None = None,
     ) -> dict:
         """Run a parallel worker wave then synthesize, returning merged state.
 
@@ -907,6 +978,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
                 state=state,
                 llm=llm,
                 meeting_id=meeting_id,
+                project_id=project_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             )
@@ -919,6 +991,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
             semaphore=self._get_fanout_semaphore(),
             stream_writer=stream_writer,
             meeting_id=meeting_id,
+            project_id=project_id,
             graph_context_provider=graph_context_provider,
             graph_config=graph_config,
             base_turn_number=base_turn,
@@ -965,7 +1038,7 @@ class LangGraphSupervisorOrchestrator(StaffGraphOrchestrator):
         raise_if_llm_failed(synth_raw)
         synth_reasoning, synth_action = self._split_reasoning_and_action(synth_raw)
         final_answer = self._extract_final_answer(synth_action)
-        target_worker, next_task = self._extract_delegation(synth_action)
+        target_worker, next_task = self._extract_delegation(synth_action, [w.name for w in workers])
 
         synthesis_turn_number = base_turn + len(results) + 1
         record_turn_in_memory(

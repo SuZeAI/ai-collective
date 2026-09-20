@@ -12,6 +12,7 @@ PLAN_SCHEMA_TEXT = (
     "{\n"
     '  "name": "<office name>",\n'
     '  "description": "<office description>",\n'
+    '  "company_type": "software|marketing|research|general",\n'
     '  "departments": [\n'
     "    {\n"
     '      "existing_id": "<id of an existing department to reuse, or null to create a new one>",\n'
@@ -40,6 +41,11 @@ DESIGNER_RULES_TEXT = (
     "Rules:\n"
     "- Design a sensible org: typically 2-5 departments with 2-4 staff each and 1-3 skills "
     "per staff member, unless the user specifies otherwise.\n"
+    "- Set \"company_type\" to whichever of software/marketing/research/general best fits the "
+    "office you designed (e.g. a dev/engineering-heavy office is \"software\", an "
+    "ads/content/growth office is \"marketing\", a research/analysis office is \"research\"; "
+    "use \"general\" only when nothing else clearly fits). The user can still change it before "
+    "creating.\n"
     "- tool_name MUST be one of the available tools above, or null.\n"
     "- Prefer free tools (websearch, http, hackernews, youtube) over ones requiring API keys, "
     "unless the user asks for a specific integration.\n"

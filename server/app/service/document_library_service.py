@@ -97,21 +97,27 @@ class DocumentLibraryService:
             logger.warning("library byte delete failed for %s: %s", doc.id, exc)
         self._repo.delete(doc.id)
 
-    def attach_to_project(self, doc: LibraryDocument, task_id: str, uploaded_by: str) -> dict:
-        """Copy a library document into a Project's conversation workspace.
+    def attach_to_project(
+        self, doc: LibraryDocument, task_id: str, uploaded_by: str, *, project_id: str | None = None
+    ) -> dict:
+        """Copy a library document into a task's (or its project's shared) workspace.
 
-        The bytes land in ``uploads/`` and are recorded so the orchestrator
-        provisions the sandbox + document tools for that chat (same path as a
-        direct upload). Returns the thread-file record.
+        When *project_id* is set, the bytes land in the project-scoped shared
+        workspace (see ``sandbox_session.workspace_thread_id``) so every task
+        in that project can read the attached document, not just *task_id*.
+        Falls back to the task's own workspace when there's no project.
+        Recorded so the orchestrator provisions the sandbox + document tools
+        for that chat (same path as a direct upload). Returns the thread-file
+        record.
         """
         data = self.read_bytes(doc)
         if data is None:
             raise NotFoundError(f"Document bytes for {doc.id!r} not found")
 
-        from server.infra.sandbox.sandbox_session import ensure_meeting_workspace
+        from server.infra.sandbox.sandbox_session import ensure_workspace_for
         from server.infra.sandbox.thread_files import record_thread_file
 
-        workspace = ensure_meeting_workspace(task_id)
+        workspace = ensure_workspace_for(task_id=task_id, project_id=project_id)
         rel_path = f"uploads/{doc.name}"
         dest = os.path.join(workspace, rel_path)
         os.makedirs(os.path.dirname(dest), exist_ok=True)
@@ -129,7 +135,7 @@ class DocumentLibraryService:
         try:
             from server.infra.llm.sandbox_middleware import push_upload_to_sandbox
 
-            push_upload_to_sandbox(task_id, rel_path, data)
+            push_upload_to_sandbox(task_id, rel_path, data, project_id=project_id)
         except Exception as exc:  # noqa: BLE001
             logger.warning("attach_to_project push failed for %s: %s", task_id, exc)
         return record

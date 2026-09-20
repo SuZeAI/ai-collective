@@ -324,6 +324,89 @@ def test_e2e_supervisor_fanout_full_graph():
     assert "combined answer" in res.final_response
 
 
+def test_supervisor_lead_retries_once_when_reply_has_no_control_tag():
+    """Regression: a lead reply using none of the required control tags (a
+    small/fast model describing its plan in prose instead of emitting
+    <DELEGATE_TO>/<FANOUT>/<FINAL_ANSWER>) used to fall through
+    lead_router's "no target, no final answer" branch and silently end the
+    whole run after one turn, never actually delegating. The lead must get
+    one nudge to reply in the correct format before that happens."""
+
+    class OnceMalformedLLM:
+        def __init__(self):
+            self.lead_calls = 0
+
+        async def chat(self, *, system, user=None, messages=None, tools=None,
+                       parallel_tools=False, max_tool_rounds=None, **kwargs):
+            if system == "lead":
+                self.lead_calls += 1
+                if self.lead_calls == 1:
+                    return "My plan: I'll delegate research to W1 first."
+                return "<FINAL_ANSWER>done</FINAL_ANSWER>"
+            return "worker output"
+
+        def get_chat_model(self):
+            return None
+
+        async def generate_json(self, *, system, user):
+            return {}
+
+    llm = OnceMalformedLLM()
+    agents = [
+        GraphStaffDefinition(name="Lead", role="lead", system_prompt="lead"),
+        GraphStaffDefinition(name="W1", role="worker", system_prompt="w1"),
+    ]
+    res = asyncio.run(LangGraphSupervisorOrchestrator().run(
+        user_input="Do the job.", staff=agents, llm=llm, max_rounds=6,
+        meeting_id=None,
+    ))
+    assert llm.lead_calls == 2, "lead should have been nudged exactly once"
+    assert "done" in res.final_response
+    assert [t.staff_name for t in res.turns] == ["Lead"]
+
+
+def test_supervisor_delegation_matches_worker_name_case_insensitively():
+    """Regression: found live against DeepSeek -- the lead correctly emitted
+    <DELEGATE_TO>researcher</DELEGATE_TO> (lowercase) targeting the worker
+    registered as "Researcher" (capitalized). lead_router's exact-match
+    ``target in worker_names`` check treated that as no valid target and
+    silently ended the run after the lead's first turn, never actually
+    delegating -- even though every other topology (tree, mesh) and
+    supervisor's own <FANOUT> path already match worker names
+    case-insensitively."""
+
+    class CaseMismatchLLM:
+        def __init__(self):
+            self.lead_calls = 0
+
+        async def chat(self, *, system, user=None, messages=None, tools=None,
+                       parallel_tools=False, max_tool_rounds=None, **kwargs):
+            if system == "lead":
+                self.lead_calls += 1
+                if self.lead_calls == 1:
+                    return "Delegating research.\n<DELEGATE_TO>researcher</DELEGATE_TO><TASK>go</TASK>"
+                return "<FINAL_ANSWER>done</FINAL_ANSWER>"
+            return "research output"
+
+        def get_chat_model(self):
+            return None
+
+        async def generate_json(self, *, system, user):
+            return {}
+
+    llm = CaseMismatchLLM()
+    agents = [
+        GraphStaffDefinition(name="Lead", role="lead", system_prompt="lead"),
+        GraphStaffDefinition(name="Researcher", role="researcher", system_prompt="r"),
+    ]
+    res = asyncio.run(LangGraphSupervisorOrchestrator().run(
+        user_input="Do the job.", staff=agents, llm=llm, max_rounds=6,
+        meeting_id=None,
+    ))
+    names = [t.staff_name for t in res.turns]
+    assert "Researcher" in names, f"lead's lowercase-cased delegation was never actually routed: {names}"
+
+
 def test_e2e_mesh_sequential_unchanged_when_no_fanout():
     """Regression: without <FANOUT>, mesh routes one agent at a time."""
 
@@ -355,6 +438,48 @@ def test_e2e_mesh_sequential_unchanged_when_no_fanout():
     nums = [t.turn for t in res.turns]
     assert nums == list(range(1, len(nums) + 1))   # one turn per round
     assert len(res.turns) >= 2
+
+
+def test_e2e_mesh_retries_once_when_reply_has_no_control_tag():
+    """Regression: found live against DeepSeek -- a spoke's reply describing
+    its routing decision in prose ("Routing to SEO.") instead of emitting
+    <NEXT_AGENT>SEO</NEXT_AGENT> used to fall straight through to
+    _decide_next_staff's round-robin-biased-to-hub fallback, wasting a full
+    turn on whichever staff happens to be the hub even when that staff has
+    nothing left to contribute. The staff must get one nudge to reply in the
+    correct tag format first."""
+
+    class OnceMalformedMeshLLM:
+        def __init__(self):
+            self.editor_calls = 0
+
+        async def chat(self, *, system, user=None, messages=None, tools=None,
+                       parallel_tools=False, max_tool_rounds=None, **kwargs):
+            if system.startswith("editor"):
+                self.editor_calls += 1
+                if self.editor_calls == 1:
+                    return "Approved. Routing to SEO."
+                return "Approved.\n<NEXT_AGENT>SEO</NEXT_AGENT>"
+            if system.startswith("hub"):
+                return "Kickoff.\n<NEXT_AGENT>Editor</NEXT_AGENT>"
+            return "Done.\n<DISCUSSION_END>done</DISCUSSION_END>"
+
+    agents = [
+        GraphStaffDefinition(name="Hub", role="hub", system_prompt="hub"),
+        GraphStaffDefinition(name="Editor", role="editor", system_prompt="editor"),
+        GraphStaffDefinition(name="SEO", role="seo", system_prompt="seo"),
+    ]
+    llm = OnceMalformedMeshLLM()
+    res = asyncio.run(MultiAgentMeshOrchestrator().run(
+        user_input="hi", staff=agents, llm=llm, max_rounds=6,
+        meeting_id=None,
+    ))
+    names = [t.staff_name for t in res.turns]
+    assert llm.editor_calls == 2, "Editor should have been nudged exactly once"
+    assert names == ["Hub", "Editor", "SEO"], (
+        f"malformed reply should have been corrected via retry, not routed to "
+        f"the hub by fallback: {names}"
+    )
 
 
 def test_e2e_mesh_second_turn_sees_own_first_turn_reply():
@@ -442,7 +567,7 @@ class _ThreadIdCapturingScriptedLLM(_ScriptedLLM):
         )
 
 
-def test_e2e_mesh_fanout_branches_get_distinct_sandbox_thread_ids():
+def test_e2e_mesh_fanout_branches_share_sandbox_thread_id():
     llm = _ThreadIdCapturingScriptedLLM(
         coordinator_marker="you may dispatch several specialists",
         coordinator_response=(
@@ -465,7 +590,14 @@ def test_e2e_mesh_fanout_branches_get_distinct_sandbox_thread_ids():
     ))
     assert len(llm.branch_thread_ids) == 2
     assert all(tid is not None for tid in llm.branch_thread_ids)
-    assert len(set(llm.branch_thread_ids)) == 2
+    # Regression: branches used to each get their OWN random thread id
+    # (init_sandbox_thread called inside the branch's isolated gather Task,
+    # clobbering the shared id the pre-build phase's attach_meeting_sandbox
+    # had just bound their tools to) -- so a file one branch wrote via
+    # SandboxToolkit silently landed in a private directory no sibling branch
+    # or later task could see. Fixed: every branch in the same conversation
+    # now shares the ONE deterministic conv-/proj-<hash> workspace.
+    assert len(set(llm.branch_thread_ids)) == 1
 
 
 def test_mesh_sequential_turn_emits_agent_start_not_agent_turn_start():
@@ -512,7 +644,7 @@ def test_mesh_sequential_turn_emits_agent_start_not_agent_turn_start():
     assert "agent_turn_start" not in event_types
 
 
-def test_e2e_supervisor_fanout_branches_get_distinct_sandbox_thread_ids():
+def test_e2e_supervisor_fanout_branches_share_sandbox_thread_id():
     llm = _ThreadIdCapturingScriptedLLM(
         coordinator_marker="SUPERVISOR ROLE",
         coordinator_response=(
@@ -535,4 +667,38 @@ def test_e2e_supervisor_fanout_branches_get_distinct_sandbox_thread_ids():
     ))
     assert len(llm.branch_thread_ids) == 2
     assert all(tid is not None for tid in llm.branch_thread_ids)
-    assert len(set(llm.branch_thread_ids)) == 2
+    # See the mesh counterpart test for why this is 1, not 2: fan-out branches
+    # must share the conversation's/project's one sandbox workspace, not each
+    # get an isolated random one.
+    assert len(set(llm.branch_thread_ids)) == 1
+
+
+def test_e2e_supervisor_fanout_branches_share_PROJECT_scoped_sandbox_thread_id():
+    """Same bug/fix as above, specifically for project_id (not just meeting_id):
+    two tasks' fan-out branches in the same project must resolve to the one
+    proj-<hash> workspace, not conv-<hash(meeting_id)> nor a random id."""
+    from server.infra.sandbox.sandbox_session import workspace_thread_id
+
+    llm = _ThreadIdCapturingScriptedLLM(
+        coordinator_marker="SUPERVISOR ROLE",
+        coordinator_response=(
+            "Parallelizing.\n<FANOUT>"
+            "<DELEGATE_TO>W1</DELEGATE_TO><TASK>task one</TASK>"
+            "<DELEGATE_TO>W2</DELEGATE_TO><TASK>task two</TASK>"
+            "</FANOUT>"
+        ),
+        synthesis_response="Merged.\n<FINAL_ANSWER>combined answer</FINAL_ANSWER>",
+        branch_response="worker output",
+    )
+    agents = [
+        GraphStaffDefinition(name="Lead", role="lead", system_prompt="lead"),
+        GraphStaffDefinition(name="W1", role="worker", system_prompt="w1"),
+        GraphStaffDefinition(name="W2", role="worker", system_prompt="w2"),
+    ]
+    asyncio.run(LangGraphSupervisorOrchestrator().run(
+        user_input="Do the job.", staff=agents, llm=llm, max_rounds=6,
+        meeting_id="task-in-project", project_id="proj-42",
+    ))
+    assert len(llm.branch_thread_ids) == 2
+    expected = workspace_thread_id(task_id="task-in-project", project_id="proj-42")
+    assert set(llm.branch_thread_ids) == {expected}

@@ -8,6 +8,7 @@ vi.mock("@/lib/api", () => ({
     listDepartments: vi.fn(async () => [{ id: "department-1", name: "Department", staff: ["a1"], mode: "sequential", maxSteps: 6 }]),
     listStaff: vi.fn(async () => [{ id: "a1", name: "Staff One", role: "dev", skill_ids: [] }]),
     listProjects: vi.fn(async () => []),
+    listEpics: vi.fn(async () => []),
     listSprints: vi.fn(async () => []),
     listMeetings: vi.fn(async () => []),
     upsertTask: vi.fn(async (p: any) => ({ ...p, id: p.id ?? "task-1" })),

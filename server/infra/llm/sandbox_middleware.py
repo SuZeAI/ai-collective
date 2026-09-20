@@ -69,12 +69,21 @@ def _file_backend() -> str:
         return "local"
 
 
-def ensure_meeting_sandbox(meeting_id: Optional[str]) -> Optional[MeetingSandbox]:
+def ensure_meeting_sandbox(
+    meeting_id: Optional[str], *, project_id: Optional[str] = None
+) -> Optional[MeetingSandbox]:
     """Provision (idempotently) the shared workspace for a chat and report files.
 
     Returns ``None`` when *meeting_id* is falsy. Best-effort: on any failure
     it logs and returns a ``has_files=False`` sandbox so the caller treats the
     chat as file-less and skips injection.
+
+    When *project_id* is set, the workspace is shared across every task in
+    that project (see ``sandbox_session.workspace_thread_id``), and a sibling
+    task's files also count for the ``has_files`` gate via
+    ``thread_files.project_has_files`` — otherwise a task with no files of its
+    own would skip sandbox-tool injection even though a sibling already wrote
+    files into the now-shared workspace.
     """
     if not meeting_id:
         return None
@@ -82,15 +91,20 @@ def ensure_meeting_sandbox(meeting_id: Optional[str]) -> Optional[MeetingSandbox
         import os
 
         from server.infra.sandbox.sandbox_session import (
-            meeting_thread_id,
-            ensure_meeting_workspace,
+            workspace_thread_id,
+            ensure_workspace_for,
         )
-        from server.infra.sandbox.thread_files import conversation_has_files
+        from server.infra.sandbox.thread_files import (
+            conversation_has_files,
+            project_has_files,
+        )
 
-        thread_id = meeting_thread_id(meeting_id)
-        workspace = ensure_meeting_workspace(meeting_id)
+        thread_id = workspace_thread_id(task_id=meeting_id, project_id=project_id)
+        workspace = ensure_workspace_for(task_id=meeting_id, project_id=project_id)
         uploads_dir = os.path.join(workspace, "uploads")
-        has_files = conversation_has_files(meeting_id)
+        has_files = conversation_has_files(meeting_id) or (
+            bool(project_id) and project_has_files(project_id)
+        )
 
         if has_files and _file_backend() == "s3":
             # Rehydrate the host workspace agents read/write so files survive a
@@ -176,7 +190,9 @@ def _restore_remote_once(meeting_id: str, thread_id: str, workspace: str) -> Non
     threading.Thread(target=_work, daemon=True).start()
 
 
-def push_upload_to_sandbox(meeting_id: str, rel_path: str, content: bytes) -> None:
+def push_upload_to_sandbox(
+    meeting_id: str, rel_path: str, content: bytes, *, project_id: Optional[str] = None
+) -> None:
     """Persist an uploaded file: back it up to MinIO and push it into the Pod.
 
     Called from the upload endpoint via ``asyncio.to_thread`` (a worker thread,
@@ -184,9 +200,9 @@ def push_upload_to_sandbox(meeting_id: str, rel_path: str, content: bytes) -> No
     filesystem, so only the MinIO backup applies. Best-effort throughout.
     """
     try:
-        from server.infra.sandbox.sandbox_session import meeting_thread_id
+        from server.infra.sandbox.sandbox_session import workspace_thread_id
 
-        thread_id = meeting_thread_id(meeting_id)
+        thread_id = workspace_thread_id(task_id=meeting_id, project_id=project_id)
         if _file_backend() == "s3":
             backup = get_backup_service()
             if backup.enabled:
@@ -205,7 +221,7 @@ def push_upload_to_sandbox(meeting_id: str, rel_path: str, content: bytes) -> No
         logger.warning("push_upload_to_sandbox failed for %s: %s", meeting_id, exc)
 
 
-def backup_meeting_workspace(meeting_id: str) -> None:
+def backup_meeting_workspace(meeting_id: str, *, project_id: Optional[str] = None) -> None:
     """Sync a conversation's host workspace up to MinIO (best-effort).
 
     Useful in local mode, where staff-written files live directly on the host.
@@ -220,23 +236,28 @@ def backup_meeting_workspace(meeting_id: str) -> None:
         if not backup.enabled:
             return
         from server.infra.sandbox.sandbox_session import (
-            meeting_thread_id,
-            ensure_meeting_workspace,
+            workspace_thread_id,
+            ensure_workspace_for,
         )
 
-        thread_id = meeting_thread_id(meeting_id)
-        workspace = ensure_meeting_workspace(meeting_id)
+        thread_id = workspace_thread_id(task_id=meeting_id, project_id=project_id)
+        workspace = ensure_workspace_for(task_id=meeting_id, project_id=project_id)
         backup.backup_dir(thread_id, workspace)
     except Exception as exc:  # noqa: BLE001
         logger.warning("backup_meeting_workspace failed for %s: %s", meeting_id, exc)
 
 
-def cleanup_meeting_sandbox(meeting_id: str) -> None:
+def cleanup_meeting_sandbox(meeting_id: str, *, project_id: Optional[str] = None) -> None:
     """Best-effort teardown of a conversation's sandbox artifacts.
 
     Removes the host workspace, purges the file records and MinIO objects, and
     (k8s mode) destroys the per-conversation Pod. Safe to call even when the
     chat never had files. Never raises.
+
+    CAUTION when *project_id* is set: the workspace is shared with every other
+    task in that project, so this destroys THEIR files/backup/Pod too. Callers
+    must only pass ``project_id`` here once they've confirmed no sibling task
+    remains (see ``tasks.py::delete_task``) — this function does not check.
     """
     if not meeting_id:
         return
@@ -245,11 +266,11 @@ def cleanup_meeting_sandbox(meeting_id: str) -> None:
         import shutil
 
         from server.infra.sandbox.sandbox_session import (
-            meeting_thread_id,
+            workspace_thread_id,
         )
         from server.infra.sandbox.thread_files import purge_thread_files
 
-        thread_id = meeting_thread_id(meeting_id)
+        thread_id = workspace_thread_id(task_id=meeting_id, project_id=project_id)
 
         # Records
         purge_thread_files(meeting_id)

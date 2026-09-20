@@ -198,6 +198,41 @@ def test_custom_e2e_honors_explicit_edges():
     assert "B" not in names
 
 
+def test_custom_e2e_merge_node_waits_for_all_predecessors_before_running():
+    """Regression: a diamond whose branches have unequal length (R->W->E,
+    S->E, both R and S as entry points) used to run the merge node E as soon
+    as its FIRST predecessor (S, one hop away) completed -- before W (two
+    hops away) had even run -- then again once W completed too. E must run
+    exactly once, only after every declared predecessor has completed."""
+    agents = [_agent("R", "sys-R"), _agent("W", "sys-W"), _agent("S", "sys-S"), _agent("E", "sys-E")]
+
+    class TrackingLLM:
+        def __init__(self):
+            self.call_order: list[str] = []
+
+        async def chat(self, *, system, user=None, messages=None, tools=None,
+                       parallel_tools=False, max_tool_rounds=None, **kwargs):
+            self.call_order.append(system)
+            return "done"
+
+        def get_chat_model(self):
+            return None
+
+        async def generate_json(self, *, system, user):
+            return {}
+
+    llm = TrackingLLM()
+    spec = CustomGraphSpec(edges=(("R", "W"), ("W", "E"), ("S", "E")), entry=("R", "S"))
+    res = asyncio.run(LangGraphCustomOrchestrator().run(
+        user_input="hi", staff=agents, llm=llm, max_rounds=6, meeting_id=None,
+        custom_graph=spec,
+    ))
+    names = [t.staff_name for t in res.turns]
+    assert names.count("E") == 1, f"merge node E should run exactly once, ran: {names}"
+    assert llm.call_order.index("sys-E") > llm.call_order.index("sys-W")
+    assert llm.call_order.index("sys-E") > llm.call_order.index("sys-S")
+
+
 # --------------------------------------------------------------------------- #
 # Sandbox thread-id isolation                                                  #
 #                                                                               #
@@ -216,7 +251,10 @@ def test_ring_sets_sandbox_thread_id_per_turn():
     ))
     assert len(llm.captured_thread_ids) == 2
     assert all(tid is not None for tid in llm.captured_thread_ids)
-    assert len(set(llm.captured_thread_ids)) == 2  # distinct id per turn
+    # Sandbox tools are always attached (not gated on files already existing —
+    # a staff member must be able to create a task's first file), so every
+    # turn in the same conversation shares the one deterministic thread id.
+    assert len(set(llm.captured_thread_ids)) == 1
 
 
 def test_tree_sets_sandbox_thread_id_per_turn():
@@ -248,4 +286,7 @@ def test_custom_sets_sandbox_thread_id_per_turn():
     ))
     assert len(llm.captured_thread_ids) == 2
     assert all(tid is not None for tid in llm.captured_thread_ids)
-    assert len(set(llm.captured_thread_ids)) == 2  # distinct id per turn
+    # Sandbox tools are always attached (not gated on files already existing —
+    # a staff member must be able to create a task's first file), so every
+    # turn in the same conversation shares the one deterministic thread id.
+    assert len(set(llm.captured_thread_ids)) == 1

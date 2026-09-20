@@ -31,6 +31,10 @@ def _last(_old, new):
     return new
 
 
+def _union(old: set[str] | None, new: set[str]) -> set[str]:
+    return (old or set()) | new
+
+
 class CustomState(TypedDict):
     input: Annotated[str, _last]
     original_input: str
@@ -39,6 +43,7 @@ class CustomState(TypedDict):
     final_response: Annotated[str, _last]
     final_staff: Annotated[str | None, _last]
     rounds: Annotated[int, operator.add]
+    completed: Annotated[set[str], _union]
 
 
 class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
@@ -51,14 +56,19 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
 
     Semantics:
       - A node with several outgoing edges fans out — successors run in parallel.
-      - A node with several incoming edges merges — it reads every prior branch's
-        output via the shared working-memory digest.
+      - A node with several incoming edges merges — a router only routes into it
+        once every declared predecessor has completed at least once (tracked via
+        the ``completed`` state set), so a diamond whose branches have unequal
+        length no longer runs the merge node early on a partial result; it reads
+        every prior branch's output via the shared working-memory digest.
       - A cycle loops until total turns reach ``max_rounds`` (the per-node router
         routes to END once ``rounds >= max_rounds``).
 
-    Known limitation: with conditional routing a diamond whose branches have
-    unequal length can run the merge node more than once. The round guard bounds
-    this and the working memory keeps results coherent.
+    Known limitation: ``completed`` accumulates for the whole run and is never
+    cleared, so a *cycle* that feeds back into a merge node can let a second
+    pass through the merge fire immediately (its predecessors are already all
+    marked completed from the first pass) instead of waiting for the cycle to
+    come around again. Acyclic graphs (the common case) are unaffected.
     """
 
     def __init__(self) -> None:
@@ -73,6 +83,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph: CustomGraphSpec | None = None,
@@ -82,7 +93,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
 
         graph = self._build_graph(
             staff, llm, max_rounds, custom_graph,
-            meeting_id, graph_context_provider, graph_config,
+            meeting_id, graph_context_provider, graph_config, project_id=project_id,
         )
         ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
 
@@ -97,6 +108,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph: CustomGraphSpec | None = None,
@@ -106,7 +118,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
 
         graph = self._build_graph(
             staff, llm, max_rounds, custom_graph,
-            meeting_id, graph_context_provider, graph_config,
+            meeting_id, graph_context_provider, graph_config, project_id=project_id,
         )
         ingest_user_message(user_input, meeting_id, graph_context_provider, graph_config)
 
@@ -131,6 +143,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ):
         names = [a.name for a in staff]
         name_set = set(names)
@@ -151,10 +164,12 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
             edges = [(names[i], names[i + 1]) for i in range(len(names) - 1)]
 
         successors: dict[str, list[str]] = {n: [] for n in names}
+        predecessors: dict[str, set[str]] = {n: set() for n in names}
         has_incoming: set[str] = set()
         for src, dst in edges:
             if dst not in successors[src]:
                 successors[src].append(dst)
+            predecessors[dst].add(src)
             has_incoming.add(dst)
 
         # Entry points: explicit, else roots (no incoming), else the first node.
@@ -170,10 +185,11 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
                 staff_member=staff_member,
                 llm=llm,
                 meeting_id=meeting_id,
+                project_id=project_id,
                 graph_context_provider=graph_context_provider,
                 graph_config=graph_config,
             )
-            builder.add_node(staff_member.name, self._make_delta_node(inner))
+            builder.add_node(staff_member.name, self._make_delta_node(inner, staff_member.name))
 
         path_map = {n: n for n in names}
         path_map[END] = END
@@ -183,8 +199,12 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
                 def router(state: CustomState):
                     if state["rounds"] >= max_rounds:
                         return END
-                    nxt = successors.get(_node, [])
-                    return nxt if nxt else END
+                    completed = state.get("completed", set())
+                    ready = [
+                        succ for succ in successors.get(_node, [])
+                        if predecessors[succ].issubset(completed)
+                    ]
+                    return ready if ready else END
                 return router
 
             builder.add_conditional_edges(name, _make_router(name), path_map)
@@ -195,9 +215,11 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
         return builder.compile()
 
     @staticmethod
-    def _make_delta_node(inner):
+    def _make_delta_node(inner, node_name: str):
         """Wrap the sequential node (which returns absolute state) so it emits a
-        reducer-friendly delta: only the turn(s) it added and a +1 round."""
+        reducer-friendly delta: only the turn(s) it added, a +1 round, and its
+        own name into ``completed`` so downstream merge-node routers can tell
+        every predecessor has run at least once."""
         async def node(state: CustomState) -> dict:
             result = await inner(state)
             all_turns = result.get("turns", [])
@@ -209,6 +231,7 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
                 "final_response": result.get("final_response", "") or "",
                 "final_staff": result.get("final_staff"),
                 "rounds": 1,
+                "completed": {node_name},
             }
         return node
 
@@ -222,4 +245,5 @@ class LangGraphCustomOrchestrator(StaffGraphOrchestrator):
             "final_response": "",
             "final_staff": None,
             "rounds": 0,
+            "completed": set(),
         }

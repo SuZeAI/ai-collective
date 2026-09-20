@@ -53,12 +53,16 @@ def _is_blocked_ip(ip: str) -> bool:
     )
 
 
-def _resolve_all(host: str, port: int) -> set[str]:
+def _resolve_all(host: str, port: int) -> list[str]:
     try:
         infos = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
     except socket.gaierror as exc:
         raise BlockedURLError(f"Could not resolve host {host!r}: {exc}") from exc
-    resolved = {info[4][0] for info in infos}
+    resolved: list[str] = []
+    for info in infos:
+        ip = info[4][0]
+        if ip not in resolved:
+            resolved.append(ip)
     if not resolved:
         raise BlockedURLError(f"Could not resolve host {host!r}")
     return resolved
@@ -96,7 +100,13 @@ def resolve_validated_ip(host: str, port: int) -> str | None:
     for ip in resolved:
         if _is_blocked_ip(ip):
             raise BlockedURLError(f"Blocked URL: host {host!r} resolves to non-public address {ip}")
-    return next(iter(resolved))
+    # Prefer IPv4: some container/network setups advertise a working AAAA
+    # record with no real IPv6 route, which would otherwise pin the connection
+    # to an unreachable address.
+    for ip in resolved:
+        if ipaddress.ip_address(ip).version == 4:
+            return ip
+    return resolved[0]
 
 
 # ── urllib: connection classes that pin to the validated IP ──────────────────

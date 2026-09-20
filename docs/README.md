@@ -10,6 +10,7 @@ frontend (`/ui`) and a FastAPI backend (`/server`). This directory documents the
 
 | Document | What it covers |
 |----------|----------------|
+| [features.md](features.md) | Complete, code-verified feature catalog — every router/endpoint paired with its frontend page, plus known gaps |
 | [architecture.md](architecture.md) | Layered (ports-and-adapters) design, package layout, request lifecycle |
 | [configuration.md](configuration.md) | Full environment-variable reference |
 | [security.md](security.md) | Auth, JWT, CORS, SSRF guard, webhook signatures, logging hygiene |

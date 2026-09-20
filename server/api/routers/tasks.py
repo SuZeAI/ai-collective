@@ -250,14 +250,33 @@ def delete_task(
 ) -> dict:
     existing = service.try_get_task(task_id)
     require_deletable(existing, owner_id, f"Task '{task_id}'")
+
+    # A project's tasks share one sandbox workspace (see
+    # sandbox_session.workspace_thread_id). If a sibling task in the same
+    # project still exists, destroying the sandbox here would wipe files that
+    # sibling still needs — only tear it down when this is the last task in
+    # the project (or the task has no project at all).
+    project_id = getattr(existing, "project_id", "") or None
+    sibling_exists = False
+    if project_id:
+        sibling_exists = any(
+            t.project_id == project_id for t in service.list_tasks() if t.id != task_id
+        )
+
     service.delete_task(task_id)
     conv_service.delete_messages_by_task(task_id)
     try:
         from server.infra.llm.sandbox_middleware import (
             cleanup_meeting_sandbox,
         )
+        from server.infra.sandbox.thread_files import purge_thread_files
 
-        cleanup_meeting_sandbox(task_id)
+        if sibling_exists:
+            # Only purge this task's own attachment metadata; leave the
+            # shared workspace/backup/pod alone for the sibling tasks.
+            purge_thread_files(task_id)
+        else:
+            cleanup_meeting_sandbox(task_id, project_id=project_id)
     except Exception:  # noqa: BLE001 - best-effort; never block task deletion
         pass
     _sync_runtime_state(service, department_service, staff_service)

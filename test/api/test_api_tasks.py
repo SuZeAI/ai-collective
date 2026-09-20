@@ -85,6 +85,75 @@ def test_task_status_transition_to_completed_sets_end_time(client, user_headers)
     assert completed.json()["endTime"] is not None
 
 
+def test_task_restart_from_completed_appends_session_divider_and_resets_progress(client, user_headers):
+    department_id = make_department(client, user_headers)["id"]
+
+    created = client.post(
+        f"{API}/tasks",
+        json={"title": "Restart me", "departmentId": department_id, "status": "in-progress", "progress": 80},
+        headers=user_headers,
+    ).json()
+
+    completed = client.post(
+        f"{API}/tasks",
+        json={"id": created["id"], "title": created["title"], "departmentId": department_id, "status": "completed"},
+        headers=user_headers,
+    ).json()
+    assert completed["endTime"] is not None
+
+    restarted = client.post(
+        f"{API}/tasks",
+        json={
+            "id": created["id"],
+            "title": created["title"],
+            "departmentId": department_id,
+            "status": "in-progress",
+            "progress": 80,
+        },
+        headers=user_headers,
+    )
+    assert restarted.status_code == 200, restarted.text
+    body = restarted.json()
+    assert body["progress"] == 0
+    assert body["endTime"] is None
+    assert body["startTime"] is not None
+
+    messages = client.get(f"{API}/meetings", params={"task_id": created["id"]}, headers=user_headers).json()
+    dividers = [m for m in messages if m["staffId"] == "system" and "New session started" in m["content"]]
+    assert len(dividers) == 1
+
+
+def test_task_resume_from_paused_preserves_start_time_and_progress(client, user_headers):
+    department_id = make_department(client, user_headers)["id"]
+
+    created = client.post(
+        f"{API}/tasks",
+        json={"title": "Pause me", "departmentId": department_id, "status": "in-progress", "progress": 40},
+        headers=user_headers,
+    ).json()
+
+    paused = client.post(
+        f"{API}/tasks",
+        json={"id": created["id"], "title": created["title"], "departmentId": department_id, "status": "paused", "progress": 40},
+        headers=user_headers,
+    ).json()
+    assert paused["status"] == "paused"
+
+    resumed = client.post(
+        f"{API}/tasks",
+        json={"id": created["id"], "title": created["title"], "departmentId": department_id, "status": "in-progress", "progress": 40},
+        headers=user_headers,
+    )
+    assert resumed.status_code == 200, resumed.text
+    body = resumed.json()
+    assert body["progress"] == 40
+    assert body["startTime"] == created["startTime"]
+
+    messages = client.get(f"{API}/meetings", params={"task_id": created["id"]}, headers=user_headers).json()
+    dividers = [m for m in messages if m["staffId"] == "system" and "New session started" in m["content"]]
+    assert len(dividers) == 0
+
+
 def test_tasks_are_scoped_per_owner(client, user_headers, second_user_headers):
     headers_a = user_headers
     headers_b = second_user_headers

@@ -107,6 +107,46 @@ def test_delete_company_cascade_does_not_touch_other_companys_department(client,
     assert all(d["id"] != dept_a["id"] for d in departments)
 
 
+def test_delete_company_cascade_removes_projects_epics_sprints_and_their_tasks(client, user_headers):
+    company = client.post(f"{API}/companies", json={"name": unique("company"), "type": "general"}, headers=user_headers).json()
+
+    project = client.post(
+        f"{API}/projects",
+        json={"key": unique("PRJ").upper()[:10], "name": unique("project"), "companyId": company["id"]},
+        headers=user_headers,
+    ).json()
+    epic = client.post(
+        f"{API}/epics", json={"projectId": project["id"], "title": unique("epic")}, headers=user_headers
+    ).json()
+    sprint = client.post(
+        f"{API}/sprints", json={"projectId": project["id"], "name": unique("sprint")}, headers=user_headers
+    ).json()
+    # A backlog-style issue: tied to the project, not (yet) assigned to a department.
+    task = client.post(
+        f"{API}/tasks",
+        json={"title": unique("issue"), "departmentId": "", "projectId": project["id"]},
+        headers=user_headers,
+    ).json()
+
+    impact = client.get(f"{API}/companies/{company['id']}/impact", headers=user_headers).json()
+    assert impact["removed_projects"] == 1
+    assert impact["removed_epics"] == 1
+    assert impact["removed_sprints"] == 1
+    assert impact["removed_tasks"] == 1
+
+    deleted = client.delete(f"{API}/companies/{company['id']}", headers=user_headers)
+    assert deleted.status_code == 200
+    body = deleted.json()
+    assert body["removed_projects"] == 1
+    assert body["removed_epics"] == 1
+    assert body["removed_sprints"] == 1
+
+    assert all(p["id"] != project["id"] for p in client.get(f"{API}/projects", headers=user_headers).json())
+    assert all(e["id"] != epic["id"] for e in client.get(f"{API}/epics", headers=user_headers).json())
+    assert all(s["id"] != sprint["id"] for s in client.get(f"{API}/sprints", headers=user_headers).json())
+    assert all(t["id"] != task["id"] for t in client.get(f"{API}/tasks", headers=user_headers).json())
+
+
 def test_upsert_company_claims_catalog_department(client, admin_headers, user_headers):
     catalog_dept = client.post(
         f"{API}/departments", json={"name": unique("catalog-dept"), "staff": []}, headers=admin_headers

@@ -1215,7 +1215,7 @@ export const api = {
   ingestUrl: (payload: { companyId: string; url: string; name?: string; description?: string; tags?: string[] }) =>
     apiFetch<LibraryDocument>("/library/documents/ingest-url", { method: "POST", body: JSON.stringify(payload) }),
   downloadDocument: (id: string) => apiDownload(`/library/documents/${encodeURIComponent(id)}/download`),
-  attachDocumentToProject: (id: string, taskId: string) =>
+  attachDocumentToTask: (id: string, taskId: string) =>
     apiFetch<{ attached: boolean }>(`/library/documents/${encodeURIComponent(id)}/attach`, {
       method: "POST",
       body: JSON.stringify({ taskId }),

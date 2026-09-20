@@ -94,3 +94,30 @@ def test_resolve_validated_ip_blocks_private(monkeypatch):
 def test_resolve_validated_ip_returns_none_when_guard_disabled(monkeypatch):
     monkeypatch.setattr(settings.security, "allow_private_http", True)
     assert resolve_validated_ip("anything.invalid", 80) is None
+
+
+def test_resolve_validated_ip_prefers_ipv4_over_ipv6(monkeypatch):
+    # Dual-stack hosts (e.g. Cloudflare-fronted sites) resolve to both families.
+    # Many container networks advertise a working AAAA record with no real IPv6
+    # route, so pinning to an arbitrary resolved address (previously a set, with
+    # non-deterministic iteration order) intermittently picked an unreachable
+    # IPv6 address. IPv4 must be preferred whenever it's available.
+    def fake(host, port, proto=None):
+        return [
+            (socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("2606:4700:10::ac42:93f3", port, 0, 0)),
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port)),
+        ]
+
+    monkeypatch.setattr(socket, "getaddrinfo", fake)
+    assert resolve_validated_ip("example.com", 443) == "93.184.216.34"
+
+
+def test_resolve_validated_ip_falls_back_to_ipv6_when_no_ipv4(monkeypatch):
+    monkeypatch.setattr(
+        socket,
+        "getaddrinfo",
+        lambda host, port, proto=None: [
+            (socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("2606:4700:10::ac42:93f3", port, 0, 0)),
+        ],
+    )
+    assert resolve_validated_ip("ipv6-only.example.com", 443) == "2606:4700:10::ac42:93f3"

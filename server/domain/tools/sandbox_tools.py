@@ -3,6 +3,11 @@
 All operations are strictly confined to the staff run's thread workspace:
   {SANDBOX_WORKSPACE}/{thread_id}/
 
+This workspace is shared across every staff member on the task (and across
+every task in the same Project — see sandbox_session.workspace_thread_id).
+Convention, not enforcement: write shared/deliverable files at the root,
+and put private scratch content under "<your name>/" (see sandbox_write_file).
+
 File tools reject any path outside that boundary.
 Bash commands run with HOME/TMPDIR set to the workspace and 'cd' restricted
 to prevent escaping (best-effort in local mode; hard-enforced in k8s).
@@ -59,6 +64,14 @@ def _get_sandbox(sandbox=None, session_id: str | None = None):
     return create_sandbox_adapter(session_id=session_id)
 
 
+def _is_local_sandbox_mode() -> bool:
+    try:
+        from server.api.settings import settings
+        return settings.sandbox_mode == "local"
+    except Exception:  # noqa: BLE001
+        return True
+
+
 class SandboxToolkit(BaseToolkit):
     """All-in-one sandbox toolkit with strict workspace confinement.
 
@@ -73,15 +86,34 @@ class SandboxToolkit(BaseToolkit):
         super().__init__(**kwargs)
         # session_id keys the underlying sandbox (e.g. per-conversation Pod in
         # k8s mode); ignored for the local host-FS adapter.
-        self.sandbox = _get_sandbox(sandbox, session_id=session_id)
+        self._session_id = session_id
+        if sandbox is not None:
+            self._sandbox = sandbox
+        elif _is_local_sandbox_mode():
+            # Cheap, in-process — fine to resolve eagerly.
+            self._sandbox = _get_sandbox(session_id=session_id)
+        else:
+            # k8s mode: acquiring a sandbox means creating/waiting on a real Pod
+            # (up to sandbox_provider's readiness timeout). Every staff turn in
+            # a task builds this toolkit whether or not the turn ever calls a
+            # sandbox tool, so resolving it here would pay that cost on every
+            # single turn. Defer to first actual use instead (see `sandbox`
+            # property below).
+            self._sandbox = None
         from server.infra.sandbox.local_sandbox import LocalSandboxAdapter
         if workspace:
             self._base_workspace = workspace
-        elif isinstance(self.sandbox, LocalSandboxAdapter):
-            self._base_workspace = self.sandbox._workspace
+        elif isinstance(self._sandbox, LocalSandboxAdapter):
+            self._base_workspace = self._sandbox._workspace
         else:
             self._base_workspace = "/workspace"
         self.workspace = self._base_workspace
+
+    @property
+    def sandbox(self):
+        if self._sandbox is None:
+            self._sandbox = _get_sandbox(session_id=self._session_id)
+        return self._sandbox
 
     # ── Workspace helpers ─────────────────────────────────────────────────────
 
@@ -351,10 +383,18 @@ class SandboxToolkit(BaseToolkit):
 
         Parent directories are created automatically.
         Path must be inside the staff's sandbox workspace.
+        This workspace is shared with every other staff member on this task
+        (or, for a task inside a Project, every task in that Project) — a file
+        written at the workspace root or in a plainly-named folder is visible
+        to all of them. If a file is a private draft/scratch note you don't
+        want cluttering the shared space, put it under a subfolder named after
+        yourself instead (e.g. "<your name>/notes.md").
 
         Args:
             description: Brief explanation of why you are writing this file.
-            path: Path to the file (absolute or relative to workspace).
+            path: Path to the file (absolute or relative to workspace). Use the
+                workspace root (or a clearly-named folder) for anything other
+                staff should see; use "<your name>/..." to keep it private.
             content: Text content to write.
             append: Append to the file instead of overwriting (default False).
         """

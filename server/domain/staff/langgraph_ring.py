@@ -83,6 +83,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -97,6 +98,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             llm=llm,
             max_rounds=max_rounds,
             meeting_id=meeting_id,
+            project_id=project_id,
             graph_context_provider=graph_context_provider,
             graph_config=graph_config,
         )
@@ -112,6 +114,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
         llm: LLMProvider,
         max_rounds: int,
         meeting_id: str | None = None,
+        project_id: str | None = None,
         graph_context_provider: GraphContextProvider | None = None,
         graph_config: GraphContextConfig | None = None,
         custom_graph=None,  # accepted for protocol parity; ignored by this mode
@@ -126,6 +129,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             llm=llm,
             max_rounds=max_rounds,
             meeting_id=meeting_id,
+            project_id=project_id,
             graph_context_provider=graph_context_provider,
             graph_config=graph_config,
         )
@@ -149,6 +153,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ):
         n = len(staff)
         builder: StateGraph = StateGraph(MultiAgentRingState)
@@ -165,6 +170,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
                     llm=llm,
                     max_rounds=max_rounds,
                     meeting_id=meeting_id,
+                    project_id=project_id,
                     graph_context_provider=graph_context_provider,
                     graph_config=graph_config,
                 ),
@@ -210,6 +216,7 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
         meeting_id: str | None,
         graph_context_provider: GraphContextProvider | None,
         graph_config: GraphContextConfig | None,
+        project_id: str | None = None,
     ):
         n = len(staff)
 
@@ -228,9 +235,11 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             prev_staff_name = staff[(staff_index - 1) % n].name if current_round > 0 else "user"
             next_staff_name = staff[(staff_index + 1) % n].name
 
-            # Generate a unique thread_id for this staff_member turn.
+            # Resolve this staff_member turn's sandbox thread_id/workspace.
             # Also creates {SANDBOX_WORKSPACE}/{thread_id}/ immediately.
-            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(staff_member.name, meeting_id)
+            sandbox_thread_id, sandbox_workspace = init_sandbox_thread(
+                staff_member.name, meeting_id, project_id
+            )
 
             stream_writer({
                 "type": EventType.AGENT_START.value,
@@ -310,7 +319,9 @@ class LangGraphRingOrchestrator(StaffGraphOrchestrator):
             if graph_context_text:
                 context_parts += ["", "context:", graph_context_text]
 
-            bound_tools = build_bound_tools(staff_member, meeting_id=meeting_id, llm=llm)
+            bound_tools = build_bound_tools(
+                staff_member, meeting_id=meeting_id, project_id=project_id, llm=llm
+            )
 
             # staff_member.system_prompt stays byte-identical every turn so the
             # compiled-agent cache and upstream provider prompt-caching see a

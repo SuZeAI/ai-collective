@@ -102,7 +102,7 @@ Each exposes `run(...)` (→ `GraphRunResult`) and `run_stream(...)` (SSE events
 
 Token budgeting (`token_budget.py`) trims context to `staff.context_token_limit - staff.output_token_reserve`; it only estimates system+user text, not bound tool-schema tokens. Subagents (`subagents.py`) are bounded by `staff.subagent_max_concurrent`/`staff.subagent_max_turns` and treat the sandbox as the security boundary.
 
-Restarting a completed/stopped task (`PUT /tasks/{id}/status` → `in-progress`) preserves message history and the knowledge graph (appends a session-divider message) rather than wiping it; `DELETE /tasks/{id}/history` is the explicit owner/admin-gated full wipe.
+Restarting a completed/stopped task (`POST /tasks` upsert with `status: "in-progress"`) preserves message history and the knowledge graph (appends a session-divider message) rather than wiping it; `DELETE /tasks/{id}/history` is the explicit owner/admin-gated full wipe.
 
 Full topology/reliability details: `docs/agent-orchestration.md`. Streaming event types: `docs/streaming-guide.md`.
 
@@ -130,7 +130,7 @@ Two navigation scopes, switched via `setActiveCompanyId()` (`ui/src/hooks/use-co
 - **"All" (Overall)** — create/monitor all companies; `useCompanyScope().isOverall === true`.
 - **Inside a company** — operate one company; create tasks/projects/staff here.
 
-`AppLayout.tsx`'s `NAV_GROUPS` declares `visibleIn: "overall" | "company" | "both"` per group; `ui/src/App.tsx` guards routes to match (`WithCompanyLayout` vs `WithLayout`, plus `RequireCompany`/`RequireCompanyOrAdmin`/`RequireAdmin` gates). See `docs/company-model.md` for the full nav map, company types (`software`/`marketing`/`research`/`general`), and where `company_type` is threaded end-to-end (UI → `ui/src/lib/api.ts` → `server/api/schemas/company.py` → `server/domain/models.py` → repositories).
+`AppLayout.tsx`'s `NAV_GROUPS` declares `visibleIn: "overall" | "company" | "both"` per group; `ui/src/App.tsx` guards routes to match (`WithCompanyLayout` vs `WithLayout`, plus `RequireCompany`/`RequireCompanyOrAdmin`/`RequireAdmin` gates). See `docs/company-model.md` for the full nav map, company types (`software`/`marketing`/`research`/`general`), and where the company type is threaded end-to-end (UI → `ui/src/lib/api.ts` → `server/api/schemas/company.py` → `server/domain/models.py` → repositories). Note: the wire/JSON field is `type` (`UpsertCompanyRequest.type`, `CompanySchema.type`), not `company_type` — `company_type` only exists as an unrelated field name on the Office Builder's `OfficePlan` type in `ui/src/lib/api.ts`.
 
 `RunEngineContext` lives above the router so in-flight task runs (streaming, state) survive navigation — `TaskManager`/`VirtualOffice` are just views over it, not owners of run state.
 

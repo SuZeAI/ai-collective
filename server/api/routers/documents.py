@@ -6,7 +6,12 @@ import os
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
-from server.api.deps import current_owner_id_dep, current_user_dep, get_document_library_service
+from server.api.deps import (
+    current_owner_id_dep,
+    current_user_dep,
+    get_document_library_service,
+    get_task_service,
+)
 from server.api.ownership import require_deletable
 from server.api.routers.meetings import _ALLOWED_UPLOAD_TYPES, _MAX_UPLOAD_BYTES
 from server.api.schemas.library_document import (
@@ -104,7 +109,7 @@ async def ingest_url(
     from server.domain.tools.document_tools import _strip_html
     from server.domain.tools.http import HTTPError, request
 
-    _validate_workspace_id(req.workspaceId)
+    _validate_workspace_id(req.companyId)
 
     def _fetch() -> str:
         raw = request("GET", req.url, raw=True, retries=2)
@@ -170,13 +175,18 @@ def attach_to_project(
     doc_id: str,
     req: AttachToProjectRequest,
     service: DocumentLibraryService = Depends(get_document_library_service),
+    task_service=Depends(get_task_service),
     current_user: User = Depends(current_user_dep),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> dict:
     doc = service.get_document(doc_id)
     if not is_visible_to(owner_id, doc.owner_id):
         raise NotFoundError(f"Document {doc_id!r} not found")
-    record = service.attach_to_project(doc, req.taskId, current_user.id)
+    # Project-scoped sandbox: land the doc in the task's project-shared
+    # workspace (when it has one) so every task in that project can read it.
+    task = task_service.try_get_task(req.taskId)
+    project_id = getattr(task, "project_id", "") or None if task else None
+    record = service.attach_to_project(doc, req.taskId, current_user.id, project_id=project_id)
     return {"attached": True, "file": record}
 
 

@@ -10,8 +10,10 @@ import pytest
 from server.app.service.company_service import CompanyService
 from server.app.service.department_service import DepartmentService
 from server.app.service.document_library_service import DocumentLibraryService
+from server.app.service.epic_service import EpicService
 from server.app.service.project_service import ProjectService
 from server.app.service.skill_service import SkillService
+from server.app.service.sprint_service import SprintService
 from server.app.service.staff_service import StaffService
 from server.app.service.task_service import TaskService
 from server.domain.enums import StaffStatus
@@ -19,9 +21,11 @@ from server.domain.errors import NotFoundError
 from server.domain.models import CATALOG_COMPANY_ID, Company, Department, Skill, Staff
 from server.infra.repositories.json_files.companies import JsonCompanyRepository
 from server.infra.repositories.json_files.departments import JsonDepartmentRepository
+from server.infra.repositories.json_files.epics import JsonEpicRepository
 from server.infra.repositories.json_files.library_documents import JsonLibraryDocumentRepository
 from server.infra.repositories.json_files.projects import JsonProjectRepository
 from server.infra.repositories.json_files.skills import JsonSkillRepository
+from server.infra.repositories.json_files.sprints import JsonSprintRepository
 from server.infra.repositories.json_files.staff import JsonStaffRepository
 from server.infra.repositories.json_files.tasks import JsonTaskRepository
 from server.infra.repositories.json_store import JsonFileStore
@@ -33,6 +37,8 @@ def _make_company_service(tmp_path: Path) -> tuple[CompanyService, StaffService,
     skill_repo = JsonSkillRepository(JsonFileStore(tmp_path / "skills.json"))
     task_repo = JsonTaskRepository(JsonFileStore(tmp_path / "tasks.json"))
     project_repo = JsonProjectRepository(JsonFileStore(tmp_path / "projects.json"))
+    epic_repo = JsonEpicRepository(JsonFileStore(tmp_path / "epics.json"))
+    sprint_repo = JsonSprintRepository(JsonFileStore(tmp_path / "sprints.json"))
     document_repo = JsonLibraryDocumentRepository(JsonFileStore(tmp_path / "documents.json"))
 
     department_service = DepartmentService(department_repo)
@@ -40,6 +46,8 @@ def _make_company_service(tmp_path: Path) -> tuple[CompanyService, StaffService,
     skill_service = SkillService(skill_repo)
     task_service = TaskService(task_repo)
     project_service = ProjectService(project_repo)
+    epic_service = EpicService(epic_repo)
+    sprint_service = SprintService(sprint_repo)
     document_service = DocumentLibraryService(document_repo)
 
     company_repo = JsonCompanyRepository(JsonFileStore(tmp_path / "companies.json"))
@@ -51,6 +59,8 @@ def _make_company_service(tmp_path: Path) -> tuple[CompanyService, StaffService,
         task_service,
         document_service,
         project_service,
+        epic_service,
+        sprint_service,
     )
     return service, staff_service, skill_service, department_service
 

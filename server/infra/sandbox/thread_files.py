@@ -262,6 +262,38 @@ def _uploads_dir_has_files(meeting_id: str) -> bool:
         return False
 
 
+def project_has_files(project_id: str) -> bool:
+    """True if any staff has already written a file into *project_id*'s shared
+    sandbox workspace.
+
+    Mirrors ``_uploads_dir_has_files``'s disk check but keyed by the
+    project-scoped thread id and scanning the whole workspace (not just
+    ``uploads/``), since a sibling task may need to see a file a task wrote
+    anywhere in the shared workspace, not only uploaded ones. Cheap: no
+    persisted index, just a directory scan; tolerant like the rest of this
+    module (any error returns ``False``, never raises).
+    """
+    if not project_id:
+        return False
+    try:
+        from server.infra.sandbox.sandbox_session import workspace_thread_id
+        from server.api.settings import settings
+
+        base = settings.sandbox_workspace or os.path.join(
+            os.path.expanduser("~"), "sandbox_workspace"
+        )
+        tid = workspace_thread_id(task_id="", project_id=project_id)
+        workspace = os.path.join(base, tid)
+        if not os.path.isdir(workspace):
+            return False
+        for _root, _dirs, files in os.walk(workspace):
+            if files:
+                return True
+        return False
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def purge_thread_files(meeting_id: str) -> None:
     """Remove all records for *meeting_id* (best-effort; used on cleanup)."""
     try:

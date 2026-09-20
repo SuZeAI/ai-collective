@@ -49,8 +49,28 @@ _LLM_RETRY_BASE_DELAY = 1.5
 # LLM_TIMEOUT_SECONDS, any unanswered ask_user would always be killed by this
 # timeout (mislabeled as a slow model, and treated as terminal/non-retryable)
 # long before ask_user's own timeout could return its graceful fallback
-# message. Widen the outer budget to cover that case.
-LLM_CALL_TIMEOUT_SECONDS = max(LLM_TIMEOUT_SECONDS, settings.staff.ask_user_timeout_seconds)
+# message. Widen the outer budget to cover that case -- with a margin, not
+# just equality: an outer timeout equal to ask_user's own timeout races it,
+# and asyncio.timeout's cancellation can win, turning ask_user's intended
+# graceful "[ask_user timeout] ..." tool result into safe_chat's fatal
+# "[error] The model call timed out ..." (which raise_if_llm_failed treats as
+# terminal), killing the whole run instead of letting the staff proceed on
+# its own judgement.
+#
+# The margin has to cover more than just ask_user's own wait: ask_user is
+# usually invoked partway into the tool-calling loop (after context-building
+# and at least one model round already spent some of the outer budget), and
+# once it returns its timeout message the model needs another full round-trip
+# to process that and finalize. Reproduced live: a 30s margin still lost the
+# race (outer timeout fired at +630s while ask_user's own 600s window,
+# started ~15s into the call, didn't resolve and hand back to the model in
+# time) -- so this is deliberately generous, not the tightest bound that
+# happened to pass one test run.
+_ASK_USER_TIMEOUT_MARGIN_SECONDS = 120
+LLM_CALL_TIMEOUT_SECONDS = max(
+    LLM_TIMEOUT_SECONDS,
+    settings.staff.ask_user_timeout_seconds + _ASK_USER_TIMEOUT_MARGIN_SECONDS,
+)
 
 # How many fan-out branches (named staff dispatched in one parallel wave) may
 # run concurrently. Falls back to the subagent cap so a single env var can tune
@@ -483,16 +503,21 @@ def attach_meeting_sandbox(
     *,
     meeting_id: str | None,
     staff_name: str,
+    project_id: str | None = None,
 ) -> bool:
-    """If this conversation has files, scope the run to its shared sandbox.
+    """Scope the run to its shared sandbox and attach sandbox/document tools.
 
-    When the chat has at least one file (a user upload or an staff_member-written file):
+    Always (not just once a file already exists — a staff member must be able
+    to create a project/task's very first file, not only read files someone
+    else already put there):
       1. Binds the sandbox contextvar to the deterministic conversation-scoped
          thread id (overwriting any random per-turn id set earlier), so every
          staff_member in the chat resolves to the *same* shared workspace and can
-         exchange files.
-      2. Appends ``SandboxToolkit`` tools to *bound_tools* (idempotent — skips if
-         ``sandbox_bash`` is already present from a bound skill).
+         exchange files. When *project_id* is set, this is the project-scoped
+         thread id instead, so every task in the project shares one workspace.
+      2. Appends ``SandboxToolkit`` (+ ``DocumentToolkit``) tools to *bound_tools*
+         (idempotent — skips if ``sandbox_bash`` is already present from a bound
+         skill).
 
     Returns ``True`` when sandbox tools were attached. Best-effort: any failure
     logs and returns ``False`` so a run is never broken by sandbox wiring. Must
@@ -506,13 +531,13 @@ def attach_meeting_sandbox(
             ensure_meeting_sandbox,
         )
 
-        cs = ensure_meeting_sandbox(meeting_id)
-        if cs is None or not cs.has_files:
+        cs = ensure_meeting_sandbox(meeting_id, project_id=project_id)
+        if cs is None:
             return False
 
-        from server.infra.sandbox.sandbox_session import use_meeting_thread
+        from server.infra.sandbox.sandbox_session import use_workspace_thread
 
-        use_meeting_thread(meeting_id)
+        use_workspace_thread(task_id=meeting_id, project_id=project_id)
 
         existing = {getattr(t, "name", "") for t in bound_tools}
         if "sandbox_bash" not in existing:
@@ -520,7 +545,7 @@ def attach_meeting_sandbox(
 
             bound_tools.extend(SandboxToolkit(session_id=cs.thread_id).get_tools())
         # Document understanding (extract pdf/excel/csv text, read tables, fetch URLs,
-        # describe images) — available whenever a chat has files.
+        # describe images) — always available alongside the sandbox tools.
         if "document_extract_text" not in existing:
             from server.domain.tools.document_tools import DocumentToolkit
 
@@ -531,7 +556,9 @@ def attach_meeting_sandbox(
         return False
 
 
-def build_agent_tools(staff: GraphStaffDefinition, *, meeting_id: str | None) -> list[Any]:
+def build_agent_tools(
+    staff: GraphStaffDefinition, *, meeting_id: str | None, project_id: str | None = None
+) -> list[Any]:
     """Build the tool list every topology binds before calling the LLM for a
     turn: this staff member's skill tools + the default human-in-the-loop
     ask-user tool + shared working-memory tools + the conversation sandbox
@@ -575,13 +602,19 @@ def build_agent_tools(staff: GraphStaffDefinition, *, meeting_id: str | None) ->
         )
     bound_tools.extend(memory_toolkit_tools(meeting_id, staff.name))
 
-    attach_meeting_sandbox(bound_tools, meeting_id=meeting_id, staff_name=staff.name)
+    attach_meeting_sandbox(
+        bound_tools, meeting_id=meeting_id, staff_name=staff.name, project_id=project_id
+    )
 
     return bound_tools
 
 
 def build_bound_tools(
-    staff: GraphStaffDefinition, *, meeting_id: str | None, llm: Any
+    staff: GraphStaffDefinition,
+    *,
+    meeting_id: str | None,
+    llm: Any,
+    project_id: str | None = None,
 ) -> list[Any]:
     """``build_agent_tools`` + ``attach_subagent_toolkit`` for one staff member's turn.
 
@@ -589,7 +622,7 @@ def build_bound_tools(
     two-call sequence for every node and fan-out branch; centralising it here
     is what keeps that pairing from drifting apart.
     """
-    bound_tools = build_agent_tools(staff, meeting_id=meeting_id)
+    bound_tools = build_agent_tools(staff, meeting_id=meeting_id, project_id=project_id)
     attach_subagent_toolkit(bound_tools, staff, llm=llm)
     return bound_tools
 
@@ -679,11 +712,28 @@ def ingest_user_message(
         )
 
 
-def init_sandbox_thread(staff_name: str, meeting_id: str | None) -> tuple[str, str]:
-    """Allocate this turn's sandbox thread id/workspace, creating the dir now."""
-    from server.infra.sandbox.sandbox_session import get_thread_workspace, new_thread_id
+def init_sandbox_thread(
+    staff_name: str, meeting_id: str | None, project_id: str | None = None
+) -> tuple[str, str]:
+    """Allocate this turn's sandbox thread id/workspace, creating the dir now.
 
-    sandbox_thread_id = new_thread_id(staff_name=staff_name, task_id=meeting_id)
+    When meeting_id is set, resolves straight to the deterministic shared
+    workspace (conv-<hash>/proj-<hash>) instead of first creating a
+    throwaway random-uuid folder that attach_meeting_sandbox would
+    immediately replace — that used to leave one abandoned, empty directory
+    behind on every single turn regardless of whether it ever used a sandbox
+    tool (mirrors the fix in run_fanout_wave, which already did this).
+    """
+    from server.infra.sandbox.sandbox_session import (
+        get_thread_workspace,
+        new_thread_id,
+        use_workspace_thread,
+    )
+
+    if meeting_id:
+        sandbox_thread_id = use_workspace_thread(task_id=meeting_id, project_id=project_id)
+    else:
+        sandbox_thread_id = new_thread_id(staff_name=staff_name, task_id=meeting_id)
     sandbox_workspace = get_thread_workspace(settings.sandbox_workspace or "", sandbox_thread_id)
     return sandbox_thread_id, sandbox_workspace
 
@@ -808,6 +858,7 @@ async def run_fanout_wave(
     semaphore: asyncio.Semaphore,
     stream_writer: Any = None,
     meeting_id: str | None = None,
+    project_id: str | None = None,
     graph_context_provider: Any = None,
     graph_config: Any = None,
     base_turn_number: int,
@@ -833,9 +884,14 @@ async def run_fanout_wave(
         name = staff_def.name
         # Must happen inside this branch's own coroutine (not in the caller's
         # sequential pre-build loop): asyncio.gather snapshots each branch's
-        # context independently when it schedules the Task below, so a thread_id
+        # context independently when it schedules the Task below, so a value
         # set here is isolated to this branch and never bleeds into siblings.
-        init_sandbox_thread(name, meeting_id)
+        # Re-bind this branch's own asyncio Task context to the sandbox thread:
+        # with a meeting_id, init_sandbox_thread resolves the SAME deterministic
+        # shared-sandbox id (conv-/proj-<hash>) the pre-build phase's
+        # attach_meeting_sandbox already bound the branch's tools to, so every
+        # branch's writes land in the workspace siblings share.
+        init_sandbox_thread(name, meeting_id, project_id)
         if stream_writer:
             stream_writer({
                 "type": EventType.AGENT_TURN_START.value,

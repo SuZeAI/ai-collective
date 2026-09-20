@@ -8,10 +8,12 @@ from pathlib import Path
 from server.app.service.company_service import CompanyService
 from server.app.service.department_service import DepartmentService
 from server.app.service.document_library_service import DocumentLibraryService
+from server.app.service.epic_service import EpicService
 from server.app.service.meeting_service import MeetingService
 from server.app.service.office_builder_service import OfficeBuilderService
 from server.app.service.project_service import ProjectService
 from server.app.service.skill_service import SkillService
+from server.app.service.sprint_service import SprintService
 from server.app.service.staff_service import StaffService
 from server.app.service.task_service import TaskService
 from server.domain.errors import ValidationError
@@ -21,9 +23,11 @@ from server.domain.office_builder import DepartmentPlan, OfficePlan, StaffPlan
 from server.infra.repositories.json_files import (
     JsonCompanyRepository,
     JsonDepartmentRepository,
+    JsonEpicRepository,
     JsonMeetingRepository,
     JsonProjectRepository,
     JsonSkillRepository,
+    JsonSprintRepository,
     JsonStaffRepository,
     JsonTaskRepository,
 )
@@ -61,6 +65,8 @@ def _build_service(tmp_path: Path, llm=None) -> OfficeBuilderService:
     department_service = DepartmentService(_repo(JsonDepartmentRepository, tmp_path, "departments"))
     task_service = TaskService(_repo(JsonTaskRepository, tmp_path, "tasks"))
     project_service = ProjectService(_repo(JsonProjectRepository, tmp_path, "projects"))
+    epic_service = EpicService(_repo(JsonEpicRepository, tmp_path, "epics"))
+    sprint_service = SprintService(_repo(JsonSprintRepository, tmp_path, "sprints"))
     document_service = DocumentLibraryService(_repo(JsonLibraryDocumentRepository, tmp_path, "documents"))
     company_service = CompanyService(
         _repo(JsonCompanyRepository, tmp_path, "companies"),
@@ -70,6 +76,8 @@ def _build_service(tmp_path: Path, llm=None) -> OfficeBuilderService:
         task_service,
         document_service,
         project_service,
+        epic_service,
+        sprint_service,
     )
     conv_service = MeetingService(_repo(JsonMeetingRepository, tmp_path, "meetings"))
     return OfficeBuilderService(
@@ -116,6 +124,57 @@ def test_generate_plan_returns_reply_and_sanitized_plan_from_llm_json(tmp_path):
     assert len(plan.departments) == 1
     assert plan.departments[0].name == "Support"
     assert plan.departments[0].staff[0].name == "Alex"
+
+
+def test_generate_plan_clamps_invalid_select_field_value_to_default(tmp_path):
+    """Regression: found live running a generated software-company plan --
+    the designer LLM wrote skill.config={"driver": "playwright"} for a
+    tool_name="browser" skill. Only "browser_use" is actually implemented
+    (server/domain/tools/tool_registry.py raises otherwise), but the
+    "driver" field was declared as free text with no allowed-options list,
+    so nothing caught the bad value until the skill was actually run days
+    later, deep inside staff-graph execution, as a cryptic 502. The browser
+    preset's "driver" field is now a select with a single valid option, and
+    sanitize_office_plan clamps any select-field value outside its declared
+    options back to the field's default."""
+    fake_llm = _FakeLLM(
+        {
+            "reply": "Here is a browser-testing team.",
+            "plan": {
+                "name": "Browser Co",
+                "description": "",
+                "company_type": "software",
+                "departments": [
+                    {
+                        "name": "QA",
+                        "description": "",
+                        "mode": "sequential",
+                        "staff": [
+                            {
+                                "name": "Tester",
+                                "role": "QA",
+                                "description": "",
+                                "skills": [
+                                    {
+                                        "name": "Browser Checks",
+                                        "tool_name": "browser",
+                                        "config": {"driver": "playwright", "cdp_url": "http://localhost:9222"},
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ],
+            },
+        }
+    )
+    service, *_ = _build_service(tmp_path, llm=fake_llm)
+
+    _, plan = _run(service.generate_plan([("user", "Build me a browser-testing team")], None, "default"))
+
+    skill = plan.departments[0].staff[0].skills[0]
+    assert skill.config["driver"] == "browser_use"
+    assert skill.config["cdp_url"] == "http://localhost:9222"  # unrelated valid field untouched
 
 
 def test_generate_plan_keeps_current_plan_when_llm_plan_fails_validation(tmp_path):

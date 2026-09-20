@@ -154,7 +154,7 @@ export default function DocumentLibrary() {
     if (!attachDoc || !attachTaskId) return;
     setBusy(true);
     try {
-      await api.attachDocumentToProject(attachDoc.id, attachTaskId);
+      await api.attachDocumentToTask(attachDoc.id, attachTaskId);
       toast({ title: tl.attachSuccess });
       setAttachDoc(null);
     } catch (e) {
@@ -202,7 +202,7 @@ export default function DocumentLibrary() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>{tl.upload}</DialogTitle></DialogHeader>
-                <DocumentDropzone onFile={onUpload} hint={tl.dropHint} busy={busy} />
+                <DocumentDropzone onFile={onUpload} hint={tl.dropHint} doneHint={tl.uploadDone} busy={busy} />
               </DialogContent>
             </Dialog>
           </div>
@@ -271,7 +271,7 @@ export default function DocumentLibrary() {
                         <Download className="w-3.5 h-3.5 mr-1" />{tl.download}
                       </Button>
                       <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => openAttach(d)}>
-                        <Paperclip className="w-3.5 h-3.5 mr-1" />{tl.attachToProject}
+                        <Paperclip className="w-3.5 h-3.5 mr-1" />{tl.attachToTask}
                       </Button>
                       <Button variant="ghost" size="sm" className="h-7 w-7 p-0 ml-auto text-destructive hover:text-destructive" onClick={() => onDelete(d)}>
                         <Trash2 className="w-3.5 h-3.5" />
@@ -287,9 +287,9 @@ export default function DocumentLibrary() {
 
       <Dialog open={!!attachDoc} onOpenChange={(o) => !o && setAttachDoc(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{tl.attachToProject}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{tl.attachToTask}</DialogTitle></DialogHeader>
           <Select value={attachTaskId} onValueChange={setAttachTaskId}>
-            <SelectTrigger><SelectValue placeholder={tl.selectProject} /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={tl.selectTask} /></SelectTrigger>
             <SelectContent>
               {tasks.map((task) => <SelectItem key={task.id} value={task.id}>{task.title}</SelectItem>)}
             </SelectContent>
