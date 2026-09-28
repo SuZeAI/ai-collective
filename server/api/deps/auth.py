@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from fastapi import Request
+
 from server.api.deps.users import get_user_service
 from server.app.service.user_service import UserService
 
@@ -60,16 +62,19 @@ current_user_dep = _make_current_user_dep()
 
 
 # Optional-auth owner resolution: identifies which "owner scope" a request
-# belongs to. Valid Bearer token → that user's id; no token (guest mode in the
-# frontend sends none) → the shared GUEST_OWNER_ID scope. Users with the
-# "admin" (or legacy "system") role act in the shared DEFAULT_OWNER_ID scope:
-# everything they create is shared with everyone and they may delete shared
-# items. A token that is present but expired/invalid is rejected so stale
-# sessions don't silently read another scope's data.
+# belongs to. Valid Bearer token → that user's id; no token → the shared
+# GUEST_OWNER_ID scope for reads only (GET/HEAD) — writes without a token are
+# rejected below, since every anonymous caller shares that one scope and would
+# otherwise be able to read/edit/delete any other anonymous caller's data.
+# Users with the "admin" (or legacy "system") role act in the shared
+# DEFAULT_OWNER_ID scope: everything they create is shared with everyone and
+# they may delete shared items. A token that is present but expired/invalid is
+# rejected so stale sessions don't silently read another scope's data.
 def _make_current_owner_id_dep():
     from fastapi import Depends, Header, HTTPException, status
 
     def dep(
+        request: Request,
         authorization: str | None = Header(default=None, alias="Authorization"),
         user_service: UserService = Depends(get_user_service),
     ) -> str:
@@ -78,6 +83,12 @@ def _make_current_owner_id_dep():
         from server.domain.models import DEFAULT_OWNER_ID, GUEST_OWNER_ID
 
         if not authorization or not authorization.startswith("Bearer "):
+            if request.method not in ("GET", "HEAD"):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Authentication required",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
             return GUEST_OWNER_ID
         token = authorization.split(" ", 1)[1]
         try:
