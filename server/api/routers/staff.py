@@ -71,9 +71,14 @@ def list_staff(
     service: StaffService = Depends(get_staff_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> list[StaffSchema]:
-    # Batch-load skills once instead of N+1 per-staff lookups.
+    # Batch-load skills once instead of N+1 per-staff lookups. A staff's
+    # skill_ids can end up referencing a skill it has no visibility into (see
+    # the ownership check added in upsert_staff below, plus legacy data) — never
+    # surface another owner's (possibly secret-bearing) skill config here.
     return [
-        StaffSchema.from_domain(staff, skills)
+        StaffSchema.from_domain(
+            staff, [s for s in skills if is_visible_to(owner_id, s.owner_id)]
+        )
         for staff, skills in service.list_staff_with_skills()
         if is_visible_to(owner_id, staff.owner_id)
         and (company_id is None or staff.company_id == company_id)
@@ -84,6 +89,7 @@ def list_staff(
 def upsert_staff(
     req: UpsertStaffRequest,
     service: StaffService = Depends(get_staff_service),
+    skill_service: SkillService = Depends(get_skill_service),
     owner_id: str = Depends(current_owner_id_dep),
 ) -> StaffSchema:
     staff_id = req.id or f"agent_{uuid4().hex}"
@@ -94,12 +100,22 @@ def upsert_staff(
         req.avatar_icon, req.avatar_color, req.avatar_url
     )
 
+    # A staff may only be equipped with skills its owner can actually see —
+    # otherwise any user could attach another tenant's skill_id (e.g. by
+    # guessing/observing the id) and both read its config and run its tool
+    # with that tenant's credentials.
+    skill_ids = [
+        sid
+        for sid in (req.skill_ids or [])
+        if (skill := skill_service.try_get_skill(sid)) and is_visible_to(owner_id, skill.owner_id)
+    ]
+
     staff = Staff(
         id=staff_id,
         name=req.name,
         role=req.role,
         description=req.description or f"{req.role} staff",
-        skill_ids=req.skill_ids or [],
+        skill_ids=skill_ids,
         status=StaffStatus(req.status),
         avatar=avatar,
         avatar_icon=avatar_icon,

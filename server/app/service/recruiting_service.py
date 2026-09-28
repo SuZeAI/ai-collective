@@ -68,8 +68,11 @@ class RecruitingService:
         return [s for s in self._skills.list_skills() if s.owner_id == DEFAULT_OWNER_ID]
 
     def list_default_staff(self) -> list[tuple[Staff, list[Skill]]]:
+        # A catalog staff's skill_ids can reference a non-catalog skill (e.g. if
+        # it was cloned/edited incorrectly) — never surface that skill's
+        # (possibly secret-bearing) config to the public catalog.
         return [
-            (a, skills)
+            (a, [s for s in skills if s.owner_id == DEFAULT_OWNER_ID])
             for a, skills in self._staff.list_staff_with_skills()
             if a.owner_id == DEFAULT_OWNER_ID
         ]
