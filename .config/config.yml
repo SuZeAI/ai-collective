@@ -196,7 +196,7 @@ storage:
   backend: mongo                      # json (file) | mongo
   dir: storage/runtime                 # live DB dir (relative to project root)
   seed_dir: storage/seed               # read-only default catalog seeded FROM
-  file_backend: s3                    # local | s3 (auto: s3 when minio.enabled)
+  file_backend: local                 # local | s3 (auto: s3 when minio.enabled)
 
 # ── MongoDB (used when storage.backend=mongo) ─────────────────────────────────
 mongo:
@@ -206,7 +206,11 @@ mongo:
 # ── Graph knowledge extraction ────────────────────────────────────────────────
 graph:
   build_mode: static                  # static (spaCy, no token cost) | llm
-  backend: neo4j                      # auto (follows storage.backend) | neo4j
+  # backend: neo4j requires the neo4j container, which only starts with
+  # `make dev PROFILES=neo4j` (dev-only profile — no neo4j service exists in
+  # docker-compose.yaml at all). `auto` (follows storage.backend) needs
+  # nothing extra and always works.
+  backend: auto                       # auto (follows storage.backend) | neo4j
   neo4j_uri: bolt://neo4j:7687
   neo4j_user: neo4j
   neo4j_password: ${NEO4J_PASSWORD}
@@ -224,15 +228,20 @@ lock:
   redis_url: ${REDIS_URL}
 
 # ── Sandbox ───────────────────────────────────────────────────────────────────
+# mode: k8s requires the `provisioner` container (`make dev PROFILES=provisioner`)
+# plus a real k3s cluster on the host (see docs/k3s.md) — `local` needs neither
+# and always works.
 sandbox:
-  mode: k8s                           # local | k8s
+  mode: local                         # local | k8s
   timeout: 120
   provisioner_url: http://provisioner:8002
   workspace: ${SANDBOX_WORKSPACE}     # machine-specific absolute path, stays in .env
 
 # ── MinIO (S3 storage: sandbox backups in k8s mode, doc uploads if file_backend=s3) ──
+# Requires the `minio` container (`make dev PROFILES=minio`) — disabled by
+# default so file storage falls back to local disk with zero extra setup.
 minio:
-  enabled: true
+  enabled: false
   endpoint: minio:9000
   access_key: ${MINIO_ACCESS_KEY:-minioadmin}
   secret_key: ${MINIO_SECRET_KEY:-minioadmin}
@@ -288,8 +297,12 @@ retrieval:
 
 # ── Vector store (ANN index for long-term-memory recall) ──────────────────────
 # backend: none (brute-force) | faiss (local) | qdrant (service)
+# qdrant requires the `qdrant` container (`make dev PROFILES=qdrant`, dev-only
+# profile — no qdrant service exists in docker-compose.yaml at all). Only
+# matters while long_term_memory.enabled/embedding.enabled are true (both
+# default false below).
 vector_store:
-  backend: qdrant                        # none (brute-force) | faiss (local) | qdrant (service)
+  backend: none                          # none (brute-force) | faiss (local) | qdrant (service)
   qdrant_url: http://qdrant:6333
   qdrant_api_key: ${QDRANT_API_KEY}
   qdrant_collection: ltm_memory
