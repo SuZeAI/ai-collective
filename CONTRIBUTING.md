@@ -29,7 +29,8 @@ cd ai-collective
 uv sync --all-extras      # Python deps (includes optional extras)
 npm --prefix ui ci        # Frontend deps
 
-cp .env.template .env      # then set LLM_PROVIDER + an API key
+cp .env.template .env      # then fill in a provider key referenced by .config/config.yml's
+                            # models: list (e.g. GOOGLE_API_KEY) and toggle its enabled: true
 ```
 
 Run locally:

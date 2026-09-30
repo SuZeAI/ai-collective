@@ -365,7 +365,7 @@ check-install: ## Install the pre-commit git hook (runs check on `git commit`)
 
 ##@ Storage
 
-storage-reset: ## ⚠ Delete all runtime storage JSON files (agents, tasks, conversations…)
+storage-reset: ## ⚠ Delete all runtime storage JSON files (staff, tasks, meetings…)
 	@printf "$(C_YELLOW)⚠  This will delete all data in storage/runtime/$(C_RESET)\n"
 	@read -p "Type 'yes' to continue: " confirm && [ "$$confirm" = "yes" ] || exit 1
 	rm -f storage/runtime/*.json
