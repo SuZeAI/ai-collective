@@ -4,7 +4,7 @@
 # Services (always on):
 #   mongodb    — MongoDB database           (port 27017 internal)
 #   redis      — distributed lock backend  (enable: LOCK_BACKEND=redis)
-#   rabbitmq   — task queue                (enable: TASK_QUEUE_BACKEND=rabbitmq)
+#   rabbitmq   — task queue, mgmt UI bundled (port 15672) (enable: TASK_QUEUE_BACKEND=rabbitmq)
 #   nginx      — reverse proxy             (port 2026, override: PORT=xxxx)
 #   frontend   — Vite React static server  (served by `serve`, port 8080 internal)
 #   backend    — FastAPI application       (port 8000 internal)
@@ -14,7 +14,6 @@
 #                  Enable: docker compose --profile mongo-express up -d
 #
 #   redis-commander — Redis web UI         (profile: tools, port 8083)
-#   rabbitmq-mgmt  — RabbitMQ Mgmt UI     (profile: tools, port 15672)
 #                  Enable: docker compose --profile tools up -d
 #
 #   provisioner — K8s sandbox provisioner (creates per-request sandbox Pods)

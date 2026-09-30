@@ -223,6 +223,30 @@ auth:
 See `docs/configuration.md` for the full `config.yml` reference and `.env.template` for every
 secret the shipped config references.
 
+### Google Workspace OAuth (optional)
+
+The Drive / Sheets / Docs / Slides / Calendar skills each need a Google OAuth client of your
+own — this is separate from the "Sign in with Google" login shown above. To enable them:
+
+1. In the [Google Cloud Console](https://console.cloud.google.com/), create (or pick) a project
+   and enable the APIs you plan to use: Google Drive, Sheets, Docs, Slides, Calendar.
+2. Under **APIs & Services → Credentials**, create an **OAuth client ID** of type
+   **Web application**.
+3. Add an **Authorized redirect URI** matching your deployment:
+   - No Docker (`make backend`): `http://127.0.0.1:8000/api/v1/auth/oauth/callback` (the default)
+   - Docker, behind the nginx proxy (`make dev` / `make up`): `http://localhost:2026/api/v1/auth/oauth/callback`
+
+   If you use a different redirect URI, set `GOOGLE_OAUTH_REDIRECT_URI` in `.env` to match.
+4. Download the client secret JSON and point the backend at it:
+   - No Docker: save it anywhere, then set
+     `GOOGLE_OAUTH_CLIENT_SECRET_PATH=/absolute/path/to/client_secret.json` in `.env`.
+   - Docker: drop the file under `.secrets/credentials/` at the repo root (already mounted into
+     the backend container at `/app/.secrets/credentials/`), then set
+     `GOOGLE_OAUTH_CLIENT_SECRET_PATH=/app/.secrets/credentials/<your-file>.json` in `.env`.
+5. Restart the backend, then connect an account from the Skills UI for any Google Workspace
+   skill. It runs the OAuth flow and stores the token per-user under
+   `.secrets/google/<owner>/<tool>/` — nothing is written to `config.yml` or committed to git.
+
 -----
 
 ## Getting Started

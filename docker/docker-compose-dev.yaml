@@ -201,7 +201,14 @@ services:
     env_file:
       - ../.env
     environment:
-      - GOOGLE_OAUTH_CLIENT_SECRET_PATH=/app/.secrets/credentials/client_secret_126452164764-91jgaonrbbj8upq515jmr8cbnn6sqemt.apps.googleusercontent.com.json
+      # GOOGLE_OAUTH_CLIENT_SECRET_PATH comes from .env via env_file above, not
+      # hardcoded here — an environment: entry would always win over env_file
+      # for the same key, silently ignoring whatever the user sets in .env. To
+      # enable Google Workspace skills (Drive/Sheets/Calendar/Docs/Slides),
+      # drop your OAuth client secret JSON under .secrets/credentials/ (mounted
+      # into the container at /app/.secrets/credentials/) and set
+      # GOOGLE_OAUTH_CLIENT_SECRET_PATH=/app/.secrets/credentials/<your-file>.json
+      # in .env — see README.md's "Google Workspace OAuth (optional)" section.
       - REDIS_URL=redis://redis:6379/0
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
       - MONGO_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-admin}@mongodb:27017/ai_collective?authSource=admin
