@@ -1,13 +1,15 @@
 name: CI
 
-# Chỉ chạy khi main có commit mới hoặc khi PR được merge vào main.
-# (Push trực tiếp lên main và merge PR đều tạo ra một push event trên nhánh main.)
+# Runs on every push to main and on every pull request targeting main, so
+# contributions get checked before merge, not just after.
 on:
   push:
     branches: [main]
-  workflow_dispatch: {} # cho phép chạy thủ công từ tab Actions
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {} # allows manual runs from the Actions tab
 
-# Hủy lần chạy cũ nếu có commit mới trên cùng nhánh để tiết kiệm runner.
+# Cancel any in-progress run for the same ref when a new commit lands.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -60,8 +62,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Lint không chặn CI (codebase còn nhiều cảnh báo/lỗi lint hiện hữu),
-      # vẫn hiển thị kết quả để dần dọn dẹp.
+      # Lint doesn't block CI (the codebase still has existing warnings/
+      # errors), but results are still shown so they can be cleaned up over time.
       - name: Lint (non-blocking)
         run: npm run lint
         continue-on-error: true
