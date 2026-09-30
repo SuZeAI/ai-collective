@@ -48,5 +48,6 @@ The API is served under the prefix `/api/v1` by default (`API_PREFIX`).
 - [llm-key-rotation.md](llm-key-rotation.md) — multi-key rotation & failover (RPM/TPM budgets); `rotate` vs `9router`
 - [9router-setup.md](9router-setup.md) — 9Router multi-provider LLM proxy setup
 - [google-login-setup.md](google-login-setup.md) — Google OAuth sign-in setup
+- [google-workspace-oauth.md](google-workspace-oauth.md) — Google OAuth client setup for the Drive/Sheets/Docs/Slides/Calendar skills
 - [streaming-guide.md](streaming-guide.md) — server-sent event streaming
 - [k3s.md](k3s.md) — Kubernetes / k3s sandbox provisioner
