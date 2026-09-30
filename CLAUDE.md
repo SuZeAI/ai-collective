@@ -61,15 +61,15 @@ cd ui && npm run build         # vite build
 
 ```
 server/
-├── api/            # FastAPI app, routers, Pydantic schemas, DI (deps.py), auth, settings
+├── api/            # FastAPI app, routers, Pydantic schemas, DI (deps/), auth, settings
 ├── app/            # Use-case services; ports/ holds Protocols (repositories, llm, agent_graph)
 ├── domain/         # Framework-free business logic + models.py (frozen dataclasses)
 ├── infra/          # Adapters implementing app.ports (repos, LLM providers, queues, locks, sandbox)
-└── log/            # Logging setup
+└── share/          # Logging setup (log.py) + shared text helpers
 ```
 - `domain` imports nothing from `app`/`api`/`infra` — with one accepted pragmatic exception: `server/domain/tools/*.py`, `server/domain/staff/langgraph_*.py` + `_graph_runtime.py`, and `server/domain/memory/working_memory.py` import `server.api.settings.settings` (and a couple of concrete `server.infra.*` adapters) directly, since threading these through `app.ports` would mean re-deriving config plumbing for ~20 files with no behavioral payoff. Don't treat this as a bug to fix opportunistically; new domain code should still prefer not adding fresh direct-to-infra imports.
 - `app` depends only on `app.ports.*` Protocols, never concrete adapters — except a handful of lazy, function-local imports used to dodge circular imports: `graph_context_service.py` (`rag_retrieval_store`), `document_library_service.py` (`file_store`, `sandbox_session`, `thread_files`, `sandbox_middleware`), `long_term_memory_service.py` (`working_memory_store`), `staff_graph_service.py` (`sandbox_middleware`). Same rule: accepted as-is, not a template for new code.
-- `api/deps.py` is the composition root: it wires concrete adapters into services (`get_staff_service`, `get_task_service`, `get_project_service`, `get_epic_service`, `get_sprint_service`, `get_recruiting_service`, `get_meeting_service`, `get_company_service`, `get_connection_service`, `get_document_library_service`, `get_office_builder_session_service`, `get_simulation_service`, `get_staff_graph_service(mode=...)`, etc.) and also seeds admin user / default data on boot.
+- `api/deps/` (a package, not a single file) is the composition root: it wires concrete adapters into services (`get_staff_service`, `get_task_service`, `get_project_service`, `get_epic_service`, `get_sprint_service`, `get_recruiting_service`, `get_meeting_service`, `get_company_service`, `get_connection_service`, `get_document_library_service`, `get_office_builder_session_service`, `get_simulation_service`, `get_staff_graph_service(mode=...)`, etc.) and also seeds admin user / default data on boot.
 - Domain errors (`NotFoundError`, `ValidationError`) → HTTP 404/422 via handlers in `api/main.py`.
 - Domain models (`server/domain/models.py`) include `Skill`, `Staff`, `Department`, `Task`, `Project`, `Epic`, `Sprint`, `Message`, `Analytics`, `ActivityFeedItem`, `Company`, `LibraryDocument`, `OfficeBuilderSession`, `Connection`, `ToolResult`, `SimulationStep`, `TokenUsageRecord`, `ModelPricing`, `User`.
 

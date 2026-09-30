@@ -122,7 +122,7 @@ NEO4J_PASSWORD=neo4j_password
 ```
 
 Code: `server/infra/repositories/neo4j_graph_knowledge.py`; wired in
-`server/api/deps.py`. Install with `pip install '.[neo4j]'`.
+`server/api/deps/_core.py`. Install with `pip install '.[neo4j]'`.
 
 ## RAG retrieval modes (additional information)
 

@@ -8,7 +8,7 @@ the application layer talks to infrastructure only through Protocols.
 server/
 ├── api/                 # Presentation: FastAPI app, routers, schemas, DI, auth
 │   ├── main.py          # App factory, CORS, exception handlers, lifecycle
-│   ├── deps.py          # Dependency-injection wiring + current_user_dep / current_owner_id_dep
+│   ├── deps/            # Dependency-injection wiring + current_user_dep / current_owner_id_dep
 │   ├── security.py      # Password hashing + JWT encode/decode
 │   ├── settings.py      # Pydantic settings, sourced entirely from config.yml (see configuration.md)
 │   ├── config_loader.py # config.yml parsing + ${VAR} secret expansion
@@ -36,7 +36,7 @@ server/
 │   ├── vector_store/, long_term_memory_store.py, rag_retrieval_store.py, working_memory_store.py
 │   ├── task_queue.py    # Memory / RabbitMQ task queue
 │   └── lock_provider.py # Threading / Redis locks
-└── log/                 # Logging setup (rotating file + console)
+└── share/               # Logging setup (log.py, rotating file + console) + shared text helpers
 ```
 
 ## Layer rules
@@ -51,13 +51,13 @@ server/
   `ModelPricingRepository`, `SystemSettingsRepository`,
   `GraphKnowledgeRepository`, and `AnalyticsRepository` /
   `ActivityFeedRepository`.)
-- **infra** implements those Protocols; **api/deps.py** is the
+- **infra** implements those Protocols; **api/deps/** (a package) is the
   composition root that injects concrete adapters into services.
 
 ## Request lifecycle
 
 1. FastAPI routes a request to a handler in `api/routers/`.
-2. `Depends(...)` factories in `api/deps.py` build the relevant service with its
+2. `Depends(...)` factories in `api/deps/` build the relevant service with its
    injected repositories / LLM provider.
 3. The service runs the use case against domain logic and ports.
 4. Domain errors (`NotFoundError`, `ValidationError`) are translated to HTTP
