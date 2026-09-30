@@ -311,6 +311,32 @@ def cleanup_meeting_sandbox(meeting_id: str, *, project_id: Optional[str] = None
         logger.warning("cleanup_meeting_sandbox failed for %s: %s", meeting_id, exc)
 
 
+def hibernate_meeting_sandbox_pod(meeting_id: str, *, project_id: Optional[str] = None) -> None:
+    """Destroy just the live k8s Pod/Service for a finished task's sandbox.
+
+    Unlike ``cleanup_meeting_sandbox``, this never touches file records, the
+    MinIO backup, or (for a project-shared workspace) the host staging dir —
+    only the remote compute. ``run_stream_with_definitions`` always backs the
+    workspace up to MinIO in its ``finally`` block before this runs, so the
+    next tool call in this task/project lazily recreates the Pod and restores
+    from that backup (see ``attach_meeting_sandbox``). No-op in local sandbox
+    mode, where there is no separate Pod to reclaim. Never raises.
+    """
+    if not meeting_id or _sandbox_mode() == "local":
+        return
+    try:
+        from server.infra.sandbox.sandbox_provider import get_sandbox_provider
+        from server.infra.sandbox.sandbox_session import workspace_thread_id
+
+        thread_id = workspace_thread_id(task_id=meeting_id, project_id=project_id)
+        provider = get_sandbox_provider()
+        provider.destroy(provider._deterministic_id(thread_id))
+        with _restored_lock:
+            _restored.discard(meeting_id)
+    except Exception as exc:  # noqa: BLE001 — best-effort, never block completion
+        logger.warning("hibernate_meeting_sandbox_pod failed for %s: %s", meeting_id, exc)
+
+
 def _remote_base(sandbox) -> str:
     """Base workspace path inside a remote (container) sandbox."""
     try:

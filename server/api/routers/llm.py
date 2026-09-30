@@ -3,7 +3,8 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
-from dataclasses import asdict
+from dataclasses import asdict, replace
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -30,6 +31,7 @@ from server.app.service.staff_service import StaffService
 from server.app.service.graph_context_service import GraphContextService
 from server.app.service.llm_service import LLMService
 from server.app.service.task_service import TaskService
+from server.domain.enums import TaskStatus
 from server.domain.errors import NotFoundError
 from server.domain.memory.knowledge_graph import GraphContextConfig
 from server.domain.service.skill_tool_service import SkillToolManager
@@ -430,6 +432,7 @@ async def run_staff_graph_stream(
             custom_graph=custom_graph_spec,
         ).__aiter__()
         cancelled = False
+        completed_naturally = False
         try:
             while True:
                 # Already stopped before fetching the next event.
@@ -500,6 +503,8 @@ async def run_staff_graph_stream(
                     activity_feed_service.log(turn_schema.staff_id, format_response_action(turn.content))
                     yield f"data: {json.dumps(turn_schema.model_dump())}\n\n"
 
+            completed_naturally = not cancelled
+
             if cancelled:
                 logger.info(
                     "[StaffGraph] STOP — run cancelled, aborting in-flight work | meeting_id=%s",
@@ -539,5 +544,46 @@ async def run_staff_graph_stream(
             current_usage_department.reset(team_token)
             if meeting_id:
                 task_run_registry.unregister(meeting_id, cancel_flag)
+
+            # Server-side source of truth for "did this task finish": the UI
+            # also writes status=completed/progress=100 once it observes the
+            # stream end, but that write is client-driven (see
+            # RunEngineContext.tsx) and never happens for a non-browser caller
+            # or a closed tab. Runs in `finally` (not right after the loop) so
+            # it still fires even if graph-context building or LTM
+            # consolidation above raised. Best-effort — never blocks the
+            # response since the stream has already been sent to the client.
+            if completed_naturally and meeting_id:
+                try:
+                    current_task = task_service.try_get_task(meeting_id)
+                    if current_task is not None and current_task.status == TaskStatus.in_progress:
+                        task_service.upsert_task(replace(
+                            current_task,
+                            status=TaskStatus.completed,
+                            progress=100,
+                            end_time=datetime.now(timezone.utc).replace(microsecond=0),
+                        ))
+                        # Reclaim the k8s Pod once nothing else in the same
+                        # project is still actively running it (a project's
+                        # tasks share one sandbox workspace/Pod).
+                        sibling_active = False
+                        if project_id:
+                            sibling_active = any(
+                                t.project_id == project_id
+                                and t.status == TaskStatus.in_progress
+                                and t.id != meeting_id
+                                for t in task_service.list_tasks()
+                            )
+                        if not sibling_active:
+                            from server.infra.llm.sandbox_middleware import (
+                                hibernate_meeting_sandbox_pod,
+                            )
+
+                            hibernate_meeting_sandbox_pod(meeting_id, project_id=project_id)
+                except Exception:
+                    logger.warning(
+                        "[StaffGraph] server-side completion write failed | meeting_id=%s",
+                        meeting_id, exc_info=True,
+                    )
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
