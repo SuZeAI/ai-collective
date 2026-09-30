@@ -95,6 +95,32 @@ files agents write visible on the k3s node's filesystem live, in addition to
 the MinIO push/restore path (which remains the only durable option when the
 node doesn't share a filesystem with the backend, e.g. a real remote cluster).
 
+### Exposing a port (viewing an app running inside the sandbox)
+
+Each sandbox's Service exposes exactly one NodePort by default — port 8080,
+the sandbox's own control-plane API (`/v1/shell/exec` etc.). A dev server an
+agent starts inside the Pod (`vite preview`, `python -m http.server`, ...) is
+**not** reachable from outside on its own; nothing else is exposed.
+
+The `sandbox_expose_port` tool (`server/domain/tools/sandbox_tools.py`) opens
+a NodePort onto a specific port on demand:
+`POST /api/sandboxes/{sandbox_id}/expose {"port": N}` on the provisioner adds
+a named `V1ServicePort` to the sandbox's existing Service and returns the
+allocated NodePort URL. Idempotent (re-exposing an already-exposed port
+returns the same mapping) and self-cleaning (exposed ports live on the same
+Service the sandbox's own destroy path already deletes — nothing extra to
+garbage-collect). `GET .../expose` lists currently-exposed ports; `DELETE
+.../expose/{port}` removes one early. In `local` mode `expose_port` is a
+no-op — the backend and the sandboxed process already share the same host
+network, so `http://127.0.0.1:{port}` is already reachable.
+
+Implementation note: `patch_namespaced_service` uses a strategic-merge PATCH,
+and `Service.spec.ports` carries a K8s `patchMergeKey` of `port` — a patch
+body only *adds/updates* ports it mentions, it never removes ones it omits.
+Both the expose and unexpose provisioner endpoints therefore use
+`replace_namespaced_service` (a full-object PUT) instead, which has
+unambiguous replace semantics for the whole `ports` list.
+
 ---
 
 ## Related config keys

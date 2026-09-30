@@ -39,3 +39,32 @@ def test_planner_decompose_returns_503_when_no_provider_configured(client, user_
         headers=user_headers,
     )
     assert resp.status_code == 503
+
+
+def test_department_generate_returns_503_when_no_provider_configured(client, user_headers):
+    make_staff(client, user_headers)
+
+    resp = client.post(
+        f"{API}/departments/generate",
+        json={"prompt": "A support department"},
+        headers=user_headers,
+    )
+    assert resp.status_code == 503
+
+
+def test_staff_generate_returns_503_when_no_provider_configured(client, user_headers):
+    resp = client.post(
+        f"{API}/staff/generate",
+        json={"prompt": "A staff member who searches the web"},
+        headers=user_headers,
+    )
+    assert resp.status_code == 503
+
+
+def test_skill_generate_returns_503_when_no_provider_configured(client, user_headers):
+    resp = client.post(
+        f"{API}/skills/generate",
+        json={"prompt": "Something that can send Slack messages"},
+        headers=user_headers,
+    )
+    assert resp.status_code == 503

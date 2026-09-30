@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ExternalLink, Pencil, Plus, ShieldCheck, Trash2, ChevronDown } from "lucide-react";
+import { ExternalLink, Pencil, Plus, ShieldCheck, Sparkles, Trash2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -75,6 +75,13 @@ export default function Skills() {
 
   const [showPresetSuggestions, setShowPresetSuggestions] = useState(false);
   const [presetSearch, setPresetSearch] = useState("");
+  const [genOpen, setGenOpen] = useState(false);
+  const [genPrompt, setGenPrompt] = useState("");
+  const [generating, setGenerating] = useState(false);
+  // Set right before applying an AI-generated draft's toolName, so the
+  // preset-sync effect below skips its usual "reset name to preset label"
+  // behavior once and doesn't clobber the generated name.
+  const skipPresetNameSyncRef = useRef(false);
 
   const filteredPresets = useMemo(() => {
     const term = presetSearch.trim().toLowerCase();
@@ -157,6 +164,11 @@ export default function Skills() {
   useEffect(() => {
     if (editingSkillId) return;
     if (!selectedPreset) return;
+    if (skipPresetNameSyncRef.current) {
+      skipPresetNameSyncRef.current = false;
+      setConfigValues(buildDefaultConfigValues(selectedPreset));
+      return;
+    }
     setName(selectedPreset.label || "");
     setConfigValues(buildDefaultConfigValues(selectedPreset));
   }, [selectedPreset, editingSkillId]);
@@ -187,6 +199,7 @@ export default function Skills() {
     setOauthTokenPath("");
     setOauthCredentialsPath("");
     setOauthServiceAccountPath("");
+    setGenPrompt("");
   };
 
   useEffect(() => {
@@ -345,6 +358,32 @@ export default function Skills() {
     return validateRequiredConfig(selectedPreset ?? undefined, configValues);
   };
 
+  const generateSkillDraft = async () => {
+    if (!genPrompt.trim() || generating || !companyId) return;
+    setGenerating(true);
+    try {
+      const draft = await api.generateSkill({ prompt: genPrompt.trim(), company_id: companyId });
+      resetForm();
+      if (draft.toolName) {
+        skipPresetNameSyncRef.current = true;
+        const preset = presetByTool.get(draft.toolName) ?? toToolPreset(draft.toolName);
+        setToolName(draft.toolName);
+        setPresetSearch(preset.label || "");
+        setConfigValues(buildDefaultConfigValues(preset));
+      }
+      setName(draft.name);
+      setDescription(draft.description);
+      setInstruction(draft.instruction);
+      setGenOpen(false);
+      setOpen(true);
+    } catch (e) {
+      console.error(e);
+      toast({ title: lang.skillsPage.couldNotGenerateSkillToast, description: String((e as Error).message ?? e), variant: "destructive" });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const saveSkill = async () => {
     if (!isValid() || !companyId) return;
 
@@ -434,6 +473,31 @@ export default function Skills() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Dialog open={genOpen} onOpenChange={setGenOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" onClick={() => setGenPrompt("")}>
+                <Sparkles className="w-4 h-4 mr-2" /> {lang.skillsPage.generateWithAiBtn}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg w-[92vw] p-6">
+              <DialogHeader>
+                <DialogTitle>{lang.skillsPage.generateDialogTitle}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3 pt-2">
+                <Textarea
+                  placeholder={lang.skillsPage.generatePromptPlaceholder}
+                  value={genPrompt}
+                  onChange={(e) => setGenPrompt(e.target.value)}
+                  rows={4}
+                />
+                <Button className="w-full" onClick={generateSkillDraft} disabled={!genPrompt.trim() || generating}>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {generating ? lang.skillsPage.generatingBtn : lang.skillsPage.generateBtn}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> {lang.skillsPage.newSkillBtn}</Button>

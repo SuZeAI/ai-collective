@@ -91,3 +91,15 @@ class UpsertStaffRequest(BaseModel):
     system_prompt: str | None = None
     subagent_enabled: bool = False
     company_id: str | None = None
+
+
+class GenerateStaffRequest(BaseModel):
+    prompt: str
+    company_id: str | None = None
+
+
+class GenerateStaffResponse(BaseModel):
+    name: str
+    role: str
+    description: str = ""
+    skillIds: list[str] = Field(default_factory=list)

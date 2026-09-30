@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { FlaskConical, Pencil, Plus, Trash2, Users, GripVertical, X } from "lucide-react";
+import { FlaskConical, Pencil, Plus, Sparkles, Trash2, Users, GripVertical, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -62,6 +63,9 @@ export default function DepartmentBuilder() {
   const activeTestRunRef = useRef<{ stopped: boolean; controller: AbortController } | null>(null);
   const [copied, setCopied] = useState(false);
   const [personnelSearch, setPersonnelSearch] = useState("");
+  const [genOpen, setGenOpen] = useState(false);
+  const [genPrompt, setGenPrompt] = useState("");
+  const [generating, setGenerating] = useState(false);
 
   const filteredStaff = useMemo(() => {
     const term = personnelSearch.trim().toLowerCase();
@@ -123,6 +127,7 @@ export default function DepartmentBuilder() {
     setAvatarColor("#0EA5E9");
     setAvatarUrl("");
     setPersonnelSearch("");
+    setGenPrompt("");
   };
 
   const handleDragStart = (staffId: string) => {
@@ -176,6 +181,27 @@ export default function DepartmentBuilder() {
     setAvatarColor(isHexColor(department.avatar_color || "") ? (department.avatar_color as string) : "#0EA5E9");
     setAvatarUrl(department.avatar_url || "");
     setOpen(true);
+  };
+
+  const generateDepartmentDraft = async () => {
+    if (!genPrompt.trim() || generating || !companyId) return;
+    setGenerating(true);
+    try {
+      const draft = await api.generateDepartment({ prompt: genPrompt.trim(), company_id: companyId });
+      resetForm();
+      setName(draft.name);
+      setDesc(draft.description);
+      setMode(draft.mode);
+      setMaxSteps(String(draft.maxSteps));
+      setSelectedStaff(draft.staffIds);
+      setGenOpen(false);
+      setOpen(true);
+    } catch (e) {
+      console.error(e);
+      toast({ title: lang.departmentBuilderPage.couldNotGenerateDepartmentToast, description: String((e as Error).message ?? e), variant: "destructive" });
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const saveDepartment = async () => {
@@ -441,6 +467,31 @@ export default function DepartmentBuilder() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Dialog open={genOpen} onOpenChange={setGenOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" onClick={() => setGenPrompt("")}>
+                <Sparkles className="w-4 h-4 mr-2" /> {lang.departmentBuilderPage.generateWithAiBtn}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg w-[92vw] p-6">
+              <DialogHeader>
+                <DialogTitle>{lang.departmentBuilderPage.generateDialogTitle}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3 pt-2">
+                <Textarea
+                  placeholder={lang.departmentBuilderPage.generatePromptPlaceholder}
+                  value={genPrompt}
+                  onChange={(e) => setGenPrompt(e.target.value)}
+                  rows={4}
+                />
+                <Button className="w-full" onClick={generateDepartmentDraft} disabled={!genPrompt.trim() || generating}>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {generating ? lang.departmentBuilderPage.generatingBtn : lang.departmentBuilderPage.generateBtn}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button onClick={openCreateDialog}><Plus className="w-4 h-4 mr-2" /> {lang.departmentBuilderPage.newDepartmentBtn}</Button>

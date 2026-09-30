@@ -20,6 +20,7 @@ Available tools:
   sandbox_read_file   — read a file (with optional line range)
   sandbox_write_file  — write / append content to a file
   sandbox_str_replace — replace a substring in a file
+  sandbox_expose_port — make a port a process is listening on reachable from outside
 """
 from __future__ import annotations
 
@@ -455,5 +456,28 @@ class SandboxToolkit(BaseToolkit):
             return f"Error: {exc}"
         except FileNotFoundError:
             return f"Error: File not found: {path}"
+        except Exception as exc:
+            return f"Error: {exc}"
+
+    # ── Networking ────────────────────────────────────────────────────────────
+
+    @tool(parse_docstring=True)
+    async def sandbox_expose_port(self, description: str, port: int) -> Any:
+        """Make a port a process inside the sandbox is listening on reachable
+        from outside the sandbox, and return the URL to reach it at.
+
+        Use this AFTER starting a server (e.g. `npm run preview`, `python -m
+        http.server`) — sandbox_bash itself only runs commands and returns
+        their output; it doesn't expose anything. Nothing is reachable from
+        outside by default, so a URL from this tool is the only way someone
+        outside the sandbox can view an app running inside it.
+
+        Args:
+            description: Brief explanation of what's running on this port.
+            port: The port number the process is listening on (1024-65535).
+        """
+        try:
+            url = await self.sandbox.expose_port(port)
+            return f"Exposed. Reachable at: {url}"
         except Exception as exc:
             return f"Error: {exc}"
