@@ -17,6 +17,17 @@ class MongoGraphKnowledgeRepository:
     def __init__(self, db: pymongo.database.Database) -> None:
         self._graphs_col = db["graph_knowledge"]
         self._events_col = db["graph_knowledge_events"]
+        # Pre-rename ("Conversation" -> "Meeting") databases may still carry a
+        # unique index on the old, now-unused conversation_id field. Every
+        # document lacks that field today, so its "unique" constraint on
+        # all-null values blocks every upsert past the first. Self-heal by
+        # dropping it if present, rather than requiring a manual migration.
+        try:
+            existing_indexes = {idx["name"] for idx in self._graphs_col.list_indexes()}
+            if "conversation_id_1" in existing_indexes:
+                self._graphs_col.drop_index("conversation_id_1")
+        except Exception:  # noqa: BLE001 — best-effort cleanup, never block startup
+            pass
         self._graphs_col.create_index("meeting_id", unique=True, background=True)
         self._events_col.create_index("meeting_id", background=True)
 
