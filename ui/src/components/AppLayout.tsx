@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Layout, Users, MessageSquare, CheckCircle2,
   BarChart3, Cpu, Play, Wrench, ChevronRight,
-  LogOut, User, UserCircle, Sparkles, Globe, ShieldCheck, Building, Building2, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban, Star, Plug, Settings,
+  LogOut, User, UserCircle, Sparkles, Globe, ShieldCheck, Building, Building2, ShoppingBag, Plus, FolderOpen, Coins, FolderKanban, Star, Plug, Settings, Network,
 } from "lucide-react";
 import { api, type Company } from "@/lib/api";
 import { setActiveCompanyId, getActiveCompanyId, useCompanyScope } from "@/hooks/use-company-scope";
@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 type NavItemKey =
   | "dashboard" | "analytics" | "tasks" | "projects" | "meetings" | "officeBuilder" | "virtualOffice"
   | "departments" | "staff" | "skills" | "playground" | "companies" | "settings"
-  | "monitoring" | "consumption" | "recruiting" | "documentLibrary" | "platform";
+  | "monitoring" | "consumption" | "recruiting" | "documentLibrary" | "platform" | "orgChart";
 
 type NavGroup = {
   groupKey: "overviewGroup" | "companiesGroup" | "catalogGroup" | "operationsGroup" | "orgGroup" | "officeGroup" | "devGroup" | "systemGroup" | "integrationsGroup" | "adminGroup";
@@ -77,6 +77,7 @@ const NAV_GROUPS: NavGroup[] = [
       { key: "departments", url: "/departments", icon: Users },
       { key: "staff", url: "/staff", icon: Cpu },
       { key: "skills", url: "/skills", icon: Wrench },
+      { key: "orgChart", url: "/org-chart", icon: Network },
     ]
   },
   {
@@ -275,6 +276,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const isFullBleed =
     location.pathname === "/tasks" ||
     location.pathname === "/virtual-office" ||
+    location.pathname === "/org-chart" ||
     /^\/projects\/[^/]+\/(board|backlog|roadmap|reports)$/.test(location.pathname);
   const isFullWidth = isFullBleed || FULL_WIDTH_PATHS.includes(location.pathname);
 

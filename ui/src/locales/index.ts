@@ -93,6 +93,7 @@ export type Translations = {
     companies: string;
     officeBuilder: string;
     virtualOffice: string;
+    orgChart: string;
     recruiting: string;
     documentLibrary: string;
     platform: string;
@@ -160,6 +161,14 @@ export type Translations = {
     keptDeptQuotePrefix: string;
     keptDeptIsKeptSuffix: string;
     deleteCompanyBtn: string;
+  };
+  companyHierarchyPage: {
+    pageTitle: string;
+    pageSubtitle: string;
+    departmentsGroupLabel: string;
+    projectsGroupLabel: string;
+    emptyTitle: string;
+    emptyDesc: string;
   };
   settingsPage: {
     modelUpdated: string;
@@ -1063,6 +1072,7 @@ export const translations: Record<Language, Translations> = {
       meetings: "Meetings", analytics: "Performance & Cost", playground: "Playground", companies: "Manage Companies",
       officeBuilder: "AI Office Designer",
       virtualOffice: "Office Map",
+      orgChart: "Org Chart",
       recruiting: "Recruiting",
       documentLibrary: "Documents",
       platform: "Platform",
@@ -1130,6 +1140,14 @@ export const translations: Record<Language, Translations> = {
       keptDeptQuotePrefix: "\"",
       keptDeptIsKeptSuffix: "\" is kept — still used by ",
       deleteCompanyBtn: "Delete company",
+    },
+    companyHierarchyPage: {
+      pageTitle: "Org Chart",
+      pageSubtitle: "Departments, staff, projects, epics and sprints for this company, all in one diagram.",
+      departmentsGroupLabel: "Departments",
+      projectsGroupLabel: "Projects",
+      emptyTitle: "Nothing to show yet",
+      emptyDesc: "Add departments or projects to this company to see them mapped out here.",
     },
     settingsPage: {
       modelUpdated: "Active model updated",
@@ -2065,6 +2083,7 @@ export const translations: Record<Language, Translations> = {
       meetings: "Cuộc họp", analytics: "Hiệu suất & Chi phí", playground: "Khu thử nghiệm", companies: "Quản lý Công ty",
       officeBuilder: "AI Thiết kế Công ty",
       virtualOffice: "Sơ đồ Văn phòng",
+      orgChart: "Sơ đồ tổ chức",
       recruiting: "Tuyển dụng",
       documentLibrary: "Tài liệu",
       platform: "Nền tảng",
@@ -2132,6 +2151,14 @@ export const translations: Record<Language, Translations> = {
       keptDeptQuotePrefix: "\"",
       keptDeptIsKeptSuffix: "\" được giữ lại — vẫn đang dùng bởi ",
       deleteCompanyBtn: "Xóa công ty",
+    },
+    companyHierarchyPage: {
+      pageTitle: "Sơ đồ tổ chức",
+      pageSubtitle: "Phòng ban, nhân sự, dự án, epic và sprint của công ty này, gộp chung trong một sơ đồ.",
+      departmentsGroupLabel: "Phòng ban",
+      projectsGroupLabel: "Dự án",
+      emptyTitle: "Chưa có dữ liệu để hiển thị",
+      emptyDesc: "Thêm phòng ban hoặc dự án vào công ty này để xem sơ đồ tại đây.",
     },
     settingsPage: {
       modelUpdated: "Đã cập nhật mô hình đang dùng",
@@ -3067,6 +3094,7 @@ export const translations: Record<Language, Translations> = {
       meetings: "会议", analytics: "绩效与成本", playground: "试验场", companies: "管理公司",
       officeBuilder: "AI 公司设计师",
       virtualOffice: "办公室平面图",
+      orgChart: "组织架构图",
       recruiting: "招聘",
       documentLibrary: "文档",
       platform: "平台",
@@ -3134,6 +3162,14 @@ export const translations: Record<Language, Translations> = {
       keptDeptQuotePrefix: "\"",
       keptDeptIsKeptSuffix: "\" 将被保留——仍被以下对象使用：",
       deleteCompanyBtn: "删除公司",
+    },
+    companyHierarchyPage: {
+      pageTitle: "组织架构图",
+      pageSubtitle: "该公司的部门、员工、项目、史诗和冲刺,全部汇总在一张图中。",
+      departmentsGroupLabel: "部门",
+      projectsGroupLabel: "项目",
+      emptyTitle: "暂无数据可显示",
+      emptyDesc: "为该公司添加部门或项目后即可在此查看。",
     },
     settingsPage: {
       modelUpdated: "已更新当前模型",
@@ -4069,6 +4105,7 @@ export const translations: Record<Language, Translations> = {
       meetings: "ミーティング", analytics: "実績とコスト", playground: "プレイグラウンド", companies: "会社管理",
       officeBuilder: "AI 会社デザイナー",
       virtualOffice: "オフィス図面",
+      orgChart: "組織図",
       recruiting: "採用",
       documentLibrary: "ドキュメント",
       platform: "プラットフォーム",
@@ -4136,6 +4173,14 @@ export const translations: Record<Language, Translations> = {
       keptDeptQuotePrefix: "「",
       keptDeptIsKeptSuffix: "」は保持されます — 以下で引き続き使用中: ",
       deleteCompanyBtn: "会社を削除",
+    },
+    companyHierarchyPage: {
+      pageTitle: "組織図",
+      pageSubtitle: "この会社の部署、スタッフ、プロジェクト、エピック、スプリントを1つの図にまとめて表示します。",
+      departmentsGroupLabel: "部署",
+      projectsGroupLabel: "プロジェクト",
+      emptyTitle: "表示するデータがありません",
+      emptyDesc: "この会社に部署またはプロジェクトを追加すると、ここに表示されます。",
     },
     settingsPage: {
       modelUpdated: "使用中のモデルを更新しました",

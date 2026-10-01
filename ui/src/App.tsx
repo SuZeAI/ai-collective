@@ -38,6 +38,7 @@ const Companies = lazy(() => import("@/pages/Companies"));
 const Platform = lazy(() => import("@/pages/Platform"));
 const OfficeBuilder = lazy(() => import("@/pages/OfficeBuilder"));
 const VirtualOffice = lazy(() => import("@/pages/VirtualOffice"));
+const CompanyHierarchy = lazy(() => import("@/pages/CompanyHierarchy"));
 const Recruiting = lazy(() => import("@/pages/Recruiting"));
 const DocumentLibrary = lazy(() => import("@/pages/DocumentLibrary"));
 const Settings = lazy(() => import("@/pages/Settings"));
@@ -193,6 +194,7 @@ const App = () => (
                   <Route path="/platform" element={<RequireCompany><Platform /></RequireCompany>} />
                   <Route path="/office-builder" element={<OfficeBuilder />} />
                   <Route path="/virtual-office" element={<RequireCompany><VirtualOffice /></RequireCompany>} />
+                  <Route path="/org-chart" element={<RequireCompany><CompanyHierarchy /></RequireCompany>} />
                   <Route path="/recruiting" element={<RequireCompany><Recruiting /></RequireCompany>} />
                   <Route path="/documents" element={<RequireCompanyOrAdmin><DocumentLibrary /></RequireCompanyOrAdmin>} />
                   <Route path="/settings" element={<Settings />} />
