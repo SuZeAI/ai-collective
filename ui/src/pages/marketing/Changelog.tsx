@@ -21,9 +21,26 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    tag: "aic_v4.0",
+    date: "October 1, 2026",
+    label: "Latest — Public Launch",
+    changes: [
+      { type: "breaking", text: "Full terminology rename across code, routes, and UI: Agent → Staff, Team → Department, Workspace → Company, Conversation → Meeting, Marketplace → Recruiting." },
+      { type: "feature", text: "Jira-style project hierarchy: Project → Epic/Sprint → Task, plus an AI Planner that decomposes a project into epics and tasks from a prompt." },
+      { type: "feature", text: "Document Library per company, backed by a pluggable file store (local disk or S3/MinIO) with restore-on-restart." },
+      { type: "feature", text: "Cross-conversation long-term memory (pluggable embeddings, vector store recall) layered on top of per-run working memory." },
+      { type: "feature", text: "Project-scoped sandbox: tasks in the same project share one workspace, with lazy k8s Pod creation and MinIO-backed restore." },
+      { type: "feature", text: "AI-generate endpoints wired directly into the Staff/Department/Skill builder tabs, alongside the existing AI Office Designer." },
+      { type: "improvement", text: "PlatformHook and ThirdPartyConnection merged into a single Connection model shared by webhooks and outbound integrations." },
+      { type: "security", text: "Closed a guest-session isolation gap (writes now require login) and a cross-owner skill-config leak in staff equipping." },
+      { type: "improvement", text: "The staff-graph run-stream endpoint now writes task completion and reclaims the sandbox Pod itself, instead of relying entirely on the frontend." },
+      { type: "improvement", text: "Shipped config.yml defaults now run end-to-end with a bare `make dev`/`make up` — no profile or external cluster required." },
+      { type: "feature", text: "Public launch: source-available under a Non-Commercial/Academic license, with a Quickstart and a public Roadmap in the README." },
+    ],
+  },
+  {
     tag: "aic_v3.0.3",
     date: "June 7, 2026",
-    label: "Latest",
     changes: [
       { type: "feature", text: "owner_id on all entities; users see their own and shared-scope items only." },
       { type: "feature", text: "can_modify function enforces shared item editing restrictions across staff, offices, skills, tasks, departments, and companies." },
