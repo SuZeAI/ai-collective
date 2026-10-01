@@ -562,6 +562,11 @@ mind for upcoming work — not committed dates, and not necessarily in this orde
 
 - [x] Generate Staff/Department/Skill directly from their own builder tabs, not only through
       the AI Office Designer chat flow.
+- [x] AI Office Designer — generate a whole company (departments, staff, and skills) from a
+      single chat description, then adjust the result before applying it.
+- [x] AI Planner — decompose a project into epics and tasks from a prompt (Backlog page).
+- [x] Mid-run human intervention — pause, interject with new instructions, or resume a staff
+      run while it's in progress, not just before/after.
 - [ ] Extend AI-assisted generation to more places across the app. Currently wired into the
       Staff/Department/Skill builders and project task breakdown (the Planner, on the Backlog
       page) — Companies and Projects are still plain forms with no AI-assisted creation path.
