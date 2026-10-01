@@ -21,9 +21,16 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    tag: "aic_v4.1",
+    date: "October 1, 2026",
+    label: "Latest",
+    changes: [
+      { type: "feature", text: "Company org/project hierarchy diagram — Departments→Staff and Projects→Epics/Sprints laid out as one interactive diagram, via a new nav entry and /org-chart route." },
+    ],
+  },
+  {
     tag: "aic_v4.0",
     date: "October 1, 2026",
-    label: "Latest — Public Launch",
     changes: [
       { type: "feature", text: "Project-scoped sandbox: tasks in the same project share one workspace, with lazy k8s Pod creation and MinIO-backed restore." },
       { type: "feature", text: "AI-generate endpoints wired directly into the Staff/Department/Skill builder tabs, alongside the existing AI Office Designer." },
