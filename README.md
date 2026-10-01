@@ -553,6 +553,36 @@ Any company you can describe, the AI Office Designer can build:
 - **Any general company** — parallel task execution via subagents processing independent
   subtasks concurrently, regardless of industry.
 
+-----
+
+## Roadmap
+
+AI – Collective is under active development. These are ideas and improvements already in
+mind for upcoming work — not committed dates, and not necessarily in this order:
+
+- [x] Generate Staff/Department/Skill directly from their own builder tabs, not only through
+      the AI Office Designer chat flow.
+- [ ] Extend AI-assisted generation to more places across the app. Currently wired into the
+      Staff/Department/Skill builders and project task breakdown (the Planner, on the Backlog
+      page) — Companies and Projects are still plain forms with no AI-assisted creation path.
+- [ ] Auto-mode levels, so a run doesn't have to pause for interactive confirmation every time.
+- [ ] A plugin system for extending functionality.
+- [ ] A visual view of company/project structure (an org-chart-style architecture view) —
+      distinct from the existing Virtual Office, which is a spatial/floor-plan visualization,
+      not a structural one.
+- [ ] Folder-level permissions for file operations, scoped to both project and company.
+- [ ] Daily/weekly standup-style meetings with Staff (scheduled recurring check-ins).
+- [ ] Rework the Skill/Tool config UI — color coding, and a clearer separation between
+      configuration fields and everything else.
+- [ ] Agent-to-Agent (A2A) protocol configuration, in the UI and for local setups — an A2A tool
+      type already exists in the backend registry, but it isn't exposed with a proper config UI yet.
+- [ ] Per-user model configuration: a place for each person to add their own model API keys, so
+      picking a model for a staff member flexibly calls it with the right key.
+- [ ] Standardize the agent execution harness.
+
+Have a request or want to help with one of these? Open a GitHub issue — see
+[Contributing](#contributing).
+
 ## Documentation
 
 Backend documentation lives in [`docs/`](docs/README.md): architecture, configuration (the full
