@@ -77,8 +77,31 @@ export type AuthTranslations = {
   phoneNote: string;
 };
 
+export type RequestAccessTranslations = {
+  badge: string;
+  title: string;
+  subtitle: string;
+  message: string;
+  emailBtn: string;
+  emailSubject: string;
+  backToHome: string;
+  dialogTitle: string;
+  dialogSubtitle: string;
+  emailLabel: string;
+  emailPlaceholder: string;
+  whoForLabel: string;
+  whoForPlaceholder: string;
+  whoForOptions: string[];
+  workTypesLabel: string;
+  workTypesOptions: string[];
+  messageLabel: string;
+  messagePlaceholder: string;
+  submitLabel: string;
+};
+
 export type Translations = {
   auth: AuthTranslations;
+  requestAccess: RequestAccessTranslations;
   nav: {
     label: string;
     dashboard: string;
@@ -1066,6 +1089,27 @@ export const translations: Record<Language, Translations> = {
       verifyBtn: "Verify",
       phoneNote: "We'll send a verification code to your number.",
     },
+    requestAccess: {
+      badge: "Access by request",
+      title: "AI Collective is currently invite-only",
+      subtitle: "We're not accepting public sign-ups yet.",
+      message: "Want to try AI Collective? Send us a request and we'll get back to you by email.",
+      emailBtn: "Request access via email",
+      emailSubject: "AI Collective — Access Request",
+      backToHome: "Back to home",
+      dialogTitle: "Request access",
+      dialogSubtitle: "AI Collective is rolling out gradually. Tell us a little about your setup and we'll reach out by email.",
+      emailLabel: "Email address",
+      emailPlaceholder: "you@company.com",
+      whoForLabel: "Who is this for?",
+      whoForPlaceholder: "Select one",
+      whoForOptions: ["Myself / Individual", "Startup", "Business / Enterprise", "Research / Education", "Not sure yet"],
+      workTypesLabel: "What would you like to delegate to your AI staff? Select all that apply.",
+      workTypesOptions: ["Software development", "Marketing & growth", "Research & analysis", "Operations & back office", "Customer support", "Not sure yet", "Something else"],
+      messageLabel: "Anything else you'd like us to know? (optional)",
+      messagePlaceholder: "Tell us more about your use case…",
+      submitLabel: "Request access",
+    },
     nav: {
       label: "Navigation", dashboard: "Company Overview", staff: "Staff",
       skills: "Skills & Tools", departments: "Departments", tasks: "Task Board", projects: "Projects",
@@ -1255,7 +1299,7 @@ export const translations: Record<Language, Translations> = {
       footer: { copy: "© 2026 AI Collective · MIT License" },
     },
     marketing: {
-      common: { login: "Login", startBuilding: "Start building", contactSales: "Contact sales", devDocs: "Developer docs", viewPricing: "View pricing" },
+      common: { login: "Request access", startBuilding: "Start building", contactSales: "Contact sales", devDocs: "Developer docs", viewPricing: "View pricing" },
       meet: {
         badge: "Meet AI Collective", h1: "Build and run AI-powered companies",
         sub: "AI Collective lets you create and manage AI-powered companies — of any type, from software startups to marketing agencies to research labs — each staffed, organized into departments, and run with full control over topology, tools, and execution environment.",
@@ -2077,6 +2121,27 @@ export const translations: Record<Language, Translations> = {
       verifyBtn: "Xác minh",
       phoneNote: "Chúng tôi sẽ gửi mã xác minh đến số của bạn.",
     },
+    requestAccess: {
+      badge: "Truy cập theo yêu cầu",
+      title: "AI Collective hiện chỉ truy cập theo lời mời",
+      subtitle: "Chúng tôi chưa mở đăng ký công khai.",
+      message: "Muốn dùng thử AI Collective? Hãy gửi yêu cầu và chúng tôi sẽ phản hồi qua email.",
+      emailBtn: "Gửi yêu cầu truy cập qua email",
+      emailSubject: "AI Collective — Yêu cầu truy cập",
+      backToHome: "Về trang chủ",
+      dialogTitle: "Yêu cầu truy cập",
+      dialogSubtitle: "AI Collective đang mở dần quyền truy cập. Hãy cho chúng tôi biết đôi chút về nhu cầu của bạn, chúng tôi sẽ liên hệ qua email.",
+      emailLabel: "Địa chỉ email",
+      emailPlaceholder: "ban@congty.com",
+      whoForLabel: "Bạn thuộc nhóm nào?",
+      whoForPlaceholder: "Chọn một",
+      whoForOptions: ["Cá nhân", "Startup", "Doanh nghiệp", "Nghiên cứu / Giáo dục", "Chưa chắc chắn"],
+      workTypesLabel: "Bạn muốn giao việc gì cho đội ngũ AI Staff? Chọn tất cả phù hợp.",
+      workTypesOptions: ["Phát triển phần mềm", "Marketing & tăng trưởng", "Nghiên cứu & phân tích", "Vận hành & hậu cần", "Chăm sóc khách hàng", "Chưa chắc chắn", "Khác"],
+      messageLabel: "Bạn có muốn chia sẻ thêm gì không? (không bắt buộc)",
+      messagePlaceholder: "Chia sẻ thêm về nhu cầu sử dụng của bạn…",
+      submitLabel: "Gửi yêu cầu truy cập",
+    },
     nav: {
       label: "Điều hướng", dashboard: "Tổng quan Công ty", staff: "Nhân sự",
       skills: "Nghiệp vụ & Công cụ", departments: "Phòng ban", tasks: "Bảng Công việc", projects: "Dự án",
@@ -2266,7 +2331,7 @@ export const translations: Record<Language, Translations> = {
       footer: { copy: "© 2026 AI Collective · Giấy phép MIT" },
     },
     marketing: {
-      common: { login: "Đăng nhập", startBuilding: "Bắt đầu xây dựng", contactSales: "Liên hệ kinh doanh", devDocs: "Tài liệu kỹ thuật", viewPricing: "Xem giá" },
+      common: { login: "Yêu cầu truy cập", startBuilding: "Bắt đầu xây dựng", contactSales: "Liên hệ kinh doanh", devDocs: "Tài liệu kỹ thuật", viewPricing: "Xem giá" },
       meet: {
         badge: "Giới thiệu AI Collective", h1: "Xây dựng và vận hành công ty do AI điều hành",
         sub: "AI Collective cho phép bạn tạo và quản lý các công ty do AI điều hành — thuộc bất kỳ loại hình nào, từ startup công nghệ, agency marketing đến phòng nghiên cứu — mỗi công ty có nhân sự và phòng ban riêng, với toàn quyền kiểm soát topo, công cụ và môi trường thực thi.",
@@ -3088,6 +3153,27 @@ export const translations: Record<Language, Translations> = {
       verifyBtn: "验证",
       phoneNote: "我们将向您的号码发送验证码。",
     },
+    requestAccess: {
+      badge: "需申请访问",
+      title: "AI Collective 目前仅限受邀访问",
+      subtitle: "我们尚未开放公开注册。",
+      message: "想试用 AI Collective 吗？发送申请，我们会通过邮件回复您。",
+      emailBtn: "通过邮件申请访问",
+      emailSubject: "AI Collective — 访问申请",
+      backToHome: "返回首页",
+      dialogTitle: "申请访问",
+      dialogSubtitle: "AI Collective 正在逐步开放访问权限。请简单告诉我们您的情况，我们会通过邮件与您联系。",
+      emailLabel: "邮箱地址",
+      emailPlaceholder: "you@company.com",
+      whoForLabel: "您属于哪一类？",
+      whoForPlaceholder: "请选择",
+      whoForOptions: ["个人", "初创公司", "企业", "科研 / 教育", "还不确定"],
+      workTypesLabel: "您希望将哪些工作交给 AI 员工？可多选。",
+      workTypesOptions: ["软件开发", "市场营销与增长", "调研与分析", "运营与后台支持", "客户支持", "还不确定", "其他"],
+      messageLabel: "还有什么想告诉我们的吗？（选填）",
+      messagePlaceholder: "简要描述您的使用场景…",
+      submitLabel: "发送访问申请",
+    },
     nav: {
       label: "导航", dashboard: "公司概览", staff: "员工",
       skills: "业务与工具", departments: "部门", tasks: "任务看板", projects: "项目",
@@ -3277,7 +3363,7 @@ export const translations: Record<Language, Translations> = {
       footer: { copy: "© 2026 AI Collective · MIT 许可证" },
     },
     marketing: {
-      common: { login: "登录", startBuilding: "开始构建", contactSales: "联系销售", devDocs: "开发者文档", viewPricing: "查看定价" },
+      common: { login: "申请访问", startBuilding: "开始构建", contactSales: "联系销售", devDocs: "开发者文档", viewPricing: "查看定价" },
       meet: {
         badge: "认识 AI Collective", h1: "创建并运营由 AI 驱动的公司",
         sub: "AI Collective 让您创建并管理由 AI 驱动的公司——涵盖软件初创公司、营销代理、研究实验室等任意类型——每家公司都拥有自己的部门与员工，并可完全控制拓扑、工具和执行环境。",
@@ -4099,6 +4185,27 @@ export const translations: Record<Language, Translations> = {
       verifyBtn: "確認",
       phoneNote: "お使いの番号に確認コードを送信します。",
     },
+    requestAccess: {
+      badge: "招待制",
+      title: "AI Collectiveは現在招待制です",
+      subtitle: "一般登録はまだ受け付けていません。",
+      message: "AI Collectiveを試してみたいですか？リクエストをお送りいただければ、メールでご連絡します。",
+      emailBtn: "メールでアクセスをリクエスト",
+      emailSubject: "AI Collective — アクセスリクエスト",
+      backToHome: "ホームに戻る",
+      dialogTitle: "アクセスをリクエスト",
+      dialogSubtitle: "AI Collectiveは段階的に公開中です。状況を簡単に教えていただければ、メールでご連絡します。",
+      emailLabel: "メールアドレス",
+      emailPlaceholder: "you@company.com",
+      whoForLabel: "どなたがご利用になりますか？",
+      whoForPlaceholder: "選択してください",
+      whoForOptions: ["個人", "スタートアップ", "企業", "研究 / 教育", "まだ決めていない"],
+      workTypesLabel: "AIスタッフにどのような業務を任せたいですか？複数選択可。",
+      workTypesOptions: ["ソフトウェア開発", "マーケティング・成長戦略", "リサーチ・分析", "オペレーション・バックオフィス", "カスタマーサポート", "まだ決めていない", "その他"],
+      messageLabel: "その他、お伝えしたいことがあれば（任意）",
+      messagePlaceholder: "利用用途について詳しくお聞かせください…",
+      submitLabel: "アクセスをリクエスト",
+    },
     nav: {
       label: "ナビゲーション", dashboard: "会社概要", staff: "スタッフ",
       skills: "業務とツール", departments: "部門", tasks: "タスクボード", projects: "プロジェクト",
@@ -4424,7 +4531,7 @@ export const translations: Record<Language, Translations> = {
       },
     },
     marketing: {
-      common: { login: "ログイン", startBuilding: "構築を始める", contactSales: "営業に連絡", devDocs: "開発者ドキュメント", viewPricing: "料金を見る" },
+      common: { login: "アクセスをリクエスト", startBuilding: "構築を始める", contactSales: "営業に連絡", devDocs: "開発者ドキュメント", viewPricing: "料金を見る" },
       meet: {
         badge: "AI Collective を紹介", h1: "AI が運営する会社を構築・運用",
         sub: "AI Collective は、ソフトウェアスタートアップからマーケティングエージェンシー、研究ラボまで、あらゆる種類の AI 運営会社を作成・管理できるプラットフォームです — 各社に部門とスタッフを配置し、トポロジー、ツール、実行環境を完全にコントロールできます。",
