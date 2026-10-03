@@ -171,7 +171,7 @@ export const LANDING_COPY = {
       pricing: "Pricing",
       resources: "Resources",
       exploreHere: "Explore here",
-      login: "Login",
+      login: "Request access",
       contactSales: "Contact sales",
       startBuilding: "Start building",
       products: "Products",
@@ -195,7 +195,7 @@ export const LANDING_COPY = {
       devDocs: "Developer docs",
       changelog: "Changelog",
       overview: "Overview",
-      consoleLogin: "Dashboard login",
+      consoleLogin: "Request dashboard access",
       star: "Star"
     },
     highlights: [
@@ -396,7 +396,7 @@ export const LANDING_COPY = {
       pricing: "Bảng giá",
       resources: "Tài nguyên",
       exploreHere: "Khám phá tại đây",
-      login: "Đăng nhập",
+      login: "Yêu cầu truy cập",
       contactSales: "Liên hệ kinh doanh",
       startBuilding: "Bắt đầu xây dựng",
       products: "Sản phẩm",
@@ -420,7 +420,7 @@ export const LANDING_COPY = {
       devDocs: "Tài liệu kỹ thuật",
       changelog: "Nhật ký thay đổi",
       overview: "Tổng quan",
-      consoleLogin: "Đăng nhập Dashboard",
+      consoleLogin: "Yêu cầu truy cập Dashboard",
       star: "Đánh sao"
     },
     highlights: [
@@ -621,7 +621,7 @@ export const LANDING_COPY = {
       pricing: "价格",
       resources: "资源",
       exploreHere: "在此探索",
-      login: "登录",
+      login: "申请访问",
       contactSales: "联系销售",
       startBuilding: "开始构建",
       products: "产品",
@@ -645,7 +645,7 @@ export const LANDING_COPY = {
       devDocs: "开发者文档",
       changelog: "变更日志",
       overview: "概述",
-      consoleLogin: "Dashboard 登录",
+      consoleLogin: "申请 Dashboard 访问权限",
       star: "Star"
     },
     highlights: [
@@ -846,7 +846,7 @@ export const LANDING_COPY = {
       pricing: "料金",
       resources: "リソース",
       exploreHere: "ここを探索",
-      login: "ログイン",
+      login: "アクセスをリクエスト",
       contactSales: "営業に連絡",
       startBuilding: "構築を始める",
       products: "製品",
@@ -870,7 +870,7 @@ export const LANDING_COPY = {
       devDocs: "開発者ドキュメント",
       changelog: "変更履歴",
       overview: "概要",
-      consoleLogin: "Dashboard ログイン",
+      consoleLogin: "ダッシュボードへのアクセスをリクエスト",
       star: "スター"
     },
     highlights: [
