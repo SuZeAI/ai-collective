@@ -20,7 +20,9 @@ import { useToast } from "@/hooks/use-toast";
 import AuthCallback from "@/pages/AuthCallback";
 import NotFound from "@/pages/NotFound";
 const Landing = lazy(() => import("@/pages/Landing"));
-const Login = lazy(() => import("@/pages/Login"));
+// Public sign-up/login is disabled pre-launch — /login renders the request-access
+// page instead. Login.tsx itself is left in place, just unrouted, not deleted.
+const RequestAccess = lazy(() => import("@/pages/RequestAccess"));
 const Profile = lazy(() => import("@/pages/Profile"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const StaffBuilder = lazy(() => import("@/pages/StaffBuilder"));
@@ -170,7 +172,7 @@ const App = () => (
               <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<Landing />} />
-                <Route path="/login" element={<Login />} />
+                <Route path="/login" element={<RequestAccess />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 {/* Layout route: <AppLayout> mounts once for every page below and
                     persists across navigation between them (only the <Outlet/>
