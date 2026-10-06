@@ -115,6 +115,9 @@ instance/
 # Sphinx documentation
 docs/_build/
 
+# Local-only launch notes, never pushed
+docs/launch-posts.md
+
 # PyBuilder
 .pybuilder/
 target/
